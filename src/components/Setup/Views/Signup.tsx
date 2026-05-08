@@ -155,14 +155,13 @@ const SignupStep = () => {
                 <div>
                     <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
                         <span>By creating account you agree with </span>
-                        <Link
-                            rel="noopener noreferrer"
-                            target="_blank"
-                            href="https://peanutprotocol.notion.site/Terms-of-Service-Privacy-Policy-1f245331837f4b7e860261be8374cc3a?pvs=4"
-                        >
-                            <span className="underline underline-offset-2">T&C</span> and{' '}
+                        <Link rel="noopener noreferrer" target="_blank" href="/terms">
+                            <span className="underline underline-offset-2">T&C</span>
+                        </Link>
+                        {' and '}
+                        <Link rel="noopener noreferrer" target="_blank" href="/privacy">
                             <span className="underline underline-offset-2">Privacy Policy</span>
-                        </Link>{' '}
+                        </Link>
                     </p>
                 </div>
             </div>

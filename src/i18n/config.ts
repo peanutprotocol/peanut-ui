@@ -17,6 +17,8 @@ export const ROUTE_SLUGS = [
     'stories',
     'pricing',
     'supported-networks',
+    'terms',
+    'privacy',
 ] as const
 
 export type RouteSlug = (typeof ROUTE_SLUGS)[number]

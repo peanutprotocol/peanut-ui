@@ -66,13 +66,11 @@ const Footer = ({ showSiteDirectory = true }: { showSiteDirectory?: boolean }) =
                         <a className="text-xl font-bold text-white" href="/en/help">
                             Docs
                         </a>
-                        <a
-                            className="text-xl font-bold text-white"
-                            href="https://peanutprotocol.notion.site/Terms-of-Service-Privacy-Policy-1f245331837f4b7e860261be8374cc3a"
-                            rel="noopener noreferrer"
-                            target="_blank"
-                        >
+                        <a className="text-xl font-bold text-white" href="/en/terms">
                             Terms
+                        </a>
+                        <a className="text-xl font-bold text-white" href="/en/privacy">
+                            Privacy
                         </a>
                         <a
                             className="text-xl font-bold text-white"

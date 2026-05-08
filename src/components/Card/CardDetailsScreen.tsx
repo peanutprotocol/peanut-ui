@@ -90,12 +90,7 @@ const CardDetailsScreen = ({ price, currentTier, onContinue, onBack }: CardDetai
                     <Checkbox value={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} />
                     <p className="pt-0.5 text-xs text-black">
                         I accept the{' '}
-                        <a
-                            href="https://peanutprotocol.notion.site/Terms-of-Service-Privacy-Policy-1f245331837f4b7e860261be8374cc3a?pvs=74"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline"
-                        >
+                        <a href="/en/terms" target="_blank" rel="noopener noreferrer" className="underline">
                             Terms &amp; Conditions
                         </a>
                     </p>

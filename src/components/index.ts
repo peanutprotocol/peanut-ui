@@ -1,6 +1,4 @@
 export * from './Claim'
 export * from './Jobs'
-export * from './Privacy'
 export * from './Profile'
 export * from './Request'
-export * from './Terms'
