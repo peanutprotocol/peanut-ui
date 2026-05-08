@@ -7,7 +7,7 @@ import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import useKycStatus from '@/hooks/useKycStatus'
 import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -33,6 +33,7 @@ export const Profile = () => {
     const username = user?.user.username || 'anonymous'
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const displayName = user?.user.showFullName && user?.user.fullName ? user.user.fullName : username
+    const showCard = useMemo(() => !underMaintenanceConfig.disableCardPioneers || hasCardAccess, [hasCardAccess])
 
     return (
         <div className="h-full w-full bg-background">
@@ -49,10 +50,15 @@ export const Profile = () => {
                     />
                     {/* Menu Items - First Group */}
                     <div>
-                        {(!underMaintenanceConfig.disableCardPioneers || hasCardAccess) && (
+                        {showCard && (
                             <ProfileMenuItem icon="credit-card" label="Your Card" href="/card" position="first" />
                         )}
-                        <ProfileMenuItem icon="achievements" label="Your Badges" href="/badges" position="middle" />
+                        <ProfileMenuItem
+                            icon="achievements"
+                            label="Your Badges"
+                            href="/badges"
+                            position={showCard ? 'middle' : 'first'}
+                        />
                         <ProfileMenuItem
                             icon={<Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />}
                             label="Points"
