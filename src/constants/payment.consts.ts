@@ -20,8 +20,10 @@ export const MIN_MANTECA_QR_PAYMENT_AMOUNT = 0.1 // Manteca provider minimum
 export const MAX_QR_PAYMENT_AMOUNT_FOREIGN = 2000 // max per transaction for foreign users
 
 // Bridge developer fee applied to cross-currency (non-USD) transfers.
-// Must match backend BRIDGE_DEVELOPER_FEE_PERCENT in peanut-api-ts/src/bridge/consts.ts
-export const BRIDGE_DEVELOPER_FEE_RATE = 0.005
+// Must match backend BRIDGE_DEVELOPER_FEE_PERCENT in peanut-api-ts/src/bridge/consts.ts.
+// Currently 0 — fee was undisclosed in-app while charged via Bridge's email
+// receipt. Will re-enable as an FX-rate spread once we ship the quote endpoint.
+export const BRIDGE_DEVELOPER_FEE_RATE = 0
 
 /**
  * validate if amount meets minimum requirement for a payment method
