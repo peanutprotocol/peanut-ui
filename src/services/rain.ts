@@ -10,6 +10,7 @@
 import Cookies from 'js-cookie'
 import { PEANUT_API_KEY, PEANUT_API_URL } from '@/constants/general.consts'
 import { fetchWithSentry } from '@/utils/sentry.utils'
+import type { SignedRainWithdrawal } from '@/hooks/wallet/useSignSpendBundle'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -199,6 +200,8 @@ interface RequestOpts {
     rateLimitSensitive?: boolean
     /** Mirror PCI no-cache intent on the client fetch for secrets endpoints. */
     noStore?: boolean
+    /** Override fetchWithSentry's default 10s timeout (e.g. UserOp submissions). */
+    timeoutMs?: number
 }
 
 async function rainRequest<T>(opts: RequestOpts): Promise<T> {
@@ -212,12 +215,16 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
     if (opts.body !== undefined) headers['Content-Type'] = 'application/json'
     if (opts.noStore) headers['Cache-Control'] = 'no-store'
 
-    const response = await fetchWithSentry(`${PEANUT_API_URL}${opts.path}`, {
-        method: opts.method,
-        headers,
-        body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-        cache: 'no-store',
-    })
+    const response = await fetchWithSentry(
+        `${PEANUT_API_URL}${opts.path}`,
+        {
+            method: opts.method,
+            headers,
+            body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+            cache: 'no-store',
+        },
+        opts.timeoutMs
+    )
 
     if (response.status === 429 && opts.rateLimitSensitive) {
         const err = await response.json().catch(() => ({}))
@@ -341,24 +348,46 @@ export const rainApi = {
         return status
     },
 
-    /** Lock an active card. Returns the new Rain status. */
-    lockCard: async (cardId: string): Promise<string> => {
+    /**
+     * Lock an active card. When the user has positive spending power, the
+     * caller MUST pass `verifiedWithdrawal` — the backend returns 400
+     * otherwise. Funds are returned to the user's smart wallet before the
+     * lock so they stay liquid. Returns the new Rain status.
+     */
+    lockCard: async (cardId: string, verifiedWithdrawal?: SignedRainWithdrawal): Promise<string> => {
         const { status } = await rainRequest<{ status: string }>({
             method: 'POST',
             path: `/rain/cards/${cardId}/lock`,
+            body: verifiedWithdrawal ? { verifiedWithdrawal } : {},
+            // Withdrawal path includes a UserOp wait — extend past the 10s default.
+            timeoutMs: verifiedWithdrawal ? 120_000 : undefined,
         })
         return status
     },
 
-    /** Cancel a card. Optional feedback persisted on RainCard.cancellationReason. */
-    cancelCard: async (cardId: string, feedback?: string): Promise<string> => {
+    /**
+     * Cancel a card. When the user has positive spending power, the caller
+     * MUST pass `verifiedWithdrawal` — the backend returns 400 otherwise.
+     * Funds are returned to the user's smart wallet before the cancel,
+     * since cancel can be terminal on Rain's side.
+     * Optional feedback persisted on RainCard.cancellationReason.
+     */
+    cancelCard: async (
+        cardId: string,
+        opts?: { feedback?: string; verifiedWithdrawal?: SignedRainWithdrawal }
+    ): Promise<string> => {
+        const body: Record<string, unknown> = {}
+        if (opts?.feedback) body.feedback = opts.feedback
+        if (opts?.verifiedWithdrawal) body.verifiedWithdrawal = opts.verifiedWithdrawal
         const { status } = await rainRequest<{ status: string }>({
             method: 'POST',
             path: `/rain/cards/${cardId}/cancel`,
             // Always send an object — Fastify's schema validator rejects a
             // missing body against `Type.Optional(Type.Object(...))` when the
             // request has no Content-Type, producing "body must be object".
-            body: feedback ? { feedback } : {},
+            body,
+            // Withdrawal path includes a UserOp wait — extend past the 10s default.
+            timeoutMs: opts?.verifiedWithdrawal ? 120_000 : undefined,
         })
         return status
     },

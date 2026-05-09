@@ -8,7 +8,11 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import SlideToAction from '@/components/Card/SlideToAction'
 import { rainApi } from '@/services/rain'
-import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
+import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
+import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { rainSpendingPowerToWei } from '@/utils/balance.utils'
 
 type Mode = 'lock' | 'unlock'
 type Phase = 'prompt' | 'loading' | 'success' | 'error'
@@ -40,6 +44,9 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
     const [phase, setPhase] = useState<Phase>('prompt')
     const [error, setError] = useState<string | null>(null)
     const queryClient = useQueryClient()
+    const { overview } = useRainCardOverview()
+    const { address: smartWalletAddress } = useWallet()
+    const { signSpend } = useSignSpendBundle()
 
     useEffect(() => {
         if (!isOpen) {
@@ -55,13 +62,49 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
         setPhase('loading')
         setError(null)
         try {
-            if (mode === 'lock') await rainApi.lockCard(cardId)
-            else await rainApi.activateCard(cardId)
+            if (mode === 'lock') {
+                // If the user has spending power, return collateral to their
+                // smart wallet BEFORE locking so funds stay liquid. The
+                // backend gates the lock on a successful withdrawal — order
+                // is handled there. We only need to deliver the signed body.
+                const spendingPowerWei = rainSpendingPowerToWei(overview?.balance?.spendingPower)
+                let verifiedWithdrawal: import('@/hooks/wallet/useSignSpendBundle').SignedRainWithdrawal | undefined
+                if (spendingPowerWei > 0n) {
+                    if (!smartWalletAddress) {
+                        throw new Error('Wallet not ready — please retry in a moment')
+                    }
+                    // Force collateral-only routing: smart=0n eliminates the
+                    // smart-only and mixed branches, so the strategy resolver
+                    // picks 'collateral-only' and signs a Rain withdrawal
+                    // straight to the user's smart wallet (1 passkey tap).
+                    const artifact = await signSpend({
+                        requiredUsdcAmount: spendingPowerWei,
+                        recipient: smartWalletAddress as `0x${string}`,
+                        smartBalance: 0n,
+                        rainSpendingPower: spendingPowerWei,
+                        kind: 'CRYPTO_WITHDRAW',
+                    })
+                    if (artifact.strategy !== 'collateral-only') {
+                        throw new Error('Unexpected withdrawal strategy — please contact support')
+                    }
+                    verifiedWithdrawal = artifact.rainWithdrawal
+                }
+                await rainApi.lockCard(cardId, verifiedWithdrawal)
+            } else {
+                await rainApi.activateCard(cardId)
+            }
             await queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
             posthog.capture(mode === 'lock' ? ANALYTICS_EVENTS.CARD_LOCKED : ANALYTICS_EVENTS.CARD_UNLOCKED)
             setPhase('success')
         } catch (e) {
-            const message = e instanceof Error ? e.message : `Failed to ${mode} card`
+            // Friendlier copy for the two known sign-time errors. Any other
+            // throw (passkey cancelled, network, backend) keeps its message.
+            let message = e instanceof Error ? e.message : `Failed to ${mode} card`
+            if (e instanceof InsufficientSpendableError) {
+                message = 'Could not return your card balance. Please try again or contact support.'
+            } else if (e instanceof SessionKeyGrantRequiredError) {
+                message = 'Card authorization failed. Please try again or contact support.'
+            }
             setError(message)
             posthog.capture(ANALYTICS_EVENTS.CARD_LOCK_FAILED, { mode, error_message: message })
             setPhase('error')
