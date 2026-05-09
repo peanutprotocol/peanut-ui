@@ -8,7 +8,11 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import SlideToAction from '@/components/Card/SlideToAction'
 import { rainApi } from '@/services/rain'
-import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
+import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
+import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { rainSpendingPowerToWei } from '@/utils/balance.utils'
 
 type Phase = 'confirm' | 'canceling' | 'feedback' | 'submitting-feedback' | 'thanks'
 
@@ -24,6 +28,9 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
     const [error, setError] = useState<string | null>(null)
     const [canceled, setCanceled] = useState(false)
     const queryClient = useQueryClient()
+    const { overview } = useRainCardOverview()
+    const { address: smartWalletAddress } = useWallet()
+    const { signSpend } = useSignSpendBundle()
 
     useEffect(() => {
         if (!isOpen) {
@@ -50,12 +57,39 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
         setPhase('canceling')
         setError(null)
         try {
-            await rainApi.cancelCard(cardId)
+            // Cancel can be terminal on Rain's side (collateral contract may
+            // become unreachable), so we MUST drain it BEFORE the cancel.
+            // Backend enforces order — this just delivers the signed body.
+            const spendingPowerWei = rainSpendingPowerToWei(overview?.balance?.spendingPower)
+            let verifiedWithdrawal: import('@/hooks/wallet/useSignSpendBundle').SignedRainWithdrawal | undefined
+            if (spendingPowerWei > 0n) {
+                if (!smartWalletAddress) {
+                    throw new Error('Wallet not ready — please retry in a moment')
+                }
+                // Force collateral-only routing — same pattern as LockCardModal.
+                const artifact = await signSpend({
+                    requiredUsdcAmount: spendingPowerWei,
+                    recipient: smartWalletAddress as `0x${string}`,
+                    smartBalance: 0n,
+                    rainSpendingPower: spendingPowerWei,
+                    kind: 'CRYPTO_WITHDRAW',
+                })
+                if (artifact.strategy !== 'collateral-only') {
+                    throw new Error('Unexpected withdrawal strategy — please contact support')
+                }
+                verifiedWithdrawal = artifact.rainWithdrawal
+            }
+            await rainApi.cancelCard(cardId, { verifiedWithdrawal })
             posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_CONFIRMED)
             setCanceled(true)
             setPhase('feedback')
         } catch (e) {
-            const message = e instanceof Error ? e.message : 'Failed to cancel card'
+            let message = e instanceof Error ? e.message : 'Failed to cancel card'
+            if (e instanceof InsufficientSpendableError) {
+                message = 'Could not return your card balance. Please try again or contact support.'
+            } else if (e instanceof SessionKeyGrantRequiredError) {
+                message = 'Card authorization failed. Please try again or contact support.'
+            }
             setError(message)
             posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_FAILED, { error_message: message })
             setPhase('confirm')
