@@ -23,9 +23,9 @@ const mockTosStatus = useBridgeTosStatus as jest.MockedFunction<typeof useBridge
 const mockRejectionStatus = useProviderRejectionStatus as jest.MockedFunction<typeof useProviderRejectionStatus>
 const mockKycStatus = useKycStatus as jest.MockedFunction<typeof useKycStatus>
 
-const defaultRejection: Record<string, any> = {
+const defaultRejection = {
     provider: 'BRIDGE' as const,
-    state: 'happy',
+    state: 'happy' as const,
     userMessage: null,
     rejectedRails: [],
     kycVerification: null,
@@ -35,7 +35,7 @@ const defaultRejection: Record<string, any> = {
 
 function setup({
     needsBridgeTos = false,
-    bridgeState = 'happy' as any,
+    bridgeState = 'happy' as const,
     bridgeUserMessage = null as string | null,
     isSumsubApproved = false,
     isBridgeApproved = false,
@@ -53,7 +53,7 @@ function setup({
         hasBlockedRejection: bridgeState === 'blocked',
         hasAnyRejection: bridgeState === 'fixable' || bridgeState === 'blocked',
         primaryRejection: null,
-    } as any)
+    })
     mockKycStatus.mockReturnValue({
         isUserSumsubKycApproved: isSumsubApproved,
         isUserBridgeKycApproved: isBridgeApproved,

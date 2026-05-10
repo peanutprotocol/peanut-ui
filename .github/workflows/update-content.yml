@@ -66,5 +66,6 @@ jobs:
                     -f "sha=$COMMIT_SHA"
                   gh pr create \
                     --head "$BRANCH" \
+                    --base dev \
                     --title "Update content submodule" \
                     --body "Auto-generated: updates content submodule to latest peanut-content main."
