@@ -1,14 +1,13 @@
 name: Tests
 
 on:
+    push:
+        branches: ['**']
     pull_request:
-        branches:
-            - main
-            - dev
-            - develop
+        branches: [main, dev, develop]
     workflow_dispatch:
 
-# Cancel in-progress runs on the same PR when a newer commit lands.
+# Cancel in-progress runs on the same PR / branch when a newer commit lands.
 concurrency:
     group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
     cancel-in-progress: true

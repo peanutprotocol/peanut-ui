@@ -1,3 +1,4 @@
+import { BRIDGE_DEVELOPER_FEE_RATE } from '@/constants/payment.consts'
 import {
     applyBridgeCrossCurrencyFee,
     getCurrencyConfig,
@@ -6,6 +7,10 @@ import {
     getMinimumAmount,
     reverseBridgeCrossCurrencyFee,
 } from '../bridge.utils'
+
+// Tests track the constant so they remain correct whether the fee is 0
+// (current state — disabled until FX-spread followup) or non-zero.
+const NET_OF_100 = 100 * (1 - BRIDGE_DEVELOPER_FEE_RATE)
 
 describe('bridge.utils', () => {
     describe('getCurrencyConfig', () => {
@@ -208,24 +213,24 @@ describe('bridge.utils', () => {
         // is the USDC stablecoin (not the 'USD' fiat display code). Callers must
         // pass 'USDC' so the fee helper matches backend `getBridgeDeveloperFeeParams`.
 
-        it('applies 0.5% fee for EUR → USDC (onramp EUR deposit)', () => {
-            expect(applyBridgeCrossCurrencyFee(100, 'EUR', 'USDC')).toBeCloseTo(99.5, 10)
+        it('applies fee for EUR → USDC (onramp EUR deposit)', () => {
+            expect(applyBridgeCrossCurrencyFee(100, 'EUR', 'USDC')).toBeCloseTo(NET_OF_100, 10)
         })
 
-        it('applies 0.5% fee for USDC → EUR (offramp to EUR bank)', () => {
-            expect(applyBridgeCrossCurrencyFee(100, 'USDC', 'EUR')).toBeCloseTo(99.5, 10)
+        it('applies fee for USDC → EUR (offramp to EUR bank)', () => {
+            expect(applyBridgeCrossCurrencyFee(100, 'USDC', 'EUR')).toBeCloseTo(NET_OF_100, 10)
         })
 
-        it('applies 0.5% fee for GBP → USDC', () => {
-            expect(applyBridgeCrossCurrencyFee(100, 'GBP', 'USDC')).toBeCloseTo(99.5, 10)
+        it('applies fee for GBP → USDC', () => {
+            expect(applyBridgeCrossCurrencyFee(100, 'GBP', 'USDC')).toBeCloseTo(NET_OF_100, 10)
         })
 
-        it('applies 0.5% fee for MXN → USDC', () => {
-            expect(applyBridgeCrossCurrencyFee(100, 'MXN', 'USDC')).toBeCloseTo(99.5, 10)
+        it('applies fee for MXN → USDC', () => {
+            expect(applyBridgeCrossCurrencyFee(100, 'MXN', 'USDC')).toBeCloseTo(NET_OF_100, 10)
         })
 
-        it('applies 0.5% fee for USDC → MXN (offramp to Mexican bank)', () => {
-            expect(applyBridgeCrossCurrencyFee(100, 'USDC', 'MXN')).toBeCloseTo(99.5, 10)
+        it('applies fee for USDC → MXN (offramp to Mexican bank)', () => {
+            expect(applyBridgeCrossCurrencyFee(100, 'USDC', 'MXN')).toBeCloseTo(NET_OF_100, 10)
         })
 
         it('does not apply fee for USD → USDC (fiat rail ↔ stablecoin is fee-free)', () => {
@@ -241,21 +246,19 @@ describe('bridge.utils', () => {
         })
 
         it('is case-insensitive', () => {
-            expect(applyBridgeCrossCurrencyFee(100, 'eur', 'usdc')).toBeCloseTo(99.5, 10)
+            expect(applyBridgeCrossCurrencyFee(100, 'eur', 'usdc')).toBeCloseTo(NET_OF_100, 10)
             expect(applyBridgeCrossCurrencyFee(100, 'Usd', 'Usdc')).toBe(100)
         })
 
         it('matches the real onramp display-quote math (EUR 500 @ 1.167)', () => {
-            // 500 EUR × 1.167 rate = 583.50 gross USDC
-            // after 0.5% Bridge fee = 580.5825 USDC delivered
             const gross = 500 * 1.167
             const net = applyBridgeCrossCurrencyFee(gross, 'EUR', 'USDC')
-            expect(net).toBeCloseTo(580.5825, 4)
+            expect(net).toBeCloseTo(gross * (1 - BRIDGE_DEVELOPER_FEE_RATE), 4)
         })
 
         it('handles zero and negative amounts without surprises', () => {
             expect(applyBridgeCrossCurrencyFee(0, 'EUR', 'USDC')).toBe(0)
-            expect(applyBridgeCrossCurrencyFee(-100, 'EUR', 'USDC')).toBeCloseTo(-99.5, 10)
+            expect(applyBridgeCrossCurrencyFee(-100, 'EUR', 'USDC')).toBeCloseTo(-NET_OF_100, 10)
         })
     })
 
@@ -264,10 +267,11 @@ describe('bridge.utils', () => {
         // Guards against the classic algebra bug of using `net * (1 + rate)`
         // instead of `net / (1 - rate)` — those differ by rate² (~0.0025%).
 
-        it('reverse(99.5) for EUR → USDC yields exactly 100 (not 99.9975)', () => {
-            // The canonical sanity check: the naive `net * (1 + rate)` = 99.9975
-            // would under-shoot. Correct inverse `net / (1 - rate)` lands on 100.
-            expect(reverseBridgeCrossCurrencyFee(99.5, 'EUR', 'USDC')).toBeCloseTo(100, 10)
+        it('reverse(net) yields exactly the gross input (not net * (1 + rate))', () => {
+            // The canonical sanity check: the naive `net * (1 + rate)` would
+            // under-shoot by rate². Correct inverse `net / (1 - rate)` lands
+            // on the original gross. Holds for any rate including 0.
+            expect(reverseBridgeCrossCurrencyFee(NET_OF_100, 'EUR', 'USDC')).toBeCloseTo(100, 10)
         })
 
         it.each([0.01, 1, 100, 999.99, 1_000_000])('apply(reverse(%f)) round-trips for EUR → USDC', (amount) => {
@@ -293,7 +297,7 @@ describe('bridge.utils', () => {
         })
 
         it('is case-insensitive', () => {
-            expect(reverseBridgeCrossCurrencyFee(99.5, 'eur', 'usdc')).toBeCloseTo(100, 10)
+            expect(reverseBridgeCrossCurrencyFee(NET_OF_100, 'eur', 'usdc')).toBeCloseTo(100, 10)
             expect(reverseBridgeCrossCurrencyFee(100, 'Usd', 'Usdc')).toBe(100)
         })
     })
