@@ -23,10 +23,11 @@ export interface QrKycGateResult {
 
 /**
  * This hook determines the KYC gate state for the QR pay page.
- * It checks the user's KYC status to determine the appropriate action.
+ * It checks the user's KYC status and the payment processor to determine the appropriate action.
+ * @param paymentProcessor - The payment processor type ('MANTECA' | null)
  * @returns {QrKycGateResult} An object with the KYC gate state and a boolean indicating if the user should be blocked from paying.
  */
-export function useQrKycGate(): QrKycGateResult {
+export function useQrKycGate(paymentProcessor?: 'MANTECA' | null): QrKycGateResult {
     const { user, isFetchingUser, fetchUser } = useAuth()
     const [kycGateState, setKycGateState] = useState<QrKycState>(QrKycState.LOADING)
     const hasRequestedUserFetchRef = useRef(false)
@@ -74,7 +75,6 @@ export function useQrKycGate(): QrKycGateResult {
                 const isFixable =
                     railMeta.selfHealable === true &&
                     mantecaKyc?.rejectType !== 'PROVIDER_FINAL' &&
-                    mantecaKyc?.rejectType !== 'FINAL' &&
                     ((kycMeta.selfHealAttempt as number) || 0) < MAX_SELF_HEAL_ATTEMPTS
                 setKycGateState(
                     isFixable ? QrKycState.PROVIDER_REJECTION_FIXABLE : QrKycState.PROVIDER_REJECTION_BLOCKED
@@ -124,7 +124,7 @@ export function useQrKycGate(): QrKycGateResult {
         }
 
         setKycGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
-    }, [user?.user, user?.rails, isFetchingUser, fetchUser])
+    }, [user?.user, user?.rails, isFetchingUser, paymentProcessor, fetchUser])
 
     useEffect(() => {
         determineKycGateState()
