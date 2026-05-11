@@ -40,15 +40,15 @@ import { useQueryState, parseAsString } from 'nuqs'
  * See PR description of fix/bridge-fee-display-quote for full writeup.
  */
 
-interface IAddMoneyBankDetails {
-    flow?: 'add-money' | 'request-fulfillment'
-    // add-money flow only — parent owns step navigation via URL state, so it must pass the back
-    // handler (e.g. setUrlState({ step: 'inputAmount' })). Ignored for request-fulfillment flow,
-    // which uses RequestFulfillmentFlowContext to step back internally.
-    onBack?: () => void
-}
+// Discriminated union: add-money flow requires onBack (parent owns step navigation, typically
+// setUrlState({ step: 'inputAmount' })). request-fulfillment flow steps back internally via
+// RequestFulfillmentFlowContext, so onBack is forbidden there.
+type AddMoneyBankDetailsProps =
+    | { flow?: 'add-money'; onBack: () => void }
+    | { flow: 'request-fulfillment'; onBack?: never }
 
-export default function AddMoneyBankDetails({ flow = 'add-money', onBack }: IAddMoneyBankDetails) {
+export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
+    const { flow = 'add-money', onBack } = props
     const isAddMoneyFlow = flow === 'add-money'
 
     // URL state - read amount from URL query params
@@ -245,10 +245,9 @@ Please use these details to complete your bank transfer.`
 
     const handleBack = () => {
         if (isAddMoneyFlow) {
-            // onBack is required for add-money flow — parent (e.g. [country]/bank/page.tsx)
-            // steps back via URL state. Falling back to router.back() here would loop
-            // when the page was deep-linked or refreshed.
-            onBack?.()
+            // onBack is required by the type for add-money flow — parent (e.g.
+            // [country]/bank/page.tsx) steps back via URL state.
+            onBack!()
         } else {
             setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
         }

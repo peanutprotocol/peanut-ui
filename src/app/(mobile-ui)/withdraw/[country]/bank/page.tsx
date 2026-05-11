@@ -349,9 +349,10 @@ export default function WithdrawBankPage() {
                         setAmountToWithdraw('')
                         setSelectedMethod(null)
                     } else {
-                        // Explicit push instead of router.back() — this page is reached only
-                        // via /withdraw setting amountToWithdraw, so the natural parent is /withdraw.
-                        router.push('/withdraw')
+                        // Explicit push instead of router.back() — this page is reached via
+                        // /withdraw (default) or /send (when methodParam === 'bank'). Honour the
+                        // entry context so the user lands back in the flow they started in.
+                        router.push(fromSendFlow ? '/send' : '/withdraw')
                     }
                 }}
             />
