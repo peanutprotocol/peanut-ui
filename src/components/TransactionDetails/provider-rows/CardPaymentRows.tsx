@@ -41,7 +41,10 @@ export function hasCardPaymentRowsContent(transaction: TransactionDetails): bool
     if (nonBlank(card.merchantCategory)) return true
     if (nonBlank(card.merchantCity) || nonBlank(card.merchantCountry)) return true
     if (card.settlementAdjusted && parseCents(card.authAmount) != null) return true
-    if (transaction.status === 'failed' && (card.declineReason || card.declineCategory)) return true
+    // declineCategory is BE-controlled (one of 3 enum literals) — no
+    // whitespace risk. declineReason is Rain's free-form prose — gate it
+    // through nonBlank.
+    if (transaction.status === 'failed' && (nonBlank(card.declineReason) || card.declineCategory)) return true
     if (card.cancellationReason === 'auto_closed') return true
     return false
 }
@@ -107,11 +110,16 @@ export function CardPaymentRows({
     // Spec §4.4 — show why a card spend declined. Prefer the BE-computed
     // synthetic category (disambiguates INSUFFICIENT_FUNDS vs limit-too-low);
     // fall back to the raw Rain code for non-financial declines.
-    if (transaction.status === 'failed' && (card.declineReason || card.declineCategory)) {
+    // Pass declineReason through nonBlank so Rain's whitespace-padded
+    // placeholders ("  ", " - ") don't sneak into copy and produce a
+    // "Transaction declined" row for an intent with no real decline data.
+    // declineCategory is BE-controlled (enum literal) — no whitespace risk.
+    const declineReasonClean = nonBlank(card.declineReason)
+    if (transaction.status === 'failed' && (declineReasonClean || card.declineCategory)) {
         subRows.push({
             key: 'declineReason',
             label: 'Decline reason',
-            value: friendlyDeclineReason(card.declineReason, card.declineCategory),
+            value: friendlyDeclineReason(declineReasonClean, card.declineCategory),
         })
     }
 

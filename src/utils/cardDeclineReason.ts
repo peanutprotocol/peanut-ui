@@ -17,6 +17,14 @@
  * spec.
  */
 
+export type DeclineCategory = 'limit_too_low' | 'insufficient_balance' | 'other'
+
+/**
+ * Category-specific copy. NOTE: `'other'` is intentionally absent — it falls
+ * through to the raw-code lookup so non-financial declines (blocked_merchant,
+ * card_locked, invalid_pin) still render their specific friendly copy.
+ * Adding `'other'` here would mask the raw-code mapping for those cases.
+ */
 const CATEGORY_COPY: Record<string, string> = {
     limit_too_low: 'Card limit reached — increase your limit',
     insufficient_balance: 'Insufficient balance',
@@ -37,7 +45,7 @@ const FRIENDLY: Record<string, string> = {
     INVALID_PIN: 'Incorrect PIN',
 }
 
-export function friendlyDeclineReason(code: string | null | undefined, category?: string | null): string {
+export function friendlyDeclineReason(code: string | null | undefined, category?: DeclineCategory | null): string {
     // Prefer the BE-computed category — it disambiguates the
     // INSUFFICIENT_FUNDS/limit-too-low collision Rain leaves on the wire.
     if (category && CATEGORY_COPY[category]) return CATEGORY_COPY[category]

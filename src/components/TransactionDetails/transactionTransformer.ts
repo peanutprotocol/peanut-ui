@@ -321,12 +321,12 @@ export interface TransactionDetails {
             localAmount: string | null
             localCurrency: string | null
             declineReason: string | null
-            /** Synthetic category set by the BE (`'limit_too_low' |
-             *  'insufficient_balance' | 'other'`). Preferred over the raw
+            /** Synthetic category set by the BE. Preferred over the raw
              *  `declineReason` for friendly-copy mapping because Rain returns
              *  `INSUFFICIENT_FUNDS` for both real shortfalls and limit-too-low
-             *  cases. */
-            declineCategory: string | null
+             *  cases. Union kept narrow so unknown strings from the wire are
+             *  caught by the consumer rather than mis-mapped. */
+            declineCategory: 'limit_too_low' | 'insufficient_balance' | 'other' | null
             authAmount: string | null
             settledAmount: string | null
             settlementAdjusted: boolean
@@ -513,8 +513,14 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                           merchantId: entry.extraData?.merchantId as string | null,
                           localAmount: entry.extraData?.cardLocalAmount as string | null,
                           localCurrency: entry.extraData?.cardLocalCurrency as string | null,
-                          declineReason: entry.extraData?.declineReason as string | null,
-                          declineCategory: entry.extraData?.declineCategory as string | null,
+                          declineReason: (entry.extraData?.declineReason as string | null | undefined) ?? null,
+                          declineCategory:
+                              (entry.extraData?.declineCategory as
+                                  | 'limit_too_low'
+                                  | 'insufficient_balance'
+                                  | 'other'
+                                  | null
+                                  | undefined) ?? null,
                           authAmount: entry.extraData?.cardAuthAmount as string | null,
                           settledAmount: entry.extraData?.cardSettledAmount as string | null,
                           settlementAdjusted: Boolean(entry.extraData?.settlementAdjusted),
