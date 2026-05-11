@@ -130,6 +130,21 @@ export function useReceiptViewModel(
         return countryData.find((c) => c.currency === transaction.currency?.code)
     }, [transaction?.currency?.code])
 
+    // A sendlink-sender row whose status is now CANCELLED is the result of
+    // the sender clicking Cancel on their own link. The reclaim tx + memo +
+    // attachment + token/network are all real data the user wants to see;
+    // the legacy `status !== 'cancelled'` gates were aimed at bank/onramp
+    // flows where cancellation reverses every line item. Keep that behaviour
+    // there and exempt sendlink-sender-cancelled rows.
+    const isSendLinkSenderCancelled = useMemo(
+        () =>
+            !!transaction &&
+            transaction.status === 'cancelled' &&
+            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK &&
+            transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER,
+        [transaction]
+    )
+
     const rowVisibilityConfig = useMemo<Record<TransactionDetailsRowKey, boolean>>(() => {
         if (!transaction) return ALL_ROWS_HIDDEN
 
@@ -149,9 +164,14 @@ export function useReceiptViewModel(
                 transaction.tokenDisplayDetails &&
                 transaction.sourceView === 'history' &&
                 !isPeanutWalletToken &&
+                // Suppress for pending/completed sendlinks (the sender already
+                // sees the token + network at the top of the drawer). Once
+                // CANCELLED, surface it again — the row helps the sender
+                // confirm what they reclaimed.
                 !(
                     transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK &&
-                    transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
+                    transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER &&
+                    transaction.status !== 'cancelled'
                 ) &&
                 transaction.status !== 'refunded'
             ),
@@ -198,13 +218,19 @@ export function useReceiptViewModel(
             ),
             peanutFee: false,
             points: !!(transaction.points && transaction.points > 0 && transaction.status !== 'cancelled'),
-            comment: !!(transaction.memo?.trim() && transaction.status !== 'cancelled'),
+            // Sender-side sendlink rows keep their memo + attachment after
+            // cancel — the data belongs to the sender, not the (never-arrived)
+            // recipient. Bank/onramp cancellations hide these as before.
+            comment: !!(transaction.memo?.trim() && (transaction.status !== 'cancelled' || isSendLinkSenderCancelled)),
             networkFee: !!(
                 transaction.networkFeeDetails &&
                 transaction.sourceView === 'status' &&
                 transaction.status !== 'cancelled'
             ),
-            attachment: !!(transaction.attachmentUrl && transaction.status !== 'cancelled'),
+            attachment: !!(
+                transaction.attachmentUrl &&
+                (transaction.status !== 'cancelled' || isSendLinkSenderCancelled)
+            ),
             mantecaDepositInfo:
                 !isPublic &&
                 (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP ||
@@ -222,7 +248,7 @@ export function useReceiptViewModel(
             cardPayment: isCardPaymentEntry(transaction) && hasCardPaymentRowsContent(transaction),
             closed: !!(transaction.status === 'closed' && transaction.cancelledDate),
         }
-    }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken])
+    }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken, isSendLinkSenderCancelled])
 
     const visibleRows = useMemo(
         () => transactionDetailsRowKeys.filter((key) => rowVisibilityConfig[key]),
