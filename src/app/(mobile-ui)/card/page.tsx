@@ -315,6 +315,12 @@ const CardPage: FC = () => {
                 />
             )
         }
+        // /card is a backend-state-driven screen, not a multi-step user flow: state
+        // (add-card/pending/manual-review/rejected/active) is derived from `overview`+`cardInfo`,
+        // not pushed to history. router.back() therefore loops or no-ops when /card was a
+        // deep-link entry or when state changed in-place. Always push the natural parent (/home),
+        // matching the sub-pages (card/pin, card/limit, card/add-to-wallet) that already do this.
+        const onPrevHome = () => router.push('/home')
         switch (state) {
             case 'pioneer':
                 return <CardPioneerFlow cardInfo={cardInfo!} refetchCardInfo={refetchCardInfo} />
@@ -322,14 +328,14 @@ const CardPage: FC = () => {
                 return (
                     <AddCardEntryScreen
                         onApply={() => handleApply(false)}
-                        onPrev={() => router.back()}
+                        onPrev={onPrevHome}
                         applyError={applyError}
                     />
                 )
             case 'pending':
-                return <ApplicationStatusScreen variant="pending" onPrev={() => router.back()} />
+                return <ApplicationStatusScreen variant="pending" onPrev={onPrevHome} />
             case 'manual-review':
-                return <ApplicationStatusScreen variant="manual-review" onPrev={() => router.back()} />
+                return <ApplicationStatusScreen variant="manual-review" onPrev={onPrevHome} />
             case 'rejected':
                 // No retry CTA: Rain denials are terminal on our side. The
                 // only path forward is support reviewing the case manually
@@ -340,12 +346,12 @@ const CardPage: FC = () => {
                     <ApplicationStatusScreen
                         variant="rejected"
                         onContactSupport={() => setIsSupportModalOpen(true)}
-                        onPrev={() => router.back()}
+                        onPrev={onPrevHome}
                     />
                 )
             case 'active': {
                 const card = findActiveCard(overview)!
-                return <YourCardScreen overview={overview!} card={card} onPrev={() => router.back()} />
+                return <YourCardScreen overview={overview!} card={card} onPrev={onPrevHome} />
             }
             default:
                 return null

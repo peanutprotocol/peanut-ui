@@ -300,7 +300,7 @@ export default function OnrampBankPage() {
     if (!selectedCountry) {
         return (
             <div className="space-y-8 self-start">
-                <NavHeader title="Not Found" onPrev={() => router.back()} />
+                <NavHeader title="Not Found" onPrev={() => router.push('/add-money')} />
                 <EmptyState title="Country not found" description="Please try a different country." icon="search" />
             </div>
         )
@@ -316,7 +316,7 @@ export default function OnrampBankPage() {
         if (!onrampData?.transferId) {
             return <PeanutLoading />
         }
-        return <AddMoneyBankDetails />
+        return <AddMoneyBankDetails onBack={() => setUrlState({ step: 'inputAmount' })} />
     }
 
     if (urlState.step === 'inputAmount') {

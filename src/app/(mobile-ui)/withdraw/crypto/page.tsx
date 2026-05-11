@@ -440,7 +440,7 @@ export default function WithdrawCryptoPage() {
                 <InitialWithdrawView
                     amount={usdAmount}
                     onReview={handleSetupReview}
-                    onBack={() => router.back()}
+                    onBack={() => router.push('/withdraw')}
                     isProcessing={isPreparingReview}
                 />
             )}

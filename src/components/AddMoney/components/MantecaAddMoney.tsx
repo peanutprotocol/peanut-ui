@@ -2,7 +2,8 @@
 import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { addMoneyCountryUrl } from '@/utils/native-routes'
 import { type CountryData, countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useCurrency } from '@/hooks/useCurrency'
@@ -31,6 +32,7 @@ type CurrencyDenomination = 'USD' | 'ARS' | 'BRL' | 'MXN' | 'EUR'
 
 const MantecaAddMoney: FC = () => {
     const params = useParams()
+    const router = useRouter()
     const searchParams = useSearchParams()
     const queryClient = useQueryClient()
 
@@ -266,6 +268,7 @@ const MantecaAddMoney: FC = () => {
                     setDisplayedAmount={handleDisplayedAmountChange}
                     limitsValidation={limitsValidation}
                     limitsCurrency={limitsValidation.currency}
+                    onBack={() => router.push(addMoneyCountryUrl(selectedCountryPath))}
                 />
             </>
         )
@@ -276,7 +279,13 @@ const MantecaAddMoney: FC = () => {
         if (!depositDetails) {
             return null
         }
-        return <MantecaDepositShareDetails depositDetails={depositDetails} currencyAmount={localCurrencyAmount} />
+        return (
+            <MantecaDepositShareDetails
+                depositDetails={depositDetails}
+                currencyAmount={localCurrencyAmount}
+                onBack={() => setUrlState({ step: 'inputAmount' })}
+            />
+        )
     }
 
     return null

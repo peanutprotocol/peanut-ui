@@ -106,6 +106,9 @@ const AddMoneyCryptoPage = () => {
                 usdAmount={depositResult.amount?.toString()}
                 amount={depositResult.tokenAmount}
                 transactionDetails={depositTransactionDetails}
+                // Replace /add-money/crypto with /home on Done — otherwise browser/device back
+                // from /home pops into the now-reset deposit view, creating a loop.
+                replaceOnDone
                 onComplete={() => {
                     setShowSuccessView(false)
                     setDepositResult(null)
@@ -120,7 +123,9 @@ const AddMoneyCryptoPage = () => {
             depositAddressData={depositAddressData}
             isLoading={isLoading}
             onSuccess={handleSuccess}
-            onBack={() => router.back()}
+            // Explicit push to /add-money — router.back() loops when /add-money/crypto was
+            // a deep-link entry (no prior history) or when the user re-enters via bottom-nav.
+            onBack={() => router.push('/add-money')}
         />
     )
 }

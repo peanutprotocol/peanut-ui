@@ -349,7 +349,9 @@ export default function WithdrawBankPage() {
                         setAmountToWithdraw('')
                         setSelectedMethod(null)
                     } else {
-                        router.back()
+                        // Explicit push instead of router.back() — this page is reached only
+                        // via /withdraw setting amountToWithdraw, so the natural parent is /withdraw.
+                        router.push('/withdraw')
                     }
                 }}
             />
