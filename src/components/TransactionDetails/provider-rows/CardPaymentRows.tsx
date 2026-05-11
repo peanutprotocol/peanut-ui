@@ -41,7 +41,7 @@ export function hasCardPaymentRowsContent(transaction: TransactionDetails): bool
     if (nonBlank(card.merchantCategory)) return true
     if (nonBlank(card.merchantCity) || nonBlank(card.merchantCountry)) return true
     if (card.settlementAdjusted && parseCents(card.authAmount) != null) return true
-    if (transaction.status === 'failed' && card.declineReason) return true
+    if (transaction.status === 'failed' && (card.declineReason || card.declineCategory)) return true
     if (card.cancellationReason === 'auto_closed') return true
     return false
 }
@@ -104,12 +104,14 @@ export function CardPaymentRows({
         }
     }
 
-    // Spec §4.4 — show why a card spend declined.
-    if (transaction.status === 'failed' && card.declineReason) {
+    // Spec §4.4 — show why a card spend declined. Prefer the BE-computed
+    // synthetic category (disambiguates INSUFFICIENT_FUNDS vs limit-too-low);
+    // fall back to the raw Rain code for non-financial declines.
+    if (transaction.status === 'failed' && (card.declineReason || card.declineCategory)) {
         subRows.push({
             key: 'declineReason',
             label: 'Decline reason',
-            value: friendlyDeclineReason(card.declineReason),
+            value: friendlyDeclineReason(card.declineReason, card.declineCategory),
         })
     }
 

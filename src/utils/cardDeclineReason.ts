@@ -1,12 +1,26 @@
 /**
- * Translate raw Rain decline codes to friendly messages for the activity feed.
- * Backend persists the code as-is on intent metadata; the human-readable mapping
- * lives here so it can be tweaked / i18n'd without a migration.
+ * Translate decline reasons / categories to friendly messages for the
+ * activity feed and the receipt drawer.
  *
- * Codes from Rain's gateway responses (snake_case Rain shapes alongside the
- * older SCREAMING_CASE ones). Unknown codes fall back to the generic copy
- * mandated by the card-activity spec.
+ * Two inputs land here:
+ *   - `category` — BE-computed synthetic category (see `notifications/card.ts`
+ *     in peanut-api-ts): `'limit_too_low' | 'insufficient_balance' | 'other'`.
+ *     We prefer this when present because Rain reports `INSUFFICIENT_FUNDS`
+ *     for both genuine shortfalls AND limit-too-low cases — the synthetic
+ *     category distinguishes them so the user gets actionable copy.
+ *   - `code` — Rain's raw decline string (snake_case alongside the older
+ *     SCREAMING_CASE variants). Fallback when category is missing (older
+ *     declines that pre-date the categorization), or for non-financial
+ *     reasons (blocked merchant, locked card, etc.).
+ *
+ * Unknown codes fall back to the generic copy mandated by the card-activity
+ * spec.
  */
+
+const CATEGORY_COPY: Record<string, string> = {
+    limit_too_low: 'Card limit reached — increase your limit',
+    insufficient_balance: 'Insufficient balance',
+}
 
 const FRIENDLY: Record<string, string> = {
     INSUFFICIENT_FUNDS: 'Insufficient balance',
@@ -23,7 +37,10 @@ const FRIENDLY: Record<string, string> = {
     INVALID_PIN: 'Incorrect PIN',
 }
 
-export function friendlyDeclineReason(code: string | null | undefined): string {
+export function friendlyDeclineReason(code: string | null | undefined, category?: string | null): string {
+    // Prefer the BE-computed category — it disambiguates the
+    // INSUFFICIENT_FUNDS/limit-too-low collision Rain leaves on the wire.
+    if (category && CATEGORY_COPY[category]) return CATEGORY_COPY[category]
     if (!code) return 'Transaction declined'
     return FRIENDLY[code] ?? FRIENDLY[code.toLowerCase()] ?? FRIENDLY[code.toUpperCase()] ?? 'Transaction declined'
 }
