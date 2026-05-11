@@ -1,67 +1,30 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 
-// handles translation service dom mutations to prevent errors while allowing translations
-export const useTranslationMutationHandler = (targetRef: React.RefObject<HTMLElement>) => {
-    // keep reference to observer instance for cleanup
-    const observerRef = useRef<MutationObserver | null>(null)
+let patched = false
 
+// patches removeChild and insertBefore to prevent crashes when browser
+// translation extensions (google translate, brave translate, etc) move
+// dom nodes out of their react-managed parents. without this, react's
+// reconciliation throws "not a child of this node" during unmount/update.
+export const useTranslationMutationHandler = () => {
     useEffect(() => {
-        const setupObserver = () => {
-            if (!targetRef.current) return
+        if (patched) return
+        patched = true
 
-            if (observerRef.current) {
-                observerRef.current.disconnect()
+        const originalRemoveChild = Node.prototype.removeChild
+        Node.prototype.removeChild = function <T extends Node>(child: T): T {
+            if (child.parentNode !== this) {
+                return child
             }
-
-            observerRef.current = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    if (mutation.type === 'childList') {
-                        mutation.addedNodes.forEach((node) => {
-                            if (node.nodeType === 1) {
-                                try {
-                                    const element = node as Element
-                                    // handle translated content nodes that google translate adds
-                                    if (element.hasAttribute('data-translated')) {
-                                        const parent = element.parentElement
-                                        if (parent) {
-                                            // remove any duplicate translations to prevent conflicts
-                                            const existingTranslations = parent.querySelectorAll('[data-translated]')
-                                            existingTranslations.forEach((el) => {
-                                                if (el !== element && el.textContent === element.textContent) {
-                                                    el.remove()
-                                                }
-                                            })
-
-                                            // append new translation if not already present
-                                            if (!parent.contains(element)) {
-                                                requestAnimationFrame(() => {
-                                                    try {
-                                                        parent.appendChild(element)
-                                                    } catch (e) {
-                                                        console.error(e)
-                                                    }
-                                                })
-                                            }
-                                        }
-                                    }
-                                } catch (e) {
-                                    console.error(e)
-                                }
-                            }
-                        })
-                    }
-                })
-            })
-
-            // observe changes to dom structure and attributes
-            observerRef.current.observe(targetRef.current, {
-                childList: true,
-                subtree: true,
-                attributes: true,
-            })
+            return originalRemoveChild.call(this, child) as T
         }
 
-        setupObserver()
-        return () => observerRef.current?.disconnect()
-    }, [targetRef])
+        const originalInsertBefore = Node.prototype.insertBefore
+        Node.prototype.insertBefore = function <T extends Node>(newNode: T, refNode: Node | null): T {
+            if (refNode && refNode.parentNode !== this) {
+                return newNode
+            }
+            return originalInsertBefore.call(this, newNode, refNode) as T
+        }
+    }, [])
 }
