@@ -36,12 +36,8 @@ const WIRE_SHAPES: Array<{
 }> = [
     { predicate: isSendLinkEntry, legacyTypes: ['SEND_LINK'], intentKind: 'LINK_CREATE', name: 'isSendLinkEntry' },
     { predicate: isRequestEntry, legacyTypes: ['REQUEST'], intentKind: 'REQUEST_PAY', name: 'isRequestEntry' },
-    {
-        predicate: isOnrampEntry,
-        legacyTypes: ['BRIDGE_ONRAMP', 'MANTECA_ONRAMP'],
-        intentKind: 'FIAT_ONRAMP',
-        name: 'isOnrampEntry',
-    },
+    // isOnrampEntry is legacy-only by design — see the predicate's docstring.
+    // Tested below outside the parameterised table.
     {
         predicate: isMantecaOnrampEntry,
         legacyTypes: ['MANTECA_ONRAMP'],
@@ -92,14 +88,23 @@ describe('entry-type predicates — legacy + TRANSACTION_INTENT dual shape', () 
         }
     }
 
-    // Regression: until this PR, the dual-shape onramp checks in
-    // useReceiptViewModel used `kind === 'ONRAMP'` literally — but the BE's
-    // toLegacyKindLabel renames TransactionIntentKind.ONRAMP → 'FIAT_ONRAMP',
-    // so every post-decomplexify onramp silently fell through the gate. Lock
-    // the correct kind string so a future copy-paste doesn't re-introduce it.
-    test('isOnrampEntry uses FIAT_ONRAMP, not raw ONRAMP', () => {
-        expect(isOnrampEntry(tx('TRANSACTION_INTENT', 'ONRAMP'))).toBe(false)
-        expect(isOnrampEntry(tx('TRANSACTION_INTENT', 'FIAT_ONRAMP'))).toBe(true)
+    test('isOnrampEntry matches legacy BRIDGE_ONRAMP', () => {
+        expect(isOnrampEntry(tx('BRIDGE_ONRAMP'))).toBe(true)
+    })
+
+    test('isOnrampEntry matches legacy MANTECA_ONRAMP', () => {
+        expect(isOnrampEntry(tx('MANTECA_ONRAMP'))).toBe(true)
+    })
+
+    // Legacy-only: BridgeHistoryFetcher / MantecaHistoryFetcher are
+    // unconditional gateways for onramp intents on the BE, so a TI-shape
+    // onramp can't reach the FE. The TI branch was removed to avoid
+    // dead-code; lock that here. (isMantecaOnrampEntry still has its own TI
+    // branch for the narrow mantecaUser-lookup-fails edge case.)
+    test('isOnrampEntry does NOT match TRANSACTION_INTENT + FIAT_ONRAMP (dead-code path removed)', () => {
+        expect(isOnrampEntry(tx('TRANSACTION_INTENT', 'FIAT_ONRAMP'))).toBe(false)
+        expect(isOnrampEntry(tx('TRANSACTION_INTENT', 'FIAT_ONRAMP', { provider: 'BRIDGE' }))).toBe(false)
+        expect(isOnrampEntry(tx('TRANSACTION_INTENT', 'FIAT_ONRAMP', { provider: 'MANTECA' }))).toBe(false)
     })
 
     // The cancel-by-sender SEND_LINK_CLAIM intent is also rendered as

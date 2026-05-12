@@ -148,23 +148,12 @@ const PARITY_CASES: ParityCase[] = [
         legacyDrawer: { originalType: EHistoryEntryType.REQUEST, originalUserRole: EHistoryUserRole.SENDER },
         intentKind: 'REQUEST_PAY',
     },
-    {
-        name: 'pending bridge onramp with deposit instructions',
-        legacy: {
-            status: 'pending',
-            direction: 'bank_deposit',
-        },
-        legacyDrawer: {
-            originalType: EHistoryEntryType.BRIDGE_ONRAMP,
-            originalUserRole: EHistoryUserRole.RECIPIENT,
-            depositInstructions: { bank_name: 'Test Bank' },
-            // Both shapes carry provider as of peanut-api-ts#739 — BridgeHistoryFetcher
-            // emits it (was a lowercase 'bridge' literal before; standardised to
-            // intent.provider = 'BRIDGE').
-            provider: 'BRIDGE',
-        },
-        intentKind: 'FIAT_ONRAMP',
-    },
+    // No Bridge-onramp parity case: BridgeHistoryFetcher is the unconditional
+    // BE gateway for Bridge intents (peanut-api-ts/src/transaction-intent/
+    // history.ts:859), so a Bridge onramp never reaches the FE in TI shape.
+    // The legacy-only contract for `isOnrampEntry` is locked in
+    // `transaction-predicates.test.ts`. Adding a parity case here would
+    // assert equivalence between an in-flight row and an unreachable one.
     {
         name: 'pending manteca onramp (renders ARS/BRL deposit-info row)',
         legacy: { status: 'pending', direction: 'bank_deposit', currency: { code: 'ARS', symbol: '$' } },

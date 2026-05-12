@@ -129,23 +129,35 @@ export function isDirectSendEntry(transaction: TransactionDetails): boolean {
     )
 }
 
-// Bridge or Manteca on-ramp. Post-M3 the wire kind is 'FIAT_ONRAMP' (not the
-// raw BE enum 'ONRAMP' — the BE's toLegacyKindLabel renames it). Two
-// pre-existing dual-shape checks in this codebase used 'ONRAMP' literally,
-// which silently breaks every new onramp row; route them through here instead.
+// Bridge or Manteca on-ramp.
+//
+// Only matches the legacy originalType — the BE's BridgeHistoryFetcher /
+// MantecaHistoryFetcher are unconditional gateways for onramp intents
+// (peanut-api-ts/src/transaction-intent/history.ts:859-867), so an onramp
+// row physically can't reach the FE in TRANSACTION_INTENT shape. Adding a
+// TRANSACTION_INTENT/FIAT_ONRAMP branch here would be dead-code
+// future-proofing — drop it and update both predicates together if/when
+// the BE consolidates the dispatch. `isMantecaOnrampEntry` separately
+// keeps a TI branch because the mantecaUser-lookup-fails edge case can
+// route a Manteca intent through mapGenericIntent (still benign — the row
+// gates downstream all require fields Manteca's BE doesn't emit on TI).
 export function isOnrampEntry(transaction: TransactionDetails): boolean {
     const type = transaction.extraDataForDrawer?.originalType
-    if (type === ('BRIDGE_ONRAMP' as EHistoryEntryType)) return true
-    if (type === ('MANTECA_ONRAMP' as EHistoryEntryType)) return true
-    return isTransactionIntentKind(transaction, 'FIAT_ONRAMP')
+    return type === ('BRIDGE_ONRAMP' as EHistoryEntryType) || type === ('MANTECA_ONRAMP' as EHistoryEntryType)
 }
 
 // Manteca-flavoured onramp specifically (renders the ARS/BRL deposit-info row).
-// Legacy rows carried the provider via originalType (MANTECA_ONRAMP vs
-// BRIDGE_ONRAMP). Post-M3 rows arrive as TRANSACTION_INTENT/kind=FIAT_ONRAMP
-// for both providers; the discriminator is `extraDataForDrawer.provider`
-// (plumbed end-to-end as of peanut-api-ts#739 — every projector emits
-// `provider: intent.provider`). Positive identity, no field-absence smell.
+//
+// Two shapes:
+//   1. Legacy MANTECA_ONRAMP originalType — happy path; BE's
+//      MantecaHistoryFetcher emits this whenever mantecaUser is resolvable.
+//   2. TRANSACTION_INTENT/kind=FIAT_ONRAMP + provider=MANTECA — edge case
+//      when `mantecaUser` lookup returns null for a user with Manteca
+//      intents (orphan/inconsistent DB state). The dispatch falls through
+//      to mapGenericIntent → TI shape. Positive identity via provider, no
+//      field-absence smell.
+//
+// Bridge has no equivalent fallback — BridgeHistoryFetcher is unconditional.
 export function isMantecaOnrampEntry(transaction: TransactionDetails): boolean {
     if (transaction.extraDataForDrawer?.originalType === ('MANTECA_ONRAMP' as EHistoryEntryType)) return true
     if (!isTransactionIntentKind(transaction, 'FIAT_ONRAMP')) return false

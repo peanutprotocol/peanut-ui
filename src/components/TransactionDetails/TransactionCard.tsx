@@ -5,7 +5,7 @@ import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionA
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { isCardPaymentEntry } from '@/components/TransactionDetails/transaction-predicates'
+import { isCardPaymentEntry, isPerkReward } from '@/components/TransactionDetails/transaction-predicates'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import {
     formatNumberForDisplay,
@@ -21,7 +21,6 @@ import Image from 'next/image'
 import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
 import { isAddress } from 'viem'
-import { EHistoryEntryType } from '@/utils/history.utils'
 import { PerkIcon } from './PerkIcon'
 import { useHaptic } from 'use-haptic'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
@@ -96,7 +95,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     }
 
     const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
-    const isPerkReward = transaction.extraDataForDrawer?.originalType === EHistoryEntryType.PERK_REWARD
+    const isPerkRewardEntry = isPerkReward(transaction)
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const userNameForAvatar =
         transaction.showFullName && transaction.fullName ? transaction.fullName : transaction.userName
@@ -184,7 +183,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                     height={30}
                                 />
                             </div>
-                        ) : isPerkReward ? (
+                        ) : isPerkRewardEntry ? (
                             <>
                                 <PerkIcon size="extra-small" />
                             </>
@@ -231,7 +230,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 <span className="capitalize">
                                     {isTestTransaction
                                         ? 'Setup'
-                                        : isPerkReward
+                                        : isPerkRewardEntry
                                           ? 'Reward'
                                           : getActionText(type, status)}
                                 </span>
