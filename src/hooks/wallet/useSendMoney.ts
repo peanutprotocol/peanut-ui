@@ -7,7 +7,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { useBalance } from './useBalance'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '../useRainCardOverview'
 import { rainSpendingPowerToWei } from '@/utils/balance.utils'
-import type { TransactionIntentKind } from '@/services/rain'
+import type { RainCollateralKind } from '@/services/rain'
 import {
     InsufficientSpendableError,
     SessionKeyGrantRequiredError,
@@ -22,7 +22,7 @@ type SendMoneyParams = {
      *  omitted — the default represents "home-screen send flow". Callers with
      *  other semantics (QR pay, crypto withdraw, request pay, …) should pass
      *  the appropriate kind explicitly. */
-    kind?: TransactionIntentKind
+    kind?: RainCollateralKind
     /** Optional UI hook — fires once routing is picked, before any signing prompt. */
     onStrategyDecided?: (strategy: Exclude<SpendStrategy, 'insufficient'>) => void
     /** Optional UI hook — fires when we're about to prompt for the one-time

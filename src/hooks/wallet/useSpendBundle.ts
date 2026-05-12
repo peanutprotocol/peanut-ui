@@ -15,7 +15,7 @@ import {
     rainCoordinatorAbi,
     rainWithdrawEip712Types,
 } from '@/constants/rain.consts'
-import { rainApi, type TransactionIntentKind } from '@/services/rain'
+import { rainApi, type RainCollateralKind } from '@/services/rain'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey, type GrantSessionKeyError } from './useGrantSessionKey'
@@ -40,7 +40,7 @@ export interface SpendBundleInput {
      *  Persisted on the `TransactionIntent` the backend creates in /prepare, so
      *  the Rain collateral webhook can be reconciled and categorized correctly
      *  in history (instead of showing up as a generic "card payment"). */
-    kind: TransactionIntentKind
+    kind: RainCollateralKind
     /** Extra calls to include in the kernel UserOp (for approve+deposit-style flows).
      *  If present, collateral-only routing is NOT eligible — calls must run from the kernel. */
     subsequentCalls?: UserOpEncodedParams[]

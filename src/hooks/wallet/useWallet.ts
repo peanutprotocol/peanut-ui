@@ -16,7 +16,7 @@ import { formatCurrency } from '@/utils/general.utils'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '../useRainCardOverview'
 import { rainSpendingPowerToWei } from '@/utils/balance.utils'
 import { useSpendBundle, type SpendStrategy } from './useSpendBundle'
-import type { TransactionIntentKind } from '@/services/rain'
+import type { RainCollateralKind } from '@/services/rain'
 
 type SendTransactionsOptions = {
     chainId?: string
@@ -38,7 +38,7 @@ type SendTransactionsOptions = {
     recipient?: Address
     /** User-semantic kind for history categorization. Required whenever
      *  `requiredUsdcAmount` is set (i.e. the bundle may touch Rain collateral). */
-    kind?: TransactionIntentKind
+    kind?: RainCollateralKind
     onStrategyDecided?: (strategy: Exclude<SpendStrategy, 'insufficient'>) => void
 }
 
@@ -103,7 +103,7 @@ export const useWallet = () => {
     const { spend: spendBundle } = useSpendBundle()
 
     const sendMoney = useCallback(
-        async (toAddress: Address, amountInUsd: string, options?: { kind?: TransactionIntentKind }) => {
+        async (toAddress: Address, amountInUsd: string, options?: { kind?: RainCollateralKind }) => {
             const result = await sendMoneyMutation.mutateAsync({
                 toAddress,
                 amountInUsd,
