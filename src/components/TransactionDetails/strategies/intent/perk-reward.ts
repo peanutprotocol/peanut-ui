@@ -2,10 +2,9 @@
 // unified history mapper. Always rendered as an incoming receive from
 // "Peanut Rewards".
 
-import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
 
-export const perkReward: TransactionStrategy = (_entry: HistoryEntry): TransactionStrategyOutput => ({
+export const perkReward: TransactionStrategy = (): TransactionStrategyOutput => ({
     direction: 'receive',
     transactionCardType: 'receive',
     nameForDetails: 'Peanut Reward',

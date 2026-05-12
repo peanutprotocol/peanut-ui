@@ -3,10 +3,10 @@
 // drawer's `mantecaDepositInfo` row gates on `provider === 'MANTECA'`
 // for the ARS/BRL deposit-info widget.
 
-import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
 
-export const fiatOnramp: TransactionStrategy = (_entry: HistoryEntry): TransactionStrategyOutput => ({
+// No per-entry branching — onramp output is fully derivable from the kind.
+export const fiatOnramp: TransactionStrategy = (): TransactionStrategyOutput => ({
     direction: 'bank_deposit',
     transactionCardType: 'bank_deposit',
     nameForDetails: 'Bank Account',

@@ -24,7 +24,8 @@ export const fiatOfframp: TransactionStrategy = (entry: HistoryEntry): Transacti
                 nameForDetails:
                     entry.recipientAccount?.username ??
                     entry.recipientAccount?.fullName ??
-                    entry.recipientAccount?.identifier,
+                    entry.recipientAccount?.identifier ??
+                    'Recipient',
                 fullName: entry.recipientAccount?.fullName ?? '',
                 isPeerActuallyUser: true,
                 isLinkTx: false,

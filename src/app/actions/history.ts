@@ -16,7 +16,9 @@ import { serverFetch } from '@/utils/api-fetch'
 export async function getHistoryEntry(entryId: string, kind: string): Promise<HistoryEntry | null> {
     let response: Response
     try {
-        response = await serverFetch(`/history/${entryId}?kind=${kind}`)
+        const safeEntryId = encodeURIComponent(entryId)
+        const query = new URLSearchParams({ kind }).toString()
+        response = await serverFetch(`/history/${safeEntryId}?${query}`)
     } catch (error) {
         throw new Error(`Unexpected error fetching history entry: ${error}`)
     }
