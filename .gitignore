@@ -100,3 +100,8 @@ keystore.properties
 .capgo_key_v2
 test-results/
 coverage/
+
+# Fetched at CI from peanut-api-ts/test/integration/__fixtures__/history-real-staging.jsonl.
+# See .github/workflows/tests.yml — `Fetch BE render-snapshot baseline` step.
+# Never commit; the canonical 49-entry baseline lives in the BE repo.
+src/components/TransactionDetails/__tests__/fixtures/be-entries.json
