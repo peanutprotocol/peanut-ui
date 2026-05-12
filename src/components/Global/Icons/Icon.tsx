@@ -300,6 +300,28 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     trash: (props) => <LucideWrapper Icon={Trash2} {...props} />,
 }
 
+// MUI → Lucide sizing legacy.
+//
+// Pre-migration, every <Icon> was a MUI SvgIcon. MUI emotion-injects
+//   .MuiSvgIcon-root { width: 1em; height: 1em }
+//   .MuiSvgIcon-fontSizeMedium { font-size: 1.5rem }
+// at runtime, after Tailwind's static stylesheet. Same specificity, later
+// in the cascade → MUI's rules silently clamped every icon to 24×24
+// regardless of `h-X w-X` / `size-X` / `size={N>24}` written at the call
+// site. Lucide ships no such clamp, so call sites that wrote h-8 / h-12 /
+// size={32} suddenly render at their stated size — visibly bigger than prod.
+//
+// Convention going forward (locked in by the 2026-05-12 audit):
+//   - The default `size = 24` here matches the old MUI clamp ceiling.
+//   - Call sites that need a different size pass `size={N}` explicitly.
+//   - Don't reintroduce Tailwind `h-X w-X` to size icons — pass `size` so
+//     the rendered width/height attrs and the visual size agree, and the
+//     sizing is local to the call site rather than dependent on a global
+//     CSS rule.
+//   - Open question for a later pass: are there icons we *want* larger
+//     than MUI's old 24px ceiling? Right now we standardise on 24 for
+//     parity with prod; the design call to upsize specific icons (eye,
+//     back chevrons, etc) can come later. See PR #1972 for the audit.
 export const Icon: FC<IconProps> = ({ name, size = 24, width, height, className, ...props }) => {
     const IconComponent = iconComponents[name]
 

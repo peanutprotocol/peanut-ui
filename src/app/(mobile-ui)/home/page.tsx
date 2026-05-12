@@ -356,11 +356,7 @@ function WalletBalance({
 
             {!isFetchingBalance && (
                 <button onClick={onToggleBalanceVisibility}>
-                    <Icon
-                        name={isBalanceHidden ? 'eye-slash' : 'eye'}
-                        className={'h-8 w-8 md:h-10 md:w-10'}
-                        fill={'black'}
-                    />
+                    <Icon name={isBalanceHidden ? 'eye-slash' : 'eye'} size={24} fill={'black'} />
                 </button> // no balance <> no icon
             )}
         </div>

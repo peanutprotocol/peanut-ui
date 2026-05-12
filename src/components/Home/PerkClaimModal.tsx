@@ -394,7 +394,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
                             <div
                                 className={`rounded-full bg-primary-1 p-3 shadow-lg transition-transform ${holdProgress > 30 ? 'animate-bounce' : ''}`}
                             >
-                                <Icon name="gift" size={28} className="text-white" />
+                                <Icon name="gift" size={24} className="text-white" />
                             </div>
                         </div>
                     </div>
