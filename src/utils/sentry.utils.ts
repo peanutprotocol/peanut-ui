@@ -8,7 +8,8 @@ import { type JSONValue } from '../interfaces/interfaces'
  * Pattern can be a string (exact match) or regex.
  */
 const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = [
-    { pattern: /get-user-from-cookie/, statuses: [400, 401, 403, 404] },
+    // /get-user is the auth-status probe — 401/404 mean stale JWT, expected, not a server bug.
+    { pattern: /\/get-user(?:\b|$)/, statuses: [400, 401, 403, 404] },
     { pattern: /users/, statuses: [400, 401, 403, 404] },
     { pattern: /perks/, statuses: [400, 401, 403, 404] },
     { pattern: /qr-payment\/init/, statuses: [400] },

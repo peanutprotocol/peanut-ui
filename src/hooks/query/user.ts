@@ -7,9 +7,8 @@ import { useQuery } from '@tanstack/react-query'
 import { usePWAStatus } from '../usePWAStatus'
 import { useDeviceType } from '../useGetDeviceType'
 import { USER } from '@/constants/query.consts'
-import { isCapacitor } from '@/utils/capacitor'
 import { fetchWithSentry } from '@/utils/sentry.utils'
-import { getAuthHeaders } from '@/utils/auth-token'
+import { getAuthHeaders, clearAuthToken } from '@/utils/auth-token'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 
 // custom error class for backend errors (5xx) that should trigger retry
@@ -29,19 +28,11 @@ export const useUserQuery = (dependsOn: boolean = true) => {
     const { user: authUser } = useUserStore()
 
     const fetchUser = async (): Promise<IUserProfile | null> => {
-        // web and native have different flows for "get current user":
-        // web: GET to Next.js server route that reads the jwt cookie server-side
-        // native: POST to backend directly with auth token from localStorage
-        const userResponse = isCapacitor()
-            ? await fetchWithSentry(`${PEANUT_API_URL}/get-user`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-                  body: JSON.stringify({}),
-              })
-            : await fetchWithSentry('/api/peanut/user/get-user-from-cookie', {
-                  method: 'POST',
-                  credentials: 'include',
-              })
+        const userResponse = await fetchWithSentry(`${PEANUT_API_URL}/get-user`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify({}),
+        })
         if (userResponse.ok) {
             const userData: IUserProfile | null = await userResponse.json()
             if (userData) {
@@ -57,6 +48,14 @@ export const useUserQuery = (dependsOn: boolean = true) => {
         if (userResponse.status >= 500) {
             console.error('Backend error fetching user:', userResponse.status)
             throw new BackendError('Backend error fetching user', userResponse.status)
+        }
+
+        // 401 (expired/invalid JWT) and 404 (user no longer exists — e.g. local
+        // DB re-seeded out from under a stale cookie) both mean the JWT is
+        // irrecoverable. Wipe the token so the next render escapes to /setup
+        // instead of looping on the same dead JWT.
+        if (userResponse.status === 401 || userResponse.status === 404) {
+            clearAuthToken()
         }
 
         // 4xx = auth failure, clear stale redux so layout redirects to /setup

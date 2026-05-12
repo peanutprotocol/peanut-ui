@@ -183,28 +183,30 @@ describe('action functions Content-Type headers', () => {
     })
 })
 
-describe('action functions route through proxy on web', () => {
+// Post-proxy-removal: web calls PEANUT_API_URL directly (same as native).
+// The historical /api/proxy/{get,patch,delete}/ routing fork is gone.
+describe('action functions call PEANUT_API_URL directly on web', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockIsCapacitor.mockReturnValue(false)
     })
 
-    it('should route POST actions through /api/proxy/', async () => {
+    it('should call PEANUT_API_URL directly for POST', async () => {
         const { validateInviteCode } = require('@/app/actions/invites')
         await validateInviteCode('TEST-CODE')
-        expect(getLastCallUrl()).toBe('/api/proxy/invites/validate')
+        expect(getLastCallUrl()).toBe('https://api.test.com/invites/validate')
     })
 
-    it('should route GET actions through /api/proxy/get/', async () => {
+    it('should call PEANUT_API_URL directly for GET', async () => {
         const { getCardInfo } = require('@/app/actions/card')
         await getCardInfo()
-        expect(getLastCallUrl()).toBe('/api/proxy/get/card')
+        expect(getLastCallUrl()).toBe('https://api.test.com/card')
     })
 
-    it('should route DELETE actions through /api/proxy/delete/', async () => {
+    it('should call PEANUT_API_URL directly for DELETE', async () => {
         const { cancelOnramp } = require('@/app/actions/onramp')
         await cancelOnramp('transfer-123')
-        expect(getLastCallUrl()).toBe('/api/proxy/delete/bridge/onramp/transfer-123/cancel')
+        expect(getLastCallUrl()).toBe('https://api.test.com/bridge/onramp/transfer-123/cancel')
     })
 })
 

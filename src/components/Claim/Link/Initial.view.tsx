@@ -494,7 +494,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
             if (!user) {
                 console.log(`user not logged in, getting account status for ${recipient.address}`)
-                const userIdResponse = await apiFetch('/get-user-id', '/api/peanut/user/get-user-id', {
+                const userIdResponse = await apiFetch('/get-user-id', {
                     method: 'POST',
                     body: JSON.stringify({
                         accountIdentifier: recipient.address,

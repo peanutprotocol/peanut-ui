@@ -12,7 +12,6 @@ import {
     clearRedirectUrl,
     updateUserPreferences,
 } from '@/utils/general.utils'
-import { fetchWithSentry } from '@/utils/sentry.utils'
 import { apiFetch } from '@/utils/api-fetch'
 import { isCapacitor } from '@/utils/capacitor'
 import { clearAuthToken } from '@/utils/auth-token'
@@ -114,7 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }) => {
         console.log('[addAccount] Starting account addition', { userId, accountType })
 
-        const response = await apiFetch('/add-account', '/api/peanut/user/add-account', {
+        const response = await apiFetch('/add-account', {
             method: 'POST',
             body: JSON.stringify({
                 userId,
@@ -226,20 +225,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             setIsLoggingOut(true)
             try {
-                // Call backend logout unless skipped (e.g., when backend is down)
-                // in capacitor, there's no backend logout route — just clear client-side state.
-                // on web, the /api/ route clears the server-side cookie.
-                if (!options?.skipBackendCall && !isCapacitor()) {
-                    const response = await fetchWithSentry('/api/peanut/user/logout-user', {
-                        method: 'GET',
-                    })
-
-                    if (!response.ok) {
-                        throw new Error('Backend logout failed')
-                    }
-                }
-
-                // Clear all client-side auth state
+                // Clear all client-side auth state. The JWT is browser-only —
+                // there's no server-side session to invalidate (see the TODO
+                // about tokenVersion). `clearAuthToken()` removes the cookie
+                // on web and clears localStorage on native.
                 await clearLocalAuthState()
 
                 // fetch user (should return null after logout) - skip for capacitor

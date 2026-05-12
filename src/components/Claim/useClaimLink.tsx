@@ -13,7 +13,7 @@ import { CLAIM_LINK, CLAIM_LINK_XCHAIN, TRANSACTIONS } from '@/constants/query.c
 import { loadingStateContext } from '@/context'
 import { getTokenSymbol, isTestnetChain } from '@/utils/general.utils'
 import { sendLinksApi, ESendLinkStatus } from '@/services/sendLinks'
-import { next_proxy_url } from '@/constants/general.consts'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 // ============================================================================
 // Constants
@@ -87,7 +87,7 @@ async function executeClaim({
     depositDetails,
     optimisticReturn = false,
     campaignTag,
-    baseUrl = `${next_proxy_url}/claim`,
+    baseUrl = `${PEANUT_API_URL}/claim`,
 }: {
     link: string
     recipientAddress: string
@@ -206,7 +206,7 @@ async function executeClaimXChain({
         keys.privateKey
     )
 
-    const data = await postJson<{ txHash?: string }>(`${next_proxy_url}/claim`, {
+    const data = await postJson<{ txHash?: string }>(`${PEANUT_API_URL}/claim`, {
         claimParams,
         chainId: params.chainId,
         version: params.contractVersion,

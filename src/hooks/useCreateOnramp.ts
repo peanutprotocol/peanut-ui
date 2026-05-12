@@ -45,7 +45,7 @@ export const useCreateOnramp = (): UseCreateOnrampReturn => {
                     amount = (Number(usdAmount) * price.buy).toFixed(2)
                 }
 
-                const response = await apiFetch('/bridge/onramp/create', '/api/proxy/bridge/onramp/create', {
+                const response = await apiFetch('/bridge/onramp/create', {
                     method: 'POST',
                     body: JSON.stringify({
                         amount,

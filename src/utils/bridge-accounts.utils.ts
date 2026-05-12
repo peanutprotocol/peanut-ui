@@ -27,7 +27,7 @@ export function getBridgeChainName(chainId: string): string | undefined {
 
 export async function validateBankAccount(bankAccount: string): Promise<boolean> {
     const bankAccountNumber = bankAccount.replace(/\s/g, '')
-    const response = await apiFetch('/validate-bank-account-number', '/api/peanut/iban/validate-bank-account-number', {
+    const response = await apiFetch('/validate-bank-account-number', {
         method: 'POST',
         body: JSON.stringify({ bankAccountNumber }),
     })
@@ -40,7 +40,7 @@ export async function validateBankAccount(bankAccount: string): Promise<boolean>
 }
 
 export async function validateBic(bic: string): Promise<boolean> {
-    const response = await apiFetch('/is-valid-bic', '/api/peanut/iban/validate-bic', {
+    const response = await apiFetch('/is-valid-bic', {
         method: 'POST',
         body: JSON.stringify({ bic }),
     })
