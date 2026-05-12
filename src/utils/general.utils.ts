@@ -473,7 +473,10 @@ export type UserPreferences = {
     hasSeenBalanceWarning?: { value: boolean; expiry: number }
     /** tracks surprise moment claim count for referral CTA copy (rewards v2). 0=first, 1=second, 2+=normal */
     rewards_surprise_claim_count?: number
-    dismissedCarouselCTAs?: string[]
+    /** Carousel CTAs the user has dismissed, with the ISO timestamp of each dismissal.
+     *  Read by useHomeCarouselCTAs to apply a per-CTA cooldown before re-showing.
+     *  Legacy shape was `string[]` (permanent dismissal); both are accepted on read. */
+    dismissedCarouselCTAs?: string[] | Record<string, string>
 }
 
 export const updateUserPreferences = (
