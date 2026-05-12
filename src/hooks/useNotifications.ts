@@ -31,6 +31,12 @@ export function useNotifications() {
     const [sdkReady, setSdkReady] = useState(false)
     const [oneSignalInitialized, setOneSignalInitialized] = useState(false)
 
+    // OneSignal subscription-level opt-in (looser than browser permission — a user can
+    // have permission revoked at the browser but still appear opted-in in OneSignal,
+    // or vice versa). Tracked as state so consumers (like the carousel notification CTA)
+    // can hide themselves the moment EITHER signal confirms the user is signed up.
+    const [isPushOptedIn, setIsPushOptedIn] = useState(false)
+
     // update permission state from browser api
     const refreshPermissionState = useCallback(() => {
         if (typeof window === 'undefined' || typeof Notification === 'undefined') return
@@ -80,6 +86,7 @@ export function useNotifications() {
 
         const granted = await getPermissionGranted()
         const optedIn = await isPushSubscriptionOptedIn()
+        setIsPushOptedIn(optedIn)
 
         // if permission is granted, hide modal
         if (granted) {
@@ -353,6 +360,7 @@ export function useNotifications() {
         permissionState,
         isPermissionDenied: permissionState === 'denied',
         isPermissionGranted: permissionState === 'granted',
+        isPushOptedIn,
         isRequestingPermission,
         refreshPermissionState,
     }
