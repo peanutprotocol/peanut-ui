@@ -12,6 +12,16 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const src = resolve(root, 'node_modules/circle-flags/flags')
 const dest = resolve(root, 'public/flags')
 
+// circle-flags ships some flags under verbose filenames that don't match the
+// ISO-2 / short codes the rest of the app uses. Mirror them under the short
+// name we actually request. `countryCurrencyMapping.ts` maps EUR → 'eu'; the
+// package only has 'european_union.svg', so without this alias every EUR-
+// currency fallback (e.g. SEPA onramps without IBAN signal, the KYC icon
+// strip) 404s in production.
+const ALIASES = {
+    european_union: 'eu',
+}
+
 if (!existsSync(src)) {
     console.error(`[copy-flags] source missing: ${src}. Run \`pnpm install\` first.`)
     process.exit(1)
@@ -19,4 +29,15 @@ if (!existsSync(src)) {
 
 mkdirSync(dest, { recursive: true })
 cpSync(src, dest, { recursive: true })
+
+for (const [from, to] of Object.entries(ALIASES)) {
+    const fromPath = resolve(src, `${from}.svg`)
+    const toPath = resolve(dest, `${to}.svg`)
+    if (!existsSync(fromPath)) {
+        console.error(`[copy-flags] alias source missing: ${from}.svg`)
+        process.exit(1)
+    }
+    cpSync(fromPath, toPath)
+}
+
 console.log(`[copy-flags] copied SVGs from circle-flags → public/flags/`)
