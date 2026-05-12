@@ -77,7 +77,7 @@ const HistoryPage = () => {
                 // Fallback: Use raw entry with proper amount formatting
                 let fallbackAmount = newEntry.amount.toString()
 
-                if (newEntry.type === 'DEPOSIT' && newEntry.extraData?.blockNumber) {
+                if (newEntry.extraData?.kind === 'CRYPTO_DEPOSIT' && newEntry.extraData?.blockNumber) {
                     try {
                         fallbackAmount = formatUnits(BigInt(newEntry.amount), PEANUT_WALLET_TOKEN_DECIMALS)
                     } catch (formatError) {

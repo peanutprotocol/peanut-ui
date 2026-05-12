@@ -184,7 +184,7 @@ const HomeHistory = ({
                         // Fallback: Use raw entry with proper amount formatting
                         let fallbackAmount = wsEntry.amount.toString()
 
-                        if (wsEntry.type === 'DEPOSIT' && wsEntry.extraData?.blockNumber) {
+                        if (wsEntry.extraData?.kind === 'CRYPTO_DEPOSIT' && wsEntry.extraData?.blockNumber) {
                             try {
                                 fallbackAmount = formatUnits(BigInt(wsEntry.amount), PEANUT_WALLET_TOKEN_DECIMALS)
                             } catch (formatError) {

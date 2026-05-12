@@ -1,5 +1,5 @@
 import { mapTransactionDataForDrawer } from '../transactionTransformer'
-import { EHistoryEntryType, EHistoryUserRole, EHistoryStatus, type HistoryEntry } from '@/utils/history.utils'
+import { EHistoryUserRole, EHistoryStatus, type HistoryEntry } from '@/utils/history.utils'
 
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '', SIMPLEFI: '' }))
@@ -40,7 +40,7 @@ const ibanAccountES: Account = {
 
 const baseEntry = (overrides: Partial<HistoryEntry>): HistoryEntry => ({
     uuid: 'test-uuid-' + Math.random().toString(36).slice(2),
-    type: EHistoryEntryType.TRANSACTION_INTENT,
+    type: 'TRANSACTION_INTENT',
     timestamp: new Date('2026-04-01T12:00:00Z'),
     amount: '1000000',
     chainId: '42161',

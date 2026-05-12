@@ -9,30 +9,6 @@ import { type ChargeEntry } from '@/services/services.types'
 import { BASE_URL } from '@/constants/general.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 
-// NOTE: do not change the order, add new entries at the end, keep synced with backend
-export enum EHistoryEntryType {
-    REQUEST = 'REQUEST',
-    CASHOUT = 'CASHOUT',
-    DEPOSIT = 'DEPOSIT',
-    SEND_LINK = 'SEND_LINK',
-    DIRECT_SEND = 'DIRECT_SEND',
-    WITHDRAW = 'WITHDRAW',
-    BRIDGE_OFFRAMP = 'BRIDGE_OFFRAMP',
-    BRIDGE_ONRAMP = 'BRIDGE_ONRAMP',
-    BANK_SEND_LINK_CLAIM = 'BANK_SEND_LINK_CLAIM',
-    MANTECA_QR_PAYMENT = 'MANTECA_QR_PAYMENT',
-    MANTECA_OFFRAMP = 'MANTECA_OFFRAMP',
-    MANTECA_ONRAMP = 'MANTECA_ONRAMP',
-    BRIDGE_GUEST_OFFRAMP = 'BRIDGE_GUEST_OFFRAMP',
-    SIMPLEFI_QR_PAYMENT = 'SIMPLEFI_QR_PAYMENT',
-    PERK_REWARD = 'PERK_REWARD',
-    RAIN_CARD_TRANSACTION = 'RAIN_CARD_TRANSACTION',
-    /** User-initiated money movement; receipts for collateral/mixed-strategy
-     *  Rain spends, same-chain withdraws, and (future) all other flows live
-     *  here instead of behind an orphan Charge. Frontend branches on
-     *  extraData.kind to style the card. */
-    TRANSACTION_INTENT = 'TRANSACTION_INTENT',
-}
 export enum EHistoryUserRole {
     SENDER = 'SENDER',
     RECIPIENT = 'RECIPIENT',
@@ -87,7 +63,9 @@ export const FINAL_STATES: HistoryStatus[] = [
     EHistoryStatus.CLOSED,
 ]
 
-export type HistoryEntryType = `${EHistoryEntryType}`
+/** Every history row arrives with this literal type. The actual flow is
+ *  discriminated by `extraData.kind`. */
+export type HistoryEntryType = 'TRANSACTION_INTENT'
 export type HistoryUserRole = `${EHistoryUserRole}`
 export type HistoryStatus = `${EHistoryStatus}`
 
