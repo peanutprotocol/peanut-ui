@@ -95,7 +95,7 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
         >
             <div className="flex w-full flex-col items-center justify-center gap-6 p-6 text-center">
                 <div className="flex size-16 items-center justify-center rounded-full bg-yellow-400">
-                    <Icon name="alert" className="size-8" />
+                    <Icon name="alert" size={24} />
                 </div>
 
                 <div className="space-y-4">

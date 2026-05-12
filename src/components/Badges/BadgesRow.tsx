@@ -135,7 +135,7 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
                             onClick={scrollRight}
                             aria-label="Show next badges"
                         >
-                            <Icon name="chevron-up" className="h-9 rotate-90" />
+                            <Icon name="chevron-up" size={24} className="rotate-90" />
                         </Button>
                     </div>
                 )}
@@ -149,7 +149,7 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
                             onClick={scrollLeft}
                             aria-label="Show previous badges"
                         >
-                            <Icon name="chevron-up" className="h-9 -rotate-90" />
+                            <Icon name="chevron-up" size={24} className="-rotate-90" />
                         </Button>
                     </div>
                 )}

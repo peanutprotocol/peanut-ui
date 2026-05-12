@@ -374,7 +374,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                 )}
                         </div>
                     </div>
-                    <Icon name="chevron-up" size={32} className="h-8 w-8 flex-shrink-0 rotate-90 text-black" />
+                    <Icon name="chevron-up" size={24} className="flex-shrink-0 rotate-90 text-black" />
                 </div>
             </Button>
 

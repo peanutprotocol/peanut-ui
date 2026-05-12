@@ -937,7 +937,7 @@ export default function QRPayPage() {
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
                 <Card className="flex w-full flex-col items-center gap-2 p-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
-                        <Icon name="alert" className="h-full" />
+                        <Icon name="alert" size={24} />
                     </div>
                     <span className="text-lg font-bold">Service Temporarily Unavailable</span>
                     <p className="text-center font-normal text-grey-1">
@@ -964,7 +964,7 @@ export default function QRPayPage() {
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
-                        <Icon name="alert" className="h-full" />
+                        <Icon name="alert" size={24} />
                     </div>
                     <p className="font-medium">
                         {' '}
@@ -991,7 +991,7 @@ export default function QRPayPage() {
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
                 <Card className="flex w-full flex-col items-center gap-2 p-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
-                        <Icon name="qr-code" className="h-full" />
+                        <Icon name="qr-code" size={24} />
                     </div>
                     <span className="text-lg font-bold">We couldn't get the amount</span>
                     <p className="max-w-52 text-center font-normal text-grey-1">
@@ -1395,7 +1395,7 @@ const QrPayPageLoading = ({ message }: { message: string }) => {
 
                 <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
-                        <Icon name="clock" className="h-full" />
+                        <Icon name="clock" size={24} />
                     </div>
                     <p className="font-medium">{message}</p>
                 </Card>

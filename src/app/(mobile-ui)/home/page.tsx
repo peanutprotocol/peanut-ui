@@ -356,11 +356,7 @@ function WalletBalance({
 
             {!isFetchingBalance && (
                 <button onClick={onToggleBalanceVisibility}>
-                    <Icon
-                        name={isBalanceHidden ? 'eye-slash' : 'eye'}
-                        className={'h-8 w-8 md:h-10 md:w-10'}
-                        fill={'black'}
-                    />
+                    <Icon name={isBalanceHidden ? 'eye-slash' : 'eye'} size={24} fill={'black'} />
                 </button> // no balance <> no icon
             )}
         </div>
@@ -385,31 +381,18 @@ function ActionButtonWithHref({ label, action, href, variant = 'primary-soft', s
 
 function ActionButton({ label, action, variant = 'primary-soft', size = 'small' }: Omit<ActionButtonProps, 'href'>) {
     const renderIcon = (): React.ReactNode => {
-        return (
-            <div
-                className={twMerge(
-                    'flex items-center justify-center',
-                    size === 'small'
-                        ? 'size-[22px] md:size-[23px]' // Add/Withdraw size
-                        : 'size-[22px] md:size-[23px]' // Send/Request size
-                )}
-            >
-                {(() => {
-                    switch (action) {
-                        case 'send':
-                            return <Icon name="arrow-up-right" className="h-full w-full" fill="currentColor" />
-                        case 'withdraw':
-                            return <Icon name="arrow-up" className="h-full w-full" fill="currentColor" />
-                        case 'add':
-                            return <Icon name="arrow-down" className="h-full w-full" fill="currentColor" />
-                        case 'request':
-                            return <Icon name="arrow-down-left" className="h-full w-full" fill="currentColor" />
-                        default:
-                            return null
-                    }
-                })()}
-            </div>
-        )
+        switch (action) {
+            case 'send':
+                return <Icon name="arrow-up-right" size={18} fill="currentColor" />
+            case 'withdraw':
+                return <Icon name="arrow-up" size={18} fill="currentColor" />
+            case 'add':
+                return <Icon name="arrow-down" size={18} fill="currentColor" />
+            case 'request':
+                return <Icon name="arrow-down-left" size={18} fill="currentColor" />
+            default:
+                return null
+        }
     }
 
     return (
