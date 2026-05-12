@@ -297,7 +297,11 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
                 tokenAddress: entry.tokenAddress as Hash,
                 chainId: entry.chainId,
             })
-            usdAmount = formatUnits(BigInt(entry.amount), tokenDetails?.decimals ?? 6)
+            // BE emits SEND_LINK amount as a decimal string ("2.00") via
+            // mapGenericIntent → formatAmount. BigInt() throws on decimals;
+            // .toString() is consistent with P2P_REQUEST_FULFILL / DIRECT_TRANSFER
+            // (other kinds also routed through mapGenericIntent).
+            usdAmount = entry.amount.toString()
             tokenSymbol = tokenDetails?.symbol ?? ''
             break
         }
