@@ -6,7 +6,6 @@ import { useParams } from 'next/navigation'
 import { type CountryData, countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useCurrency } from '@/hooks/useCurrency'
-import { useAuth } from '@/context/authContext'
 import { mantecaApi } from '@/services/manteca'
 import { parseUnits } from 'viem'
 import { useQueryClient } from '@tanstack/react-query'
@@ -22,6 +21,7 @@ import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails'
@@ -64,16 +64,16 @@ const MantecaAddMoney: FC = () => {
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
-    const { isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
+    const { isUserSumsubKycApproved } = useKycStatus()
+    const { isVerifiedForCountry } = useIdentityVerification()
     const { manteca: mantecaRejection } = useProviderRejectionStatus()
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
-    const { user } = useAuth()
-
     // inline sumsub kyc flow for manteca users who need LATAM verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
     // intent is passed at call time: handleInitiateKyc('LATAM')
     const sumsubFlow = useMultiPhaseKycFlow({})
     const [showKycModal, setShowKycModal] = useState(false)
+    const isUserMantecaKycApprovedForCountry = selectedCountry ? isVerifiedForCountry(selectedCountry.id) : false
 
     // validates deposit amount against user's limits
     // currency comes from country config - hook normalizes it internally
@@ -144,7 +144,7 @@ const MantecaAddMoney: FC = () => {
         if (!selectedCountry?.currency) return
         if (isCreatingDeposit) return
 
-        if (!isUserMantecaKycApproved) {
+        if (!isUserMantecaKycApprovedForCountry) {
             setShowKycModal(true)
             return
         }
@@ -200,7 +200,7 @@ const MantecaAddMoney: FC = () => {
         currentDenomination,
         selectedCountry,
         displayedAmount,
-        isUserMantecaKycApproved,
+        isUserMantecaKycApprovedForCountry,
         isCreatingDeposit,
         setUrlState,
         usdAmount,
@@ -227,7 +227,7 @@ const MantecaAddMoney: FC = () => {
                         if (hasRejection) {
                             await sumsubFlow.handleSelfHealResubmit('MANTECA')
                         } else {
-                            await sumsubFlow.handleInitiateKyc('LATAM', undefined, true)
+                            await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
                         }
                         setShowKycModal(false)
                     }}

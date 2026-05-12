@@ -31,6 +31,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const regionIntentRef = useRef<KYCRegionIntent | undefined>(regionIntent)
     // tracks the level name across initiate + refresh (e.g. 'peanut-additional-docs')
     const levelNameRef = useRef<string | undefined>(undefined)
+    // tracks the selected target country across initiate + refresh for country-scoped Manteca actions
+    const targetCountryRef = useRef<string | undefined>(undefined)
     // guards fetchCurrentStatus from running while handleInitiateKyc is in progress
     const initiatingRef = useRef(false)
     // guard: only fire onKycSuccess when the user initiated a kyc flow in this session.
@@ -120,6 +122,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 const response = await initiateSumsubKyc({
                     regionIntent: regionIntentRef.current,
                     levelName: levelNameRef.current,
+                    targetCountry: targetCountryRef.current,
                 })
                 if (response.data?.status) {
                     setLiveKycStatus(response.data.status)
@@ -134,7 +137,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     }, [isVerificationProgressModalOpen])
 
     const handleInitiateKyc = useCallback(
-        async (overrideIntent?: KYCRegionIntent, levelName?: string, crossRegion?: boolean) => {
+        async (overrideIntent?: KYCRegionIntent, levelName?: string, crossRegion?: boolean, targetCountry?: string) => {
             userInitiatedRef.current = true
             initiatingRef.current = true
             selfHealProviderRef.current = null
@@ -154,6 +157,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     regionIntent: overrideIntent ?? regionIntent,
                     levelName,
                     crossRegion,
+                    targetCountry,
                 })
 
                 if (response.error) {
@@ -174,6 +178,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 const effectiveIntent = overrideIntent ?? regionIntent
                 if (effectiveIntent) regionIntentRef.current = effectiveIntent
                 levelNameRef.current = levelName
+                targetCountryRef.current = targetCountry
 
                 // cross-region: bridge-direct means no SDK needed — backend is handling
                 // rail enrollment + submission. go straight to the post-approval flow.
@@ -246,6 +251,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         const response = await initiateSumsubKyc({
             regionIntent: regionIntentRef.current,
             levelName: levelNameRef.current,
+            targetCountry: targetCountryRef.current,
         })
 
         if (response.error || !response.data?.token) {

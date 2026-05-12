@@ -21,7 +21,7 @@ interface InitiateKycModalProps {
 // for fresh KYC: "Verify your identity"
 // for provider rejections: "We need extra documents"
 // for blocked: "Verification issue — contact support"
-// for cross-region: "Your identity is verified, we need a local ID"
+// for cross-region: "Your identity is verified, submit a local ID"
 export const InitiateKycModal = ({
     visible,
     onClose,
@@ -41,6 +41,7 @@ export const InitiateKycModal = ({
         if (error) return 'Something went wrong'
         if (isBlocked) return 'Verification issue'
         if (isProviderRejection) return 'We need extra documents'
+        if (isCrossRegion) return 'Submit local ID'
         return 'Verify your identity'
     }
 
@@ -66,6 +67,13 @@ export const InitiateKycModal = ({
         if (isProviderRejection) {
             return {
                 text: isLoading ? 'Loading...' : 'Upload document',
+                onClick: onVerify,
+                icon: 'upload' as IconName,
+            }
+        }
+        if (isCrossRegion) {
+            return {
+                text: isLoading ? 'Loading...' : 'Submit document',
                 onClick: onVerify,
                 icon: 'upload' as IconName,
             }
