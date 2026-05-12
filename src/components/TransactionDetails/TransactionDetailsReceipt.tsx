@@ -699,7 +699,7 @@ export const TransactionDetailsReceipt = ({
                         shadowSize="4"
                         className="flex w-full items-center gap-1"
                     >
-                        <Icon name="currency" />
+                        <Icon name="currency" size={18} />
                         Pay
                     </Button>
                     <Button
