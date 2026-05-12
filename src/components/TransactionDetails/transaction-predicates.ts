@@ -141,14 +141,13 @@ export function isOnrampEntry(transaction: TransactionDetails): boolean {
 }
 
 // Manteca-flavoured onramp specifically (renders the ARS/BRL deposit-info row).
-// Provider isn't on the drawer view-model. Legacy rows carried the provider
-// via originalType (MANTECA_ONRAMP vs BRIDGE_ONRAMP); post-M3, both collapse
-// to TRANSACTION_INTENT/kind=FIAT_ONRAMP. The behavioural discriminator the
-// drawer already uses is `extraDataForDrawer.depositInstructions` — Bridge
-// onramps ship it (and render their own depositInstructions row instead),
-// Manteca onramps don't. So Manteca === FIAT_ONRAMP without depositInstructions.
+// Legacy rows carried the provider via originalType (MANTECA_ONRAMP vs
+// BRIDGE_ONRAMP). Post-M3 rows arrive as TRANSACTION_INTENT/kind=FIAT_ONRAMP
+// for both providers; the discriminator is `extraDataForDrawer.provider`
+// (plumbed end-to-end as of peanut-api-ts#739 — every projector emits
+// `provider: intent.provider`). Positive identity, no field-absence smell.
 export function isMantecaOnrampEntry(transaction: TransactionDetails): boolean {
     if (transaction.extraDataForDrawer?.originalType === ('MANTECA_ONRAMP' as EHistoryEntryType)) return true
     if (!isTransactionIntentKind(transaction, 'FIAT_ONRAMP')) return false
-    return !transaction.extraDataForDrawer?.depositInstructions
+    return transaction.extraDataForDrawer?.provider === 'MANTECA'
 }

@@ -14,7 +14,26 @@ import { type StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
-import { dispatchStrategy } from './strategies/registry'
+import { dispatchStrategy, type IntentKind } from './strategies/registry'
+
+// Mirror of peanut-api-ts `enum TransactionProvider`. Receipts that branch
+// on provider (e.g. Manteca-specific deposit-info row) use this typed
+// value via `extraDataForDrawer.provider` for positive identity rather
+// than inferring from the absence of other fields.
+//
+// Stays a string union (not an enum) so it stays interchangeable with the
+// wire string at runtime and so adding a value here forces TS-side updates
+// at every gate that switches on it. Deprecated values are kept so old
+// rows that still carry them on the wire don't blow up the type system.
+export type Provider =
+    | 'PEANUT'
+    | 'BRIDGE'
+    | 'MANTECA'
+    | 'RHINO'
+    | 'RAIN'
+    | 'ONCHAIN'
+    | 'DEPRECATED_SIMPLEFI'
+    | 'DEPRECATED_SQUID'
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
@@ -247,8 +266,16 @@ export interface TransactionDetails {
         /** Post-M3 transaction-intent kind (P2P_SEND, QR_PAY, CARD_SPEND, …).
          *  Some predicates need this to disambiguate within TRANSACTION_INTENT
          *  entries — e.g. QR payments now arrive as TRANSACTION_INTENT + kind=QR_PAY
-         *  rather than a dedicated originalType. */
-        kind?: string
+         *  rather than a dedicated originalType. Pinned to the strategy
+         *  registry's IntentKind union — adding a new kind here is a TS-side
+         *  failure unless the registry knows about it too. */
+        kind?: IntentKind
+        /** TransactionProvider enum value from the BE (peanut-api-ts:
+         *  `enum TransactionProvider`). Every wire entry carries this as of
+         *  peanut-api-ts#739 — predicates branch on it for positive identity
+         *  (e.g. `provider === 'MANTECA'`) instead of inferring from the
+         *  presence/absence of other fields. */
+        provider?: Provider
         link?: string
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
@@ -484,7 +511,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             addressExplorerUrl,
             originalType: entry.type as EHistoryEntryType,
             originalUserRole: entry.userRole as EHistoryUserRole,
-            kind: entry.extraData?.kind as string | undefined,
+            kind: entry.extraData?.kind as IntentKind | undefined,
+            provider: entry.extraData?.provider as Provider | undefined,
             link: entry.extraData?.link,
             isLinkTransaction: isLinkTx,
             transactionCardType,

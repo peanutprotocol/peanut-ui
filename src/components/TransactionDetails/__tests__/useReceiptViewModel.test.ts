@@ -158,13 +158,24 @@ const PARITY_CASES: ParityCase[] = [
             originalType: EHistoryEntryType.BRIDGE_ONRAMP,
             originalUserRole: EHistoryUserRole.RECIPIENT,
             depositInstructions: { bank_name: 'Test Bank' },
+            // Both shapes carry provider as of peanut-api-ts#739 — BridgeHistoryFetcher
+            // emits it (was a lowercase 'bridge' literal before; standardised to
+            // intent.provider = 'BRIDGE').
+            provider: 'BRIDGE',
         },
         intentKind: 'FIAT_ONRAMP',
     },
     {
         name: 'pending manteca onramp (renders ARS/BRL deposit-info row)',
         legacy: { status: 'pending', direction: 'bank_deposit', currency: { code: 'ARS', symbol: '$' } },
-        legacyDrawer: { originalType: EHistoryEntryType.MANTECA_ONRAMP, originalUserRole: EHistoryUserRole.RECIPIENT },
+        legacyDrawer: {
+            originalType: EHistoryEntryType.MANTECA_ONRAMP,
+            originalUserRole: EHistoryUserRole.RECIPIENT,
+            // Positive-identity gate — Manteca and Bridge onramps share the
+            // FIAT_ONRAMP wire kind, so the Manteca-specific row gate uses
+            // provider rather than the absence of depositInstructions.
+            provider: 'MANTECA',
+        },
         intentKind: 'FIAT_ONRAMP',
     },
     {

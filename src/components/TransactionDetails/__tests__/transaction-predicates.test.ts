@@ -14,19 +14,25 @@ import type { TransactionDetails } from '../transactionTransformer'
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '', SIMPLEFI: '' }))
 
-const tx = (originalType: string, kind?: string): TransactionDetails =>
+const tx = (originalType: string, kind?: string, extra?: Record<string, unknown>): TransactionDetails =>
     ({
-        extraDataForDrawer: { originalType, ...(kind ? { kind } : {}) },
+        extraDataForDrawer: { originalType, ...(kind ? { kind } : {}), ...(extra ?? {}) },
     }) as unknown as TransactionDetails
 
 // Source of truth: the BE's `toLegacyKindLabel` in
 // peanut-api-ts/src/ledger/card-spend.ts. If either side changes, update both
 // the predicate AND this table — that's the contract the predicate enforces.
+//
+// `requiresProvider` is set for predicates that need positive-identity beyond
+// kind alone. Only Manteca's onramp does today — Bridge + Manteca share the
+// FIAT_ONRAMP wire kind so the predicate uses the `provider` field
+// (peanut-api-ts#739 plumbs this through every projector) to disambiguate.
 const WIRE_SHAPES: Array<{
     predicate: (t: TransactionDetails) => boolean
     legacyTypes: string[]
     intentKind: string
     name: string
+    requiresProvider?: string
 }> = [
     { predicate: isSendLinkEntry, legacyTypes: ['SEND_LINK'], intentKind: 'LINK_CREATE', name: 'isSendLinkEntry' },
     { predicate: isRequestEntry, legacyTypes: ['REQUEST'], intentKind: 'REQUEST_PAY', name: 'isRequestEntry' },
@@ -41,29 +47,49 @@ const WIRE_SHAPES: Array<{
         legacyTypes: ['MANTECA_ONRAMP'],
         intentKind: 'FIAT_ONRAMP',
         name: 'isMantecaOnrampEntry',
+        requiresProvider: 'MANTECA',
     },
     { predicate: isDirectSendEntry, legacyTypes: ['DIRECT_SEND'], intentKind: 'P2P_SEND', name: 'isDirectSendEntry' },
 ]
 
 describe('entry-type predicates — legacy + TRANSACTION_INTENT dual shape', () => {
-    for (const { predicate, legacyTypes, intentKind, name } of WIRE_SHAPES) {
+    for (const { predicate, legacyTypes, intentKind, name, requiresProvider } of WIRE_SHAPES) {
+        const intentExtra = requiresProvider ? { provider: requiresProvider } : undefined
+
         for (const legacy of legacyTypes) {
             test(`${name} matches legacy ${legacy}`, () => {
                 expect(predicate(tx(legacy))).toBe(true)
             })
         }
 
-        test(`${name} matches TRANSACTION_INTENT + kind=${intentKind}`, () => {
-            expect(predicate(tx('TRANSACTION_INTENT', intentKind))).toBe(true)
+        test(`${name} matches TRANSACTION_INTENT + kind=${intentKind}${requiresProvider ? ` + provider=${requiresProvider}` : ''}`, () => {
+            expect(predicate(tx('TRANSACTION_INTENT', intentKind, intentExtra))).toBe(true)
         })
 
         test(`${name} does NOT match TRANSACTION_INTENT with a different kind`, () => {
-            expect(predicate(tx('TRANSACTION_INTENT', 'SOME_OTHER_KIND'))).toBe(false)
+            expect(predicate(tx('TRANSACTION_INTENT', 'SOME_OTHER_KIND', intentExtra))).toBe(false)
         })
 
         test(`${name} does NOT match an unrelated legacy type`, () => {
             expect(predicate(tx('UNRELATED_TYPE'))).toBe(false)
         })
+
+        if (requiresProvider) {
+            test(`${name} does NOT match TRANSACTION_INTENT + correct kind with a DIFFERENT provider`, () => {
+                // The smell this PR kills: predicates were inferring identity
+                // from field absence. Lock that this predicate now rejects a
+                // TI row that has the right kind but the wrong provider —
+                // forcing a positive-identity check rather than negative.
+                expect(predicate(tx('TRANSACTION_INTENT', intentKind, { provider: 'BRIDGE' }))).toBe(false)
+            })
+
+            test(`${name} does NOT match TRANSACTION_INTENT + correct kind without ANY provider`, () => {
+                // Defensive: before peanut-api-ts#739 ships everywhere, a TI
+                // row may arrive without provider. The predicate must NOT
+                // light up on absence — that would re-introduce the smell.
+                expect(predicate(tx('TRANSACTION_INTENT', intentKind))).toBe(false)
+            })
+        }
     }
 
     // Regression: until this PR, the dual-shape onramp checks in
