@@ -19,9 +19,11 @@ permissions:
     checks: write
 
 jobs:
-    # Lint + format. Fast, no node_modules needed beyond what setup-node
-    # cache restores.
-    lint:
+    # Prettier formatting + content-link validation. Fast, no node_modules
+    # needed beyond what setup-node cache restores.
+    # (Renamed from "lint" — the job never actually ran a linter; ESLint now
+    # lives in its own advisory job below.)
+    format:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -48,6 +50,33 @@ jobs:
             - name: Validate internal links
               run: pnpm validate-links
               continue-on-error: true
+
+    # Advisory ESLint pass. Allowed to fail without blocking merge while the
+    # codebase is brought up to baseline. Not in ci-success.needs so a red
+    # eslint job doesn't gate the PR. Promote to blocking once errors are at
+    # zero (or after team decides a warn floor).
+    eslint:
+        runs-on: ubuntu-latest
+        continue-on-error: true
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 10
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile
+
+            - name: Run ESLint
+              run: pnpm lint
 
     # Typecheck job. Independent of unit tests so type errors surface in
     # parallel.
@@ -170,10 +199,10 @@ jobs:
     # peanut-api-ts/.github/workflows/tests.yaml `report` job.
     report:
         runs-on: ubuntu-latest
-        # Wait for lint + typecheck + e2e too — the report header says
+        # Wait for format + typecheck + e2e too — the report header says
         # "all green", which would lie if only unit results were
         # considered (per CR feedback on PR #1908).
-        needs: [lint, typecheck, unit, e2e]
+        needs: [format, typecheck, unit, e2e]
         if: always()
         permissions:
             contents: read
@@ -343,7 +372,7 @@ jobs:
     ci-success:
         name: ci-success
         if: always()
-        needs: [lint, typecheck, unit, e2e, report]
+        needs: [format, typecheck, unit, e2e, report]
         runs-on: ubuntu-latest
         steps:
             - name: Verify all required jobs passed
@@ -351,7 +380,7 @@ jobs:
                   if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
                       echo "::error::One or more required jobs failed or were cancelled"
                       echo "Job results:"
-                      echo "  lint:      ${{ needs.lint.result }}"
+                      echo "  format:    ${{ needs.format.result }}"
                       echo "  typecheck: ${{ needs.typecheck.result }}"
                       echo "  unit:      ${{ needs.unit.result }}"
                       echo "  e2e:       ${{ needs.e2e.result }}"
