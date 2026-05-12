@@ -66,6 +66,12 @@ const buttonSizes: Record<ButtonSize, string> = {
     large: 'btn-large',
 }
 
+const buttonIconSizes: Record<ButtonSize, number> = {
+    small: 16,
+    medium: 16,
+    large: 18,
+}
+
 const buttonShadows: Record<ShadowType, Record<ShadowSize, string>> = {
     primary: {
         '3': 'btn-shadow-primary-3',
@@ -142,11 +148,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             className
         )
 
-        // Match the pre-Lucide visual: the global '.btn svg' rule used to force
-        // 18px in default/large buttons and 16px in small/medium (see tailwind.config.js).
-        // Lucide icons opt out of that rule via 'custom-size', so we recreate the
-        // size table here. Explicit iconSize wins.
-        const resolvedIconSize = iconSize ?? (size === 'small' || size === 'medium' ? 16 : 18)
+        const resolvedIconSize = iconSize ?? (size && buttonIconSizes[size]) ?? 18
 
         const renderIcon = () => {
             if (!icon || loading) return null
