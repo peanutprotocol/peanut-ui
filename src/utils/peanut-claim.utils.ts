@@ -2,8 +2,7 @@
  *  same-named exports from `@squirrel-labs/peanut-sdk`.
  *
  *  Only the v4.x EIP-712 path (Arb mainnet 42161 + Arb Sepolia 421614)
- *  is supported — older versions and non-Arb chains were dropped in
- *  decomplexify "multi-chain → Arb-only".
+ *  is supported.
  */
 
 import { keccak256, encodePacked, toBytes, type Abi } from 'viem'
