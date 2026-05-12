@@ -105,12 +105,11 @@ export default function MantecaWithdrawFlow() {
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
-
-    // Determine country and currency from URL params or context
-    const countryPath = countryFromUrl || 'argentina'
+    const countryPath = countryFromUrl
 
     // Map country path to CountryData for KYC
     const selectedCountry = useMemo(() => {
+        if (!countryPath) return undefined
         return countryData.find((country) => country.type === 'country' && country.path === countryPath)
     }, [countryPath])
 
@@ -445,12 +444,12 @@ export default function MantecaWithdrawFlow() {
         }
     }, [step, queryClient])
 
-    // redirect to withdraw page if country is not supported by manteca
+    // redirect to withdraw page if country is missing or not supported by manteca
     useEffect(() => {
-        if (!selectedCountry || !MANTECA_COUNTRIES_CONFIG[selectedCountry.id]) {
+        if (!countryFromUrl || !selectedCountry || !MANTECA_COUNTRIES_CONFIG[selectedCountry.id]) {
             router.replace('/withdraw')
         }
-    }, [selectedCountry, router])
+    }, [countryFromUrl, selectedCountry, router])
 
     if (isCurrencyLoading || !currencyPrice || !selectedCountry || !countryConfig) {
         return <PeanutLoading />

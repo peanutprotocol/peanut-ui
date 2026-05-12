@@ -134,7 +134,7 @@ export default function QRPayPage() {
     }, [paymentProcessor])
 
     const { shouldBlockPay, kycGateState } = useQrKycGate(paymentProcessor)
-    const { isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
+    const { isUserSumsubKycApproved } = useKycStatus()
     const sumsubFlow = useMultiPhaseKycFlow({})
     const queryClient = useQueryClient()
     const [isShaking, setIsShaking] = useState(false)
