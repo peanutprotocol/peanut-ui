@@ -60,7 +60,10 @@ type LegacyKey =
 // TRANSACTION_INTENT kinds rendered by an explicit strategy. Adding a new
 // BE TransactionIntentKind that should render distinctly requires updating
 // this union AND the STRATEGIES map below — TS guarantees both move together.
-type IntentKind =
+// Exported so dual-shape predicates in transaction-predicates.ts can pin
+// their kind argument to the same source-of-truth set (compile error if a
+// predicate matches a kind the strategy registry has never heard of).
+export type IntentKind =
     | 'P2P_SEND'
     | 'REQUEST_PAY'
     | 'QR_PAY'

@@ -21,6 +21,10 @@ import { type TransactionDetails } from './transactionTransformer'
 // the Sets below use string literals because EHistoryEntryType is a string
 // enum, so the runtime values are interchangeable with their literal forms.
 import type { EHistoryEntryType } from '@/utils/history.utils'
+// Type-only — pins the kind argument of dual-shape predicates to the
+// strategy registry's source-of-truth IntentKind union. A drift between a
+// predicate kind and the registry is a compile error.
+import type { IntentKind } from './strategies/registry'
 
 const QR_PAYMENT_TYPES: ReadonlySet<EHistoryEntryType> = new Set<EHistoryEntryType>([
     'MANTECA_QR_PAYMENT' as EHistoryEntryType,
@@ -53,7 +57,7 @@ const COMPLETED_LABEL_TYPES: ReadonlySet<EHistoryEntryType> = new Set<EHistoryEn
 /** Post-M3, QR payments arrive as TRANSACTION_INTENT entries with
  *  `extraData.kind === 'QR_PAY'`. Pre-M3 (legacy rows still in the feed)
  *  used dedicated `originalType` values. Recognize both. */
-function isTransactionIntentKind(transaction: TransactionDetails, kind: string): boolean {
+function isTransactionIntentKind(transaction: TransactionDetails, kind: IntentKind): boolean {
     // String comparison — see top-of-file note on the type-only import. The
     // enum value 'TRANSACTION_INTENT' is identical to its string at runtime.
     return (
@@ -89,4 +93,62 @@ export function isCardPaymentEntry(transaction: TransactionDetails): boolean {
 
 export function isPerkReward(transaction: TransactionDetails): boolean {
     return transaction.extraDataForDrawer?.originalType === ('PERK_REWARD' as EHistoryEntryType)
+}
+
+// Post-M3, send-link rows from the BE arrive as TRANSACTION_INTENT entries with
+// extraData.kind === 'LINK_CREATE' (BE: toLegacyKindLabel maps both SEND_LINK and
+// SEND_LINK_CLAIM intents → 'LINK_CREATE'). Legacy rows (created pre-cutover and
+// still in some histories) keep originalType === SEND_LINK. Recognise both —
+// receipt CTAs (QR, Share, Cancel) and the receipt-field exemptions live or die
+// by this check.
+export function isSendLinkEntry(transaction: TransactionDetails): boolean {
+    return (
+        transaction.extraDataForDrawer?.originalType === ('SEND_LINK' as EHistoryEntryType) ||
+        isTransactionIntentKind(transaction, 'LINK_CREATE')
+    )
+}
+
+// Request links (individual requests) and request pots (multi-payer requests
+// with isRequestLink=true) both arrive as type=REQUEST (legacy rollup, the BE
+// pot rollup keeps the legacy type) or as TRANSACTION_INTENT/kind=REQUEST_PAY
+// for the post-M3 individual-contribution rows.
+export function isRequestEntry(transaction: TransactionDetails): boolean {
+    return (
+        transaction.extraDataForDrawer?.originalType === ('REQUEST' as EHistoryEntryType) ||
+        isTransactionIntentKind(transaction, 'REQUEST_PAY')
+    )
+}
+
+// Wallet-to-wallet direct send. Legacy originalType is DIRECT_SEND; post-M3
+// the row arrives as TRANSACTION_INTENT/kind=P2P_SEND (BE's toLegacyKindLabel
+// reuses the P2P_SEND label for the Lane-2b DIRECT_TRANSFER kind).
+export function isDirectSendEntry(transaction: TransactionDetails): boolean {
+    return (
+        transaction.extraDataForDrawer?.originalType === ('DIRECT_SEND' as EHistoryEntryType) ||
+        isTransactionIntentKind(transaction, 'P2P_SEND')
+    )
+}
+
+// Bridge or Manteca on-ramp. Post-M3 the wire kind is 'FIAT_ONRAMP' (not the
+// raw BE enum 'ONRAMP' — the BE's toLegacyKindLabel renames it). Two
+// pre-existing dual-shape checks in this codebase used 'ONRAMP' literally,
+// which silently breaks every new onramp row; route them through here instead.
+export function isOnrampEntry(transaction: TransactionDetails): boolean {
+    const type = transaction.extraDataForDrawer?.originalType
+    if (type === ('BRIDGE_ONRAMP' as EHistoryEntryType)) return true
+    if (type === ('MANTECA_ONRAMP' as EHistoryEntryType)) return true
+    return isTransactionIntentKind(transaction, 'FIAT_ONRAMP')
+}
+
+// Manteca-flavoured onramp specifically (renders the ARS/BRL deposit-info row).
+// Provider isn't on the drawer view-model. Legacy rows carried the provider
+// via originalType (MANTECA_ONRAMP vs BRIDGE_ONRAMP); post-M3, both collapse
+// to TRANSACTION_INTENT/kind=FIAT_ONRAMP. The behavioural discriminator the
+// drawer already uses is `extraDataForDrawer.depositInstructions` — Bridge
+// onramps ship it (and render their own depositInstructions row instead),
+// Manteca onramps don't. So Manteca === FIAT_ONRAMP without depositInstructions.
+export function isMantecaOnrampEntry(transaction: TransactionDetails): boolean {
+    if (transaction.extraDataForDrawer?.originalType === ('MANTECA_ONRAMP' as EHistoryEntryType)) return true
+    if (!isTransactionIntentKind(transaction, 'FIAT_ONRAMP')) return false
+    return !transaction.extraDataForDrawer?.depositInstructions
 }

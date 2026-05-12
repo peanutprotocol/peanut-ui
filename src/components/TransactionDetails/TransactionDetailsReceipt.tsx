@@ -45,7 +45,12 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useRouter } from 'next/navigation'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { isPerkReward as isPerkRewardTransaction, usesCompletedTimestampLabel } from './transaction-predicates'
+import {
+    isPerkReward as isPerkRewardTransaction,
+    isRequestEntry,
+    isSendLinkEntry,
+    usesCompletedTimestampLabel,
+} from './transaction-predicates'
 import { useReceiptViewModel } from './useReceiptViewModel'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
 import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
@@ -217,14 +222,16 @@ export const TransactionDetailsReceipt = ({
 
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
-    // determine if the qr code and sharing section should be shown
-    // conditions: status is pending, there's a link, and it's a send_link/request sent by the user, or a request received by the user.
+    // QR + Share + Cancel block: pending, has a link, and either the sender of
+    // a send-link OR the recipient of a request. Routed through the entry-type
+    // predicates so post-decomplexify rows (TRANSACTION_INTENT + kind=LINK_CREATE
+    // / REQUEST_PAY) are recognised alongside the legacy originalType values.
     const shouldShowQrShare =
         transaction.status === 'pending' &&
-        transaction.extraDataForDrawer?.link &&
-        ((transaction.extraDataForDrawer.originalType === EHistoryEntryType.SEND_LINK &&
+        !!transaction.extraDataForDrawer?.link &&
+        ((isSendLinkEntry(transaction) &&
             transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.SENDER) ||
-            (transaction.extraDataForDrawer.originalType === EHistoryEntryType.REQUEST &&
+            (isRequestEntry(transaction) &&
                 transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.RECIPIENT))
 
     const getLabelText = (transaction: TransactionDetails) => {
@@ -638,8 +645,7 @@ export const TransactionDetailsReceipt = ({
                         Share Link
                     </ShareButton>
                     {/* show cancel button only if the current user sent the link/request */}
-                    {(transaction.extraDataForDrawer.originalType === EHistoryEntryType.SEND_LINK ||
-                        transaction.extraDataForDrawer.originalType === EHistoryEntryType.REQUEST) &&
+                    {(isSendLinkEntry(transaction) || isRequestEntry(transaction)) &&
                         transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.SENDER &&
                         setIsLoading &&
                         onClose && (

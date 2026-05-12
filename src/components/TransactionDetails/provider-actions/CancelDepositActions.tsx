@@ -3,7 +3,8 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { isMantecaOnrampEntry, isRequestEntry } from '@/components/TransactionDetails/transaction-predicates'
+import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { chargesApi } from '@/services/charges'
@@ -56,10 +57,11 @@ export function CancelDepositActions({
         }
     }
 
-    // 1. Bridge onramp pending — generic bank deposit cancel.
+    // 1. Bridge onramp pending — generic bank deposit cancel. Excludes REQUEST
+    // rows (those take the dedicated request-cancel branch below).
     const showBridgeOnrampCancel =
         transaction.direction === 'bank_deposit' &&
-        transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.REQUEST &&
+        !isRequestEntry(transaction) &&
         transaction.status === 'pending' &&
         !!transaction.extraDataForDrawer?.depositInstructions
 
@@ -78,9 +80,7 @@ export function CancelDepositActions({
     }
 
     // 2. Manteca onramp pending.
-    const showMantecaCancel =
-        transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP &&
-        transaction.status === 'pending'
+    const showMantecaCancel = isMantecaOnrampEntry(transaction) && transaction.status === 'pending'
 
     if (showMantecaCancel) {
         return (
