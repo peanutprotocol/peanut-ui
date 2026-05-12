@@ -10,7 +10,7 @@ import { type TransactionDetails, REWARD_TOKENS } from '@/components/Transaction
 import { tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
-import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import type { RecipientType } from '@/interfaces/interfaces'
@@ -169,8 +169,9 @@ export const Claim = ({}) => {
             txHash: claimLinkData.claim?.txHash,
             extraDataForDrawer: {
                 isLinkTransaction: true,
-                originalType: EHistoryEntryType.SEND_LINK,
+                originalType: 'TRANSACTION_INTENT',
                 originalUserRole: EHistoryUserRole.SENDER,
+                kind: 'SEND_LINK',
                 link: claimLinkData.link,
                 rewardData,
                 transactionCardType: 'send',

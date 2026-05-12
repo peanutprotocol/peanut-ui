@@ -131,6 +131,22 @@ jobs:
             - name: Generate Next types
               run: pnpm next typegen
 
+            # Fetch the canonical 49-entry HistoryEntry baseline from the BE
+            # repo. Living source-of-truth = peanut-api-ts/test/integration/
+            # __fixtures__/history-real-staging.jsonl. We don't vendor a copy
+            # in this repo because it bloats every FE diff by ~3.7K lines.
+            # PR base branch tracks the BE branch the FE is coordinated with
+            # (dev when targeting dev; the paired BE PR's HEAD when in flight).
+            - name: Fetch BE render-snapshot baseline
+              env:
+                  GH_TOKEN: ${{ secrets.PEANUT_ALL_READ_TOKEN }}
+              run: |
+                  BE_REF="${{ github.base_ref || 'dev' }}"
+                  gh api "repos/peanutprotocol/peanut-api-ts/contents/test/integration/__fixtures__/history-real-staging.jsonl?ref=${BE_REF}" \
+                      --jq '.content' | base64 -d > /tmp/be-baseline.jsonl
+                  node scripts/import-be-baseline.mjs /tmp/be-baseline.jsonl \
+                      src/components/TransactionDetails/__tests__/fixtures/be-entries.json
+
             - name: Run unit tests
               run: pnpm test:unit:ci
 

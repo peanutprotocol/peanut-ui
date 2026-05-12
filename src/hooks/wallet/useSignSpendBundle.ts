@@ -13,7 +13,7 @@ import {
     rainCoordinatorAbi,
     rainWithdrawEip712Types,
 } from '@/constants/rain.consts'
-import { rainApi, type TransactionIntentKind } from '@/services/rain'
+import { rainApi, type RainCollateralKind } from '@/services/rain'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey, type GrantSessionKeyError } from './useGrantSessionKey'
 import { useSignUserOp, type SignedUserOpData } from './useSignUserOp'
@@ -75,7 +75,7 @@ export interface SignSpendBundleInput {
     rainSpendingPower: bigint
     /** User-semantic category of this spend (QR_PAY, FIAT_OFFRAMP, …).
      *  Persisted on the `TransactionIntent` the backend creates in /prepare. */
-    kind: TransactionIntentKind
+    kind: RainCollateralKind
     /** Fires once routing is picked, before any signing. */
     onStrategyDecided?: (strategy: Exclude<SpendStrategy, 'insufficient'>) => void
     /** Fires right before the one-time session-key grant prompt appears. */

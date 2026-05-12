@@ -131,7 +131,6 @@ jest.mock('@/hooks/useTransactionDetailsDrawer', () => ({
 }))
 
 jest.mock('@/hooks/useTransactionHistory', () => ({
-    EHistoryEntryType: { MANTECA_QR_PAYMENT: 'MANTECA_QR_PAYMENT' },
     EHistoryUserRole: { SENDER: 'SENDER' },
 }))
 

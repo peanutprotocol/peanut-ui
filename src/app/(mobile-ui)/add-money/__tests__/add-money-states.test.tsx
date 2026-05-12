@@ -638,7 +638,6 @@ jest.mock('@/hooks/useAutoTruncatedAddress', () => ({
 }))
 
 jest.mock('@/hooks/useTransactionHistory', () => ({
-    EHistoryEntryType: { DIRECT_SEND: 'DIRECT_SEND' },
     EHistoryUserRole: { RECIPIENT: 'RECIPIENT' },
 }))
 

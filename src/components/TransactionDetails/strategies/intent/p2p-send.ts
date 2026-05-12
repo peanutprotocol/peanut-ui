@@ -1,16 +1,17 @@
-// REQUEST_PAY is the post-decomplexify rename of P2P_REQUEST_FULFILL;
-// shares this strategy with P2P_SEND.
+// DIRECT_TRANSFER (peer-to-peer send) and P2P_REQUEST_FULFILL (payer side
+// of a request) share this strategy. They differ only on the bridge-fulfilled
+// branch — P2P_REQUEST_FULFILL via bridge renders as bank_request_fulfillment.
 
 import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
 
-export const p2pSendOrRequestPay: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
+export const p2pSendOrRequestFulfill: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
     const kind = entry.extraData?.kind as string | undefined
 
     // Bridge-fulfilled requests render as bank-request fulfillments on the
     // sender side. Viewer is paying via bank rails.
     if (
-        kind === 'REQUEST_PAY' &&
+        kind === 'P2P_REQUEST_FULFILL' &&
         entry.extraData?.fulfillmentType === 'bridge' &&
         entry.userRole === EHistoryUserRole.SENDER
     ) {

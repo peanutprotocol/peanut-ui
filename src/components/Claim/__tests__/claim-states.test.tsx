@@ -79,7 +79,6 @@ jest.mock('@/hooks/useTransactionDetailsDrawer', () => ({
 }))
 
 jest.mock('@/hooks/useTransactionHistory', () => ({
-    EHistoryEntryType: { SEND_LINK: 'SEND_LINK' },
     EHistoryUserRole: { SENDER: 'SENDER' },
 }))
 

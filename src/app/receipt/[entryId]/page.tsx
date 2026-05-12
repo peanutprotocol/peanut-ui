@@ -1,11 +1,12 @@
 import { connection } from 'next/server'
 import { notFound } from 'next/navigation'
-import { isFinalState, historyTypeFromNumber } from '@/utils/history.utils'
+import { isFinalState } from '@/utils/history.utils'
 import { getHistoryEntry } from '@/app/actions/history'
 import {
     mapTransactionDataForDrawer,
     type TransactionDetails,
 } from '@/components/TransactionDetails/transactionTransformer'
+import { isIntentKind } from '@/components/TransactionDetails/strategies/registry'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import NavHeader from '@/components/Global/NavHeader'
 import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
@@ -117,13 +118,12 @@ export async function generateMetadata({
     })
 
     const { entryId } = await params
-    let entryTypeId = (await searchParams).t
-    if (!entryId || !entryTypeId || typeof entryTypeId !== 'string' || !historyTypeFromNumber(Number(entryTypeId))) {
+    const kindParam = (await searchParams).kind
+    if (!entryId || !isIntentKind(kindParam)) {
         return basicMetadata
     }
 
-    const entryType = historyTypeFromNumber(Number(entryTypeId))
-    const entry = await getHistoryEntry(entryId, entryType)
+    const entry = await getHistoryEntry(entryId, kindParam)
     if (!entry) {
         return basicMetadata
     }
@@ -175,12 +175,11 @@ export default async function ReceiptPage({
     searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
     const { entryId } = await params
-    let entryTypeId = (await searchParams).t
-    if (!entryId || !entryTypeId || typeof entryTypeId !== 'string' || !historyTypeFromNumber(Number(entryTypeId))) {
+    const kindParam = (await searchParams).kind
+    if (!entryId || !isIntentKind(kindParam)) {
         notFound()
     }
-    const entryType = historyTypeFromNumber(Number(entryTypeId))
-    const entry = await getHistoryEntry(entryId, entryType)
+    const entry = await getHistoryEntry(entryId, kindParam)
     if (!entry) {
         notFound()
     }

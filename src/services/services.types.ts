@@ -210,7 +210,10 @@ export interface TRequestChargeResponse {
     }
 }
 
-enum EHistoryEntryType {
+// Event types for the per-request history log (request-creation, claim,
+// cashout). Distinct from the unified `/users/history` wire shape — keep
+// this namespace separate so the two histories don't collide.
+enum ERequestHistoryEventType {
     CLAIM = 'CLAIM',
     REQUEST = 'REQUEST',
     CASHOUT = 'CASHOUT',
@@ -222,7 +225,7 @@ enum EHistoryUserRole {
     BOTH = 'BOTH',
 }
 
-export type HistoryEntryType = `${EHistoryEntryType}`
+export type RequestHistoryEventType = `${ERequestHistoryEventType}`
 export type HistoryUserRole = `${EHistoryUserRole}`
 
 export type Account = {
@@ -234,7 +237,7 @@ export type Account = {
 
 export type TRequestHistory = {
     uuid: string
-    type: HistoryEntryType
+    type: RequestHistoryEventType
     timestamp: Date
     amount: string
     txHash: string

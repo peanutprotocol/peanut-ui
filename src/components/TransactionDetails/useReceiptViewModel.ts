@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import {
     type TransactionDetailsRowKey,
@@ -80,7 +80,7 @@ export function useReceiptViewModel(
     { isPublic }: { isPublic: boolean }
 ): ReceiptViewModel {
     const isGuestBankClaim = useMemo(
-        () => transaction?.extraDataForDrawer?.originalType === EHistoryEntryType.BANK_SEND_LINK_CLAIM,
+        () => transaction?.extraDataForDrawer?.bridgeFlow === 'BANK_SEND_LINK_CLAIM',
         [transaction]
     )
 

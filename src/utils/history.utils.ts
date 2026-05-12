@@ -9,37 +9,6 @@ import { type ChargeEntry } from '@/services/services.types'
 import { BASE_URL } from '@/constants/general.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 
-// NOTE: do not change the order, add new entries at the end, keep synced with backend
-export enum EHistoryEntryType {
-    REQUEST = 'REQUEST',
-    CASHOUT = 'CASHOUT',
-    DEPOSIT = 'DEPOSIT',
-    SEND_LINK = 'SEND_LINK',
-    DIRECT_SEND = 'DIRECT_SEND',
-    WITHDRAW = 'WITHDRAW',
-    BRIDGE_OFFRAMP = 'BRIDGE_OFFRAMP',
-    BRIDGE_ONRAMP = 'BRIDGE_ONRAMP',
-    BANK_SEND_LINK_CLAIM = 'BANK_SEND_LINK_CLAIM',
-    MANTECA_QR_PAYMENT = 'MANTECA_QR_PAYMENT',
-    MANTECA_OFFRAMP = 'MANTECA_OFFRAMP',
-    MANTECA_ONRAMP = 'MANTECA_ONRAMP',
-    BRIDGE_GUEST_OFFRAMP = 'BRIDGE_GUEST_OFFRAMP',
-    SIMPLEFI_QR_PAYMENT = 'SIMPLEFI_QR_PAYMENT',
-    PERK_REWARD = 'PERK_REWARD',
-    RAIN_CARD_TRANSACTION = 'RAIN_CARD_TRANSACTION',
-    /** User-initiated money movement; receipts for collateral/mixed-strategy
-     *  Rain spends, same-chain withdraws, and (future) all other flows live
-     *  here instead of behind an orphan Charge. Frontend branches on
-     *  extraData.kind to style the card. */
-    TRANSACTION_INTENT = 'TRANSACTION_INTENT',
-}
-export function historyTypeToNumber(type: EHistoryEntryType): number {
-    return Object.values(EHistoryEntryType).indexOf(type)
-}
-export function historyTypeFromNumber(type: number): EHistoryEntryType {
-    return Object.values(EHistoryEntryType)[type]
-}
-
 export enum EHistoryUserRole {
     SENDER = 'SENDER',
     RECIPIENT = 'RECIPIENT',
@@ -94,7 +63,9 @@ export const FINAL_STATES: HistoryStatus[] = [
     EHistoryStatus.CLOSED,
 ]
 
-export type HistoryEntryType = `${EHistoryEntryType}`
+/** Every history row arrives with this literal type. The actual flow is
+ *  discriminated by `extraData.kind`. */
+export type HistoryEntryType = 'TRANSACTION_INTENT'
 export type HistoryUserRole = `${EHistoryUserRole}`
 export type HistoryStatus = `${EHistoryStatus}`
 
@@ -116,11 +87,19 @@ export type HistoryStatus = `${EHistoryStatus}`
  * reading one on the FE, remove it here.
  */
 export interface HistoryEntryExtraData {
-    // Post-decomplexify wire-shape discriminators. Both pinned to
-    // string at this layer; downstream `extraDataForDrawer` narrows to
-    // `IntentKind` and `Provider` after the transformer runs.
+    // Wire-shape discriminators. Pinned to string at this layer;
+    // downstream `extraDataForDrawer` narrows to `IntentKind` and
+    // `Provider` after the transformer runs.
     kind?: string
     provider?: string
+    // Bridge flow disambiguation — distinguishes the four Bridge sub-paths
+    // that share an intent kind (ONRAMP / OFFRAMP / BANK_SEND_LINK_CLAIM /
+    // GUEST_DIRECT_SEND).
+    bridgeFlow?: 'ONRAMP' | 'OFFRAMP' | 'BANK_SEND_LINK_CLAIM' | 'GUEST_DIRECT_SEND'
+    // Request-pot rollup discriminator — single P2P_REQUEST_FULFILL entry
+    // that summarises a request pot's contributors rather than an
+    // individual fulfilment.
+    isRequestPotRollup?: boolean
 
     // Common fields
     link?: string
@@ -166,6 +145,10 @@ export interface HistoryEntryExtraData {
     // localStorage's password store.
     contractVersion?: string
     depositIdx?: string | number
+    /** Wire key used to look up the password in localStorage. The BE writes
+     *  this for SEND_LINK intents so the claim URL rebuilds reliably when
+     *  the row's `uuid` is the intent id rather than the link pubKey. */
+    parentSendLinkPubKey?: string
 
     // Bridge bank-deposit instructions. Renders the depositInstructions
     // row on the receipt.
@@ -231,21 +214,16 @@ export function isFinalState(transaction: Pick<HistoryEntry, 'status'>): boolean
     return FINAL_STATES.includes(transaction.status)
 }
 
-export function getReceiptUrl(transaction: TransactionDetails): string | undefined {
-    const hasReceiptPage =
-        transaction.extraDataForDrawer?.originalType &&
-        [
-            EHistoryEntryType.MANTECA_QR_PAYMENT,
-            EHistoryEntryType.SIMPLEFI_QR_PAYMENT,
-            EHistoryEntryType.MANTECA_OFFRAMP,
-            EHistoryEntryType.MANTECA_ONRAMP,
-            EHistoryEntryType.SEND_LINK,
-        ].includes(transaction.extraDataForDrawer.originalType)
-    if (hasReceiptPage) {
-        const typeId = historyTypeToNumber(transaction.extraDataForDrawer!.originalType)
-        return `${BASE_URL}/receipt/${transaction.id}?t=${typeId}`
-    }
+/** Whitelist of kinds whose receipt URL is the dedicated /receipt page
+ *  (shareable, OG-augmented). All other kinds use whatever
+ *  `extraDataForDrawer.link` was stamped, or no shareable URL. */
+const RECEIPT_PAGE_KINDS: ReadonlySet<string> = new Set(['QR_PAY', 'ONRAMP', 'OFFRAMP', 'SEND_LINK'])
 
+export function getReceiptUrl(transaction: TransactionDetails): string | undefined {
+    const kind = transaction.extraDataForDrawer?.kind
+    if (kind && RECEIPT_PAGE_KINDS.has(kind)) {
+        return `${BASE_URL}/receipt/${transaction.id}?kind=${kind}`
+    }
     if (transaction.extraDataForDrawer?.link) {
         return transaction.extraDataForDrawer.link
     }
@@ -256,7 +234,9 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
     if (transaction.extraDataForDrawer?.rewardData?.avatarUrl) {
         return transaction.extraDataForDrawer.rewardData.avatarUrl
     }
-    if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_QR_PAYMENT) {
+    const kind = transaction.extraDataForDrawer?.kind
+    const provider = transaction.extraDataForDrawer?.provider
+    if (kind === 'QR_PAY' && provider === 'MANTECA') {
         switch (transaction.currency?.code) {
             case 'ARS':
                 return MERCADO_PAGO
@@ -266,7 +246,7 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
                 return undefined
         }
     }
-    if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SIMPLEFI_QR_PAYMENT) {
+    if (kind === 'QR_PAY' && provider === 'DEPRECATED_SIMPLEFI') {
         return SIMPLEFI
     }
     return undefined
@@ -298,12 +278,17 @@ export function getTransactionSign(transaction: Pick<TransactionDetails, 'direct
 /** Completes a history entry by adding additional data and formatting the amount. */
 export async function completeHistoryEntry(entry: HistoryEntry): Promise<HistoryEntry> {
     const extraData = entry.extraData ?? {}
+    const kind = extraData.kind
     let link: string = ''
     let tokenSymbol: string = ''
     let usdAmount: string = ''
-    switch (entry.type) {
-        case EHistoryEntryType.SEND_LINK: {
-            const password = getFromLocalStorage(`sendLink::password::${entry.uuid}`)
+    switch (kind) {
+        case 'SEND_LINK': {
+            // localStorage stores passwords keyed by sendLinkPubKey; the BE
+            // writes that key onto the intent extraData so the lookup
+            // works whether the row's `uuid` is the intent id or the pubKey.
+            const lookupKey = extraData.parentSendLinkPubKey ?? entry.uuid
+            const password = getFromLocalStorage(`sendLink::password::${lookupKey}`)
             const { contractVersion, depositIdx } = extraData
             if (password) {
                 link = `${BASE_URL}/claim?c=${entry.chainId}&v=${contractVersion}&i=${depositIdx}#p=${password}`
@@ -316,8 +301,9 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             tokenSymbol = tokenDetails?.symbol ?? ''
             break
         }
-        case EHistoryEntryType.REQUEST: {
-            // if link is a request link, we need to add the token amount and symbol to the link, also use id param instead of chargeId
+        case 'P2P_REQUEST_FULFILL': {
+            // Request pots and individual request links both arrive here.
+            // Pots write `isRequestLink` true on the rollup row.
             if (entry.isRequestLink) {
                 const tokenCurrency = entry.tokenSymbol
                 const tokenAmount = entry.amount
@@ -329,19 +315,18 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             usdAmount = entry.amount.toString()
             break
         }
-        case EHistoryEntryType.DIRECT_SEND: {
+        case 'DIRECT_TRANSFER': {
             link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
             tokenSymbol = entry.tokenSymbol
             usdAmount = entry.amount.toString()
             break
         }
-        case EHistoryEntryType.DEPOSIT: {
+        case 'CRYPTO_DEPOSIT': {
             const details = getTokenDetails({
                 tokenAddress: entry.tokenAddress as Hash,
                 chainId: entry.chainId,
             })
             tokenSymbol = details?.symbol ?? entry.tokenSymbol
-
             if (entry.extraData?.blockNumber) {
                 // direct deposits are always in wei
                 usdAmount = formatUnits(BigInt(entry.amount), PEANUT_WALLET_TOKEN_DECIMALS)
@@ -350,7 +335,7 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             }
             break
         }
-        case EHistoryEntryType.BRIDGE_ONRAMP: {
+        case 'ONRAMP': {
             tokenSymbol = entry.tokenSymbol
             usdAmount = entry.amount.toString()
             if (entry.currency?.code) {
@@ -365,15 +350,11 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
                         `[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`,
                         error
                     )
-                    // Fallback: use original amount (already set above)
                 }
             }
             break
         }
-        case EHistoryEntryType.BRIDGE_OFFRAMP:
-        case EHistoryEntryType.BRIDGE_GUEST_OFFRAMP:
-        case EHistoryEntryType.BANK_SEND_LINK_CLAIM:
-        case EHistoryEntryType.MANTECA_OFFRAMP: {
+        case 'OFFRAMP': {
             tokenSymbol = entry.tokenSymbol
             usdAmount = entry.amount
             if (entry.currency?.code) {
@@ -390,7 +371,6 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
                 if (!hasCurrencyAmount || !isFinite(currNum) || approximatelyEqual) {
                     try {
                         const price = await getCurrencyPrice(entry.currency.code)
-                        // off-ramp: convert usd -> local using sell price (local per usd)
                         const converted = Number.isFinite(usdNum) && price?.sell ? usdNum * price.sell : usdNum
                         entry.currency.amount = converted.toString()
                     } catch (error) {
@@ -398,7 +378,6 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
                             `[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`,
                             error
                         )
-                        // fallback: keep existing amount
                     }
                 }
             }

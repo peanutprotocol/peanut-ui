@@ -12,7 +12,7 @@ import { type TransactionDetails } from '@/components/TransactionDetails/transac
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
 import { useMemo } from 'react'
 import { type StatusPillType } from '@/components/Global/StatusPill'
-import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { getInitialsFromName } from '@/utils/general.utils'
 import { BASE_URL } from '@/constants/general.consts'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
@@ -65,8 +65,9 @@ export function SemanticRequestReceiptView() {
             initials: getInitialsFromName(payerName),
             extraDataForDrawer: {
                 isLinkTransaction: false,
-                originalType: EHistoryEntryType.REQUEST,
+                originalType: 'TRANSACTION_INTENT',
                 originalUserRole: EHistoryUserRole.RECIPIENT,
+                kind: 'P2P_REQUEST_FULFILL',
                 link: receiptLink,
             },
             userName: payerName,

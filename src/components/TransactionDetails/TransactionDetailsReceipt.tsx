@@ -12,7 +12,7 @@ import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
@@ -223,9 +223,8 @@ export const TransactionDetailsReceipt = ({
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
     // QR + Share + Cancel block: pending, has a link, and either the sender of
-    // a send-link OR the recipient of a request. Routed through the entry-type
-    // predicates so post-decomplexify rows (TRANSACTION_INTENT + kind=LINK_CREATE
-    // / REQUEST_PAY) are recognised alongside the legacy originalType values.
+    // a send-link OR the recipient of a request. Both gates route through the
+    // kind-keyed predicates so adding a new flow only needs a predicate update.
     const shouldShowQrShare =
         transaction.status === 'pending' &&
         !!transaction.extraDataForDrawer?.link &&

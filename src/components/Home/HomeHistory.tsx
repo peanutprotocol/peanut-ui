@@ -2,7 +2,8 @@
 
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
-import { EHistoryEntryType, type HistoryEntry, useTransactionHistory } from '@/hooks/useTransactionHistory'
+import { type HistoryEntry, useTransactionHistory } from '@/hooks/useTransactionHistory'
+import type { IntentKind } from '@/components/TransactionDetails/strategies/registry'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
 import * as Sentry from '@sentry/nextjs'
@@ -27,20 +28,16 @@ import { useHaptic } from 'use-haptic'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { Icon } from '../Global/Icons/Icon'
 
-/** Transaction types that affect the user's wallet balance. Hoisted to module scope to avoid re-allocation. */
-const BALANCE_AFFECTING_TYPES: EHistoryEntryType[] = [
-    EHistoryEntryType.DIRECT_SEND,
-    EHistoryEntryType.DEPOSIT,
-    EHistoryEntryType.WITHDRAW,
-    EHistoryEntryType.BRIDGE_OFFRAMP,
-    EHistoryEntryType.BRIDGE_ONRAMP,
-    EHistoryEntryType.BRIDGE_GUEST_OFFRAMP,
-    EHistoryEntryType.MANTECA_OFFRAMP,
-    EHistoryEntryType.MANTECA_ONRAMP,
-    EHistoryEntryType.SEND_LINK,
-    EHistoryEntryType.BANK_SEND_LINK_CLAIM,
-    EHistoryEntryType.PERK_REWARD,
-]
+/** Kinds that affect the user's wallet balance. Hoisted to module scope to avoid re-allocation. */
+const BALANCE_AFFECTING_KINDS: ReadonlySet<IntentKind> = new Set<IntentKind>([
+    'DIRECT_TRANSFER',
+    'CRYPTO_DEPOSIT',
+    'CRYPTO_WITHDRAW',
+    'OFFRAMP',
+    'ONRAMP',
+    'SEND_LINK',
+    'PERK_REWARD',
+])
 
 /**
  * component to display a preview of the most recent transactions on the home page.
@@ -81,10 +78,10 @@ const HomeHistory = ({
         onHistoryEntry: useCallback(
             (entry: HistoryEntry) => {
                 const isCompleted = entry.status?.toUpperCase() === 'COMPLETED'
-                const isBalanceAffecting =
-                    BALANCE_AFFECTING_TYPES.includes(entry.type as EHistoryEntryType) && isCompleted
+                const kind = entry.extraData?.kind as IntentKind | undefined
+                const isBalanceAffecting = !!kind && BALANCE_AFFECTING_KINDS.has(kind) && isCompleted
 
-                if (isBalanceAffecting || (entry.type === EHistoryEntryType.REQUEST && isCompleted)) {
+                if (isBalanceAffecting || (kind === 'P2P_REQUEST_FULFILL' && isCompleted)) {
                     fetchBalance()
                 }
                 // Any history-entry event invalidates the cached transactions
@@ -187,7 +184,7 @@ const HomeHistory = ({
                         // Fallback: Use raw entry with proper amount formatting
                         let fallbackAmount = wsEntry.amount.toString()
 
-                        if (wsEntry.type === 'DEPOSIT' && wsEntry.extraData?.blockNumber) {
+                        if (wsEntry.extraData?.kind === 'CRYPTO_DEPOSIT' && wsEntry.extraData?.blockNumber) {
                             try {
                                 fallbackAmount = formatUnits(BigInt(wsEntry.amount), PEANUT_WALLET_TOKEN_DECIMALS)
                             } catch (formatError) {

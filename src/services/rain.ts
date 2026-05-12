@@ -54,10 +54,13 @@ export interface RainCardOverview {
 }
 
 /**
- * Mirrors the backend `TransactionIntentKind` (legacy wire vocabulary).
- * Drives history categorization for collateral webhooks.
+ * Outbound spend-intent vocabulary. Mirrors the kind values accepted by
+ * the backend's withdraw / auto-balancer endpoints — translated to the
+ * Prisma `TransactionIntentKind` enum at the API boundary. Named distinctly
+ * from the history renderer's `IntentKind` union in strategies/registry.ts
+ * (the inbound wire shape) to prevent silent drift between the two.
  */
-export type TransactionIntentKind =
+export type RainCollateralKind =
     | 'P2P_SEND'
     | 'QR_PAY'
     | 'LINK_CREATE'
@@ -77,7 +80,7 @@ export interface PrepareRainWithdrawalInput {
     recipientAddress: string
     directTransfer: boolean
     /** User-semantic kind — drives history categorization for the collateral webhook. */
-    kind: TransactionIntentKind
+    kind: RainCollateralKind
     /** Total user-initiated spend in cents. For mixed strategy this differs from
      *  `amount` (which is only the collateral shortfall). History shows this. */
     totalAmountCents?: string

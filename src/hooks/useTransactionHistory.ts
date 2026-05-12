@@ -6,7 +6,7 @@ import { completeHistoryEntry } from '@/utils/history.utils'
 import type { HistoryEntry } from '@/utils/history.utils'
 
 //TODO: remove and import all from utils everywhere
-export { EHistoryEntryType, EHistoryUserRole } from '@/utils/history.utils'
+export { EHistoryUserRole } from '@/utils/history.utils'
 export type { HistoryEntry, HistoryEntryType, HistoryUserRole } from '@/utils/history.utils'
 
 type LatestHistoryResult = QueryObserverResult<HistoryResponse>

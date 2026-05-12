@@ -154,8 +154,9 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         }
 
         const handleHistoryEntry = (entry: HistoryEntry) => {
+            const kind = entry.extraData?.kind
             if (
-                (entry.type === 'DIRECT_SEND' || entry.type === 'REQUEST') &&
+                (kind === 'DIRECT_TRANSFER' || kind === 'P2P_REQUEST_FULFILL') &&
                 entry.status === 'NEW' &&
                 !entry.senderAccount
             ) {

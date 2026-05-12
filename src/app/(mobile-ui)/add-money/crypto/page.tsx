@@ -10,7 +10,7 @@ import type { TransactionDetails } from '@/components/TransactionDetails/transac
 import { NETWORK_LABELS, CHAIN_LOGOS, TOKEN_LOGOS, type ChainName, type TokenName } from '@/constants/rhino.consts'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { getExplorerUrl } from '@/utils/general.utils'
-import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useMemo, useState } from 'react'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
@@ -84,8 +84,9 @@ const AddMoneyCryptoPage = () => {
             sourceView: 'history',
             extraDataForDrawer: {
                 isLinkTransaction: false,
-                originalType: EHistoryEntryType.DIRECT_SEND,
+                originalType: 'TRANSACTION_INTENT',
                 originalUserRole: EHistoryUserRole.RECIPIENT,
+                kind: 'CRYPTO_DEPOSIT',
             },
             tokenDisplayDetails: {
                 tokenSymbol,

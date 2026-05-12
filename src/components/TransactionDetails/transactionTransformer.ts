@@ -1,7 +1,7 @@
 import { type StatusType } from '@/components/Global/Badges/StatusBadge'
 import { type TransactionType as TransactionCardType } from '@/components/TransactionDetails/TransactionCard'
 import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
-import { EHistoryEntryType, EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
+import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import {
     getExplorerUrl,
     getInitialsFromName,
@@ -14,7 +14,7 @@ import { type StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
-import { dispatchStrategy, type IntentKind } from './strategies/registry'
+import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/registry'
 
 // Mirror of peanut-api-ts `enum TransactionProvider`. Receipts that branch
 // on provider (e.g. Manteca-specific deposit-info row) use this typed
@@ -39,37 +39,29 @@ export type Provider =
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
  */
 
-// Wire-level read of `entry.extraData.kind` pinned to the strategy registry's
-// IntentKind union. Cast lives here so every comparison site below is
-// compile-checked — a typo in the kind string is a TS error, not a silent
-// false. Mirrors `isTransactionIntentKind` in transaction-predicates.ts
-// (which operates on TransactionDetails instead of the wire entry).
+// Wire-level read of `entry.extraData.kind`. Runtime-guarded against the
+// strategy registry's IntentKind union — an unknown kind returns undefined
+// (which routes to intentFallback downstream) instead of a silent cast.
 function intentKindOf(entry: HistoryEntry): IntentKind | undefined {
-    return entry.extraData?.kind as IntentKind | undefined
+    const kind = entry.extraData?.kind
+    return isIntentKind(kind) ? kind : undefined
 }
 
 /**
  * Should the receipt drawer's `bankAccountDetails` row render for this entry?
  *
- * Original gate (pre-decomplexify) only fired for legacy `BRIDGE_OFFRAMP` and
- * `BANK_SEND_LINK_CLAIM × RECIPIENT`. Post-decomplexify, the same flows arrive
- * as `TRANSACTION_INTENT` with `kind ∈ {FIAT_OFFRAMP, CRYPTO_WITHDRAW}`, so the
- * gate must include those too — otherwise the IBAN row disappears and the
- * country-by-IBAN flag fallback in `getBankAccountCountryCode` kicks in,
- * showing an EU flag for an ES IBAN (Hugo's screenshot d on 2026-04-29).
- *
- * Also includes legacy `MANTECA_OFFRAMP` — independent legacy bug, was never
- * plumbed before. Catches Argentina/Brazil rail withdrawals.
+ * Fires for any flow whose recipient is a bank account: OFFRAMP (Bridge or
+ * Manteca), CRYPTO_WITHDRAW (USDC out, sometimes to an IBAN), and the
+ * BANK_SEND_LINK_CLAIM path (an OFFRAMP intent claimed via Peanut sendlink,
+ * surfaced via extraData.bridgeFlow). Without the BANK_SEND_LINK_CLAIM lane
+ * the IBAN row would disappear and `getBankAccountCountryCode`'s country-by-
+ * IBAN fallback would render an EU flag for an ES IBAN.
  */
 function shouldPlumbBankAccountDetails(entry: HistoryEntry): boolean {
-    if (entry.type === EHistoryEntryType.BRIDGE_OFFRAMP) return true
-    if (entry.type === EHistoryEntryType.MANTECA_OFFRAMP) return true
-    if (entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM && entry.userRole === EHistoryUserRole.RECIPIENT) {
+    const kind = intentKindOf(entry)
+    if (kind === 'OFFRAMP' || kind === 'CRYPTO_WITHDRAW') return true
+    if (entry.extraData?.bridgeFlow === 'BANK_SEND_LINK_CLAIM' && entry.userRole === EHistoryUserRole.RECIPIENT) {
         return true
-    }
-    if (entry.type === EHistoryEntryType.TRANSACTION_INTENT) {
-        const kind = intentKindOf(entry)
-        if (kind === 'FIAT_OFFRAMP' || kind === 'CRYPTO_WITHDRAW') return true
     }
     return false
 }
@@ -156,11 +148,8 @@ const REAPER_FAIL_COPY: Record<string, string> = {
  */
 function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDirection): StatusPillType {
     const status = entry.status?.toUpperCase()
-    const isBridgeRails =
-        entry.type === EHistoryEntryType.BRIDGE_OFFRAMP ||
-        entry.type === EHistoryEntryType.BRIDGE_ONRAMP ||
-        entry.type === EHistoryEntryType.BANK_SEND_LINK_CLAIM ||
-        entry.extraData?.fulfillmentType === 'bridge'
+    const provider = entry.extraData?.provider
+    const isBridgeRails = provider === 'BRIDGE' || entry.extraData?.fulfillmentType === 'bridge'
 
     if (isBridgeRails) {
         switch (status) {
@@ -192,12 +181,8 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
             // Send links stay 'pending' for the sender side until the link is
             // claimed — the BE's intent.status hits COMPLETED on escrow, but
             // from the sender's UI perspective the link isn't "done" until
-            // claimed. Covers both legacy `EHistoryEntryType.SEND_LINK` rows
-            // and post-decomplexify `TRANSACTION_INTENT × kind=LINK_CREATE`.
-            const isUnclaimedSendLinkSender =
-                direction !== 'claim_external' &&
-                (entry.type === EHistoryEntryType.SEND_LINK ||
-                    (entry.type === EHistoryEntryType.TRANSACTION_INTENT && intentKindOf(entry) === 'LINK_CREATE'))
+            // claimed.
+            const isUnclaimedSendLinkSender = direction !== 'claim_external' && intentKindOf(entry) === 'SEND_LINK'
             return isUnclaimedSendLinkSender ? 'pending' : 'completed'
         }
         case 'SUCCESSFUL':
@@ -242,10 +227,10 @@ function computeDerivedFields(entry: HistoryEntry): {
         | undefined
     rewardData: RewardData | undefined
 } {
-    // For deposits, force the explorer URL to Peanut's wallet chain
+    // For crypto deposits, force the explorer URL to Peanut's wallet chain
     // (Arbitrum) — the underlying chainId field is the deposit-source chain.
     const explorerUrlChainID =
-        entry.type === EHistoryEntryType.DEPOSIT ? PEANUT_WALLET_CHAIN.id.toString() : entry.chainId
+        intentKindOf(entry) === 'CRYPTO_DEPOSIT' ? PEANUT_WALLET_CHAIN.id.toString() : entry.chainId
     const baseUrl = getExplorerUrl(explorerUrlChainID)
 
     let explorerUrlWithTx: string | undefined
@@ -314,14 +299,16 @@ export interface TransactionDetails {
     tokenAddress?: string
     extraDataForDrawer?: {
         addressExplorerUrl?: string
-        originalType: EHistoryEntryType
+        /** Always 'TRANSACTION_INTENT' on the wire — kept as a literal so
+         *  the TransactionDetails view model carries the wire `type` field
+         *  forward without surprises. */
+        originalType: 'TRANSACTION_INTENT'
         originalUserRole: EHistoryUserRole
-        /** Post-M3 transaction-intent kind (P2P_SEND, QR_PAY, CARD_SPEND, …).
-         *  Some predicates need this to disambiguate within TRANSACTION_INTENT
-         *  entries — e.g. QR payments now arrive as TRANSACTION_INTENT + kind=QR_PAY
-         *  rather than a dedicated originalType. Pinned to the strategy
-         *  registry's IntentKind union — adding a new kind here is a TS-side
-         *  failure unless the registry knows about it too. */
+        /** Canonical TransactionIntentKind (DIRECT_TRANSFER, QR_PAY,
+         *  CARD_SPEND_AUTH, …) or the synthetic 'PERK_REWARD'. Drives every
+         *  predicate, badge, and row-visibility decision in the drawer.
+         *  Pinned to the strategy registry's IntentKind union — adding a new
+         *  kind here is a TS-side failure unless the registry knows about it. */
         kind?: IntentKind
         /** TransactionProvider enum value from the BE (peanut-api-ts:
          *  `enum TransactionProvider`). Every wire entry carries this as of
@@ -329,6 +316,10 @@ export interface TransactionDetails {
          *  (e.g. `provider === 'MANTECA'`) instead of inferring from the
          *  presence/absence of other fields. */
         provider?: Provider
+        /** Bridge sub-flow discriminator. Only set for `provider === 'BRIDGE'`
+         *  entries — separates the four Bridge paths that share an intent kind
+         *  (ONRAMP, OFFRAMP, BANK_SEND_LINK_CLAIM, GUEST_DIRECT_SEND). */
+        bridgeFlow?: 'ONRAMP' | 'OFFRAMP' | 'BANK_SEND_LINK_CLAIM' | 'GUEST_DIRECT_SEND'
         link?: string
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
@@ -484,7 +475,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
 
     // check if this is a test transaction for adding a memo
     const isTestDeposit =
-        entry.type === EHistoryEntryType.DEPOSIT && (String(entry.amount) === '0' || entry.extraData?.usdAmount === '0')
+        intentKindOf(entry) === 'CRYPTO_DEPOSIT' && (String(entry.amount) === '0' || entry.extraData?.usdAmount === '0')
 
     // build the final transactiondetails object for the ui
     const transactionDetails: TransactionDetails = {
@@ -517,7 +508,10 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // already sets memo=undefined for card entries, but defend in depth.
         memo: (() => {
             if (isTestDeposit) return 'Your peanut wallet is ready to use!'
-            const isCardEntry = intentKindOf(entry) === 'CARD_SPEND' || !!entry.extraData?.parentRainTxId
+            const kind = intentKindOf(entry)
+            const isCardKind =
+                kind === 'CARD_SPEND_AUTH' || kind === 'CARD_SPEND_CLEAR' || kind === 'CARD_AUTH_REVERSAL'
+            const isCardEntry = isCardKind || !!entry.extraData?.parentRainTxId
             if (isCardEntry) return undefined
             return entry.memo?.trim()
         })(),
@@ -529,10 +523,11 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         tokenAddress: entry.tokenAddress,
         extraDataForDrawer: {
             addressExplorerUrl,
-            originalType: entry.type as EHistoryEntryType,
+            originalType: 'TRANSACTION_INTENT',
             originalUserRole: entry.userRole as EHistoryUserRole,
-            kind: entry.extraData?.kind as IntentKind | undefined,
+            kind: intentKindOf(entry),
             provider: entry.extraData?.provider as Provider | undefined,
+            bridgeFlow: entry.extraData?.bridgeFlow,
             link: entry.extraData?.link,
             isLinkTransaction: isLinkTx,
             transactionCardType,
@@ -543,14 +538,17 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             // card-refund entries. Drawer reads these to render the merchant
             // hero, status timeline, decline reason, and "Adjusted from $X"
             // settlement note. Backend source: src/transaction-intent/history.ts.
-            // Build the cardPayment block for any card-shaped intent (CARD_SPEND
-            // kind) and for Rain refunds (parentRainTxId set). Earlier we
-            // guarded on merchantName presence, but that dropped the block for
-            // unknown-merchant spends — losing the de-emphasis-on-failed,
-            // decline-reason rows, and merchant-detail Card. The block falls
-            // back to "Card payment" downstream when merchantName is null.
+            // Build the cardPayment block for any card-shaped intent (the three
+            // canonical card kinds) and for Rain refunds (parentRainTxId set).
+            // Earlier we guarded on merchantName presence, but that dropped the
+            // block for unknown-merchant spends — losing the de-emphasis-on-
+            // failed, decline-reason rows, and merchant-detail Card. The block
+            // falls back to "Card payment" downstream when merchantName is null.
             cardPayment:
-                intentKindOf(entry) === 'CARD_SPEND' || entry.extraData?.parentRainTxId
+                intentKindOf(entry) === 'CARD_SPEND_AUTH' ||
+                intentKindOf(entry) === 'CARD_SPEND_CLEAR' ||
+                intentKindOf(entry) === 'CARD_AUTH_REVERSAL' ||
+                entry.extraData?.parentRainTxId
                     ? {
                           merchantName: entry.extraData?.merchantName as string | null,
                           merchantCategory: entry.extraData?.merchantCategory as string | null,
@@ -595,7 +593,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             // (BridgeHistoryFetcher forwards the raw API blob unchecked);
             // drawer consumers expect the typed shape. Cast at the boundary.
             depositInstructions:
-                entry.type === EHistoryEntryType.BRIDGE_ONRAMP || entry.extraData?.fulfillmentType === 'bridge'
+                (intentKindOf(entry) === 'ONRAMP' && entry.extraData?.provider === 'BRIDGE') ||
+                entry.extraData?.fulfillmentType === 'bridge'
                     ? (entry.extraData?.depositInstructions as DrawerDepositInstructions | undefined)
                     : undefined,
             receipt: entry.extraData?.receipt as DrawerReceipt | undefined,

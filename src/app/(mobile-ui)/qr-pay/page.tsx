@@ -32,7 +32,7 @@ import { formatUnits, parseUnits } from 'viem'
 import type { TransactionReceipt, Hash } from 'viem'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
-import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { loadingStateContext } from '@/context'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -1252,8 +1252,10 @@ export default function QRPayPage() {
                                             date: now,
                                             createdAt: now,
                                             extraDataForDrawer: {
-                                                originalType: EHistoryEntryType.MANTECA_QR_PAYMENT,
+                                                originalType: 'TRANSACTION_INTENT',
                                                 originalUserRole: EHistoryUserRole.SENDER,
+                                                kind: 'QR_PAY',
+                                                provider: 'MANTECA',
                                                 avatarUrl: methodIcon,
                                                 receipt: {
                                                     exchange_rate: currency.price.toString(),
