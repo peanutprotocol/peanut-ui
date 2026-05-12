@@ -1,6 +1,6 @@
-import { fetchWithSentry } from '@/utils/sentry.utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { proxyUpstream, upstreamErrorResponse } from '../_lib/upstream'
 
 export const maxDuration = 300 // vercel timeout
 
@@ -45,11 +45,16 @@ export async function POST(request: NextRequest) {
         headersToPass['x-username'] = request.headers.get('x-username')
     }
 
-    const apiResponse = await fetchWithSentry(fullAPIUrl, {
-        method: 'POST',
-        headers: headersToPass,
-        body: JSON.stringify(jsonToPass),
-    })
+    let apiResponse: Response
+    try {
+        apiResponse = await proxyUpstream(fullAPIUrl, {
+            method: 'POST',
+            headers: headersToPass,
+            body: JSON.stringify(jsonToPass),
+        })
+    } catch (error) {
+        return upstreamErrorResponse(error, fullAPIUrl)
+    }
 
     // render returns in gzip format - turn to string and let next handle it
     const apiResponseString = await apiResponse.text()

@@ -1,6 +1,8 @@
-import { fetchWithSentry } from '@/utils/sentry.utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { proxyUpstream, upstreamErrorResponse } from '../../_lib/upstream'
+
+export const maxDuration = 300 // vercel timeout
 
 export async function DELETE(request: NextRequest) {
     const separator = '/api/proxy/delete/'
@@ -19,10 +21,15 @@ export async function DELETE(request: NextRequest) {
         headersToPass['authorization'] = authHeader
     }
 
-    const apiResponse = await fetchWithSentry(fullAPIUrl, {
-        method: 'DELETE',
-        headers: headersToPass,
-    })
+    let apiResponse: Response
+    try {
+        apiResponse = await proxyUpstream(fullAPIUrl, {
+            method: 'DELETE',
+            headers: headersToPass,
+        })
+    } catch (error) {
+        return upstreamErrorResponse(error, fullAPIUrl)
+    }
 
     const apiResponseString = await apiResponse.text()
 

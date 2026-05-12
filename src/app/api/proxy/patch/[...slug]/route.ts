@@ -1,6 +1,8 @@
-import { fetchWithSentry } from '@/utils/sentry.utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { proxyUpstream, upstreamErrorResponse } from '../../_lib/upstream'
+
+export const maxDuration = 300 // vercel timeout
 
 export async function PATCH(request: NextRequest) {
     const separator = '/api/proxy/patch/'
@@ -33,11 +35,16 @@ export async function PATCH(request: NextRequest) {
         headersToPass['authorization'] = authHeader
     }
 
-    const apiResponse = await fetchWithSentry(fullAPIUrl, {
-        method: 'PATCH',
-        headers: headersToPass,
-        body: JSON.stringify(jsonToPass),
-    })
+    let apiResponse: Response
+    try {
+        apiResponse = await proxyUpstream(fullAPIUrl, {
+            method: 'PATCH',
+            headers: headersToPass,
+            body: JSON.stringify(jsonToPass),
+        })
+    } catch (error) {
+        return upstreamErrorResponse(error, fullAPIUrl)
+    }
 
     // render returns in gzip format - turn to string and let next handle it
     const apiResponseString = await apiResponse.text()

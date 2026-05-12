@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { fetchWithSentry } from '@/utils/sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { proxyUpstream, upstreamErrorResponse } from '../../_lib/upstream'
+
+export const maxDuration = 300 // vercel timeout
 
 async function handleFormDataRequest(request: NextRequest, method: string) {
     const separator = '/api/proxy/withFormData/'
@@ -33,11 +35,16 @@ async function handleFormDataRequest(request: NextRequest, method: string) {
     const authHeader = request.headers.get('authorization')
     if (authHeader) headers['authorization'] = authHeader
 
-    const response = await fetchWithSentry(fullAPIUrl, {
-        method,
-        headers,
-        body: apiFormData,
-    })
+    let response: Response
+    try {
+        response = await proxyUpstream(fullAPIUrl, {
+            method,
+            headers,
+            body: apiFormData,
+        })
+    } catch (error) {
+        return upstreamErrorResponse(error, fullAPIUrl)
+    }
 
     const apiResponse = await response.text()
 
