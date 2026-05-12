@@ -2,12 +2,20 @@ import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { extractChain } from 'viem'
 import * as chains from 'viem/chains'
 import { arbitrum, arbitrumSepolia } from 'viem/chains'
+import { PEANUT_API_URL } from './general.consts'
 
 // consts needed to define low level SDK kernel
 // as per: https://docs.zerodev.app/sdk/getting-started/tutorial-passkeys
 export const BUNDLER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL!
 export const PAYMASTER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL!
-export const PASSKEY_SERVER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PASSKEY_SERVER_URL
+
+// The passkey server lives on our backend at /passkeys. The env var is kept
+// for override-ability (e.g. self-hosted ZeroDev for local dev) but defaults
+// to PEANUT_API_URL so a missing or stale env var (or one still pointing at
+// the deleted /api/proxy/passkeys path) can't silently break login.
+const envPasskeyUrl = process.env.NEXT_PUBLIC_ZERO_DEV_PASSKEY_SERVER_URL
+export const PASSKEY_SERVER_URL =
+	envPasskeyUrl && !envPasskeyUrl.includes('/api/proxy') ? envPasskeyUrl : `${PEANUT_API_URL}/passkeys`
 
 // Default to Arb One + Circle USDC (prod). Overridable via env so the mono
 // QA harness can point the UI at Arb Sepolia + testnet USDC without forking.
