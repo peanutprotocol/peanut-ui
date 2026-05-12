@@ -538,7 +538,7 @@ export default function MantecaWithdrawFlow() {
                     if (hasRejection) {
                         await sumsubFlow.handleSelfHealResubmit('MANTECA')
                     } else {
-                        await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry.id)
+                        await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
                     }
                     setShowKycModal(false)
                 }}
