@@ -61,4 +61,33 @@ describe('friendlyDeclineReason', () => {
             expect(friendlyDeclineReason('card_locked', null)).toBe('Your card is locked')
         })
     })
+
+    describe('Rain prose strings normalize correctly', () => {
+        // Real example from 2026-05-11 staging webhook (Adidas decline).
+        // Rain emits human-readable prose, not just snake_case codes.
+        test('"account credit limit exceeded" → insufficient balance copy', () => {
+            expect(friendlyDeclineReason('account credit limit exceeded')).toBe('Insufficient balance')
+        })
+
+        test('"card spending limit exceeded" → spending-limit copy', () => {
+            expect(friendlyDeclineReason('card spending limit exceeded')).toBe('Spending limit reached')
+        })
+
+        test('mixed-case prose normalized too', () => {
+            expect(friendlyDeclineReason('Account Credit Limit Exceeded')).toBe('Insufficient balance')
+        })
+
+        test('snake_case + SCREAMING_CASE still hit the same friendly copy', () => {
+            // Pin the normalization: all three shapes for the same code
+            // must produce the same output.
+            expect(friendlyDeclineReason('insufficient_funds')).toBe('Insufficient balance')
+            expect(friendlyDeclineReason('INSUFFICIENT_FUNDS')).toBe('Insufficient balance')
+            expect(friendlyDeclineReason('Insufficient Funds')).toBe('Insufficient balance')
+        })
+
+        test('whitespace and punctuation tolerated', () => {
+            expect(friendlyDeclineReason('  insufficient   funds  ')).toBe('Insufficient balance')
+            expect(friendlyDeclineReason('insufficient-funds')).toBe('Insufficient balance')
+        })
+    })
 })

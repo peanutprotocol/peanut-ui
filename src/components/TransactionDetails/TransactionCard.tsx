@@ -165,11 +165,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     return (
         <>
             {/* the clickable card */}
-            <Card
-                position={position}
-                onClick={handleClick}
-                className={twMerge('cursor-pointer', isDeclinedCardSpend && 'opacity-60')}
-            >
+            <Card position={position} onClick={handleClick} className="cursor-pointer">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
@@ -252,7 +248,12 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                         <span
                                             className={twMerge(
                                                 'font-semibold',
-                                                status === 'refunded' && 'text-gray-1 line-through'
+                                                status === 'refunded' && 'text-gray-1 line-through',
+                                                // Declined card spends: gray the amount so the row reads
+                                                // as "didn't go through" without the opacity-60 wash
+                                                // we used before (which dimmed merchant name + icons
+                                                // too and made the row hard to read at a glance).
+                                                isDeclinedCardSpend && 'text-gray-1'
                                             )}
                                         >
                                             {displayAmount}
