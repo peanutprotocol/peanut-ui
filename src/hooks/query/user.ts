@@ -8,7 +8,7 @@ import { usePWAStatus } from '../usePWAStatus'
 import { useDeviceType } from '../useGetDeviceType'
 import { USER } from '@/constants/query.consts'
 import { apiFetch } from '@/utils/api-fetch'
-import { clearAuthToken } from '@/utils/auth-token'
+import { clearAuthToken, setAuthToken } from '@/utils/auth-token'
 
 // custom error class for backend errors (5xx) that should trigger retry
 export class BackendError extends Error {
@@ -29,14 +29,25 @@ export const useUserQuery = (dependsOn: boolean = true) => {
     const fetchUser = async (): Promise<IUserProfile | null> => {
         const userResponse = await apiFetch('/get-user', { method: 'POST', body: '{}' })
         if (userResponse.ok) {
-            const userData: IUserProfile | null = await userResponse.json()
-            if (userData) {
+            const payload: (IUserProfile & { token?: string }) | null = await userResponse.json()
+
+            // Sliding refresh: backend re-mints when the JWT crosses half its
+            // lifetime and ships the new one alongside the user payload. Swap
+            // it in client-side so active users never hit the 30d hard logout.
+            // Strip `token` unconditionally so auth state never leaks into the
+            // user store, even if the backend ever sends a falsy value.
+            if (payload && 'token' in payload) {
+                if (payload.token) setAuthToken(payload.token)
+                delete payload.token
+            }
+
+            if (payload) {
                 // Was: hitUserMetric(userData.user.userId, 'login', ...) → POST /users/:id/metrics/login.
                 // DB `user_metrics` table deprecated 2026-04-24; analytics is PostHog's job.
                 posthog.capture(ANALYTICS_EVENTS.LOGIN, { isPwa, deviceType })
-                dispatch(userActions.setUser(userData))
+                dispatch(userActions.setUser(payload))
             }
-            return userData
+            return payload
         }
 
         // 5xx = backend error, throw so tanstack retries
