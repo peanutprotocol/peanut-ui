@@ -30,4 +30,3 @@ export const intentFallback: TransactionStrategy = (entry: HistoryEntry): Transa
         isLinkTx: false,
     }
 }
-

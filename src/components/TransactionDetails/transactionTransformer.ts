@@ -476,8 +476,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
 
     // check if this is a test transaction for adding a memo
     const isTestDeposit =
-        intentKindOf(entry) === 'CRYPTO_DEPOSIT' &&
-        (String(entry.amount) === '0' || entry.extraData?.usdAmount === '0')
+        intentKindOf(entry) === 'CRYPTO_DEPOSIT' && (String(entry.amount) === '0' || entry.extraData?.usdAmount === '0')
 
     // build the final transactiondetails object for the ui
     const transactionDetails: TransactionDetails = {
