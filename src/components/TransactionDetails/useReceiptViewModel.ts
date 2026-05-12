@@ -10,7 +10,12 @@ import {
 import {
     hasShareableReceipt,
     isCardPaymentEntry,
+    isDirectSendEntry,
+    isMantecaOnrampEntry,
+    isOnrampEntry,
     isQRPayment as isQRPaymentTransaction,
+    isRequestEntry,
+    isSendLinkEntry,
 } from '@/components/TransactionDetails/transaction-predicates'
 import { hasCardPaymentRowsContent } from '@/components/TransactionDetails/provider-rows/CardPaymentRows'
 import { countryData } from '@/components/AddMoney/consts'
@@ -83,7 +88,7 @@ export function useReceiptViewModel(
         () =>
             !!transaction &&
             transaction.status === 'pending' &&
-            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.REQUEST &&
+            isRequestEntry(transaction) &&
             transaction.extraDataForDrawer?.fulfillmentType === 'bridge',
         [transaction]
     )
@@ -92,7 +97,7 @@ export function useReceiptViewModel(
         () =>
             !!transaction &&
             transaction.status === 'pending' &&
-            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.REQUEST &&
+            isRequestEntry(transaction) &&
             transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER &&
             !transaction.extraDataForDrawer?.fulfillmentType,
         [transaction]
@@ -102,7 +107,7 @@ export function useReceiptViewModel(
         () =>
             !!transaction &&
             transaction.status === 'pending' &&
-            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.REQUEST &&
+            isRequestEntry(transaction) &&
             transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.RECIPIENT,
         [transaction]
     )
@@ -111,7 +116,7 @@ export function useReceiptViewModel(
         () =>
             !!transaction &&
             transaction.status === 'pending' &&
-            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK &&
+            isSendLinkEntry(transaction) &&
             transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER,
         [transaction]
     )
@@ -140,7 +145,7 @@ export function useReceiptViewModel(
         () =>
             !!transaction &&
             transaction.status === 'cancelled' &&
-            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK &&
+            isSendLinkEntry(transaction) &&
             transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER,
         [transaction]
     )
@@ -154,7 +159,7 @@ export function useReceiptViewModel(
         const willShowCompleted = !!(
             transaction.status === 'completed' &&
             transaction.completedAt &&
-            transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.DIRECT_SEND
+            !isDirectSendEntry(transaction)
         )
 
         // "Show the user's own data even when the tx is in a cancelled state"
@@ -174,7 +179,7 @@ export function useReceiptViewModel(
                 // CANCELLED, surface it again — the row helps the sender
                 // confirm what they reclaimed.
                 !(
-                    transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK &&
+                    isSendLinkEntry(transaction) &&
                     transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER &&
                     transaction.status !== 'cancelled'
                 ) &&
@@ -186,7 +191,7 @@ export function useReceiptViewModel(
             completed: !!(
                 transaction.status === 'completed' &&
                 transaction.completedAt &&
-                transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.DIRECT_SEND
+                !isDirectSendEntry(transaction)
             ),
             refunded: transaction.status === 'refunded',
             fee: transaction.fee !== undefined && transaction.status !== 'cancelled',
@@ -211,10 +216,7 @@ export function useReceiptViewModel(
                 transaction.status !== 'cancelled'
             ),
             depositInstructions: !!(
-                (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.BRIDGE_ONRAMP ||
-                    // BRIDGE_ONRAMP also arrives as TRANSACTION_INTENT/kind=ONRAMP.
-                    (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.TRANSACTION_INTENT &&
-                        transaction.extraDataForDrawer?.kind === 'ONRAMP') ||
+                (isOnrampEntry(transaction) ||
                     (isPendingBankRequest &&
                         transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER)) &&
                 transaction.status === 'pending' &&
@@ -233,16 +235,11 @@ export function useReceiptViewModel(
                 transaction.status !== 'cancelled'
             ),
             attachment: !!(transaction.attachmentUrl && allowCancelledSenderFields),
-            mantecaDepositInfo:
-                !isPublic &&
-                (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP ||
-                    // MANTECA_ONRAMP also arrives as TRANSACTION_INTENT/kind=ONRAMP. Provider
-                    // distinguishes Manteca from Bridge but isn't plumbed through to the FE;
-                    // Bridge onramps with deposit instructions take the branch above, leaving
-                    // this path for Manteca's ARS/BRL deposit info row.
-                    (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.TRANSACTION_INTENT &&
-                        transaction.extraDataForDrawer?.kind === 'ONRAMP')) &&
-                transaction.status === 'pending',
+            // Provider isn't plumbed through to the FE, so this branch lights
+            // up for any FIAT_ONRAMP. Bridge onramps with a deposit_instructions
+            // payload take the `depositInstructions` branch above, leaving this
+            // path for Manteca's ARS/BRL deposit info row.
+            mantecaDepositInfo: !isPublic && isMantecaOnrampEntry(transaction) && transaction.status === 'pending',
             // Gate on whether CardPaymentRows would actually emit a sub-row;
             // otherwise an "all-data-absent" card spend leaves the slot
             // visible-but-empty and `shouldHideBorder` mis-attributes the

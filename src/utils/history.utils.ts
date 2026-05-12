@@ -98,6 +98,84 @@ export type HistoryEntryType = `${EHistoryEntryType}`
 export type HistoryUserRole = `${EHistoryUserRole}`
 export type HistoryStatus = `${EHistoryStatus}`
 
+/**
+ * Wire-shape extra-data carried on every HistoryEntry. Pre-this-type,
+ * the field was `Record<string, any>` — every consumer did an implicit
+ * cast and silent drift between BE writes and FE reads was invisible to
+ * the type system.
+ *
+ * Each field is optional because different BE projectors emit different
+ * subsets (Manteca emits `receipt`, Bridge emits `depositInstructions`,
+ * card spends emit the merchant/decline cluster, etc.). The interface
+ * documents the full superset; the deep object shapes are left loose
+ * (`Record<string, unknown>` / aliased typed shapes from
+ * `transactionTransformer.ts`) so the transformer keeps doing the
+ * boundary cast — but every scalar field now has a concrete type.
+ *
+ * If you add a field at a BE projector, mirror it here. If you stop
+ * reading one on the FE, remove it here.
+ */
+export interface HistoryEntryExtraData {
+    // Post-decomplexify wire-shape discriminators. Both pinned to
+    // string at this layer; downstream `extraDataForDrawer` narrows to
+    // `IntentKind` and `Provider` after the transformer runs.
+    kind?: string
+    provider?: string
+
+    // Common fields
+    link?: string
+    fulfillmentType?: 'bridge' | 'wallet'
+    bridgeTransferId?: string
+    usdAmount?: string
+    haveSentMoneyToUser?: boolean
+    /** Token-transfer block number — `string` from indexer, sometimes `number`
+     *  from on-chain webhooks. Treated as a presence signal, not parsed. */
+    blockNumber?: string | number
+
+    // Reaper-set on FAILED transitions for orphaned PENDING intents.
+    failReason?: string | null
+
+    // Card-spend cluster. Populated for Rain CARD_SPEND / card-refund
+    // intents only.
+    parentRainTxId?: string | null
+    rainTransactionId?: string | null
+    cardAuthAmount?: string | null
+    cardSettledAmount?: string | null
+    cardLocalAmount?: string | null
+    cardLocalCurrency?: string | null
+    settlementAdjusted?: boolean
+    cancellationReason?: string | null
+    declineReason?: string | null
+    declineCategory?: string | null
+    merchantName?: string | null
+    merchantCategory?: string | null
+    merchantCity?: string | null
+    merchantCountry?: string | null
+    merchantMcc?: string | null
+    merchantLogo?: string | null
+    merchantId?: string | null
+
+    // Perk reward + claim metadata. Shapes match
+    // TransactionDetails.extraDataForDrawer.perk* — kept loose here to
+    // avoid a cross-import; transformer narrows.
+    perkReward?: Record<string, unknown>
+    perk?: Record<string, unknown>
+
+    // Sendlink-create fields — written when the FE creates a sendlink so
+    // the claim URL can be rebuilt at history-render time from
+    // localStorage's password store.
+    contractVersion?: string
+    depositIdx?: string | number
+
+    // Bridge bank-deposit instructions. Renders the depositInstructions
+    // row on the receipt.
+    depositInstructions?: Record<string, unknown>
+
+    // Manteca / Bridge offramp receipt block. Manteca writes
+    // `receipt.depositDetails`; Bridge writes the broader receipt shape.
+    receipt?: Record<string, unknown>
+}
+
 export type HistoryEntry = {
     uuid: string
     type: HistoryEntryType
@@ -136,7 +214,7 @@ export type HistoryEntry = {
         userId?: string
         showFullName?: boolean
     }
-    extraData?: Record<string, any>
+    extraData?: HistoryEntryExtraData
     claimedAt?: string | Date
     createdAt?: string | Date
     completedAt?: string | Date
