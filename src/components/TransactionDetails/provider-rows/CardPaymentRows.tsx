@@ -34,6 +34,13 @@ function parseCents(value: string | null | undefined): number | null {
  * fiat amount now flows through the receipt's heading (≈ ARS X) and
  * exchange-rate row instead — same treatment as Manteca QR pays.
  */
+/**
+ * KEEP IN SYNC with `CardPaymentRows` below — every condition that pushes
+ * a sub-row in the renderer needs a matching predicate here. The parent
+ * receipt uses this to decide whether to show the slot at all, so a
+ * missed condition here means a row exists but its border gets clipped.
+ * (No automated check today; verify by inspection when adding rows.)
+ */
 export function hasCardPaymentRowsContent(transaction: TransactionDetails): boolean {
     const card = transaction.extraDataForDrawer?.cardPayment
     if (!card) return false
@@ -46,6 +53,15 @@ export function hasCardPaymentRowsContent(transaction: TransactionDetails): bool
     // through nonBlank.
     if (transaction.status === 'failed' && (nonBlank(card.declineReason) || card.declineCategory)) return true
     if (card.cancellationReason === 'auto_closed') return true
+    // Hold-release explanation: Rain auths now sit at AWAITING_SETTLEMENT
+    // (PENDING badge on the FE) until they settle or release. Both the
+    // pending and cancelled states need a row in the receipt — pending so
+    // the user understands the money isn't fully spent yet, cancelled so
+    // they know why the hold released without a charge.
+    if (transaction.status === 'pending' && !card.isRefund) return true
+    if (card.cancellationReason === 'auth_reversed' || card.cancellationReason === 'auth_expired_uncaptured') {
+        return true
+    }
     return false
 }
 
@@ -130,6 +146,49 @@ export function CardPaymentRows({
             key: 'autoCloseNote',
             label: 'Note',
             value: "Automatically cancelled — the merchant didn't complete it",
+        })
+    }
+
+    // BE-driven cancellationReason taxonomy from peanut-api-ts auth-lifecycle
+    // PR. `auth_reversed` = merchant explicitly dropped the hold;
+    // `auth_expired_uncaptured` = Rain emitted completed-with-zero (the
+    // 14-day window closed without a capture). Both translate to "funds
+    // returned"; different copy so the user knows what to do next (nothing
+    // for reversed; contact the merchant if expired-uncaptured was unwanted).
+    // `else if` (rather than two independent `if`s) makes the mutual
+    // exclusion explicit — guards against a future refactor that might
+    // start storing both at once.
+    if (card.cancellationReason === 'auth_reversed') {
+        subRows.push({
+            key: 'authReversedNote',
+            label: 'Note',
+            value: 'Hold released — the merchant cancelled the authorization. Funds are back on your card.',
+        })
+    } else if (card.cancellationReason === 'auth_expired_uncaptured') {
+        subRows.push({
+            key: 'authExpiredNote',
+            label: 'Note',
+            value: "Hold released — the merchant didn't capture the payment in time. Funds are back on your card.",
+        })
+    }
+
+    // Pending card spends now sit at AWAITING_SETTLEMENT (PENDING badge)
+    // for up to ~14 days while Rain waits for the merchant to capture or
+    // release. Without this row, users see "Pending" and worry the money
+    // is stuck — exact wording per @jjramirezn on the auth-lifecycle PR.
+    // Guarded against any cancellation-note already in place: a
+    // transient pending+cancellationReason payload would otherwise render
+    // both "Authorized, awaiting..." AND "Hold released..." simultaneously,
+    // which is contradictory copy.
+    const hasCancellationNote =
+        card.cancellationReason === 'auto_closed' ||
+        card.cancellationReason === 'auth_reversed' ||
+        card.cancellationReason === 'auth_expired_uncaptured'
+    if (transaction.status === 'pending' && !card.isRefund && !hasCancellationNote) {
+        subRows.push({
+            key: 'pendingNote',
+            label: 'Status',
+            value: 'Authorized, awaiting settlement or reversal',
         })
     }
 
