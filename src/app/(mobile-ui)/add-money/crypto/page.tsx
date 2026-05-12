@@ -12,9 +12,9 @@ import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { getExplorerUrl } from '@/utils/general.utils'
 import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useQuery } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
 import { useCallback, useMemo, useState } from 'react'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -23,7 +23,7 @@ const DEPOSIT_EXPLORER_BASE_URL = getExplorerUrl(PEANUT_WALLET_CHAIN.id.toString
 
 const AddMoneyCryptoPage = () => {
     const { user } = useAuth()
-    const router = useRouter()
+    const onBack = useSafeBack('/add-money')
     const { address: peanutWalletAddress } = useWallet()
     const [network] = useQueryState(
         'network',
@@ -123,9 +123,7 @@ const AddMoneyCryptoPage = () => {
             depositAddressData={depositAddressData}
             isLoading={isLoading}
             onSuccess={handleSuccess}
-            // Explicit push to /add-money — router.back() loops when /add-money/crypto was
-            // a deep-link entry (no prior history) or when the user re-enters via bottom-nav.
-            onBack={() => router.push('/add-money')}
+            onBack={onBack}
         />
     )
 }

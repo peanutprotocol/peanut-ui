@@ -19,13 +19,13 @@ import FileUploadInput from '@/components/Global/FileUploadInput'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import SupportCTA from '@/components/Global/SupportCTA'
 import { useDirectSendFlow } from '../useDirectSendFlow'
-import { useRouter } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { useAuth } from '@/context/authContext'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 
 export function SendInputView() {
-    const router = useRouter()
+    const handleGoBack = useSafeBack('/')
     const { isFetchingUser } = useAuth()
     const {
         amount,
@@ -47,15 +47,6 @@ export function SendInputView() {
     const handleSubmit = () => {
         if (canProceed && hasSufficientBalance && !isLoading) {
             executePayment()
-        }
-    }
-
-    // handle back navigation
-    const handleGoBack = () => {
-        if (window.history.length > 1) {
-            router.back()
-        } else {
-            router.push('/')
         }
     }
 

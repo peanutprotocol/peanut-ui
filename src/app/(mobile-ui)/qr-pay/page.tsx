@@ -2,6 +2,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useState, useCallback, useMemo, useEffect, useContext, useRef } from 'react'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import Card from '@/components/Global/Card'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -72,10 +73,10 @@ type PaymentProcessor = 'MANTECA'
 export default function QRPayPage() {
     const searchParams = useSearchParams()
     const router = useRouter()
-    // QR pay is a deep-link entry: users scan a QR straight into /qr-pay so history is often
-    // empty, which makes router.back() a no-op. Every "leave this screen" action (modal dismiss,
-    // error-screen Go Back, "Not now" CTA) should drop the user at /home instead.
-    const exitToHome = useCallback(() => router.push('/home'), [router])
+    // QR pay is a deep-link entry (PWA QR scan, push notification): history is often empty,
+    // so router.back() no-ops. useSafeBack pops if there's in-app history, otherwise lands
+    // the user on /home — guarantees every "leave this screen" action moves them somewhere.
+    const exitToHome = useSafeBack('/home')
     const qrCode = decodeURIComponent(searchParams.get('qrCode') || '')
     const timestamp = searchParams.get('t')
     const qrType = searchParams.get('type')

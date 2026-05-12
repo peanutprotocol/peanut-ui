@@ -48,6 +48,7 @@ import { parseUnits } from 'viem'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawCountryUrl } from '@/utils/native-routes'
+import { useSafeBack } from '@/hooks/useSafeBack'
 
 type View = 'INITIAL' | 'SUCCESS'
 
@@ -97,6 +98,9 @@ export default function WithdrawBankPage() {
     // check if we came from send flow - using method param to detect (only bank goes through this page)
     const methodParam = searchParams.get('method')
     const fromSendFlow = methodParam === 'bank'
+    // Non-success back: prefer popping in-app history (we have nuqs steps); on deep-link entry,
+    // fall back to the originating flow.
+    const onBackToFlow = useSafeBack(fromSendFlow ? '/send' : '/withdraw')
 
     const nonEuroCurrency = countryCurrencyMappings.find(
         (currency) =>
@@ -349,10 +353,7 @@ export default function WithdrawBankPage() {
                         setAmountToWithdraw('')
                         setSelectedMethod(null)
                     } else {
-                        // Explicit push instead of router.back() — this page is reached via
-                        // /withdraw (default) or /send (when methodParam === 'bank'). Honour the
-                        // entry context so the user lands back in the flow they started in.
-                        router.push(fromSendFlow ? '/send' : '/withdraw')
+                        onBackToFlow()
                     }
                 }}
             />

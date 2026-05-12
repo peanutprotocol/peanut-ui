@@ -17,7 +17,7 @@ import {
 } from '@/hooks/useBridgeTransferReadiness'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
-import { useRouter, useParams, useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
 import { formatUnits } from 'viem'
@@ -40,12 +40,12 @@ import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
+import { useSafeBack } from '@/hooks/useSafeBack'
 
 // Step type for URL state
 type BridgeBankStep = 'inputAmount' | 'showDetails'
 
 export default function OnrampBankPage() {
-    const router = useRouter()
     const params = useParams()
     const _searchParams = useSearchParams()
 
@@ -88,6 +88,10 @@ export default function OnrampBankPage() {
         if (!selectedCountryPath) return null
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
+
+    // Used by the inputAmount step + the country-not-found state to leave this page.
+    // Falls back to the country method-selection if user deep-linked in, otherwise pops history.
+    const safeBackToCountry = useSafeBack(selectedCountryPath ? addMoneyCountryUrl(selectedCountryPath) : '/add-money')
 
     const nonEuroCurrency = countryCurrencyMappings.find(
         (currency) =>
@@ -277,13 +281,7 @@ export default function OnrampBankPage() {
         setIsRiskAccepted(false)
     }
 
-    const handleBack = () => {
-        if (selectedCountry) {
-            router.push(addMoneyCountryUrl(selectedCountry.path))
-        } else {
-            router.push('/add-money')
-        }
-    }
+    const handleBack = safeBackToCountry
 
     // Redirect to inputAmount if showDetails is accessed without required data (deep link / back navigation)
     useEffect(() => {
@@ -300,7 +298,7 @@ export default function OnrampBankPage() {
     if (!selectedCountry) {
         return (
             <div className="space-y-8 self-start">
-                <NavHeader title="Not Found" onPrev={() => router.push('/add-money')} />
+                <NavHeader title="Not Found" onPrev={safeBackToCountry} />
                 <EmptyState title="Country not found" description="Please try a different country." icon="search" />
             </div>
         )

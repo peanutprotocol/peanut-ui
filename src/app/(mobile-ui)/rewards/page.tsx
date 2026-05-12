@@ -14,6 +14,7 @@ import { invitesApi } from '@/services/invites'
 import { getInitialsFromName } from '@/utils/general.utils'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { STAR_STRAIGHT_ICON, TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets'
 import Image from 'next/image'
 import { pointsApi } from '@/services/points'
@@ -33,6 +34,7 @@ import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 
 const PointsPage = () => {
     const router = useRouter()
+    const onBack = useSafeBack('/home')
     const { user, fetchUser } = useAuth()
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
     const inviteesRef = useRef(null)
@@ -112,7 +114,7 @@ const PointsPage = () => {
 
     return (
         <PageContainer className="flex flex-col">
-            <NavHeader title="Rewards" onPrev={() => router.back()} />
+            <NavHeader title="Rewards" onPrev={onBack} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
                 {/* rewards hero — pending claimable as primary, lifetime as secondary */}

@@ -21,7 +21,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import SupportCTA from '@/components/Global/SupportCTA'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
-import { useRouter } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 import { printableAddress, areEvmAddressesEqual } from '@/utils/general.utils'
@@ -29,7 +29,7 @@ import { tokenSelectorContext } from '@/context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 
 export function SemanticRequestInputView() {
-    const router = useRouter()
+    const handleGoBack = useSafeBack('/')
     const {
         amount,
         recipient,
@@ -102,15 +102,6 @@ export function SemanticRequestInputView() {
             if (res && res.success) {
                 setCurrentView('EXTERNAL_WALLET')
             }
-        }
-    }
-
-    // handle back navigation
-    const handleGoBack = () => {
-        if (window.history.length > 1) {
-            router.back()
-        } else {
-            router.push('/')
         }
     }
 

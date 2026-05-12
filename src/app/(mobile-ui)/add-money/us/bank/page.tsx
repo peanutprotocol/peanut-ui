@@ -1,9 +1,9 @@
 'use client'
 
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
-import { useRouter } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 
 export default function USBankPage() {
-    const router = useRouter()
-    return <AddMoneyBankDetails flow="add-money" onBack={() => router.push('/add-money')} />
+    const onBack = useSafeBack('/add-money')
+    return <AddMoneyBankDetails flow="add-money" onBack={onBack} />
 }

@@ -18,13 +18,13 @@ import UserCard from '@/components/User/UserCard'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import SupportCTA from '@/components/Global/SupportCTA'
 import { useContributePotFlow } from '../useContributePotFlow'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useAuth } from '@/context/authContext'
 import { RequestPotActionList } from '../components/RequestPotActionList'
+import { useSafeBack } from '@/hooks/useSafeBack'
 
 export function ContributePotInputView() {
-    const router = useRouter()
+    const handleGoBack = useSafeBack('/')
     const { isFetchingUser } = useAuth()
     const {
         amount,
@@ -50,15 +50,6 @@ export function ContributePotInputView() {
     const handlePayWithPeanut = () => {
         if (canProceed && hasSufficientBalance && !isLoading) {
             executeContribution()
-        }
-    }
-
-    // handle back navigation
-    const handleGoBack = () => {
-        if (window.history.length > 1) {
-            router.back()
-        } else {
-            router.push('/')
         }
     }
 

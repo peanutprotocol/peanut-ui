@@ -25,6 +25,7 @@ import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { rainApi, type ApplyForCardResponse } from '@/services/rain'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useModalsContext } from '@/context/ModalsContext'
+import { useSafeBack } from '@/hooks/useSafeBack'
 
 const CardPage: FC = () => {
     const router = useRouter()
@@ -47,6 +48,7 @@ const CardPage: FC = () => {
     const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
     const { serializeGrant } = useGrantSessionKey()
     const { setIsSupportModalOpen } = useModalsContext()
+    const onPrevSafe = useSafeBack('/home')
 
     // Sumsub card-application token — populated when POST /rain/cards reports
     // the user still needs to complete the rain-card-application level.
@@ -315,12 +317,10 @@ const CardPage: FC = () => {
                 />
             )
         }
-        // /card is a backend-state-driven screen, not a multi-step user flow: state
-        // (add-card/pending/manual-review/rejected/active) is derived from `overview`+`cardInfo`,
-        // not pushed to history. router.back() therefore loops or no-ops when /card was a
-        // deep-link entry or when state changed in-place. Always push the natural parent (/home),
-        // matching the sub-pages (card/pin, card/limit, card/add-to-wallet) that already do this.
-        const onPrevHome = () => router.push('/home')
+        // /card is a backend-state-driven screen: state (add-card/pending/.../active) is
+        // derived from `overview`+`cardInfo`, not pushed to history. useSafeBack pops
+        // in-app history when there's something to pop and falls back to /home for
+        // deep-link entries.
         switch (state) {
             case 'pioneer':
                 return <CardPioneerFlow cardInfo={cardInfo!} refetchCardInfo={refetchCardInfo} />
@@ -328,14 +328,14 @@ const CardPage: FC = () => {
                 return (
                     <AddCardEntryScreen
                         onApply={() => handleApply(false)}
-                        onPrev={onPrevHome}
+                        onPrev={onPrevSafe}
                         applyError={applyError}
                     />
                 )
             case 'pending':
-                return <ApplicationStatusScreen variant="pending" onPrev={onPrevHome} />
+                return <ApplicationStatusScreen variant="pending" onPrev={onPrevSafe} />
             case 'manual-review':
-                return <ApplicationStatusScreen variant="manual-review" onPrev={onPrevHome} />
+                return <ApplicationStatusScreen variant="manual-review" onPrev={onPrevSafe} />
             case 'rejected':
                 // No retry CTA: Rain denials are terminal on our side. The
                 // only path forward is support reviewing the case manually
@@ -346,12 +346,12 @@ const CardPage: FC = () => {
                     <ApplicationStatusScreen
                         variant="rejected"
                         onContactSupport={() => setIsSupportModalOpen(true)}
-                        onPrev={onPrevHome}
+                        onPrev={onPrevSafe}
                     />
                 )
             case 'active': {
                 const card = findActiveCard(overview)!
-                return <YourCardScreen overview={overview!} card={card} onPrev={onPrevHome} />
+                return <YourCardScreen overview={overview!} card={card} onPrev={onPrevSafe} />
             }
             default:
                 return null

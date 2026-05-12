@@ -2,8 +2,9 @@
 import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { type CountryData, countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useCurrency } from '@/hooks/useCurrency'
@@ -32,7 +33,6 @@ type CurrencyDenomination = 'USD' | 'ARS' | 'BRL' | 'MXN' | 'EUR'
 
 const MantecaAddMoney: FC = () => {
     const params = useParams()
-    const router = useRouter()
     const searchParams = useSearchParams()
     const queryClient = useQueryClient()
 
@@ -68,6 +68,8 @@ const MantecaAddMoney: FC = () => {
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
+    // Back from the inputAmount step exits this flow back to the country page.
+    const onBackToCountry = useSafeBack(addMoneyCountryUrl(selectedCountryPath))
     const { isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
     const { manteca: mantecaRejection } = useProviderRejectionStatus()
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
@@ -268,7 +270,7 @@ const MantecaAddMoney: FC = () => {
                     setDisplayedAmount={handleDisplayedAmountChange}
                     limitsValidation={limitsValidation}
                     limitsCurrency={limitsValidation.currency}
-                    onBack={() => router.push(addMoneyCountryUrl(selectedCountryPath))}
+                    onBack={onBackToCountry}
                 />
             </>
         )
