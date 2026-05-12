@@ -1,12 +1,8 @@
 'use client'
 
 /**
- * Token price + wallet portfolio — direct backend calls.
- *
- * Bypasses the Next.js /api/proxy machinery entirely so this works
- * identically on web and Capacitor (which has no Next.js server).
- * The endpoints are public on peanut-api-ts (no api-key, no JWT) — CORS +
- * the per-IP rate limiter on /tokens/* are the gate.
+ * Token price + wallet portfolio — public endpoints, no auth required.
+ * CORS + the per-IP rate limiter on /tokens/* are the gate.
  */
 
 import { PEANUT_API_URL } from '@/constants/general.consts'

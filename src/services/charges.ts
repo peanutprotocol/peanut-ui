@@ -7,7 +7,6 @@ import {
     type CreateChargeRequest,
 } from './services.types'
 import { PEANUT_API_URL } from '@/constants/general.consts'
-import { isCapacitor } from '@/utils/capacitor'
 import { getAuthToken } from '@/utils/auth-token'
 import { apiFetch, serverFetch } from '@/utils/api-fetch'
 
@@ -26,11 +25,10 @@ export const chargesApi = {
             }
         })
 
-        const chargeUrl = isCapacitor() ? `${PEANUT_API_URL}/charges` : '/api/proxy/withFormData/charges'
         const headers: Record<string, string> = {}
         const token = getAuthToken()
         if (token) headers['Authorization'] = `Bearer ${token}`
-        const response = await fetchWithSentry(chargeUrl, {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/charges`, {
             method: 'POST',
             headers,
             body: formData,
@@ -84,7 +82,7 @@ export const chargesApi = {
         sourceTokenAddress?: string
         sourceTokenSymbol?: string
     }): Promise<PaymentCreationResponse> => {
-        const response = await apiFetch(`/charges/${chargeId}/payments`, `/api/proxy/charges/${chargeId}/payments`, {
+        const response = await apiFetch(`/charges/${chargeId}/payments`, {
             method: 'POST',
             body: JSON.stringify({
                 chainId,

@@ -1,7 +1,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import ValidatedInput from '@/components/Global/ValidatedInput'
-import { next_proxy_url, PEANUT_API_URL } from '@/constants/general.consts'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
@@ -50,12 +50,8 @@ const SignupStep = () => {
 
         try {
             // here we expect 404 or 400 so dont use the fetchWithSentry helper
-            // /get/ prefix is a next.js proxy convention — backend path is /users/username/
-            const url = isCapacitor()
-                ? `${PEANUT_API_URL}/users/username/${username}`
-                : `${next_proxy_url}/get/users/username/${username}`
             // capacitorHttp doesn't support HEAD — use GET in native
-            const res = await fetchWithSentry(url, {
+            const res = await fetchWithSentry(`${PEANUT_API_URL}/users/username/${username}`, {
                 method: isCapacitor() ? 'GET' : 'HEAD',
             })
             switch (res.status) {

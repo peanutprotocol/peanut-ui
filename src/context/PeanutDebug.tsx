@@ -15,6 +15,7 @@
 
 import { useEffect } from 'react'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { getAuthHeaders } from '@/utils/auth-token'
 import { debugLog } from '@/utils/debug-console'
 import { logRunMode } from '@/utils/mode'
 
@@ -30,8 +31,7 @@ export function PeanutDebug() {
             'local-harness-secret-must-be-at-least-32-characters-long'
 
         const currentUserId = () => {
-            // best-effort: read from /api/peanut/user/get-user-from-cookie output
-            // via a pre-cached value; otherwise return null and let caller pass.
+            // best-effort: read pre-cached id; otherwise return null and let caller pass.
             return (window as any).__peanut_user_id ?? null
         }
 
@@ -81,7 +81,11 @@ export function PeanutDebug() {
             if (userId) return userId
             const cached = currentUserId()
             if (cached) return cached
-            const res = await fetch('/api/peanut/user/get-user-from-cookie', { method: 'POST', credentials: 'include' })
+            const res = await fetch(`${PEANUT_API_URL}/get-user`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: '{}',
+            })
                 .then((r) => (r.ok ? r.json() : null))
                 .catch(() => null)
             const uid = res?.user?.userId

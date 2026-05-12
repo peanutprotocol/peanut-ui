@@ -2,7 +2,6 @@ import { jsonParse, jsonStringify } from '@/utils/general.utils'
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import type { SendLink } from '@/services/services.types'
 import { serverFetch } from '@/utils/api-fetch'
-import { isCapacitor } from '@/utils/capacitor'
 import { getAuthHeaders } from '@/utils/auth-token'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
@@ -73,14 +72,8 @@ export const sendLinksApi = {
             headers['Content-Type'] = 'application/json'
         }
 
-        // formdata needs the withFormData proxy on web; json goes through regular proxy
-        const url = isCapacitor()
-            ? `${PEANUT_API_URL}/send-links`
-            : requestBody instanceof FormData
-              ? '/api/proxy/withFormData/send-links'
-              : '/api/proxy/send-links'
         Object.assign(headers, getAuthHeaders())
-        const response = await fetchWithSentry(url, {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links`, {
             method: 'POST',
             body: requestBody,
             headers,
