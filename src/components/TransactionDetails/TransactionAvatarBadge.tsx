@@ -46,6 +46,7 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     let calculatedBgColor = AVATAR_WALLET_BG
     let iconFillColor = AVATAR_TEXT_DARK
     let textColor = AVATAR_TEXT_DARK
+    let logoFallback: { icon: IconName; bgColor?: string; iconFillColor?: string } | undefined = undefined
 
     // determine if the userName represents a user (not address or specific strings)
     const isValidUser = userName ? !isAddress(userName) : false
@@ -62,19 +63,27 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
         case 'bank_claim':
         case 'cashout': {
             displayInitials = undefined
+            // The dark badge bg is only used for list-item context on cashout;
+            // everywhere else we render a dark circle regardless. Computed up
+            // front so it's available as the flag-image fallback below.
+            const useDarkBg = transactionType !== 'cashout' || context === 'card'
+            const bankBg = useDarkBg ? AVATAR_TEXT_DARK : AVATAR_WALLET_BG
+            const bankFg = useDarkBg ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
             if (countryCode) {
                 displayLogoUrl = getFlagUrl(countryCode)
                 calculatedBgColor = AVATAR_WALLET_BG
+                // If the flag asset 404s (obscure IBAN prefix that
+                // circle-flags doesn't ship, or a mapping/asset drift like the
+                // EUR → 'eu' case), swap to the same bank icon the
+                // no-countryCode branch below renders. Same visual as prod.
+                logoFallback = { icon: 'bank', bgColor: bankBg, iconFillColor: bankFg }
                 break
             }
-            // No country signal — fall back to the generic bank icon. The dark
-            // badge bg is only used for list-item context on cashout; everywhere
-            // else we render a dark circle regardless.
-            const useDarkBg = transactionType !== 'cashout' || context === 'card'
+            // No country signal — fall back to the generic bank icon.
             displayIconName = 'bank'
-            calculatedBgColor = useDarkBg ? AVATAR_TEXT_DARK : AVATAR_WALLET_BG
-            textColor = useDarkBg ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
-            iconFillColor = useDarkBg ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
+            calculatedBgColor = bankBg
+            textColor = bankFg
+            iconFillColor = bankFg
             break
         }
         case 'add':
@@ -133,6 +142,7 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
             inlineStyle={{ backgroundColor: calculatedBgColor }}
             textColor={textColor}
             iconFillColor={iconFillColor}
+            fallback={logoFallback}
         />
     )
 }
