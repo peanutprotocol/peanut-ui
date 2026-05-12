@@ -1,379 +1,379 @@
 [
-  {
-    "name": "bridge-offramp-completed",
-    "entry": {
-      "uuid": "bridge-offramp-completed",
-      "type": "TRANSACTION_INTENT",
-      "timestamp": "<TIMESTAMP>",
-      "amount": "0",
-      "currency": {
-        "amount": "0",
-        "code": ""
-      },
-      "tokenAddress": "",
-      "status": "COMPLETED",
-      "userRole": "SENDER",
-      "senderAccount": {
-        "identifier": "0x6f776e6572000000000000000000000000000000",
-        "type": "peanut-wallet",
-        "isUser": true,
-        "fullName": "Snap owner",
-        "userId": "<USER_ID>"
-      },
-      "recipientAccount": {
-        "identifier": "",
-        "isUser": false
-      },
-      "extraData": {
-        "provider": "BRIDGE",
-        "kind": "OFFRAMP",
-        "bridgeFlow": "OFFRAMP",
-        "receipt": {
-          "developer_fee": "0.375",
-          "exchange_rate": "1.0"
+    {
+        "name": "bridge-offramp-completed",
+        "entry": {
+            "uuid": "bridge-offramp-completed",
+            "type": "TRANSACTION_INTENT",
+            "timestamp": "<TIMESTAMP>",
+            "amount": "0",
+            "currency": {
+                "amount": "0",
+                "code": ""
+            },
+            "tokenAddress": "",
+            "status": "COMPLETED",
+            "userRole": "SENDER",
+            "senderAccount": {
+                "identifier": "0x6f776e6572000000000000000000000000000000",
+                "type": "peanut-wallet",
+                "isUser": true,
+                "fullName": "Snap owner",
+                "userId": "<USER_ID>"
+            },
+            "recipientAccount": {
+                "identifier": "",
+                "isUser": false
+            },
+            "extraData": {
+                "provider": "BRIDGE",
+                "kind": "OFFRAMP",
+                "bridgeFlow": "OFFRAMP",
+                "receipt": {
+                    "developer_fee": "0.375",
+                    "exchange_rate": "1.0"
+                },
+                "sendLinkPubKey": null
+            },
+            "createdAt": "<TIMESTAMP>",
+            "completedAt": "<TIMESTAMP>",
+            "isVerified": false,
+            "fee": 0.375
         },
-        "sendLinkPubKey": null
-      },
-      "createdAt": "<TIMESTAMP>",
-      "completedAt": "<TIMESTAMP>",
-      "isVerified": false,
-      "fee": 0.375
+        "expected": {
+            "direction": "bank_withdraw",
+            "userName": "Bank Account",
+            "transactionCardType": "bank_withdraw",
+            "kind": "OFFRAMP",
+            "provider": "BRIDGE",
+            "cardPaymentDefined": false,
+            "bankAccountDetailsDefined": false
+        }
     },
-    "expected": {
-      "direction": "bank_withdraw",
-      "userName": "Bank Account",
-      "transactionCardType": "bank_withdraw",
-      "kind": "OFFRAMP",
-      "provider": "BRIDGE",
-      "cardPaymentDefined": false,
-      "bankAccountDetailsDefined": false
-    }
-  },
-  {
-    "name": "bridge-onramp-pending",
-    "entry": {
-      "uuid": "bridge-onramp-pending",
-      "type": "TRANSACTION_INTENT",
-      "timestamp": "<TIMESTAMP>",
-      "amount": "0",
-      "currency": {
-        "amount": "0",
-        "code": ""
-      },
-      "tokenAddress": "",
-      "status": "PAYMENT_SUBMITTED",
-      "userRole": "SENDER",
-      "senderAccount": {
-        "identifier": "0x6f776e6572000000000000000000000000000000",
-        "type": "peanut-wallet",
-        "isUser": true,
-        "fullName": "Snap owner",
-        "userId": "<USER_ID>"
-      },
-      "recipientAccount": {
-        "identifier": "",
-        "isUser": false
-      },
-      "extraData": {
-        "provider": "BRIDGE",
-        "kind": "ONRAMP",
-        "bridgeFlow": "OFFRAMP",
-        "receipt": {
-          "exchange_rate": "1.0"
+    {
+        "name": "bridge-onramp-pending",
+        "entry": {
+            "uuid": "bridge-onramp-pending",
+            "type": "TRANSACTION_INTENT",
+            "timestamp": "<TIMESTAMP>",
+            "amount": "0",
+            "currency": {
+                "amount": "0",
+                "code": ""
+            },
+            "tokenAddress": "",
+            "status": "PAYMENT_SUBMITTED",
+            "userRole": "SENDER",
+            "senderAccount": {
+                "identifier": "0x6f776e6572000000000000000000000000000000",
+                "type": "peanut-wallet",
+                "isUser": true,
+                "fullName": "Snap owner",
+                "userId": "<USER_ID>"
+            },
+            "recipientAccount": {
+                "identifier": "",
+                "isUser": false
+            },
+            "extraData": {
+                "provider": "BRIDGE",
+                "kind": "ONRAMP",
+                "bridgeFlow": "OFFRAMP",
+                "receipt": {
+                    "exchange_rate": "1.0"
+                },
+                "sendLinkPubKey": null
+            },
+            "createdAt": "<TIMESTAMP>",
+            "completedAt": null,
+            "isVerified": false
         },
-        "sendLinkPubKey": null
-      },
-      "createdAt": "<TIMESTAMP>",
-      "completedAt": null,
-      "isVerified": false
+        "expected": {
+            "direction": "bank_deposit",
+            "userName": "Bank Account",
+            "transactionCardType": "bank_deposit",
+            "kind": "ONRAMP",
+            "provider": "BRIDGE",
+            "cardPaymentDefined": false,
+            "bankAccountDetailsDefined": false
+        }
     },
-    "expected": {
-      "direction": "bank_deposit",
-      "userName": "Bank Account",
-      "transactionCardType": "bank_deposit",
-      "kind": "ONRAMP",
-      "provider": "BRIDGE",
-      "cardPaymentDefined": false,
-      "bankAccountDetailsDefined": false
-    }
-  },
-  {
-    "name": "card-spend-clear-completed",
-    "entry": {
-      "uuid": "card-spend-clear-completed",
-      "type": "TRANSACTION_INTENT",
-      "timestamp": "<TIMESTAMP>",
-      "amount": "0.00",
-      "currency": {
-        "amount": "0.00",
-        "code": "USD"
-      },
-      "chainId": "",
-      "tokenSymbol": "USDC",
-      "tokenAddress": "",
-      "status": "COMPLETED",
-      "userRole": "SENDER",
-      "senderAccount": {
-        "identifier": "<USER_ID>",
-        "type": "peanut-wallet",
-        "isUser": true
-      },
-      "recipientAccount": {
-        "identifier": "Card payment",
-        "type": "merchant",
-        "isUser": false
-      },
-      "extraData": {
-        "kind": "CARD_SPEND_CLEAR",
-        "source": "EXTERNAL",
-        "intentStatus": "COMPLETED",
-        "intentMetadata": {
-          "authAmount": "12.50",
-          "localAmount": "12.50",
-          "localCurrency": "USD",
-          "settledAmount": "12.50"
+    {
+        "name": "card-spend-clear-completed",
+        "entry": {
+            "uuid": "card-spend-clear-completed",
+            "type": "TRANSACTION_INTENT",
+            "timestamp": "<TIMESTAMP>",
+            "amount": "0.00",
+            "currency": {
+                "amount": "0.00",
+                "code": "USD"
+            },
+            "chainId": "",
+            "tokenSymbol": "USDC",
+            "tokenAddress": "",
+            "status": "COMPLETED",
+            "userRole": "SENDER",
+            "senderAccount": {
+                "identifier": "<USER_ID>",
+                "type": "peanut-wallet",
+                "isUser": true
+            },
+            "recipientAccount": {
+                "identifier": "Card payment",
+                "type": "merchant",
+                "isUser": false
+            },
+            "extraData": {
+                "kind": "CARD_SPEND_CLEAR",
+                "source": "EXTERNAL",
+                "intentStatus": "COMPLETED",
+                "intentMetadata": {
+                    "authAmount": "12.50",
+                    "localAmount": "12.50",
+                    "localCurrency": "USD",
+                    "settledAmount": "12.50"
+                },
+                "provider": "RAIN",
+                "merchantName": null,
+                "merchantCategory": null,
+                "merchantCity": null,
+                "merchantCountry": null,
+                "merchantMcc": null,
+                "merchantLogo": null,
+                "merchantId": null,
+                "cardLocalAmount": "12.50",
+                "cardLocalCurrency": "USD",
+                "declineReason": null,
+                "declineCategory": null,
+                "cardAuthAmount": "12.50",
+                "cardSettledAmount": "12.50",
+                "settlementAdjusted": false,
+                "cancellationReason": null,
+                "parentRainTxId": null,
+                "fxRate": null,
+                "rainTransactionId": null,
+                "failReason": null
+            },
+            "createdAt": "<TIMESTAMP>"
         },
-        "provider": "RAIN",
-        "merchantName": null,
-        "merchantCategory": null,
-        "merchantCity": null,
-        "merchantCountry": null,
-        "merchantMcc": null,
-        "merchantLogo": null,
-        "merchantId": null,
-        "cardLocalAmount": "12.50",
-        "cardLocalCurrency": "USD",
-        "declineReason": null,
-        "declineCategory": null,
-        "cardAuthAmount": "12.50",
-        "cardSettledAmount": "12.50",
-        "settlementAdjusted": false,
-        "cancellationReason": null,
-        "parentRainTxId": null,
-        "fxRate": null,
-        "rainTransactionId": null,
-        "failReason": null
-      },
-      "createdAt": "<TIMESTAMP>"
+        "expected": {
+            "direction": "qr_payment",
+            "userName": "Card payment",
+            "transactionCardType": "card_pay",
+            "kind": "CARD_SPEND_CLEAR",
+            "provider": "RAIN",
+            "cardPaymentDefined": true,
+            "bankAccountDetailsDefined": false
+        }
     },
-    "expected": {
-      "direction": "qr_payment",
-      "userName": "Card payment",
-      "transactionCardType": "card_pay",
-      "kind": "CARD_SPEND_CLEAR",
-      "provider": "RAIN",
-      "cardPaymentDefined": true,
-      "bankAccountDetailsDefined": false
-    }
-  },
-  {
-    "name": "p2p-send-completed",
-    "entry": {
-      "uuid": "p2p-send-completed",
-      "type": "TRANSACTION_INTENT",
-      "timestamp": "<TIMESTAMP>",
-      "amount": "5.00",
-      "currency": {
-        "amount": "5.00",
-        "code": "USDC"
-      },
-      "chainId": "421614",
-      "tokenSymbol": "USDC",
-      "tokenAddress": "",
-      "status": "COMPLETED",
-      "userRole": "SENDER",
-      "senderAccount": {
-        "identifier": "<USER_ID>",
-        "type": "peanut-wallet",
-        "isUser": true
-      },
-      "recipientAccount": {
-        "identifier": "0xaaaa000000000000000000000000000000000001",
-        "type": "address",
-        "isUser": false
-      },
-      "extraData": {
-        "kind": "P2P_SEND",
-        "source": "EXTERNAL",
-        "intentStatus": "COMPLETED",
-        "intentMetadata": {
-          "chainId": "421614",
-          "tokenAmount": "5.00",
-          "tokenSymbol": "USDC",
-          "payerAddress": "0xaaaa000000000000000000000000000000000001",
-          "tokenAddress": "0x75faf114eafb1bdbe2f0316df893fd58ce46aa4d",
-          "tokenDecimals": 6
+    {
+        "name": "p2p-send-completed",
+        "entry": {
+            "uuid": "p2p-send-completed",
+            "type": "TRANSACTION_INTENT",
+            "timestamp": "<TIMESTAMP>",
+            "amount": "5.00",
+            "currency": {
+                "amount": "5.00",
+                "code": "USDC"
+            },
+            "chainId": "421614",
+            "tokenSymbol": "USDC",
+            "tokenAddress": "",
+            "status": "COMPLETED",
+            "userRole": "SENDER",
+            "senderAccount": {
+                "identifier": "<USER_ID>",
+                "type": "peanut-wallet",
+                "isUser": true
+            },
+            "recipientAccount": {
+                "identifier": "0xaaaa000000000000000000000000000000000001",
+                "type": "address",
+                "isUser": false
+            },
+            "extraData": {
+                "kind": "P2P_SEND",
+                "source": "EXTERNAL",
+                "intentStatus": "COMPLETED",
+                "intentMetadata": {
+                    "chainId": "421614",
+                    "tokenAmount": "5.00",
+                    "tokenSymbol": "USDC",
+                    "payerAddress": "0xaaaa000000000000000000000000000000000001",
+                    "tokenAddress": "0x75faf114eafb1bdbe2f0316df893fd58ce46aa4d",
+                    "tokenDecimals": 6
+                },
+                "provider": "PEANUT",
+                "merchantName": null,
+                "merchantCategory": null,
+                "merchantCity": null,
+                "merchantCountry": null,
+                "merchantMcc": null,
+                "merchantLogo": null,
+                "merchantId": null,
+                "cardLocalAmount": null,
+                "cardLocalCurrency": null,
+                "declineReason": null,
+                "declineCategory": null,
+                "cardAuthAmount": null,
+                "cardSettledAmount": null,
+                "settlementAdjusted": false,
+                "cancellationReason": null,
+                "parentRainTxId": null,
+                "fxRate": null,
+                "rainTransactionId": null,
+                "failReason": null
+            },
+            "createdAt": "<TIMESTAMP>"
         },
-        "provider": "PEANUT",
-        "merchantName": null,
-        "merchantCategory": null,
-        "merchantCity": null,
-        "merchantCountry": null,
-        "merchantMcc": null,
-        "merchantLogo": null,
-        "merchantId": null,
-        "cardLocalAmount": null,
-        "cardLocalCurrency": null,
-        "declineReason": null,
-        "declineCategory": null,
-        "cardAuthAmount": null,
-        "cardSettledAmount": null,
-        "settlementAdjusted": false,
-        "cancellationReason": null,
-        "parentRainTxId": null,
-        "fxRate": null,
-        "rainTransactionId": null,
-        "failReason": null
-      },
-      "createdAt": "<TIMESTAMP>"
+        "expected": {
+            "direction": "send",
+            "userName": "0xaaaa000000000000000000000000000000000001",
+            "transactionCardType": "send",
+            "provider": "PEANUT",
+            "cardPaymentDefined": false,
+            "bankAccountDetailsDefined": false
+        }
     },
-    "expected": {
-      "direction": "send",
-      "userName": "0xaaaa000000000000000000000000000000000001",
-      "transactionCardType": "send",
-      "provider": "PEANUT",
-      "cardPaymentDefined": false,
-      "bankAccountDetailsDefined": false
-    }
-  },
-  {
-    "name": "request-pay-completed",
-    "entry": {
-      "uuid": "request-pay-completed",
-      "type": "TRANSACTION_INTENT",
-      "timestamp": "<TIMESTAMP>",
-      "amount": "15.00",
-      "currency": {
-        "amount": "15.00",
-        "code": "USDC"
-      },
-      "chainId": "421614",
-      "tokenSymbol": "USDC",
-      "tokenAddress": "",
-      "status": "COMPLETED",
-      "userRole": "RECIPIENT",
-      "senderAccount": {
-        "identifier": "",
-        "type": "address",
-        "isUser": false
-      },
-      "recipientAccount": {
-        "identifier": "<USER_ID>",
-        "type": "peanut-wallet",
-        "isUser": true
-      },
-      "extraData": {
-        "kind": "P2P_REQUEST_FULFILL",
-        "source": "EXTERNAL",
-        "intentStatus": "COMPLETED",
-        "intentMetadata": {
-          "chainId": "421614",
-          "tokenAmount": "15.00",
-          "tokenSymbol": "USDC",
-          "tokenAddress": "0x75faf114eafb1bdbe2f0316df893fd58ce46aa4d",
-          "tokenDecimals": 6
+    {
+        "name": "request-pay-completed",
+        "entry": {
+            "uuid": "request-pay-completed",
+            "type": "TRANSACTION_INTENT",
+            "timestamp": "<TIMESTAMP>",
+            "amount": "15.00",
+            "currency": {
+                "amount": "15.00",
+                "code": "USDC"
+            },
+            "chainId": "421614",
+            "tokenSymbol": "USDC",
+            "tokenAddress": "",
+            "status": "COMPLETED",
+            "userRole": "RECIPIENT",
+            "senderAccount": {
+                "identifier": "",
+                "type": "address",
+                "isUser": false
+            },
+            "recipientAccount": {
+                "identifier": "<USER_ID>",
+                "type": "peanut-wallet",
+                "isUser": true
+            },
+            "extraData": {
+                "kind": "P2P_REQUEST_FULFILL",
+                "source": "EXTERNAL",
+                "intentStatus": "COMPLETED",
+                "intentMetadata": {
+                    "chainId": "421614",
+                    "tokenAmount": "15.00",
+                    "tokenSymbol": "USDC",
+                    "tokenAddress": "0x75faf114eafb1bdbe2f0316df893fd58ce46aa4d",
+                    "tokenDecimals": 6
+                },
+                "provider": "PEANUT",
+                "merchantName": null,
+                "merchantCategory": null,
+                "merchantCity": null,
+                "merchantCountry": null,
+                "merchantMcc": null,
+                "merchantLogo": null,
+                "merchantId": null,
+                "cardLocalAmount": null,
+                "cardLocalCurrency": null,
+                "declineReason": null,
+                "declineCategory": null,
+                "cardAuthAmount": null,
+                "cardSettledAmount": null,
+                "settlementAdjusted": false,
+                "cancellationReason": null,
+                "parentRainTxId": null,
+                "fxRate": null,
+                "rainTransactionId": null,
+                "failReason": null
+            },
+            "createdAt": "<TIMESTAMP>"
         },
-        "provider": "PEANUT",
-        "merchantName": null,
-        "merchantCategory": null,
-        "merchantCity": null,
-        "merchantCountry": null,
-        "merchantMcc": null,
-        "merchantLogo": null,
-        "merchantId": null,
-        "cardLocalAmount": null,
-        "cardLocalCurrency": null,
-        "declineReason": null,
-        "declineCategory": null,
-        "cardAuthAmount": null,
-        "cardSettledAmount": null,
-        "settlementAdjusted": false,
-        "cancellationReason": null,
-        "parentRainTxId": null,
-        "fxRate": null,
-        "rainTransactionId": null,
-        "failReason": null
-      },
-      "createdAt": "<TIMESTAMP>"
+        "expected": {
+            "direction": "request_received",
+            "userName": "Request",
+            "transactionCardType": "request",
+            "kind": "P2P_REQUEST_FULFILL",
+            "provider": "PEANUT",
+            "cardPaymentDefined": false,
+            "bankAccountDetailsDefined": false
+        }
     },
-    "expected": {
-      "direction": "request_received",
-      "userName": "Request",
-      "transactionCardType": "request",
-      "kind": "P2P_REQUEST_FULFILL",
-      "provider": "PEANUT",
-      "cardPaymentDefined": false,
-      "bankAccountDetailsDefined": false
-    }
-  },
-  {
-    "name": "send-link-pending",
-    "entry": {
-      "uuid": "send-link-pending",
-      "type": "TRANSACTION_INTENT",
-      "timestamp": "<TIMESTAMP>",
-      "amount": "2.00",
-      "currency": {
-        "amount": "2.00",
-        "code": "USDC"
-      },
-      "chainId": "421614",
-      "tokenSymbol": "USDC",
-      "tokenAddress": "",
-      "status": "PENDING",
-      "userRole": "SENDER",
-      "senderAccount": {
-        "identifier": "<USER_ID>",
-        "type": "peanut-wallet",
-        "isUser": true
-      },
-      "recipientAccount": {
-        "identifier": "",
-        "type": "address",
-        "isUser": false
-      },
-      "extraData": {
-        "kind": "SEND_LINK",
-        "source": "EXTERNAL",
-        "intentStatus": "PROCESSING",
-        "intentMetadata": {
-          "chainId": "421614",
-          "tokenAmount": "2.00",
-          "tokenSymbol": "USDC",
-          "tokenAddress": "0x75faf114eafb1bdbe2f0316df893fd58ce46aa4d",
-          "tokenDecimals": 6
+    {
+        "name": "send-link-pending",
+        "entry": {
+            "uuid": "send-link-pending",
+            "type": "TRANSACTION_INTENT",
+            "timestamp": "<TIMESTAMP>",
+            "amount": "2.00",
+            "currency": {
+                "amount": "2.00",
+                "code": "USDC"
+            },
+            "chainId": "421614",
+            "tokenSymbol": "USDC",
+            "tokenAddress": "",
+            "status": "PENDING",
+            "userRole": "SENDER",
+            "senderAccount": {
+                "identifier": "<USER_ID>",
+                "type": "peanut-wallet",
+                "isUser": true
+            },
+            "recipientAccount": {
+                "identifier": "",
+                "type": "address",
+                "isUser": false
+            },
+            "extraData": {
+                "kind": "SEND_LINK",
+                "source": "EXTERNAL",
+                "intentStatus": "PROCESSING",
+                "intentMetadata": {
+                    "chainId": "421614",
+                    "tokenAmount": "2.00",
+                    "tokenSymbol": "USDC",
+                    "tokenAddress": "0x75faf114eafb1bdbe2f0316df893fd58ce46aa4d",
+                    "tokenDecimals": 6
+                },
+                "provider": "PEANUT",
+                "merchantName": null,
+                "merchantCategory": null,
+                "merchantCity": null,
+                "merchantCountry": null,
+                "merchantMcc": null,
+                "merchantLogo": null,
+                "merchantId": null,
+                "cardLocalAmount": null,
+                "cardLocalCurrency": null,
+                "declineReason": null,
+                "declineCategory": null,
+                "cardAuthAmount": null,
+                "cardSettledAmount": null,
+                "settlementAdjusted": false,
+                "cancellationReason": null,
+                "parentRainTxId": null,
+                "fxRate": null,
+                "rainTransactionId": null,
+                "failReason": null
+            },
+            "createdAt": "<TIMESTAMP>"
         },
-        "provider": "PEANUT",
-        "merchantName": null,
-        "merchantCategory": null,
-        "merchantCity": null,
-        "merchantCountry": null,
-        "merchantMcc": null,
-        "merchantLogo": null,
-        "merchantId": null,
-        "cardLocalAmount": null,
-        "cardLocalCurrency": null,
-        "declineReason": null,
-        "declineCategory": null,
-        "cardAuthAmount": null,
-        "cardSettledAmount": null,
-        "settlementAdjusted": false,
-        "cancellationReason": null,
-        "parentRainTxId": null,
-        "fxRate": null,
-        "rainTransactionId": null,
-        "failReason": null
-      },
-      "createdAt": "<TIMESTAMP>"
-    },
-    "expected": {
-      "direction": "send",
-      "userName": "Sent via link",
-      "transactionCardType": "send",
-      "kind": "SEND_LINK",
-      "provider": "PEANUT",
-      "cardPaymentDefined": false,
-      "bankAccountDetailsDefined": false
+        "expected": {
+            "direction": "send",
+            "userName": "Sent via link",
+            "transactionCardType": "send",
+            "kind": "SEND_LINK",
+            "provider": "PEANUT",
+            "cardPaymentDefined": false,
+            "bankAccountDetailsDefined": false
+        }
     }
-  }
 ]
