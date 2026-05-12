@@ -3,7 +3,8 @@ import { useSafeBack, __testing } from '@/hooks/useSafeBack'
 
 const mockBack = jest.fn()
 const mockPush = jest.fn()
-const mockRouter = { back: mockBack, push: mockPush, replace: jest.fn(), prefetch: jest.fn() }
+const mockReplace = jest.fn()
+const mockRouter = { back: mockBack, push: mockPush, replace: mockReplace, prefetch: jest.fn() }
 
 jest.mock('next/navigation', () => ({
     useRouter: () => mockRouter,
@@ -12,6 +13,7 @@ jest.mock('next/navigation', () => ({
 beforeEach(() => {
     mockBack.mockReset()
     mockPush.mockReset()
+    mockReplace.mockReset()
     __testing.reset()
 })
 
@@ -71,5 +73,28 @@ describe('useSafeBack', () => {
         act(() => result.current())
 
         expect(mockBack).toHaveBeenCalledTimes(1)
+    })
+
+    it('with { replace: true }, uses router.replace for the no-history fallback', () => {
+        const { result } = renderHook(() => useSafeBack('/home', { replace: true }))
+        act(() => result.current())
+
+        expect(mockReplace).toHaveBeenCalledWith('/home')
+        expect(mockPush).not.toHaveBeenCalled()
+        expect(mockBack).not.toHaveBeenCalled()
+    })
+
+    it('with { replace: true }, still calls router.back() when in-app history exists', () => {
+        act(() => {
+            window.history.pushState({}, '', '/some-route')
+        })
+
+        const { result } = renderHook(() => useSafeBack('/home', { replace: true }))
+        act(() => result.current())
+
+        // replace only affects the fallback branch — back() is unchanged.
+        expect(mockBack).toHaveBeenCalledTimes(1)
+        expect(mockReplace).not.toHaveBeenCalled()
+        expect(mockPush).not.toHaveBeenCalled()
     })
 })

@@ -73,7 +73,9 @@ type PaymentProcessor = 'MANTECA'
 export default function QRPayPage() {
     const searchParams = useSearchParams()
     const router = useRouter()
-    const onBack = useSafeBack('/home')
+    // QR-pay screens are terminal — leaving /qr-pay in history would let browser back from
+    // /home pop the user back into a stale error / KYC screen. Replace instead of push.
+    const onBack = useSafeBack('/home', { replace: true })
     const qrCode = decodeURIComponent(searchParams.get('qrCode') || '')
     const timestamp = searchParams.get('t')
     const qrType = searchParams.get('type')
