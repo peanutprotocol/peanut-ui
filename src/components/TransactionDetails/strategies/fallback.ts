@@ -6,9 +6,11 @@ import { pipelineAlert } from '@/utils/pipelineAlerts'
 export const intentFallback: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
     const kind = (entry.extraData?.kind as string | undefined) ?? 'OTHER'
 
-    // Card refunds arrive with kind ∈ {OTHER, REFUND} + parentRainTxId set
-    // (provider === RAIN). Scope strictly to these two kinds — guarding only
-    // on parentRainTxId would misroute any future intent carrying the linkage.
+    // Rain card refunds arrive with parentRainTxId set (provider === RAIN).
+    // CARD_AUTH_REVERSAL is the canonical reversal kind (wired in the registry);
+    // OTHER / REFUND are kept as a legacy passthrough for rows the BE projector
+    // may still emit while it ships the canonical kind. Both lanes route to
+    // cardRefund — anything else is logged as an unknown kind.
     if ((kind === 'OTHER' || kind === 'REFUND') && entry.extraData?.parentRainTxId) {
         return cardRefund(entry)
     }
@@ -29,10 +31,3 @@ export const intentFallback: TransactionStrategy = (entry: HistoryEntry): Transa
     }
 }
 
-export const legacyFallback: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => ({
-    direction: 'send',
-    transactionCardType: 'send',
-    nameForDetails: entry.recipientAccount?.identifier || 'Unknown',
-    isPeerActuallyUser: !!entry.recipientAccount?.isUser,
-    isLinkTx: false,
-})

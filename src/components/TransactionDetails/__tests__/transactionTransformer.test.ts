@@ -40,7 +40,7 @@ const ibanAccountES: Account = {
 
 const baseEntry = (overrides: Partial<HistoryEntry>): HistoryEntry => ({
     uuid: 'test-uuid-' + Math.random().toString(36).slice(2),
-    type: EHistoryEntryType.DIRECT_SEND,
+    type: EHistoryEntryType.TRANSACTION_INTENT,
     timestamp: new Date('2026-04-01T12:00:00Z'),
     amount: '1000000',
     chainId: '42161',
@@ -49,6 +49,7 @@ const baseEntry = (overrides: Partial<HistoryEntry>): HistoryEntry => ({
     status: EHistoryStatus.COMPLETED,
     userRole: EHistoryUserRole.SENDER,
     recipientAccount: aliceUser,
+    extraData: { kind: 'DIRECT_TRANSFER' },
     ...overrides,
 })
 
@@ -58,9 +59,6 @@ interface ExpectedShape {
     transactionCardType?: string
     isLinkTransaction?: boolean
     bankAccountDetailsDefined?: boolean
-    /** Whether `isPeerActuallyUser` was true — proxied via `isVerified`
-     *  when input has `isVerified=true` (since isPeerActuallyUser gates
-     *  the `isVerified` output). */
     isPeerActuallyUser?: boolean
     cardPaymentDefined?: boolean
 }
@@ -72,13 +70,13 @@ interface TestCase {
 }
 
 const cases: TestCase[] = [
-    // ───── DIRECT_SEND ─────
+    // ───── DIRECT_TRANSFER ─────
     {
-        name: 'DIRECT_SEND × SENDER → outgoing send to user',
+        name: 'DIRECT_TRANSFER × SENDER → outgoing send to user',
         entry: baseEntry({
-            type: EHistoryEntryType.DIRECT_SEND,
             userRole: EHistoryUserRole.SENDER,
             recipientAccount: aliceUser,
+            extraData: { kind: 'DIRECT_TRANSFER' },
             isVerified: true,
         }),
         expect: {
@@ -90,12 +88,12 @@ const cases: TestCase[] = [
         },
     },
     {
-        name: 'DIRECT_SEND × RECIPIENT → incoming receive from user',
+        name: 'DIRECT_TRANSFER × RECIPIENT → incoming receive from user',
         entry: baseEntry({
-            type: EHistoryEntryType.DIRECT_SEND,
             userRole: EHistoryUserRole.RECIPIENT,
             senderAccount: bobUser,
             recipientAccount: aliceUser,
+            extraData: { kind: 'DIRECT_TRANSFER' },
             isVerified: true,
         }),
         expect: { direction: 'receive', transactionCardType: 'receive', userName: 'bob', isPeerActuallyUser: true },
@@ -105,9 +103,9 @@ const cases: TestCase[] = [
     {
         name: 'SEND_LINK × SENDER (claimed by peanut user) → send to claimer username',
         entry: baseEntry({
-            type: EHistoryEntryType.SEND_LINK,
             userRole: EHistoryUserRole.SENDER,
             recipientAccount: aliceUser,
+            extraData: { kind: 'SEND_LINK' },
             isVerified: true,
         }),
         expect: {
@@ -119,22 +117,28 @@ const cases: TestCase[] = [
         },
     },
     {
-        name: 'SEND_LINK × SENDER (unclaimed) → still send via link, no peer',
+        name: 'SEND_LINK × SENDER (unclaimed external) → "Sent via link"',
         entry: baseEntry({
-            type: EHistoryEntryType.SEND_LINK,
             userRole: EHistoryUserRole.SENDER,
             status: EHistoryStatus.PENDING,
             recipientAccount: { ...externalEoa },
+            extraData: { kind: 'SEND_LINK' },
             isVerified: true,
         }),
-        expect: { direction: 'send', transactionCardType: 'send', isPeerActuallyUser: false, isLinkTransaction: true },
+        expect: {
+            direction: 'send',
+            transactionCardType: 'send',
+            userName: 'Sent via link',
+            isPeerActuallyUser: false,
+            isLinkTransaction: true,
+        },
     },
     {
         name: 'SEND_LINK × RECIPIENT (claimed by external addr) → claim_external',
         entry: baseEntry({
-            type: EHistoryEntryType.SEND_LINK,
             userRole: EHistoryUserRole.RECIPIENT,
             recipientAccount: externalEoa,
+            extraData: { kind: 'SEND_LINK' },
         }),
         expect: {
             direction: 'claim_external',
@@ -146,20 +150,31 @@ const cases: TestCase[] = [
     {
         name: 'SEND_LINK × BOTH → cancelled-by-self (link tx, peer = self)',
         entry: baseEntry({
-            type: EHistoryEntryType.SEND_LINK,
             userRole: EHistoryUserRole.BOTH,
             recipientAccount: aliceUser,
+            extraData: { kind: 'SEND_LINK' },
         }),
         expect: { isLinkTransaction: true },
     },
-
-    // ───── BRIDGE_OFFRAMP ─────
     {
-        name: 'BRIDGE_OFFRAMP → bank_withdraw with bankAccountDetails populated',
+        name: 'SEND_LINK × RECIPIENT (claimed by peanut user) → receive from claimer',
         entry: baseEntry({
-            type: EHistoryEntryType.BRIDGE_OFFRAMP,
+            userRole: EHistoryUserRole.RECIPIENT,
+            senderAccount: bobUser,
+            recipientAccount: aliceUser,
+            extraData: { kind: 'SEND_LINK' },
+            isVerified: true,
+        }),
+        expect: { direction: 'receive', transactionCardType: 'receive', userName: 'bob', isPeerActuallyUser: true },
+    },
+
+    // ───── OFFRAMP (Bridge / Manteca) ─────
+    {
+        name: 'OFFRAMP via BRIDGE → bank_withdraw with bankAccountDetails populated',
+        entry: baseEntry({
             userRole: EHistoryUserRole.SENDER,
             recipientAccount: ibanAccountES,
+            extraData: { kind: 'OFFRAMP', provider: 'BRIDGE' },
         }),
         expect: {
             direction: 'bank_withdraw',
@@ -168,75 +183,67 @@ const cases: TestCase[] = [
             bankAccountDetailsDefined: true,
         },
     },
-
-    // ───── MANTECA_OFFRAMP — bankAccountDetails plumbed (legacy bug fixed in PR-B) ─────
     {
-        name: 'MANTECA_OFFRAMP → bank_withdraw with bankAccountDetails populated (post-PR-B)',
+        name: 'OFFRAMP via MANTECA → bank_withdraw with bankAccountDetails populated',
         entry: baseEntry({
-            type: EHistoryEntryType.MANTECA_OFFRAMP,
             userRole: EHistoryUserRole.SENDER,
             recipientAccount: ibanAccountES,
+            extraData: { kind: 'OFFRAMP', provider: 'MANTECA' },
         }),
         expect: { direction: 'bank_withdraw', transactionCardType: 'bank_withdraw', bankAccountDetailsDefined: true },
     },
 
-    // ───── BRIDGE_ONRAMP / MANTECA_ONRAMP ─────
+    // ───── ONRAMP ─────
     {
-        name: 'BRIDGE_ONRAMP → bank_deposit',
+        name: 'ONRAMP via BRIDGE → bank_deposit',
         entry: baseEntry({
-            type: EHistoryEntryType.BRIDGE_ONRAMP,
             userRole: EHistoryUserRole.RECIPIENT,
             recipientAccount: aliceUser,
+            extraData: { kind: 'ONRAMP', provider: 'BRIDGE' },
         }),
         expect: { direction: 'bank_deposit', transactionCardType: 'bank_deposit', userName: 'Bank Account' },
     },
     {
-        name: 'MANTECA_ONRAMP → bank_deposit',
+        name: 'ONRAMP via MANTECA → bank_deposit',
         entry: baseEntry({
-            type: EHistoryEntryType.MANTECA_ONRAMP,
             userRole: EHistoryUserRole.RECIPIENT,
             recipientAccount: aliceUser,
+            extraData: { kind: 'ONRAMP', provider: 'MANTECA' },
         }),
         expect: { direction: 'bank_deposit', transactionCardType: 'bank_deposit', userName: 'Bank Account' },
     },
 
-    // ───── DEPOSIT (CRYPTO_DEPOSIT legacy) ─────
+    // ───── CRYPTO_DEPOSIT ─────
     {
-        name: 'DEPOSIT regular → add, with sender identifier (legacy: never marks peer as user)',
+        name: 'CRYPTO_DEPOSIT → add, with sender identifier',
         entry: baseEntry({
-            type: EHistoryEntryType.DEPOSIT,
             userRole: EHistoryUserRole.RECIPIENT,
             senderAccount: bobUser,
             recipientAccount: aliceUser,
+            extraData: { kind: 'CRYPTO_DEPOSIT' },
             isVerified: true,
         }),
-        // Legacy DEPOSIT case sets isPeerActuallyUser=false even when sender is a user.
-        // PR-B's TRANSACTION_INTENT/CRYPTO_DEPOSIT branch will improve on this; legacy stays as-is.
-        expect: {
-            direction: 'add',
-            transactionCardType: 'add',
-            userName: bobUser.identifier,
-            isPeerActuallyUser: false,
-        },
+        expect: { direction: 'add', transactionCardType: 'add', userName: 'bob', isPeerActuallyUser: true },
     },
     {
-        name: 'DEPOSIT zero-amount test transaction → "Enjoy Peanut!"',
+        name: 'CRYPTO_DEPOSIT zero-amount test transaction → memo overridden, sender renders normally',
         entry: baseEntry({
-            type: EHistoryEntryType.DEPOSIT,
             userRole: EHistoryUserRole.RECIPIENT,
             amount: '0',
             recipientAccount: aliceUser,
+            senderAccount: bobUser,
+            extraData: { kind: 'CRYPTO_DEPOSIT' },
         }),
-        expect: { direction: 'add', transactionCardType: 'add', userName: 'Enjoy Peanut!' },
+        expect: { direction: 'add', transactionCardType: 'add', userName: 'bob' },
     },
 
-    // ───── QR PAYMENTS ─────
+    // ───── QR_PAY ─────
     {
-        name: 'MANTECA_QR_PAYMENT → qr_payment / pay',
+        name: 'QR_PAY → qr_payment / pay',
         entry: baseEntry({
-            type: EHistoryEntryType.MANTECA_QR_PAYMENT,
             userRole: EHistoryUserRole.SENDER,
             recipientAccount: { identifier: 'merchant-xyz', type: 'MERCHANT', isUser: false },
+            extraData: { kind: 'QR_PAY' },
         }),
         expect: { direction: 'qr_payment', transactionCardType: 'pay', userName: 'merchant-xyz' },
     },
@@ -245,64 +252,17 @@ const cases: TestCase[] = [
     {
         name: 'PERK_REWARD → receive Peanut Reward',
         entry: baseEntry({
-            type: EHistoryEntryType.PERK_REWARD,
             userRole: EHistoryUserRole.RECIPIENT,
             recipientAccount: aliceUser,
+            extraData: { kind: 'PERK_REWARD' },
         }),
         expect: { direction: 'receive', transactionCardType: 'receive', userName: 'Peanut Reward' },
     },
 
-    // ═════════════════════════════════════════════════════════════════════
-    // TRANSACTION_INTENT — current state (some passing, some failing today)
-    // ═════════════════════════════════════════════════════════════════════
-
+    // ───── CRYPTO_WITHDRAW ─────
     {
-        name: 'TRANSACTION_INTENT × P2P_SEND × SENDER → outgoing send',
+        name: 'CRYPTO_WITHDRAW × SENDER → withdraw to external account',
         entry: baseEntry({
-            type: EHistoryEntryType.TRANSACTION_INTENT,
-            userRole: EHistoryUserRole.SENDER,
-            recipientAccount: aliceUser,
-            extraData: { kind: 'P2P_SEND' },
-            isVerified: true,
-        }),
-        expect: { direction: 'send', transactionCardType: 'send', userName: 'alice', isPeerActuallyUser: true },
-    },
-    {
-        name: 'TRANSACTION_INTENT × P2P_SEND × RECIPIENT → incoming receive (already patched in playtest)',
-        entry: baseEntry({
-            type: EHistoryEntryType.TRANSACTION_INTENT,
-            userRole: EHistoryUserRole.RECIPIENT,
-            senderAccount: bobUser,
-            recipientAccount: aliceUser,
-            extraData: { kind: 'P2P_SEND' },
-            isVerified: true,
-        }),
-        expect: { direction: 'receive', transactionCardType: 'receive', userName: 'bob', isPeerActuallyUser: true },
-    },
-    {
-        name: 'TRANSACTION_INTENT × QR_PAY → qr_payment to merchant',
-        entry: baseEntry({
-            type: EHistoryEntryType.TRANSACTION_INTENT,
-            userRole: EHistoryUserRole.SENDER,
-            recipientAccount: { identifier: 'merchant-xyz', type: 'MERCHANT', isUser: false },
-            extraData: { kind: 'QR_PAY' },
-        }),
-        expect: { direction: 'qr_payment', transactionCardType: 'pay', userName: 'merchant-xyz' },
-    },
-    {
-        name: 'TRANSACTION_INTENT × LINK_CREATE × SENDER → "Sent via link"',
-        entry: baseEntry({
-            type: EHistoryEntryType.TRANSACTION_INTENT,
-            userRole: EHistoryUserRole.SENDER,
-            recipientAccount: externalEoa,
-            extraData: { kind: 'LINK_CREATE' },
-        }),
-        expect: { direction: 'send', transactionCardType: 'send', userName: 'Sent via link', isLinkTransaction: true },
-    },
-    {
-        name: 'TRANSACTION_INTENT × CRYPTO_WITHDRAW × SENDER → withdraw to external account',
-        entry: baseEntry({
-            type: EHistoryEntryType.TRANSACTION_INTENT,
             userRole: EHistoryUserRole.SENDER,
             recipientAccount: externalEoa,
             extraData: { kind: 'CRYPTO_WITHDRAW' },
@@ -310,9 +270,8 @@ const cases: TestCase[] = [
         expect: { direction: 'withdraw', transactionCardType: 'withdraw', userName: externalEoa.identifier },
     },
     {
-        name: 'TRANSACTION_INTENT × CRYPTO_WITHDRAW × RECIPIENT → add (already patched in playtest)',
+        name: 'CRYPTO_WITHDRAW × RECIPIENT → add (multi-user fulfilment edge)',
         entry: baseEntry({
-            type: EHistoryEntryType.TRANSACTION_INTENT,
             userRole: EHistoryUserRole.RECIPIENT,
             senderAccount: {
                 identifier: '0xSomeone0000000000000000000000000000000000',
@@ -328,23 +287,36 @@ const cases: TestCase[] = [
             userName: '0xSomeone0000000000000000000000000000000000',
         },
     },
+
+    // ───── P2P_REQUEST_FULFILL ─────
     {
-        name: 'TRANSACTION_INTENT × FIAT_OFFRAMP × SENDER → bank_withdraw',
+        name: 'P2P_REQUEST_FULFILL × RECIPIENT (request received) → request',
         entry: baseEntry({
-            type: EHistoryEntryType.TRANSACTION_INTENT,
-            userRole: EHistoryUserRole.SENDER,
-            recipientAccount: ibanAccountES,
-            extraData: { kind: 'FIAT_OFFRAMP' },
+            userRole: EHistoryUserRole.RECIPIENT,
+            senderAccount: bobUser,
+            recipientAccount: aliceUser,
+            extraData: { kind: 'P2P_REQUEST_FULFILL' },
+            isVerified: true,
         }),
-        expect: { direction: 'bank_withdraw', transactionCardType: 'bank_withdraw', userName: 'Bank Account' },
+        expect: { direction: 'receive', transactionCardType: 'receive', userName: 'bob', isPeerActuallyUser: true },
     },
     {
-        name: 'TRANSACTION_INTENT × CARD_SPEND with merchant → qr_payment / card_pay',
+        name: 'P2P_REQUEST_FULFILL × SENDER × bridge fulfilment → bank_request_fulfillment',
         entry: baseEntry({
-            type: EHistoryEntryType.TRANSACTION_INTENT,
+            userRole: EHistoryUserRole.SENDER,
+            recipientAccount: bobUser,
+            extraData: { kind: 'P2P_REQUEST_FULFILL', fulfillmentType: 'bridge' },
+        }),
+        expect: { direction: 'bank_request_fulfillment', transactionCardType: 'bank_request_fulfillment' },
+    },
+
+    // ───── CARD_SPEND_AUTH / CARD_AUTH_REVERSAL ─────
+    {
+        name: 'CARD_SPEND_AUTH with merchant → qr_payment / card_pay',
+        entry: baseEntry({
             userRole: EHistoryUserRole.SENDER,
             recipientAccount: aliceUser,
-            extraData: { kind: 'CARD_SPEND', merchantName: 'Acme Coffee', rainTransactionId: 'rain-123' },
+            extraData: { kind: 'CARD_SPEND_AUTH', merchantName: 'Acme Coffee', rainTransactionId: 'rain-123' },
         }),
         expect: {
             direction: 'qr_payment',
@@ -354,12 +326,11 @@ const cases: TestCase[] = [
         },
     },
     {
-        name: 'TRANSACTION_INTENT × CARD_SPEND with no merchant → fallback "Card payment"',
+        name: 'CARD_SPEND_CLEAR with no merchant → fallback "Card payment"',
         entry: baseEntry({
-            type: EHistoryEntryType.TRANSACTION_INTENT,
             userRole: EHistoryUserRole.SENDER,
             recipientAccount: aliceUser,
-            extraData: { kind: 'CARD_SPEND' },
+            extraData: { kind: 'CARD_SPEND_CLEAR' },
         }),
         expect: {
             direction: 'qr_payment',
@@ -369,9 +340,8 @@ const cases: TestCase[] = [
         },
     },
     {
-        name: 'TRANSACTION_INTENT × OTHER + parentRainTxId → card refund',
+        name: 'OTHER + parentRainTxId → card refund (legacy passthrough)',
         entry: baseEntry({
-            type: EHistoryEntryType.TRANSACTION_INTENT,
             userRole: EHistoryUserRole.RECIPIENT,
             recipientAccount: aliceUser,
             extraData: { kind: 'OTHER', parentRainTxId: 'rain-456', merchantName: 'Acme Coffee' },
@@ -384,97 +354,35 @@ const cases: TestCase[] = [
         },
     },
 
-    // ═════════════════════════════════════════════════════════════════════
-    // KNOWN BUGS — these tests SHOULD PASS after PR-B; today they FAIL
-    // ═════════════════════════════════════════════════════════════════════
-
+    // ───── Reaper-failed copy ─────
     {
-        name: '[PR-B] TRANSACTION_INTENT × CRYPTO_DEPOSIT → add (currently misroutes to default=send)',
+        name: 'reaper-failed DIRECT_TRANSFER (p2p_send_timeout) renders user-friendly copy',
         entry: baseEntry({
-            type: EHistoryEntryType.TRANSACTION_INTENT,
-            userRole: EHistoryUserRole.RECIPIENT,
-            senderAccount: bobUser,
-            recipientAccount: aliceUser,
-            extraData: { kind: 'CRYPTO_DEPOSIT' },
-            isVerified: true,
-        }),
-        expect: { direction: 'add', transactionCardType: 'add', userName: 'bob', isPeerActuallyUser: true },
-    },
-    {
-        name: '[PR-B] TRANSACTION_INTENT × LINK_CREATE × RECIPIENT (claimed by user) → receive from claimer (currently always "Sent via link")',
-        entry: baseEntry({
-            type: EHistoryEntryType.TRANSACTION_INTENT,
-            userRole: EHistoryUserRole.RECIPIENT,
-            senderAccount: bobUser,
-            recipientAccount: aliceUser,
-            extraData: { kind: 'LINK_CREATE' },
-            isVerified: true,
-        }),
-        expect: { direction: 'receive', transactionCardType: 'receive', userName: 'bob', isPeerActuallyUser: true },
-    },
-    {
-        name: '[PR-B] TRANSACTION_INTENT × FIAT_OFFRAMP plumbs bankAccountDetails for the country flag',
-        entry: baseEntry({
-            type: EHistoryEntryType.TRANSACTION_INTENT,
-            userRole: EHistoryUserRole.SENDER,
-            recipientAccount: ibanAccountES,
-            extraData: { kind: 'FIAT_OFFRAMP' },
-        }),
-        expect: { bankAccountDetailsDefined: true },
-    },
-    {
-        name: '[PR-B] TRANSACTION_INTENT × CRYPTO_WITHDRAW plumbs bankAccountDetails when recipient is IBAN',
-        entry: baseEntry({
-            type: EHistoryEntryType.TRANSACTION_INTENT,
-            userRole: EHistoryUserRole.SENDER,
-            recipientAccount: ibanAccountES,
-            extraData: { kind: 'CRYPTO_WITHDRAW' },
-        }),
-        expect: { bankAccountDetailsDefined: true },
-    },
-    {
-        name: '[PR-B] MANTECA_OFFRAMP plumbs bankAccountDetails (independent legacy bug)',
-        entry: baseEntry({
-            type: EHistoryEntryType.MANTECA_OFFRAMP,
-            userRole: EHistoryUserRole.SENDER,
-            recipientAccount: ibanAccountES,
-        }),
-        expect: { bankAccountDetailsDefined: true },
-    },
-
-    // ─── PR-D: reaper-failed copy ─────────────────────────────────────────
-    {
-        name: '[PR-D] reaper-failed P2P_SEND (failReason=p2p_send_timeout) renders user-friendly copy',
-        entry: baseEntry({
-            type: EHistoryEntryType.TRANSACTION_INTENT,
             userRole: EHistoryUserRole.SENDER,
             status: EHistoryStatus.FAILED,
             recipientAccount: aliceUser,
-            extraData: { kind: 'P2P_SEND', failReason: 'p2p_send_timeout' },
+            extraData: { kind: 'DIRECT_TRANSFER', failReason: 'p2p_send_timeout' },
         }),
         expect: { userName: "Send didn't complete" },
     },
     {
-        name: '[PR-D] reaper-failed OFFRAMP renders bank-transfer copy',
+        name: 'reaper-failed OFFRAMP renders bank-transfer copy',
         entry: baseEntry({
-            type: EHistoryEntryType.TRANSACTION_INTENT,
             userRole: EHistoryUserRole.SENDER,
             status: EHistoryStatus.FAILED,
             recipientAccount: ibanAccountES,
-            extraData: { kind: 'FIAT_OFFRAMP', failReason: 'offramp_timeout' },
+            extraData: { kind: 'OFFRAMP', failReason: 'offramp_timeout' },
         }),
         expect: { userName: "Bank transfer didn't complete" },
     },
     {
-        name: '[PR-D] non-reaper FAILED (no _timeout suffix) keeps original userName',
+        name: 'non-reaper FAILED (no _timeout suffix) keeps original userName',
         entry: baseEntry({
-            type: EHistoryEntryType.TRANSACTION_INTENT,
             userRole: EHistoryUserRole.SENDER,
             status: EHistoryStatus.FAILED,
             recipientAccount: aliceUser,
-            extraData: { kind: 'P2P_SEND', failReason: 'validator_max_retries' },
+            extraData: { kind: 'DIRECT_TRANSFER', failReason: 'validator_max_retries' },
         }),
-        // Falls through — userName remains 'alice' from the kind=P2P_SEND branch.
         expect: { userName: 'alice' },
     },
 ]
@@ -501,18 +409,14 @@ describe('mapTransactionDataForDrawer', () => {
         }
     })
 
-    describe('TRANSACTION_INTENT default arm (forward-compat / regression guard)', () => {
+    describe('unknown-kind default arm (forward-compat / regression guard)', () => {
         it('renders an unhandled kind as something explicit, not silent fallthrough', () => {
             const entry = baseEntry({
-                type: EHistoryEntryType.TRANSACTION_INTENT,
                 userRole: EHistoryUserRole.SENDER,
                 recipientAccount: aliceUser,
                 extraData: { kind: 'SOMETHING_NEW_THAT_BACKEND_ADDED' },
             })
             const result = mapTransactionDataForDrawer(entry).transactionDetails
-            // Today: direction='send', userName=alice's identifier (since it's the recipient).
-            // After PR-B's assertNever + Sentry breadcrumb, this should still produce a rendering
-            // (defensive rendering) but log the unknown kind. Asserting the rendering survives.
             expect(result.direction).toBeDefined()
             expect(result.extraDataForDrawer?.kind).toBe('SOMETHING_NEW_THAT_BACKEND_ADDED')
         })

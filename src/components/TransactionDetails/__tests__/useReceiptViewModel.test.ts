@@ -1,20 +1,14 @@
-// Locks two behaviours of the receipt view model:
-//
-// 1. The "cancelled-sendlink-sender keeps its data" exemption (memo,
-//    attachment, token+network visible) — staging regression playtested
-//    2026-05-09, fixed in PR #1966.
-// 2. Wire-shape PARITY between legacy `originalType` rows and the
-//    post-decomplexify `TRANSACTION_INTENT + kind=<>` rows. Until this PR,
-//    half a dozen gates checked `originalType === EHistoryEntryType.X`
-//    one-sided, so the receipt drawer silently regressed for every new
-//    sendlink / request / onramp row on staging. The parity tests below feed
-//    equivalent legacy + intent shapes through the same view model and assert
-//    the rowVisibilityConfig is identical. Future one-sided gates fail here.
+// Locks the receipt view model's behaviour for the canonical TI wire shape.
+// Two surfaces:
+//   1. The "cancelled-sendlink-sender keeps its data" exemption (memo,
+//      attachment, token+network visible) — fixed in PR #1966.
+//   2. Wire-shape contract for the kind-keyed gates — every row arrives
+//      as `originalType='TRANSACTION_INTENT'` + `kind=<IntentKind>`; the
+//      view model must light up the right rows from that pair.
 import { renderHook } from '@testing-library/react'
 import { useReceiptViewModel } from '../useReceiptViewModel'
-import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import type { TransactionDetails } from '../transactionTransformer'
-import type { IntentKind } from '../strategies/registry'
 
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '', SIMPLEFI: '' }))
@@ -40,14 +34,12 @@ const baseTx: TransactionDetails = {
         chainIcon: '',
     },
     extraDataForDrawer: {
-        originalType: EHistoryEntryType.SEND_LINK,
+        originalType: 'TRANSACTION_INTENT',
         originalUserRole: EHistoryUserRole.SENDER,
+        kind: 'SEND_LINK',
     },
 } as unknown as TransactionDetails
 
-// Fixture builders that bypass the heavy TransactionDetails type so each
-// test case can express only the fields the assertion cares about. Cast at
-// the boundary rather than threading deep types through every literal.
 const withDrawer = (overrides: Record<string, unknown>, drawerOverrides: Record<string, unknown>): TransactionDetails =>
     ({
         ...baseTx,
@@ -59,12 +51,12 @@ const renderConfig = (tx: TransactionDetails) =>
     renderHook(() => useReceiptViewModel(tx, { isPublic: false })).result.current.rowVisibilityConfig
 
 const senderSendLink = (status: string): TransactionDetails =>
-    withDrawer({ status }, { originalType: EHistoryEntryType.SEND_LINK, originalUserRole: EHistoryUserRole.SENDER })
+    withDrawer({ status }, { originalUserRole: EHistoryUserRole.SENDER, kind: 'SEND_LINK' })
 
 const cancelledBankWithdraw = (): TransactionDetails =>
     withDrawer(
         { status: 'cancelled', direction: 'bank_withdraw' },
-        { originalType: EHistoryEntryType.BRIDGE_OFFRAMP, originalUserRole: EHistoryUserRole.SENDER }
+        { originalUserRole: EHistoryUserRole.SENDER, kind: 'OFFRAMP' }
     )
 
 describe('useReceiptViewModel — cancelled sendlink sender', () => {
@@ -99,98 +91,4 @@ describe('useReceiptViewModel — cancelled sendlink sender', () => {
         // status-blanket gate doesn't sneak in.
         expect(config.tokenAndNetwork).toBe(true)
     })
-})
-
-// Decomplexify changed the wire shape for several entry types. The receipt
-// drawer must render the same fields whether the row is legacy or post-M3 —
-// otherwise the bug we shipped silently (QR/Share/Cancel block missing on
-// every new pending sendlink) comes back. Each row pair below is the same
-// real-world event in both shapes.
-type ParityCase = {
-    name: string
-    legacy: Record<string, unknown>
-    legacyDrawer: Record<string, unknown>
-    // Pinned to the strategy-registry IntentKind union: a kind not in the
-    // registry won't compile, so a future parity case can't reference a
-    // post-M3 wire kind the receipt doesn't actually know how to render.
-    intentKind: IntentKind
-    extraDrawer?: Record<string, unknown>
-}
-
-const PARITY_CASES: ParityCase[] = [
-    {
-        name: 'pending sendlink, sender side',
-        legacy: { status: 'pending' },
-        legacyDrawer: { originalType: EHistoryEntryType.SEND_LINK, originalUserRole: EHistoryUserRole.SENDER },
-        intentKind: 'LINK_CREATE',
-    },
-    {
-        name: 'cancelled sendlink, sender side (the original regression)',
-        legacy: { status: 'cancelled' },
-        legacyDrawer: { originalType: EHistoryEntryType.SEND_LINK, originalUserRole: EHistoryUserRole.SENDER },
-        intentKind: 'LINK_CREATE',
-    },
-    {
-        name: 'completed sendlink, sender side',
-        legacy: { status: 'completed', completedAt: '2026-05-02T00:00:00.000Z' as unknown as Date },
-        legacyDrawer: { originalType: EHistoryEntryType.SEND_LINK, originalUserRole: EHistoryUserRole.SENDER },
-        intentKind: 'LINK_CREATE',
-    },
-    {
-        name: 'pending request, recipient side (request pot OR individual)',
-        legacy: { status: 'pending', direction: 'request_sent' },
-        legacyDrawer: { originalType: EHistoryEntryType.REQUEST, originalUserRole: EHistoryUserRole.RECIPIENT },
-        intentKind: 'REQUEST_PAY',
-    },
-    {
-        name: 'pending request, payer side (about to pay)',
-        legacy: { status: 'pending' },
-        legacyDrawer: { originalType: EHistoryEntryType.REQUEST, originalUserRole: EHistoryUserRole.SENDER },
-        intentKind: 'REQUEST_PAY',
-    },
-    // No Bridge-onramp parity case: BridgeHistoryFetcher is the unconditional
-    // BE gateway for Bridge intents (peanut-api-ts/src/transaction-intent/
-    // history.ts:859), so a Bridge onramp never reaches the FE in TI shape.
-    // The legacy-only contract for `isOnrampEntry` is locked in
-    // `transaction-predicates.test.ts`. Adding a parity case here would
-    // assert equivalence between an in-flight row and an unreachable one.
-    {
-        name: 'pending manteca onramp (renders ARS/BRL deposit-info row)',
-        legacy: { status: 'pending', direction: 'bank_deposit', currency: { code: 'ARS', symbol: '$' } },
-        legacyDrawer: {
-            originalType: EHistoryEntryType.MANTECA_ONRAMP,
-            originalUserRole: EHistoryUserRole.RECIPIENT,
-            // Positive-identity gate — Manteca and Bridge onramps share the
-            // FIAT_ONRAMP wire kind, so the Manteca-specific row gate uses
-            // provider rather than the absence of depositInstructions.
-            provider: 'MANTECA',
-        },
-        intentKind: 'FIAT_ONRAMP',
-    },
-    {
-        name: 'completed direct send',
-        legacy: { status: 'completed', completedAt: '2026-05-02T00:00:00.000Z' as unknown as Date },
-        legacyDrawer: { originalType: EHistoryEntryType.DIRECT_SEND, originalUserRole: EHistoryUserRole.SENDER },
-        intentKind: 'P2P_SEND',
-    },
-]
-
-describe('useReceiptViewModel — wire-shape parity (legacy ↔ TRANSACTION_INTENT)', () => {
-    for (const { name, legacy, legacyDrawer, intentKind, extraDrawer = {} } of PARITY_CASES) {
-        test(name, () => {
-            const legacyRow = withDrawer(legacy, { ...legacyDrawer, ...extraDrawer })
-            const intentRow = withDrawer(legacy, {
-                ...legacyDrawer,
-                ...extraDrawer,
-                originalType: EHistoryEntryType.TRANSACTION_INTENT,
-                kind: intentKind,
-            })
-
-            const legacyConfig = renderConfig(legacyRow)
-            const intentConfig = renderConfig(intentRow)
-
-            // Whole-config equality — any divergence is a one-sided gate.
-            expect(intentConfig).toEqual(legacyConfig)
-        })
-    }
 })

@@ -116,11 +116,19 @@ export type HistoryStatus = `${EHistoryStatus}`
  * reading one on the FE, remove it here.
  */
 export interface HistoryEntryExtraData {
-    // Post-decomplexify wire-shape discriminators. Both pinned to
-    // string at this layer; downstream `extraDataForDrawer` narrows to
-    // `IntentKind` and `Provider` after the transformer runs.
+    // Wire-shape discriminators. Pinned to string at this layer;
+    // downstream `extraDataForDrawer` narrows to `IntentKind` and
+    // `Provider` after the transformer runs.
     kind?: string
     provider?: string
+    // Bridge flow disambiguation — distinguishes the four Bridge sub-paths
+    // that share an intent kind (ONRAMP / OFFRAMP / BANK_SEND_LINK_CLAIM /
+    // GUEST_DIRECT_SEND).
+    bridgeFlow?: 'ONRAMP' | 'OFFRAMP' | 'BANK_SEND_LINK_CLAIM' | 'GUEST_DIRECT_SEND'
+    // Request-pot rollup discriminator — single P2P_REQUEST_FULFILL entry
+    // that summarises a request pot's contributors rather than an
+    // individual fulfilment.
+    isRequestPotRollup?: boolean
 
     // Common fields
     link?: string

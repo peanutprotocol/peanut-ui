@@ -1,117 +1,80 @@
-// Locks the legacy / TRANSACTION_INTENT dual-shape predicates so adding a new
-// flow only needs to extend the predicate, not grep the whole receipt for
-// `originalType === EHistoryEntryType.X` chains. If you're tempted to inline
-// such a check elsewhere — write a predicate here instead and lock it below.
+// Locks the kind-keyed predicates so adding a new flow is one line in one
+// place rather than a grep-and-edit across the receipt. Wire shape is
+// uniform: every entry arrives as `type='TRANSACTION_INTENT'` with
+// `extraData.kind` pinned to a canonical TransactionIntentKind value.
+
 import {
     isDirectSendEntry,
     isMantecaOnrampEntry,
     isOnrampEntry,
+    isQRPayment,
     isRequestEntry,
     isSendLinkEntry,
+    hasShareableReceipt,
 } from '../transaction-predicates'
 import type { TransactionDetails } from '../transactionTransformer'
+import type { IntentKind } from '../strategies/registry'
 
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '', SIMPLEFI: '' }))
 
-const tx = (originalType: string, kind?: string, extra?: Record<string, unknown>): TransactionDetails =>
+const tx = (kind: string, extra?: Record<string, unknown>): TransactionDetails =>
     ({
-        extraDataForDrawer: { originalType, ...(kind ? { kind } : {}), ...(extra ?? {}) },
+        extraDataForDrawer: { originalType: 'TRANSACTION_INTENT', kind, ...(extra ?? {}) },
     }) as unknown as TransactionDetails
 
-// Source of truth: the BE's `toLegacyKindLabel` in
-// peanut-api-ts/src/ledger/card-spend.ts. If either side changes, update both
-// the predicate AND this table — that's the contract the predicate enforces.
-//
-// `requiresProvider` is set for predicates that need positive-identity beyond
-// kind alone. Only Manteca's onramp does today — Bridge + Manteca share the
-// FIAT_ONRAMP wire kind so the predicate uses the `provider` field
-// (peanut-api-ts#739 plumbs this through every projector) to disambiguate.
-const WIRE_SHAPES: Array<{
+interface KindCase {
     predicate: (t: TransactionDetails) => boolean
-    legacyTypes: string[]
-    intentKind: string
+    intentKind: IntentKind
     name: string
     requiresProvider?: string
-}> = [
-    { predicate: isSendLinkEntry, legacyTypes: ['SEND_LINK'], intentKind: 'LINK_CREATE', name: 'isSendLinkEntry' },
-    { predicate: isRequestEntry, legacyTypes: ['REQUEST'], intentKind: 'REQUEST_PAY', name: 'isRequestEntry' },
-    // isOnrampEntry is legacy-only by design — see the predicate's docstring.
-    // Tested below outside the parameterised table.
+}
+
+const KIND_PREDICATES: KindCase[] = [
+    { predicate: isSendLinkEntry, intentKind: 'SEND_LINK', name: 'isSendLinkEntry' },
+    { predicate: isRequestEntry, intentKind: 'P2P_REQUEST_FULFILL', name: 'isRequestEntry' },
+    { predicate: isDirectSendEntry, intentKind: 'DIRECT_TRANSFER', name: 'isDirectSendEntry' },
+    { predicate: isOnrampEntry, intentKind: 'ONRAMP', name: 'isOnrampEntry' },
+    { predicate: isQRPayment, intentKind: 'QR_PAY', name: 'isQRPayment' },
     {
         predicate: isMantecaOnrampEntry,
-        legacyTypes: ['MANTECA_ONRAMP'],
-        intentKind: 'FIAT_ONRAMP',
+        intentKind: 'ONRAMP',
         name: 'isMantecaOnrampEntry',
         requiresProvider: 'MANTECA',
     },
-    { predicate: isDirectSendEntry, legacyTypes: ['DIRECT_SEND'], intentKind: 'P2P_SEND', name: 'isDirectSendEntry' },
 ]
 
-describe('entry-type predicates — legacy + TRANSACTION_INTENT dual shape', () => {
-    for (const { predicate, legacyTypes, intentKind, name, requiresProvider } of WIRE_SHAPES) {
+describe('entry-kind predicates', () => {
+    for (const { predicate, intentKind, name, requiresProvider } of KIND_PREDICATES) {
         const intentExtra = requiresProvider ? { provider: requiresProvider } : undefined
 
-        for (const legacy of legacyTypes) {
-            test(`${name} matches legacy ${legacy}`, () => {
-                expect(predicate(tx(legacy))).toBe(true)
-            })
-        }
-
-        test(`${name} matches TRANSACTION_INTENT + kind=${intentKind}${requiresProvider ? ` + provider=${requiresProvider}` : ''}`, () => {
-            expect(predicate(tx('TRANSACTION_INTENT', intentKind, intentExtra))).toBe(true)
+        test(`${name} matches kind=${intentKind}${requiresProvider ? ` + provider=${requiresProvider}` : ''}`, () => {
+            expect(predicate(tx(intentKind, intentExtra))).toBe(true)
         })
 
-        test(`${name} does NOT match TRANSACTION_INTENT with a different kind`, () => {
-            expect(predicate(tx('TRANSACTION_INTENT', 'SOME_OTHER_KIND', intentExtra))).toBe(false)
-        })
-
-        test(`${name} does NOT match an unrelated legacy type`, () => {
-            expect(predicate(tx('UNRELATED_TYPE'))).toBe(false)
+        test(`${name} does NOT match a different kind`, () => {
+            expect(predicate(tx('SOME_OTHER_KIND', intentExtra))).toBe(false)
         })
 
         if (requiresProvider) {
-            test(`${name} does NOT match TRANSACTION_INTENT + correct kind with a DIFFERENT provider`, () => {
-                // The smell this PR kills: predicates were inferring identity
-                // from field absence. Lock that this predicate now rejects a
-                // TI row that has the right kind but the wrong provider —
-                // forcing a positive-identity check rather than negative.
-                expect(predicate(tx('TRANSACTION_INTENT', intentKind, { provider: 'BRIDGE' }))).toBe(false)
+            test(`${name} does NOT match correct kind with a different provider`, () => {
+                expect(predicate(tx(intentKind, { provider: 'BRIDGE' }))).toBe(false)
             })
 
-            test(`${name} does NOT match TRANSACTION_INTENT + correct kind without ANY provider`, () => {
-                // Defensive: before peanut-api-ts#739 ships everywhere, a TI
-                // row may arrive without provider. The predicate must NOT
-                // light up on absence — that would re-introduce the smell.
-                expect(predicate(tx('TRANSACTION_INTENT', intentKind))).toBe(false)
+            test(`${name} does NOT match correct kind with NO provider`, () => {
+                expect(predicate(tx(intentKind))).toBe(false)
             })
         }
     }
 
-    test('isOnrampEntry matches legacy BRIDGE_ONRAMP', () => {
-        expect(isOnrampEntry(tx('BRIDGE_ONRAMP'))).toBe(true)
+    test('hasShareableReceipt matches QR_PAY, ONRAMP, and OFFRAMP', () => {
+        expect(hasShareableReceipt(tx('QR_PAY'))).toBe(true)
+        expect(hasShareableReceipt(tx('ONRAMP'))).toBe(true)
+        expect(hasShareableReceipt(tx('OFFRAMP'))).toBe(true)
     })
 
-    test('isOnrampEntry matches legacy MANTECA_ONRAMP', () => {
-        expect(isOnrampEntry(tx('MANTECA_ONRAMP'))).toBe(true)
-    })
-
-    // Legacy-only: BridgeHistoryFetcher / MantecaHistoryFetcher are
-    // unconditional gateways for onramp intents on the BE, so a TI-shape
-    // onramp can't reach the FE. The TI branch was removed to avoid
-    // dead-code; lock that here. (isMantecaOnrampEntry still has its own TI
-    // branch for the narrow mantecaUser-lookup-fails edge case.)
-    test('isOnrampEntry does NOT match TRANSACTION_INTENT + FIAT_ONRAMP (dead-code path removed)', () => {
-        expect(isOnrampEntry(tx('TRANSACTION_INTENT', 'FIAT_ONRAMP'))).toBe(false)
-        expect(isOnrampEntry(tx('TRANSACTION_INTENT', 'FIAT_ONRAMP', { provider: 'BRIDGE' }))).toBe(false)
-        expect(isOnrampEntry(tx('TRANSACTION_INTENT', 'FIAT_ONRAMP', { provider: 'MANTECA' }))).toBe(false)
-    })
-
-    // The cancel-by-sender SEND_LINK_CLAIM intent is also rendered as
-    // wire-kind LINK_CREATE (per toLegacyKindLabel collapsing SEND_LINK +
-    // SEND_LINK_CLAIM). isSendLinkEntry returns true for it — that's how
-    // the receipt-field exemption fires for "sender cancelled their own link".
-    test('isSendLinkEntry matches the SEND_LINK_CLAIM cancel-by-sender row (rendered as LINK_CREATE)', () => {
-        expect(isSendLinkEntry(tx('TRANSACTION_INTENT', 'LINK_CREATE'))).toBe(true)
+    test('hasShareableReceipt does NOT match unrelated kinds', () => {
+        expect(hasShareableReceipt(tx('DIRECT_TRANSFER'))).toBe(false)
+        expect(hasShareableReceipt(tx('SEND_LINK'))).toBe(false)
     })
 })
