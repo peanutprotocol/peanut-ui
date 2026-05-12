@@ -18,6 +18,11 @@ export const MantecaSupportedExchanges = {
     //BO: 'BOLIVIA',
 }
 
+// ISO-2 codes of our highest-volume corridors, surfaced at the top of the
+// add/withdraw country list (after the user's own country if geolocated).
+// Order here is the order shown to users.
+export const PREFERRED_COUNTRY_ISO2 = ['US', 'AR', 'BR', 'GB', 'DE', 'ES', 'PT'] as const
+
 export interface SpecificPaymentMethod {
     id: string
     icon: IconName | string | undefined
