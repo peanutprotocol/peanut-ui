@@ -1,10 +1,9 @@
-// tests for capacitor platform detection and api base url routing
+// tests for capacitor platform detection
 
 // must be imported after mocks are set up
 let isCapacitor: typeof import('../capacitor').isCapacitor
 let isAndroidNative: typeof import('../capacitor').isAndroidNative
 let isIOSNative: typeof import('../capacitor').isIOSNative
-let getApiBaseUrl: typeof import('../capacitor').getApiBaseUrl
 let getPlatform: typeof import('../capacitor').getPlatform
 
 describe('capacitor utils', () => {
@@ -166,28 +165,6 @@ describe('capacitor utils', () => {
             mockStandalone(false)
             ;({ getPlatform } = require('../capacitor'))
             expect(getPlatform()).toBe('web')
-        })
-    })
-
-    describe('getApiBaseUrl', () => {
-        it('should return NEXT_PUBLIC_BASE_URL in capacitor mode', () => {
-            process.env.NEXT_PUBLIC_BASE_URL = 'https://api.staging.peanut.me'
-            ;(window as any).Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
-            ;({ getApiBaseUrl } = require('../capacitor'))
-            expect(getApiBaseUrl()).toBe('https://api.staging.peanut.me')
-        })
-
-        it('should return fallback url when NEXT_PUBLIC_BASE_URL is not set in capacitor mode', () => {
-            delete process.env.NEXT_PUBLIC_BASE_URL
-            ;(window as any).Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
-            ;({ getApiBaseUrl } = require('../capacitor'))
-            expect(getApiBaseUrl()).toBe('https://peanut.me')
-        })
-
-        it('should return empty string in web mode', () => {
-            delete process.env.NEXT_PUBLIC_CAPACITOR_BUILD
-            ;({ getApiBaseUrl } = require('../capacitor'))
-            expect(getApiBaseUrl()).toBe('')
         })
     })
 })

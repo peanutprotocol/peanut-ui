@@ -69,18 +69,6 @@ export function isIOSNative(): boolean {
 }
 
 /**
- * returns the base url for api calls
- * - in capacitor: returns the production backend url (since /api/ routes don't exist in static export)
- * - on web: returns empty string (relative paths work via next.js proxy)
- */
-export function getApiBaseUrl(): string {
-    if (isCapacitor()) {
-        return process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me'
-    }
-    return ''
-}
-
-/**
  * returns the rpId for native passkey operations.
  * configurable via NEXT_PUBLIC_NATIVE_RP_ID env var, defaults to production domain.
  */

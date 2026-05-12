@@ -1,5 +1,3 @@
-// card api calls — works in both web (via proxy) and native (direct backend)
-
 import { serverFetch } from '@/utils/api-fetch'
 
 export interface CardInfoResponse {
