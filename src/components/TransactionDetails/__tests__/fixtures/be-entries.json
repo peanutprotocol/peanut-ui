@@ -828,6 +828,8 @@
         "provider": "BRIDGE",
         "kind": "OFFRAMP",
         "bridgeFlow": "BANK_SEND_LINK_CLAIM",
+        "bridgeTransferId": "<UUID>",
+        "fulfillmentType": "bridge",
         "depositInstructions": {
           "amount": "1.01",
           "currency": "usdc",
@@ -883,6 +885,8 @@
         "provider": "BRIDGE",
         "kind": "OFFRAMP",
         "bridgeFlow": "OFFRAMP",
+        "bridgeTransferId": "<UUID>",
+        "fulfillmentType": "bridge",
         "depositInstructions": {
           "amount": "2.0",
           "currency": "usdc",
@@ -936,6 +940,8 @@
         "provider": "BRIDGE",
         "kind": "OFFRAMP",
         "bridgeFlow": "BANK_SEND_LINK_CLAIM",
+        "bridgeTransferId": "<UUID>",
+        "fulfillmentType": "bridge",
         "depositInstructions": {
           "amount": "2.2",
           "currency": "usdc",
@@ -997,6 +1003,8 @@
         "provider": "BRIDGE",
         "kind": "OFFRAMP",
         "bridgeFlow": "OFFRAMP",
+        "bridgeTransferId": "<UUID>",
+        "fulfillmentType": "bridge",
         "depositInstructions": {
           "amount": "5.0",
           "currency": "usdc",
@@ -1055,6 +1063,8 @@
         "provider": "BRIDGE",
         "kind": "OFFRAMP",
         "bridgeFlow": "BANK_SEND_LINK_CLAIM",
+        "bridgeTransferId": "<UUID>",
+        "fulfillmentType": "bridge",
         "depositInstructions": {
           "amount": "1.0",
           "currency": "usdc",
@@ -1115,6 +1125,8 @@
         "provider": "BRIDGE",
         "kind": "OFFRAMP",
         "bridgeFlow": "OFFRAMP",
+        "bridgeTransferId": "<UUID>",
+        "fulfillmentType": "bridge",
         "depositInstructions": {
           "amount": "1.9",
           "currency": "usdc",
@@ -1175,6 +1187,8 @@
         "provider": "BRIDGE",
         "kind": "OFFRAMP",
         "bridgeFlow": "OFFRAMP",
+        "bridgeTransferId": "<UUID>",
+        "fulfillmentType": "bridge",
         "depositInstructions": {
           "amount": "1.1",
           "currency": "usdc",
@@ -1416,6 +1430,8 @@
         "provider": "BRIDGE",
         "kind": "ONRAMP",
         "bridgeFlow": "ONRAMP",
+        "bridgeTransferId": "<UUID>",
+        "fulfillmentType": "bridge",
         "depositInstructions": {
           "bic": "MODRIE22XXX",
           "iban": "IE87MODR99035505302803",
@@ -1475,6 +1491,8 @@
         "provider": "BRIDGE",
         "kind": "ONRAMP",
         "bridgeFlow": "ONRAMP",
+        "bridgeTransferId": "<UUID>",
+        "fulfillmentType": "bridge",
         "depositInstructions": {
           "bic": "MODRIE22XXX",
           "iban": "IE87MODR99035505302803",
@@ -1535,6 +1553,8 @@
         "provider": "BRIDGE",
         "kind": "ONRAMP",
         "bridgeFlow": "ONRAMP",
+        "bridgeTransferId": "<UUID>",
+        "fulfillmentType": "bridge",
         "depositInstructions": {
           "bic": "MODRIE22XXX",
           "iban": "IE87MODR99035505302803",
@@ -1599,6 +1619,8 @@
         "provider": "BRIDGE",
         "kind": "ONRAMP",
         "bridgeFlow": "ONRAMP",
+        "bridgeTransferId": "<UUID>",
+        "fulfillmentType": "bridge",
         "depositInstructions": {
           "bic": "BCIRLULL",
           "iban": "LU344080000041794391",
@@ -3098,6 +3120,7 @@
           "sendLinkClaimUuid": "<UUID>"
         },
         "provider": "PEANUT",
+        "parentSendLinkPubKey": "<EVM_ADDRESS>",
         "recipientName": "testonramp",
         "merchantName": null,
         "merchantCategory": null,
@@ -3163,6 +3186,7 @@
           "contractVersion": "v4.3"
         },
         "provider": "PEANUT",
+        "parentSendLinkPubKey": "<EVM_ADDRESS>",
         "merchantName": null,
         "merchantCategory": null,
         "merchantCity": null,
@@ -3228,6 +3252,7 @@
           "contractVersion": "v4.3"
         },
         "provider": "PEANUT",
+        "parentSendLinkPubKey": "<EVM_ADDRESS>",
         "merchantName": null,
         "merchantCategory": null,
         "merchantCity": null,
@@ -3292,6 +3317,7 @@
           "contractVersion": "v4.3"
         },
         "provider": "PEANUT",
+        "parentSendLinkPubKey": "<EVM_ADDRESS>",
         "merchantName": null,
         "merchantCategory": null,
         "merchantCity": null,
@@ -3356,6 +3382,7 @@
           "contractVersion": "v4.3"
         },
         "provider": "PEANUT",
+        "parentSendLinkPubKey": "<EVM_ADDRESS>",
         "merchantName": null,
         "merchantCategory": null,
         "merchantCity": null,
