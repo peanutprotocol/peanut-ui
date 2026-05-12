@@ -76,34 +76,33 @@ export function useTransactionHistory({
         }
     }
 
-    // Latest transactions mode (for home page)
-    // Two-tier caching: TQ in-memory (30s) → SW disk cache (1 week) → Network
-    // Balance: Fresh enough for home page + reduces redundant SW cache hits
-    if (mode === 'latest') {
-        return useQuery({
-            queryKey: [TRANSACTIONS, 'latest', { limit, targetUsername: filterMutualTxs ? username : undefined }],
-            queryFn: () => fetchHistory({ limit }),
-            enabled,
-            // 30s cache: Fresh enough for home page widget
-            // On cold start, will fetch → SW responds <50ms from cache
-            staleTime: 30 * 1000, // 30 seconds (balance: freshness vs performance)
-            gcTime: 5 * 60 * 1000, // Keep in memory for 5min
-            // Refetch on mount - TQ automatically skips if data is fresh (< staleTime)
-            refetchOnMount: true,
-            // Refetch on focus - TQ automatically skips if data is fresh (< staleTime)
-            refetchOnWindowFocus: true,
-        })
-    }
+    // Both hooks run unconditionally on every render (Rules of Hooks). The disabled one
+    // sits idle thanks to its `enabled` flag — no network, no work — so this has no
+    // runtime cost over the conditional version, while removing the hook-order corruption
+    // that bites if a caller ever flips `mode` mid-life.
 
-    // Infinite query mode (for main history page)
-    // Uses longer staleTime since user is actively browsing (less critical for instant updates)
-    return useInfiniteQuery({
+    // Latest transactions (home page).
+    // Two-tier caching: TQ in-memory (30s) → SW disk cache (1 week) → Network.
+    const latestQuery = useQuery({
+        queryKey: [TRANSACTIONS, 'latest', { limit, targetUsername: filterMutualTxs ? username : undefined }],
+        queryFn: () => fetchHistory({ limit }),
+        enabled: mode === 'latest' && enabled,
+        staleTime: 30 * 1000,
+        gcTime: 5 * 60 * 1000,
+        refetchOnMount: true,
+        refetchOnWindowFocus: true,
+    })
+
+    // Infinite scrolling (main history page).
+    const infiniteQuery = useInfiniteQuery({
         queryKey: [TRANSACTIONS, 'infinite', { limit }],
         queryFn: ({ pageParam }) => fetchHistory({ cursor: pageParam, limit }),
         initialPageParam: undefined as string | undefined,
         getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.cursor : undefined),
-        enabled,
-        staleTime: 30 * 1000, // 30 seconds (infinite scroll doesn't need instant updates)
-        gcTime: 5 * 60 * 1000, // Keep in memory for 5min
+        enabled: mode === 'infinite' && enabled,
+        staleTime: 30 * 1000,
+        gcTime: 5 * 60 * 1000,
     })
+
+    return mode === 'latest' ? latestQuery : infiniteQuery
 }
