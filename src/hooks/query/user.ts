@@ -34,8 +34,10 @@ export const useUserQuery = (dependsOn: boolean = true) => {
             // Sliding refresh: backend re-mints when the JWT crosses half its
             // lifetime and ships the new one alongside the user payload. Swap
             // it in client-side so active users never hit the 30d hard logout.
-            if (payload?.token) {
-                setAuthToken(payload.token)
+            // Strip `token` unconditionally so auth state never leaks into the
+            // user store, even if the backend ever sends a falsy value.
+            if (payload && 'token' in payload) {
+                if (payload.token) setAuthToken(payload.token)
                 delete payload.token
             }
 

@@ -78,6 +78,21 @@ describe('useUserQuery — JWT sliding refresh', () => {
         expect(result.current.data).not.toHaveProperty('token')
     })
 
+    it.each([
+        ['empty string', ''],
+        ['null', null],
+    ])('strips falsy token (%s) without calling setAuthToken', async (_label, falsyToken) => {
+        mockApiFetch.mockResolvedValueOnce(
+            mockResponse(200, { user: { userId: 'u1', username: 'alice' }, token: falsyToken })
+        )
+
+        const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
+        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+        expect(result.current.data).not.toHaveProperty('token')
+        expect(mockSetAuthToken).not.toHaveBeenCalled()
+    })
+
     it('clears the token on 401 (dead JWT) without touching setAuthToken', async () => {
         mockApiFetch.mockResolvedValueOnce(mockResponse(401, null))
 
