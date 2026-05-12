@@ -66,6 +66,7 @@ import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useLimits } from '@/hooks/useLimits'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -96,7 +97,8 @@ export default function MantecaWithdrawFlow() {
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
     const queryClient = useQueryClient()
-    const { isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
+    const { isUserSumsubKycApproved } = useKycStatus()
+    const { isVerifiedForCountry } = useIdentityVerification()
     const { manteca: mantecaRejection } = useProviderRejectionStatus()
     const { hasPendingTransactions } = usePendingTransactions()
 
@@ -110,12 +112,11 @@ export default function MantecaWithdrawFlow() {
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
-
-    // Determine country and currency from URL params or context
-    const countryPath = countryFromUrl || 'argentina'
+    const countryPath = countryFromUrl
 
     // Map country path to CountryData for KYC
     const selectedCountry = useMemo(() => {
+        if (!countryPath) return undefined
         return countryData.find((country) => country.type === 'country' && country.path === countryPath)
     }, [countryPath])
 
@@ -125,6 +126,7 @@ export default function MantecaWithdrawFlow() {
         if (!selectedCountry) return undefined
         return MANTECA_COUNTRIES_CONFIG[selectedCountry.id]
     }, [selectedCountry])
+    const isUserMantecaKycApprovedForCountry = selectedCountry ? isVerifiedForCountry(selectedCountry.id) : false
 
     const {
         code: currencyCode,
@@ -243,7 +245,7 @@ export default function MantecaWithdrawFlow() {
         }
         setErrorMessage(null)
 
-        if (!isUserMantecaKycApproved) {
+        if (!isUserMantecaKycApprovedForCountry) {
             setShowKycModal(true)
             return
         }
@@ -288,7 +290,7 @@ export default function MantecaWithdrawFlow() {
         usdAmount,
         currencyCode,
         currencyAmount,
-        isUserMantecaKycApproved,
+        isUserMantecaKycApprovedForCountry,
         isLockingPrice,
         handleOnboardingError,
     ])
@@ -477,12 +479,12 @@ export default function MantecaWithdrawFlow() {
         }
     }, [step, queryClient])
 
-    // redirect to withdraw page if country is not supported by manteca
+    // redirect to withdraw page if country is missing or not supported by manteca
     useEffect(() => {
-        if (!selectedCountry || !MANTECA_COUNTRIES_CONFIG[selectedCountry.id]) {
+        if (!countryFromUrl || !selectedCountry || !MANTECA_COUNTRIES_CONFIG[selectedCountry.id]) {
             router.replace('/withdraw')
         }
-    }, [selectedCountry, router])
+    }, [countryFromUrl, selectedCountry, router])
 
     if (isCurrencyLoading || !currencyPrice || !selectedCountry || !countryConfig) {
         return <PeanutLoading />
@@ -578,7 +580,7 @@ export default function MantecaWithdrawFlow() {
                     if (hasRejection) {
                         await sumsubFlow.handleSelfHealResubmit('MANTECA')
                     } else {
-                        await sumsubFlow.handleInitiateKyc('LATAM', undefined, true)
+                        await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
                     }
                     setShowKycModal(false)
                 }}
