@@ -1,4 +1,5 @@
 import { printableAddress, isCryptoAddress } from '@/utils/general.utils'
+import { normalizeEnsName } from '@/utils/ens.utils'
 import { usePrimaryName } from '@justaname.id/react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -26,12 +27,8 @@ const AddressLink = ({ address, className = '', isLink = true }: AddressLinkProp
     })
 
     useEffect(() => {
-        // Update display: prefer ENS name for EVM addresses, otherwise shorten any crypto address
-        if (isAddress(address) && ensName) {
-            // for peanut ens names, strip the domain from the displayed string so its just a username (no ens subdomain)
-            const peanutEnsDomain = process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || ''
-            const normalizedEnsName = ensName.replace(peanutEnsDomain, '').replace(/\.$/, '')
-
+        const normalizedEnsName = isAddress(address) ? normalizeEnsName(ensName) : null
+        if (normalizedEnsName) {
             setDisplayAddress(normalizedEnsName)
             setUrlAddress(normalizedEnsName)
         } else {

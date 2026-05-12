@@ -6,7 +6,6 @@ import {
     BASE_URL,
 } from '@/constants/general.consts'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
-import { AccountType } from '@/interfaces/interfaces'
 import * as Sentry from '@sentry/nextjs'
 import type { Address, TransactionReceipt } from 'viem'
 import { getAddress, isAddress, erc20Abi } from 'viem'
@@ -723,10 +722,10 @@ export const formatExtendedNumber = (amount: string | number, minDigitsForFomatt
 export function getRequestLink(
     requestData: {
         recipientAccount: {
-            type: string
+            type?: string
             user?: {
-                username: string
-            }
+                username?: string | null
+            } | null
         }
         recipientAddress: string
         chainId?: string
@@ -735,12 +734,17 @@ export function getRequestLink(
     } & ({ uuid: string; chargeId?: never } | { uuid?: never; chargeId: string })
 ): string {
     const { recipientAccount, recipientAddress, chainId, tokenAmount, tokenSymbol, uuid, chargeId } = requestData
-    const isPeanutWallet = recipientAccount.type === AccountType.PEANUT_WALLET
-    const recipient = isPeanutWallet ? recipientAccount.user!.username : recipientAddress
-    let chain: string = ''
-    if (!isPeanutWallet && chainId) {
-        chain = `@${chainId}`
-    }
+
+    // Prefer the Peanut username whenever a user is linked to the
+    // recipient account, regardless of `account.type`. The old check
+    // coupled username preference to a specific account-type discriminator
+    // and broke whenever the BE returned an `EVM_ADDRESS`/`WALLET_SMART`
+    // shape for a recipient who happened to be a Peanut user — every
+    // shared link rendered the address slug instead of the handle.
+    const username = recipientAccount.user?.username
+    const recipient = username || recipientAddress
+    const chain = !username && chainId ? `@${chainId}` : ''
+
     let link = `${process.env.NEXT_PUBLIC_BASE_URL}/${recipient}${chain}/`
     if (tokenAmount) {
         link += `${formatAmount(tokenAmount)}`
@@ -919,12 +923,12 @@ export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) 
 export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
     return charges.map((charge) => {
         const successfulPayment = charge.payments.at(-1)
-        let username = successfulPayment?.payerAccount?.user?.username
-        if (successfulPayment?.payerAccount?.type === 'evm-address') {
-            username = successfulPayment.payerAccount.identifier
-        }
-
-        const isPeanutUser = successfulPayment?.payerAccount?.type === AccountType.PEANUT_WALLET
+        // Prefer the Peanut handle whenever the payer has a linked user,
+        // regardless of account.type. Falls back to the raw on-chain
+        // identifier for anonymous on-chain contributors.
+        const payerAccount = successfulPayment?.payerAccount
+        const username = payerAccount?.user?.username || payerAccount?.identifier
+        const isPeanutUser = !!payerAccount?.user?.username
 
         return {
             uuid: charge.uuid,
@@ -932,7 +936,7 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
             amount: charge.tokenAmount,
             username,
             fulfillmentPayment: charge.fulfillmentPayment,
-            isUserVerified: isUserKycVerified(successfulPayment?.payerAccount?.user),
+            isUserVerified: isUserKycVerified(payerAccount?.user),
             isPeanutUser,
         }
     })
