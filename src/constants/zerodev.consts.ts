@@ -15,7 +15,7 @@ export const PAYMASTER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL!
 // the deleted /api/proxy/passkeys path) can't silently break login.
 const envPasskeyUrl = process.env.NEXT_PUBLIC_ZERO_DEV_PASSKEY_SERVER_URL
 export const PASSKEY_SERVER_URL =
-	envPasskeyUrl && !envPasskeyUrl.includes('/api/proxy') ? envPasskeyUrl : `${PEANUT_API_URL}/passkeys`
+    envPasskeyUrl && !envPasskeyUrl.includes('/api/proxy') ? envPasskeyUrl : `${PEANUT_API_URL}/passkeys`
 
 // Default to Arb One + Circle USDC (prod). Overridable via env so the mono
 // QA harness can point the UI at Arb Sepolia + testnet USDC without forking.
