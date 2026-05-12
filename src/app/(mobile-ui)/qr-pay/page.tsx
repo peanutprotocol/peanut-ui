@@ -116,6 +116,17 @@ export default function QRPayPage() {
                 return null
         }
     }, [qrType])
+    const targetMantecaCountry = useMemo(() => {
+        switch (qrType) {
+            case EQrType.PIX:
+                return 'BR'
+            case EQrType.MERCADO_PAGO:
+            case EQrType.ARGENTINA_QR3:
+                return 'AR'
+            default:
+                return undefined
+        }
+    }, [qrType])
 
     // Check if this payment provider is under maintenance
     const isProviderDisabled = useMemo(() => {
@@ -1158,7 +1169,12 @@ export default function QRPayPage() {
                         {
                             text: 'Verify now',
                             onClick: () =>
-                                sumsubFlow.handleInitiateKyc('LATAM', undefined, isUserSumsubKycApproved || undefined),
+                                sumsubFlow.handleInitiateKyc(
+                                    'LATAM',
+                                    undefined,
+                                    isUserSumsubKycApproved || undefined,
+                                    targetMantecaCountry
+                                ),
                             variant: 'purple',
                             shadowSize: '4',
                             icon: 'check-circle',
@@ -1176,7 +1192,12 @@ export default function QRPayPage() {
                         {
                             text: 'Continue verification',
                             onClick: () =>
-                                sumsubFlow.handleInitiateKyc('LATAM', undefined, isUserSumsubKycApproved || undefined),
+                                sumsubFlow.handleInitiateKyc(
+                                    'LATAM',
+                                    undefined,
+                                    isUserSumsubKycApproved || undefined,
+                                    targetMantecaCountry
+                                ),
                             variant: 'purple',
                             shadowSize: '4',
                             icon: 'check-circle',
