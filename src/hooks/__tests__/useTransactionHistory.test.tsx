@@ -29,13 +29,17 @@ describe('useTransactionHistory', () => {
     // between renders changed the hook order and crashed the component.
     it('switching mode between renders does not crash (hook order stable)', () => {
         const wrapper = makeWrapper()
+        // The overload signatures require literal `mode`; narrow per branch so the
+        // hook is called with a concrete mode each time. Pre-fix, this rerender
+        // chain crashed React with "Rendered different hooks than during the previous render".
         const { rerender } = renderHook(
-            ({ mode }: { mode: 'latest' | 'infinite' }) => useTransactionHistory({ mode, enabled: false }),
-            { wrapper, initialProps: { mode: 'latest' } }
+            ({ mode }: { mode: 'latest' | 'infinite' }) =>
+                mode === 'latest'
+                    ? useTransactionHistory({ mode: 'latest', enabled: false })
+                    : useTransactionHistory({ mode: 'infinite', enabled: false }),
+            { wrapper, initialProps: { mode: 'latest' as 'latest' | 'infinite' } }
         )
 
-        // The crash this test guards against would surface here as
-        // "Rendered fewer/more hooks than expected".
         expect(() => rerender({ mode: 'infinite' })).not.toThrow()
         expect(() => rerender({ mode: 'latest' })).not.toThrow()
     })
