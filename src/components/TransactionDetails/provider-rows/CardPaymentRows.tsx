@@ -34,6 +34,13 @@ function parseCents(value: string | null | undefined): number | null {
  * fiat amount now flows through the receipt's heading (≈ ARS X) and
  * exchange-rate row instead — same treatment as Manteca QR pays.
  */
+/**
+ * KEEP IN SYNC with `CardPaymentRows` below — every condition that pushes
+ * a sub-row in the renderer needs a matching predicate here. The parent
+ * receipt uses this to decide whether to show the slot at all, so a
+ * missed condition here means a row exists but its border gets clipped.
+ * (No automated check today; verify by inspection when adding rows.)
+ */
 export function hasCardPaymentRowsContent(transaction: TransactionDetails): boolean {
     const card = transaction.extraDataForDrawer?.cardPayment
     if (!card) return false
@@ -148,14 +155,16 @@ export function CardPaymentRows({
     // 14-day window closed without a capture). Both translate to "funds
     // returned"; different copy so the user knows what to do next (nothing
     // for reversed; contact the merchant if expired-uncaptured was unwanted).
+    // `else if` (rather than two independent `if`s) makes the mutual
+    // exclusion explicit — guards against a future refactor that might
+    // start storing both at once.
     if (card.cancellationReason === 'auth_reversed') {
         subRows.push({
             key: 'authReversedNote',
             label: 'Note',
             value: 'Hold released — the merchant cancelled the authorization. Funds are back on your card.',
         })
-    }
-    if (card.cancellationReason === 'auth_expired_uncaptured') {
+    } else if (card.cancellationReason === 'auth_expired_uncaptured') {
         subRows.push({
             key: 'authExpiredNote',
             label: 'Note',
@@ -167,7 +176,15 @@ export function CardPaymentRows({
     // for up to ~14 days while Rain waits for the merchant to capture or
     // release. Without this row, users see "Pending" and worry the money
     // is stuck — exact wording per @jjramirezn on the auth-lifecycle PR.
-    if (transaction.status === 'pending' && !card.isRefund) {
+    // Guarded against any cancellation-note already in place: a
+    // transient pending+cancellationReason payload would otherwise render
+    // both "Authorized, awaiting..." AND "Hold released..." simultaneously,
+    // which is contradictory copy.
+    const hasCancellationNote =
+        card.cancellationReason === 'auto_closed' ||
+        card.cancellationReason === 'auth_reversed' ||
+        card.cancellationReason === 'auth_expired_uncaptured'
+    if (transaction.status === 'pending' && !card.isRefund && !hasCancellationNote) {
         subRows.push({
             key: 'pendingNote',
             label: 'Status',
