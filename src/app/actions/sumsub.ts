@@ -12,6 +12,7 @@ export const initiateSumsubKyc = async (params?: {
     regionIntent?: KYCRegionIntent
     levelName?: string
     crossRegion?: boolean
+    targetCountry?: string
 }): Promise<{ data?: InitiateSumsubKycResponse; error?: string }> => {
     const jwtToken = (await getJWTCookie())?.value
 
@@ -23,6 +24,7 @@ export const initiateSumsubKyc = async (params?: {
         regionIntent: params?.regionIntent,
         levelName: params?.levelName,
         crossRegion: params?.crossRegion,
+        targetCountry: params?.targetCountry,
     }
 
     try {
