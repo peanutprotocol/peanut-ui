@@ -19,13 +19,13 @@ import FileUploadInput from '@/components/Global/FileUploadInput'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import SupportCTA from '@/components/Global/SupportCTA'
 import { useDirectSendFlow } from '../useDirectSendFlow'
-import { useRouter } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { useAuth } from '@/context/authContext'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 
 export function SendInputView() {
-    const router = useRouter()
+    const onBack = useSafeBack('/')
     const { isFetchingUser } = useAuth()
     const {
         amount,
@@ -50,22 +50,13 @@ export function SendInputView() {
         }
     }
 
-    // handle back navigation
-    const handleGoBack = () => {
-        if (window.history.length > 1) {
-            router.back()
-        } else {
-            router.push('/')
-        }
-    }
-
     // determine button text and state
     const isButtonDisabled = !canProceed || (isLoggedIn && !hasSufficientBalance) || isLoading
     const isAmountEntered = !!amount && parseFloat(amount) > 0
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader onPrev={handleGoBack} title="Pay" />
+            <NavHeader onPrev={onBack} title="Pay" />
 
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {/* recipient card */}

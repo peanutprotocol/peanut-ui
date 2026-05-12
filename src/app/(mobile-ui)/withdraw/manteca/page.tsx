@@ -7,6 +7,7 @@ import { rainSpendingPowerToWei } from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import NavHeader from '@/components/Global/NavHeader'
@@ -117,6 +118,8 @@ export default function MantecaWithdrawFlow() {
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === countryPath)
     }, [countryPath])
+
+    const onBack = useSafeBack(withdrawCountryUrl(selectedCountry?.path || ''))
 
     const countryConfig = useMemo(() => {
         if (!selectedCountry) return undefined
@@ -614,10 +617,7 @@ export default function MantecaWithdrawFlow() {
                     } else if (step === 'bankDetails') {
                         setStep('amountInput')
                     } else {
-                        router.back()
-                        setTimeout(() => {
-                            router.replace(withdrawCountryUrl(selectedCountry?.path || ''))
-                        }, 100)
+                        onBack()
                     }
                 }}
             />

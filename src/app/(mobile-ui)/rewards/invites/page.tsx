@@ -11,6 +11,7 @@ import { useAuth } from '@/context/authContext'
 import { invitesApi } from '@/services/invites'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { STAR_STRAIGHT_ICON } from '@/assets'
 import Image from 'next/image'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -25,6 +26,7 @@ import { profileUrl } from '@/utils/native-routes'
 
 const InvitesPage = () => {
     const router = useRouter()
+    const onBack = useSafeBack('/rewards')
     const { user } = useAuth()
     const listRef = useRef(null)
     const listInView = useInView(listRef, { once: true, margin: '-50px' })
@@ -66,7 +68,7 @@ const InvitesPage = () => {
 
     return (
         <PageContainer className="flex flex-col">
-            <NavHeader title="Rewards" onPrev={() => router.back()} />
+            <NavHeader title="Rewards" onPrev={onBack} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
                 <Card className="flex flex-col items-center justify-center gap-2 p-4">

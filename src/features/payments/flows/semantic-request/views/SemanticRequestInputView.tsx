@@ -21,7 +21,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import SupportCTA from '@/components/Global/SupportCTA'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
-import { useRouter } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 import { printableAddress, areEvmAddressesEqual } from '@/utils/general.utils'
@@ -29,7 +29,7 @@ import { tokenSelectorContext } from '@/context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 
 export function SemanticRequestInputView() {
-    const router = useRouter()
+    const onBack = useSafeBack('/')
     const {
         amount,
         recipient,
@@ -105,15 +105,6 @@ export function SemanticRequestInputView() {
         }
     }
 
-    // handle back navigation
-    const handleGoBack = () => {
-        if (window.history.length > 1) {
-            router.back()
-        } else {
-            router.push('/')
-        }
-    }
-
     // determine button state
     const isButtonDisabled = !canProceed || isLoading
     const isAmountEntered = !!amount && parseFloat(amount) > 0
@@ -157,7 +148,7 @@ export function SemanticRequestInputView() {
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader onPrev={handleGoBack} title="Pay" />
+            <NavHeader onPrev={onBack} title="Pay" />
 
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {/* recipient card */}

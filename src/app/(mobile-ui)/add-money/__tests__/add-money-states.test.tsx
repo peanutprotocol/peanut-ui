@@ -1336,6 +1336,7 @@ describe('GROUP 8: InputAmountStep Component', () => {
                 setCurrencyAmount={jest.fn()}
                 limitsValidation={{ isBlocking: false, isWarning: false, currency: 'USD' }}
                 limitsCurrency="USD"
+                onBack={jest.fn()}
             />
         )
 
@@ -1355,6 +1356,7 @@ describe('GROUP 8: InputAmountStep Component', () => {
                 setCurrencyAmount={jest.fn()}
                 limitsValidation={{ isBlocking: false, isWarning: false, currency: 'USD' }}
                 limitsCurrency="USD"
+                onBack={jest.fn()}
             />
         )
 
@@ -1372,6 +1374,7 @@ describe('GROUP 8: InputAmountStep Component', () => {
                 setCurrencyAmount={jest.fn()}
                 limitsValidation={{ isBlocking: false, isWarning: false, currency: 'USD' }}
                 limitsCurrency="USD"
+                onBack={jest.fn()}
             />
         )
 
@@ -1395,6 +1398,7 @@ describe('GROUP 8: InputAmountStep Component', () => {
                 setCurrencyAmount={jest.fn()}
                 limitsValidation={{ isBlocking: true, isWarning: false, currency: 'USD' }}
                 limitsCurrency="USD"
+                onBack={jest.fn()}
             />
         )
 
@@ -1413,6 +1417,7 @@ describe('GROUP 8: InputAmountStep Component', () => {
                 setCurrencyAmount={jest.fn()}
                 limitsValidation={{ isBlocking: false, isWarning: false, currency: 'USD' }}
                 limitsCurrency="USD"
+                onBack={jest.fn()}
             />
         )
 
@@ -1437,6 +1442,7 @@ describe('GROUP 8: InputAmountStep Component', () => {
                 setCurrencyAmount={jest.fn()}
                 limitsValidation={{ isBlocking: true, isWarning: false, currency: 'USD' }}
                 limitsCurrency="USD"
+                onBack={jest.fn()}
             />
         )
 
@@ -1454,6 +1460,7 @@ describe('GROUP 8: InputAmountStep Component', () => {
                 setCurrencyAmount={jest.fn()}
                 limitsValidation={{ isBlocking: false, isWarning: false, currency: 'USD' }}
                 limitsCurrency="USD"
+                onBack={jest.fn()}
             />
         )
 
@@ -1473,6 +1480,7 @@ describe('GROUP 8: InputAmountStep Component', () => {
                 currencyData={{ isLoading: true, symbol: null, price: null }}
                 limitsValidation={{ isBlocking: false, isWarning: false, currency: 'USD' }}
                 limitsCurrency="USD"
+                onBack={jest.fn()}
             />
         )
 
@@ -1491,6 +1499,7 @@ describe('GROUP 8: InputAmountStep Component', () => {
                 setCurrencyAmount={jest.fn()}
                 limitsValidation={{ isBlocking: false, isWarning: false, currency: 'USD' }}
                 limitsCurrency="USD"
+                onBack={jest.fn()}
             />
         )
 

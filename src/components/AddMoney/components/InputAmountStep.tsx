@@ -4,7 +4,6 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
-import { useRouter } from 'next/navigation'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { useCurrency } from '@/hooks/useCurrency'
 import PeanutLoading from '@/components/Global/PeanutLoading'
@@ -30,6 +29,7 @@ interface InputAmountStepProps {
     limitsValidation?: LimitsValidationWithUser
     // required - must be provided by caller based on the payment flow's currency (ARS, BRL, USD)
     limitsCurrency: LimitCurrency
+    onBack: () => void
 }
 
 const InputAmountStep = ({
@@ -45,9 +45,8 @@ const InputAmountStep = ({
     setDisplayedAmount,
     limitsValidation,
     limitsCurrency,
+    onBack,
 }: InputAmountStepProps) => {
-    const router = useRouter()
-
     if (currencyData?.isLoading) {
         return <PeanutLoading />
     }
@@ -62,7 +61,7 @@ const InputAmountStep = ({
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
-            <NavHeader title="Add Money" onPrev={() => router.back()} />
+            <NavHeader title="Add Money" onPrev={onBack} />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 <div className="text-sm font-bold">How much do you want to add?</div>
 

@@ -20,6 +20,7 @@ import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { captureMessage } from '@sentry/nextjs'
 import type { Address, Hex, TransactionReceipt } from 'viem'
 import { parseUnits } from 'viem'
@@ -37,6 +38,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
+    const onBack = useSafeBack('/withdraw')
     const { isConnected: isPeanutWallet, address, sendTransactions, sendMoney } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
     const {
@@ -440,7 +442,7 @@ export default function WithdrawCryptoPage() {
                 <InitialWithdrawView
                     amount={usdAmount}
                     onReview={handleSetupReview}
-                    onBack={() => router.back()}
+                    onBack={onBack}
                     isProcessing={isPreparingReview}
                 />
             )}

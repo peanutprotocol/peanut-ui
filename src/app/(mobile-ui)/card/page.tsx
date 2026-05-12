@@ -25,6 +25,7 @@ import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { rainApi, type ApplyForCardResponse } from '@/services/rain'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useModalsContext } from '@/context/ModalsContext'
+import { useSafeBack } from '@/hooks/useSafeBack'
 
 const CardPage: FC = () => {
     const router = useRouter()
@@ -47,6 +48,7 @@ const CardPage: FC = () => {
     const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
     const { serializeGrant } = useGrantSessionKey()
     const { setIsSupportModalOpen } = useModalsContext()
+    const onBack = useSafeBack('/home')
 
     // Sumsub card-application token — populated when POST /rain/cards reports
     // the user still needs to complete the rain-card-application level.
@@ -319,17 +321,11 @@ const CardPage: FC = () => {
             case 'pioneer':
                 return <CardPioneerFlow cardInfo={cardInfo!} refetchCardInfo={refetchCardInfo} />
             case 'add-card':
-                return (
-                    <AddCardEntryScreen
-                        onApply={() => handleApply(false)}
-                        onPrev={() => router.back()}
-                        applyError={applyError}
-                    />
-                )
+                return <AddCardEntryScreen onApply={() => handleApply(false)} onPrev={onBack} applyError={applyError} />
             case 'pending':
-                return <ApplicationStatusScreen variant="pending" onPrev={() => router.back()} />
+                return <ApplicationStatusScreen variant="pending" onPrev={onBack} />
             case 'manual-review':
-                return <ApplicationStatusScreen variant="manual-review" onPrev={() => router.back()} />
+                return <ApplicationStatusScreen variant="manual-review" onPrev={onBack} />
             case 'rejected':
                 // No retry CTA: Rain denials are terminal on our side. The
                 // only path forward is support reviewing the case manually
@@ -340,12 +336,12 @@ const CardPage: FC = () => {
                     <ApplicationStatusScreen
                         variant="rejected"
                         onContactSupport={() => setIsSupportModalOpen(true)}
-                        onPrev={() => router.back()}
+                        onPrev={onBack}
                     />
                 )
             case 'active': {
                 const card = findActiveCard(overview)!
-                return <YourCardScreen overview={overview!} card={card} onPrev={() => router.back()} />
+                return <YourCardScreen overview={overview!} card={card} onPrev={onBack} />
             }
             default:
                 return null

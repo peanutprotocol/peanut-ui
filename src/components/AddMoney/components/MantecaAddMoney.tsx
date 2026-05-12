@@ -3,6 +3,8 @@ import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { useParams, useSearchParams } from 'next/navigation'
+import { addMoneyCountryUrl } from '@/utils/native-routes'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { type CountryData, countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useCurrency } from '@/hooks/useCurrency'
@@ -66,6 +68,7 @@ const MantecaAddMoney: FC = () => {
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
+    const onBack = useSafeBack(addMoneyCountryUrl(selectedCountryPath))
     const { isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
     const { manteca: mantecaRejection } = useProviderRejectionStatus()
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
@@ -266,6 +269,7 @@ const MantecaAddMoney: FC = () => {
                     setDisplayedAmount={handleDisplayedAmountChange}
                     limitsValidation={limitsValidation}
                     limitsCurrency={limitsValidation.currency}
+                    onBack={onBack}
                 />
             </>
         )
@@ -276,7 +280,13 @@ const MantecaAddMoney: FC = () => {
         if (!depositDetails) {
             return null
         }
-        return <MantecaDepositShareDetails depositDetails={depositDetails} currencyAmount={localCurrencyAmount} />
+        return (
+            <MantecaDepositShareDetails
+                depositDetails={depositDetails}
+                currencyAmount={localCurrencyAmount}
+                onBack={() => setUrlState({ step: 'inputAmount' })}
+            />
+        )
     }
 
     return null

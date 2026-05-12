@@ -8,6 +8,7 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { getColorForUsername } from '@/utils/color.utils'
 import Image, { type StaticImageData } from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { withdrawBankUrl, rewriteMethodPath } from '@/utils/native-routes'
 import { isCapacitor } from '@/utils/capacitor'
 import EmptyState from '../Global/EmptyStates/EmptyState'
@@ -46,6 +47,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const router = useRouter()
     const params = useParams()
     const searchParams = useSearchParams()
+    const onBack = useSafeBack(flow === 'add' ? '/add-money' : '/withdraw')
 
     // check if coming from send flow and what type
     const methodParam = searchParams.get('method')
@@ -261,7 +263,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     if (!currentCountry) {
         return (
             <div className="space-y-8 self-start">
-                <NavHeader title="Not Found" onPrev={() => router.back()} />
+                <NavHeader title="Not Found" onPrev={onBack} />
                 <EmptyState title="Country not found" description="Please try a different country." icon="search" />
             </div>
         )
@@ -427,7 +429,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         router.push(`/withdraw?method=${methodParam}`)
                     } else {
                         setSelectedMethod(null)
-                        router.back()
+                        onBack()
                     }
                 }}
             />

@@ -2,6 +2,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useState, useCallback, useMemo, useEffect, useContext, useRef } from 'react'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import Card from '@/components/Global/Card'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -72,6 +73,9 @@ type PaymentProcessor = 'MANTECA'
 export default function QRPayPage() {
     const searchParams = useSearchParams()
     const router = useRouter()
+    // QR-pay screens are terminal — leaving /qr-pay in history would let browser back from
+    // /home pop the user back into a stale error / KYC screen. Replace instead of push.
+    const onBack = useSafeBack('/home', { replace: true })
     const qrCode = decodeURIComponent(searchParams.get('qrCode') || '')
     const timestamp = searchParams.get('t')
     const qrType = searchParams.get('type')
@@ -839,7 +843,7 @@ export default function QRPayPage() {
                 <NavHeader title="Pay" />
                 <ActionModal
                     visible
-                    onClose={() => router.back()}
+                    onClose={onBack}
                     title={isFixable ? 'We need an updated document' : 'QR payments are not available'}
                     description={
                         isFixable
@@ -879,7 +883,7 @@ export default function QRPayPage() {
                 <NavHeader title="Pay" />
                 <ActionModal
                     visible={kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION}
-                    onClose={() => router.back()}
+                    onClose={onBack}
                     title="Verify your identity to continue"
                     description="You'll need to verify your identity before paying with a QR code. Don't worry it usually just takes a few minutes."
                     icon={
@@ -901,7 +905,7 @@ export default function QRPayPage() {
                 />
                 <ActionModal
                     visible={kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS}
-                    onClose={() => router.back()}
+                    onClose={onBack}
                     title="Complete your verification"
                     description="Your identity is being verified. If you did not finish the process, please continue to complete it."
                     icon="shield"
@@ -916,9 +920,7 @@ export default function QRPayPage() {
                         },
                         {
                             text: 'Not now',
-                            onClick: () => {
-                                router.back()
-                            },
+                            onClick: onBack,
                             variant: 'transparent',
                             className: 'underline text-sm font-medium w-full h-fit mt-3',
                         },
@@ -943,7 +945,7 @@ export default function QRPayPage() {
                         We're working to restore service as soon as possible.
                     </p>
                 </Card>
-                <Button onClick={() => router.back()} variant="purple" shadowSize="4">
+                <Button onClick={onBack} variant="purple" shadowSize="4">
                     Go Back
                 </Button>
                 <button
@@ -969,7 +971,7 @@ export default function QRPayPage() {
                         {errorInitiatingPayment || 'An error occurred while getting the QR details.'}
                     </p>
 
-                    <Button onClick={() => router.back()} variant="purple">
+                    <Button onClick={onBack} variant="purple">
                         Go Back
                     </Button>
                 </Card>
