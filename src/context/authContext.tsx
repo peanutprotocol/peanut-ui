@@ -225,10 +225,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             setIsLoggingOut(true)
             try {
-                // Clear all client-side auth state. The JWT is browser-only —
-                // there's no server-side session to invalidate (see the TODO
-                // about tokenVersion). `clearAuthToken()` removes the cookie
-                // on web and clears localStorage on native.
+                // No server-side session to invalidate — the JWT lives client-side
+                // only (the old logout-user route just dropped a cookie). Once we
+                // add a tokenVersion column we can revoke server-side too.
                 await clearLocalAuthState()
 
                 // fetch user (should return null after logout) - skip for capacitor
