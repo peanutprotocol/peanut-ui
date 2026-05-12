@@ -91,12 +91,6 @@ export function useActivationStatus(): ActivationStatus {
                     activated: 'completed',
                 }
                 activationStep = milestoneToStep[beMilestone] ?? 'verify'
-                // BE hasFunded only checks bridge/manteca deposits, not P2P or crypto.
-                // if BE says "deposit" but user has balance (e.g. received via direct transfer),
-                // skip to outbound step.
-                if (activationStep === 'deposit' && hasBalance) {
-                    activationStep = 'outbound'
-                }
             } else {
                 if (!isUserKycApproved) {
                     activationStep = 'verify'
