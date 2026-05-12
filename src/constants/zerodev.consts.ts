@@ -3,19 +3,27 @@ import { extractChain } from 'viem'
 import * as chains from 'viem/chains'
 import { arbitrum, arbitrumSepolia } from 'viem/chains'
 import { PEANUT_API_URL } from './general.consts'
+import { isCapacitor } from '@/utils/capacitor'
 
 // consts needed to define low level SDK kernel
 // as per: https://docs.zerodev.app/sdk/getting-started/tutorial-passkeys
 export const BUNDLER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL!
 export const PAYMASTER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL!
 
-// The passkey server lives on our backend at /passkeys. The env var is kept
-// for override-ability (e.g. self-hosted ZeroDev for local dev) but defaults
-// to PEANUT_API_URL so a missing or stale env var (or one still pointing at
-// the deleted /api/proxy/passkeys path) can't silently break login.
-const envPasskeyUrl = process.env.NEXT_PUBLIC_ZERO_DEV_PASSKEY_SERVER_URL
-export const PASSKEY_SERVER_URL =
-    envPasskeyUrl && !envPasskeyUrl.includes('/api/proxy') ? envPasskeyUrl : `${PEANUT_API_URL}/passkeys`
+// Passkey server URL. The backend at /passkeys/{login,register}/verify
+// returns Set-Cookie: jwt-token=… which only sticks on the response origin.
+//
+// - Web: use the relative '/passkeys' path so the request is same-origin
+//   (peanut.me) and Set-Cookie lands on peanut.me. next.config.js rewrites
+//   /passkeys/:path* to PEANUT_API_URL/passkeys/:path* at the edge.
+// - Native: rewrites don't exist in Capacitor's static export, so call the
+//   API directly. The native auth-token store reads the JWT from the
+//   response body rather than the cookie anyway, so cross-origin Set-Cookie
+//   doesn't matter there.
+//
+// No env var override — twice now a stale NEXT_PUBLIC_ZERO_DEV_PASSKEY_SERVER_URL
+// has silently broken login. Removing the footgun.
+export const PASSKEY_SERVER_URL = isCapacitor() ? `${PEANUT_API_URL}/passkeys` : '/passkeys'
 
 // Default to Arb One + Circle USDC (prod). Overridable via env so the mono
 // QA harness can point the UI at Arb Sepolia + testnet USDC without forking.

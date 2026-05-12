@@ -130,6 +130,18 @@ let nextConfig = {
                     source: '/ingest/:path*',
                     destination: 'https://eu.i.posthog.com/:path*',
                 },
+                // Same-origin passkey path. The backend's /passkeys/{login,register}/verify
+                // returns Set-Cookie: jwt-token=… without a Domain attribute, so the cookie
+                // lands on whatever origin served the response. Direct calls to api.peanut.me
+                // would put the cookie on the wrong subdomain and break web login. This
+                // edge-level rewrite (no Vercel function, no fetch wrapping) keeps the
+                // request same-origin so Set-Cookie lands on peanut.me. Native bypasses
+                // this entirely — static export ignores rewrites and uses the direct
+                // URL + body-token pattern (see PASSKEY_SERVER_URL in zerodev.consts.ts).
+                {
+                    source: '/passkeys/:path*',
+                    destination: `${process.env.NEXT_PUBLIC_PEANUT_API_URL || 'https://api.peanut.me'}/passkeys/:path*`,
+                },
             ],
         }
     },
