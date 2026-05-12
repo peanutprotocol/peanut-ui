@@ -157,6 +157,11 @@ export function useReceiptViewModel(
             transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.DIRECT_SEND
         )
 
+        // "Show the user's own data even when the tx is in a cancelled state"
+        // gate. True for everything that isn't cancelled, plus the
+        // sendlink-sender-cancelled exemption — drives memo + attachment.
+        const allowCancelledSenderFields = transaction.status !== 'cancelled' || isSendLinkSenderCancelled
+
         return {
             createdAt: !!transaction.createdAt && !willShowCompleted,
             to: transaction.direction === 'claim_external',
@@ -221,16 +226,13 @@ export function useReceiptViewModel(
             // Sender-side sendlink rows keep their memo + attachment after
             // cancel — the data belongs to the sender, not the (never-arrived)
             // recipient. Bank/onramp cancellations hide these as before.
-            comment: !!(transaction.memo?.trim() && (transaction.status !== 'cancelled' || isSendLinkSenderCancelled)),
+            comment: !!(transaction.memo?.trim() && allowCancelledSenderFields),
             networkFee: !!(
                 transaction.networkFeeDetails &&
                 transaction.sourceView === 'status' &&
                 transaction.status !== 'cancelled'
             ),
-            attachment: !!(
-                transaction.attachmentUrl &&
-                (transaction.status !== 'cancelled' || isSendLinkSenderCancelled)
-            ),
+            attachment: !!(transaction.attachmentUrl && allowCancelledSenderFields),
             mantecaDepositInfo:
                 !isPublic &&
                 (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP ||

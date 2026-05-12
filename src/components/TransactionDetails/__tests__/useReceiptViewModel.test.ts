@@ -88,5 +88,11 @@ describe('useReceiptViewModel — cancelled sendlink sender', () => {
 
         expect(result.current.rowVisibilityConfig.comment).toBe(false)
         expect(result.current.rowVisibilityConfig.attachment).toBe(false)
+        // Pre-existing behaviour: tokenAndNetwork has no global `status !==
+        // 'cancelled'` gate — only a `!isPeanutWalletToken` suppress and the
+        // sendlink-sender pre-cancel hide. Cancelled non-sendlinks with a
+        // non-peanut-wallet token still surface this row. Lock that here so
+        // a future status-blanket gate doesn't sneak in unnoticed.
+        expect(result.current.rowVisibilityConfig.tokenAndNetwork).toBe(true)
     })
 })
