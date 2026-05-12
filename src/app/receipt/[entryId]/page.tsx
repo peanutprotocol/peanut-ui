@@ -6,6 +6,7 @@ import {
     mapTransactionDataForDrawer,
     type TransactionDetails,
 } from '@/components/TransactionDetails/transactionTransformer'
+import { isIntentKind } from '@/components/TransactionDetails/strategies/registry'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import NavHeader from '@/components/Global/NavHeader'
 import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
@@ -118,7 +119,7 @@ export async function generateMetadata({
 
     const { entryId } = await params
     const kindParam = (await searchParams).kind
-    if (!entryId || !kindParam || typeof kindParam !== 'string') {
+    if (!entryId || !isIntentKind(kindParam)) {
         return basicMetadata
     }
 
@@ -175,7 +176,7 @@ export default async function ReceiptPage({
 }) {
     const { entryId } = await params
     const kindParam = (await searchParams).kind
-    if (!entryId || !kindParam || typeof kindParam !== 'string') {
+    if (!entryId || !isIntentKind(kindParam)) {
         notFound()
     }
     const entry = await getHistoryEntry(entryId, kindParam)

@@ -146,10 +146,8 @@ export interface HistoryEntryExtraData {
     contractVersion?: string
     depositIdx?: string | number
     /** Wire key used to look up the password in localStorage. The BE writes
-     *  this for SEND_LINK intents so the claim URL rebuilds reliably even
-     *  for rows whose `uuid` is the intent id rather than the legacy link
-     *  id. Fixes the Cancel-button-missing regression on TI-shaped
-     *  sendlinks. */
+     *  this for SEND_LINK intents so the claim URL rebuilds reliably when
+     *  the row's `uuid` is the intent id rather than the link pubKey. */
     parentSendLinkPubKey?: string
 
     // Bridge bank-deposit instructions. Renders the depositInstructions
@@ -287,8 +285,8 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
     switch (kind) {
         case 'SEND_LINK': {
             // localStorage stores passwords keyed by sendLinkPubKey; the BE
-            // writes that key onto the intent extraData so we don't have to
-            // mirror the legacy uuid-keyed scheme.
+            // writes that key onto the intent extraData so the lookup
+            // works whether the row's `uuid` is the intent id or the pubKey.
             const lookupKey = extraData.parentSendLinkPubKey ?? entry.uuid
             const password = getFromLocalStorage(`sendLink::password::${lookupKey}`)
             const { contractVersion, depositIdx } = extraData

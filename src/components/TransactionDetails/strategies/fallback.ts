@@ -7,10 +7,10 @@ export const intentFallback: TransactionStrategy = (entry: HistoryEntry): Transa
     const kind = (entry.extraData?.kind as string | undefined) ?? 'OTHER'
 
     // Rain card refunds arrive with parentRainTxId set (provider === RAIN).
-    // CARD_AUTH_REVERSAL is the canonical reversal kind (wired in the registry);
-    // OTHER / REFUND are kept as a legacy passthrough for rows the BE projector
-    // may still emit while it ships the canonical kind. Both lanes route to
-    // cardRefund — anything else is logged as an unknown kind.
+    // CARD_AUTH_REVERSAL is the canonical reversal kind (wired in the
+    // registry); OTHER / REFUND catch any historical rows whose kind hasn't
+    // been backfilled. Both lanes route to cardRefund — anything else is
+    // logged as an unknown kind.
     if ((kind === 'OTHER' || kind === 'REFUND') && entry.extraData?.parentRainTxId) {
         return cardRefund(entry)
     }

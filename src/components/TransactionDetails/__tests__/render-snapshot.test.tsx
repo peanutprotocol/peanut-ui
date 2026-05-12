@@ -1,25 +1,15 @@
 /**
- * Render-shape snapshot harness for the Decomplexify Phase 2 cutover.
+ * Render-shape snapshot harness for the `/users/history` wire contract.
  *
- * The BE PR ships a baseline JSONL of `/users/history` wire payloads, one
- * row per `(TransactionIntentKind × status × userRole)` tuple. This test
- * vendors that baseline as a JSON fixture, runs every entry through the
- * FE transformer + receipt view model, and asserts byte-equal output
- * against `render-baseline.json`. The baseline is intentionally committed
- * empty — CI bootstraps it the first time the BE-derived fixture is wired
- * in. Until then this test is a no-op gate that locks the harness contract.
- *
- * Why this exists: the legacy projector layer (Bridge/Manteca/Deposit/Perk
- * static mappers) shipped four duplicate-yet-divergent wire shapes for the
- * same row. The FE had to keep a parallel `strategies/legacy/*` layer alive
- * to bridge them. Phase 2 collapses both sides to a single wire kind, and
- * this snapshot is the regression catch-net during the cutover.
+ * Vendors a JSON fixture (`render-baseline.json`) of one HistoryEntry per
+ * `(TransactionIntentKind × status × userRole)` tuple, runs every entry
+ * through the FE transformer + receipt view model, and asserts byte-equal
+ * output. Any drift in the FE rendering of a wire payload fails CI.
  *
  * Fixture format: `Array<{ entry: HistoryEntry; expected: SnapshotRow }>`
- * where `SnapshotRow` captures the receipt-visible fields the cutover must
- * preserve (direction, userName, status, kind, provider, rowVisibilityConfig
- * keys that are true). Loose-typed at the boundary — the assertion is
- * `expect(actual).toEqual(expected)`, no schema enforcement.
+ * where `SnapshotRow` captures the receipt-visible fields the contract
+ * must preserve (direction, userName, kind, provider, etc.). Loose-typed
+ * at the boundary — the assertion is `expect(actual).toEqual(expected)`.
  */
 import { readFileSync } from 'fs'
 import { join } from 'path'
@@ -49,7 +39,7 @@ function loadFixture(): SnapshotCase[] {
     return JSON.parse(raw) as SnapshotCase[]
 }
 
-describe('render snapshot — TRANSACTION_INTENT wire shape (decomplexify phase 2)', () => {
+describe('render snapshot — TRANSACTION_INTENT wire shape', () => {
     const cases = loadFixture()
 
     if (cases.length === 0) {

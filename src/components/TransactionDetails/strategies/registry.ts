@@ -50,8 +50,13 @@ const STRATEGIES: Record<IntentKind, TransactionStrategy> = {
     PERK_REWARD: perkReward,
 }
 
+/** Runtime guard that the kind is one the FE renders. */
+export function isIntentKind(value: unknown): value is IntentKind {
+    return typeof value === 'string' && value in STRATEGIES
+}
+
 export function dispatchStrategy(entry: HistoryEntry): TransactionStrategy {
-    const kind = entry.extraData?.kind as IntentKind | undefined
-    if (kind && STRATEGIES[kind]) return STRATEGIES[kind]
+    const kind = entry.extraData?.kind
+    if (isIntentKind(kind)) return STRATEGIES[kind]
     return intentFallback
 }

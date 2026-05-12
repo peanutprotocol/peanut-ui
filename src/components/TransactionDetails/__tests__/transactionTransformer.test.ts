@@ -410,7 +410,13 @@ describe('mapTransactionDataForDrawer', () => {
     })
 
     describe('unknown-kind default arm (forward-compat / regression guard)', () => {
-        it('renders an unhandled kind as something explicit, not silent fallthrough', () => {
+        it('routes an unhandled kind to the fallback (undefined kind on output)', () => {
+            // Per `isIntentKind` runtime guard — an unknown kind is NOT
+            // passed through verbatim; it's normalised to undefined so the
+            // strategy registry routes via `intentFallback`. The wire emits
+            // raw kind, but the transformer only echoes back kinds it knows
+            // how to render. Adding a new BE kind without a matching FE
+            // strategy is therefore detectable (kind=undefined on output).
             const entry = baseEntry({
                 userRole: EHistoryUserRole.SENDER,
                 recipientAccount: aliceUser,
@@ -418,7 +424,7 @@ describe('mapTransactionDataForDrawer', () => {
             })
             const result = mapTransactionDataForDrawer(entry).transactionDetails
             expect(result.direction).toBeDefined()
-            expect(result.extraDataForDrawer?.kind).toBe('SOMETHING_NEW_THAT_BACKEND_ADDED')
+            expect(result.extraDataForDrawer?.kind).toBeUndefined()
         })
     })
 })

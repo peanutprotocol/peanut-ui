@@ -14,7 +14,7 @@ import { type StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
-import { dispatchStrategy, type IntentKind } from './strategies/registry'
+import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/registry'
 
 // Mirror of peanut-api-ts `enum TransactionProvider`. Receipts that branch
 // on provider (e.g. Manteca-specific deposit-info row) use this typed
@@ -39,13 +39,12 @@ export type Provider =
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
  */
 
-// Wire-level read of `entry.extraData.kind` pinned to the strategy registry's
-// IntentKind union. Cast lives here so every comparison site below is
-// compile-checked — a typo in the kind string is a TS error, not a silent
-// false. Mirrors `isTransactionIntentKind` in transaction-predicates.ts
-// (which operates on TransactionDetails instead of the wire entry).
+// Wire-level read of `entry.extraData.kind`. Runtime-guarded against the
+// strategy registry's IntentKind union — an unknown kind returns undefined
+// (which routes to intentFallback downstream) instead of a silent cast.
 function intentKindOf(entry: HistoryEntry): IntentKind | undefined {
-    return entry.extraData?.kind as IntentKind | undefined
+    const kind = entry.extraData?.kind
+    return isIntentKind(kind) ? kind : undefined
 }
 
 /**
@@ -526,7 +525,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             addressExplorerUrl,
             originalType: 'TRANSACTION_INTENT',
             originalUserRole: entry.userRole as EHistoryUserRole,
-            kind: entry.extraData?.kind as IntentKind | undefined,
+            kind: intentKindOf(entry),
             provider: entry.extraData?.provider as Provider | undefined,
             bridgeFlow: entry.extraData?.bridgeFlow,
             link: entry.extraData?.link,
