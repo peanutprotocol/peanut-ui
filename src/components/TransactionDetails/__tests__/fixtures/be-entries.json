@@ -1,326 +1,3382 @@
 [
-    {
-        "caseId": "bridge-offramp-completed",
-        "entry": {
-            "uuid": "bridge-offramp-completed",
-            "type": "TRANSACTION_INTENT",
-            "timestamp": "<TIMESTAMP>",
-            "amount": "0",
-            "currency": {
-                "amount": "0",
-                "code": ""
-            },
-            "tokenAddress": "",
-            "status": "COMPLETED",
-            "userRole": "SENDER",
-            "senderAccount": {
-                "identifier": "0x6f776e6572000000000000000000000000000000",
-                "type": "peanut-wallet",
-                "isUser": true,
-                "fullName": "Snap owner",
-                "userId": "<USER_ID>"
-            },
-            "recipientAccount": {
-                "identifier": "",
-                "isUser": false
-            },
-            "extraData": {
-                "provider": "BRIDGE",
-                "kind": "OFFRAMP",
-                "bridgeFlow": "OFFRAMP",
-                "receipt": {
-                    "developer_fee": "0.375",
-                    "exchange_rate": "1.0"
-                },
-                "sendLinkPubKey": null
-            },
-            "createdAt": "<TIMESTAMP>",
-            "completedAt": "<TIMESTAMP>",
-            "isVerified": false,
-            "fee": 0.375
-        }
-    },
-    {
-        "caseId": "bridge-onramp-pending",
-        "entry": {
-            "uuid": "bridge-onramp-pending",
-            "type": "TRANSACTION_INTENT",
-            "timestamp": "<TIMESTAMP>",
-            "amount": "0",
-            "currency": {
-                "amount": "0",
-                "code": ""
-            },
-            "tokenAddress": "",
-            "status": "PAYMENT_SUBMITTED",
-            "userRole": "SENDER",
-            "senderAccount": {
-                "identifier": "0x6f776e6572000000000000000000000000000000",
-                "type": "peanut-wallet",
-                "isUser": true,
-                "fullName": "Snap owner",
-                "userId": "<USER_ID>"
-            },
-            "recipientAccount": {
-                "identifier": "",
-                "isUser": false
-            },
-            "extraData": {
-                "provider": "BRIDGE",
-                "kind": "ONRAMP",
-                "bridgeFlow": "OFFRAMP",
-                "receipt": {
-                    "exchange_rate": "1.0"
-                },
-                "sendLinkPubKey": null
-            },
-            "createdAt": "<TIMESTAMP>",
-            "completedAt": null,
-            "isVerified": false
-        }
-    },
-    {
-        "caseId": "card-spend-clear-completed",
-        "entry": {
-            "uuid": "card-spend-clear-completed",
-            "type": "TRANSACTION_INTENT",
-            "timestamp": "<TIMESTAMP>",
-            "amount": "0.00",
-            "currency": {
-                "amount": "0.00",
-                "code": "USD"
-            },
-            "chainId": "",
-            "tokenSymbol": "USDC",
-            "tokenAddress": "",
-            "status": "COMPLETED",
-            "userRole": "SENDER",
-            "senderAccount": {
-                "identifier": "<USER_ID>",
-                "type": "peanut-wallet",
-                "isUser": true
-            },
-            "recipientAccount": {
-                "identifier": "Card payment",
-                "type": "merchant",
-                "isUser": false
-            },
-            "extraData": {
-                "kind": "CARD_SPEND_CLEAR",
-                "source": "EXTERNAL",
-                "intentStatus": "COMPLETED",
-                "intentMetadata": {
-                    "authAmount": "12.50",
-                    "localAmount": "12.50",
-                    "localCurrency": "USD",
-                    "settledAmount": "12.50"
-                },
-                "provider": "RAIN",
-                "merchantName": null,
-                "merchantCategory": null,
-                "merchantCity": null,
-                "merchantCountry": null,
-                "merchantMcc": null,
-                "merchantLogo": null,
-                "merchantId": null,
-                "cardLocalAmount": "12.50",
-                "cardLocalCurrency": "USD",
-                "declineReason": null,
-                "declineCategory": null,
-                "cardAuthAmount": "12.50",
-                "cardSettledAmount": "12.50",
-                "settlementAdjusted": false,
-                "cancellationReason": null,
-                "parentRainTxId": null,
-                "fxRate": null,
-                "rainTransactionId": null,
-                "failReason": null
-            },
-            "createdAt": "<TIMESTAMP>"
-        }
-    },
-    {
-        "caseId": "p2p-send-completed",
-        "entry": {
-            "uuid": "p2p-send-completed",
-            "type": "TRANSACTION_INTENT",
-            "timestamp": "<TIMESTAMP>",
-            "amount": "5.00",
-            "currency": {
-                "amount": "5.00",
-                "code": "USDC"
-            },
-            "chainId": "421614",
-            "tokenSymbol": "USDC",
-            "tokenAddress": "",
-            "status": "COMPLETED",
-            "userRole": "SENDER",
-            "senderAccount": {
-                "identifier": "<USER_ID>",
-                "type": "peanut-wallet",
-                "isUser": true
-            },
-            "recipientAccount": {
-                "identifier": "0xaaaa000000000000000000000000000000000001",
-                "type": "address",
-                "isUser": false
-            },
-            "extraData": {
-                "kind": "P2P_SEND",
-                "source": "EXTERNAL",
-                "intentStatus": "COMPLETED",
-                "intentMetadata": {
-                    "chainId": "421614",
-                    "tokenAmount": "5.00",
-                    "tokenSymbol": "USDC",
-                    "payerAddress": "0xaaaa000000000000000000000000000000000001",
-                    "tokenAddress": "0x75faf114eafb1bdbe2f0316df893fd58ce46aa4d",
-                    "tokenDecimals": 6
-                },
-                "provider": "PEANUT",
-                "merchantName": null,
-                "merchantCategory": null,
-                "merchantCity": null,
-                "merchantCountry": null,
-                "merchantMcc": null,
-                "merchantLogo": null,
-                "merchantId": null,
-                "cardLocalAmount": null,
-                "cardLocalCurrency": null,
-                "declineReason": null,
-                "declineCategory": null,
-                "cardAuthAmount": null,
-                "cardSettledAmount": null,
-                "settlementAdjusted": false,
-                "cancellationReason": null,
-                "parentRainTxId": null,
-                "fxRate": null,
-                "rainTransactionId": null,
-                "failReason": null
-            },
-            "createdAt": "<TIMESTAMP>"
-        }
-    },
-    {
-        "caseId": "request-pay-completed",
-        "entry": {
-            "uuid": "request-pay-completed",
-            "type": "TRANSACTION_INTENT",
-            "timestamp": "<TIMESTAMP>",
-            "amount": "15.00",
-            "currency": {
-                "amount": "15.00",
-                "code": "USDC"
-            },
-            "chainId": "421614",
-            "tokenSymbol": "USDC",
-            "tokenAddress": "",
-            "status": "COMPLETED",
-            "userRole": "RECIPIENT",
-            "senderAccount": {
-                "identifier": "",
-                "type": "address",
-                "isUser": false
-            },
-            "recipientAccount": {
-                "identifier": "<USER_ID>",
-                "type": "peanut-wallet",
-                "isUser": true
-            },
-            "extraData": {
-                "kind": "P2P_REQUEST_FULFILL",
-                "source": "EXTERNAL",
-                "intentStatus": "COMPLETED",
-                "intentMetadata": {
-                    "chainId": "421614",
-                    "tokenAmount": "15.00",
-                    "tokenSymbol": "USDC",
-                    "tokenAddress": "0x75faf114eafb1bdbe2f0316df893fd58ce46aa4d",
-                    "tokenDecimals": 6
-                },
-                "provider": "PEANUT",
-                "merchantName": null,
-                "merchantCategory": null,
-                "merchantCity": null,
-                "merchantCountry": null,
-                "merchantMcc": null,
-                "merchantLogo": null,
-                "merchantId": null,
-                "cardLocalAmount": null,
-                "cardLocalCurrency": null,
-                "declineReason": null,
-                "declineCategory": null,
-                "cardAuthAmount": null,
-                "cardSettledAmount": null,
-                "settlementAdjusted": false,
-                "cancellationReason": null,
-                "parentRainTxId": null,
-                "fxRate": null,
-                "rainTransactionId": null,
-                "failReason": null
-            },
-            "createdAt": "<TIMESTAMP>"
-        }
-    },
-    {
-        "caseId": "send-link-pending",
-        "entry": {
-            "uuid": "send-link-pending",
-            "type": "TRANSACTION_INTENT",
-            "timestamp": "<TIMESTAMP>",
-            "amount": "2.00",
-            "currency": {
-                "amount": "2.00",
-                "code": "USDC"
-            },
-            "chainId": "421614",
-            "tokenSymbol": "USDC",
-            "tokenAddress": "",
-            "status": "PENDING",
-            "userRole": "SENDER",
-            "senderAccount": {
-                "identifier": "<USER_ID>",
-                "type": "peanut-wallet",
-                "isUser": true
-            },
-            "recipientAccount": {
-                "identifier": "",
-                "type": "address",
-                "isUser": false
-            },
-            "extraData": {
-                "kind": "SEND_LINK",
-                "source": "EXTERNAL",
-                "intentStatus": "PROCESSING",
-                "intentMetadata": {
-                    "chainId": "421614",
-                    "tokenAmount": "2.00",
-                    "tokenSymbol": "USDC",
-                    "tokenAddress": "0x75faf114eafb1bdbe2f0316df893fd58ce46aa4d",
-                    "tokenDecimals": 6
-                },
-                "provider": "PEANUT",
-                "merchantName": null,
-                "merchantCategory": null,
-                "merchantCity": null,
-                "merchantCountry": null,
-                "merchantMcc": null,
-                "merchantLogo": null,
-                "merchantId": null,
-                "cardLocalAmount": null,
-                "cardLocalCurrency": null,
-                "declineReason": null,
-                "declineCategory": null,
-                "cardAuthAmount": null,
-                "cardSettledAmount": null,
-                "settlementAdjusted": false,
-                "cancellationReason": null,
-                "parentRainTxId": null,
-                "fxRate": null,
-                "rainTransactionId": null,
-                "failReason": null
-            },
-            "createdAt": "<TIMESTAMP>"
-        }
+  {
+    "caseId": "card_spend_auth-rain-completed-sender",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "3.71",
+      "currency": {
+        "amount": "3.71",
+        "code": "USD"
+      },
+      "chainId": "",
+      "tokenSymbol": "USD",
+      "tokenAddress": "",
+      "status": "COMPLETED",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "recipientAccount": {
+        "identifier": "TIPSYITALIAPIZZARIA",
+        "type": "merchant",
+        "isUser": false
+      },
+      "extraData": {
+        "kind": "CARD_SPEND_AUTH",
+        "source": "EXTERNAL",
+        "intentStatus": "COMPLETED",
+        "intentMetadata": {
+          "merchant": {
+            "id": "<UUID>",
+            "mcc": "5812",
+            "city": "ARROIOS",
+            "logo": null,
+            "name": "TIPSYITALIAPIZZARIA",
+            "country": "PT",
+            "category": "5812 - Eating Places and Restaurants"
+          },
+          "authAmount": "371",
+          "localAmount": "371",
+          "authorizedAt": "2026-05-12T16:17:59.348Z",
+          "localCurrency": "usd",
+          "rainTransactionId": "<UUID>"
+        },
+        "provider": "RAIN",
+        "merchantName": "TIPSYITALIAPIZZARIA",
+        "merchantCategory": "5812 - Eating Places and Restaurants",
+        "merchantCity": "ARROIOS",
+        "merchantCountry": "PT",
+        "merchantMcc": "5812",
+        "merchantLogo": null,
+        "merchantId": "<UUID>",
+        "cardLocalAmount": "371",
+        "cardLocalCurrency": "usd",
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": "371",
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": "<UUID>",
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
     }
+  },
+  {
+    "caseId": "card_spend_auth-rain-failed-sender",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "176.85",
+      "currency": {
+        "amount": "176.85",
+        "code": "USD"
+      },
+      "chainId": "",
+      "tokenSymbol": "USD",
+      "tokenAddress": "",
+      "status": "FAILED",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "recipientAccount": {
+        "identifier": "PAYPAL *ADIDASPORTU 2672.",
+        "type": "merchant",
+        "isUser": false
+      },
+      "extraData": {
+        "kind": "CARD_SPEND_AUTH",
+        "source": "EXTERNAL",
+        "intentStatus": "FAILED",
+        "intentMetadata": {
+          "merchant": {
+            "id": "<UUID>",
+            "mcc": "5661",
+            "city": "4029357733",
+            "logo": null,
+            "name": "PAYPAL *ADIDASPORTU 2672.",
+            "country": "PT",
+            "category": "5661 - Shoe Stores"
+          },
+          "localAmount": "17685",
+          "declineReason": "account credit limit exceeded",
+          "localCurrency": "usd",
+          "rainTransactionId": "<UUID>"
+        },
+        "provider": "RAIN",
+        "merchantName": "PAYPAL *ADIDASPORTU 2672.",
+        "merchantCategory": "5661 - Shoe Stores",
+        "merchantCity": "4029357733",
+        "merchantCountry": "PT",
+        "merchantMcc": "5661",
+        "merchantLogo": null,
+        "merchantId": "<UUID>",
+        "cardLocalAmount": "17685",
+        "cardLocalCurrency": "usd",
+        "declineReason": "account credit limit exceeded",
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": "<UUID>",
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "card_spend_auth-rain-pending-sender",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "9.94",
+      "currency": {
+        "amount": "8.35",
+        "code": "EUR"
+      },
+      "chainId": "",
+      "tokenSymbol": "USD",
+      "tokenAddress": "",
+      "status": "PENDING",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "recipientAccount": {
+        "identifier": "MY AUCHAN  ALMADA",
+        "type": "merchant",
+        "isUser": false
+      },
+      "extraData": {
+        "kind": "CARD_SPEND_AUTH",
+        "source": "EXTERNAL",
+        "intentStatus": "PROCESSING",
+        "intentMetadata": {
+          "merchant": {
+            "id": "<UUID>",
+            "mcc": "5411",
+            "city": "ALMADA",
+            "logo": null,
+            "name": "MY AUCHAN  ALMADA",
+            "country": "PT",
+            "category": "5411 - Grocery Stores and Supermarkets"
+          },
+          "authAmount": "994",
+          "localAmount": "835",
+          "authorizedAt": "2026-05-03T11:42:17.293Z",
+          "localCurrency": "eur",
+          "rainTransactionId": "<UUID>"
+        },
+        "provider": "RAIN",
+        "merchantName": "MY AUCHAN  ALMADA",
+        "merchantCategory": "5411 - Grocery Stores and Supermarkets",
+        "merchantCity": "ALMADA",
+        "merchantCountry": "PT",
+        "merchantMcc": "5411",
+        "merchantLogo": null,
+        "merchantId": "<UUID>",
+        "cardLocalAmount": "835",
+        "cardLocalCurrency": "eur",
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": "994",
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": "<UUID>",
+        "receipt": {
+          "exchange_rate": "0.8400"
+        },
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "crypto_deposit-onchain-completed-recipient",
+    "entry": {
+      "uuid": "0x008f65a049e1178520ea1256cb1194b78d6dee5cb62e1550f03834ba082a4135-15",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "210000",
+      "txHash": "0x008f65a049e1178520ea1256cb1194b78d6dee5cb62e1550f03834ba082a4135",
+      "chainId": "42161",
+      "tokenSymbol": "",
+      "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+      "status": "COMPLETED",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "0x0fdaEB9903A291aB8450DFA25B3fa962E075547A",
+        "type": "evm-address",
+        "isUser": false
+      },
+      "recipientAccount": {
+        "identifier": "0x3469873b6201a098fc48c633ce7487ce581ed2cc",
+        "type": "WALLET_SMART",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "extraData": {
+        "provider": "ONCHAIN",
+        "kind": "CRYPTO_DEPOSIT",
+        "blockNumber": "362470699"
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "crypto_withdraw-peanut-completed-recipient",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "5",
+      "currency": {
+        "amount": "5",
+        "code": "USD"
+      },
+      "txHash": "0x8983336c59436354e39cdd84f2ee81ad58e54c094a7e9d968a5a79e2e2604f3c",
+      "chainId": "42161",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "COMPLETED",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "0xdb2a2cd37f39bd4a3f8529a51f6f839ccd27a8e7",
+        "type": "address",
+        "isUser": false
+      },
+      "recipientAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "extraData": {
+        "kind": "CRYPTO_WITHDRAW",
+        "source": "EXTERNAL",
+        "intentStatus": "COMPLETED",
+        "intentMetadata": {
+          "chainId": "42161",
+          "recipient": "0xdb2a2cd37f39bd4a3f8529a51f6f839ccd27a8e7",
+          "chargeUuid": "<UUID>",
+          "tokenAmount": "5",
+          "tokenSymbol": "USDC",
+          "currencyCode": "USD",
+          "payerAddress": "0x48bd446425e2589ca99ea2648be18ccbfabdc3c7",
+          "payerChainId": "42161",
+          "squidQuoteId": null,
+          "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "paymentReason": null,
+          "recipientName": "testsend",
+          "tokenDecimals": 6,
+          "currencyAmount": "5",
+          "paidTokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "paymentVerifiedAt": "2025-10-21T23:25:16.325Z",
+          "payerSourceChainId": null,
+          "paymentMigratedFrom": "public.request_payments",
+          "payerTransactionHash": "0x8983336c59436354e39cdd84f2ee81ad58e54c094a7e9d968a5a79e2e2604f3c",
+          "paidAmountInPayerToken": "5000000",
+          "payerSourceTokenSymbol": null,
+          "payerSourceTokenAddress": null,
+          "fulfillmentTransactionHash": "0x8983336c59436354e39cdd84f2ee81ad58e54c094a7e9d968a5a79e2e2604f3c",
+          "paidAmountInRequestedToken": "5000000"
+        },
+        "provider": "PEANUT",
+        "recipientName": "testsend",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "crypto_withdraw-peanut-completed-sender",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "1",
+      "currency": {
+        "amount": "1",
+        "code": "USD"
+      },
+      "txHash": "0x267fd1ffdc62a0f85f4c4bc38d57a93a05d5fc85db58a752fd20d5bb092533b9",
+      "chainId": "42161",
+      "tokenSymbol": "USDT",
+      "tokenAddress": "",
+      "status": "COMPLETED",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "recipientAccount": {
+        "identifier": "0x0514fc2bd3996845f5434591b0db40f17098bca6",
+        "type": "address",
+        "isUser": false
+      },
+      "extraData": {
+        "kind": "CRYPTO_WITHDRAW",
+        "source": "EXTERNAL",
+        "intentStatus": "COMPLETED",
+        "intentMetadata": {
+          "chainId": "42161",
+          "recipient": "0x0514fc2bd3996845f5434591b0db40f17098bca6",
+          "chargeUuid": "<UUID>",
+          "tokenAmount": "1",
+          "tokenSymbol": "USDT",
+          "currencyCode": "USD",
+          "payerAddress": "0xf0b0b7597e99c9105d855687902926bef6b13fae",
+          "payerChainId": "42161",
+          "squidQuoteId": null,
+          "tokenAddress": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+          "paymentReason": null,
+          "recipientName": "testtest",
+          "tokenDecimals": 6,
+          "currencyAmount": "1",
+          "paidTokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "paymentVerifiedAt": "2025-08-05T15:42:03.537Z",
+          "payerSourceChainId": null,
+          "paymentMigratedFrom": "public.request_payments",
+          "payerTransactionHash": "0x267fd1ffdc62a0f85f4c4bc38d57a93a05d5fc85db58a752fd20d5bb092533b9",
+          "paidAmountInPayerToken": "999866",
+          "payerSourceTokenSymbol": null,
+          "payerSourceTokenAddress": null,
+          "fulfillmentTransactionHash": "0x267fd1ffdc62a0f85f4c4bc38d57a93a05d5fc85db58a752fd20d5bb092533b9",
+          "paidAmountInRequestedToken": "999866"
+        },
+        "provider": "PEANUT",
+        "recipientName": "testtest",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "crypto_withdraw-peanut-failed-sender",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "2",
+      "currency": {
+        "amount": "2",
+        "code": "USD"
+      },
+      "chainId": "1",
+      "tokenSymbol": "ETH",
+      "tokenAddress": "",
+      "status": "FAILED",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "recipientAccount": {
+        "identifier": "0x0514fc2bd3996845f5434591b0db40f17098bca6",
+        "type": "address",
+        "isUser": false
+      },
+      "extraData": {
+        "kind": "CRYPTO_WITHDRAW",
+        "source": "EXTERNAL",
+        "intentStatus": "FAILED",
+        "intentMetadata": {
+          "chainId": "1",
+          "recipient": "0x0514fc2bd3996845f5434591b0db40f17098bca6",
+          "chargeUuid": "<UUID>",
+          "failReason": "crypto_withdraw_timeout",
+          "tokenAmount": "2",
+          "tokenSymbol": "ETH",
+          "currencyCode": "USD",
+          "tokenAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "recipientName": "testtest",
+          "tokenDecimals": 18,
+          "currencyAmount": "2"
+        },
+        "provider": "PEANUT",
+        "recipientName": "testtest",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": "crypto_withdraw_timeout"
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "direct_transfer-peanut-completed-both",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "0.10",
+      "currency": {
+        "amount": "0.1",
+        "code": "USD"
+      },
+      "txHash": "0x1fb8b31c96187c322e90dfc5f8de3309e1c378ed795eab6cf6d81be8eb1d066a",
+      "chainId": "42161",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "COMPLETED",
+      "userRole": "BOTH",
+      "senderAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "recipientAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "extraData": {
+        "kind": "DIRECT_TRANSFER",
+        "source": "EXTERNAL",
+        "intentStatus": "COMPLETED",
+        "intentMetadata": {
+          "chainId": "42161",
+          "recipient": "0x2e223f7436b601b926259157b2f4e6673e8a1eb7",
+          "tokenType": "1",
+          "chargeUuid": "<UUID>",
+          "tokenAmount": "0.1",
+          "tokenSymbol": "USDC",
+          "currencyCode": "USD",
+          "payerAddress": "0x2e223f7436b601b926259157b2f4e6673e8a1eb7",
+          "payerChainId": "42161",
+          "squidQuoteId": null,
+          "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "paymentReason": null,
+          "recipientName": "juevestest",
+          "tokenDecimals": 6,
+          "currencyAmount": "0.1",
+          "paidTokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "recipientAddress": "0x2e223f7436b601b926259157b2f4e6673e8a1eb7",
+          "paymentVerifiedAt": "2025-05-30T19:14:40.596Z",
+          "payerSourceChainId": null,
+          "paymentMigratedFrom": "public.request_payments",
+          "payerTransactionHash": "0x1fb8b31c96187c322e90dfc5f8de3309e1c378ed795eab6cf6d81be8eb1d066a",
+          "paidAmountInPayerToken": null,
+          "payerSourceTokenSymbol": null,
+          "payerSourceTokenAddress": null,
+          "fulfillmentTransactionHash": "0x1fb8b31c96187c322e90dfc5f8de3309e1c378ed795eab6cf6d81be8eb1d066a",
+          "paidAmountInRequestedToken": "100000"
+        },
+        "provider": "PEANUT",
+        "recipientName": "juevestest",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "direct_transfer-peanut-completed-recipient",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "0.10",
+      "currency": {
+        "amount": "0.1",
+        "code": "USD"
+      },
+      "txHash": "0x6eb0d303fe6b89d700210ba028a879ff0956a18c166e0d023dfa457e2018d0e6",
+      "chainId": "42161",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "COMPLETED",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "0x48bd446425e2589ca99ea2648be18ccbfabdc3c7",
+        "type": "address",
+        "isUser": false
+      },
+      "recipientAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "extraData": {
+        "kind": "DIRECT_TRANSFER",
+        "source": "EXTERNAL",
+        "intentStatus": "COMPLETED",
+        "intentMetadata": {
+          "chainId": "42161",
+          "recipient": "0xf5f276a21bfdbee53e882dcde0f378a711c9bf11",
+          "tokenType": "1",
+          "chargeUuid": "<UUID>",
+          "tokenAmount": "0.1",
+          "tokenSymbol": "USDC",
+          "currencyCode": "USD",
+          "payerAddress": "0x48bd446425e2589ca99ea2648be18ccbfabdc3c7",
+          "payerChainId": "42161",
+          "squidQuoteId": null,
+          "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "paymentReason": null,
+          "recipientName": "lastacctest",
+          "tokenDecimals": 6,
+          "currencyAmount": "0.1",
+          "paidTokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "recipientAddress": "0xf5f276a21bfdbee53e882dcde0f378a711c9bf11",
+          "paymentVerifiedAt": "2026-01-16T02:13:47.860Z",
+          "payerSourceChainId": null,
+          "paymentMigratedFrom": "public.request_payments",
+          "payerTransactionHash": "0x6eb0d303fe6b89d700210ba028a879ff0956a18c166e0d023dfa457e2018d0e6",
+          "paidAmountInPayerToken": "100000",
+          "payerSourceTokenSymbol": null,
+          "payerSourceTokenAddress": null,
+          "fulfillmentTransactionHash": "0x6eb0d303fe6b89d700210ba028a879ff0956a18c166e0d023dfa457e2018d0e6",
+          "paidAmountInRequestedToken": "100000"
+        },
+        "provider": "PEANUT",
+        "recipientName": "lastacctest",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "direct_transfer-peanut-completed-sender",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "0.10",
+      "currency": {
+        "amount": "0.1",
+        "code": "USD"
+      },
+      "txHash": "0x6eb0d303fe6b89d700210ba028a879ff0956a18c166e0d023dfa457e2018d0e6",
+      "chainId": "42161",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "COMPLETED",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "recipientAccount": {
+        "identifier": "0xf5f276a21bfdbee53e882dcde0f378a711c9bf11",
+        "type": "address",
+        "isUser": false
+      },
+      "extraData": {
+        "kind": "DIRECT_TRANSFER",
+        "source": "EXTERNAL",
+        "intentStatus": "COMPLETED",
+        "intentMetadata": {
+          "chainId": "42161",
+          "recipient": "0xf5f276a21bfdbee53e882dcde0f378a711c9bf11",
+          "tokenType": "1",
+          "chargeUuid": "<UUID>",
+          "tokenAmount": "0.1",
+          "tokenSymbol": "USDC",
+          "currencyCode": "USD",
+          "payerAddress": "0x48bd446425e2589ca99ea2648be18ccbfabdc3c7",
+          "payerChainId": "42161",
+          "squidQuoteId": null,
+          "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "paymentReason": null,
+          "recipientName": "lastacctest",
+          "tokenDecimals": 6,
+          "currencyAmount": "0.1",
+          "paidTokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "recipientAddress": "0xf5f276a21bfdbee53e882dcde0f378a711c9bf11",
+          "paymentVerifiedAt": "2026-01-16T02:13:47.860Z",
+          "payerSourceChainId": null,
+          "paymentMigratedFrom": "public.request_payments",
+          "payerTransactionHash": "0x6eb0d303fe6b89d700210ba028a879ff0956a18c166e0d023dfa457e2018d0e6",
+          "paidAmountInPayerToken": "100000",
+          "payerSourceTokenSymbol": null,
+          "payerSourceTokenAddress": null,
+          "fulfillmentTransactionHash": "0x6eb0d303fe6b89d700210ba028a879ff0956a18c166e0d023dfa457e2018d0e6",
+          "paidAmountInRequestedToken": "100000"
+        },
+        "provider": "PEANUT",
+        "recipientName": "lastacctest",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "direct_transfer-peanut-failed-sender",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "1",
+      "currency": {
+        "amount": "1",
+        "code": "USD"
+      },
+      "chainId": "1",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "FAILED",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "recipientAccount": {
+        "identifier": "0xbcf9193a854546bd8e71f0aec5666018eeea8f8e",
+        "type": "address",
+        "isUser": false
+      },
+      "extraData": {
+        "kind": "DIRECT_TRANSFER",
+        "source": "EXTERNAL",
+        "intentStatus": "FAILED",
+        "intentMetadata": {
+          "reason": "Invalid chain id",
+          "chainId": "1",
+          "tokenType": "1",
+          "chargeUuid": "<UUID>",
+          "tokenAmount": "1",
+          "tokenSymbol": "USDC",
+          "currencyCode": "USD",
+          "tokenAddress": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+          "tokenDecimals": 6,
+          "currencyAmount": "1",
+          "paidAmountInPayerToken": null,
+          "fulfillmentTransactionHash": null,
+          "paidAmountInRequestedToken": null
+        },
+        "provider": "PEANUT",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "offramp-bridge-awaiting_funds-recipient",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "1.01",
+      "currency": {
+        "amount": "1.01",
+        "code": "eur"
+      },
+      "chainId": "arbitrum",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "AWAITING_FUNDS",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "",
+        "type": "peanut-wallet",
+        "isUser": false
+      },
+      "recipientAccount": {
+        "identifier": "<UUID>",
+        "type": "sepa",
+        "isUser": false
+      },
+      "extraData": {
+        "provider": "BRIDGE",
+        "kind": "OFFRAMP",
+        "bridgeFlow": "BANK_SEND_LINK_CLAIM",
+        "depositInstructions": {
+          "amount": "1.01",
+          "currency": "usdc",
+          "to_address": "0xae33d11b4a722ea695840bfaa70650405ae9539f",
+          "from_address": "0x43b90099a203957f1adf35dde15ac88b3e323e75",
+          "payment_rail": "arbitrum"
+        },
+        "receipt": {
+          "gas_fee": "0.0",
+          "exchange_fee": "0.0",
+          "developer_fee": "0.0",
+          "initial_amount": "1.01",
+          "subtotal_amount": "1.01"
+        },
+        "sendLinkPubKey": "0x7995455A501bF0e330b6EFa2d58C77CA38A08b7c"
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": null,
+      "cancelledAt": null,
+      "isVerified": false
+    }
+  },
+  {
+    "caseId": "offramp-bridge-awaiting_funds-sender",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "2.0",
+      "currency": {
+        "amount": "2.0",
+        "code": "eur"
+      },
+      "chainId": "arbitrum",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "AWAITING_FUNDS",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "0xce535a4cf82e83d4492e07402cda1c541a982663",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "recipientAccount": {
+        "identifier": "lu944080000051172629",
+        "type": "iban",
+        "isUser": false
+      },
+      "extraData": {
+        "provider": "BRIDGE",
+        "kind": "OFFRAMP",
+        "bridgeFlow": "OFFRAMP",
+        "depositInstructions": {
+          "amount": "2.0",
+          "currency": "usdc",
+          "to_address": "0xdac36ab2d9cd0eac93d99f378fb61f0953d2e8f4",
+          "from_address": "0xce535a4cf82e83d4492e07402cda1c541a982663",
+          "payment_rail": "arbitrum"
+        },
+        "receipt": {
+          "gas_fee": "0.0",
+          "exchange_fee": "0.0",
+          "developer_fee": "0.0",
+          "initial_amount": "2.0",
+          "subtotal_amount": "2.0"
+        },
+        "sendLinkPubKey": null
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": null,
+      "cancelledAt": null,
+      "isVerified": false
+    }
+  },
+  {
+    "caseId": "offramp-bridge-payment_processed-recipient",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "2.2",
+      "currency": {
+        "amount": "1.88",
+        "code": "eur"
+      },
+      "txHash": "0x3b74fc2ca1d21748f40ed68366d9f07ad449a3f057f3e5ee7de167fe02aeca1c",
+      "chainId": "arbitrum",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "PAYMENT_PROCESSED",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "",
+        "type": "peanut-wallet",
+        "isUser": false
+      },
+      "recipientAccount": {
+        "identifier": "<UUID>",
+        "type": "sepa",
+        "isUser": false
+      },
+      "extraData": {
+        "provider": "BRIDGE",
+        "kind": "OFFRAMP",
+        "bridgeFlow": "BANK_SEND_LINK_CLAIM",
+        "depositInstructions": {
+          "amount": "2.2",
+          "currency": "usdc",
+          "to_address": "0xd49200d0caeabdda9e6848d66ca2d07600fc2ddf",
+          "from_address": "0x43b90099a203957f1adf35dde15ac88b3e323e75",
+          "payment_rail": "arbitrum"
+        },
+        "receipt": {
+          "url": "https://dashboard.bridge.xyz/transaction/13ad98bb-391d-4899-a657-99186ea2216c/receipt/59a72afd-80aa-46a3-9053-ee10ec4d0637",
+          "gas_fee": "0.0",
+          "exchange_fee": "0.0",
+          "final_amount": "1.88",
+          "developer_fee": "0.0",
+          "exchange_rate": "0.854545",
+          "initial_amount": "2.2",
+          "source_tx_hash": "0x3b74fc2ca1d21748f40ed68366d9f07ad449a3f057f3e5ee7de167fe02aeca1c",
+          "subtotal_amount": "2.2",
+          "converted_amount": "1.88"
+        },
+        "sendLinkPubKey": "0x274BDcE3E21600c363761b6707702a2Eb9e79c10"
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": "<TIMESTAMP>",
+      "cancelledAt": null,
+      "isVerified": false
+    }
+  },
+  {
+    "caseId": "offramp-bridge-payment_processed-sender",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "5.0",
+      "currency": {
+        "amount": "4.24",
+        "code": "eur"
+      },
+      "txHash": "0x737066cb6fec088e76c8bb503146b6c23a1bcc64b00a313100fefbad46fd0d76",
+      "chainId": "arbitrum",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "PAYMENT_PROCESSED",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "0x6fdb49f19fbcd5236291393cc336fe241bcb3f8f",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "recipientAccount": {
+        "identifier": "es2700750984220607080217",
+        "type": "iban",
+        "isUser": false
+      },
+      "extraData": {
+        "provider": "BRIDGE",
+        "kind": "OFFRAMP",
+        "bridgeFlow": "OFFRAMP",
+        "depositInstructions": {
+          "amount": "5.0",
+          "currency": "usdc",
+          "to_address": "0xd7dad9d7408a422931a8a672d03d78fdc64b9ee6",
+          "from_address": "0x6fdb49f19fbcd5236291393cc336fe241bcb3f8f",
+          "payment_rail": "arbitrum"
+        },
+        "receipt": {
+          "url": "https://dashboard.bridge.xyz/transaction/0c1c43c3-3936-4a9b-9ce6-0682e9f7555a/receipt/405e8cee-f3f0-45ad-aad4-49ed5b03e3ee",
+          "gas_fee": "0.0",
+          "exchange_fee": "0.0",
+          "final_amount": "4.24",
+          "developer_fee": "0.0",
+          "exchange_rate": "0.848000",
+          "initial_amount": "5.0",
+          "source_tx_hash": "0x737066cb6fec088e76c8bb503146b6c23a1bcc64b00a313100fefbad46fd0d76",
+          "subtotal_amount": "5.0",
+          "converted_amount": "4.24"
+        },
+        "sendLinkPubKey": null
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": "<TIMESTAMP>",
+      "cancelledAt": null,
+      "isVerified": false
+    }
+  },
+  {
+    "caseId": "offramp-bridge-refunded-recipient",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "1.0",
+      "currency": {
+        "amount": "0.85",
+        "code": "eur"
+      },
+      "txHash": "0xd34f92200d1e30f446f74601ab6b3cb34f0327abcadd4c382348ddcdd9f747a7",
+      "chainId": "arbitrum",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "REFUNDED",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "",
+        "type": "peanut-wallet",
+        "isUser": false
+      },
+      "recipientAccount": {
+        "identifier": "<UUID>",
+        "type": "sepa",
+        "isUser": false
+      },
+      "extraData": {
+        "provider": "BRIDGE",
+        "kind": "OFFRAMP",
+        "bridgeFlow": "BANK_SEND_LINK_CLAIM",
+        "depositInstructions": {
+          "amount": "1.0",
+          "currency": "usdc",
+          "to_address": "0xd49200d0caeabdda9e6848d66ca2d07600fc2ddf",
+          "from_address": "0x43b90099a203957f1adf35dde15ac88b3e323e75",
+          "payment_rail": "arbitrum"
+        },
+        "receipt": {
+          "gas_fee": "0.0",
+          "exchange_fee": "0.0",
+          "final_amount": "0.85",
+          "developer_fee": "0.0",
+          "exchange_rate": "0.850000",
+          "initial_amount": "1.0",
+          "source_tx_hash": "0xd34f92200d1e30f446f74601ab6b3cb34f0327abcadd4c382348ddcdd9f747a7",
+          "subtotal_amount": "1.0",
+          "converted_amount": "0.85"
+        },
+        "sendLinkPubKey": "0x87505f25cb6fF6aA84a4134a4cA910eFCB0D91da"
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": null,
+      "cancelledAt": null,
+      "isVerified": false
+    }
+  },
+  {
+    "caseId": "offramp-bridge-refunded-sender",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "1.9",
+      "currency": {
+        "amount": "1.62",
+        "code": "eur"
+      },
+      "txHash": "0xdd8772a2f55782c60f7c20ea8986065e0fb1b74a5f6e8e9a8d1d04124f9897db",
+      "chainId": "arbitrum",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "REFUNDED",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "0x9595e148f055f8fbe086449788c03cdcf2cde2a4",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "recipientAccount": {
+        "identifier": "be10905272880104",
+        "type": "iban",
+        "isUser": false
+      },
+      "extraData": {
+        "provider": "BRIDGE",
+        "kind": "OFFRAMP",
+        "bridgeFlow": "OFFRAMP",
+        "depositInstructions": {
+          "amount": "1.9",
+          "currency": "usdc",
+          "to_address": "0x656f70d9b620422297e15c6a5a90dad47dea9605",
+          "from_address": "0x9595e148f055f8fbe086449788c03cdcf2cde2a4",
+          "payment_rail": "arbitrum"
+        },
+        "receipt": {
+          "gas_fee": "0.0",
+          "exchange_fee": "0.0",
+          "final_amount": "1.62",
+          "developer_fee": "0.0",
+          "exchange_rate": "0.852631",
+          "initial_amount": "1.9",
+          "source_tx_hash": "0xdd8772a2f55782c60f7c20ea8986065e0fb1b74a5f6e8e9a8d1d04124f9897db",
+          "subtotal_amount": "1.9",
+          "converted_amount": "1.62"
+        },
+        "sendLinkPubKey": null
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": null,
+      "cancelledAt": null,
+      "isVerified": false
+    }
+  },
+  {
+    "caseId": "offramp-bridge-returned-sender",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "1.1",
+      "currency": {
+        "amount": "0.92",
+        "code": "eur"
+      },
+      "txHash": "0x14b571ec438c77f5f0a2a9f8ff7b42cee77002a4cb5f643e3b3725199a2df24b",
+      "chainId": "arbitrum",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "RETURNED",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "0x9595e148f055f8fbe086449788c03cdcf2cde2a4",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "recipientAccount": {
+        "identifier": "be10905272880104",
+        "type": "iban",
+        "isUser": false
+      },
+      "extraData": {
+        "provider": "BRIDGE",
+        "kind": "OFFRAMP",
+        "bridgeFlow": "OFFRAMP",
+        "depositInstructions": {
+          "amount": "1.1",
+          "currency": "usdc",
+          "to_address": "0x656f70d9b620422297e15c6a5a90dad47dea9605",
+          "from_address": "0x9595e148f055f8fbe086449788c03cdcf2cde2a4",
+          "payment_rail": "arbitrum"
+        },
+        "receipt": {
+          "gas_fee": "0.0",
+          "exchange_fee": "0.0",
+          "final_amount": "0.92",
+          "developer_fee": "0.0",
+          "exchange_rate": "0.836363",
+          "initial_amount": "1.1",
+          "source_tx_hash": "0x14b571ec438c77f5f0a2a9f8ff7b42cee77002a4cb5f643e3b3725199a2df24b",
+          "subtotal_amount": "1.1",
+          "converted_amount": "0.92"
+        },
+        "sendLinkPubKey": null
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": null,
+      "cancelledAt": null,
+      "isVerified": false
+    }
+  },
+  {
+    "caseId": "offramp-manteca-cancelled-sender",
+    "entry": {
+      "uuid": "68d4303610f1c16861878596",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "3",
+      "currency": {
+        "amount": "15.85",
+        "code": "BRL"
+      },
+      "status": "CANCELLED",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "0x816157783815588bef0b45b8f6007df2c05a360d",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "recipientAccount": {
+        "identifier": "91991110757",
+        "type": "BANK_CBU",
+        "isUser": false
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": null,
+      "extraData": {
+        "provider": "MANTECA",
+        "kind": "OFFRAMP",
+        "receipt": {
+          "depositDetails": {
+            "depositAddress": "0x959e088a09f61aB01cb83b0eBCc74b2CF6d62053"
+          },
+          "exchange_rate": "5.283"
+        }
+      }
+    }
+  },
+  {
+    "caseId": "offramp-manteca-completed-sender",
+    "entry": {
+      "uuid": "68d2e81208aa823a3f0e3568",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "0.722757",
+      "currency": {
+        "amount": "1000.00",
+        "code": "ARS"
+      },
+      "status": "COMPLETED",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "0x6c24dd9b4aa24d42ee5fb29d82c1fda6f347143a",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "recipientAccount": {
+        "identifier": "0720035988000039024572",
+        "type": "BANK_CBU",
+        "isUser": false
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": "<TIMESTAMP>",
+      "extraData": {
+        "provider": "MANTECA",
+        "kind": "OFFRAMP",
+        "receipt": {
+          "depositDetails": {
+            "depositAddress": "0x959e088a09f61aB01cb83b0eBCc74b2CF6d62053"
+          },
+          "exchange_rate": "1383.59"
+        }
+      }
+    }
+  },
+  {
+    "caseId": "offramp-manteca-starting-sender",
+    "entry": {
+      "uuid": "68f96a46c44a0c1fd0ac2824",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "1",
+      "currency": {
+        "amount": "1559.35",
+        "code": "ARS"
+      },
+      "status": "STARTING",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "0x48bd446425e2589ca99ea2648be18ccbfabdc3c7",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "recipientAccount": {
+        "identifier": "0000003100068137165407",
+        "type": "BANK_CBU",
+        "isUser": false
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": null,
+      "extraData": {
+        "provider": "MANTECA",
+        "kind": "OFFRAMP",
+        "receipt": {
+          "depositDetails": {
+            "depositAddress": "0x959e088a09f61aB01cb83b0eBCc74b2CF6d62053"
+          },
+          "exchange_rate": "1559.35"
+        }
+      }
+    }
+  },
+  {
+    "caseId": "offramp-peanut-pending-sender",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "1.00",
+      "currency": {
+        "amount": "1.00",
+        "code": "USD"
+      },
+      "txHash": "0xc9ec3852ab9727acebea2eff1dc90c86dd84470dd195f362071bf1281e5c4cf2",
+      "chainId": "42161",
+      "tokenSymbol": "USD",
+      "tokenAddress": "",
+      "status": "PENDING",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "recipientAccount": {
+        "identifier": "0x959e088a09f61aB01cb83b0eBCc74b2CF6d62053",
+        "type": "address",
+        "isUser": false
+      },
+      "extraData": {
+        "kind": "OFFRAMP",
+        "source": "RAIN_COLLATERAL",
+        "intentStatus": "PROCESSING",
+        "intentMetadata": {
+          "chainId": "42161",
+          "recipient": "0x959e088a09f61aB01cb83b0eBCc74b2CF6d62053",
+          "legacySource": "RAIN_COLLATERAL",
+          "directTransfer": true,
+          "collateralAmountCents": "100"
+        },
+        "provider": "PEANUT",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "onramp-bridge-awaiting_funds-recipient",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "3.0",
+      "currency": {
+        "amount": "3.0",
+        "code": "eur"
+      },
+      "chainId": "arbitrum",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "AWAITING_FUNDS",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "0x0488ebf5d877831d8e420c999c41d6f83b15489c",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "recipientAccount": {
+        "identifier": "0x0488ebf5d877831d8e420c999c41d6f83b15489c",
+        "type": "evm-address",
+        "isUser": false
+      },
+      "extraData": {
+        "provider": "BRIDGE",
+        "kind": "ONRAMP",
+        "bridgeFlow": "ONRAMP",
+        "depositInstructions": {
+          "bic": "MODRIE22XXX",
+          "iban": "IE87MODR99035505302803",
+          "amount": "3.0",
+          "currency": "eur",
+          "bank_name": "Modulr Finance, Ireland Branch",
+          "bank_address": "Floor 6, 2 Grand Canal Square, Dublin, Ireland",
+          "payment_rail": "sepa",
+          "deposit_message": "BRGEMPEB943ZEHZZ4ATK",
+          "account_holder_name": "Bridge Building Sp.z.o.o."
+        },
+        "receipt": {
+          "gas_fee": "0.0",
+          "exchange_fee": "0.0",
+          "developer_fee": "0.0",
+          "initial_amount": "3.0",
+          "subtotal_amount": "3.0"
+        },
+        "sendLinkPubKey": null
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": null,
+      "cancelledAt": null,
+      "isVerified": false
+    }
+  },
+  {
+    "caseId": "onramp-bridge-canceled-recipient",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "1.0",
+      "currency": {
+        "amount": "1.0",
+        "code": "eur"
+      },
+      "chainId": "arbitrum",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "CANCELED",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "0xabe0dd1bf8b45d09d8465c5d13c09ae4ceb8f27f",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "recipientAccount": {
+        "identifier": "0xabe0dd1bf8b45d09d8465c5d13c09ae4ceb8f27f",
+        "type": "evm-address",
+        "isUser": false
+      },
+      "extraData": {
+        "provider": "BRIDGE",
+        "kind": "ONRAMP",
+        "bridgeFlow": "ONRAMP",
+        "depositInstructions": {
+          "bic": "MODRIE22XXX",
+          "iban": "IE87MODR99035505302803",
+          "amount": "1.0",
+          "currency": "eur",
+          "bank_name": "Modulr Finance, Ireland Branch",
+          "bank_address": "Floor 6, 2 Grand Canal Square, Dublin, Ireland",
+          "payment_rail": "sepa",
+          "deposit_message": "BRGMHSRE7F726NP86N6A",
+          "account_holder_name": "Bridge Building Sp.z.o.o."
+        },
+        "receipt": {
+          "gas_fee": "0.0",
+          "exchange_fee": "0.0",
+          "developer_fee": "0.0",
+          "initial_amount": "1.0",
+          "subtotal_amount": "1.0"
+        },
+        "sendLinkPubKey": null
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": null,
+      "cancelledAt": "<TIMESTAMP>",
+      "isVerified": false
+    }
+  },
+  {
+    "caseId": "onramp-bridge-payment_processed-recipient",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "9.88",
+      "currency": {
+        "amount": "8.5",
+        "code": "eur"
+      },
+      "txHash": "0xc3148504553dc8579dd8fa6892a2e2429cc4f7f4ca2958eefcda916553167106",
+      "chainId": "arbitrum",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "PAYMENT_PROCESSED",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "0x70e14c8be4f033f018774d1374dad2a36df4254c",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "recipientAccount": {
+        "identifier": "0x70e14c8be4f033f018774d1374dad2a36df4254c",
+        "type": "evm-address",
+        "isUser": false
+      },
+      "extraData": {
+        "provider": "BRIDGE",
+        "kind": "ONRAMP",
+        "bridgeFlow": "ONRAMP",
+        "depositInstructions": {
+          "bic": "MODRIE22XXX",
+          "iban": "IE87MODR99035505302803",
+          "amount": "8.5",
+          "currency": "eur",
+          "bank_name": "Modulr Finance, Ireland Branch",
+          "bank_address": "Floor 6, 2 Grand Canal Square, Dublin, Ireland",
+          "payment_rail": "sepa",
+          "deposit_message": "BRGHBGU26J3V73J95DHS",
+          "account_holder_name": "Bridge Building Sp.z.o.o."
+        },
+        "receipt": {
+          "url": "https://dashboard.bridge.xyz/transaction/03682d38-15d6-426a-82bf-a12ad48f1445/receipt/481b7100-3fc5-4449-aed5-dc503d4727f7",
+          "gas_fee": "0.0",
+          "exchange_fee": "0.0",
+          "final_amount": "9.88",
+          "developer_fee": "0.0",
+          "exchange_rate": "0.8603245832587718",
+          "initial_amount": "8.5",
+          "subtotal_amount": "8.5",
+          "converted_amount": "9.88",
+          "destination_tx_hash": "0xc3148504553dc8579dd8fa6892a2e2429cc4f7f4ca2958eefcda916553167106"
+        },
+        "sendLinkPubKey": null
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": "<TIMESTAMP>",
+      "cancelledAt": null,
+      "isVerified": false
+    }
+  },
+  {
+    "caseId": "onramp-bridge-refunded-recipient",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "3.0",
+      "currency": {
+        "amount": "3.0",
+        "code": "eur"
+      },
+      "chainId": "arbitrum",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "REFUNDED",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "0xe79af01116b36e48df368fc8a1a6a222951d474e",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "recipientAccount": {
+        "identifier": "0xe79af01116b36e48df368fc8a1a6a222951d474e",
+        "type": "evm-address",
+        "isUser": false
+      },
+      "extraData": {
+        "provider": "BRIDGE",
+        "kind": "ONRAMP",
+        "bridgeFlow": "ONRAMP",
+        "depositInstructions": {
+          "bic": "BCIRLULL",
+          "iban": "LU344080000041794391",
+          "amount": "3.0",
+          "currency": "eur",
+          "bank_name": "Banking Circle S.A.",
+          "bank_address": "2 Boulevard de la Foire, L-1528 Luxembourg",
+          "payment_rail": "sepa",
+          "deposit_message": "BRGDTGEAP39GDMB3GZ3T",
+          "account_holder_name": "Bridge Building Sp. Z.o.o."
+        },
+        "receipt": {
+          "gas_fee": "0.0",
+          "exchange_fee": "0.0",
+          "developer_fee": "0.0",
+          "initial_amount": "3.0",
+          "subtotal_amount": "3.0"
+        },
+        "sendLinkPubKey": null
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": null,
+      "cancelledAt": null,
+      "isVerified": false
+    }
+  },
+  {
+    "caseId": "onramp-manteca-active-recipient",
+    "entry": {
+      "uuid": "68dad2271910091c3d1854f9",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "1.356502",
+      "currency": {
+        "amount": "2000.00",
+        "code": "ARS"
+      },
+      "status": "ACTIVE",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "Manteca Deposit",
+        "type": "BANK_CBU",
+        "isUser": false
+      },
+      "recipientAccount": {
+        "identifier": "0x6c24dd9b4aa24d42ee5fb29d82c1fda6f347143a",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": null,
+      "extraData": {
+        "provider": "MANTECA",
+        "kind": "ONRAMP",
+        "receipt": {
+          "depositDetails": {
+            "depositAddress": "0000234100000000000536",
+            "depositAlias": "peanut.me"
+          },
+          "exchange_rate": "1474.38"
+        }
+      }
+    }
+  },
+  {
+    "caseId": "onramp-manteca-cancelled-recipient",
+    "entry": {
+      "uuid": "68d4382710f1c1686187b554",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "1.970544",
+      "currency": {
+        "amount": "10.57",
+        "code": "BRL"
+      },
+      "status": "CANCELLED",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "Manteca Deposit",
+        "type": "BANK_CBU",
+        "isUser": false
+      },
+      "recipientAccount": {
+        "identifier": "0x816157783815588bef0b45b8f6007df2c05a360d",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": null,
+      "extraData": {
+        "provider": "MANTECA",
+        "kind": "ONRAMP",
+        "receipt": {
+          "depositDetails": {
+            "depositAddress": "00020101021226790014br.gov.bcb.pix2557brcode.starkinfra.com/v2/7991a30fda7a4bf487941a88eb956db25204000053039865802BR5909Transfero6014Rio de Janeiro62070503***630421C5"
+          },
+          "exchange_rate": "5.364"
+        }
+      }
+    }
+  },
+  {
+    "caseId": "onramp-manteca-completed-recipient",
+    "entry": {
+      "uuid": "68d42a20c5a3d13a86cca1c7",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "0.711708",
+      "currency": {
+        "amount": "999.89",
+        "code": "ARS"
+      },
+      "status": "COMPLETED",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "Manteca Deposit",
+        "type": "BANK_CBU",
+        "isUser": false
+      },
+      "recipientAccount": {
+        "identifier": "0x6c24dd9b4aa24d42ee5fb29d82c1fda6f347143a",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": "<TIMESTAMP>",
+      "extraData": {
+        "provider": "MANTECA",
+        "kind": "ONRAMP",
+        "receipt": {
+          "depositDetails": {
+            "depositAddress": "0000234100000000000536",
+            "depositAlias": "peanut.me"
+          },
+          "exchange_rate": "1404.92"
+        }
+      }
+    }
+  },
+  {
+    "caseId": "onramp-manteca-starting-recipient",
+    "entry": {
+      "uuid": "68fa777138caf79c833a6095",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "4.990323",
+      "currency": {
+        "amount": "7873.95",
+        "code": "ARS"
+      },
+      "status": "STARTING",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "Manteca Deposit",
+        "type": "BANK_CBU",
+        "isUser": false
+      },
+      "recipientAccount": {
+        "identifier": "0x48bd446425e2589ca99ea2648be18ccbfabdc3c7",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": null,
+      "extraData": {
+        "provider": "MANTECA",
+        "kind": "ONRAMP",
+        "receipt": {
+          "depositDetails": {
+            "depositAddress": "0000234100000000000536",
+            "depositAlias": "peanut.me"
+          },
+          "exchange_rate": "1574.79"
+        }
+      }
+    }
+  },
+  {
+    "caseId": "p2p_request_fulfill-peanut-cancelled-recipient",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "0.005",
+      "currency": {
+        "amount": "0.005",
+        "code": "USD"
+      },
+      "chainId": "42161",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "CANCELLED",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "0x8164efa594f1b948cc66ffdb1c0a0c11f252c324",
+        "type": "address",
+        "isUser": false
+      },
+      "recipientAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "extraData": {
+        "kind": "P2P_REQUEST_FULFILL",
+        "source": "EXTERNAL",
+        "intentStatus": "CANCELLED",
+        "intentMetadata": {
+          "chainId": "42161",
+          "recipient": "0x8164efa594f1b948cc66ffdb1c0a0c11f252c324",
+          "chargeUuid": "<UUID>",
+          "tokenAmount": "0.005",
+          "tokenSymbol": "USDC",
+          "currencyCode": "USD",
+          "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "recipientName": "ubuntubozzi",
+          "tokenDecimals": 6,
+          "currencyAmount": "0.005"
+        },
+        "provider": "PEANUT",
+        "recipientName": "ubuntubozzi",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "p2p_request_fulfill-peanut-closed-recipient",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "3",
+      "chainId": "42161",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+      "status": "CLOSED",
+      "userRole": "RECIPIENT",
+      "recipientAccount": {
+        "identifier": "0xb5b816364a0220fd4b2ec0e3c9cf547f792e5fec",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "extraData": {
+        "provider": "PEANUT",
+        "kind": "P2P_REQUEST_FULFILL",
+        "isRequestPotRollup": true,
+        "source": "EXTERNAL",
+        "totalAmountCollected": 9.01,
+        "fulfilledChargeCount": 8,
+        "totalChargeCount": 12
+      },
+      "createdAt": "<TIMESTAMP>",
+      "cancelledAt": "<TIMESTAMP>",
+      "completedAt": null,
+      "isRequestLink": true
+    }
+  },
+  {
+    "caseId": "p2p_request_fulfill-peanut-completed-both",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "1",
+      "currency": {
+        "amount": "1",
+        "code": "USD"
+      },
+      "txHash": "0xe852c91eb2cfd8ae8c4363863e5bf9dfd2576a00558df48d2c6bade51aec2b8a",
+      "chainId": "42161",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "COMPLETED",
+      "userRole": "BOTH",
+      "senderAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "recipientAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "extraData": {
+        "kind": "P2P_REQUEST_FULFILL",
+        "source": "EXTERNAL",
+        "intentStatus": "COMPLETED",
+        "intentMetadata": {
+          "chainId": "42161",
+          "recipient": "0xfefed9b04bead05b75800ed12238cd261d222f9a",
+          "chargeUuid": "<UUID>",
+          "tokenAmount": "1",
+          "tokenSymbol": "USDC",
+          "currencyCode": "USD",
+          "payerAddress": "0xfefed9b04bead05b75800ed12238cd261d222f9a",
+          "payerChainId": "42161",
+          "squidQuoteId": null,
+          "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "paymentReason": null,
+          "recipientName": "bozzitesting",
+          "tokenDecimals": 6,
+          "currencyAmount": "1",
+          "paidTokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "paymentVerifiedAt": "2025-07-17T16:30:34.706Z",
+          "payerSourceChainId": null,
+          "paymentMigratedFrom": "public.request_payments",
+          "payerTransactionHash": "0xe852c91eb2cfd8ae8c4363863e5bf9dfd2576a00558df48d2c6bade51aec2b8a",
+          "paidAmountInPayerToken": "1000000",
+          "payerSourceTokenSymbol": null,
+          "payerSourceTokenAddress": null,
+          "fulfillmentTransactionHash": "0xe852c91eb2cfd8ae8c4363863e5bf9dfd2576a00558df48d2c6bade51aec2b8a",
+          "paidAmountInRequestedToken": "1000000"
+        },
+        "provider": "PEANUT",
+        "recipientName": "bozzitesting",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "p2p_request_fulfill-peanut-completed-recipient",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "0.010000",
+      "currency": {
+        "amount": "0.010000",
+        "code": "USDC"
+      },
+      "txHash": "0x7c6b6f55efa1feca53463b6f877cb450f0e6d8e5ff97136cd26985da8260ae35",
+      "chainId": "42161",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "COMPLETED",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "0xfa47b3484577149a4de6dee81a01c8df46ed35eb",
+        "type": "address",
+        "isUser": false
+      },
+      "recipientAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "extraData": {
+        "kind": "P2P_REQUEST_FULFILL",
+        "source": "EXTERNAL",
+        "intentStatus": "COMPLETED",
+        "intentMetadata": {
+          "chainId": "42161",
+          "recipient": "0xa6c7c82d4b7860fd4ad32b4ca2888f5e344f1fd9",
+          "chargeUuid": "<UUID>",
+          "tokenAmount": "0.010000",
+          "tokenSymbol": "USDC",
+          "currencyCode": null,
+          "payerAddress": "0xfa47b3484577149a4de6dee81a01c8df46ed35eb",
+          "payerChainId": "42161",
+          "squidQuoteId": null,
+          "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "paymentReason": null,
+          "recipientName": "testtest",
+          "tokenDecimals": 6,
+          "currencyAmount": null,
+          "paidTokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "paymentVerifiedAt": "2025-04-15T15:58:09.140Z",
+          "payerSourceChainId": null,
+          "paymentMigratedFrom": "public.request_payments",
+          "payerTransactionHash": "0x7c6b6f55efa1feca53463b6f877cb450f0e6d8e5ff97136cd26985da8260ae35",
+          "paidAmountInPayerToken": null,
+          "payerSourceTokenSymbol": null,
+          "payerSourceTokenAddress": null,
+          "fulfillmentTransactionHash": "0x7c6b6f55efa1feca53463b6f877cb450f0e6d8e5ff97136cd26985da8260ae35",
+          "paidAmountInRequestedToken": "10000"
+        },
+        "provider": "PEANUT",
+        "recipientName": "testtest",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "p2p_request_fulfill-peanut-completed-sender",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "0.010000",
+      "currency": {
+        "amount": "0.010000",
+        "code": "USDC"
+      },
+      "txHash": "0x7c6b6f55efa1feca53463b6f877cb450f0e6d8e5ff97136cd26985da8260ae35",
+      "chainId": "42161",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "COMPLETED",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "recipientAccount": {
+        "identifier": "0xa6c7c82d4b7860fd4ad32b4ca2888f5e344f1fd9",
+        "type": "address",
+        "isUser": false
+      },
+      "extraData": {
+        "kind": "P2P_REQUEST_FULFILL",
+        "source": "EXTERNAL",
+        "intentStatus": "COMPLETED",
+        "intentMetadata": {
+          "chainId": "42161",
+          "recipient": "0xa6c7c82d4b7860fd4ad32b4ca2888f5e344f1fd9",
+          "chargeUuid": "<UUID>",
+          "tokenAmount": "0.010000",
+          "tokenSymbol": "USDC",
+          "currencyCode": null,
+          "payerAddress": "0xfa47b3484577149a4de6dee81a01c8df46ed35eb",
+          "payerChainId": "42161",
+          "squidQuoteId": null,
+          "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "paymentReason": null,
+          "recipientName": "testtest",
+          "tokenDecimals": 6,
+          "currencyAmount": null,
+          "paidTokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "paymentVerifiedAt": "2025-04-15T15:58:09.140Z",
+          "payerSourceChainId": null,
+          "paymentMigratedFrom": "public.request_payments",
+          "payerTransactionHash": "0x7c6b6f55efa1feca53463b6f877cb450f0e6d8e5ff97136cd26985da8260ae35",
+          "paidAmountInPayerToken": null,
+          "payerSourceTokenSymbol": null,
+          "payerSourceTokenAddress": null,
+          "fulfillmentTransactionHash": "0x7c6b6f55efa1feca53463b6f877cb450f0e6d8e5ff97136cd26985da8260ae35",
+          "paidAmountInRequestedToken": "10000"
+        },
+        "provider": "PEANUT",
+        "recipientName": "testtest",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "p2p_request_fulfill-peanut-failed-recipient",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "1",
+      "currency": {
+        "amount": "1",
+        "code": "USD"
+      },
+      "chainId": "42161",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "FAILED",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "0xfc5be801923346cbf084213d3f61146e677637ed",
+        "type": "address",
+        "isUser": false
+      },
+      "recipientAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "extraData": {
+        "kind": "P2P_REQUEST_FULFILL",
+        "source": "EXTERNAL",
+        "intentStatus": "FAILED",
+        "intentMetadata": {
+          "chainId": "42161",
+          "recipient": "0xfc5be801923346cbf084213d3f61146e677637ed",
+          "chargeUuid": "<UUID>",
+          "failReason": "p2p_request_fulfill_timeout",
+          "tokenAmount": "1",
+          "tokenSymbol": "USDC",
+          "currencyCode": "USD",
+          "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "recipientName": "testesteste",
+          "tokenDecimals": 6,
+          "currencyAmount": "1"
+        },
+        "provider": "PEANUT",
+        "recipientName": "testesteste",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": "p2p_request_fulfill_timeout"
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "p2p_request_fulfill-peanut-open-recipient",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "5",
+      "chainId": "42161",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+      "status": "OPEN",
+      "userRole": "RECIPIENT",
+      "recipientAccount": {
+        "identifier": "0x48bd446425e2589ca99ea2648be18ccbfabdc3c7",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "extraData": {
+        "provider": "PEANUT",
+        "kind": "P2P_REQUEST_FULFILL",
+        "isRequestPotRollup": true,
+        "source": "EXTERNAL",
+        "totalAmountCollected": 0,
+        "fulfilledChargeCount": 0,
+        "totalChargeCount": 1
+      },
+      "createdAt": "<TIMESTAMP>",
+      "cancelledAt": null,
+      "completedAt": null,
+      "isRequestLink": true
+    }
+  },
+  {
+    "caseId": "p2p_request_fulfill-peanut-pending-recipient",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "1",
+      "currency": {
+        "amount": "1",
+        "code": "USD"
+      },
+      "chainId": "42161",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "PENDING",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "0x3dce2dccc73509f35db6b6464f4bf755591f3fc8",
+        "type": "address",
+        "isUser": false
+      },
+      "recipientAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "extraData": {
+        "kind": "P2P_REQUEST_FULFILL",
+        "source": "EXTERNAL",
+        "intentStatus": "PROCESSING",
+        "intentMetadata": {
+          "chainId": "42161",
+          "recipient": "0x3dce2dccc73509f35db6b6464f4bf755591f3fc8",
+          "chargeUuid": "<UUID>",
+          "tokenAmount": "1",
+          "tokenSymbol": "USDC",
+          "currencyCode": "USD",
+          "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "recipientName": "test45",
+          "tokenDecimals": 6,
+          "currencyAmount": "1"
+        },
+        "provider": "PEANUT",
+        "recipientName": "test45",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "perk_reward-peanut-completed-recipient",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "0.03",
+      "status": "COMPLETED",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "PEANUT_PERKS",
+        "type": "SYSTEM",
+        "isUser": false,
+        "fullName": "<REDACTED>"
+      },
+      "recipientAccount": {
+        "identifier": "<UUID>",
+        "type": "USER",
+        "isUser": true,
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "extraData": {
+        "provider": "PEANUT",
+        "kind": "PERK_REWARD",
+        "txHash": "0xf38b276d3b73bfda548e7b5b26b23ef7f4ac3f9c7e88d2ab5fbee1f44a5a5765",
+        "perkReward": {
+          "reason": "✨ Peanut Mystery Rewards",
+          "discountPercentage": 100,
+          "originatingTxId": null,
+          "originatingTxType": "MANUAL",
+          "perkName": "Mystery Points Bonus"
+        }
+      },
+      "completedAt": "<TIMESTAMP>",
+      "txHash": "0xf38b276d3b73bfda548e7b5b26b23ef7f4ac3f9c7e88d2ab5fbee1f44a5a5765"
+    }
+  },
+  {
+    "caseId": "perk_reward-peanut-pending_claim-recipient",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "5",
+      "status": "PENDING_CLAIM",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "PEANUT_PERKS",
+        "type": "SYSTEM",
+        "isUser": false,
+        "fullName": "<REDACTED>"
+      },
+      "recipientAccount": {
+        "identifier": "<UUID>",
+        "type": "USER",
+        "isUser": true,
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "extraData": {
+        "provider": "PEANUT",
+        "kind": "PERK_REWARD",
+        "txHash": null,
+        "perkReward": {
+          "reason": "carol_peanut became a Card Pioneer!",
+          "discountPercentage": 100,
+          "originatingTxId": null,
+          "originatingTxType": null,
+          "perkName": "Card Pioneer Inviter Reward"
+        }
+      },
+      "completedAt": null
+    }
+  },
+  {
+    "caseId": "qr_pay-deprecated_simplefi-completed-sender",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "123.00",
+      "currency": {
+        "amount": "123.00",
+        "code": "ARS"
+      },
+      "txHash": "0x120cbb49866a950e2daff335d7f875705a47244e39495382f796f79bbc63cb37",
+      "chainId": "",
+      "tokenSymbol": "ARS",
+      "tokenAddress": "",
+      "status": "COMPLETED",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "recipientAccount": {
+        "identifier": "",
+        "type": "address",
+        "isUser": false
+      },
+      "extraData": {
+        "kind": "QR_PAY",
+        "source": "EXTERNAL",
+        "intentStatus": "COMPLETED",
+        "intentMetadata": {
+          "price": "1455.73",
+          "txHash": "0x120cbb49866a950e2daff335d7f875705a47244e39495382f796f79bbc63cb37",
+          "arsAmount": "123",
+          "usdAmount": "0.084494",
+          "approvedAt": "2025-11-15T22:52:02.002Z",
+          "merchantId": "6603276727aaa6386588474d",
+          "rawResponse": {
+            "id": "6919030e1d11ac342995bd1d",
+            "memo": "Debug payment for Cafe Cuyo",
+            "items": null,
+            "amount": 123,
+            "status": "approved",
+            "ars_paid": 0,
+            "conflict": true,
+            "currency": "ARS",
+            "order_id": 1960,
+            "payments": [
+              {
+                "coin": "USDC",
+                "from": "0x6fDb49f19fbCd5236291393cc336fE241bCb3f8F",
+                "hash": "0x120cbb49866a950e2daff335d7f875705a47244e39495382f796f79bbc63cb37",
+                "block": null,
+                "amount": 0.08,
+                "paid_at": "2025-11-15T22:50:40",
+                "paid_by": null,
+                "chain_id": 42161,
+                "linked_at": "2025-11-15T22:50:42.368000"
+              },
+              {
+                "coin": "USDC",
+                "from": "0x6fDb49f19fbCd5236291393cc336fE241bCb3f8F",
+                "hash": "0x00a3a9d24adac0647594b9a34e7d333a520d00a9689376cb1285e8dc7b606cb4",
+                "block": null,
+                "amount": 0.08,
+                "paid_at": "2025-11-15T22:51:58",
+                "paid_by": null,
+                "chain_id": 42161,
+                "linked_at": "2025-11-15T22:52:00.325000"
+              }
+            ],
+            "delivered": false,
+            "reference": {
+              "source": "user_order",
+              "order_id": "order_1763246862150",
+              "created_at": "2025-11-15T22:47:42.150Z"
+            },
+            "ars_amount": 123,
+            "usd_amount": 0.08,
+            "amount_paid": 232.92,
+            "approved_at": "2025-11-15T22:52:02.002000",
+            "merchant_id": "6603276727aaa6386588474d",
+            "poap_minted": false,
+            "card_payment": null,
+            "checkout_url": "https://www.pagar.simplefi.tech/6603276727aaa6386588474d/payment/6919030e1d11ac342995bd1d",
+            "date_created": "2025-11-15T22:47:42.198000",
+            "offramp_data": null,
+            "transactions": [
+              {
+                "id": "6919030e1d11ac342995bd1f",
+                "coin": "USDC",
+                "memo": "Debug payment for Cafe Cuyo",
+                "status": "not_paid",
+                "address": "0x447323A963c136067e605EdEB6ad39A1f337B122",
+                "chain_id": 137,
+                "payments": [],
+                "date_created": "2025-11-15T22:47:42.232000",
+                "last_modified": "2025-11-15T22:47:42.232000",
+                "price_details": {
+                  "rate": 1455.73,
+                  "currency": "ARS",
+                  "base_amount": 0.084494,
+                  "paid_amount": 0,
+                  "final_amount": 0.084494,
+                  "discount_rate": 0,
+                  "currency_amount": 123,
+                  "currency_final_amount": 123
+                },
+                "additional_info": null,
+                "payment_request_id": "6919030e1d11ac342995bd1d"
+              },
+              {
+                "id": "6919030e1d11ac342995bd20",
+                "coin": "USDC",
+                "memo": "Debug payment for Cafe Cuyo",
+                "status": "not_paid",
+                "address": "0x447323A963c136067e605EdEB6ad39A1f337B122",
+                "chain_id": 10,
+                "payments": [],
+                "date_created": "2025-11-15T22:47:42.234000",
+                "last_modified": "2025-11-15T22:47:42.234000",
+                "price_details": {
+                  "rate": 1455.73,
+                  "currency": "ARS",
+                  "base_amount": 0.084494,
+                  "paid_amount": 0,
+                  "final_amount": 0.084494,
+                  "discount_rate": 0,
+                  "currency_amount": 123,
+                  "currency_final_amount": 123
+                },
+                "additional_info": null,
+                "payment_request_id": "6919030e1d11ac342995bd1d"
+              },
+              {
+                "id": "6919030e1d11ac342995bd1e",
+                "coin": "USDC",
+                "memo": "Debug payment for Cafe Cuyo",
+                "status": "not_paid",
+                "address": "0x447323A963c136067e605EdEB6ad39A1f337B122",
+                "chain_id": 8453,
+                "payments": [],
+                "date_created": "2025-11-15T22:47:42.231000",
+                "last_modified": "2025-11-15T22:47:42.231000",
+                "price_details": {
+                  "rate": 1455.73,
+                  "currency": "ARS",
+                  "base_amount": 0.084494,
+                  "paid_amount": 0,
+                  "final_amount": 0.084494,
+                  "discount_rate": 0,
+                  "currency_amount": 123,
+                  "currency_final_amount": 123
+                },
+                "additional_info": null,
+                "payment_request_id": "6919030e1d11ac342995bd1d"
+              },
+              {
+                "id": "6919030e1d11ac342995bd21",
+                "coin": "USDT",
+                "memo": "Debug payment for Cafe Cuyo",
+                "status": "not_paid",
+                "address": "0x447323A963c136067e605EdEB6ad39A1f337B122",
+                "chain_id": 137,
+                "payments": [],
+                "date_created": "2025-11-15T22:47:42.239000",
+                "last_modified": "2025-11-15T22:47:42.239000",
+                "price_details": {
+                  "rate": 1455,
+                  "currency": "ARS",
+                  "base_amount": 0.084537,
+                  "paid_amount": 0,
+                  "final_amount": 0.084537,
+                  "discount_rate": 0,
+                  "currency_amount": 123,
+                  "currency_final_amount": 123
+                },
+                "additional_info": null,
+                "payment_request_id": "6919030e1d11ac342995bd1d"
+              },
+              {
+                "id": "6919030e1d11ac342995bd22",
+                "coin": "USDC",
+                "memo": "Debug payment for Cafe Cuyo",
+                "status": "not_paid",
+                "address": "0x447323A963c136067e605EdEB6ad39A1f337B122",
+                "chain_id": 480,
+                "payments": [],
+                "date_created": "2025-11-15T22:47:42.240000",
+                "last_modified": "2025-11-15T22:47:42.240000",
+                "price_details": {
+                  "rate": 1455.73,
+                  "currency": "ARS",
+                  "base_amount": 0.084494,
+                  "paid_amount": 0,
+                  "final_amount": 0.084494,
+                  "discount_rate": 0,
+                  "currency_amount": 123,
+                  "currency_final_amount": 123
+                },
+                "additional_info": null,
+                "payment_request_id": "6919030e1d11ac342995bd1d"
+              },
+              {
+                "id": "6919030e1d11ac342995bd23",
+                "coin": "USDC",
+                "memo": "Debug payment for Cafe Cuyo",
+                "status": "overpaid",
+                "address": "0x447323A963c136067e605EdEB6ad39A1f337B122",
+                "chain_id": 42161,
+                "payments": [
+                  {
+                    "from": "0x6fDb49f19fbCd5236291393cc336fE241bCb3f8F",
+                    "hash": "0x120cbb49866a950e2daff335d7f875705a47244e39495382f796f79bbc63cb37",
+                    "block": null,
+                    "amount": 0.08,
+                    "paid_at": "2025-11-15T22:50:40",
+                    "paid_by": null,
+                    "chain_id": 42161,
+                    "linked_at": "2025-11-15T22:50:42.368000"
+                  },
+                  {
+                    "from": "0x6fDb49f19fbCd5236291393cc336fE241bCb3f8F",
+                    "hash": "0x00a3a9d24adac0647594b9a34e7d333a520d00a9689376cb1285e8dc7b606cb4",
+                    "block": null,
+                    "amount": 0.08,
+                    "paid_at": "2025-11-15T22:51:58",
+                    "paid_by": null,
+                    "chain_id": 42161,
+                    "linked_at": "2025-11-15T22:52:00.325000"
+                  }
+                ],
+                "date_created": "2025-11-15T22:47:42.241000",
+                "last_modified": "2025-11-15T22:52:01.952000",
+                "price_details": {
+                  "rate": 1455.73,
+                  "currency": "ARS",
+                  "base_amount": 0.084494,
+                  "paid_amount": 0.16,
+                  "final_amount": 0.084494,
+                  "discount_rate": 0,
+                  "currency_amount": 123,
+                  "currency_final_amount": 123
+                },
+                "additional_info": null,
+                "payment_request_id": "6919030e1d11ac342995bd1d"
+              },
+              {
+                "id": "6919030e1d11ac342995bd24",
+                "coin": "USDT",
+                "memo": "Debug payment for Cafe Cuyo",
+                "status": "not_paid",
+                "address": "0x447323A963c136067e605EdEB6ad39A1f337B122",
+                "chain_id": 42161,
+                "payments": [],
+                "date_created": "2025-11-15T22:47:42.243000",
+                "last_modified": "2025-11-15T22:47:42.243000",
+                "price_details": {
+                  "rate": 1455,
+                  "currency": "ARS",
+                  "base_amount": 0.084537,
+                  "paid_amount": 0,
+                  "final_amount": 0.084537,
+                  "discount_rate": 0,
+                  "currency_amount": 123,
+                  "currency_final_amount": 123
+                },
+                "additional_info": null,
+                "payment_request_id": "6919030e1d11ac342995bd1d"
+              },
+              {
+                "id": "6919030e1d11ac342995bd25",
+                "coin": "USDC",
+                "memo": "Debug payment for Cafe Cuyo",
+                "status": "not_paid",
+                "address": "0x447323A963c136067e605EdEB6ad39A1f337B122",
+                "chain_id": 42220,
+                "payments": [],
+                "date_created": "2025-11-15T22:47:42.243000",
+                "last_modified": "2025-11-15T22:47:42.243000",
+                "price_details": {
+                  "rate": 1455.73,
+                  "currency": "ARS",
+                  "base_amount": 0.084494,
+                  "paid_amount": 0,
+                  "final_amount": 0.084494,
+                  "discount_rate": 0,
+                  "currency_amount": 123,
+                  "currency_final_amount": 123
+                },
+                "additional_info": null,
+                "payment_request_id": "6919030e1d11ac342995bd1d"
+              },
+              {
+                "id": "6919030e1d11ac342995bd26",
+                "coin": "USDC",
+                "memo": "Debug payment for Cafe Cuyo",
+                "status": "not_paid",
+                "address": "0xcfD73f3770B557E40Cab98B4FfD1006FF60446fA",
+                "chain_id": 1,
+                "payments": [],
+                "date_created": "2025-11-15T22:47:42.267000",
+                "last_modified": "2025-11-15T22:47:42.267000",
+                "price_details": {
+                  "rate": 1455.73,
+                  "currency": "ARS",
+                  "base_amount": 0.084494,
+                  "paid_amount": 0,
+                  "final_amount": 0.084494,
+                  "discount_rate": 0,
+                  "currency_amount": 123,
+                  "currency_final_amount": 123
+                },
+                "additional_info": null,
+                "payment_request_id": "6919030e1d11ac342995bd1d"
+              },
+              {
+                "id": "6919030e1d11ac342995bd27",
+                "coin": "USDT",
+                "memo": "Debug payment for Cafe Cuyo",
+                "status": "not_paid",
+                "address": "0x447323A963c136067e605EdEB6ad39A1f337B122",
+                "chain_id": 42220,
+                "payments": [],
+                "date_created": "2025-11-15T22:47:42.268000",
+                "last_modified": "2025-11-15T22:47:42.268000",
+                "price_details": {
+                  "rate": 1455,
+                  "currency": "ARS",
+                  "base_amount": 0.084537,
+                  "paid_amount": 0,
+                  "final_amount": 0.084537,
+                  "discount_rate": 0,
+                  "currency_amount": 123,
+                  "currency_final_amount": 123
+                },
+                "additional_info": null,
+                "payment_request_id": "6919030e1d11ac342995bd1d"
+              },
+              {
+                "id": "6919030e1d11ac342995bd28",
+                "coin": "LIVES",
+                "memo": "Debug payment for Cafe Cuyo",
+                "status": "not_paid",
+                "address": "B3LUqc18GSxMWNrDs6xrPirokjTnMmhLpxkF9dLCJQEr",
+                "chain_id": 900,
+                "payments": [],
+                "date_created": "2025-11-15T22:47:42.269000",
+                "last_modified": "2025-11-15T22:47:42.269000",
+                "price_details": {
+                  "rate": 1455,
+                  "currency": "ARS",
+                  "base_amount": 0.084536083,
+                  "paid_amount": 0,
+                  "final_amount": 0.084536083,
+                  "discount_rate": 0,
+                  "currency_amount": 123,
+                  "currency_final_amount": 123
+                },
+                "additional_info": {
+                  "reference": "8gaNPenkx8Y5jKaAmCgf3Xgj5V7pcPLdgX5DKK4wbDic",
+                  "solana_pay": "solana:B3LUqc18GSxMWNrDs6xrPirokjTnMmhLpxkF9dLCJQEr?amount=0.084536083&reference=8gaNPenkx8Y5jKaAmCgf3Xgj5V7pcPLdgX5DKK4wbDic&spl-token=27TyCz2Y4rFPfURPCPxByEW6AeMfQSNCMFcPmK4fvEA8",
+                  "token_mint": "27TyCz2Y4rFPfURPCPxByEW6AeMfQSNCMFcPmK4fvEA8",
+                  "associated_token_address": "8tAXL8TT3e6Bf5LrwBv511Wixqq64hq1DXcir8dU6mSG"
+                },
+                "payment_request_id": "6919030e1d11ac342995bd1d"
+              },
+              {
+                "id": "6919030e1d11ac342995bd29",
+                "coin": "EURC",
+                "memo": "Debug payment for Cafe Cuyo",
+                "status": "not_paid",
+                "address": "0x447323A963c136067e605EdEB6ad39A1f337B122",
+                "chain_id": 8453,
+                "payments": [],
+                "date_created": "2025-11-15T22:47:42.270000",
+                "last_modified": "2025-11-15T22:47:42.270000",
+                "price_details": {
+                  "rate": 1644.15,
+                  "currency": "ARS",
+                  "base_amount": 0.074811,
+                  "paid_amount": 0,
+                  "final_amount": 0.074811,
+                  "discount_rate": 0,
+                  "currency_amount": 123,
+                  "currency_final_amount": 123
+                },
+                "additional_info": null,
+                "payment_request_id": "6919030e1d11ac342995bd1d"
+              },
+              {
+                "id": "6919030e1d11ac342995bd2a",
+                "coin": "ETH",
+                "memo": "Debug payment for Cafe Cuyo",
+                "status": "not_paid",
+                "address": "0x447323A963c136067e605EdEB6ad39A1f337B122",
+                "chain_id": 8453,
+                "payments": [],
+                "date_created": "2025-11-15T22:47:42.272000",
+                "last_modified": "2025-11-15T22:47:42.272000",
+                "price_details": {
+                  "rate": 4597916.4,
+                  "currency": "ARS",
+                  "base_amount": 0.000026751248,
+                  "paid_amount": 0,
+                  "final_amount": 0.000026751248,
+                  "discount_rate": 0,
+                  "currency_amount": 123,
+                  "currency_final_amount": 123
+                },
+                "additional_info": null,
+                "payment_request_id": "6919030e1d11ac342995bd1d"
+              },
+              {
+                "id": "6919030e1d11ac342995bd2b",
+                "coin": "ETH",
+                "memo": "Debug payment for Cafe Cuyo",
+                "status": "not_paid",
+                "address": "0x447323A963c136067e605EdEB6ad39A1f337B122",
+                "chain_id": 10,
+                "payments": [],
+                "date_created": "2025-11-15T22:47:42.273000",
+                "last_modified": "2025-11-15T22:47:42.273000",
+                "price_details": {
+                  "rate": 4597916.4,
+                  "currency": "ARS",
+                  "base_amount": 0.000026751248,
+                  "paid_amount": 0,
+                  "final_amount": 0.000026751248,
+                  "discount_rate": 0,
+                  "currency_amount": 123,
+                  "currency_final_amount": 123
+                },
+                "additional_info": null,
+                "payment_request_id": "6919030e1d11ac342995bd1d"
+              },
+              {
+                "id": "6919030e1d11ac342995bd2c",
+                "coin": "EURC",
+                "memo": "Debug payment for Cafe Cuyo",
+                "status": "not_paid",
+                "address": "0xcfD73f3770B557E40Cab98B4FfD1006FF60446fA",
+                "chain_id": 1,
+                "payments": [],
+                "date_created": "2025-11-15T22:47:42.297000",
+                "last_modified": "2025-11-15T22:47:42.297000",
+                "price_details": {
+                  "rate": 1644.15,
+                  "currency": "ARS",
+                  "base_amount": 0.074811,
+                  "paid_amount": 0,
+                  "final_amount": 0.074811,
+                  "discount_rate": 0,
+                  "currency_amount": 123,
+                  "currency_final_amount": 123
+                },
+                "additional_info": null,
+                "payment_request_id": "6919030e1d11ac342995bd1d"
+              },
+              {
+                "id": "6919030e1d11ac342995bd2e",
+                "coin": "BTC",
+                "memo": "Debug payment for Cafe Cuyo",
+                "status": "not_paid",
+                "address": "lnbc890n1p53jqcwpp577knd0k9z4hy3cj98kxzwyq2vnamznl7nh2pv23yx8gcj57hw65qdpvg3jkyat8ypcxz7tdv4h8ggrxdaezqsmpvejjqsm409hscqzpgxqyz5vqrzjq25carzepgd4vqsyn44jrk85ezrpju92xyrk9apw4cdjh6yrwt5jgqqqqrkyjqyptsqqqqqqqqqqqqqq9qrzjqwghf7zxvfkxq5a6sr65g0gdkv768p83mhsnt0msszapamzx2qvuxqqqqrkyjqyptsqqqqqqqqqqqqqq9qsp5hpqyhu37v8kdzmnqu8jn2k66ve9wyqhytmhqcff3nerpxzwn2kms9qxpqysgq3d7vgsc79yn3rf9gtqnw65r9fvm5ngkgfckq9caccay2fj0leak8t6clurw0arzetgu8y3dgal79396uh0ztv5gu2agamwrczq7d0uqqexd2rx",
+                "chain_id": 0,
+                "payments": [],
+                "date_created": "2025-11-15T22:47:42.690000",
+                "last_modified": "2025-11-15T22:47:42.690000",
+                "price_details": {
+                  "rate": 138734817.45,
+                  "currency": "ARS",
+                  "base_amount": 8.9e-7,
+                  "paid_amount": 0,
+                  "final_amount": 8.9e-7,
+                  "discount_rate": 0,
+                  "currency_amount": 123,
+                  "currency_final_amount": 123
+                },
+                "additional_info": {
+                  "id": "Invoice:019a89b3-f04a-52d6-0000-317870a5bf5d",
+                  "memo": "Debug payment for Cafe Cuyo",
+                  "unit": "SATOSHI",
+                  "lnurl": "LNURL1DP68GURN8GHJ7CTSDYH8X6TDWPKX2ENF9E6X2CMG9AKXUATJDSHNVWF38YCRXVR9X9JRZVTPVVENGV3E8Y6KYEP3VSHHQCTEACAUY7",
+                  "typename": "InvoiceData",
+                  "created_at": "2025-11-15T22:47:42",
+                  "expires_at": "2025-11-16T22:47:42",
+                  "destination": {
+                    "id": "LightsparkNodeWithOSK:018ca7e2-480a-f96b-0000-493a32081ba5",
+                    "alias": "02dbd6281d821afe1c31",
+                    "status": "READY",
+                    "typename": "LightsparkNodeWithOSK",
+                    "public_key": "02dbd6281d821afe1c313c110981ea439703d491effa1fa5102c7cac12f3c22238",
+                    "display_name": "",
+                    "bitcoin_network": "MAINNET"
+                  },
+                  "payment_hash": "f7ad36bec5156e48e2453d8c27100a64fbb14ffe9dd4162a2431d18953d776a8",
+                  "bitcoin_network": "MAINNET",
+                  "encoded_payment_request": "lnbc890n1p53jqcwpp577knd0k9z4hy3cj98kxzwyq2vnamznl7nh2pv23yx8gcj57hw65qdpvg3jkyat8ypcxz7tdv4h8ggrxdaezqsmpvejjqsm409hscqzpgxqyz5vqrzjq25carzepgd4vqsyn44jrk85ezrpju92xyrk9apw4cdjh6yrwt5jgqqqqrkyjqyptsqqqqqqqqqqqqqq9qrzjqwghf7zxvfkxq5a6sr65g0gdkv768p83mhsnt0msszapamzx2qvuxqqqqrkyjqyptsqqqqqqqqqqqqqq9qsp5hpqyhu37v8kdzmnqu8jn2k66ve9wyqhytmhqcff3nerpxzwn2kms9qxpqysgq3d7vgsc79yn3rf9gtqnw65r9fvm5ngkgfckq9caccay2fj0leak8t6clurw0arzetgu8y3dgal79396uh0ztv5gu2agamwrczq7d0uqqexd2rx"
+                },
+                "payment_request_id": "6919030e1d11ac342995bd1d"
+              },
+              {
+                "id": "6919030e1d11ac342995bd2d",
+                "coin": "WLD",
+                "memo": "Debug payment for Cafe Cuyo",
+                "status": "not_paid",
+                "address": "0x58204cDCC34e5DE3AE490D299Ff5C9170B5191E7",
+                "chain_id": 480,
+                "payments": [],
+                "date_created": "2025-11-15T22:47:42.299000",
+                "last_modified": "2025-11-15T22:47:42.299000",
+                "price_details": {
+                  "rate": 1012.68,
+                  "currency": "ARS",
+                  "base_amount": 0.121459888613,
+                  "paid_amount": 0,
+                  "final_amount": 0.121459888613,
+                  "discount_rate": 0,
+                  "currency_amount": 123,
+                  "currency_final_amount": 123
+                },
+                "additional_info": null,
+                "payment_request_id": "6919030e1d11ac342995bd1d"
+              }
+            ],
+            "last_modified": "2025-11-15T22:52:02.002000",
+            "status_detail": "overpaid",
+            "offramp_status": null,
+            "expiration_time": "2025-11-23T10:47:42.180000",
+            "notification_url": null
+          },
+          "merchantSlug": null,
+          "migratedFrom": "public.simplefi_transfer",
+          "failureReason": null,
+          "expirationTime": null,
+          "simplefiPaymentId": "6919030e1d11ac342995bd1d"
+        },
+        "provider": "DEPRECATED_SIMPLEFI",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "qr_pay-manteca-cancelled-sender",
+    "entry": {
+      "uuid": "failed-0230f09f-ff34-4c4c-84de-83328be9084c",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "1.61658426",
+      "currency": {
+        "amount": "8.50000000000000000000",
+        "code": "USDT"
+      },
+      "status": "CANCELLED",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "0xf0db4f2f6b8a6e266d4e156ce746c39e2786504f",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "recipientAccount": {
+        "identifier": "QR Payment",
+        "type": "BANK_CBU",
+        "isUser": false
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": null,
+      "extraData": {
+        "provider": "MANTECA",
+        "kind": "QR_PAY",
+        "receipt": {
+          "depositDetails": {}
+        }
+      }
+    }
+  },
+  {
+    "caseId": "qr_pay-manteca-completed-sender",
+    "entry": {
+      "uuid": "68cafadc74c4a6052a315eb6",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "0.34027726",
+      "currency": {
+        "amount": "500",
+        "code": "ARS"
+      },
+      "status": "COMPLETED",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "0x6c24dd9b4aa24d42ee5fb29d82c1fda6f347143a",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "recipientAccount": {
+        "identifier": "Jota",
+        "type": "BANK_CBU",
+        "isUser": false
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": "<TIMESTAMP>",
+      "extraData": {
+        "provider": "MANTECA",
+        "kind": "QR_PAY",
+        "receipt": {
+          "depositDetails": {},
+          "exchange_rate": "1469.39"
+        }
+      }
+    }
+  },
+  {
+    "caseId": "refund-manteca-cancelled-recipient",
+    "entry": {
+      "uuid": "693c43f134856347c534c4bd",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "0",
+      "currency": {
+        "amount": "0",
+        "code": ""
+      },
+      "status": "CANCELLED",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "Manteca",
+        "type": "BANK_CBU",
+        "isUser": false
+      },
+      "recipientAccount": {
+        "identifier": "0x48bd446425e2589ca99ea2648be18ccbfabdc3c7",
+        "type": "peanut-wallet",
+        "isUser": true,
+        "username": "<REDACTED>",
+        "fullName": "<REDACTED>",
+        "userId": "<REDACTED>"
+      },
+      "createdAt": "<TIMESTAMP>",
+      "completedAt": null,
+      "extraData": {
+        "provider": "MANTECA",
+        "kind": "REFUND",
+        "receipt": {
+          "depositDetails": {}
+        }
+      }
+    }
+  },
+  {
+    "caseId": "send_link_claim-peanut-completed-recipient",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "0.10",
+      "currency": {
+        "amount": "0.10",
+        "code": "USDC"
+      },
+      "txHash": "0x143cbaa3d2dc3d5f57a45a52f1c0d6d41b5a7235cf1ce10b3c5c13717b50e0e7",
+      "chainId": "42161",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "COMPLETED",
+      "userRole": "RECIPIENT",
+      "senderAccount": {
+        "identifier": "0x70e14c8be4f033f018774d1374dad2a36df4254c",
+        "type": "address",
+        "isUser": false
+      },
+      "recipientAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "extraData": {
+        "kind": "SEND_LINK_CLAIM",
+        "source": "EXTERNAL",
+        "intentStatus": "COMPLETED",
+        "intentMetadata": {
+          "recipient": "0x70e14c8be4f033f018774d1374dad2a36df4254c",
+          "depositIdx": null,
+          "integrator": null,
+          "amountString": "100000",
+          "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "recipientName": "testonramp",
+          "recipientAddress": null,
+          "sendLinkClaimUuid": "<UUID>"
+        },
+        "provider": "PEANUT",
+        "recipientName": "testonramp",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "send_link-peanut-cancelled-sender",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "1.00",
+      "currency": {
+        "amount": "1.00",
+        "code": "USDC"
+      },
+      "chainId": "42161",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "CANCELLED",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "recipientAccount": {
+        "identifier": "",
+        "type": "address",
+        "isUser": false
+      },
+      "extraData": {
+        "kind": "SEND_LINK",
+        "source": "EXTERNAL",
+        "intentStatus": "CANCELLED",
+        "intentMetadata": {
+          "chainId": "42161",
+          "depositIdx": 6263,
+          "integrator": null,
+          "createTxHash": "0xd16158bf20f19c26fde429ccc6336e4dc4f0549cb95d35e5185b2e1b26aebd69",
+          "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "finalizeTxHash": null,
+          "sendLinkPubKey": "0x1cCDB34DDe1DDacf66221e96A5292f141a902623",
+          "contractVersion": "v4.3"
+        },
+        "provider": "PEANUT",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "send_link-peanut-completed-sender",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "0.50",
+      "currency": {
+        "amount": "0.50",
+        "code": "USDC"
+      },
+      "txHash": "0x6b77e70bd897990470fe949ff9d04ecd90528ede228a13375039331b79a015be",
+      "chainId": "42161",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "COMPLETED",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "recipientAccount": {
+        "identifier": "",
+        "type": "address",
+        "isUser": false
+      },
+      "extraData": {
+        "kind": "SEND_LINK",
+        "source": "EXTERNAL",
+        "intentStatus": "COMPLETED",
+        "intentMetadata": {
+          "chainId": "42161",
+          "depositIdx": 5339,
+          "integrator": null,
+          "createTxHash": "0x6b77e70bd897990470fe949ff9d04ecd90528ede228a13375039331b79a015be",
+          "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "finalizeTxHash": null,
+          "sendLinkPubKey": "0x613235CF58A071a964416A088dC40B1688F7351a",
+          "contractVersion": "v4.3"
+        },
+        "provider": "PEANUT",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "send_link-peanut-failed-sender",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "0.10",
+      "currency": {
+        "amount": "0.10",
+        "code": "USDC"
+      },
+      "chainId": "42161",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "FAILED",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "recipientAccount": {
+        "identifier": "",
+        "type": "address",
+        "isUser": false
+      },
+      "extraData": {
+        "kind": "SEND_LINK",
+        "source": "EXTERNAL",
+        "intentStatus": "FAILED",
+        "intentMetadata": {
+          "chainId": "42161",
+          "depositIdx": 3808,
+          "integrator": null,
+          "createTxHash": "0x03c5cec864132c56be4e0d58242af748dd5d05dafb1efe28e170eafc67687e9e",
+          "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "finalizeTxHash": null,
+          "sendLinkPubKey": "0x8e26b84d54d57694bB0B9Aaf36b16AfF111FC513",
+          "contractVersion": "v4.3"
+        },
+        "provider": "PEANUT",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  },
+  {
+    "caseId": "send_link-peanut-pending-sender",
+    "entry": {
+      "uuid": "<UUID>",
+      "type": "TRANSACTION_INTENT",
+      "timestamp": "<TIMESTAMP>",
+      "amount": "1.00",
+      "currency": {
+        "amount": "1.00",
+        "code": "USDC"
+      },
+      "chainId": "42161",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "",
+      "status": "PENDING",
+      "userRole": "SENDER",
+      "senderAccount": {
+        "identifier": "<UUID>",
+        "type": "peanut-wallet",
+        "isUser": true
+      },
+      "recipientAccount": {
+        "identifier": "",
+        "type": "address",
+        "isUser": false
+      },
+      "extraData": {
+        "kind": "SEND_LINK",
+        "source": "EXTERNAL",
+        "intentStatus": "PROCESSING",
+        "intentMetadata": {
+          "chainId": "42161",
+          "depositIdx": 5164,
+          "integrator": null,
+          "createTxHash": "0xc6db4d7a039a50e88eb2ff50483835f9da476abe91c4954057d6320b3fb37f74",
+          "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "finalizeTxHash": null,
+          "sendLinkPubKey": "0xaD455d529FaF3B87Fe2f7aDF32BC510e9f76A0D5",
+          "contractVersion": "v4.3"
+        },
+        "provider": "PEANUT",
+        "merchantName": null,
+        "merchantCategory": null,
+        "merchantCity": null,
+        "merchantCountry": null,
+        "merchantMcc": null,
+        "merchantLogo": null,
+        "merchantId": null,
+        "cardLocalAmount": null,
+        "cardLocalCurrency": null,
+        "declineReason": null,
+        "declineCategory": null,
+        "cardAuthAmount": null,
+        "cardSettledAmount": null,
+        "settlementAdjusted": false,
+        "cancellationReason": null,
+        "parentRainTxId": null,
+        "fxRate": null,
+        "rainTransactionId": null,
+        "failReason": null
+      },
+      "createdAt": "<TIMESTAMP>"
+    }
+  }
 ]
