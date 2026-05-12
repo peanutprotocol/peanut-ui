@@ -54,8 +54,11 @@ export interface RainCardOverview {
 }
 
 /**
- * Mirrors the backend `TransactionIntentKind` (legacy wire vocabulary).
- * Drives history categorization for collateral webhooks.
+ * Outbound spend-intent vocabulary. Mirrors the kind values accepted by
+ * the backend's withdraw / auto-balancer endpoints — translated to
+ * `TransactionIntentKind` at the API boundary. Distinct from the history
+ * renderer's `IntentKind` union in strategies/registry.ts (which is the
+ * inbound wire shape).
  */
 export type TransactionIntentKind =
     | 'P2P_SEND'

@@ -115,7 +115,7 @@ export const useWallet = () => {
             // → TransactionIntent, so callers can skip legacy recordPayment paths
             // that would otherwise leave an unmatched Charge in history.
             // `intentId` is the receipt handle for collateral/mixed spends —
-            // `/receipt/<intentId>?t=<TRANSACTION_INTENT number>`.
+            // `/receipt/<intentId>?kind=<IntentKind>`.
             return {
                 userOpHash: result.userOpHash,
                 txHash: result.txHash,

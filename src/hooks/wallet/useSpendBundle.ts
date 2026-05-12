@@ -64,7 +64,7 @@ export interface SpendBundleResult {
      *  from `txHash` if needed). */
     receipt?: TransactionReceipt | null
     /** Backend TransactionIntent id (only when strategy touched Rain: collateral-only
-     *  or mixed). Use this to navigate to `/receipt/<intentId>?t=<TRANSACTION_INTENT number>`.
+     *  or mixed). Use this to navigate to `/receipt/<intentId>?kind=<IntentKind>`.
      *  Undefined for smart-only — no intent is created for pure smart-account sends. */
     intentId?: string
 }

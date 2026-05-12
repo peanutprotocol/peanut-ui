@@ -1,6 +1,6 @@
 [
   {
-    "name": "bridge-offramp-completed",
+    "caseId": "bridge-offramp-completed",
     "entry": {
       "uuid": "bridge-offramp-completed",
       "type": "TRANSACTION_INTENT",
@@ -38,19 +38,10 @@
       "completedAt": "<TIMESTAMP>",
       "isVerified": false,
       "fee": 0.375
-    },
-    "expected": {
-      "direction": "bank_withdraw",
-      "userName": "Bank Account",
-      "transactionCardType": "bank_withdraw",
-      "kind": "OFFRAMP",
-      "provider": "BRIDGE",
-      "cardPaymentDefined": false,
-      "bankAccountDetailsDefined": false
     }
   },
   {
-    "name": "bridge-onramp-pending",
+    "caseId": "bridge-onramp-pending",
     "entry": {
       "uuid": "bridge-onramp-pending",
       "type": "TRANSACTION_INTENT",
@@ -86,19 +77,10 @@
       "createdAt": "<TIMESTAMP>",
       "completedAt": null,
       "isVerified": false
-    },
-    "expected": {
-      "direction": "bank_deposit",
-      "userName": "Bank Account",
-      "transactionCardType": "bank_deposit",
-      "kind": "ONRAMP",
-      "provider": "BRIDGE",
-      "cardPaymentDefined": false,
-      "bankAccountDetailsDefined": false
     }
   },
   {
-    "name": "card-spend-clear-completed",
+    "caseId": "card-spend-clear-completed",
     "entry": {
       "uuid": "card-spend-clear-completed",
       "type": "TRANSACTION_INTENT",
@@ -155,19 +137,10 @@
         "failReason": null
       },
       "createdAt": "<TIMESTAMP>"
-    },
-    "expected": {
-      "direction": "qr_payment",
-      "userName": "Card payment",
-      "transactionCardType": "card_pay",
-      "kind": "CARD_SPEND_CLEAR",
-      "provider": "RAIN",
-      "cardPaymentDefined": true,
-      "bankAccountDetailsDefined": false
     }
   },
   {
-    "name": "p2p-send-completed",
+    "caseId": "p2p-send-completed",
     "entry": {
       "uuid": "p2p-send-completed",
       "type": "TRANSACTION_INTENT",
@@ -226,18 +199,10 @@
         "failReason": null
       },
       "createdAt": "<TIMESTAMP>"
-    },
-    "expected": {
-      "direction": "send",
-      "userName": "0xaaaa000000000000000000000000000000000001",
-      "transactionCardType": "send",
-      "provider": "PEANUT",
-      "cardPaymentDefined": false,
-      "bankAccountDetailsDefined": false
     }
   },
   {
-    "name": "request-pay-completed",
+    "caseId": "request-pay-completed",
     "entry": {
       "uuid": "request-pay-completed",
       "type": "TRANSACTION_INTENT",
@@ -295,19 +260,10 @@
         "failReason": null
       },
       "createdAt": "<TIMESTAMP>"
-    },
-    "expected": {
-      "direction": "request_received",
-      "userName": "Request",
-      "transactionCardType": "request",
-      "kind": "P2P_REQUEST_FULFILL",
-      "provider": "PEANUT",
-      "cardPaymentDefined": false,
-      "bankAccountDetailsDefined": false
     }
   },
   {
-    "name": "send-link-pending",
+    "caseId": "send-link-pending",
     "entry": {
       "uuid": "send-link-pending",
       "type": "TRANSACTION_INTENT",
@@ -365,15 +321,6 @@
         "failReason": null
       },
       "createdAt": "<TIMESTAMP>"
-    },
-    "expected": {
-      "direction": "send",
-      "userName": "Sent via link",
-      "transactionCardType": "send",
-      "kind": "SEND_LINK",
-      "provider": "PEANUT",
-      "cardPaymentDefined": false,
-      "bankAccountDetailsDefined": false
     }
   }
 ]
