@@ -452,7 +452,12 @@ module.exports = {
                     '@apply w-18 h-12 px-2 text-lg': {},
                 },
                 '.btn-small svg, .btn-medium svg': {
-                    '@apply icon-16': {},
+                    // Legacy MUI-era icons keep the auto 16px sizing; modern Lucide icons
+                    // carry 'custom-size' (set by the Icon wrapper) and manage their own
+                    // width/height via the size prop. Symmetric with the `.btn svg` rule above.
+                    '&:not(.custom-size)': {
+                        '@apply icon-16': {},
+                    },
                 },
                 '.btn-square.btn-small': {
                     '@apply w-8': {},

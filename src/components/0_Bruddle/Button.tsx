@@ -142,16 +142,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             className
         )
 
+        // Match the pre-Lucide visual: the global '.btn svg' rule used to force
+        // 18px in default/large buttons and 16px in small/medium (see tailwind.config.js).
+        // Lucide icons opt out of that rule via 'custom-size', so we recreate the
+        // size table here. Explicit iconSize wins.
+        const resolvedIconSize = iconSize ?? (size === 'small' || size === 'medium' ? 16 : 18)
+
         const renderIcon = () => {
             if (!icon || loading) return null
             return (
                 <div className={twMerge('flex size-6 items-center justify-center', iconContainerClassName)}>
                     {typeof icon === 'string' ? (
-                        <Icon
-                            size={iconSize}
-                            name={icon as IconName}
-                            className={twMerge(!iconSize && 'min-h-4 min-w-4', iconClassName)}
-                        />
+                        <Icon size={resolvedIconSize} name={icon as IconName} className={iconClassName} />
                     ) : (
                         icon
                     )}
