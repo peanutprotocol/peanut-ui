@@ -89,9 +89,7 @@ export default function OnrampBankPage() {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
 
-    // Used by the inputAmount step + the country-not-found state to leave this page.
-    // Falls back to the country method-selection if user deep-linked in, otherwise pops history.
-    const safeBackToCountry = useSafeBack(selectedCountryPath ? addMoneyCountryUrl(selectedCountryPath) : '/add-money')
+    const onBack = useSafeBack(selectedCountryPath ? addMoneyCountryUrl(selectedCountryPath) : '/add-money')
 
     const nonEuroCurrency = countryCurrencyMappings.find(
         (currency) =>
@@ -281,8 +279,6 @@ export default function OnrampBankPage() {
         setIsRiskAccepted(false)
     }
 
-    const handleBack = safeBackToCountry
-
     // Redirect to inputAmount if showDetails is accessed without required data (deep link / back navigation)
     useEffect(() => {
         if (urlState.step === 'showDetails' && !onrampData?.transferId) {
@@ -298,7 +294,7 @@ export default function OnrampBankPage() {
     if (!selectedCountry) {
         return (
             <div className="space-y-8 self-start">
-                <NavHeader title="Not Found" onPrev={safeBackToCountry} />
+                <NavHeader title="Not Found" onPrev={onBack} />
                 <EmptyState title="Country not found" description="Please try a different country." icon="search" />
             </div>
         )
@@ -322,7 +318,7 @@ export default function OnrampBankPage() {
 
         return (
             <div className="flex flex-col justify-start space-y-8">
-                <NavHeader title="Add Money" onPrev={handleBack} />
+                <NavHeader title="Add Money" onPrev={onBack} />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                     <div className="text-sm font-bold">How much do you want to add?</div>
                     <AmountInput

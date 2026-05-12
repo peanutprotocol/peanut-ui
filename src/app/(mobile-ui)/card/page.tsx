@@ -48,7 +48,7 @@ const CardPage: FC = () => {
     const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
     const { serializeGrant } = useGrantSessionKey()
     const { setIsSupportModalOpen } = useModalsContext()
-    const onPrevSafe = useSafeBack('/home')
+    const onBack = useSafeBack('/home')
 
     // Sumsub card-application token — populated when POST /rain/cards reports
     // the user still needs to complete the rain-card-application level.
@@ -317,25 +317,15 @@ const CardPage: FC = () => {
                 />
             )
         }
-        // /card is a backend-state-driven screen: state (add-card/pending/.../active) is
-        // derived from `overview`+`cardInfo`, not pushed to history. useSafeBack pops
-        // in-app history when there's something to pop and falls back to /home for
-        // deep-link entries.
         switch (state) {
             case 'pioneer':
                 return <CardPioneerFlow cardInfo={cardInfo!} refetchCardInfo={refetchCardInfo} />
             case 'add-card':
-                return (
-                    <AddCardEntryScreen
-                        onApply={() => handleApply(false)}
-                        onPrev={onPrevSafe}
-                        applyError={applyError}
-                    />
-                )
+                return <AddCardEntryScreen onApply={() => handleApply(false)} onPrev={onBack} applyError={applyError} />
             case 'pending':
-                return <ApplicationStatusScreen variant="pending" onPrev={onPrevSafe} />
+                return <ApplicationStatusScreen variant="pending" onPrev={onBack} />
             case 'manual-review':
-                return <ApplicationStatusScreen variant="manual-review" onPrev={onPrevSafe} />
+                return <ApplicationStatusScreen variant="manual-review" onPrev={onBack} />
             case 'rejected':
                 // No retry CTA: Rain denials are terminal on our side. The
                 // only path forward is support reviewing the case manually
@@ -346,12 +336,12 @@ const CardPage: FC = () => {
                     <ApplicationStatusScreen
                         variant="rejected"
                         onContactSupport={() => setIsSupportModalOpen(true)}
-                        onPrev={onPrevSafe}
+                        onPrev={onBack}
                     />
                 )
             case 'active': {
                 const card = findActiveCard(overview)!
-                return <YourCardScreen overview={overview!} card={card} onPrev={onPrevSafe} />
+                return <YourCardScreen overview={overview!} card={card} onPrev={onBack} />
             }
             default:
                 return null

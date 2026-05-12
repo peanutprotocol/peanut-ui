@@ -98,9 +98,7 @@ export default function WithdrawBankPage() {
     // check if we came from send flow - using method param to detect (only bank goes through this page)
     const methodParam = searchParams.get('method')
     const fromSendFlow = methodParam === 'bank'
-    // Non-success back: prefer popping in-app history (we have nuqs steps); on deep-link entry,
-    // fall back to the originating flow.
-    const onBackToFlow = useSafeBack(fromSendFlow ? '/send' : '/withdraw')
+    const onBack = useSafeBack(fromSendFlow ? '/send' : '/withdraw')
 
     const nonEuroCurrency = countryCurrencyMappings.find(
         (currency) =>
@@ -353,7 +351,7 @@ export default function WithdrawBankPage() {
                         setAmountToWithdraw('')
                         setSelectedMethod(null)
                     } else {
-                        onBackToFlow()
+                        onBack()
                     }
                 }}
             />

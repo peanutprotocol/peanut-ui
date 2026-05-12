@@ -25,7 +25,7 @@ import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPea
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 
 export function SendInputView() {
-    const handleGoBack = useSafeBack('/')
+    const onBack = useSafeBack('/')
     const { isFetchingUser } = useAuth()
     const {
         amount,
@@ -56,7 +56,7 @@ export function SendInputView() {
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader onPrev={handleGoBack} title="Pay" />
+            <NavHeader onPrev={onBack} title="Pay" />
 
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {/* recipient card */}

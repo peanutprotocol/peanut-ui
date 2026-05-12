@@ -25,16 +25,13 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useAccountSetupRedirect } from '@/hooks/useAccountSetupRedirect'
 import { useNativePlugins } from '@/hooks/useNativePlugins'
-import { installNavTracker } from '@/hooks/useSafeBack'
+// Side-effect import: useSafeBack patches history.pushState at module load. Importing here
+// guarantees the patch is installed before any child page's mount-time router.push.
+import '@/hooks/useSafeBack'
 import { isCapacitor } from '@/utils/capacitor'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
-    // Patch history.pushState once per page load so useSafeBack can tell deep-link entries
-    // (no in-app history) from in-app navigations. Idempotent and side-effect-only.
-    useEffect(() => {
-        installNavTracker()
-    }, [])
     const pathName = usePathname()
 
     // Allow access to public paths without authentication

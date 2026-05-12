@@ -29,7 +29,7 @@ import { tokenSelectorContext } from '@/context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 
 export function SemanticRequestInputView() {
-    const handleGoBack = useSafeBack('/')
+    const onBack = useSafeBack('/')
     const {
         amount,
         recipient,
@@ -148,7 +148,7 @@ export function SemanticRequestInputView() {
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader onPrev={handleGoBack} title="Pay" />
+            <NavHeader onPrev={onBack} title="Pay" />
 
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {/* recipient card */}

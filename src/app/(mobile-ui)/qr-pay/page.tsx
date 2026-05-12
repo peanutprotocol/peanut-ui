@@ -73,10 +73,7 @@ type PaymentProcessor = 'MANTECA'
 export default function QRPayPage() {
     const searchParams = useSearchParams()
     const router = useRouter()
-    // QR pay is a deep-link entry (PWA QR scan, push notification): history is often empty,
-    // so router.back() no-ops. useSafeBack pops if there's in-app history, otherwise lands
-    // the user on /home — guarantees every "leave this screen" action moves them somewhere.
-    const exitToHome = useSafeBack('/home')
+    const onBack = useSafeBack('/home')
     const qrCode = decodeURIComponent(searchParams.get('qrCode') || '')
     const timestamp = searchParams.get('t')
     const qrType = searchParams.get('type')
@@ -844,7 +841,7 @@ export default function QRPayPage() {
                 <NavHeader title="Pay" />
                 <ActionModal
                     visible
-                    onClose={exitToHome}
+                    onClose={onBack}
                     title={isFixable ? 'We need an updated document' : 'QR payments are not available'}
                     description={
                         isFixable
@@ -884,7 +881,7 @@ export default function QRPayPage() {
                 <NavHeader title="Pay" />
                 <ActionModal
                     visible={kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION}
-                    onClose={exitToHome}
+                    onClose={onBack}
                     title="Verify your identity to continue"
                     description="You'll need to verify your identity before paying with a QR code. Don't worry it usually just takes a few minutes."
                     icon={
@@ -906,7 +903,7 @@ export default function QRPayPage() {
                 />
                 <ActionModal
                     visible={kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS}
-                    onClose={exitToHome}
+                    onClose={onBack}
                     title="Complete your verification"
                     description="Your identity is being verified. If you did not finish the process, please continue to complete it."
                     icon="shield"
@@ -921,7 +918,7 @@ export default function QRPayPage() {
                         },
                         {
                             text: 'Not now',
-                            onClick: exitToHome,
+                            onClick: onBack,
                             variant: 'transparent',
                             className: 'underline text-sm font-medium w-full h-fit mt-3',
                         },
@@ -946,7 +943,7 @@ export default function QRPayPage() {
                         We're working to restore service as soon as possible.
                     </p>
                 </Card>
-                <Button onClick={exitToHome} variant="purple" shadowSize="4">
+                <Button onClick={onBack} variant="purple" shadowSize="4">
                     Go Back
                 </Button>
                 <button
@@ -972,7 +969,7 @@ export default function QRPayPage() {
                         {errorInitiatingPayment || 'An error occurred while getting the QR details.'}
                     </p>
 
-                    <Button onClick={exitToHome} variant="purple">
+                    <Button onClick={onBack} variant="purple">
                         Go Back
                     </Button>
                 </Card>

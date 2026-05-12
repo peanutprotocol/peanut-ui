@@ -106,8 +106,6 @@ const AddMoneyCryptoPage = () => {
                 usdAmount={depositResult.amount?.toString()}
                 amount={depositResult.tokenAmount}
                 transactionDetails={depositTransactionDetails}
-                // Replace /add-money/crypto with /home on Done — otherwise browser/device back
-                // from /home pops into the now-reset deposit view, creating a loop.
                 replaceOnDone
                 onComplete={() => {
                     setShowSuccessView(false)

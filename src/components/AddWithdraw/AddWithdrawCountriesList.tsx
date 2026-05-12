@@ -47,8 +47,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const router = useRouter()
     const params = useParams()
     const searchParams = useSearchParams()
-    // Parent for "leave this list" depends on the flow direction.
-    const onBackToFlowRoot = useSafeBack(flow === 'add' ? '/add-money' : '/withdraw')
+    const onBack = useSafeBack(flow === 'add' ? '/add-money' : '/withdraw')
 
     // check if coming from send flow and what type
     const methodParam = searchParams.get('method')
@@ -264,7 +263,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     if (!currentCountry) {
         return (
             <div className="space-y-8 self-start">
-                <NavHeader title="Not Found" onPrev={onBackToFlowRoot} />
+                <NavHeader title="Not Found" onPrev={onBack} />
                 <EmptyState title="Country not found" description="Please try a different country." icon="search" />
             </div>
         )
@@ -430,7 +429,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         router.push(`/withdraw?method=${methodParam}`)
                     } else {
                         setSelectedMethod(null)
-                        onBackToFlowRoot()
+                        onBack()
                     }
                 }}
             />

@@ -29,8 +29,6 @@ interface InputAmountStepProps {
     limitsValidation?: LimitsValidationWithUser
     // required - must be provided by caller based on the payment flow's currency (ARS, BRL, USD)
     limitsCurrency: LimitCurrency
-    // Parent decides where back goes — never default to router.back(): on this step it pops out of
-    // the flow entirely, but on a refresh / deep-link the stack is empty and back becomes a no-op.
     onBack: () => void
 }
 

@@ -119,8 +119,7 @@ export default function MantecaWithdrawFlow() {
         return countryData.find((country) => country.type === 'country' && country.path === countryPath)
     }, [countryPath])
 
-    // Back from the amountInput step exits this flow to the country page.
-    const onBackToCountry = useSafeBack(withdrawCountryUrl(selectedCountry?.path || ''))
+    const onBack = useSafeBack(withdrawCountryUrl(selectedCountry?.path || ''))
 
     const countryConfig = useMemo(() => {
         if (!selectedCountry) return undefined
@@ -618,7 +617,7 @@ export default function MantecaWithdrawFlow() {
                     } else if (step === 'bankDetails') {
                         setStep('amountInput')
                     } else {
-                        onBackToCountry()
+                        onBack()
                     }
                 }}
             />

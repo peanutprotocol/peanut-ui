@@ -38,7 +38,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
-    const onBackToWithdraw = useSafeBack('/withdraw')
+    const onBack = useSafeBack('/withdraw')
     const { isConnected: isPeanutWallet, address, sendTransactions, sendMoney } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
     const {
@@ -442,7 +442,7 @@ export default function WithdrawCryptoPage() {
                 <InitialWithdrawView
                     amount={usdAmount}
                     onReview={handleSetupReview}
-                    onBack={onBackToWithdraw}
+                    onBack={onBack}
                     isProcessing={isPreparingReview}
                 />
             )}

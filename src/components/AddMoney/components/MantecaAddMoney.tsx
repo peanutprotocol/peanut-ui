@@ -68,8 +68,7 @@ const MantecaAddMoney: FC = () => {
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
-    // Back from the inputAmount step exits this flow back to the country page.
-    const onBackToCountry = useSafeBack(addMoneyCountryUrl(selectedCountryPath))
+    const onBack = useSafeBack(addMoneyCountryUrl(selectedCountryPath))
     const { isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
     const { manteca: mantecaRejection } = useProviderRejectionStatus()
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
@@ -270,7 +269,7 @@ const MantecaAddMoney: FC = () => {
                     setDisplayedAmount={handleDisplayedAmountChange}
                     limitsValidation={limitsValidation}
                     limitsCurrency={limitsValidation.currency}
-                    onBack={onBackToCountry}
+                    onBack={onBack}
                 />
             </>
         )

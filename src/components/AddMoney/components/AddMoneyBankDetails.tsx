@@ -40,15 +40,15 @@ import { useQueryState, parseAsString } from 'nuqs'
  * See PR description of fix/bridge-fee-display-quote for full writeup.
  */
 
-// Discriminated union: add-money flow requires onBack (parent owns step navigation, typically
-// setUrlState({ step: 'inputAmount' })). request-fulfillment flow steps back internally via
-// RequestFulfillmentFlowContext, so onBack is forbidden there.
+// add-money flow requires onBack (parent owns step navigation, typically
+// setUrlState({ step: 'inputAmount' })). request-fulfillment steps back internally via
+// RequestFulfillmentFlowContext.
 type AddMoneyBankDetailsProps =
     | { flow?: 'add-money'; onBack: () => void }
     | { flow: 'request-fulfillment'; onBack?: never }
 
 export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
-    const { flow = 'add-money', onBack } = props
+    const { flow = 'add-money' } = props
     const isAddMoneyFlow = flow === 'add-money'
 
     // URL state - read amount from URL query params
@@ -244,12 +244,10 @@ Please use these details to complete your bank transfer.`
     }
 
     const handleBack = () => {
-        if (isAddMoneyFlow) {
-            // onBack is required by the type for add-money flow — parent (e.g.
-            // [country]/bank/page.tsx) steps back via URL state.
-            onBack!()
-        } else {
+        if (props.flow === 'request-fulfillment') {
             setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
+        } else {
+            props.onBack()
         }
     }
 
