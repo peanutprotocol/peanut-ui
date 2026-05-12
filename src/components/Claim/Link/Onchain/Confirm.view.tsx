@@ -9,7 +9,8 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { formatTokenAmount, printableAddress, isStableCoin } from '@/utils/general.utils'
+import { formatTokenAmount, isStableCoin } from '@/utils/general.utils'
+import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
 import * as Sentry from '@sentry/nextjs'
 import { useContext, useState, useMemo } from 'react'
@@ -38,6 +39,10 @@ export const ConfirmClaimLinkView = ({
     const { address } = useWallet()
     const { user } = useAuth()
     const { claimLinkXchain, claimLink } = useClaimLink()
+    const senderDisplay = useRecipientDisplay({
+        user: claimLinkData.sender,
+        address: claimLinkData.senderAddress,
+    })
     const { selectedChainID, selectedTokenAddress, isXChain } = useContext(tokenSelectorContext)
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const [errorState, setErrorState] = useState<{
@@ -168,7 +173,7 @@ export const ConfirmClaimLinkView = ({
                 <PeanutActionDetailsCard
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
-                    recipientName={claimLinkData.sender?.username ?? printableAddress(claimLinkData.senderAddress)}
+                    recipientName={senderDisplay.displayName}
                     amount={
                         isReward
                             ? formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!

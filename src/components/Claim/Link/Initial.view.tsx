@@ -15,7 +15,8 @@ import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
-import { areEvmAddressesEqual, formatTokenAmount, printableAddress } from '@/utils/general.utils'
+import { areEvmAddressesEqual, formatTokenAmount } from '@/utils/general.utils'
+import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { apiFetch } from '@/utils/api-fetch'
@@ -57,6 +58,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     // get campaign tag from claim link url
     const params = useSearchParams()
     const campaignTag = params.get('campaignTag')
+
+    const senderDisplay = useRecipientDisplay({
+        user: props.claimLinkData.sender,
+        address: props.claimLinkData.senderAddress,
+    })
 
     const {
         onNext,
@@ -919,7 +925,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     avatarSize="small"
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
-                    recipientName={claimLinkData.sender?.username ?? printableAddress(claimLinkData.senderAddress)}
+                    recipientName={senderDisplay.displayName}
                     amount={
                         isReward
                             ? formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!

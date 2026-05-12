@@ -29,7 +29,8 @@ import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
 import { useUserStore } from '@/redux/hooks'
 import type { TRequestChargeResponse, PaymentCreationResponse, ChargeEntry } from '@/services/services.types'
-import { formatAmount, getInitialsFromName, printableAddress } from '@/utils/general.utils'
+import { formatAmount, getInitialsFromName } from '@/utils/general.utils'
+import { resolveRecipientDisplay } from '@/utils/recipient-display'
 import { useQueryClient } from '@tanstack/react-query'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -116,7 +117,10 @@ const PaymentSuccessView = ({
         if (parsedPaymentData?.recipient?.identifier) {
             return parsedPaymentData.recipient.identifier
         }
-        return printableAddress(chargeDetails?.requestLink?.recipientAddress || '')
+        return resolveRecipientDisplay({
+            user: chargeDetails?.requestLink?.recipientAccount?.user,
+            address: chargeDetails?.requestLink?.recipientAddress || '',
+        }).displayName
     }, [user, parsedPaymentData, chargeDetails])
 
     const amountValue = useMemo(() => {

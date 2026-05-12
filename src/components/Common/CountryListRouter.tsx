@@ -3,7 +3,8 @@ import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { formatUnits } from 'viem'
-import { formatTokenAmount, printableAddress } from '@/utils/general.utils'
+import { formatTokenAmount } from '@/utils/general.utils'
+import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { CountryList } from '@/components/Common/CountryList'
 import { type ClaimLinkData } from '@/services/sendLinks'
 import { type CountryData, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
@@ -38,9 +39,10 @@ export const CountryListRouter = ({ claimLinkData, inputTitle }: ICountryListRou
         }
     }
 
-    const recipientName = useMemo(() => {
-        return claimLinkData?.sender?.username ?? printableAddress(claimLinkData?.senderAddress ?? '')
-    }, [claimLinkData])
+    const { displayName: recipientName } = useRecipientDisplay({
+        user: claimLinkData?.sender,
+        address: claimLinkData?.senderAddress ?? '',
+    })
 
     const amount = useMemo(() => {
         return formatTokenAmount(Number(formatUnits(claimLinkData?.amount ?? 0n, claimLinkData?.tokenDecimals ?? 0)))
