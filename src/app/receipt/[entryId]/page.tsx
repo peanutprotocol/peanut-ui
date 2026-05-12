@@ -1,6 +1,6 @@
 import { connection } from 'next/server'
 import { notFound } from 'next/navigation'
-import { isFinalState, historyTypeFromNumber } from '@/utils/history.utils'
+import { isFinalState } from '@/utils/history.utils'
 import { getHistoryEntry } from '@/app/actions/history'
 import {
     mapTransactionDataForDrawer,
@@ -117,13 +117,12 @@ export async function generateMetadata({
     })
 
     const { entryId } = await params
-    let entryTypeId = (await searchParams).t
-    if (!entryId || !entryTypeId || typeof entryTypeId !== 'string' || !historyTypeFromNumber(Number(entryTypeId))) {
+    const kindParam = (await searchParams).kind
+    if (!entryId || !kindParam || typeof kindParam !== 'string') {
         return basicMetadata
     }
 
-    const entryType = historyTypeFromNumber(Number(entryTypeId))
-    const entry = await getHistoryEntry(entryId, entryType)
+    const entry = await getHistoryEntry(entryId, kindParam)
     if (!entry) {
         return basicMetadata
     }
@@ -175,12 +174,11 @@ export default async function ReceiptPage({
     searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
     const { entryId } = await params
-    let entryTypeId = (await searchParams).t
-    if (!entryId || !entryTypeId || typeof entryTypeId !== 'string' || !historyTypeFromNumber(Number(entryTypeId))) {
+    const kindParam = (await searchParams).kind
+    if (!entryId || !kindParam || typeof kindParam !== 'string') {
         notFound()
     }
-    const entryType = historyTypeFromNumber(Number(entryTypeId))
-    const entry = await getHistoryEntry(entryId, entryType)
+    const entry = await getHistoryEntry(entryId, kindParam)
     if (!entry) {
         notFound()
     }

@@ -300,7 +300,10 @@ export interface TransactionDetails {
     tokenAddress?: string
     extraDataForDrawer?: {
         addressExplorerUrl?: string
-        originalType: EHistoryEntryType
+        /** Always 'TRANSACTION_INTENT' on the wire — kept as a literal so
+         *  the TransactionDetails view model carries the wire `type` field
+         *  forward without surprises. */
+        originalType: 'TRANSACTION_INTENT'
         originalUserRole: EHistoryUserRole
         /** Canonical TransactionIntentKind (DIRECT_TRANSFER, QR_PAY,
          *  CARD_SPEND_AUTH, …) or the synthetic 'PERK_REWARD'. Drives every
@@ -314,6 +317,10 @@ export interface TransactionDetails {
          *  (e.g. `provider === 'MANTECA'`) instead of inferring from the
          *  presence/absence of other fields. */
         provider?: Provider
+        /** Bridge sub-flow discriminator. Only set for `provider === 'BRIDGE'`
+         *  entries — separates the four Bridge paths that share an intent kind
+         *  (ONRAMP, OFFRAMP, BANK_SEND_LINK_CLAIM, GUEST_DIRECT_SEND). */
+        bridgeFlow?: 'ONRAMP' | 'OFFRAMP' | 'BANK_SEND_LINK_CLAIM' | 'GUEST_DIRECT_SEND'
         link?: string
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
@@ -518,10 +525,11 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         tokenAddress: entry.tokenAddress,
         extraDataForDrawer: {
             addressExplorerUrl,
-            originalType: entry.type as EHistoryEntryType,
+            originalType: 'TRANSACTION_INTENT',
             originalUserRole: entry.userRole as EHistoryUserRole,
             kind: entry.extraData?.kind as IntentKind | undefined,
             provider: entry.extraData?.provider as Provider | undefined,
+            bridgeFlow: entry.extraData?.bridgeFlow,
             link: entry.extraData?.link,
             isLinkTransaction: isLinkTx,
             transactionCardType,

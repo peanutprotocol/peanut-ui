@@ -25,7 +25,7 @@ import { TransactionDetailsDrawer } from '@/components/TransactionDetails/Transa
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
-import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
 import { useUserStore } from '@/redux/hooks'
 import type { TRequestChargeResponse, PaymentCreationResponse, ChargeEntry } from '@/services/services.types'
@@ -159,8 +159,9 @@ const PaymentSuccessView = ({
             initials: getInitialsFromName(recipientName),
             extraDataForDrawer: {
                 isLinkTransaction: false,
-                originalType: EHistoryEntryType.DIRECT_SEND,
+                originalType: 'TRANSACTION_INTENT',
                 originalUserRole: EHistoryUserRole.SENDER,
+                kind: 'DIRECT_TRANSFER',
                 link: receiptLink,
             },
             userName: user?.username || parsedPaymentData?.recipient?.identifier,
