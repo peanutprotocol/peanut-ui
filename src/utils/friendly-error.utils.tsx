@@ -1,3 +1,18 @@
+/** Safely extract a string-form of an unknown error + its `.message` if any.
+ *  Lets the matchers below use `string` methods without unsafe property access
+ *  while still accepting whatever shape callers throw (Error, string, object). */
+function extractErrorParts(error: unknown): { text: string; message: string | undefined } {
+    if (typeof error === 'string') return { text: error, message: error }
+    if (error && typeof error === 'object') {
+        const obj = error as { toString?: () => unknown; message?: unknown }
+        const rawText = typeof obj.toString === 'function' ? obj.toString() : ''
+        const text = typeof rawText === 'string' ? rawText : ''
+        const message = typeof obj.message === 'string' ? obj.message : undefined
+        return { text, message }
+    }
+    return { text: '', message: undefined }
+}
+
 /**
  * Returns the verbatim error message when it's an actionable Rain card-
  * collateral error from the backend (`/rain/cards/withdraw/prepare`):
@@ -9,22 +24,22 @@
  * Use this in any callsite that does its own catch on a Rain-touching spend
  * (signSpend / spend / sendMoney / sendTransactions(requiredUsdcAmount)).
  */
-export const rainCollateralErrorMessage = (error: any): string | null => {
-    const text = error?.toString?.() ?? ''
+export const rainCollateralErrorMessage = (error: unknown): string | null => {
+    const { text, message } = extractErrorParts(error)
     if (
         text.includes('A previous withdrawal is still active for this card') ||
         text.includes('A previous withdrawal signature is still active') ||
         text.includes('Insufficient collateral balance for this withdrawal')
     ) {
-        return error?.message ?? text
+        return message ?? text
     }
     return null
 }
 
 /** UI-friendly error message extractor. Matches substrings on common
  *  wallet / viem / Peanut API error messages and returns user-facing copy. */
-export const ErrorHandler = (error: any): string => {
-    const text = error?.toString?.() ?? ''
+export const ErrorHandler = (error: unknown): string => {
+    const { text, message } = extractErrorParts(error)
     // Rain card-collateral errors — surface the backend's already user-
     // friendly copy verbatim (includes the "Try again in about M min." hint
     // on the cooldown case). Covers every spend path that touches Rain.
@@ -66,7 +81,7 @@ export const ErrorHandler = (error: any): string => {
     if (text.includes('Error making the gasless deposit through the peanut api.'))
         return 'Error making the gasless deposit through the peanut api.'
     if (text.includes('Error sending the transaction.')) return 'Error sending the transaction.'
-    if (text.includes('Error getting the link with transactionHash')) return error.message
+    if (text.includes('Error getting the link with transactionHash')) return message ?? text
     if (text.includes('transfer amount exceeds balance'))
         return 'You do not have enough balance to complete the transaction.'
     if (text.includes('does not match the target chain for the transaction'))
@@ -77,6 +92,6 @@ export const ErrorHandler = (error: any): string => {
         return 'Could not claim link, please refresh page. If problem persist confirm link with sender'
     if (text.includes('Send link already claimed')) return 'Send link already claimed'
     if (text.toLowerCase().includes('liquidity'))
-        return error.message || 'Low liquidity. Please try a smaller amount or different route.'
+        return message || 'Low liquidity. Please try a smaller amount or different route.'
     return 'There was an issue with your request. Please contact support.'
 }
