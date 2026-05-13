@@ -239,7 +239,7 @@ export function useNotifications() {
                             // mirror OneSignal subscription state into local state so consumers
                             // that gate on `isPushOptedIn` (e.g. the home carousel CTA) react
                             // without waiting for the next permissionChange event.
-                            const optedIn = Boolean(event.current?.optedIn)
+                            const optedIn = !!event.current?.optedIn
                             setIsPushOptedIn(optedIn)
 
                             // hide modal when user opts in

@@ -16,8 +16,14 @@ const detectIsPWA = (): boolean => {
     )
 }
 
+// Cache the initial detection at module scope — several hooks consume usePWAStatus
+// on a single page load (home, setup, brave-install, user query). Without this,
+// each mount re-runs matchMedia + navigator + referrer reads.
+let cachedInitial: boolean | null = null
+const getInitial = () => (cachedInitial ??= detectIsPWA())
+
 export const usePWAStatus = () => {
-    const [isPWA, setIsPWA] = useState<boolean>(detectIsPWA)
+    const [isPWA, setIsPWA] = useState(getInitial)
 
     useEffect(() => {
         if (typeof window === 'undefined') return

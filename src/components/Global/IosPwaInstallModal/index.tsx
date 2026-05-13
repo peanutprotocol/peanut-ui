@@ -24,12 +24,21 @@ const IosPwaInstallModal = () => {
         }
     }
 
-    // Firefox iOS uses WebKit but its UI doesn't expose "Add to Home Screen" the
-    // way Safari/Chrome iOS do, and the steps differ enough that the Safari video
-    // misleads more than it helps. Redirect users to Safari instead.
+    // Firefox iOS doesn't expose "Add to Home Screen" — redirect to Safari.
     const isFirefox = browserType === BrowserType.FIREFOX
-
     const videoSource = getVideoSource()
+
+    const videoContent =
+        !isFirefox && !isLoading ? (
+            <video className="max-h-[60vh] w-full object-contain" autoPlay loop muted playsInline key={videoSource}>
+                {/* .mov assets are H.264 in a QuickTime container — Chrome/Edge/Firefox
+                    play them under video/mp4 but reject video/quicktime. mp4 first;
+                    quicktime stays as a fallback for older Safari. */}
+                <source src={videoSource} type="video/mp4" />
+                <source src={videoSource} type="video/quicktime" />
+                Your browser does not support the video tag.
+            </video>
+        ) : undefined
 
     return (
         <ActionModal
@@ -50,28 +59,7 @@ const IosPwaInstallModal = () => {
                     variant: 'purple',
                 },
             ]}
-            content={
-                !isFirefox && !isLoading ? (
-                    <div className="flex w-full flex-col">
-                        <video
-                            className="max-h-[60vh] w-full object-contain"
-                            autoPlay
-                            loop
-                            muted
-                            playsInline
-                            key={videoSource}
-                        >
-                            {/* The .mov assets are H.264 inside a QuickTime container — every
-                                modern browser plays them under the video/mp4 MIME, but most
-                                refuse video/quicktime. Keep mp4 first; quicktime is a fallback
-                                for older Safari that insists on the exact MIME. */}
-                            <source src={videoSource} type="video/mp4" />
-                            <source src={videoSource} type="video/quicktime" />
-                            Your browser does not support the video tag.
-                        </video>
-                    </div>
-                ) : undefined
-            }
+            content={videoContent}
         />
     )
 }
