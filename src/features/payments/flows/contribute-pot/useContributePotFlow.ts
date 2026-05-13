@@ -194,7 +194,14 @@ export function useContributePotFlow() {
                 }
 
                 // step 2: send money via peanut wallet
-                const txResult = await sendMoney(recipient.address, amount, { kind: 'REQUEST_PAY' })
+                const txResult = await sendMoney(recipient.address, amount, {
+                    kind: 'REQUEST_PAY',
+                    // Lets the backend settle the charge directly when the spend
+                    // routes through Rain card collateral (the on-chain validator
+                    // can't verify a collateral-contract tx). recordPayment below is
+                    // then routed through the same trusted-completion path.
+                    chargeId: chargeResult.uuid,
+                })
                 // For the collateral-only strategy useSpendBundle returns only
                 // `txHash` (Rain coordinator submits the on-chain tx; no UserOp
                 // hash + no receipt land here). Fall back to it so users with
