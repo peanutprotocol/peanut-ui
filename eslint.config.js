@@ -7,7 +7,15 @@ const tsPlugin = require('@typescript-eslint/eslint-plugin')
 const reactPlugin = require('eslint-plugin-react')
 const reactHooksPlugin = require('eslint-plugin-react-hooks')
 const nextPlugin = require('@next/eslint-plugin-next')
+const importPlugin = require('eslint-plugin-import-x')
 const globals = require('globals')
+
+// Barrel paths banned by CLAUDE.md ("no barrel imports — never `import * as X from
+// '@/constants'` or create `index.ts` barrels. Import from specific files"). The bare
+// alias resolves to `<dir>/index.{ts,tsx}` which forces the bundler to load every
+// re-export, hurting build perf. Existing violations remain (~135 across the codebase)
+// — the guard is preventative; cleanup belongs in a separate sweep.
+const BANNED_BARREL_PATHS = ['@/constants', '@/components', '@/assets', '@/context', '@/interfaces', '@/config']
 
 module.exports = [
     {
@@ -40,8 +48,15 @@ module.exports = [
             react: reactPlugin,
             'react-hooks': reactHooksPlugin,
             '@next/next': nextPlugin,
+            'import-x': importPlugin,
         },
-        settings: { react: { version: 'detect' } },
+        settings: {
+            react: { version: 'detect' },
+            'import-x/resolver': {
+                typescript: { project: './tsconfig.json' },
+                node: true,
+            },
+        },
         rules: {
             ...tsPlugin.configs.recommended.rules,
             ...reactPlugin.configs.recommended.rules,
@@ -56,6 +71,25 @@ module.exports = [
             'react/prop-types': 'off',
             // Allow unescaped quotes — too noisy and prettier handles spacing
             'react/no-unescaped-entities': 'off',
+
+            // Ban barrel imports — see BANNED_BARREL_PATHS above.
+            'no-restricted-imports': [
+                'error',
+                {
+                    paths: BANNED_BARREL_PATHS.map((path) => ({
+                        name: path,
+                        message: `Import from a specific file instead of the '${path}' barrel — barrels force the bundler to load every re-export and hurt build perf. See CLAUDE.md.`,
+                    })),
+                },
+            ],
+
+            // Ban self-imports — CLAUDE.md import rules. Confirmed firing on synthetic test.
+            'import-x/no-self-import': 'error',
+            // import-x/no-cycle is intentionally NOT enabled. The plugin's no-cycle silently
+            // fails on synthetic A↔B cycles under ESLint 9 flat config in this setup —
+            // verified against both eslint-plugin-import 2.32 and eslint-plugin-import-x 4.16.
+            // Self-imports are still caught above. Revisit when the plugin matures or someone
+            // figures out the resolver gotcha.
 
             // Project-specific: catch the back-button bug class.
             // See src/hooks/useSafeBack.ts, PR #1965 (router.back), PR #1997 (sibling patterns).
@@ -73,7 +107,7 @@ module.exports = [
                     selector:
                         "JSXAttribute[name.name=/^(onPrev|onBack)$/] > JSXExpressionContainer > ArrowFunctionExpression[body.type='CallExpression'][body.callee.object.name='router'][body.callee.property.name=/^(push|replace)$/]",
                     message:
-                        "Bare router.push/replace as onPrev/onBack creates a parent↔child cycle once the parent uses useSafeBack (the push grows in-app history, useSafeBack pops back to this screen, repeat). Use useSafeBack(parentUrl) — pass { replace: true } to preserve replace semantics. See PR #1997.",
+                        'Bare router.push/replace as onPrev/onBack creates a parent↔child cycle once the parent uses useSafeBack (the push grows in-app history, useSafeBack pops back to this screen, repeat). Use useSafeBack(parentUrl) — pass { replace: true } to preserve replace semantics. See PR #1997.',
                 },
                 {
                     selector:
