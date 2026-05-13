@@ -290,7 +290,12 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             const lookupKey = extraData.parentSendLinkPubKey ?? entry.uuid
             const password = getFromLocalStorage(`sendLink::password::${lookupKey}`)
             const { contractVersion, depositIdx } = extraData
-            if (password) {
+            // Skip URL build if BE didn't supply contractVersion + depositIdx —
+            // raw template interpolation produces literal "undefined" strings,
+            // which serialised as ?v=undefined&i=undefined and broke claim +
+            // cancel. The drawer falls back to "use device where created" copy
+            // when link is empty.
+            if (password && contractVersion != null && depositIdx != null) {
                 link = shareableUrl(`/claim?c=${entry.chainId}&v=${contractVersion}&i=${depositIdx}#p=${password}`)
             }
             const tokenDetails = getTokenDetails({

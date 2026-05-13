@@ -16,8 +16,9 @@ import { completeHistoryEntry } from '../history.utils'
 import type { HistoryEntry } from '../history.utils'
 
 jest.mock('@/app/actions/currency', () => ({ getCurrencyPrice: jest.fn() }))
+const mockGetFromLocalStorage = jest.fn(() => null as string | null)
 jest.mock('@/utils/general.utils', () => ({
-    getFromLocalStorage: jest.fn(() => null),
+    getFromLocalStorage: (...args: unknown[]) => mockGetFromLocalStorage(...(args as [])),
     getTokenDetails: jest.fn(() => ({ symbol: 'USDC', decimals: 6 })),
 }))
 
@@ -78,5 +79,50 @@ describe('completeHistoryEntry amount-contract guards', () => {
             extraData: { ...baseEntry.extraData, kind: 'CRYPTO_DEPOSIT' },
         }
         await expect(completeHistoryEntry(entry)).resolves.toBeDefined()
+    })
+})
+
+describe('completeHistoryEntry SEND_LINK shareable URL', () => {
+    // BE staging shipped SEND_LINK rows missing extraData.contractVersion +
+    // extraData.depositIdx (decomplexify Phase 2 mapper drop). Without a
+    // guard, raw template interpolation produced /claim?v=undefined&i=undefined,
+    // which broke claim AND cancel — sender clicked Cancel, SDK threw
+    // "No Peanut vault for chainId=42161 version=undefined".
+    beforeEach(() => mockGetFromLocalStorage.mockReset())
+
+    it('builds the share URL when password + contractVersion + depositIdx are present', async () => {
+        mockGetFromLocalStorage.mockReturnValue('test-password')
+        const entry: HistoryEntry = {
+            ...baseEntry,
+            extraData: {
+                ...baseEntry.extraData,
+                kind: 'SEND_LINK',
+                contractVersion: 'v4.3',
+                depositIdx: 7,
+            },
+        }
+        const result = await completeHistoryEntry(entry)
+        // shareableUrl prepends window.location.origin (jsdom: http://localhost).
+        expect(result.extraData?.link).toBe(`${window.location.origin}/claim?c=42161&v=v4.3&i=7#p=test-password`)
+    })
+
+    it('skips the URL build when contractVersion is missing — no v=undefined leak', async () => {
+        mockGetFromLocalStorage.mockReturnValue('test-password')
+        const entry: HistoryEntry = {
+            ...baseEntry,
+            extraData: { ...baseEntry.extraData, kind: 'SEND_LINK', depositIdx: 7 },
+        }
+        const result = await completeHistoryEntry(entry)
+        expect(result.extraData?.link).toBe('')
+    })
+
+    it('skips the URL build when depositIdx is missing — no i=undefined leak', async () => {
+        mockGetFromLocalStorage.mockReturnValue('test-password')
+        const entry: HistoryEntry = {
+            ...baseEntry,
+            extraData: { ...baseEntry.extraData, kind: 'SEND_LINK', contractVersion: 'v4.3' },
+        }
+        const result = await completeHistoryEntry(entry)
+        expect(result.extraData?.link).toBe('')
     })
 })
