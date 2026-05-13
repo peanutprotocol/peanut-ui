@@ -50,7 +50,6 @@ import {
     Power,
     QrCode,
     RefreshCw,
-    ScanQrCode,
     Search,
     Share,
     Shield,
@@ -124,7 +123,6 @@ export type IconName =
     | 'share'
     | 'user-plus'
     | 'qr-code'
-    | 'scan-qr-code'
     | 'history'
     | 'docs'
     | 'error'
@@ -184,7 +182,6 @@ const VIEWBOX_BOOST: Record<string, string> = {
     'arrow-exchange': '2 2 20 20',
     exchange: '2 2 20 20',
     'qr-code': '2 2 20 20',
-    'scan-qr-code': '2 2 20 20',
 }
 
 const LucideWrapper: FC<
@@ -264,7 +261,6 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     cancel: (props) => <LucideWrapper Icon={X} {...props} />,
     ban: (props) => <LucideWrapper Icon={Ban} {...props} />,
     'qr-code': (props) => <LucideWrapper Icon={QrCode} boostKey="qr-code" {...props} />,
-    'scan-qr-code': (props) => <LucideWrapper Icon={ScanQrCode} boostKey="scan-qr-code" {...props} />,
     history: (props) => <LucideWrapper Icon={History} {...props} />,
     error: (props) => <LucideWrapper Icon={AlertCircle} {...props} />,
     clip: (props) => <LucideWrapper Icon={Paperclip} {...props} />,
