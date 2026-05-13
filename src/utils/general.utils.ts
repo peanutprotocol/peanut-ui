@@ -3,9 +3,9 @@ import {
     supportedPeanutChains,
     peanutTokenDetails,
     pathTitles,
-    BASE_URL,
 } from '@/constants/general.consts'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
+import { shareableUrl } from '@/utils/url.utils'
 import * as Sentry from '@sentry/nextjs'
 import type { Address, TransactionReceipt } from 'viem'
 import { getAddress, isAddress, erc20Abi } from 'viem'
@@ -766,7 +766,7 @@ export function getRequestLink(
     const recipient = username || recipientAddress
     const chain = !username && chainId ? `@${chainId}` : ''
 
-    let link = `${process.env.NEXT_PUBLIC_BASE_URL}/${recipient}${chain}/`
+    let link = shareableUrl(`/${recipient}${chain}/`)
     if (tokenAmount) {
         link += `${formatAmount(tokenAmount)}`
     }
@@ -900,7 +900,7 @@ export const generateInviteCodeSuffix = (username: string): string => {
 export const generateInviteCodeLink = (username: string) => {
     const suffix = generateInviteCodeSuffix(username)
     const inviteCode = `${username.toUpperCase()}INVITESYOU${suffix}`
-    const inviteLink = `${BASE_URL}/invite?code=${inviteCode}`
+    const inviteLink = shareableUrl(`/invite?code=${inviteCode}`)
     return { inviteLink, inviteCode }
 }
 

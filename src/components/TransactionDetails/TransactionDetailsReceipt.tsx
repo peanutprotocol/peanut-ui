@@ -732,7 +732,7 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
-            {isQRPayment && transaction.status !== 'refunded' && (
+            {!isPublic && isQRPayment && transaction.status !== 'refunded' && (
                 <Button
                     onClick={() => {
                         router.push(`/request?amount=${transaction.amount}&merchant=${transaction.userName}`)
@@ -760,10 +760,13 @@ export const TransactionDetailsReceipt = ({
                 onClose={onClose}
             />
 
-            {/* referral nudge for activated users on completed outbound transactions */}
-            {isActivated &&
+            {/* Referral nudge for activated users on completed outbound transactions.
+                QR pay is excluded — it already shows Split + Share, and a third button
+                stacks the drawer past the comfortable 2-CTA ceiling. */}
+            {!isPublic &&
+                isActivated &&
                 transaction.status === 'completed' &&
-                ['send', 'qr_payment', 'withdraw', 'bank_withdraw'].includes(transaction.direction) &&
+                ['send', 'withdraw', 'bank_withdraw'].includes(transaction.direction) &&
                 !isPerkReward &&
                 user?.user.username && (
                     <Button

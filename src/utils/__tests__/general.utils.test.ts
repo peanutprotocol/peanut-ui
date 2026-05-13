@@ -214,6 +214,20 @@ describe('General Utilities', () => {
     })
 
     describe('getRequestLink', () => {
+        // getRequestLink now uses shareableUrl which reads window.location.origin
+        // (so a link shared from staging stays on staging). Mock origin so existing
+        // assertions against peanut.example.org keep working.
+        const originalLocation = window.location
+        beforeAll(() => {
+            Object.defineProperty(window, 'location', {
+                value: new URL('https://peanut.example.org'),
+                writable: true,
+            })
+        })
+        afterAll(() => {
+            Object.defineProperty(window, 'location', { value: originalLocation, writable: true })
+        })
+
         it.each([
             // For Peanut Wallet users (username-based links)
             {

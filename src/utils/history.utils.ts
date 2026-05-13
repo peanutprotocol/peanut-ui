@@ -6,8 +6,8 @@ import { type Hash } from 'viem'
 import { getTokenDetails } from '@/utils/general.utils'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { type ChargeEntry } from '@/services/services.types'
-import { BASE_URL } from '@/constants/general.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import { shareableUrl } from '@/utils/url.utils'
 
 export enum EHistoryUserRole {
     SENDER = 'SENDER',
@@ -222,7 +222,7 @@ const RECEIPT_PAGE_KINDS: ReadonlySet<string> = new Set(['QR_PAY', 'ONRAMP', 'OF
 export function getReceiptUrl(transaction: TransactionDetails): string | undefined {
     const kind = transaction.extraDataForDrawer?.kind
     if (kind && RECEIPT_PAGE_KINDS.has(kind)) {
-        return `${BASE_URL}/receipt/${transaction.id}?kind=${kind}`
+        return shareableUrl(`/receipt/${transaction.id}?kind=${kind}`)
     }
     if (transaction.extraDataForDrawer?.link) {
         return transaction.extraDataForDrawer.link
@@ -291,7 +291,7 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             const password = getFromLocalStorage(`sendLink::password::${lookupKey}`)
             const { contractVersion, depositIdx } = extraData
             if (password) {
-                link = `${BASE_URL}/claim?c=${entry.chainId}&v=${contractVersion}&i=${depositIdx}#p=${password}`
+                link = shareableUrl(`/claim?c=${entry.chainId}&v=${contractVersion}&i=${depositIdx}#p=${password}`)
             }
             const tokenDetails = getTokenDetails({
                 tokenAddress: entry.tokenAddress as Hash,
@@ -311,16 +311,22 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             if (entry.isRequestLink) {
                 const tokenCurrency = entry.tokenSymbol
                 const tokenAmount = entry.amount
-                link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}/${tokenAmount}${tokenCurrency}?id=${entry.uuid}`
+                link = shareableUrl(
+                    `/${entry.recipientAccount.username || entry.recipientAccount.identifier}/${tokenAmount}${tokenCurrency}?id=${entry.uuid}`
+                )
             } else {
-                link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
+                link = shareableUrl(
+                    `/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
+                )
             }
             tokenSymbol = entry.tokenSymbol
             usdAmount = entry.amount.toString()
             break
         }
         case 'DIRECT_TRANSFER': {
-            link = `${BASE_URL}/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
+            link = shareableUrl(
+                `/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
+            )
             tokenSymbol = entry.tokenSymbol
             usdAmount = entry.amount.toString()
             break
