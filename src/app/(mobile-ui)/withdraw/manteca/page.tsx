@@ -715,7 +715,7 @@ export default function MantecaWithdrawFlow() {
                             </div>
                             <div>
                                 <p className="flex items-center gap-1 text-center text-sm text-gray-600">
-                                    <Icon name="arrow-up" size={10} /> You're sending
+                                    <Icon name="arrow-up" size={12} /> You're sending
                                 </p>
                                 <p className="text-2xl font-bold">
                                     {currencyCode} {formatNumberForDisplay(currencyAmount, { maxDecimals: 2 })}
@@ -831,7 +831,7 @@ export default function MantecaWithdrawFlow() {
                             </div>
                             <div>
                                 <p className="flex items-center gap-1 text-center text-sm text-gray-600">
-                                    <Icon name="arrow-up" size={10} /> You're sending
+                                    <Icon name="arrow-up" size={12} /> You're sending
                                 </p>
                                 <p className="text-2xl font-bold">
                                     {currencyCode}{' '}

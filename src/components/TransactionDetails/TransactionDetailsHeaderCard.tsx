@@ -257,7 +257,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     </div>
                     <div className="w-full space-y-1">
                         <h2 className="flex items-center gap-2 text-sm font-medium text-grey-1">
-                            {icon && <Icon name={icon} size={10} />}
+                            {icon && <Icon name={icon} size={12} />}
                             <VerifiedUserLabel
                                 username={userName}
                                 name={

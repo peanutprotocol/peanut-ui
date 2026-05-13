@@ -101,7 +101,7 @@ export default function ContactsView() {
                                 onClick={() => refetch()}
                                 className="mt-4"
                                 icon="retry"
-                                iconSize={12}
+                                iconSize={16}
                             >
                                 Retry
                             </Button>
@@ -201,7 +201,7 @@ export default function ContactsView() {
                             <Button
                                 shadowSize="4"
                                 icon="link"
-                                iconSize={10}
+                                iconSize={16}
                                 onClick={handleLinkCtaClick}
                                 className="mt-4"
                             >

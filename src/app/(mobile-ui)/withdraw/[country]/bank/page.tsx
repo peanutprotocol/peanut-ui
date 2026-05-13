@@ -436,7 +436,7 @@ export default function WithdrawBankPage() {
                         <Button
                             icon="arrow-up"
                             loading={isLoading}
-                            iconSize={12}
+                            iconSize={16}
                             shadowSize="4"
                             onClick={handleCreateAndInitiateOfframp}
                             disabled={isLoading || !bankAccount || !!balanceErrorMessage}

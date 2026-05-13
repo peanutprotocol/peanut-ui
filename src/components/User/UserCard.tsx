@@ -61,7 +61,7 @@ const UserCard = ({
         if (type === 'request_fulfilment') title = `Sending ${fullName ?? username}`
         return (
             <div className="flex items-center gap-2 text-xs font-normal text-grey-1">
-                {icon && <Icon name={icon} size={8} />} {title}
+                {icon && <Icon name={icon} size={12} />} {title}
             </div>
         )
     }, [type])

@@ -449,7 +449,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                             placeholder="Search for a token or paste address"
                                         />
                                         <div className="flex items-center justify-center gap-2">
-                                            <Icon name="info" size={10} className="text-grey-1" />
+                                            <Icon name="info" size={14} className="text-grey-1" />
                                             <span className="text-xs font-normal text-grey-1">
                                                 Transactions using USDC on Arbitrum are sponsored
                                             </span>

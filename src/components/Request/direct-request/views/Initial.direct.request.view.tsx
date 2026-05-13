@@ -288,7 +288,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                             disabled={isButtonDisabled || isButtonLoading}
                             loading={isButtonLoading}
                             icon="arrow-down-left"
-                            iconSize={12}
+                            iconSize={16}
                         >
                             {isButtonLoading ? loadingState : 'Request'}
                         </Button>

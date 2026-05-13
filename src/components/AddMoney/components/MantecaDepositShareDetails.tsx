@@ -105,7 +105,7 @@ const MantecaDepositShareDetails = ({
                         </div>
                         <div>
                             <p className="flex items-center gap-1 text-center text-sm text-gray-600">
-                                <Icon name="arrow-down" size={10} /> You're adding
+                                <Icon name="arrow-down" size={12} /> You're adding
                             </p>
                             <p className="text-2xl font-bold">
                                 {currencySymbol} {formatCurrency(depositAmount)}

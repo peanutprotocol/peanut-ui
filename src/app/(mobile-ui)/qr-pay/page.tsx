@@ -1314,7 +1314,7 @@ export default function QRPayPage() {
                             </div>
                             <div className="min-w-0 flex-1">
                                 <p className="flex items-center gap-1 text-center text-sm text-gray-600">
-                                    <Icon name="arrow-up-right" size={10} /> You're paying
+                                    <Icon name="arrow-up-right" size={12} /> You're paying
                                 </p>
                                 <p className="break-words text-xl font-semibold">{merchantName}</p>
                             </div>
