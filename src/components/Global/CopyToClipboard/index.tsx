@@ -11,7 +11,7 @@ interface Props {
     textToCopy: string
     fill?: string
     className?: string
-    iconSize?: '2' | '3' | '4' | '6' | '8'
+    iconSize?: '2' | '3' | '4' | '5' | '6' | '8'
     type?: 'button' | 'icon'
     buttonSize?: ButtonSize
     onCopy?: () => void
@@ -36,11 +36,12 @@ const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
             copy()
         }
 
-        // convert tailwind size to pixels (2=8px, 3=12px, 4=16px, 6=24px, 8=32px)
+        // convert tailwind size to pixels (2=8px, 3=12px, 4=16px, 5=20px, 6=24px, 8=32px)
         const sizeMap: Record<string, number> = {
             '2': 8,
             '3': 12,
             '4': 16,
+            '5': 20,
             '6': 24,
             '8': 32,
         }

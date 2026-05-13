@@ -51,7 +51,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         haveSentMoneyToUser={haveSentMoneyToUser}
                         isAuthenticatedUserVerified={isAuthenticatedUserVerified && isSelfProfile} // can be true only for self profile
                     />
-                    <CopyToClipboard textToCopy={username} fill="black" iconSize="6" />
+                    <CopyToClipboard textToCopy={username} fill="black" iconSize="5" />
                 </div>
                 {/* Username with share drawer */}
                 {showShareButton && (
