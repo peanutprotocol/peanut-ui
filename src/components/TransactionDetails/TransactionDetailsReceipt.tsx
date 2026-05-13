@@ -656,15 +656,7 @@ export const TransactionDetailsReceipt = ({
                                 className="flex w-full items-center gap-1"
                                 shadowSize="4"
                             >
-                                <div className="flex items-center">
-                                    {!isLoading && (
-                                        <Icon
-                                            name="cancel"
-                                            size={14}
-                                            className="mr-0.5 rounded-full border border-black p-0.5"
-                                        />
-                                    )}
-                                </div>
+                                <div className="flex items-center">{!isLoading && <Icon name="ban" size={18} />}</div>
                                 <span>{cancelLinkText}</span>
                             </Button>
                         )}
@@ -681,9 +673,8 @@ export const TransactionDetailsReceipt = ({
             {isPendingRequester && setIsLoading && onClose && (
                 <div className="pr-1">
                     <Button
-                        icon="cancel"
-                        iconContainerClassName="border border-black w-4 h-4 mr-1 rounded-full"
-                        iconClassName="p-1"
+                        icon="ban"
+                        iconSize={18}
                         loading={isLoading}
                         disabled={isLoading}
                         onClick={closeRequestLink}
@@ -709,9 +700,8 @@ export const TransactionDetailsReceipt = ({
                         Pay
                     </Button>
                     <Button
-                        icon="cancel"
-                        iconContainerClassName="border border-black w-4 h-4 mr-1 rounded-full"
-                        iconClassName="p-1"
+                        icon="ban"
+                        iconSize={18}
                         disabled={isLoading}
                         onClick={() => {
                             setIsLoading(true)
