@@ -294,7 +294,14 @@ export function useSemanticRequestFlow() {
                 // if cross-chain or different token → go to confirm view
                 if (isSameChainSameToken) {
                     // direct payment - same as old flow when isPeanutWallet && same token/chain
-                    const txResult = await sendMoney(recipient.resolvedAddress, amount, { kind: 'REQUEST_PAY' })
+                    const txResult = await sendMoney(recipient.resolvedAddress, amount, {
+                        kind: 'REQUEST_PAY',
+                        // Lets the backend settle the charge directly when the spend
+                        // routes through Rain card collateral (the on-chain validator
+                        // can't verify a collateral-contract tx). recordPayment below
+                        // is then routed through the same trusted-completion path.
+                        chargeId: chargeResult.uuid,
+                    })
                     // For the collateral-only strategy useSpendBundle returns only
                     // `txHash` (Rain coordinator submits the on-chain tx). Fall
                     // back to it so card-collateral users don't get an
@@ -483,6 +490,11 @@ export function useSemanticRequestFlow() {
                 // direct payment for same-chain same-token (e.g. direct requests)
                 const txResult = await sendMoney(charge.requestLink.recipientAddress as Address, charge.tokenAmount, {
                     kind: 'REQUEST_PAY',
+                    // See sibling site (~line 297): lets the backend settle the
+                    // charge directly when the spend routes through Rain card
+                    // collateral; recordPayment below is routed through the same
+                    // trusted-completion path.
+                    chargeId: charge.uuid,
                 })
                 // collateral-only routes return `txHash` only — see
                 // sibling site at line ~293 for the same fallback.

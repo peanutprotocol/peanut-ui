@@ -84,6 +84,10 @@ export interface PrepareRainWithdrawalInput {
     /** Total user-initiated spend in cents. For mixed strategy this differs from
      *  `amount` (which is only the collateral shortfall). History shows this. */
     totalAmountCents?: string
+    /** When this withdrawal pays a Peanut request/charge, the charge uuid.
+     *  The backend then uses the charge intent itself as the prep and marks it
+     *  COMPLETED on confirm — so the FE must NOT also call `recordPayment`. */
+    chargeId?: string
 }
 
 export interface PrepareRainWithdrawalResponse {

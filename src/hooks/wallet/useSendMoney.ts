@@ -23,6 +23,11 @@ type SendMoneyParams = {
      *  other semantics (QR pay, crypto withdraw, request pay, …) should pass
      *  the appropriate kind explicitly. */
     kind?: RainCollateralKind
+    /** When this send pays a Peanut request/charge, the charge uuid. If the spend
+     *  routes entirely through Rain collateral the backend completes the charge
+     *  itself — the result's `strategy === 'collateral-only'` is the caller's
+     *  signal to skip `recordPayment`. Ignored for other strategies. */
+    chargeId?: string
     /** Optional UI hook — fires once routing is picked, before any signing prompt. */
     onStrategyDecided?: (strategy: Exclude<SpendStrategy, 'insufficient'>) => void
     /** Optional UI hook — fires when we're about to prompt for the one-time
@@ -60,6 +65,7 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
             toAddress,
             amountInUsd,
             kind = 'P2P_SEND',
+            chargeId,
             onStrategyDecided,
             onGrantRequired,
         }: SendMoneyParams) => {
@@ -70,6 +76,7 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
                 smartBalance: smartBalance ?? 0n,
                 rainSpendingPower: rainSpendingPowerToWei(overview?.balance?.spendingPower),
                 kind,
+                chargeId,
                 onStrategyDecided,
                 onGrantRequired,
             })
