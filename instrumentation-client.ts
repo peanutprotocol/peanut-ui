@@ -2,7 +2,11 @@ import posthog from 'posthog-js'
 
 if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development') {
     posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-        api_host: '/ingest',
+        // Proxied through Next.js rewrites (see next.config.js). Path is
+        // intentionally innocuous — `/ingest/` was on uBlock Origin's default
+        // blocklist as a known PostHog signature, blocked-by-client retries
+        // were flooding the console.
+        api_host: '/relay',
         ui_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
         person_profiles: 'identified_only',
         capture_pageview: true,

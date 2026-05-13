@@ -121,13 +121,17 @@ let nextConfig = {
                 },
             ],
             afterFiles: [
-                // PostHog reverse proxy — bypasses ad blockers
+                // PostHog reverse proxy — bypasses ad blockers. Path renamed
+                // from /ingest/ (which uBlock Origin's default lists block as
+                // a known PostHog signature, causing retry storms in the
+                // console). Keep this name innocuous; rotate again if it
+                // gets added to the lists.
                 {
-                    source: '/ingest/static/:path*',
+                    source: '/relay/static/:path*',
                     destination: 'https://eu-assets.i.posthog.com/static/:path*',
                 },
                 {
-                    source: '/ingest/:path*',
+                    source: '/relay/:path*',
                     destination: 'https://eu.i.posthog.com/:path*',
                 },
                 // Same-origin passkey path. The backend's /passkeys/{login,register}/verify
