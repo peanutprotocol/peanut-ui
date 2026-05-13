@@ -268,6 +268,31 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
+        // Bug bounty — shown to activated users only. Server enforces the real
+        // eligibility (email verified, ≥1 payment OR KYC approved), lifetime
+        // caps, and the daily budget. This gate just keeps the CTA off cold
+        // accounts where the reward would be denied anyway.
+        if (isActivated) {
+            _carouselCTAs.push({
+                id: 'bug-bounty',
+                title: (
+                    <span>
+                        Found a bug? <b>Earn $5 + a badge</b>
+                    </span>
+                ),
+                description: 'Report it in support — no questions asked, real bugs only.',
+                iconContainerClassName: 'bg-secondary-1',
+                icon: 'bug',
+                iconSize: 16,
+                onClick: () => {
+                    const w = window as unknown as { $crisp?: unknown[] }
+                    if (!w.$crisp) return
+                    w.$crisp.push(['set', 'message:text', ['I found a bug: ']])
+                    w.$crisp.push(['do', 'chat:open'])
+                },
+            })
+        }
+
         if (!hasKycApproval && !isUserBridgeKycUnderReview) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',

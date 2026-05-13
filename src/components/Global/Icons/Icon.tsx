@@ -14,6 +14,7 @@ import {
     Ban,
     Banknote,
     Bell,
+    Bug,
     Camera,
     Check,
     CircleCheck,
@@ -86,6 +87,7 @@ export type IconName =
     | 'arrow-exchange'
     | 'bank'
     | 'bell'
+    | 'bug'
     | 'camera'
     | 'camera-flip'
     | 'check'
@@ -227,6 +229,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'arrow-exchange': (props) => <LucideWrapper Icon={ArrowRightLeft} boostKey="arrow-exchange" {...props} />,
     bank: (props) => <LucideWrapper Icon={Landmark} {...props} />,
     bell: (props) => <LucideWrapper Icon={Bell} {...props} />,
+    bug: (props) => <LucideWrapper Icon={Bug} {...props} />,
     badge: (props) => <LucideWrapper Icon={ShieldCheck} {...props} />,
     camera: (props) => <LucideWrapper Icon={Camera} {...props} />,
     'camera-flip': (props) => <LucideWrapper Icon={SwitchCamera} {...props} />,
