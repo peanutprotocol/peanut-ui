@@ -3,6 +3,7 @@
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
+import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
 import { rainSpendingPowerToWei } from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
@@ -327,6 +328,7 @@ export default function MantecaWithdrawFlow() {
                     kind: 'FIAT_OFFRAMP',
                 })
             } catch (error) {
+                const rainMsg = rainCollateralErrorMessage(error)
                 if (error instanceof InsufficientSpendableError) {
                     setErrorMessage('Not enough USDC in your wallet or card to cover this withdrawal.')
                 } else if (error instanceof SessionKeyGrantRequiredError) {
@@ -334,6 +336,8 @@ export default function MantecaWithdrawFlow() {
                     // Telling the user "you'll be asked" is misleading — they
                     // may retry and hit the same loop. Give an actionable hint.
                     setErrorMessage('Card authorization failed. Please try again or contact support.')
+                } else if (rainMsg) {
+                    setErrorMessage(rainMsg)
                 } else if ((error as Error).toString().includes('not allowed')) {
                     setErrorMessage('Please confirm the transaction.')
                 } else {
