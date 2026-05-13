@@ -432,8 +432,8 @@ export default function DirectSendQr({
                 )}
                 disabled={disabled}
                 icon={icon}
-                iconSize={56}
-                iconContainerClassName="!size-14"
+                iconSize={32}
+                iconContainerClassName="!size-8"
             />
 
             <Modal
