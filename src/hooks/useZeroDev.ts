@@ -183,10 +183,7 @@ export const useZeroDev = () => {
             calls: UserOpEncodedParams[],
             chainId: string
         ): Promise<{ userOpHash: Hash; receipt: TransactionReceipt | null }> => {
-            // Recovery chains (mainnet/base/linea) aren't pre-built on login —
-            // ensure the kernel client exists before grabbing it. Cached chains
-            // (Arbitrum) resolve immediately, so the only callers that pay the
-            // construction cost are non-Arb sends (today: recover-funds page).
+            // Non-Arb chains (recover-funds) aren't pre-built — wait for lazy build.
             await ensureClientForChain(chainId)
             const client = getClientForChain(chainId)
             dispatch(zerodevActions.setIsSendingUserOp(true))

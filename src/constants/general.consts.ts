@@ -6,13 +6,6 @@ import { mainnet, arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scrol
 const CHAIN_DETAILS = chainDetailsJson as unknown as Record<string, IPeanutChainDetails>
 const TOKEN_DETAILS = tokenDetailsJson as unknown as IPeanutTokenDetail[]
 
-const INFURA_API_KEY = process.env.NEXT_PUBLIC_INFURA_API_KEY
-const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
-
-const infuraUrl = (subdomain: string) => (INFURA_API_KEY ? `https://${subdomain}.infura.io/v3/${INFURA_API_KEY}` : null)
-const alchemyUrl = (subdomain: string) =>
-    ALCHEMY_API_KEY ? `https://${subdomain}.g.alchemy.com/v2/${ALCHEMY_API_KEY}` : null
-
 // Verified 2026-05-13 with curl from staging.peanut.me origin.
 // Commented entries are kept inline for visibility — re-enable when fixed.
 //
@@ -20,8 +13,9 @@ const alchemyUrl = (subdomain: string) =>
 //   • Infura + Alchemy: NEXT_PUBLIC_* keys exposed in bundle, free-tier
 //     quota burned by every visitor (429s); Alchemy's origin allowlist
 //     also excludes staging.peanut.me (CORS). Re-enable only after moving
-//     the keys server-side behind /api/rpc/[chainId]. Helpers below stay
-//     because /api/health/rpc still gates on key presence.
+//     the keys server-side behind /api/rpc/[chainId]. The infuraUrl /
+//     alchemyUrl builders that used to live here were removed (no callers
+//     after the comment-out); /api/health/rpc reads the env vars directly.
 //   • eth.public-rpc.com: returns 403 to OPTIONS preflight.
 //   • rpc.ankr.com/*: now requires an API key ("Unauthorized" -32000).
 //   • polygon-rpc.com: "API key disabled, tenant disabled" (401).

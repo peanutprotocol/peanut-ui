@@ -15,8 +15,8 @@ import {
     type KernelAccountClient,
 } from '@zerodev/sdk'
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react'
-import { arbitrum } from 'viem/chains'
 import { type Chain, http, type PublicClient, type Transport } from 'viem'
+import { AccountType } from '@/interfaces/interfaces'
 import type { Address } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { captureException } from '@sentry/nextjs'
@@ -359,22 +359,16 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const initializeClients = async () => {
-            // Eager-build only the primary wallet chain (Arbitrum). Recovery
-            // chains (mainnet/base/linea) are now lazy-built via
-            // ensureClientForChain — only the recover-funds page needs them,
-            // and 99% of sessions never go there. Saves 3 passkey-validator
-            // constructions + 3 chains' worth of RPC traffic on every login.
+            // Recovery chains (mainnet/base/linea) are lazy-built via
+            // ensureClientForChain — only /recover-funds needs them.
             const primaryChainId = PEANUT_WALLET_CHAIN.id.toString()
             const entry = PUBLIC_CLIENTS_BY_CHAIN[primaryChainId]
             if (!entry) {
-                // Should never happen — clients.ts always seeds the primary entry.
                 throw new Error(`Primary chain ${primaryChainId} missing from PUBLIC_CLIENTS_BY_CHAIN`)
             }
 
-            // Register the build in inFlightRef so that an ensureClientForChain
-            // call for the primary chain (e.g. a route that mounts before
-            // login completes) dedupes to this same promise instead of starting
-            // a parallel build with the same inputs.
+            // Register in inFlightRef so a concurrent ensureClientForChain
+            // (e.g. route mounted before login completes) dedupes here.
             const buildPromise = createKernelClientForChain(
                 entry.client,
                 entry.chain,
@@ -382,7 +376,9 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 webAuthnKey,
                 isAfterZeroDevMigration
                     ? undefined
-                    : (user?.accounts.find((a) => a.type === 'peanut-wallet')!.identifier as Address),
+                    : (user?.accounts.find((a) => a.type === AccountType.PEANUT_WALLET)?.identifier as
+                          | Address
+                          | undefined),
                 { bundlerUrl: entry.bundlerUrl, paymasterUrl: entry.paymasterUrl }
             )
             inFlightRef.current.set(primaryChainId, buildPromise as Promise<GenericSmartAccountClient>)
@@ -394,8 +390,8 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 inFlightRef.current.delete(primaryChainId)
             }
 
-            // only update state after primary build succeeds —
-            // avoids UI flicker (registering→not registering→registering) between retries
+            // Only update state after primary succeeds — avoids
+            // registering→not→registering UI flicker between retries.
             if (isMounted) {
                 setClientsByChain((prev) => ({ ...prev, [primaryChainId]: kernelClient }))
                 fetchUser()
@@ -417,7 +413,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         return () => {
             isMounted = false
         }
-    }, [webAuthnKey, isAfterZeroDevMigration])
+    }, [webAuthnKey, isAfterZeroDevMigration, user])
 
     useEffect(() => {
         const peanutClient = clientsByChain[PEANUT_WALLET_CHAIN.id]
@@ -445,12 +441,9 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
 
     const ensureClientForChain = useCallback(
         async (chainId: string): Promise<GenericSmartAccountClient> => {
-            // Cache hit: already built (eagerly for primary, or lazily on a prior call).
             const cached = clientsByChain[chainId]
             if (cached) return cached
 
-            // In-flight dedupe: a concurrent caller (or the primary-init effect)
-            // is already building this chain — wait for the same promise.
             const inFlight = inFlightRef.current.get(chainId)
             if (inFlight) return inFlight
 
@@ -471,7 +464,9 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 webAuthnKey,
                 isAfterZeroDevMigration
                     ? undefined
-                    : (user?.accounts.find((a) => a.type === 'peanut-wallet')?.identifier as Address | undefined),
+                    : (user?.accounts.find((a) => a.type === AccountType.PEANUT_WALLET)?.identifier as
+                          | Address
+                          | undefined),
                 { bundlerUrl: entry.bundlerUrl, paymasterUrl: entry.paymasterUrl }
             )
                 .then((kernelClient) => {
