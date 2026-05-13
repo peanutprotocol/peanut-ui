@@ -105,10 +105,9 @@ export const useHomeCarouselCTAs = () => {
     // done the action. Shares the React Query cache key with HomeHistory below, so
     // this read is free when the home page is mounted.
     const { data: latestHistory } = useTransactionHistory({ mode: 'latest', limit: 50 })
-    // `undefined` while history is loading — distinct from `false` (loaded, no
-    // QR pay) so we can gate the QR-payment CTA on "we actually know." Without
-    // this, the CTA flashes in on first paint then disappears once history
-    // resolves with a prior QR_PAY entry.
+    // `boolean | undefined` (no `?? false`) so the QR-payment CTA gate can
+    // distinguish "loaded, none found" from "still loading" — see the strict
+    // `=== false` check below.
     const hasMadeQrPayment: boolean | undefined = useMemo(
         () => latestHistory?.entries.some((e) => e.extraData?.kind === 'QR_PAY'),
         [latestHistory]
@@ -177,11 +176,8 @@ export const useHomeCarouselCTAs = () => {
                 },
             })
         }
-        // Show notification CTA only when the OneSignal SDK has actually loaded
-        // (Brave + Shields blocks the SDK script and the service worker, so the
-        // SDK never initializes — clicking would silently no-op since
-        // requestPermission early-returns on `!oneSignalInitialized`). Plus the
-        // usual permission/subscription gates.
+        // Brave Shields blocks the OneSignal SDK; requestPermission no-ops
+        // until init succeeds, so don't render a click-to-no-op CTA.
         if (oneSignalInitialized && !isPermissionGranted && !isPushOptedIn && isPwa) {
             _carouselCTAs.push({
                 id: 'notification-prompt',
@@ -199,17 +195,11 @@ export const useHomeCarouselCTAs = () => {
                     }
                     const result = await requestPermission()
                     await afterPermissionAttempt()
-                    // Result still 'default' means the browser either suppressed
-                    // the prompt (corporate policy, Shields, fingerprinting) or
-                    // the user dismissed it. Either way, calling again won't help
-                    // this session — dismiss the CTA and tell the user what
-                    // happened so they don't tap a dead button forever.
+                    // 'default' = browser suppressed prompt (policy/Shields) or
+                    // user dismissed it — calling again won't help this session.
                     if (result === 'default') {
-                        toast.info(
-                            'Your browser blocked the notification prompt. Enable notifications for Peanut in your browser settings, then reload.'
-                        )
-                        dismissedRef.current.set('notification-prompt', new Date())
-                        setCarouselCTAs((prev) => prev.filter((c) => c.id !== 'notification-prompt'))
+                        toast.warning('Notifications blocked by your browser. Enable them in site settings and reload.')
+                        dismissCTA('notification-prompt')
                     }
                 },
             })
@@ -229,11 +219,8 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        // Show QR code payment prompt if user's Bridge or Manteca KYC is approved
-        // AND we've confirmed (history loaded) they haven't used QR pay yet.
-        // `hasMadeQrPayment === false` distinguishes "loaded, none found" from
-        // `undefined` (still loading) — gating on the strict false avoids the
-        // flash-then-disappear when history resolves with a prior QR_PAY entry.
+        // Strict `=== false` gates on "history loaded, no QR pay" — `undefined`
+        // (still loading) keeps the CTA hidden so it doesn't flash in then out.
         if (hasKycApproval && hasMadeQrPayment === false) {
             _carouselCTAs.push({
                 id: 'qr-payment',
@@ -327,6 +314,7 @@ export const useHomeCarouselCTAs = () => {
         oneSignalInitialized,
         setIsIosPwaInstallModalOpen,
         toast,
+        dismissCTA,
     ])
 
     useEffect(() => {
