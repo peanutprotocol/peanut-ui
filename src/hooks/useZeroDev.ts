@@ -55,7 +55,7 @@ export const useZeroDev = () => {
     const dispatch = useAppDispatch()
     const { user } = useAuth()
     const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZerodevStore()
-    const { setWebAuthnKey, getClientForChain } = useKernelClient()
+    const { setWebAuthnKey, getClientForChain, ensureClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
     const { inviteCode, inviteType } = useSetupStore()
 
@@ -183,6 +183,8 @@ export const useZeroDev = () => {
             calls: UserOpEncodedParams[],
             chainId: string
         ): Promise<{ userOpHash: Hash; receipt: TransactionReceipt | null }> => {
+            // Non-Arb chains (recover-funds) aren't pre-built — wait for lazy build.
+            await ensureClientForChain(chainId)
             const client = getClientForChain(chainId)
             dispatch(zerodevActions.setIsSendingUserOp(true))
 
@@ -244,7 +246,7 @@ export const useZeroDev = () => {
                 receipt: userOpReceipt.receipt,
             }
         },
-        [getClientForChain]
+        [getClientForChain, ensureClientForChain]
     )
 
     return {
