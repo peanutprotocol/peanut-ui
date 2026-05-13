@@ -2,7 +2,7 @@
 import { JustaNameContext } from '@/config/justaname.config'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider, cookieToInitialState, createConfig, http, type Config } from 'wagmi'
-import { arbitrum, base, bsc, celo, gnosis, linea, mainnet, optimism, polygon, scroll, worldchain } from 'wagmi/chains'
+import { arbitrum, bsc, celo, gnosis, linea, mainnet, optimism, polygon, scroll, worldchain } from 'wagmi/chains'
 import { RETRY_STRATEGIES } from '@/utils/retry.utils'
 
 const queryClient = new QueryClient({
@@ -25,10 +25,14 @@ const queryClient = new QueryClient({
     },
 })
 
-export const networks = [arbitrum, mainnet, optimism, polygon, gnosis, base, scroll, bsc, linea, worldchain, celo]
+// Base intentionally absent: WAGMI's `http()` (no URL) defaults to mainnet.base.org,
+// which IP-rate-limits us with 403s and pollutes the console. We don't use Base for
+// external-wallet flows. If Base support is needed for an actual user flow, give it
+// an explicit RPC URL (Chainstack key) instead of `http()`.
+export const networks = [arbitrum, mainnet, optimism, polygon, gnosis, scroll, bsc, linea, worldchain, celo]
 
 export const wagmiConfig = createConfig({
-    chains: [arbitrum, mainnet, optimism, polygon, gnosis, base, scroll, bsc, linea, worldchain, celo],
+    chains: [arbitrum, mainnet, optimism, polygon, gnosis, scroll, bsc, linea, worldchain, celo],
     ssr: true,
     transports: {
         [arbitrum.id]: http(),
@@ -36,7 +40,6 @@ export const wagmiConfig = createConfig({
         [optimism.id]: http(),
         [polygon.id]: http(),
         [gnosis.id]: http(),
-        [base.id]: http(),
         [scroll.id]: http(),
         [bsc.id]: http(),
         [linea.id]: http(),
