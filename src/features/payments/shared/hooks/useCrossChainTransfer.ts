@@ -106,6 +106,14 @@ export interface UseCrossChainTransferReturn {
     transactions: PreparedTransaction[] | null
     sdaAddress: Address | null
     receiveAmount: string | null
+    /** USDC the kernel actually needs on-hand to execute `transactions[0]` — this
+     *  is principal + Rhino fee on the SDA path (where mode='receive' and Rhino
+     *  takes the fee at source) and equals principal on the bridge / same-chain
+     *  paths. Callers that route through `sendTransactions({ requiredUsdcAmount })`
+     *  MUST pass this, not the principal, or the kernel's collateral-sweep
+     *  shortfall is under-funded and the subsequent transfer reverts with
+     *  `ERC20: transfer amount exceeds balance`. */
+    payAmount: string | null
     feeUsd: number | undefined
     estimatedGasCostUsd: number | undefined
     minDepositLimitUsd: number | undefined
@@ -153,6 +161,7 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
     const [transactions, setTransactions] = useState<PreparedTransaction[] | null>(null)
     const [sdaAddress, setSdaAddress] = useState<Address | null>(null)
     const [receiveAmount, setReceiveAmount] = useState<string | null>(null)
+    const [payAmount, setPayAmount] = useState<string | null>(null)
     const [feeUsd, setFeeUsd] = useState<number | undefined>(undefined)
     const [estimatedGasCostUsd, setEstimatedGasCostUsd] = useState<number | undefined>(undefined)
     const [minDepositLimitUsd, setMinDepositLimitUsd] = useState<number | undefined>(undefined)
@@ -170,6 +179,7 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
         setTransactions(null)
         setSdaAddress(null)
         setReceiveAmount(null)
+        setPayAmount(null)
         setFeeUsd(undefined)
         setEstimatedGasCostUsd(undefined)
         setMinDepositLimitUsd(undefined)
@@ -222,6 +232,7 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
             setTransactions(null)
             setSdaAddress(null)
             setReceiveAmount(null)
+            setPayAmount(null)
             setFeeUsd(undefined)
             setEstimatedGasCostUsd(undefined)
             setPath(null)
@@ -243,6 +254,7 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                         setEstimatedGasCostUsd,
                         setIsFeeEstimationError,
                         setReceiveAmount,
+                        setPayAmount,
                         skipGasEstimate,
                     })
                     setPath('same-chain')
@@ -280,6 +292,7 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                         tokenSymbol,
                         setTransactions,
                         setReceiveAmount,
+                        setPayAmount,
                         setFeeUsd,
                         setEstimatedGasCostUsd,
                         setIsFeeEstimationError,
@@ -317,6 +330,7 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                     setTransactions,
                     setSdaAddress,
                     setReceiveAmount,
+                    setPayAmount,
                     setFeeUsd,
                     setMinDepositLimitUsd,
                     setMaxDepositLimitUsd,
@@ -340,6 +354,7 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
         transactions,
         sdaAddress,
         receiveAmount,
+        payAmount,
         feeUsd,
         estimatedGasCostUsd,
         minDepositLimitUsd,
@@ -367,6 +382,7 @@ interface BridgePathParams {
     tokenSymbol: string
     setTransactions: (tx: PreparedTransaction[] | null) => void
     setReceiveAmount: (v: string | null) => void
+    setPayAmount: (v: string | null) => void
     setFeeUsd: (v: number | undefined) => void
     setEstimatedGasCostUsd: (v: number | undefined) => void
     setIsFeeEstimationError: (v: boolean) => void
@@ -387,6 +403,7 @@ async function runBridgePath({
     tokenSymbol,
     setTransactions,
     setReceiveAmount,
+    setPayAmount,
     setFeeUsd,
     setEstimatedGasCostUsd,
     setIsFeeEstimationError,
@@ -471,6 +488,10 @@ async function runBridgePath({
         bridgeCall,
     ])
     setReceiveAmount(quote.amountOut)
+    // Bridge path: mode='pay' → user pays exactly `amountIn` at source; the
+    // Rhino fee + gas come out of the destination amount. So the kernel needs
+    // `amountIn` USDC on-hand (same as the principal).
+    setPayAmount(quote.amountIn)
     setFeeUsd(quote.feeUsd + quote.gasFeeUsd)
     setEstimatedGasCostUsd(0) // gas paid by paymaster — same as SDA path
     setIsFeeEstimationError(false)
@@ -484,6 +505,7 @@ interface SameChainParams {
     setEstimatedGasCostUsd: (v: number | undefined) => void
     setIsFeeEstimationError: (v: boolean) => void
     setReceiveAmount: (v: string | null) => void
+    setPayAmount: (v: string | null) => void
     skipGasEstimate?: boolean
 }
 
@@ -493,6 +515,7 @@ async function buildSameChainTx({
     setEstimatedGasCostUsd,
     setIsFeeEstimationError,
     setReceiveAmount,
+    setPayAmount,
     skipGasEstimate,
 }: SameChainParams): Promise<void> {
     const tx = prepareRequestLinkFulfillmentTransaction({
@@ -513,6 +536,8 @@ async function buildSameChainTx({
         },
     ])
     setReceiveAmount(destination.tokenAmount)
+    // Same-chain, same-token: kernel pays exactly the principal.
+    setPayAmount(destination.tokenAmount)
     if (!skipGasEstimate && tx.unsignedTx.from && tx.unsignedTx.to && tx.unsignedTx.data) {
         try {
             const gasCost = await estimateTransactionCostUsd(
@@ -538,6 +563,7 @@ interface RhinoResultParams {
     setTransactions: (tx: PreparedTransaction[] | null) => void
     setSdaAddress: (v: Address | null) => void
     setReceiveAmount: (v: string | null) => void
+    setPayAmount: (v: string | null) => void
     setFeeUsd: (v: number | undefined) => void
     setMinDepositLimitUsd: (v: number | undefined) => void
     setMaxDepositLimitUsd: (v: number | undefined) => void
@@ -552,6 +578,7 @@ function applyRhinoResult({
     setTransactions,
     setSdaAddress,
     setReceiveAmount,
+    setPayAmount,
     setFeeUsd,
     setMinDepositLimitUsd,
     setMaxDepositLimitUsd,
@@ -576,6 +603,13 @@ function applyRhinoResult({
     ])
     setSdaAddress(sda.sdaAddress)
     setReceiveAmount(preview.receiveAmount)
+    // SDA path uses mode='receive' (preview at line ~310) — Rhino takes the fee
+    // at source. `payAmount` IS `principal + fee` and matches the on-chain
+    // transfer amount we just encoded above. Callers routing through
+    // sendTransactions({ requiredUsdcAmount }) MUST pass this — not the
+    // principal — or the kernel's collateral-sweep under-funds and the
+    // transfer reverts with `ERC20: transfer amount exceeds balance`.
+    setPayAmount(preview.payAmount)
     setFeeUsd(preview.feeUsd)
     setMinDepositLimitUsd(sda.minDepositLimitUsd)
     setMaxDepositLimitUsd(sda.maxDepositLimitUsd)
