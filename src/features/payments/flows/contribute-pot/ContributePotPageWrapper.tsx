@@ -14,7 +14,7 @@ import { requestsApi } from '@/services/requests'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
-import { useRouter } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { useEffect, useState } from 'react'
 import { type TRequestResponse } from '@/services/services.types'
 
@@ -23,7 +23,7 @@ interface ContributePotPageWrapperProps {
 }
 
 export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapperProps) {
-    const router = useRouter()
+    const onBack = useSafeBack('/home')
     const [request, setRequest] = useState<TRequestResponse | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -57,7 +57,7 @@ export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapper
     if (isLoading) {
         return (
             <div className="flex min-h-[inherit] w-full flex-col gap-4">
-                <NavHeader title="Pay" onPrev={() => router.back()} />
+                <NavHeader title="Pay" onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
                     <PeanutLoading />
                 </div>
@@ -69,7 +69,7 @@ export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapper
     if (error || !request) {
         return (
             <div className="flex w-full flex-col gap-4">
-                <NavHeader title="Pay" onPrev={() => router.back()} />
+                <NavHeader title="Pay" onPrev={onBack} />
                 <ErrorAlert description={error || 'request not found'} />
             </div>
         )
