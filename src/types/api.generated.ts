@@ -1140,9 +1140,7 @@ export interface paths {
         post: {
             parameters: {
                 query?: never
-                header?: {
-                    'api-key'?: string
-                }
+                header?: never
                 path?: never
                 cookie?: never
             }
@@ -1247,9 +1245,7 @@ export interface paths {
         post: {
             parameters: {
                 query?: never
-                header?: {
-                    'api-key'?: string
-                }
+                header?: never
                 path?: never
                 cookie?: never
             }
@@ -1288,9 +1284,7 @@ export interface paths {
         post: {
             parameters: {
                 query?: never
-                header?: {
-                    'api-key'?: string
-                }
+                header?: never
                 path?: never
                 cookie?: never
             }
