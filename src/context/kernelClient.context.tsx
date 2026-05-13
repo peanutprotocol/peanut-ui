@@ -14,7 +14,7 @@ import {
     createZeroDevPaymasterClient,
     type KernelAccountClient,
 } from '@zerodev/sdk'
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useState, useMemo } from 'react'
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react'
 import { arbitrum } from 'viem/chains'
 import { type Chain, http, type PublicClient, type Transport } from 'viem'
 import type { Address } from 'viem'
@@ -28,6 +28,11 @@ import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
 interface KernelClientContextType {
     setWebAuthnKey: (webAuthnKey: WebAuthnKey) => void
     getClientForChain: (chainId: string) => GenericSmartAccountClient
+    // Lazy-builds (and caches) a kernel client for `chainId` if it isn't already
+    // ready. Awaiting this before `getClientForChain` is what lets us skip
+    // eager-init for non-Arb chains (mainnet/base/linea — recovery-only).
+    // Cached chains resolve immediately; concurrent calls dedupe via inFlightRef.
+    ensureClientForChain: (chainId: string) => Promise<GenericSmartAccountClient>
 }
 
 type GenericSmartAccountClient<C extends Chain = Chain> = KernelAccountClient<Transport, C>
@@ -236,6 +241,11 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
     const [webAuthnKey, setWebAuthnKey] = useState<WebAuthnKey | undefined>(undefined)
     const dispatch = useAppDispatch()
     const { fetchUser, logoutUser, user } = useAuth()
+    // In-flight kernel-client builds keyed by chainId. Lets concurrent
+    // ensureClientForChain() callers dedupe to a single build, and lets the
+    // primary-init effect register itself so a recover-funds page mount that
+    // races primary login doesn't kick off a duplicate Arb build.
+    const inFlightRef = useRef<Map<string, Promise<GenericSmartAccountClient>>>(new Map())
 
     const isAfterZeroDevMigration = useMemo<boolean>(() => {
         if (!user?.user?.createdAt) {
@@ -251,6 +261,9 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             console.log('[KernelClient] No user found, clearing webAuthnKey, clients, and address')
             setWebAuthnKey(undefined)
             setClientsByChain({})
+            // Drop any in-flight lazy builds — their results would be useless
+            // (and re-applying them would write into a fresh post-logout state).
+            inFlightRef.current.clear()
             dispatch(zerodevActions.setAddress(undefined)) // explicitly clear address from redux
             return
         }
@@ -346,51 +359,45 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const initializeClients = async () => {
-            // NETWORK RESILIENCE: Parallelize kernel client initialization across chains
-            // Arbitrum (primary wallet) is always initialized. Additional chains (mainnet, base, linea)
-            // are initialized if NEXT_PUBLIC_ZERO_DEV_RECOVERY_BUNDLER_URL is configured.
-            const clientPromises = Object.entries(PUBLIC_CLIENTS_BY_CHAIN).map(
-                async ([chainId, { client, chain, bundlerUrl, paymasterUrl }]) => {
-                    try {
-                        const kernelClient = await createKernelClientForChain(
-                            client,
-                            chain,
-                            isAfterZeroDevMigration,
-                            webAuthnKey,
-                            isAfterZeroDevMigration
-                                ? undefined
-                                : (user?.accounts.find((a) => a.type === 'peanut-wallet')!.identifier as Address),
-                            {
-                                bundlerUrl,
-                                paymasterUrl,
-                            }
-                        )
-                        return { chainId, kernelClient, success: true } as const
-                    } catch (error) {
-                        console.error(`Error creating kernel client for chain ${chainId}:`, error)
-                        captureException(error)
-                        return { chainId, error, success: false } as const
-                    }
-                }
+            // Eager-build only the primary wallet chain (Arbitrum). Recovery
+            // chains (mainnet/base/linea) are now lazy-built via
+            // ensureClientForChain — only the recover-funds page needs them,
+            // and 99% of sessions never go there. Saves 3 passkey-validator
+            // constructions + 3 chains' worth of RPC traffic on every login.
+            const primaryChainId = PEANUT_WALLET_CHAIN.id.toString()
+            const entry = PUBLIC_CLIENTS_BY_CHAIN[primaryChainId]
+            if (!entry) {
+                // Should never happen — clients.ts always seeds the primary entry.
+                throw new Error(`Primary chain ${primaryChainId} missing from PUBLIC_CLIENTS_BY_CHAIN`)
+            }
+
+            // Register the build in inFlightRef so that an ensureClientForChain
+            // call for the primary chain (e.g. a route that mounts before
+            // login completes) dedupes to this same promise instead of starting
+            // a parallel build with the same inputs.
+            const buildPromise = createKernelClientForChain(
+                entry.client,
+                entry.chain,
+                isAfterZeroDevMigration,
+                webAuthnKey,
+                isAfterZeroDevMigration
+                    ? undefined
+                    : (user?.accounts.find((a) => a.type === 'peanut-wallet')!.identifier as Address),
+                { bundlerUrl: entry.bundlerUrl, paymasterUrl: entry.paymasterUrl }
             )
+            inFlightRef.current.set(primaryChainId, buildPromise as Promise<GenericSmartAccountClient>)
 
-            const results = await Promise.allSettled(clientPromises)
-
-            const newClientsByChain: Record<string, GenericSmartAccountClient> = {}
-            for (const result of results) {
-                if (result.status === 'fulfilled' && result.value.success) {
-                    newClientsByChain[result.value.chainId] = result.value.kernelClient
-                }
+            let kernelClient: GenericSmartAccountClient
+            try {
+                kernelClient = (await buildPromise) as GenericSmartAccountClient
+            } finally {
+                inFlightRef.current.delete(primaryChainId)
             }
 
-            if (!newClientsByChain[PEANUT_WALLET_CHAIN.id]) {
-                throw new Error('Primary chain client failed to initialize')
-            }
-
-            // only update state after primary client check passes —
+            // only update state after primary build succeeds —
             // avoids UI flicker (registering→not registering→registering) between retries
             if (isMounted) {
-                setClientsByChain(newClientsByChain)
+                setClientsByChain((prev) => ({ ...prev, [primaryChainId]: kernelClient }))
                 fetchUser()
                 dispatch(zerodevActions.setIsKernelClientReady(true))
                 dispatch(zerodevActions.setIsRegistering(false))
@@ -436,11 +443,62 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         [clientsByChain]
     )
 
+    const ensureClientForChain = useCallback(
+        async (chainId: string): Promise<GenericSmartAccountClient> => {
+            // Cache hit: already built (eagerly for primary, or lazily on a prior call).
+            const cached = clientsByChain[chainId]
+            if (cached) return cached
+
+            // In-flight dedupe: a concurrent caller (or the primary-init effect)
+            // is already building this chain — wait for the same promise.
+            const inFlight = inFlightRef.current.get(chainId)
+            if (inFlight) return inFlight
+
+            if (!webAuthnKey) {
+                throw new Error(`Cannot build kernel client for chain ${chainId}: not authenticated`)
+            }
+            const entry = PUBLIC_CLIENTS_BY_CHAIN[chainId]
+            if (!entry) {
+                throw new Error(
+                    `No PUBLIC_CLIENTS_BY_CHAIN entry for chain ${chainId} — chain not configured for wallet operations`
+                )
+            }
+
+            const promise = createKernelClientForChain(
+                entry.client,
+                entry.chain,
+                isAfterZeroDevMigration,
+                webAuthnKey,
+                isAfterZeroDevMigration
+                    ? undefined
+                    : (user?.accounts.find((a) => a.type === 'peanut-wallet')?.identifier as Address | undefined),
+                { bundlerUrl: entry.bundlerUrl, paymasterUrl: entry.paymasterUrl }
+            )
+                .then((kernelClient) => {
+                    setClientsByChain((prev) => ({ ...prev, [chainId]: kernelClient }))
+                    return kernelClient
+                })
+                .catch((error) => {
+                    console.error(`Error lazy-building kernel client for chain ${chainId}:`, error)
+                    captureException(error)
+                    throw error
+                })
+                .finally(() => {
+                    inFlightRef.current.delete(chainId)
+                })
+
+            inFlightRef.current.set(chainId, promise)
+            return promise
+        },
+        [clientsByChain, webAuthnKey, isAfterZeroDevMigration, user]
+    )
+
     return (
         <KernelClientContext.Provider
             value={{
                 setWebAuthnKey,
                 getClientForChain,
+                ensureClientForChain,
             }}
         >
             {children}
