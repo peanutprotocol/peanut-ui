@@ -38,7 +38,6 @@ export type CarouselCTA = {
     // optional handlers for notification prompt
     onClick?: () => void | Promise<void>
     onClose?: () => void
-    isPermissionDenied?: boolean
     iconContainerClassName?: string
     secondaryIcon?: StaticImageData | string
     iconSize?: number
@@ -169,8 +168,7 @@ export const useHomeCarouselCTAs = () => {
         // show notification cta only in pwa when the user is neither permission-granted
         // (browser-native) nor opted-in (OneSignal subscription). Belt-and-suspenders
         // because the two signals can diverge — e.g. browser permission revoked but
-        // OneSignal subscription still active. Clicking triggers the native prompt
-        // (or shows the reinstall modal if denied).
+        // OneSignal subscription still active.
         if (!isPermissionGranted && !isPushOptedIn && isPwa) {
             _carouselCTAs.push({
                 id: 'notification-prompt',
@@ -178,11 +176,17 @@ export const useHomeCarouselCTAs = () => {
                 description: 'Turn on notifications and get alerts for all your wallet activity.',
                 icon: 'bell',
                 onClick: async () => {
-                    // trigger native notification permission prompt
+                    // If the user has already denied browser permission, the OS won't
+                    // re-prompt — they have to reinstall the PWA. Open the install
+                    // modal directly instead of routing through a dead-end "Got it"
+                    // dialog that gave them no path forward.
+                    if (isPermissionDenied) {
+                        setIsIosPwaInstallModalOpen(true)
+                        return
+                    }
                     await requestPermission()
                     await afterPermissionAttempt()
                 },
-                isPermissionDenied, // if true, CarouselCTA shows reinstall modal instead
             })
         }
 

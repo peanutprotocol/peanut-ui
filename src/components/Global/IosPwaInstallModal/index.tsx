@@ -24,32 +24,42 @@ const IosPwaInstallModal = () => {
         }
     }
 
+    // Firefox iOS doesn't expose "Add to Home Screen" — redirect to Safari.
+    const isFirefox = browserType === BrowserType.FIREFOX
     const videoSource = getVideoSource()
+
+    const videoContent =
+        !isFirefox && !isLoading ? (
+            <video className="max-h-[60vh] w-full object-contain" autoPlay loop muted playsInline key={videoSource}>
+                {/* .mov assets are H.264 in a QuickTime container — Chrome/Edge/Firefox
+                    play them under video/mp4 but reject video/quicktime. mp4 first;
+                    quicktime stays as a fallback for older Safari. */}
+                <source src={videoSource} type="video/mp4" />
+                <source src={videoSource} type="video/quicktime" />
+                Your browser does not support the video tag.
+            </video>
+        ) : undefined
 
     return (
         <ActionModal
             visible={isIosPwaInstallModalOpen}
             onClose={onClose}
             title="Add Peanut to your Home Screen"
-            description="Follow a quick guide to add the app to your home screen, no download needed."
-            icon="mobile-install"
-            content={
-                <div className="flex w-full flex-col">
-                    {!isLoading && (
-                        <video
-                            className="max-h-[60vh] w-full object-contain"
-                            autoPlay
-                            loop
-                            muted
-                            playsInline
-                            key={videoSource}
-                        >
-                            <source src={videoSource} type="video/quicktime" />
-                            Your browser does not support the video tag.
-                        </video>
-                    )}
-                </div>
+            description={
+                isFirefox
+                    ? 'Firefox on iOS does not support installing apps to the home screen. Please open this page in Safari to continue.'
+                    : 'Follow a quick guide to add the app to your home screen, no download needed.'
             }
+            icon="mobile-install"
+            ctas={[
+                {
+                    text: 'Got it!',
+                    onClick: onClose,
+                    shadowSize: '4',
+                    variant: 'purple',
+                },
+            ]}
+            content={videoContent}
         />
     )
 }
