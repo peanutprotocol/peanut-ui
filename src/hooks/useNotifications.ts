@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import OneSignal from 'react-onesignal'
+import { captureException } from '@sentry/nextjs'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useUserStore } from '@/redux/hooks'
 import posthog from 'posthog-js'
@@ -256,7 +257,9 @@ export function useNotifications() {
                 setOneSignalInitialized(true)
                 setSdkReady(true)
             } catch (e) {
+                // Surface Brave/Shields SDK-block failures; previously silent.
                 console.warn('OneSignal init failed', e)
+                captureException(e, { tags: { source: 'onesignal_init' } })
             }
         }
 
@@ -278,6 +281,7 @@ export function useNotifications() {
             }
         } catch (error) {
             console.warn('Error requesting permission:', error)
+            captureException(error, { tags: { source: 'onesignal_request_permission' } })
         } finally {
             setIsRequestingPermission(false)
         }
@@ -369,5 +373,6 @@ export function useNotifications() {
         isPushOptedIn,
         isRequestingPermission,
         refreshPermissionState,
+        oneSignalInitialized,
     }
 }

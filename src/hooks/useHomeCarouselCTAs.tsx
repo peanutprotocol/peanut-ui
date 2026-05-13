@@ -17,6 +17,7 @@ import { useActivationStatus } from './useActivationStatus'
 import { useTransactionHistory } from './useTransactionHistory'
 import { STAR_STRAIGHT_ICON } from '@/assets'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { useToast } from '@/components/0_Bruddle/Toast'
 
 // Days a dismissed CTA stays hidden before reappearing. Set above 1 so dismiss feels
 // "sticky" but below 14 so we still nudge users about valuable actions they haven't
@@ -76,8 +77,15 @@ export const useHomeCarouselCTAs = () => {
     const [carouselCTAs, setCarouselCTAs] = useState<CarouselCTA[]>([])
     const { user } = useAuth()
     const dismissedRef = useRef<Map<string, Date>>(new Map())
-    const { requestPermission, afterPermissionAttempt, isPermissionDenied, isPermissionGranted, isPushOptedIn } =
-        useNotifications()
+    const {
+        requestPermission,
+        afterPermissionAttempt,
+        isPermissionDenied,
+        isPermissionGranted,
+        isPushOptedIn,
+        oneSignalInitialized,
+    } = useNotifications()
+    const toast = useToast()
     const router = useRouter()
     const { isUserKycApproved, isUserBridgeKycUnderReview, isUserMantecaKycApproved } = useKycStatus()
     const { deviceType } = useDeviceType()
@@ -97,8 +105,11 @@ export const useHomeCarouselCTAs = () => {
     // done the action. Shares the React Query cache key with HomeHistory below, so
     // this read is free when the home page is mounted.
     const { data: latestHistory } = useTransactionHistory({ mode: 'latest', limit: 50 })
-    const hasMadeQrPayment = useMemo(
-        () => latestHistory?.entries.some((e) => e.extraData?.kind === 'QR_PAY') ?? false,
+    // `boolean | undefined` (no `?? false`) so the QR-payment CTA gate can
+    // distinguish "loaded, none found" from "still loading" — see the strict
+    // `=== false` check below.
+    const hasMadeQrPayment: boolean | undefined = useMemo(
+        () => latestHistory?.entries.some((e) => e.extraData?.kind === 'QR_PAY'),
         [latestHistory]
     )
     const hasSentInvites = (user?.invitesSent?.length ?? 0) > 0
@@ -165,11 +176,9 @@ export const useHomeCarouselCTAs = () => {
                 },
             })
         }
-        // show notification cta only in pwa when the user is neither permission-granted
-        // (browser-native) nor opted-in (OneSignal subscription). Belt-and-suspenders
-        // because the two signals can diverge — e.g. browser permission revoked but
-        // OneSignal subscription still active.
-        if (!isPermissionGranted && !isPushOptedIn && isPwa) {
+        // Brave Shields blocks the OneSignal SDK; requestPermission no-ops
+        // until init succeeds, so don't render a click-to-no-op CTA.
+        if (oneSignalInitialized && !isPermissionGranted && !isPushOptedIn && isPwa) {
             _carouselCTAs.push({
                 id: 'notification-prompt',
                 title: 'Stay in the loop!',
@@ -184,8 +193,14 @@ export const useHomeCarouselCTAs = () => {
                         setIsIosPwaInstallModalOpen(true)
                         return
                     }
-                    await requestPermission()
+                    const result = await requestPermission()
                     await afterPermissionAttempt()
+                    // 'default' = browser suppressed prompt (policy/Shields) or
+                    // user dismissed it — calling again won't help this session.
+                    if (result === 'default') {
+                        toast.warning('Notifications blocked by your browser. Enable them in site settings and reload.')
+                        dismissCTA('notification-prompt')
+                    }
                 },
             })
         }
@@ -204,9 +219,9 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        // Show QR code payment prompt if user's Bridge or Manteca KYC is approved
-        // AND they haven't already used QR pay (educational CTA — no point once adopted).
-        if (hasKycApproval && !hasMadeQrPayment) {
+        // Strict `=== false` gates on "history loaded, no QR pay" — `undefined`
+        // (still loading) keeps the CTA hidden so it doesn't flash in then out.
+        if (hasKycApproval && hasMadeQrPayment === false) {
             _carouselCTAs.push({
                 id: 'qr-payment',
                 title: (
@@ -296,6 +311,10 @@ export const useHomeCarouselCTAs = () => {
         isActivated,
         hasMadeQrPayment,
         hasSentInvites,
+        oneSignalInitialized,
+        setIsIosPwaInstallModalOpen,
+        toast,
+        dismissCTA,
     ])
 
     useEffect(() => {
