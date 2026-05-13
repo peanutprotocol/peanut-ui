@@ -109,7 +109,6 @@ const HomeCarouselCTA = () => {
                         onClick={cta.onClick}
                         logo={cta.logo}
                         iconContainerClassName={cta.iconContainerClassName}
-                        isPermissionDenied={cta.isPermissionDenied}
                         secondaryIcon={cta.secondaryIcon}
                         iconSize={16}
                         logoSize={cta.logoSize}

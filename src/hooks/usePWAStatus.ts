@@ -1,26 +1,28 @@
 import { useEffect, useState } from 'react'
 import { isCapacitor } from '@/utils/capacitor'
 
+// Initialize synchronously on the client so iOS PWA users don't briefly see the
+// "Add to home screen" CTA before the effect resolves. SSR still gets `false`
+// (no window); the hydration mismatch is the same one we'd have on any
+// client-only signal and React reconciles after first paint.
+const detectIsPWA = (): boolean => {
+    if (typeof window === 'undefined') return false
+    if (isCapacitor()) return true
+    return (
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone ||
+        document.referrer.includes('android-app://') ||
+        window.location.href.includes('?mode=pwa')
+    )
+}
+
 export const usePWAStatus = () => {
-    const [isPWA, setIsPWA] = useState(false)
+    const [isPWA, setIsPWA] = useState<boolean>(detectIsPWA)
 
     useEffect(() => {
-        // capacitor native app is treated as "installed" (same as PWA)
-        if (isCapacitor()) {
-            setIsPWA(true)
-            return
-        }
+        if (typeof window === 'undefined') return
 
-        // Check if the app is running in standalone mode (PWA)
-        const isStandalone =
-            window.matchMedia('(display-mode: standalone)').matches ||
-            (window.navigator as any).standalone ||
-            document.referrer.includes('android-app://') ||
-            window.location.href.includes('?mode=pwa')
-
-        setIsPWA(isStandalone)
-
-        // Listen for changes in display mode
+        // Listen for changes in display mode (e.g. user installs PWA mid-session)
         const mediaQuery = window.matchMedia('(display-mode: standalone)')
         const handleChange = (e: MediaQueryListEvent) => setIsPWA(e.matches)
 
