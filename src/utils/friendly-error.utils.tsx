@@ -1,7 +1,35 @@
+/**
+ * Returns the verbatim error message when it's an actionable Rain card-
+ * collateral error from the backend (`/rain/cards/withdraw/prepare`):
+ * - 425/409: "A previous withdrawal is still active for this card. Try
+ *   again in about M min." (+ legacy TooEarlyError variant)
+ * - 422: "Insufficient collateral balance for this withdrawal"
+ *
+ * Returns null for anything else so callers fall through to their own copy.
+ * Use this in any callsite that does its own catch on a Rain-touching spend
+ * (signSpend / spend / sendMoney / sendTransactions(requiredUsdcAmount)).
+ */
+export const rainCollateralErrorMessage = (error: any): string | null => {
+    const text = error?.toString?.() ?? ''
+    if (
+        text.includes('A previous withdrawal is still active for this card') ||
+        text.includes('A previous withdrawal signature is still active') ||
+        text.includes('Insufficient collateral balance for this withdrawal')
+    ) {
+        return error?.message ?? text
+    }
+    return null
+}
+
 /** UI-friendly error message extractor. Matches substrings on common
  *  wallet / viem / Peanut API error messages and returns user-facing copy. */
 export const ErrorHandler = (error: any): string => {
     const text = error?.toString?.() ?? ''
+    // Rain card-collateral errors — surface the backend's already user-
+    // friendly copy verbatim (includes the "Try again in about M min." hint
+    // on the cooldown case). Covers every spend path that touches Rain.
+    const rainMsg = rainCollateralErrorMessage(error)
+    if (rainMsg) return rainMsg
     if (text.includes('insufficient funds')) return "You don't have enough funds."
     if (text.includes('user rejected transaction')) return 'Please confirm the transaction in your wallet.'
     if (text.includes('not deployed on chain')) return 'Bulk is not able on this chain, please try another chain.'

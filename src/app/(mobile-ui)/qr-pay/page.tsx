@@ -18,6 +18,7 @@ import AmountInput from '@/components/Global/AmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
+import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { rainSpendingPowerToWei } from '@/utils/balance.utils'
 import { isTxReverted, saveRedirectUrl, formatNumberForDisplay } from '@/utils/general.utils'
@@ -496,10 +497,13 @@ export default function QRPayPage() {
                 kind: 'QR_PAY',
             })
         } catch (error) {
+            const rainMsg = rainCollateralErrorMessage(error)
             if (error instanceof InsufficientSpendableError) {
                 setErrorMessage('Not enough USDC in your wallet or card to cover this payment.')
             } else if (error instanceof SessionKeyGrantRequiredError) {
                 setErrorMessage("One-time card authorization needed. You'll be asked to confirm once.")
+            } else if (rainMsg) {
+                setErrorMessage(rainMsg)
             } else if ((error as Error).toString().includes('not allowed')) {
                 setErrorMessage('Please confirm the transaction.')
             } else {
