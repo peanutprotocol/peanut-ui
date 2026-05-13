@@ -1,5 +1,6 @@
 'use client'
 import { type FC, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
@@ -8,6 +9,7 @@ import { useWalletPlatform } from '@/hooks/useWalletPlatform'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
 const AddToWalletPage: FC = () => {
+    const router = useRouter()
     const platform = useWalletPlatform()
     const onBack = useSafeBack('/card')
     useEffect(() => {
@@ -15,7 +17,7 @@ const AddToWalletPage: FC = () => {
     }, [platform])
     return (
         <PageContainer>
-            <AddToWalletCarousel onDone={onBack} onPrev={onBack} />
+            <AddToWalletCarousel onDone={() => router.push('/card')} onPrev={onBack} />
         </PageContainer>
     )
 }

@@ -8,13 +8,13 @@ import InfoCard from '@/components/Global/InfoCard'
 import NavHeader from '@/components/Global/NavHeader'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useSafeBack } from '@/hooks/useSafeBack'
 
 type FaqModal = 'lose-phone' | 'change-phone' | 'export-keys' | null
 
 export default function BackupPage() {
-    const router = useRouter()
+    const onBack = useSafeBack('/profile', { replace: true })
     const { deviceType } = useDeviceType()
     const [activeModal, setActiveModal] = useState<FaqModal>(null)
 
@@ -38,7 +38,7 @@ export default function BackupPage() {
     return (
         <PageContainer>
             <div className="mb-6 space-y-4">
-                <NavHeader title="Backup" onPrev={() => router.replace('/profile')} />
+                <NavHeader title="Backup" onPrev={onBack} />
 
                 <EmptyState
                     title="Non-custodial wallet"

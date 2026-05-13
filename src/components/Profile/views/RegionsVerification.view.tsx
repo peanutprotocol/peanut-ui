@@ -18,7 +18,7 @@ import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useAuth } from '@/context/authContext'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { useState, useCallback, useRef, useMemo } from 'react'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 
@@ -51,7 +51,7 @@ function getModalVariant(
 }
 
 const RegionsVerification = () => {
-    const router = useRouter()
+    const onBack = useSafeBack('/profile', { replace: true })
     const { user } = useAuth()
     const { unlockedRegions, lockedRegions } = useIdentityVerification()
     const { sumsubStatus, sumsubRejectLabels, sumsubRejectType, sumsubVerificationRegionIntent, isSumsubApproved } =
@@ -130,11 +130,7 @@ const RegionsVerification = () => {
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-8">
-            <NavHeader
-                title="Regions & Verification"
-                onPrev={() => router.replace('/profile')}
-                titleClassName="text-xl md:text-2xl"
-            />
+            <NavHeader title="Regions & Verification" onPrev={onBack} titleClassName="text-xl md:text-2xl" />
             <div className="my-auto">
                 <h1 className="font-bold">Unlocked regions</h1>
                 <p className="mt-2 text-sm">

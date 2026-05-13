@@ -9,6 +9,7 @@ import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
 import { useState, useMemo } from 'react'
 import useKycStatus from '@/hooks/useKycStatus'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import Card from '../Global/Card'
@@ -23,6 +24,7 @@ export const Profile = () => {
     const [isKycApprovedModalOpen, setIsKycApprovedModalOpen] = useState(false)
     const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
     const router = useRouter()
+    const onBack = useSafeBack('/home')
     const { isUserKycApproved } = useKycStatus()
     const { hasCardAccess } = useCardPioneerInfo()
 
@@ -37,7 +39,7 @@ export const Profile = () => {
 
     return (
         <div className="h-full w-full bg-background">
-            <NavHeader hideLabel showLogoutBtn onPrev={() => router.push('/home')} />
+            <NavHeader hideLabel showLogoutBtn onPrev={onBack} />
             <div className="space-y-8">
                 <ProfileHeader name={displayName} username={username} isVerified={isUserKycApproved} />
                 <div className="space-y-4">
