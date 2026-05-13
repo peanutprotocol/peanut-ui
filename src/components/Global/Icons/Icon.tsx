@@ -11,6 +11,7 @@ import {
     ArrowUp,
     ArrowUpRight,
     Award,
+    Ban,
     Banknote,
     Bell,
     Camera,
@@ -96,6 +97,7 @@ export type IconName =
     | 'minus-circle'
     | 'meter'
     | 'cancel'
+    | 'ban'
     | 'download'
     | 'double-check'
     | 'eye'
@@ -260,6 +262,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'user-plus': (props) => <LucideWrapper Icon={UserPlus} {...props} />,
     copy: (props) => <LucideWrapper Icon={Copy} {...props} />,
     cancel: (props) => <LucideWrapper Icon={X} {...props} />,
+    ban: (props) => <LucideWrapper Icon={Ban} {...props} />,
     'qr-code': (props) => <LucideWrapper Icon={QrCode} boostKey="qr-code" {...props} />,
     'scan-qr-code': (props) => <LucideWrapper Icon={ScanQrCode} boostKey="scan-qr-code" {...props} />,
     history: (props) => <LucideWrapper Icon={History} {...props} />,
