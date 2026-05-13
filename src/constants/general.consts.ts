@@ -13,56 +13,63 @@ const infuraUrl = (subdomain: string) => (INFURA_API_KEY ? `https://${subdomain}
 const alchemyUrl = (subdomain: string) =>
     ALCHEMY_API_KEY ? `https://${subdomain}.g.alchemy.com/v2/${ALCHEMY_API_KEY}` : null
 
+// Infura + Alchemy are commented out: keys are NEXT_PUBLIC_* so the browser
+// exposes them, free-tier quota gets burned by every visitor (429s), and
+// Alchemy's allowed-origins list doesn't include staging.peanut.me (CORS).
+// Net result: viem's fallback rank pings them every 60s for nothing and
+// pollutes the console. Re-enable only after moving the keys server-side
+// behind /api/rpc/[chainId]. See infuraUrl/alchemyUrl helpers above —
+// kept because /api/health/rpc still gates on key presence.
 export const rpcUrls: Record<number, string[]> = {
     [mainnet.id]: [
         'https://ethereum-mainnet.core.chainstack.com/006d2d45e7727fb2d5ff46ffc19a2958', // Chainstack (primary)
-        infuraUrl('mainnet'),
-        alchemyUrl('eth-mainnet'),
+        // infuraUrl('mainnet'),
+        // alchemyUrl('eth-mainnet'),
         'https://eth.public-rpc.com', // Public fallback
         'https://ethereum.publicnode.com', // Public fallback
         'https://rpc.ankr.com/eth', // Public fallback
     ].filter(Boolean) as string[],
     [arbitrum.id]: [
         'https://arbitrum-mainnet.core.chainstack.com/78d8b6bbaa8ae6d8ce2546c13b619288', // Chainstack (primary)
-        infuraUrl('arbitrum-mainnet'),
-        alchemyUrl('arb-mainnet'),
+        // infuraUrl('arbitrum-mainnet'),
+        // alchemyUrl('arb-mainnet'),
         'https://arb1.arbitrum.io/rpc', // Official public RPC
         'https://arbitrum.publicnode.com', // Public fallback
         'https://rpc.ankr.com/arbitrum', // Public fallback
     ].filter(Boolean) as string[],
     [arbitrumSepolia.id]: [
-        infuraUrl('arbitrum-sepolia'),
-        alchemyUrl('arb-sepolia'),
+        // infuraUrl('arbitrum-sepolia'),
+        // alchemyUrl('arb-sepolia'),
         'https://sepolia-rollup.arbitrum.io/rpc', // Official Arbitrum Sepolia
     ].filter(Boolean) as string[],
     [polygon.id]: [
         'https://polygon-mainnet.core.chainstack.com/e8d733c7341e28d98e4cf66c61c42aa6', // Chainstack (primary)
-        infuraUrl('polygon-mainnet'),
-        alchemyUrl('polygon-mainnet'),
+        // infuraUrl('polygon-mainnet'),
+        // alchemyUrl('polygon-mainnet'),
         'https://polygon-rpc.com', // Official public RPC
         'https://polygon-bor-rpc.publicnode.com', // Public fallback
         'https://rpc.ankr.com/polygon', // Public fallback
     ].filter(Boolean) as string[],
     [optimism.id]: [
-        infuraUrl('optimism-mainnet'),
-        alchemyUrl('opt-mainnet'),
+        // infuraUrl('optimism-mainnet'),
+        // alchemyUrl('opt-mainnet'),
         'https://mainnet.optimism.io', // Official Optimism RPC
     ].filter(Boolean) as string[],
     [base.id]: [
         'https://base-mainnet.core.chainstack.com/01f0761d79d1b6e9d234d7ab69a90b19', // Chainstack (primary)
-        infuraUrl('base-mainnet'),
-        alchemyUrl('base-mainnet'),
+        // infuraUrl('base-mainnet'),
+        // alchemyUrl('base-mainnet'),
         'https://mainnet.base.org', // Official Base RPC
     ].filter(Boolean) as string[],
     [bsc.id]: [
         'https://bsc-mainnet.core.chainstack.com/2d9b1537fa4555562f8e15fd08bf8ed5', // Chainstack (primary)
         'https://bsc-dataseed.bnbchain.org', // Official BSC RPC
-        infuraUrl('bsc-mainnet'),
-        alchemyUrl('bsc-mainnet'),
+        // infuraUrl('bsc-mainnet'),
+        // alchemyUrl('bsc-mainnet'),
         'https://bsc.publicnode.com', // Public fallback
     ].filter(Boolean) as string[],
     [scroll.id]: [
-        infuraUrl('scroll-mainnet'),
+        // infuraUrl('scroll-mainnet'),
         'https://rpc.scroll.io', // Official Scroll RPC
     ].filter(Boolean) as string[],
 }
