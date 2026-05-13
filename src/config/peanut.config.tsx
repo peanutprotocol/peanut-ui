@@ -1,6 +1,5 @@
 'use client'
 import { ContextProvider } from '@/config'
-import { Analytics } from '@vercel/analytics/react'
 import countries from 'i18n-iso-countries'
 import enLocale from 'i18n-iso-countries/langs/en.json'
 import { useEffect } from 'react'
@@ -66,10 +65,7 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <ReduxProvider store={store}>
-            <ContextProvider cookies={null}>
-                {children}
-                <Analytics />
-            </ContextProvider>
+            <ContextProvider cookies={null}>{children}</ContextProvider>
         </ReduxProvider>
     )
 }

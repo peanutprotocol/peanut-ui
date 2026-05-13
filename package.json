@@ -69,7 +69,6 @@
         "@sumsub/cordova-idensic-mobile-sdk-plugin": "^1.42.0",
         "@tanstack/react-query": "5.8.4",
         "@typeform/embed-react": "^3.20.0",
-        "@vercel/analytics": "^1.4.1",
         "@zerodev/ecdsa-validator": "^5.4.9",
         "@zerodev/passkey-validator": "^5.6.0",
         "@zerodev/permissions": "5.5.0",

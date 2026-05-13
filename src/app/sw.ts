@@ -1,6 +1,6 @@
 import { defaultCache } from '@serwist/next/worker'
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist'
-import { Serwist } from 'serwist'
+import { NetworkOnly, Serwist } from 'serwist'
 
 // This declares the value of `injectionPoint` to TypeScript.
 // `injectionPoint` is the string that will be replaced by the
@@ -23,7 +23,19 @@ const serwist = new Serwist({
     // Auth API responses are now fetched cross-origin (api.peanut.me) so the SW
     // doesn't intercept them — same-origin /api/peanut/user/* proxy routes were
     // deleted with the proxy removal.
-    runtimeCaching: defaultCache,
+    //
+    // /relay/* is the PostHog reverse-proxy path (see next.config.js rewrites).
+    // Workbox's defaultCache strategies threw "no-response" on the recorder +
+    // dead-clicks scripts, polluting the console. PostHog assets carry their
+    // own versioning + cache headers; let the network handle them. NetworkOnly
+    // first so it wins ahead of any defaultCache JS-asset rule.
+    runtimeCaching: [
+        {
+            matcher: ({ url }) => url.pathname.startsWith('/relay/'),
+            handler: new NetworkOnly(),
+        },
+        ...defaultCache,
+    ],
     disableDevLogs: false,
 })
 
