@@ -10,7 +10,7 @@ import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer
 import {
     formatNumberForDisplay,
     formatCurrency,
-    printableAddress,
+    printableUserHandle,
     isStableCoin,
     shortenStringLong,
 } from '@/utils/general.utils'
@@ -20,7 +20,6 @@ import { twMerge } from 'tailwind-merge'
 import Image from 'next/image'
 import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
-import { isAddress } from 'viem'
 import { PerkIcon } from './PerkIcon'
 import { useHaptic } from 'use-haptic'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
@@ -103,8 +102,12 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // check if this is a test transaction (setup confirmation)
     const isTestTransaction = name === 'Enjoy Peanut!'
     let displayName = name
-    if (isAddress(displayName)) {
-        displayName = printableAddress(displayName)
+    // Shortens crypto addresses AND raw UUIDs (usernameless Peanut users whose
+    // `identifier` arrives as a userId) so the feed row never renders a 36-char
+    // string.
+    const shortened = printableUserHandle(displayName)
+    if (shortened !== displayName) {
+        displayName = shortened
     } else if ((type === 'pay' || type === 'card_pay') && displayName.length > 19) {
         displayName = shortenStringLong(displayName, 0, 16)
     }

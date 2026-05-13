@@ -44,6 +44,14 @@ export const shortenStringLong = (s?: string, chars?: number, firstChars?: numbe
 // These are for display purposes, not cryptographic validation
 const SOLANA_ADDRESS_REGEX = /^[1-9a-zA-Z]{32,44}$/
 const TRON_ADDRESS_REGEX = /^[Tt][0-9a-zA-Z]{33}$/
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * Checks if a string is a UUID (v1–v5 shape). Used to detect raw user IDs that
+ * leak into the history feed when a peer account has no username (BE falls back
+ * to userId for `recipientAccount.identifier`).
+ */
+export const isUuid = (s: string): boolean => UUID_REGEX.test(s)
 
 /**
  * Checks if a string looks like a Solana address (32-44 alphanumeric characters, no 0)
@@ -71,6 +79,19 @@ export const isCryptoAddress = (address: string): boolean => {
 export const printableAddress = (address: string, firstCharsLen?: number, lastCharsLen?: number): string => {
     if (!isCryptoAddress(address)) return address
     return shortenStringLong(address, undefined, firstCharsLen, lastCharsLen)
+}
+
+/**
+ * Renders a peer handle for the activity feed: shortens crypto addresses and
+ * UUID-shaped identifiers (e.g. usernameless Peanut users whose `identifier`
+ * arrives as a raw userId), and leaves real usernames untouched.
+ */
+export const printableUserHandle = (handle: string, firstCharsLen?: number, lastCharsLen?: number): string => {
+    if (!handle) return handle
+    if (isCryptoAddress(handle) || isUuid(handle)) {
+        return shortenStringLong(handle, undefined, firstCharsLen, lastCharsLen)
+    }
+    return handle
 }
 
 /**

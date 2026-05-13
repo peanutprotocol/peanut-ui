@@ -3,10 +3,9 @@
 import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { type TransactionType } from '@/components/TransactionDetails/TransactionCard'
-import { printableAddress } from '@/utils/general.utils'
+import { printableUserHandle } from '@/utils/general.utils'
 import Image from 'next/image'
 import React from 'react'
-import { isAddress as isWalletAddress } from 'viem'
 import Card from '../Global/Card'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import { VerifiedUserLabel } from '../UserHeader'
@@ -73,8 +72,10 @@ const getTitle = (
         }
         titleText = titleByDirection[direction] ?? userName ?? 'Link Transaction'
     } else {
-        const isAddress = isWalletAddress(userName)
-        const displayName = isAddress ? printableAddress(userName) : userName
+        // Shorten crypto addresses AND raw UUIDs (usernameless Peanut users
+        // whose `identifier` arrives as a userId) so the header never renders
+        // a 36-char string.
+        const displayName = printableUserHandle(userName)
 
         // check if this is a test transaction (setup confirmation)
         // note: bad check, but its a quick fix for now - kush (18 nov 2025), to be handled in the backend post devconnect.
