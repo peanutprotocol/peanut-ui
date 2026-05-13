@@ -1,10 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import { isCapacitor } from '@/utils/capacitor'
 
-// Initialize synchronously on the client so iOS PWA users don't briefly see the
-// "Add to home screen" CTA before the effect resolves. SSR still gets `false`
-// (no window); the hydration mismatch is the same one we'd have on any
-// client-only signal and React reconciles after first paint.
 const detectIsPWA = (): boolean => {
     if (typeof window === 'undefined') return false
     if (isCapacitor()) return true
@@ -16,25 +12,22 @@ const detectIsPWA = (): boolean => {
     )
 }
 
-// Cache the initial detection at module scope — several hooks consume usePWAStatus
-// on a single page load (home, setup, brave-install, user query). Without this,
-// each mount re-runs matchMedia + navigator + referrer reads.
-let cachedInitial: boolean | null = null
-const getInitial = () => (cachedInitial ??= detectIsPWA())
+// Cache the detection so multiple consumers share one read per page. The cache
+// is invalidated inside subscribe() so a new consumer mounting after a
+// mid-session install sees the current value.
+let cached: boolean | null = null
+const getSnapshot = (): boolean => (cached ??= detectIsPWA())
+const getServerSnapshot = (): boolean => false
 
-export const usePWAStatus = () => {
-    const [isPWA, setIsPWA] = useState(getInitial)
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return
-
-        // Listen for changes in display mode (e.g. user installs PWA mid-session)
-        const mediaQuery = window.matchMedia('(display-mode: standalone)')
-        const handleChange = (e: MediaQueryListEvent) => setIsPWA(e.matches)
-
-        mediaQuery.addEventListener('change', handleChange)
-        return () => mediaQuery.removeEventListener('change', handleChange)
-    }, [])
-
-    return isPWA
+const subscribe = (notify: () => void): (() => void) => {
+    if (typeof window === 'undefined') return () => {}
+    const mq = window.matchMedia('(display-mode: standalone)')
+    const handler = () => {
+        cached = detectIsPWA()
+        notify()
+    }
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
 }
+
+export const usePWAStatus = (): boolean => useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
