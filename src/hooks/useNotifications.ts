@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import OneSignal from 'react-onesignal'
+import { captureException } from '@sentry/nextjs'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useUserStore } from '@/redux/hooks'
 import posthog from 'posthog-js'
@@ -256,7 +257,13 @@ export function useNotifications() {
                 setOneSignalInitialized(true)
                 setSdkReady(true)
             } catch (e) {
+                // OneSignal init failures were previously swallowed with console.warn,
+                // so we had zero visibility on Brave/Android where Shields blocks the
+                // SDK script + service worker registration. Without this, the
+                // notification CTA renders but every click no-ops (requestPermission
+                // returns early when oneSignalInitialized stays false).
                 console.warn('OneSignal init failed', e)
+                captureException(e, { tags: { source: 'onesignal_init' } })
             }
         }
 
@@ -278,6 +285,7 @@ export function useNotifications() {
             }
         } catch (error) {
             console.warn('Error requesting permission:', error)
+            captureException(error, { tags: { source: 'onesignal_request_permission' } })
         } finally {
             setIsRequestingPermission(false)
         }
@@ -369,5 +377,6 @@ export function useNotifications() {
         isPushOptedIn,
         isRequestingPermission,
         refreshPermissionState,
+        oneSignalInitialized,
     }
 }
