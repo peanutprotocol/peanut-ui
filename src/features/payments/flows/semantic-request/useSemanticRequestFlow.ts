@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useMemo, useEffect, useContext, useState } from 'react'
-import { type Address, type Hash } from 'viem'
+import { parseUnits, type Address, type Hash } from 'viem'
 import { useSemanticRequestFlowContext } from './SemanticRequestFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
@@ -22,7 +22,7 @@ import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCross
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAuth } from '@/context/authContext'
 import { tokenSelectorContext } from '@/context'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { useQueryClient } from '@tanstack/react-query'
@@ -71,6 +71,7 @@ export function useSemanticRequestFlow() {
         transactions: routeTransactions,
         estimatedGasCostUsd: calculatedGasCost,
         receiveAmount: calculatedReceiveAmount,
+        payAmount: calculatedPayAmount,
         feeUsd: calculatedFeeUsd,
         calculate: calculateRoute,
         isCalculating: isCalculatingRoute,
@@ -500,13 +501,30 @@ export function useSemanticRequestFlow() {
                 // sibling site at line ~293 for the same fallback.
                 hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash ?? txResult.txHash) as Hash
             } else if (needsRoute && routeTransactions && routeTransactions.length > 0) {
-                // cross-chain or token swap payment via Rhino SDA
+                // cross-chain or token swap payment via Rhino SDA. Pass
+                // `requiredUsdcAmount = payAmount` (principal + Rhino fee on SDA
+                // path) so a collateral-only payer auto-tops-up the kernel from
+                // their card before the route's transfer fires; without this,
+                // `useWallet.sendTransactions` falls through to the smart-only
+                // legacy path and the spend reverts with ERC20 insufficient
+                // balance. payAmount is null only when the route hasn't been
+                // calculated yet — gated by `needsRoute && routeTransactions`.
+                const requiredUsdcAmount = calculatedPayAmount
+                    ? parseUnits(calculatedPayAmount, PEANUT_WALLET_TOKEN_DECIMALS)
+                    : undefined
                 const txResult = await sendTransactions(
                     routeTransactions.map((tx) => ({
                         to: tx.to,
                         data: tx.data,
                         value: tx.value,
-                    }))
+                    })),
+                    requiredUsdcAmount !== undefined
+                        ? {
+                              chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                              requiredUsdcAmount,
+                              kind: 'REQUEST_PAY',
+                          }
+                        : undefined
                 )
                 hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
             } else {
@@ -556,6 +574,7 @@ export function useSemanticRequestFlow() {
         charge,
         needsRoute,
         routeTransactions,
+        calculatedPayAmount,
         selectedChainID,
         selectedTokenAddress,
         selectedTokenData,

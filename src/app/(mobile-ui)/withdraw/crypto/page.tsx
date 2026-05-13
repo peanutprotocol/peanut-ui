@@ -68,6 +68,7 @@ export default function WithdrawCryptoPage() {
     const {
         transactions,
         receiveAmount,
+        payAmount,
         feeUsd,
         isCalculating,
         isXChain,
@@ -324,7 +325,13 @@ export default function WithdrawCryptoPage() {
                 }
                 finalTxHash = (receipt?.transactionHash as Hex | undefined) ?? userOpHash ?? txHash
             } else {
-                const requiredUsdcAmount = parseUnits(usdAmount.toString(), PEANUT_WALLET_TOKEN_DECIMALS)
+                // payAmount is the USDC the kernel actually needs on-hand to execute
+                // the first tx — principal + Rhino fee on the SDA path (mode='receive'),
+                // principal on the bridge path. Passing the principal alone here
+                // under-funds the mixed-strategy collateral sweep and the subsequent
+                // transfer reverts with `ERC20: transfer amount exceeds balance`.
+                const sourceUsdcAmount = payAmount ?? usdAmount.toString()
+                const requiredUsdcAmount = parseUnits(sourceUsdcAmount, PEANUT_WALLET_TOKEN_DECIMALS)
                 const txResult = await sendTransactions(transactions, {
                     chainId: PEANUT_WALLET_CHAIN.id.toString(),
                     requiredUsdcAmount,
@@ -394,6 +401,8 @@ export default function WithdrawCryptoPage() {
         amountToWithdraw,
         address,
         transactions,
+        payAmount,
+        usdAmount,
         sendTransactions,
         sendMoney,
         isCrossChainWithdrawal,
