@@ -7,12 +7,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import Modal from '@/components/Global/Modal'
 import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
 import QRScanner from '@/components/Global/QRScanner'
-import {
-    EQrType,
-    NAME_BY_QR_TYPE,
-    parseEip681,
-    recognizeQr,
-} from '@/components/Global/DirectSendQR/utils'
+import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from '@/components/Global/DirectSendQR/utils'
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -226,7 +221,7 @@ export default function QRScannerOverlay() {
             showModal(EModalType.UNRECOGNIZED)
             return { success: true }
         }
-        setQrType(recognized)
+        setQrType(recognized as EQrType)
         switch (recognized) {
             case EQrType.PEANUT_URL:
                 {
