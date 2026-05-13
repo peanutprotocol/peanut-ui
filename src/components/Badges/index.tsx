@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import type { StaticImageData } from 'next/image'
 import NavHeader from '../Global/NavHeader'
-import { useRouter } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { getBadgeIcon } from './badge.utils'
 import { getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
@@ -17,7 +17,7 @@ import { useAuth } from '@/context/authContext'
 type BadgeView = { title: string; description: string; logo: string | StaticImageData }
 
 export const Badges = () => {
-    const router = useRouter()
+    const onBack = useSafeBack('/profile')
     const { user: authUser } = useUserStore()
     const { fetchUser } = useAuth()
     const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false)
@@ -42,12 +42,7 @@ export const Badges = () => {
     if (!badges.length) {
         return (
             <div className="flex min-h-[inherit] flex-col items-center justify-center gap-8">
-                <NavHeader
-                    title="Your Badges"
-                    onPrev={() => {
-                        router.back()
-                    }}
-                />
+                <NavHeader title="Your Badges" onPrev={onBack} />
                 <div className="my-auto">
                     <EmptyState
                         icon="achievements"
@@ -61,12 +56,7 @@ export const Badges = () => {
 
     return (
         <div className="h-full w-full space-y-10">
-            <NavHeader
-                title="Your Badges"
-                onPrev={() => {
-                    router.back()
-                }}
-            />
+            <NavHeader title="Your Badges" onPrev={onBack} />
             <div className="space-y-4">
                 <div>
                     {badges.map((badge, idx) => (
