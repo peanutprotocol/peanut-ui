@@ -490,6 +490,11 @@ export function useSemanticRequestFlow() {
                 // direct payment for same-chain same-token (e.g. direct requests)
                 const txResult = await sendMoney(charge.requestLink.recipientAddress as Address, charge.tokenAmount, {
                     kind: 'REQUEST_PAY',
+                    // See sibling site (~line 297): lets the backend settle the
+                    // charge directly when the spend routes through Rain card
+                    // collateral; recordPayment below is routed through the same
+                    // trusted-completion path.
+                    chargeId: charge.uuid,
                 })
                 // collateral-only routes return `txHash` only — see
                 // sibling site at line ~293 for the same fallback.
