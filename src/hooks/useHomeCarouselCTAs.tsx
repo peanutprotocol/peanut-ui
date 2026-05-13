@@ -90,7 +90,7 @@ export const useHomeCarouselCTAs = () => {
     const { isUserKycApproved, isUserBridgeKycUnderReview, isUserMantecaKycApproved } = useKycStatus()
     const { deviceType } = useDeviceType()
     const isPwa = usePWAStatus()
-    const { setIsIosPwaInstallModalOpen } = useModalsContext()
+    const { setIsIosPwaInstallModalOpen, openSupportWithMessage } = useModalsContext()
 
     const { setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
@@ -137,10 +137,17 @@ export const useHomeCarouselCTAs = () => {
         const hasKycApproval = isUserKycApproved || isUserMantecaKycApproved
         const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
 
+        // Dev cheat: ?cheat=ctas forces every gate open so we can eyeball the
+        // full carousel side-by-side (and the bug-bounty CTA in three color
+        // variants for color picking). Not a real feature flag — pure
+        // local-iteration tool.
+        const cheatAllCTAs =
+            typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('cheat') === 'ctas'
+
         // Card Pioneer CTA - show to all users who haven't purchased yet
         // Eligibility check happens during the flow (geo screen)
         // Only show when we know for sure they haven't purchased (not while loading)
-        if (!underMaintenanceConfig.disableCardPioneers && hasCardPioneerPurchased === false) {
+        if (cheatAllCTAs || (!underMaintenanceConfig.disableCardPioneers && hasCardPioneerPurchased === false)) {
             _carouselCTAs.push({
                 id: 'card-pioneer',
                 title: (
@@ -163,7 +170,7 @@ export const useHomeCarouselCTAs = () => {
         }
 
         // Generic invite CTA for non-LATAM activated users who haven't invited yet.
-        if (!isLatamUser && isActivated && !hasSentInvites) {
+        if (cheatAllCTAs || (!isLatamUser && isActivated && !hasSentInvites)) {
             _carouselCTAs.push({
                 id: 'invite-friends',
                 title: 'Invite friends. Earn rewards',
@@ -178,7 +185,7 @@ export const useHomeCarouselCTAs = () => {
         }
         // Brave Shields blocks the OneSignal SDK; requestPermission no-ops
         // until init succeeds, so don't render a click-to-no-op CTA.
-        if (oneSignalInitialized && !isPermissionGranted && !isPushOptedIn && isPwa) {
+        if (cheatAllCTAs || (oneSignalInitialized && !isPermissionGranted && !isPushOptedIn && isPwa)) {
             _carouselCTAs.push({
                 id: 'notification-prompt',
                 title: 'Stay in the loop!',
@@ -205,7 +212,7 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        if (deviceType === DeviceType.IOS && !isPwa) {
+        if (cheatAllCTAs || (deviceType === DeviceType.IOS && !isPwa)) {
             _carouselCTAs.push({
                 id: 'ios-pwa-install',
                 title: 'Add Peanut to your home screen',
@@ -221,7 +228,7 @@ export const useHomeCarouselCTAs = () => {
 
         // Strict `=== false` gates on "history loaded, no QR pay" — `undefined`
         // (still loading) keeps the CTA hidden so it doesn't flash in then out.
-        if (hasKycApproval && hasMadeQrPayment === false) {
+        if (cheatAllCTAs || (hasKycApproval && hasMadeQrPayment === false)) {
             _carouselCTAs.push({
                 id: 'qr-payment',
                 title: (
@@ -246,7 +253,7 @@ export const useHomeCarouselCTAs = () => {
         // ------------------------------------------------------------------------------------------------
         // LATAM rewards CTA - show to activated users in Argentina or Brazil who haven't
         // invited anyone yet. Encourages first-invite; we hide once they've sent at least one.
-        if (isLatamUser && isActivated && !hasSentInvites) {
+        if (cheatAllCTAs || (isLatamUser && isActivated && !hasSentInvites)) {
             _carouselCTAs.push({
                 id: 'latam-cashback-invite',
                 title: (
@@ -272,28 +279,27 @@ export const useHomeCarouselCTAs = () => {
         // eligibility (email verified, ≥1 payment OR KYC approved), lifetime
         // caps, and the daily budget. This gate just keeps the CTA off cold
         // accounts where the reward would be denied anyway.
-        if (isActivated) {
+        if (cheatAllCTAs || isActivated) {
             _carouselCTAs.push({
                 id: 'bug-bounty',
                 title: (
                     <span>
-                        Found a bug? <b>Earn $5 + a badge</b>
+                        Help us improve and <b>get $5!</b>
                     </span>
                 ),
-                description: 'Report it in support — no questions asked, real bugs only.',
-                iconContainerClassName: 'bg-secondary-1',
+                description: 'Report a bug. Get rewarded! No questions asked.',
+                iconContainerClassName: 'bg-primary-1',
                 icon: 'bug',
-                iconSize: 16,
-                onClick: () => {
-                    const w = window as unknown as { $crisp?: unknown[] }
-                    if (!w.$crisp) return
-                    w.$crisp.push(['set', 'message:text', ['I found a bug: ']])
-                    w.$crisp.push(['do', 'chat:open'])
-                },
+                iconSize: 20,
+                // (mobile-ui) routes don't load the Crisp script directly —
+                // the chat lives inside SupportDrawer's iframe. Use the
+                // ModalsContext helper instead of `window.$crisp.push(...)`,
+                // which only works on (marketing) routes.
+                onClick: () => openSupportWithMessage('I found a bug: '),
             })
         }
 
-        if (!hasKycApproval && !isUserBridgeKycUnderReview) {
+        if (cheatAllCTAs || (!hasKycApproval && !isUserBridgeKycUnderReview)) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
                 title: (
@@ -307,7 +313,8 @@ export const useHomeCarouselCTAs = () => {
                     </span>
                 ),
                 iconContainerClassName: 'bg-secondary-1',
-                icon: 'shield',
+                icon: 'qr-code',
+                iconSize: 16,
                 onClick: () => {
                     router.push('/profile/identity-verification')
                 },
@@ -340,6 +347,7 @@ export const useHomeCarouselCTAs = () => {
         setIsIosPwaInstallModalOpen,
         toast,
         dismissCTA,
+        openSupportWithMessage,
     ])
 
     useEffect(() => {
