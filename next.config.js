@@ -34,6 +34,11 @@ try {
 let nextConfig = {
     env: {
         NEXT_PUBLIC_GIT_COMMIT_HASH: gitCommitHash,
+        // Vercel injects VERCEL_ENV and VERCEL_GIT_COMMIT_REF server-side at
+        // build time. Re-export as NEXT_PUBLIC_* so the client bundle (and
+        // src/utils/sentry-env.ts in particular) can read them too.
+        NEXT_PUBLIC_VERCEL_ENV: process.env.VERCEL_ENV,
+        NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF: process.env.VERCEL_GIT_COMMIT_REF,
     },
 
     // Next.js 16 blocks cross-origin dev requests (HMR, chunk loads) unless
