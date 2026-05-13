@@ -9,9 +9,18 @@ interface CardProps {
     onClick?: () => void
     border?: boolean
     ref?: React.Ref<HTMLDivElement>
+    'data-testid'?: string
 }
 
-const Card: React.FC<CardProps> = ({ children, position = 'single', className = '', onClick, border = true, ref }) => {
+const Card: React.FC<CardProps> = ({
+    children,
+    position = 'single',
+    className = '',
+    onClick,
+    border = true,
+    ref,
+    'data-testid': dataTestId,
+}) => {
     const getBorderRadius = () => {
         switch (position) {
             case 'single':
@@ -49,6 +58,7 @@ const Card: React.FC<CardProps> = ({ children, position = 'single', className = 
             ref={ref}
             className={twMerge('w-full bg-white px-4 py-2', getBorderRadius(), getBorder(), className)}
             onClick={onClick}
+            data-testid={dataTestId}
         >
             {children}
         </div>
