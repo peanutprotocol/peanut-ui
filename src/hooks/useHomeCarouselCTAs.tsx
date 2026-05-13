@@ -5,7 +5,7 @@ import { useAuth } from '@/context/authContext'
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useNotifications } from './useNotifications'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import useKycStatus from './useKycStatus'
 import type { StaticImageData } from 'next/image'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -87,6 +87,7 @@ export const useHomeCarouselCTAs = () => {
     } = useNotifications()
     const toast = useToast()
     const router = useRouter()
+    const searchParams = useSearchParams()
     const { isUserKycApproved, isUserBridgeKycUnderReview, isUserMantecaKycApproved } = useKycStatus()
     const { deviceType } = useDeviceType()
     const isPwa = usePWAStatus()
@@ -138,11 +139,8 @@ export const useHomeCarouselCTAs = () => {
         const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
 
         // Dev cheat: ?cheat=ctas forces every gate open so we can eyeball the
-        // full carousel side-by-side (and the bug-bounty CTA in three color
-        // variants for color picking). Not a real feature flag — pure
-        // local-iteration tool.
-        const cheatAllCTAs =
-            typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('cheat') === 'ctas'
+        // full carousel side-by-side. Local-iteration tool, not a real flag.
+        const cheatAllCTAs = searchParams?.get('cheat') === 'ctas'
 
         // Card Pioneer CTA - show to all users who haven't purchased yet
         // Eligibility check happens during the flow (geo screen)
@@ -348,6 +346,7 @@ export const useHomeCarouselCTAs = () => {
         toast,
         dismissCTA,
         openSupportWithMessage,
+        searchParams,
     ])
 
     useEffect(() => {
