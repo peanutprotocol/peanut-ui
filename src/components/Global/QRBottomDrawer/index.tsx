@@ -31,6 +31,7 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                 activeSnapPoint={activeSnapPoint}
                 setActiveSnapPoint={handleSnapPointChange}
                 modal={false}
+                dismissible={false}
             >
                 <DrawerContent className={`min-h-[200px] p-5 ${className || ''}`}>
                     <DrawerTitle className="mb-8 space-y-2">
