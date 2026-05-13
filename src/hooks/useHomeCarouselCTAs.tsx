@@ -25,10 +25,6 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 const DISMISS_COOLDOWN_DAYS = 7
 const DISMISS_COOLDOWN_MS = DISMISS_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
 
-// CTAs gated by external state that can flip back (e.g. notification permission)
-// must not be persisted — they should re-evaluate every session.
-const TRANSIENT_CTA_IDS = new Set(['notification-prompt'])
-
 export type CarouselCTA = {
     id: string
     title: string | React.ReactNode
@@ -117,14 +113,11 @@ export const useHomeCarouselCTAs = () => {
     const dismissCTA = useCallback(
         (ctaId: string) => {
             dismissedRef.current.set(ctaId, new Date())
-            if (!TRANSIENT_CTA_IDS.has(ctaId)) {
-                const record: Record<string, string> = {}
-                for (const [id, dismissedAt] of dismissedRef.current) {
-                    if (TRANSIENT_CTA_IDS.has(id)) continue
-                    record[id] = dismissedAt.toISOString()
-                }
-                updateUserPreferences(user?.user?.userId, { dismissedCarouselCTAs: record })
+            const record: Record<string, string> = {}
+            for (const [id, dismissedAt] of dismissedRef.current) {
+                record[id] = dismissedAt.toISOString()
             }
+            updateUserPreferences(user?.user?.userId, { dismissedCarouselCTAs: record })
             setCarouselCTAs((prev) => prev.filter((c) => c.id !== ctaId))
         },
         [user?.user?.userId]
