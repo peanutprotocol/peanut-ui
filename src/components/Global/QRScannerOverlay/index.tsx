@@ -203,13 +203,12 @@ export default function QRScannerOverlay() {
 
         let redirectUrl: string | undefined = undefined
         let toConfirmUrl: string | undefined = undefined
-        const originalData = data
-        data = data.toLowerCase()
-        const qrType = recognizeQr(data)
+        const normalized = data.toLowerCase()
+        const recognized = recognizeQr(normalized)
 
         const getLogData = () => {
-            if (qrType === EQrType.PIX_KEY) {
-                const trimmed = originalData.trim()
+            if (recognized === EQrType.PIX_KEY) {
+                const trimmed = data.trim()
                 if (trimmed.startsWith('+') || /^55\d/.test(trimmed)) return 'pix:phone'
                 if (/^\d{11}$/.test(trimmed)) return 'pix:cpf'
                 if (/^\d{14}$/.test(trimmed)) return 'pix:cnpj'
@@ -217,21 +216,21 @@ export default function QRScannerOverlay() {
                 if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(trimmed)) return 'pix:uuid'
                 return 'pix:unknown'
             }
-            if (qrType === EQrType.PEANUT_URL && originalData.toLowerCase().includes('/claim')) {
+            if (recognized === EQrType.PEANUT_URL && normalized.includes('/claim')) {
                 return 'peanut:claim-link'
             }
-            return originalData
+            return data
         }
-        posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: qrType, data: getLogData() })
-        if (!qrType) {
+        posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: recognized, data: getLogData() })
+        if (!recognized) {
             showModal(EModalType.UNRECOGNIZED)
             return { success: true }
         }
-        setQrType(qrType)
-        switch (qrType) {
+        setQrType(recognized)
+        switch (recognized) {
             case EQrType.PEANUT_URL:
                 {
-                    let path = originalData.replace(/^https?:\/\/(www\.)?/, '').replace(/^[^/]+/, '')
+                    let path = data.replace(/^https?:\/\/(www\.)?/, '').replace(/^[^/]+/, '')
 
                     if (!path.startsWith('/')) {
                         path = '/' + path
@@ -244,10 +243,10 @@ export default function QRScannerOverlay() {
                             const response = await serverFetch(`/qr/${redirectQrCode}`, {
                                 method: 'GET',
                             })
-                            const data = await response.json()
+                            const lookup = await response.json()
 
-                            if (data.claimed && data.redirectUrl) {
-                                redirectUrl = data.redirectUrl
+                            if (lookup.claimed && lookup.redirectUrl) {
+                                redirectUrl = lookup.redirectUrl
                             } else {
                                 redirectUrl = `/qr/${redirectQrCode}`
                             }
@@ -262,13 +261,13 @@ export default function QRScannerOverlay() {
                 break
             case EQrType.EVM_ADDRESS:
                 {
-                    toConfirmUrl = `/${data}`
+                    toConfirmUrl = `/${normalized}`
                 }
                 break
             case EQrType.EIP_681:
                 {
                     try {
-                        const { address, chainId, amount, tokenSymbol } = parseEip681(data)
+                        const { address, chainId, amount, tokenSymbol } = parseEip681(normalized)
                         toConfirmUrl = `/${address}`
                         if (chainId) {
                             toConfirmUrl += `@${chainId}`
@@ -288,9 +287,9 @@ export default function QRScannerOverlay() {
                 break
             case EQrType.ENS_NAME:
                 {
-                    const resolvedAddress = await resolveEns(data)
+                    const resolvedAddress = await resolveEns(normalized)
                     if (!!resolvedAddress) {
-                        toConfirmUrl = `/${data}`
+                        toConfirmUrl = `/${normalized}`
                     }
                 }
                 break
@@ -299,12 +298,12 @@ export default function QRScannerOverlay() {
             case EQrType.PIX:
                 {
                     const timestamp = Date.now()
-                    redirectUrl = `/qr-pay?qrCode=${encodeURIComponent(originalData)}&t=${timestamp}&type=${qrType}`
+                    redirectUrl = `/qr-pay?qrCode=${encodeURIComponent(data)}&t=${timestamp}&type=${recognized}`
                 }
                 break
             case EQrType.PIX_KEY:
                 {
-                    const brCode = pixKeyToBRCode(originalData)
+                    const brCode = pixKeyToBRCode(data)
                     if (brCode) {
                         const timestamp = Date.now()
                         redirectUrl = `/qr-pay?qrCode=${encodeURIComponent(brCode)}&t=${timestamp}&type=${EQrType.PIX}`
@@ -323,7 +322,7 @@ export default function QRScannerOverlay() {
                 return { success: true }
             }
             case EQrType.URL: {
-                setRedirectTo(originalData)
+                setRedirectTo(data)
                 showModal(EModalType.EXTERNAL_URL)
                 return { success: true }
             }
