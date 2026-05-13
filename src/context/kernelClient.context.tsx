@@ -413,7 +413,16 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         return () => {
             isMounted = false
         }
-    }, [webAuthnKey, isAfterZeroDevMigration, user])
+        // Intentionally excluding `user` from deps: `useUserQuery` refetches on
+        // window focus / mount and produces new refs on any content change
+        // (invites, KYC status, JWT sliding refresh). Adding `user` here would
+        // rebuild the Arb kernel on every such refetch — and since the effect
+        // calls fetchUser() at the end, it can self-trigger into a loop. The
+        // closure reads user.accounts.find('peanut-wallet').identifier, which
+        // is stable for an authenticated user, and isAfterZeroDevMigration
+        // captures any user.createdAt change.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [webAuthnKey, isAfterZeroDevMigration])
 
     useEffect(() => {
         const peanutClient = clientsByChain[PEANUT_WALLET_CHAIN.id]
