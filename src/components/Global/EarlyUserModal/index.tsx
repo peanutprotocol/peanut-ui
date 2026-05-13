@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import ActionModal from '../ActionModal'
 import ShareButton from '../ShareButton'
-import { generateInviteCodeLink, generateInvitesShareText } from '@/utils/general.utils'
+import { generateInviteCodeLink } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
 import { updateUserById } from '@/app/actions/users'
 import posthog from 'posthog-js'
@@ -47,10 +47,7 @@ const EarlyUserModal = () => {
                         </span>
                     </p>
 
-                    <ShareButton
-                        generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
-                        title="Share your invite link"
-                    >
+                    <ShareButton url={inviteLink} title="Share your invite link">
                         Share Invite link
                     </ShareButton>
                     <a
