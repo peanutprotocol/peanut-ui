@@ -35,7 +35,7 @@ const NavHeader = ({
                     <Button variant="stroke" className="h-7 w-7 p-0">
                         <Icon
                             name={icon}
-                            size={24}
+                            size={20}
                             className={twMerge(icon === 'chevron-up' && '-rotate-90') || undefined}
                         />
                     </Button>
@@ -44,7 +44,7 @@ const NavHeader = ({
                 <Button variant="stroke" className="h-7 w-7 p-0" onClick={onPrev} disabled={disableBackBtn}>
                     <Icon
                         name={icon}
-                        size={24}
+                        size={20}
                         className={twMerge(icon === 'chevron-up' && '-rotate-90') || undefined}
                     />
                 </Button>

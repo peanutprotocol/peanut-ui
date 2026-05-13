@@ -167,7 +167,7 @@ function UnrecognizedContent({ setIsModalOpen }: ModalContentProps) {
 }
 
 export default function DirectSendQr({
-    icon = 'qr-code',
+    icon = 'scan-qr-code',
     className = '',
     ctaTitle,
     disabled = false,
@@ -432,8 +432,8 @@ export default function DirectSendQr({
                 )}
                 disabled={disabled}
                 icon={icon}
-                iconSize={64}
-                iconContainerClassName="size-16"
+                iconSize={32}
+                iconContainerClassName="!size-8"
             />
 
             <Modal

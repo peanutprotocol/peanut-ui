@@ -69,7 +69,7 @@ export const ActionListCard = ({
                         className="h-6 w-6 rounded-full p-0 shadow-[0.12rem_0.12rem_0_#000000]"
                     >
                         <div className="flex size-7 items-center justify-center">
-                            <Icon name="chevron-up" size={24} className="rotate-90" />
+                            <Icon name="chevron-up" size={18} className="rotate-90" />
                         </div>
                     </Button>
                 )}
