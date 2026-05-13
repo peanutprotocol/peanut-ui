@@ -165,7 +165,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     return (
         <>
             {/* the clickable card */}
-            <Card position={position} onClick={handleClick} className="cursor-pointer">
+            <Card position={position} onClick={handleClick} className="cursor-pointer" data-testid="transaction-card">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
