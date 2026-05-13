@@ -62,7 +62,7 @@ import ContributorCard from '../Global/Contributors/ContributorCard'
 import { requestsApi } from '@/services/requests'
 import { PasskeyDocsLink } from '../Setup/Views/SignTestTransaction'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
-import { generateInviteCodeLink, generateInvitesShareText } from '@/utils/general.utils'
+import { generateInviteCodeLink } from '@/utils/general.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -774,13 +774,12 @@ export const TransactionDetailsReceipt = ({
                         shadowSize="4"
                         onClick={async () => {
                             const { inviteLink } = generateInviteCodeLink(user.user.username!)
-                            const text = generateInvitesShareText(inviteLink)
                             posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, { source: 'transaction_receipt' })
                             try {
                                 if (navigator.share) {
-                                    await navigator.share({ text })
+                                    await navigator.share({ url: inviteLink })
                                 } else {
-                                    await navigator.clipboard.writeText(text)
+                                    await navigator.clipboard.writeText(inviteLink)
                                     // Desktop fallback: navigator.share is mobile-only.
                                     // Without a toast the click is silent and users assume
                                     // the button is broken.
