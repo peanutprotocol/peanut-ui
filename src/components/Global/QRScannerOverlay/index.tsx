@@ -214,7 +214,9 @@ export default function QRScannerOverlay() {
             if (recognized === EQrType.PEANUT_URL && normalized.includes('/claim')) {
                 return 'peanut:claim-link'
             }
-            return data
+            // never log the raw payload for other types — payment / address / ENS
+            // QRs can carry merchant ids, amounts, wallet addresses, etc.
+            return recognized ? `qr:${recognized}` : 'qr:unknown'
         }
         posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: recognized, data: getLogData() })
         if (!recognized) {
@@ -280,14 +282,16 @@ export default function QRScannerOverlay() {
                     }
                 }
                 break
-            case EQrType.ENS_NAME:
-                {
-                    const resolvedAddress = await resolveEns(normalized)
-                    if (!!resolvedAddress) {
-                        toConfirmUrl = `/${normalized}`
-                    }
+            case EQrType.ENS_NAME: {
+                const resolvedAddress = await resolveEns(normalized)
+                if (resolvedAddress) {
+                    toConfirmUrl = `/${normalized}`
+                } else {
+                    showModal(EModalType.UNRECOGNIZED)
+                    return { success: true }
                 }
                 break
+            }
             case EQrType.MERCADO_PAGO:
             case EQrType.ARGENTINA_QR3:
             case EQrType.PIX:
