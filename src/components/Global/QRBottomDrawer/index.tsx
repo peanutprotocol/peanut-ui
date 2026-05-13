@@ -16,11 +16,13 @@ interface QRBottomDrawerProps {
 const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, className }: QRBottomDrawerProps) => {
     const contentRef = useRef<HTMLDivElement>(null)
 
-    // Three snap points so drag-down at the medium state transitions to a peek
-    // (just the title) instead of being hard-blocked. dismissible={false} keeps
-    // the drawer from ever closing on drag.
-    const snapPoints = [0.15, 0.75, 1] // 15% peek, 75% medium, 100% full
-    const [activeSnapPoint, setActiveSnapPoint] = useState<number | string | null>(snapPoints[1]) // Start in the medium state
+    // Three snap points with a smaller "buffer" below the medium state. Hard
+    // drag-downs land at 0.5 instead of vaul's closeDrawer() path, which is the
+    // only thing that produced the duplication artifact (vaul/index.mjs:656
+    // only fires closeDrawer at the FIRST snap point; keeping the medium snap
+    // at index 1 means a normal drag never trips it).
+    const snapPoints = [0.5, 0.75, 1]
+    const [activeSnapPoint, setActiveSnapPoint] = useState<number | string | null>(snapPoints[1])
 
     const handleSnapPointChange = (snapPoint: number | string | null) => {
         setActiveSnapPoint(snapPoint)
@@ -34,7 +36,6 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                 activeSnapPoint={activeSnapPoint}
                 setActiveSnapPoint={handleSnapPointChange}
                 modal={false}
-                dismissible={false}
             >
                 <DrawerContent className={`min-h-[200px] p-5 ${className || ''}`}>
                     <DrawerTitle className="mb-8 space-y-2">
