@@ -4,6 +4,7 @@
 import { keccak256, toBytes } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import type { Hex } from 'viem'
+import { getLatestContractVersion } from './peanut-claim.utils'
 
 /** Mirror of SDK `generateKeysFromString(s)` — keccak256(utf8(s)) is the
  *  private key; address derives from it. Used by the send-link flow to
@@ -22,12 +23,21 @@ export interface PeanutLinkParams {
     trackId: string
 }
 
-/** Mirror of SDK `getParamsFromLink(link)`. */
+/** Mirror of SDK `getParamsFromLink(link)`.
+ *
+ *  `contractVersion` falls back to the chain's latest deployed version when
+ *  the URL is missing `v=`, has `v=` empty, or somehow encodes the literal
+ *  string `undefined`/`null` (a historical FE bug stored some links with
+ *  `v=undefined` — see staging cancel-link failures). Avoids `getContractAddress`
+ *  throwing `No Peanut vault for chainId=X version=undefined` on cancel/claim.
+ */
 export function getParamsFromLink(link: string): PeanutLinkParams {
     const url = new URL(link)
     const params = url.searchParams
     const chainId = params.get('c') ?? ''
-    const contractVersion = params.get('v') ?? ''
+    const rawVersion = params.get('v')
+    const looksMissing = !rawVersion || rawVersion === 'undefined' || rawVersion === 'null'
+    const contractVersion = looksMissing && chainId ? getLatestContractVersion({ chainId }) : (rawVersion ?? '')
     const trackId = params.get('t') ?? ''
     const indices = params.get('i') ?? '0'
     // Multi-link form `(1,2),(3,4)` — first integer.
