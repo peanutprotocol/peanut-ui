@@ -660,7 +660,8 @@ export const TransactionDetailsReceipt = ({
                                     {!isLoading && (
                                         <Icon
                                             name="cancel"
-                                            className="mr-0.5 min-w-3 rounded-full border border-black p-0.5"
+                                            size={14}
+                                            className="mr-0.5 rounded-full border border-black p-0.5"
                                         />
                                     )}
                                 </div>

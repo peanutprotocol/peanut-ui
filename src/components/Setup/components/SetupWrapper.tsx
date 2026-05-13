@@ -79,7 +79,7 @@ const Navigation = memo(
                 <div>
                     {showBackButton && (
                         <Button variant="stroke" onClick={onBack} className="h-8 w-8 p-0" aria-label="Go back">
-                            <Icon name="chevron-up" fill="black" size={32} className="-rotate-90" />
+                            <Icon name="chevron-up" fill="black" size={20} className="-rotate-90" />
                         </Button>
                     )}
                 </div>

@@ -35,19 +35,21 @@ import {
     Gift,
     Globe,
     History,
-    Home,
     Hourglass,
+    HouseHeart,
     Info,
     Landmark,
     Link as LinkIcon,
     LogOut,
     Lock,
+    MessageCircleQuestionMark,
     MoreHorizontal,
     Paperclip,
     Plus,
     Power,
     QrCode,
     RefreshCw,
+    ScanQrCode,
     Search,
     Share,
     Shield,
@@ -69,7 +71,6 @@ import {
     X,
 } from 'lucide-react'
 import { DocsIcon } from './docs'
-import { PeanutSupportIcon } from './peanut-support'
 import { TxnOffIcon } from './txn-off'
 import { WalletCancelIcon } from './wallet-cancel'
 import { InviteHeartIcon } from './invite-heart'
@@ -121,6 +122,7 @@ export type IconName =
     | 'share'
     | 'user-plus'
     | 'qr-code'
+    | 'scan-qr-code'
     | 'history'
     | 'docs'
     | 'error'
@@ -180,6 +182,7 @@ const VIEWBOX_BOOST: Record<string, string> = {
     'arrow-exchange': '2 2 20 20',
     exchange: '2 2 20 20',
     'qr-code': '2 2 20 20',
+    'scan-qr-code': '2 2 20 20',
 }
 
 const LucideWrapper: FC<
@@ -238,8 +241,8 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     exchange: (props) => <LucideWrapper Icon={ArrowLeftRight} boostKey="exchange" {...props} />,
     fees: (props) => <LucideWrapper Icon={Tag} {...props} />,
     gift: (props) => <LucideWrapper Icon={Gift} {...props} />,
-    home: (props) => <LucideWrapper Icon={Home} {...props} />,
-    'peanut-support': PeanutSupportIcon,
+    home: (props) => <LucideWrapper Icon={HouseHeart} {...props} />,
+    'peanut-support': (props) => <LucideWrapper Icon={MessageCircleQuestionMark} {...props} />,
     search: (props) => <LucideWrapper Icon={Search} {...props} transformClassName="scale-x-[-1]" />,
     wallet: (props) => <LucideWrapper Icon={Wallet} {...props} />,
     'wallet-cancel': WalletCancelIcon,
@@ -258,6 +261,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     copy: (props) => <LucideWrapper Icon={Copy} {...props} />,
     cancel: (props) => <LucideWrapper Icon={X} {...props} />,
     'qr-code': (props) => <LucideWrapper Icon={QrCode} boostKey="qr-code" {...props} />,
+    'scan-qr-code': (props) => <LucideWrapper Icon={ScanQrCode} boostKey="scan-qr-code" {...props} />,
     history: (props) => <LucideWrapper Icon={History} {...props} />,
     error: (props) => <LucideWrapper Icon={AlertCircle} {...props} />,
     clip: (props) => <LucideWrapper Icon={Paperclip} {...props} />,

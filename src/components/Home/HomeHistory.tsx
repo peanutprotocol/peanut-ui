@@ -382,7 +382,7 @@ const HomeHistory = ({
             ) : (
                 <Link href="/history" className="flex items-center justify-between" onClick={() => triggerHaptic()}>
                     <h2 className="text-base font-bold">Activity</h2>
-                    <Icon name="chevron-up" size={30} className="rotate-90" />
+                    <Icon name="chevron-up" size={20} className="rotate-90" />
                 </Link>
             )}
             {/* container for the transaction cards */}

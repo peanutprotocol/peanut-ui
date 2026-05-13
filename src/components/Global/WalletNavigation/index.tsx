@@ -84,7 +84,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
                     { 'text-primary-1': pathName === '/home' }
                 )}
             >
-                <NavIcon name="home" size={26} fill="currentColor" />
+                <NavIcon name="home" size={24} />
                 <span className="mx-auto block text-center text-xs font-medium">Home</span>
             </Link>
 
@@ -106,7 +106,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
                     { 'text-primary-1': pathName === '/support' }
                 )}
             >
-                <NavIcon name="peanut-support" size={20} />
+                <NavIcon name="peanut-support" size={24} />
                 <span className="mx-auto mt-1 block pl-1 text-center text-xs font-medium">Support</span>
             </button>
         </div>
