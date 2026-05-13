@@ -62,9 +62,9 @@ export function useContributePotFlow() {
         isConnected,
         address: walletAddress,
         sendMoney,
-        formattedBalance,
+        formattedSpendableBalance,
         hasSufficientSpendableBalance: hasSufficientBalance,
-        isFetchingBalance,
+        isFetchingSpendableBalance,
     } = useWallet()
 
     const isLoggedIn = !!user?.user?.userId
@@ -97,8 +97,10 @@ export function useContributePotFlow() {
         return hasSufficientBalance(amount)
     }, [amount, hasSufficientBalance])
 
-    // check if should show insufficient balance error
-    // only show after balance has loaded to avoid flash of error on initial render
+    // check if should show insufficient balance error.
+    // gate on !isFetchingSpendableBalance so we wait for both smart-account
+    // and Rain collateral to settle. See useSemanticRequestFlow for the
+    // same fix + reasoning (TASK-19573).
     const isInsufficientBalance = useMemo(() => {
         return (
             isLoggedIn &&
@@ -107,9 +109,9 @@ export function useContributePotFlow() {
             !isLoading &&
             !isCreatingCharge &&
             !isRecording &&
-            !isFetchingBalance
+            !isFetchingSpendableBalance
         )
-    }, [isLoggedIn, amount, hasEnoughBalance, isLoading, isCreatingCharge, isRecording, isFetchingBalance])
+    }, [isLoggedIn, amount, hasEnoughBalance, isLoading, isCreatingCharge, isRecording, isFetchingSpendableBalance])
 
     // calculate default slider value and suggested amount
     const sliderDefaults = useMemo(() => {
@@ -272,7 +274,7 @@ export function useContributePotFlow() {
         isLoggedIn,
         isConnected,
         walletAddress,
-        formattedBalance,
+        formattedBalance: formattedSpendableBalance,
 
         // actions
         setAmount: handleSetAmount,

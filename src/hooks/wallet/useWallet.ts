@@ -236,11 +236,25 @@ export const useWallet = () => {
     // the balance jumping when the rain number arrives.
     const isSpendableBalanceLoading = isBalanceLoading || isRainOverviewLoading
 
-    // formatted balance for display (e.g. "1,234.56")
+    // formatted balance for display (e.g. "1,234.56"). Smart-account only —
+    // use `formattedSpendableBalance` below for user-facing widgets that
+    // should reflect total spendable (smart + Rain collateral).
     const formattedBalance = useMemo(() => {
         if (balance === undefined) return '0.00'
         return formatCurrency(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
     }, [balance])
+
+    // Total spendable (smart + Rain collateral) formatted for display.
+    // Payment-input forms (request-pay, direct-send, contribute-pot) should
+    // show THIS rather than the smart-only number — otherwise a user with
+    // funds split across smart and collateral sees a smaller balance than
+    // they actually have and the "insufficient balance" gate trips even
+    // though useSpendBundle would route through collateral just fine
+    // (2026-05-08 jotest097 report TASK-19573).
+    const formattedSpendableBalance = useMemo(() => {
+        if (spendableBalance === undefined) return '0.00'
+        return formatCurrency(formatUnits(spendableBalance, PEANUT_WALLET_TOKEN_DECIMALS))
+    }, [spendableBalance])
 
     // Check if the user has enough spendable to cover a USD amount.
     // Spendable = smart account + Rain collateral `spendingPower`. Use this
@@ -261,6 +275,7 @@ export const useWallet = () => {
         balance,
         spendableBalance,
         formattedBalance,
+        formattedSpendableBalance,
         hasSufficientSpendableBalance,
         isConnected: isKernelClientReady,
         sendTransactions,

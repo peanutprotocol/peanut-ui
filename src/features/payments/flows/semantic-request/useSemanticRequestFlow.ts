@@ -83,9 +83,9 @@ export function useSemanticRequestFlow() {
         address: walletAddress,
         sendMoney,
         sendTransactions,
-        formattedBalance,
+        formattedSpendableBalance,
         hasSufficientSpendableBalance: hasSufficientBalance,
-        isFetchingBalance,
+        isFetchingSpendableBalance,
     } = useWallet()
 
     // use token selector context for ui integration
@@ -173,13 +173,18 @@ export function useSemanticRequestFlow() {
     }, [amount, hasSufficientBalance])
 
     // check if should show insufficient balance error
-    // gate on !isFetchingBalance to avoid flash while balance is still loading
+    // gate on !isFetchingSpendableBalance (NOT isFetchingBalance) so we wait
+    // for BOTH the smart-account AND the Rain collateral query to settle
+    // before deciding the user has insufficient funds. Otherwise a user with
+    // (smart < amount < smart+collateral) sees a flash of "insufficient" while
+    // collateral is still loading, which redirects them to /add-money even
+    // though useSpendBundle would route through collateral.
     const isInsufficientBalance = useMemo(() => {
         return (
             isLoggedIn &&
             !!amount &&
             !hasEnoughBalance &&
-            !isFetchingBalance &&
+            !isFetchingSpendableBalance &&
             !isLoading &&
             !isCreatingCharge &&
             !isFetchingCharge &&
@@ -190,7 +195,7 @@ export function useSemanticRequestFlow() {
         isLoggedIn,
         amount,
         hasEnoughBalance,
-        isFetchingBalance,
+        isFetchingSpendableBalance,
         isLoading,
         isCreatingCharge,
         isFetchingCharge,
@@ -602,7 +607,7 @@ export function useSemanticRequestFlow() {
         isConnected,
         isLoggedIn,
         walletAddress,
-        formattedBalance,
+        formattedBalance: formattedSpendableBalance,
         isXChain,
         isDiffToken,
         needsRoute,
