@@ -193,7 +193,7 @@ export default async function ReceiptPage({
                 <NavHeader title="Receipt" />
             </div>
             <div className="flex flex-1 flex-col items-center justify-center">
-                <TransactionDetailsReceipt className="w-full" transaction={transactionDetails!} />
+                <TransactionDetailsReceipt className="w-full" transaction={transactionDetails!} isPublic />
             </div>
         </PageContainer>
     )
