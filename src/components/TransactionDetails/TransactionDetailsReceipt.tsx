@@ -495,7 +495,7 @@ export const TransactionDetailsReceipt = ({
                                         className="flex items-center gap-2 hover:underline"
                                     >
                                         <span>{shortenStringLong(transaction.txHash)}</span>
-                                        <Icon name="external-link" size={12} />
+                                        <Icon name="external-link" size={14} />
                                     </Link>
                                 ) : (
                                     <div className="flex items-center gap-2">
@@ -626,7 +626,7 @@ export const TransactionDetailsReceipt = ({
                                     className="flex items-center underline"
                                 >
                                     Download
-                                    <Icon name="download" className="h-3" />
+                                    <Icon name="download" size={14} />
                                 </Link>
                             }
                             hideBottomBorder

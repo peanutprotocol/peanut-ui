@@ -117,9 +117,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             shadowSize="4"
                             className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
                         >
-                            <div className="flex size-5 items-center justify-center">
-                                <Icon name="arrow-up-right" size={8} fill="black" />
-                            </div>
+                            <Icon name="arrow-up-right" size={18} fill="black" />
                             <span className="font-bold">Send</span>
                         </Button>
 
@@ -135,9 +133,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             shadowSize="4"
                             className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
                         >
-                            <div className="flex size-5 items-center justify-center">
-                                <Icon name="arrow-down-left" size={8} fill="black" />
-                            </div>
+                            <Icon name="arrow-down-left" size={18} fill="black" />
                             <span className="font-bold">Request</span>
                         </Button>
                     </div>
