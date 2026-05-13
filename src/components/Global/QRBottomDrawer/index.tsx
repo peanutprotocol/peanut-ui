@@ -16,8 +16,11 @@ interface QRBottomDrawerProps {
 const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, className }: QRBottomDrawerProps) => {
     const contentRef = useRef<HTMLDivElement>(null)
 
-    const snapPoints = [0.75, 1] // 75%, 100% of screen height
-    const [activeSnapPoint, setActiveSnapPoint] = useState<number | string | null>(snapPoints[0]) // Start with the smallest snap point
+    // Three snap points so drag-down at the medium state transitions to a peek
+    // (just the title) instead of being hard-blocked. dismissible={false} keeps
+    // the drawer from ever closing on drag.
+    const snapPoints = [0.15, 0.75, 1] // 15% peek, 75% medium, 100% full
+    const [activeSnapPoint, setActiveSnapPoint] = useState<number | string | null>(snapPoints[1]) // Start in the medium state
 
     const handleSnapPointChange = (snapPoint: number | string | null) => {
         setActiveSnapPoint(snapPoint)
@@ -36,7 +39,7 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                 <DrawerContent className={`min-h-[200px] p-5 ${className || ''}`}>
                     <DrawerTitle className="mb-8 space-y-2">
                         <h2 className="text-lg font-bold">
-                            {activeSnapPoint === snapPoints[0] ? collapsedTitle : expandedTitle}
+                            {activeSnapPoint === snapPoints[snapPoints.length - 1] ? expandedTitle : collapsedTitle}
                         </h2>
                     </DrawerTitle>
                     <div ref={contentRef}>
