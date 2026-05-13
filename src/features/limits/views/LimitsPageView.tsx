@@ -10,6 +10,7 @@ import { useLimits } from '@/hooks/useLimits'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import CryptoLimitsSection from '../components/CryptoLimitsSection'
 import FiatLimitsLockedCard from '../components/FiatLimitsLockedCard'
 import { REST_OF_WORLD_GLOBE_ICON } from '@/assets'
@@ -17,7 +18,7 @@ import InfoCard from '@/components/Global/InfoCard'
 import { getProviderRoute } from '../utils'
 
 const LimitsPageView = () => {
-    const router = useRouter()
+    const onBack = useSafeBack('/profile', { replace: true })
     const { unlockedRegions, lockedRegions } = useIdentityVerification()
     const { isUserKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
     const { hasMantecaLimits } = useLimits()
@@ -48,11 +49,7 @@ const LimitsPageView = () => {
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-6">
-            <NavHeader
-                title="Payment limits"
-                onPrev={() => router.replace('/profile')}
-                titleClassName="text-xl md:text-2xl"
-            />
+            <NavHeader title="Payment limits" onPrev={onBack} titleClassName="text-xl md:text-2xl" />
 
             {/* page description */}
             <InfoCard

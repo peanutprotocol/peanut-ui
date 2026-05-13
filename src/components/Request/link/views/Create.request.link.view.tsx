@@ -26,13 +26,14 @@ import { printableUsdc } from '@/utils/balance.utils'
 import * as Sentry from '@sentry/nextjs'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useQueryClient } from '@tanstack/react-query'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
+import { useSafeBack } from '@/hooks/useSafeBack'
 
 export const CreateRequestLinkView = () => {
     const toast = useToast()
-    const router = useRouter()
+    const onBack = useSafeBack('/home')
     const { address, isConnected, balance } = useWallet()
     const { user } = useAuth()
     const { selectedChainID, setSelectedChainID, selectedTokenAddress, setSelectedTokenAddress, selectedTokenData } =
@@ -359,7 +360,7 @@ export const CreateRequestLinkView = () => {
 
     return (
         <div className="flex min-h-[inherit] w-full flex-col justify-start space-y-8">
-            <NavHeader onPrev={() => router.push('/home')} title="Request" />
+            <NavHeader onPrev={onBack} title="Request" />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 <PeanutActionCard type="request" />
 

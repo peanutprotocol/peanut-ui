@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useQueryStates, parseAsStringEnum } from 'nuqs'
 import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import CardInfoScreen from '@/components/Card/CardInfoScreen'
 import CardGeoScreen from '@/components/Card/CardGeoScreen'
 import CardDetailsScreen from '@/components/Card/CardDetailsScreen'
@@ -20,6 +21,7 @@ interface Props {
 
 const CardPioneerFlow: FC<Props> = ({ cardInfo, refetchCardInfo }) => {
     const router = useRouter()
+    const exitFlow = useSafeBack('/home')
     const { fetchUser } = useAuth()
 
     const [urlState, setUrlState] = useQueryStates(
@@ -56,7 +58,7 @@ const CardPioneerFlow: FC<Props> = ({ cardInfo, refetchCardInfo }) => {
     const goToPreviousStep = () => {
         const currentIndex = STEP_ORDER.indexOf(currentStep)
         if (currentIndex > 0) goToStep(STEP_ORDER[currentIndex - 1])
-        else router.back()
+        else exitFlow()
     }
 
     const handleInitiatePurchase = async () => {

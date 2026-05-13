@@ -17,10 +17,10 @@ import { usersApi } from '@/services/users'
 import { formatAmount } from '@/utils/general.utils'
 import { printableUsdc } from '@/utils/balance.utils'
 import { captureException } from '@sentry/nextjs'
-import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { isUserKycVerified } from '@/constants/kyc.consts'
 
 interface DirectRequestInitialViewProps {
@@ -28,7 +28,7 @@ interface DirectRequestInitialViewProps {
 }
 
 const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) => {
-    const router = useRouter()
+    const onBack = useSafeBack('/home')
     const { user: authUser } = useUserStore()
     const { balance, address } = useWallet()
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
@@ -172,7 +172,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     if (validationError) {
         return (
             <div className="flex flex-col items-center justify-center gap-8">
-                {!!authUser?.user.userId ? <NavHeader onPrev={() => router.back()} title="Request" /> : null}
+                {!!authUser?.user.userId ? <NavHeader onPrev={onBack} title="Request" /> : null}
                 <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4 md:w-6/12">
                     <ValidationErrorView {...validationError} />
                 </div>
@@ -206,7 +206,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             {!!authUser?.user.userId ? (
-                <NavHeader onPrev={() => router.back()} title="Request" />
+                <NavHeader onPrev={onBack} title="Request" />
             ) : (
                 <div className="text-center text-xl font-extrabold md:hidden">Request</div>
             )}

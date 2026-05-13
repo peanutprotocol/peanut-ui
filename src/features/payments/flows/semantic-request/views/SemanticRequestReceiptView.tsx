@@ -18,10 +18,10 @@ import { BASE_URL } from '@/constants/general.consts'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import NavHeader from '@/components/Global/NavHeader'
-import { useRouter } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 
 export function SemanticRequestReceiptView() {
-    const router = useRouter()
+    const onBack = useSafeBack('/home')
     const { charge, recipient, parsedUrl, isFetchingCharge } = useSemanticRequestFlow()
 
     const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
@@ -97,7 +97,7 @@ export function SemanticRequestReceiptView() {
     if (isFetchingCharge || !charge) {
         return (
             <div className="flex min-h-[inherit] flex-col gap-4">
-                <NavHeader title="Receipt" onPrev={() => router.back()} />
+                <NavHeader title="Receipt" onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
                     <PeanutLoading />
                 </div>
@@ -109,7 +109,7 @@ export function SemanticRequestReceiptView() {
     if (!transactionForReceipt) {
         return (
             <div className="flex min-h-[inherit] flex-col gap-4">
-                <NavHeader title="Receipt" onPrev={() => router.back()} />
+                <NavHeader title="Receipt" onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
                     <p className="text-sm text-grey-1">Unable to load receipt details</p>
                 </div>
@@ -119,7 +119,7 @@ export function SemanticRequestReceiptView() {
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-4">
-            <NavHeader title="Receipt" onPrev={() => router.back()} />
+            <NavHeader title="Receipt" onPrev={onBack} />
             <div className="flex w-full flex-grow flex-col justify-center gap-4">
                 <TransactionDetailsReceipt
                     transaction={transactionForReceipt}

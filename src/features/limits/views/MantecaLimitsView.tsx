@@ -4,7 +4,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useLimits } from '@/hooks/useLimits'
-import { useRouter } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { useState } from 'react'
 import PeriodToggle from '../components/PeriodToggle'
 import LimitsProgressBar from '../components/LimitsProgressBar'
@@ -27,13 +27,13 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
  * shows monthly/yearly limits per currency with remaining amounts
  */
 const MantecaLimitsView = () => {
-    const router = useRouter()
+    const onBack = useSafeBack('/limits')
     const { mantecaLimits, isLoading, error } = useLimits()
     const [period, setPeriod] = useState<LimitsPeriod>('monthly')
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-6">
-            <NavHeader title="Limits" onPrev={() => router.back()} titleClassName="text-xl md:text-2xl" />
+            <NavHeader title="Limits" onPrev={onBack} titleClassName="text-xl md:text-2xl" />
 
             {isLoading && <PeanutLoading coverFullScreen />}
 

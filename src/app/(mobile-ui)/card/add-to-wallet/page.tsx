@@ -6,16 +6,18 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import AddToWalletCarousel from '@/components/Card/AddToWalletCarousel'
 import { useWalletPlatform } from '@/hooks/useWalletPlatform'
+import { useSafeBack } from '@/hooks/useSafeBack'
 
 const AddToWalletPage: FC = () => {
     const router = useRouter()
     const platform = useWalletPlatform()
+    const onBack = useSafeBack('/card')
     useEffect(() => {
         posthog.capture(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_VIEWED, { platform: platform ?? 'unknown' })
     }, [platform])
     return (
         <PageContainer>
-            <AddToWalletCarousel onDone={() => router.push('/card')} onPrev={() => router.push('/card')} />
+            <AddToWalletCarousel onDone={() => router.push('/card')} onPrev={onBack} />
         </PageContainer>
     )
 }
