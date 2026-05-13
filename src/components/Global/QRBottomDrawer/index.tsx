@@ -16,13 +16,8 @@ interface QRBottomDrawerProps {
 const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, className }: QRBottomDrawerProps) => {
     const contentRef = useRef<HTMLDivElement>(null)
 
-    // Three snap points with a smaller "buffer" below the medium state. Hard
-    // drag-downs land at 0.5 instead of vaul's closeDrawer() path, which is the
-    // only thing that produced the duplication artifact (vaul/index.mjs:656
-    // only fires closeDrawer at the FIRST snap point; keeping the medium snap
-    // at index 1 means a normal drag never trips it).
-    const snapPoints = [0.5, 0.75, 1]
-    const [activeSnapPoint, setActiveSnapPoint] = useState<number | string | null>(snapPoints[1])
+    const snapPoints = [0.75, 1]
+    const [activeSnapPoint, setActiveSnapPoint] = useState<number | string | null>(snapPoints[0])
 
     const handleSnapPointChange = (snapPoint: number | string | null) => {
         setActiveSnapPoint(snapPoint)
@@ -40,7 +35,7 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                 <DrawerContent className={`min-h-[200px] p-5 ${className || ''}`}>
                     <DrawerTitle className="mb-8 space-y-2">
                         <h2 className="text-lg font-bold">
-                            {activeSnapPoint === snapPoints[snapPoints.length - 1] ? expandedTitle : collapsedTitle}
+                            {activeSnapPoint === snapPoints[0] ? collapsedTitle : expandedTitle}
                         </h2>
                     </DrawerTitle>
                     <div ref={contentRef}>

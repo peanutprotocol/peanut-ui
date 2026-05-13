@@ -1,6 +1,7 @@
 'use client'
 
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
+import QRScannerOverlay from '@/components/Global/QRScannerOverlay'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import TopNavbar from '@/components/Global/TopNavbar'
 import WalletNavigation from '@/components/Global/WalletNavigation'
@@ -65,6 +66,8 @@ export default function PaymentLayoutWrapper({ children }: { children: React.Rea
             {/* Modals */}
             <GuestLoginModal />
             <SupportDrawer />
+
+            <QRScannerOverlay />
         </div>
     )
 }
