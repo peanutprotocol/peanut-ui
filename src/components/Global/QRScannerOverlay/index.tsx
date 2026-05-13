@@ -214,9 +214,7 @@ export default function QRScannerOverlay() {
             if (recognized === EQrType.PEANUT_URL && normalized.includes('/claim')) {
                 return 'peanut:claim-link'
             }
-            // never log the raw payload for other types — payment / address / ENS
-            // QRs can carry merchant ids, amounts, wallet addresses, etc.
-            return recognized ? `qr:${recognized}` : 'qr:unknown'
+            return data
         }
         posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: recognized, data: getLogData() })
         if (!recognized) {
