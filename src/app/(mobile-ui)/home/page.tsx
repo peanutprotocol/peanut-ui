@@ -380,16 +380,17 @@ function ActionButtonWithHref({ label, action, href, variant = 'primary-soft', s
 }
 
 function ActionButton({ label, action, variant = 'primary-soft', size = 'small' }: Omit<ActionButtonProps, 'href'>) {
+    const iconSize = size === 'large' ? 18 : 16
     const renderIcon = (): React.ReactNode => {
         switch (action) {
             case 'send':
-                return <Icon name="arrow-up-right" size={18} fill="currentColor" />
+                return <Icon name="arrow-up-right" size={iconSize} fill="currentColor" />
             case 'withdraw':
-                return <Icon name="arrow-up" size={18} fill="currentColor" />
+                return <Icon name="arrow-up" size={iconSize} fill="currentColor" />
             case 'add':
-                return <Icon name="arrow-down" size={18} fill="currentColor" />
+                return <Icon name="arrow-down" size={iconSize} fill="currentColor" />
             case 'request':
-                return <Icon name="arrow-down-left" size={18} fill="currentColor" />
+                return <Icon name="arrow-down-left" size={iconSize} fill="currentColor" />
             default:
                 return null
         }

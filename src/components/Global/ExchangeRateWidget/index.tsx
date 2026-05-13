@@ -209,7 +209,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                                     height={160}
                                     className="size-4 rounded-full object-cover"
                                 />
-                                {sourceCurrency} <Icon name="chevron-down" className="text-gray-1" size={10} />
+                                {sourceCurrency} <Icon name="chevron-down" className="text-gray-1" size={14} />
                             </button>
                         }
                     />
@@ -268,7 +268,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                                     height={160}
                                     className="size-4 rounded-full object-cover"
                                 />
-                                {destinationCurrency} <Icon name="chevron-down" className="text-gray-1" size={10} />
+                                {destinationCurrency} <Icon name="chevron-down" className="text-gray-1" size={14} />
                             </button>
                         }
                     />
@@ -313,7 +313,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
 
             {typeof destinationAmount === 'number' && destinationAmount > 0 && (
                 <div className="flex items-center">
-                    <Icon name="info" className="text-gray-1" size={10} />
+                    <Icon name="info" className="text-gray-1" size={14} />
                     <p className="text-xs text-gray-1">{deliveryTimeText}</p>
                 </div>
             )}
