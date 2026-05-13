@@ -80,7 +80,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
                 href="/home"
                 translate="no"
                 className={classNames(
-                    'notranslate mb-4 flex flex-col items-center justify-center object-contain hover:cursor-pointer',
+                    'notranslate flex flex-col items-center justify-center object-contain hover:cursor-pointer',
                     { 'text-primary-1': pathName === '/home' }
                 )}
             >
@@ -102,7 +102,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
                 }}
                 translate="no"
                 className={classNames(
-                    'notranslate mb-4 flex flex-col items-center justify-center object-contain  hover:cursor-pointer',
+                    'notranslate flex flex-col items-center justify-center object-contain hover:cursor-pointer',
                     { 'text-primary-1': pathName === '/support' }
                 )}
             >
