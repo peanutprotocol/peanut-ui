@@ -18,6 +18,9 @@ import { getAvatarUrl, getTransactionSign } from '@/utils/history.utils'
 import React, { lazy, Suspense } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Image from 'next/image'
+import { isAddress } from 'viem'
+import { usePrimaryName } from '@justaname.id/react'
+import { normalizeEnsName } from '@/utils/ens.utils'
 import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
 import { PerkIcon } from './PerkIcon'
@@ -101,7 +104,21 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const avatarUrl = getAvatarUrl(transaction)
     // check if this is a test transaction (setup confirmation)
     const isTestTransaction = name === 'Enjoy Peanut!'
-    let displayName = name
+
+    // Lazy ENS reverse-lookup for unknown counterparties: when `name` is an
+    // EVM address (the BE couldn't attach a Peanut username), ask JustaName
+    // for the primary name. Hook fires conditionally via `address: undefined`
+    // when we already have a username — no wasted requests. JustaName's
+    // SWR-cached client dedupes repeat lookups across rows.
+    const ensLookupAddress = isAddress(name) ? (name as `0x${string}`) : undefined
+    const { primaryName } = usePrimaryName({
+        address: ensLookupAddress,
+        chainId: 1,
+        priority: 'onChain',
+    })
+    const ensName = normalizeEnsName(primaryName)
+
+    let displayName = ensName ?? name
     // Shortens crypto addresses AND raw UUIDs (usernameless Peanut users whose
     // `identifier` arrives as a userId) so the feed row never renders a 36-char
     // string.
