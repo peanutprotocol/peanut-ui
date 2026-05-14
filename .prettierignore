@@ -10,3 +10,9 @@ src/content/
 # prettier conventions. Don't reformat.
 src/components/TransactionDetails/__tests__/fixtures/be-entries.json
 src/components/TransactionDetails/__tests__/fixtures/render-baseline.json
+
+# OpenAPI snapshot + generated TypeScript types. Both are regenerated via
+# `pnpm gen:api` (snapshot pulled from BE staging /openapi.json). Letting
+# prettier touch them creates pointless diff churn on every regen.
+src/types/api.openapi.json
+src/types/api.generated.ts
