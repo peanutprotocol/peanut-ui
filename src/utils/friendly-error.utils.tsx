@@ -33,6 +33,17 @@ export const rainCollateralErrorMessage = (error: unknown): string | null => {
     ) {
         return message ?? text
     }
+    // /rain/cards/withdraw/init has a 5-min TTL; if the passkey prompt stalls
+    // (slow device, hesitation), /prepare returns 410. The raw BE copy starts
+    // with "Unknown or expired init" / "Init was just consumed" — friendly-ify
+    // both into a retry-friendly message so the user knows what to do.
+    if (
+        text.includes('Unknown or expired init') ||
+        text.includes('Init was just consumed') ||
+        text.includes('Init does not belong to this user')
+    ) {
+        return 'Withdrawal session expired — please try again.'
+    }
     return null
 }
 

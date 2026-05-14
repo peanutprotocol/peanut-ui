@@ -197,6 +197,15 @@ export const useSpendBundle = () => {
                 // calling Rain. (See peanut-api-ts/src/routes/rain/withdraw.ts
                 // for the rationale.)
                 if (strategy === 'collateral-only') {
+                    // Resolve the kernel account BEFORE the init call so we fail
+                    // fast if auth is still hydrating, and pipeline the sync
+                    // setup with the async network call's start.
+                    const kernelClient = getClientForChain(chainIdStr)
+                    const kernelAccount = kernelClient.account
+                    if (!kernelAccount) {
+                        throw new Error('useSpendBundle: kernel account not initialized')
+                    }
+
                     const amountCents = usdcWeiToRainCents(requiredUsdcAmount).toString()
                     const init = await rainApi.initWithdrawal({
                         amount: amountCents,
@@ -206,8 +215,7 @@ export const useSpendBundle = () => {
                         chargeId,
                     })
 
-                    const kernelClient = getClientForChain(chainIdStr)
-                    const adminSignature = (await kernelClient.account!.signTypedData({
+                    const adminSignature = (await kernelAccount.signTypedData({
                         domain: {
                             name: RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
                             version: RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
@@ -283,7 +291,14 @@ export const useSpendBundle = () => {
                 // will still burn — there's no way around that without restructuring
                 // the on-chain coordinator interface. ~half the burn cases solved.
                 //
-                // Admin address = user's peanut-wallet address (kernel smart account).
+                // Resolve the kernel account + admin address synchronously up
+                // front so auth-still-hydrating fails fast (before any network
+                // call), and pipeline the sync setup with the init call.
+                const kernelClient = getClientForChain(chainIdStr)
+                const kernelAccount = kernelClient.account
+                if (!kernelAccount) {
+                    throw new Error('useSpendBundle: kernel account not initialized')
+                }
                 const adminAddress = user?.accounts.find((a) => a.type === AccountType.PEANUT_WALLET)?.identifier as
                     | Address
                     | undefined
@@ -306,8 +321,7 @@ export const useSpendBundle = () => {
                     totalAmountCents: totalCents,
                 })
 
-                const kernelClient = getClientForChain(chainIdStr)
-                const adminSignature = (await kernelClient.account!.signTypedData({
+                const adminSignature = (await kernelAccount.signTypedData({
                     domain: {
                         name: RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
                         version: RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
