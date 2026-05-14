@@ -88,6 +88,38 @@ export interface PrepareRainWithdrawalInput {
      *  The backend then uses the charge intent itself as the prep and marks it
      *  COMPLETED on confirm — so the FE must NOT also call `recordPayment`. */
     chargeId?: string
+    /** init→passkey→prepare flow: pre-signed admin EIP-712 + the matching init
+     *  id. When both are set, /prepare verifies the sig BEFORE calling Rain so
+     *  a cancelled passkey doesn't burn a Rain signature. Legacy callers can
+     *  omit both and get the old fresh-salt-on-/prepare behaviour. */
+    initId?: string
+    adminSignature?: string
+}
+
+export interface InitRainWithdrawalInput {
+    amount: string
+    recipientAddress: string
+    directTransfer: boolean
+    kind: RainCollateralKind
+    totalAmountCents?: string
+    chargeId?: string
+}
+
+export interface InitRainWithdrawalResponse {
+    initId: string
+    adminAddress: string
+    collateralProxy: string
+    tokenAddress: string
+    chainId: string
+    /** USDC wei — exactly what /prepare will require Rain to echo. Use this as
+     *  the `amount` field of the admin EIP-712 message you're about to sign. */
+    amount: string
+    recipientAddress: string
+    directTransfer: boolean
+    adminSalt: string
+    adminNonce: string
+    /** Unix seconds. After this the init is gone server-side; /prepare 410s. */
+    expiresAt: number
 }
 
 export interface PrepareRainWithdrawalResponse {
@@ -276,9 +308,28 @@ export const rainApi = {
     },
 
     /**
+     * Step 1 of init→passkey→prepare. Backend reads adminNonce on-chain,
+     * mints an adminSalt, and caches the bundle by initId. NO Rain call yet —
+     * so a cancelled passkey at step 2 never burns a Rain signature (Rain
+     * enforces a 5min validity + 2min cooldown per-user gate).
+     */
+    initWithdrawal: async (input: InitRainWithdrawalInput): Promise<InitRainWithdrawalResponse> => {
+        return rainRequest<InitRainWithdrawalResponse>({
+            method: 'POST',
+            path: '/rain/cards/withdraw/init',
+            body: input,
+        })
+    },
+
+    /**
      * Stage a Rain V2 withdrawal: backend fetches Rain's executor signature,
      * reads the current adminNonce from the collateral proxy, and persists a
      * short-lived prep record. Caller then signs the admin EIP-712 payload.
+     *
+     * Init flow: pass `{ initId, adminSignature }` alongside the params from
+     * the init response. /prepare consumes the init, verifies the admin sig
+     * BEFORE calling Rain, and uses the init's adminSalt/adminNonce — so a
+     * passkey-cancelled flow never burned a Rain sig.
      */
     prepareWithdrawal: async (input: PrepareRainWithdrawalInput): Promise<PrepareRainWithdrawalResponse> => {
         return rainRequest<PrepareRainWithdrawalResponse>({

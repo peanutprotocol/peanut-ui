@@ -191,14 +191,18 @@ export const useSpendBundle = () => {
                 }
 
                 // ─── collateral-only ──────────────────────────────────────────────
+                // init → passkey → prepare → submit. /init does no Rain call,
+                // so if the user cancels the passkey at step 2 we never burned
+                // a Rain signature. /prepare verifies the admin sig BEFORE
+                // calling Rain. (See peanut-api-ts/src/routes/rain/withdraw.ts
+                // for the rationale.)
                 if (strategy === 'collateral-only') {
-                    const prep = await rainApi.prepareWithdrawal({
-                        amount: usdcWeiToRainCents(requiredUsdcAmount).toString(),
+                    const amountCents = usdcWeiToRainCents(requiredUsdcAmount).toString()
+                    const init = await rainApi.initWithdrawal({
+                        amount: amountCents,
                         recipientAddress: recipient!,
                         directTransfer: true,
                         kind,
-                        // When set, the backend completes the charge directly on
-                        // confirm — caller must skip recordPayment for this strategy.
                         chargeId,
                     })
 
@@ -208,19 +212,29 @@ export const useSpendBundle = () => {
                             name: RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
                             version: RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
                             chainId: chainIdNum,
-                            verifyingContract: prep.collateralProxy as Address,
-                            salt: prep.adminSalt as Hex,
+                            verifyingContract: init.collateralProxy as Address,
+                            salt: init.adminSalt as Hex,
                         },
                         types: rainWithdrawEip712Types,
                         primaryType: 'Withdraw',
                         message: {
-                            user: prep.adminAddress as Address,
-                            asset: prep.tokenAddress as Address,
-                            amount: BigInt(prep.amount),
-                            recipient: prep.recipientAddress as Address,
-                            nonce: BigInt(prep.adminNonce),
+                            user: init.adminAddress as Address,
+                            asset: init.tokenAddress as Address,
+                            amount: BigInt(init.amount),
+                            recipient: init.recipientAddress as Address,
+                            nonce: BigInt(init.adminNonce),
                         },
                     })) as Hex
+
+                    const prep = await rainApi.prepareWithdrawal({
+                        amount: amountCents,
+                        recipientAddress: recipient!,
+                        directTransfer: true,
+                        kind,
+                        chargeId,
+                        initId: init.initId,
+                        adminSignature,
+                    })
 
                     const { txHash } = await rainApi.submitWithdrawal({
                         preparationId: prep.preparationId,
