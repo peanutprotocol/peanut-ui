@@ -109,6 +109,7 @@ export const useHomeCarouselCTAs = () => {
         [latestHistory]
     )
     const hasSentInvites = (user?.invitesSent?.length ?? 0) > 0
+    const hasSupportSurvivorBadge = user?.user?.badges?.some((b) => b.code === 'SUPPORT_SURVIVOR') ?? false
 
     const dismissCTA = useCallback(
         (ctaId: string) => {
@@ -261,11 +262,12 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        // Bug bounty — shown to activated users only. Server enforces the real
-        // eligibility (email verified, ≥1 payment OR KYC approved), lifetime
-        // caps, and the daily budget. This gate just keeps the CTA off cold
-        // accounts where the reward would be denied anyway.
-        if (isActivated) {
+        // Bug bounty — shown to activated users who haven't already claimed.
+        // Server enforces lifetime cap of 1 grant per user, so re-pinging the
+        // CTA after a successful claim would just bounce off `already_granted`.
+        // Hide once the SUPPORT_SURVIVOR badge is on the user — that's the
+        // server-side dedup marker, so it's the authoritative signal.
+        if (isActivated && !hasSupportSurvivorBadge) {
             _carouselCTAs.push({
                 id: 'bug-bounty',
                 title: (
@@ -329,6 +331,7 @@ export const useHomeCarouselCTAs = () => {
         isActivated,
         hasMadeQrPayment,
         hasSentInvites,
+        hasSupportSurvivorBadge,
         oneSignalInitialized,
         setIsIosPwaInstallModalOpen,
         toast,
