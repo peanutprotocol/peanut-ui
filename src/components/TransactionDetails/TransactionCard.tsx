@@ -105,20 +105,13 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // check if this is a test transaction (setup confirmation)
     const isTestTransaction = name === 'Enjoy Peanut!'
 
-    // Lazy ENS reverse-lookup for unknown counterparties: when `name` is an
-    // EVM address (the BE couldn't attach a Peanut username), ask JustaName
-    // for the primary name. Hook fires conditionally via `address: undefined`
-    // when we already have a username — no wasted requests. JustaName's
-    // SWR-cached client dedupes repeat lookups across rows.
-    const ensLookupAddress = isAddress(name) ? (name as `0x${string}`) : undefined
+    // ENS reverse-lookup for raw addresses; hook is a no-op when name is a username.
     const { primaryName } = usePrimaryName({
-        address: ensLookupAddress,
+        address: isAddress(name) ? (name as `0x${string}`) : undefined,
         chainId: 1,
         priority: 'onChain',
     })
-    const ensName = normalizeEnsName(primaryName)
-
-    let displayName = ensName ?? name
+    let displayName = normalizeEnsName(primaryName) ?? name
     // Shortens crypto addresses AND raw UUIDs (usernameless Peanut users whose
     // `identifier` arrives as a userId) so the feed row never renders a 36-char
     // string.
