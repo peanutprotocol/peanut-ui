@@ -52,7 +52,7 @@ interface MaintenanceConfig {
 }
 
 const underMaintenanceConfig: MaintenanceConfig = {
-    enableFullMaintenance: true, // set to true to redirect all pages to /maintenance
+    enableFullMaintenance: false, // set to true to redirect all pages to /maintenance
     enableMaintenanceBanner: false, // set to true to show maintenance banner on all pages
     disabledPaymentProviders: [], // set to ['MANTECA'] to disable Manteca QR payments
     disableXchainWithdraw: false, // set to true to disable cross-chain withdrawals (only allows USDC on Arbitrum)
