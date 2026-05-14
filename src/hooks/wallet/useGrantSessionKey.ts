@@ -153,7 +153,14 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
         // produce a passkey prompt.
         posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_PROMPTED)
         // Triggers the passkey prompt — this is the one-time install.
+        // `address` is forced to the user's actual wallet so the approval
+        // binds to the deployed kernel. Pre-2025-09-18 users sit at a
+        // legacy V0_0_2-derived address (migrated in place to V0_0_3); the
+        // natural counterfactual of `createKernelAccount({sudo: newValidator})`
+        // is a different, never-funded address. Forcing the address here makes
+        // the grant work for both legacy and post-migration users.
         const sessionKernelAccount = await createKernelAccount(peanutPublicClient, {
+            address: kernelClient.account!.address,
             entryPoint: getEntryPoint('0.7'),
             kernelVersion: KERNEL_V3_1,
             plugins: {
