@@ -653,24 +653,7 @@ export interface paths {
         get: {
             parameters: {
                 query: {
-                    entryType:
-                        | 'REQUEST'
-                        | 'CASHOUT'
-                        | 'DEPOSIT'
-                        | 'SEND_LINK'
-                        | 'DIRECT_SEND'
-                        | 'WITHDRAW'
-                        | 'BRIDGE_OFFRAMP'
-                        | 'BRIDGE_ONRAMP'
-                        | 'BANK_SEND_LINK_CLAIM'
-                        | 'MANTECA_QR_PAYMENT'
-                        | 'MANTECA_OFFRAMP'
-                        | 'MANTECA_ONRAMP'
-                        | 'BRIDGE_GUEST_OFFRAMP'
-                        | 'SIMPLEFI_QR_PAYMENT'
-                        | 'PERK_REWARD'
-                        | 'RAIN_CARD_TRANSACTION'
-                        | 'TRANSACTION_INTENT'
+                    kind: string
                 }
                 header?: never
                 path: {
@@ -1140,9 +1123,7 @@ export interface paths {
         post: {
             parameters: {
                 query?: never
-                header?: {
-                    'api-key'?: string
-                }
+                header?: never
                 path?: never
                 cookie?: never
             }
@@ -1247,9 +1228,7 @@ export interface paths {
         post: {
             parameters: {
                 query?: never
-                header?: {
-                    'api-key'?: string
-                }
+                header?: never
                 path?: never
                 cookie?: never
             }
@@ -1288,9 +1267,7 @@ export interface paths {
         post: {
             parameters: {
                 query?: never
-                header?: {
-                    'api-key'?: string
-                }
+                header?: never
                 path?: never
                 cookie?: never
             }
@@ -3372,6 +3349,393 @@ export interface paths {
         patch?: never
         trace?: never
     }
+    '/rain/cards/withdraw/session-approve': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody: {
+                content: {
+                    'application/json': {
+                        serializedApproval: string
+                    }
+                }
+            }
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            ok: boolean
+                        }
+                    }
+                }
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            error: string
+                        }
+                    }
+                }
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            error: string
+                        }
+                    }
+                }
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            error: string
+                        }
+                    }
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/rain/cards/withdraw/prepare': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody: {
+                content: {
+                    'application/json': {
+                        amount: string
+                        recipientAddress: string
+                        directTransfer: boolean
+                        kind:
+                            | 'P2P_SEND'
+                            | 'QR_PAY'
+                            | 'LINK_CREATE'
+                            | 'CRYPTO_WITHDRAW'
+                            | 'FIAT_OFFRAMP'
+                            | 'FIAT_ONRAMP'
+                            | 'REQUEST_PAY'
+                            | 'AUTO_REBALANCE'
+                            | 'CARD_SPEND'
+                            | 'DEPOSIT_EXTERNAL'
+                            | 'OTHER'
+                        totalAmountCents?: string
+                        chargeId?: string
+                    }
+                }
+            }
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            preparationId: string
+                            coordinatorAddress: string
+                            collateralProxy: string
+                            adminAddress: string
+                            chainId: string
+                            tokenAddress: string
+                            amount: string
+                            recipientAddress: string
+                            directTransfer: boolean
+                            adminSalt: string
+                            adminNonce: string
+                            executorSignature: string
+                            executorSalt: string
+                            expiresAt: number
+                        }
+                    }
+                }
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            error: string
+                        }
+                    }
+                }
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            error: string
+                        }
+                    }
+                }
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            error: string
+                        }
+                    }
+                }
+                /** @description Default Response */
+                425: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            error: string
+                        }
+                    }
+                }
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            error: string
+                        }
+                    }
+                }
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            error: string
+                        }
+                    }
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/rain/cards/withdraw/stamp': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody: {
+                content: {
+                    'application/json': {
+                        preparationId: string
+                        txHash: string
+                    }
+                }
+            }
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            ok: boolean
+                        }
+                    }
+                }
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            error: string
+                        }
+                    }
+                }
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            error: string
+                        }
+                    }
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/rain/cards/withdraw/submit': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody: {
+                content: {
+                    'application/json': {
+                        preparationId: string
+                        amount: string
+                        recipientAddress: string
+                        directTransfer: boolean
+                        adminSalt: string
+                        adminNonce: string
+                        adminSignature: string
+                        executorSignature: string
+                        executorSalt: string
+                        expiresAt: number
+                    }
+                }
+            }
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            txHash: string
+                        }
+                    }
+                }
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            error: string
+                        }
+                    }
+                }
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            error: string
+                        }
+                    }
+                }
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            error: string
+                        }
+                    }
+                }
+                /** @description Default Response */
+                410: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            error: string
+                        }
+                    }
+                }
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': {
+                            error: string
+                        }
+                    }
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
     '/manteca/qr-payment/init': {
         parameters: {
             query?: never
@@ -3433,7 +3797,7 @@ export interface paths {
         put?: never
         /**
          * Complete QR payment with signed transaction
-         * @description Completes Manteca payment first, then broadcasts signed UserOp. This prevents funds from being stuck if Manteca fails.
+         * @description Completes Manteca payment first, then either broadcasts the signed UserOp or submits the signed Rain withdrawal via the session key. This prevents funds from being stuck if Manteca fails.
          */
         post: {
             parameters: {
@@ -3444,33 +3808,57 @@ export interface paths {
                 path?: never
                 cookie?: never
             }
-            requestBody: {
+            requestBody?: {
                 content: {
-                    'application/json': {
-                        /** @description The payment lock code from init */
-                        paymentLockCode: string
-                        /** @description Type of QR code (e.g. PIX, QR30, CODI). Used to select the correct fallback user for non-Manteca users. */
-                        qrType?: string
-                        signedUserOp: {
-                            sender: string
-                            nonce: unknown
-                            callData: string
-                            signature: string
-                            factory?: string
-                            factoryData?: string
-                            callGasLimit: unknown
-                            verificationGasLimit: unknown
-                            preVerificationGas: unknown
-                            maxFeePerGas: unknown
-                            maxPriorityFeePerGas: unknown
-                            paymaster?: string
-                            paymasterData?: string
-                            paymasterVerificationGasLimit: unknown
-                            paymasterPostOpGasLimit: unknown
-                        }
-                        chainId: string
-                        entryPointAddress: string
-                    }
+                    'application/json':
+                        | {
+                              /** @enum {string} */
+                              kind: 'userOp'
+                              /** @description The payment lock code from init */
+                              paymentLockCode: string
+                              /** @description Type of QR code (e.g. PIX, QR30, CODI). Used to select the correct fallback user for non-Manteca users. */
+                              qrType?: string
+                              signedUserOp: {
+                                  sender: string
+                                  nonce: unknown
+                                  callData: string
+                                  signature: string
+                                  factory?: string
+                                  factoryData?: string
+                                  callGasLimit: unknown
+                                  verificationGasLimit: unknown
+                                  preVerificationGas: unknown
+                                  maxFeePerGas: unknown
+                                  maxPriorityFeePerGas: unknown
+                                  paymaster?: string
+                                  paymasterData?: string
+                                  paymasterVerificationGasLimit: unknown
+                                  paymasterPostOpGasLimit: unknown
+                              }
+                              chainId: string
+                              entryPointAddress: string
+                              rainPreparationId?: string
+                          }
+                        | {
+                              /** @enum {string} */
+                              kind: 'rainWithdrawal'
+                              /** @description The payment lock code from init */
+                              paymentLockCode: string
+                              qrType?: string
+                              signedRainWithdrawal: {
+                                  preparationId: string
+                                  amount: string
+                                  recipientAddress: string
+                                  directTransfer: boolean
+                                  adminSalt: string
+                                  adminNonce: string
+                                  adminSignature: string
+                                  executorSignature: string
+                                  executorSalt: string
+                                  expiresAt: number
+                              }
+                              chainId: string
+                          }
                 }
             }
             responses: {
@@ -3692,7 +4080,7 @@ export interface paths {
         put?: never
         /**
          * Complete withdraw with signed transaction (sign-then-broadcast)
-         * @description Creates Manteca ramp-off order FIRST, then broadcasts signed UserOp. This prevents funds from being stuck if Manteca fails.
+         * @description Creates Manteca ramp-off order FIRST, then either broadcasts the signed UserOp or submits the signed Rain withdrawal via the session key. Prevents funds from being stuck if Manteca fails.
          */
         post: {
             parameters: {
@@ -3703,39 +4091,70 @@ export interface paths {
                 path?: never
                 cookie?: never
             }
-            requestBody: {
+            requestBody?: {
                 content: {
-                    'application/json': {
-                        /** @description The price lock code from /withdraw/init */
-                        priceLockCode: string
-                        /** @description Amount to withdraw in USD (USDC) */
-                        amount: string
-                        /** @description Destination bank account address */
-                        destinationAddress: string
-                        bankCode?: string
-                        accountType?: 'SAVINGS' | 'CHECKING' | 'DEBIT' | 'PHONE' | 'VISTA' | 'RUT'
-                        /** @description Target fiat currency (must match price lock) */
-                        currency: 'ARS' | 'BRL' | 'CLP' | 'COP' | 'PUSD' | 'CRC' | 'GTQ' | 'MXN' | 'PHP' | 'BOB'
-                        signedUserOp: {
-                            sender: string
-                            nonce: unknown
-                            callData: string
-                            signature: string
-                            factory?: string
-                            factoryData?: string
-                            callGasLimit: unknown
-                            verificationGasLimit: unknown
-                            preVerificationGas: unknown
-                            maxFeePerGas: unknown
-                            maxPriorityFeePerGas: unknown
-                            paymaster?: string
-                            paymasterData?: string
-                            paymasterVerificationGasLimit: unknown
-                            paymasterPostOpGasLimit: unknown
-                        }
-                        chainId: string
-                        entryPointAddress: string
-                    }
+                    'application/json':
+                        | {
+                              /** @enum {string} */
+                              kind: 'userOp'
+                              /** @description The price lock code from /withdraw/init */
+                              priceLockCode: string
+                              /** @description Amount to withdraw in USD (USDC) */
+                              amount: string
+                              /** @description Destination bank account address */
+                              destinationAddress: string
+                              bankCode?: string
+                              accountType?: 'SAVINGS' | 'CHECKING' | 'DEBIT' | 'PHONE' | 'VISTA' | 'RUT'
+                              /** @description Target fiat currency (must match price lock) */
+                              currency: 'ARS' | 'BRL' | 'CLP' | 'COP' | 'PUSD' | 'CRC' | 'GTQ' | 'MXN' | 'PHP' | 'BOB'
+                              signedUserOp: {
+                                  sender: string
+                                  nonce: unknown
+                                  callData: string
+                                  signature: string
+                                  factory?: string
+                                  factoryData?: string
+                                  callGasLimit: unknown
+                                  verificationGasLimit: unknown
+                                  preVerificationGas: unknown
+                                  maxFeePerGas: unknown
+                                  maxPriorityFeePerGas: unknown
+                                  paymaster?: string
+                                  paymasterData?: string
+                                  paymasterVerificationGasLimit: unknown
+                                  paymasterPostOpGasLimit: unknown
+                              }
+                              chainId: string
+                              entryPointAddress: string
+                              rainPreparationId?: string
+                          }
+                        | {
+                              /** @enum {string} */
+                              kind: 'rainWithdrawal'
+                              /** @description The price lock code from /withdraw/init */
+                              priceLockCode: string
+                              /** @description Amount to withdraw in USD (USDC) */
+                              amount: string
+                              /** @description Destination bank account address */
+                              destinationAddress: string
+                              bankCode?: string
+                              accountType?: 'SAVINGS' | 'CHECKING' | 'DEBIT' | 'PHONE' | 'VISTA' | 'RUT'
+                              /** @description Target fiat currency (must match price lock) */
+                              currency: 'ARS' | 'BRL' | 'CLP' | 'COP' | 'PUSD' | 'CRC' | 'GTQ' | 'MXN' | 'PHP' | 'BOB'
+                              signedRainWithdrawal: {
+                                  preparationId: string
+                                  amount: string
+                                  recipientAddress: string
+                                  directTransfer: boolean
+                                  adminSalt: string
+                                  adminNonce: string
+                                  adminSignature: string
+                                  executorSignature: string
+                                  executorSalt: string
+                                  expiresAt: number
+                              }
+                              chainId: string
+                          }
                 }
             }
             responses: {
@@ -4465,6 +4884,47 @@ export interface paths {
         patch?: never
         trace?: never
     }
+    '/admin/support/grant': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header: {
+                    'x-admin-token': string
+                }
+                path?: never
+                cookie?: never
+            }
+            requestBody: {
+                content: {
+                    'application/json': {
+                        username: string
+                    }
+                }
+            }
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
     '/points': {
         parameters: {
             query?: never
@@ -4519,6 +4979,7 @@ export interface paths {
                         | 'CHARGE_FEE'
                         | 'P2P_SEND_LINK'
                         | 'P2P_REQUEST_PAYMENT'
+                        | 'CRYPTO_WITHDRAW'
                         | 'SIGNUP'
                         | 'KYC_VERIFIED'
                         | 'TRANSITIVE_UPDATE'
@@ -5157,7 +5618,7 @@ export interface paths {
                     'application/json': {
                         chainIn: string
                         chainOut: string
-                        token: 'USDC' | 'USDT'
+                        token: string
                         amount: string
                         mode: 'pay' | 'receive'
                     }
@@ -5205,7 +5666,7 @@ export interface paths {
                         depositChain: string
                         destinationChain: string
                         destinationAddress: string
-                        tokenOut: 'USDC' | 'USDT'
+                        tokenOut: string
                         senderPeanutWalletAddress?: string
                     }
                 }
@@ -5220,6 +5681,166 @@ export interface paths {
                 }
             }
         }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/rhino/bridge/quote': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header: {
+                    Authorization: string
+                }
+                path?: never
+                cookie?: never
+            }
+            requestBody: {
+                content: {
+                    'application/json': {
+                        amount: string
+                        tokenIn: string
+                        tokenOut: string
+                        chainOut: string
+                        recipient: string
+                        depositor: string
+                        mode: 'pay' | 'receive'
+                    }
+                }
+            }
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/rhino/bridge/commit': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header: {
+                    Authorization: string
+                }
+                path?: never
+                cookie?: never
+            }
+            requestBody: {
+                content: {
+                    'application/json': {
+                        quoteId: string
+                        isSwap: boolean
+                        isSameChainSwap: boolean
+                    }
+                }
+            }
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/rhino/bridge/status/{bridgeId}': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get: {
+            parameters: {
+                query?: never
+                header: {
+                    Authorization: string
+                }
+                path: {
+                    bridgeId: string
+                }
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+            }
+        }
+        put?: never
+        post?: never
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/rhino/bridge/chains': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+            }
+        }
+        put?: never
+        post?: never
         delete?: never
         options?: never
         head?: never
@@ -5448,6 +6069,39 @@ export interface paths {
         patch?: never
         trace?: never
     }
+    '/users/identity/resubmit': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
     '/rain/cards': {
         parameters: {
             query?: never
@@ -5537,6 +6191,12 @@ export interface paths {
                                   status: 'incomplete'
                                   missing: string[]
                                   questionnaireComplete: boolean
+                                  sumsubAccessToken: string
+                              }
+                            | {
+                                  /** @enum {string} */
+                                  status: 'main-kyc-required'
+                                  missingDocTypes: string[]
                                   sumsubAccessToken: string
                               }
                             | {
@@ -5654,7 +6314,24 @@ export interface paths {
                 }
                 cookie?: never
             }
-            requestBody?: never
+            requestBody?: {
+                content: {
+                    'application/json': {
+                        verifiedWithdrawal?: {
+                            preparationId: string
+                            amount: string
+                            recipientAddress: string
+                            directTransfer: boolean
+                            adminSalt: string
+                            adminNonce: string
+                            adminSignature: string
+                            executorSignature: string
+                            executorSalt: string
+                            expiresAt: number
+                        }
+                    }
+                }
+            }
             responses: {
                 /** @description Default Response */
                 200: {
@@ -5693,6 +6370,18 @@ export interface paths {
                 content: {
                     'application/json': {
                         feedback?: string
+                        verifiedWithdrawal?: {
+                            preparationId: string
+                            amount: string
+                            recipientAddress: string
+                            directTransfer: boolean
+                            adminSalt: string
+                            adminNonce: string
+                            adminSignature: string
+                            executorSignature: string
+                            executorSalt: string
+                            expiresAt: number
+                        }
                     }
                 }
             }
@@ -6064,392 +6753,6 @@ export interface paths {
         patch?: never
         trace?: never
     }
-    '/rain/cards/withdraw/session-approve': {
-        parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
-        post: {
-            parameters: {
-                query?: never
-                header?: never
-                path?: never
-                cookie?: never
-            }
-            requestBody: {
-                content: {
-                    'application/json': {
-                        serializedApproval: string
-                    }
-                }
-            }
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            ok: boolean
-                        }
-                    }
-                }
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            error: string
-                        }
-                    }
-                }
-                /** @description Default Response */
-                404: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            error: string
-                        }
-                    }
-                }
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            error: string
-                        }
-                    }
-                }
-            }
-        }
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
-    '/rain/cards/withdraw/prepare': {
-        parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
-        post: {
-            parameters: {
-                query?: never
-                header?: never
-                path?: never
-                cookie?: never
-            }
-            requestBody: {
-                content: {
-                    'application/json': {
-                        amount: string
-                        recipientAddress: string
-                        directTransfer: boolean
-                        kind:
-                            | 'P2P_SEND'
-                            | 'QR_PAY'
-                            | 'LINK_CREATE'
-                            | 'CRYPTO_WITHDRAW'
-                            | 'FIAT_OFFRAMP'
-                            | 'FIAT_ONRAMP'
-                            | 'REQUEST_PAY'
-                            | 'AUTO_REBALANCE'
-                            | 'CARD_SPEND'
-                            | 'DEPOSIT_EXTERNAL'
-                            | 'OTHER'
-                        totalAmountCents?: string
-                    }
-                }
-            }
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            preparationId: string
-                            coordinatorAddress: string
-                            collateralProxy: string
-                            adminAddress: string
-                            chainId: string
-                            tokenAddress: string
-                            amount: string
-                            recipientAddress: string
-                            directTransfer: boolean
-                            adminSalt: string
-                            adminNonce: string
-                            executorSignature: string
-                            executorSalt: string
-                            expiresAt: number
-                        }
-                    }
-                }
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            error: string
-                        }
-                    }
-                }
-                /** @description Default Response */
-                404: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            error: string
-                        }
-                    }
-                }
-                /** @description Default Response */
-                422: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            error: string
-                        }
-                    }
-                }
-                /** @description Default Response */
-                425: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            error: string
-                        }
-                    }
-                }
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            error: string
-                        }
-                    }
-                }
-                /** @description Default Response */
-                502: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            error: string
-                        }
-                    }
-                }
-            }
-        }
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
-    '/rain/cards/withdraw/stamp': {
-        parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
-        post: {
-            parameters: {
-                query?: never
-                header?: never
-                path?: never
-                cookie?: never
-            }
-            requestBody: {
-                content: {
-                    'application/json': {
-                        preparationId: string
-                        txHash: string
-                    }
-                }
-            }
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            ok: boolean
-                        }
-                    }
-                }
-                /** @description Default Response */
-                404: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            error: string
-                        }
-                    }
-                }
-                /** @description Default Response */
-                409: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            error: string
-                        }
-                    }
-                }
-            }
-        }
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
-    '/rain/cards/withdraw/submit': {
-        parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
-        post: {
-            parameters: {
-                query?: never
-                header?: never
-                path?: never
-                cookie?: never
-            }
-            requestBody: {
-                content: {
-                    'application/json': {
-                        preparationId: string
-                        amount: string
-                        recipientAddress: string
-                        directTransfer: boolean
-                        adminSalt: string
-                        adminNonce: string
-                        adminSignature: string
-                        executorSignature: string
-                        executorSalt: string
-                        expiresAt: number
-                    }
-                }
-            }
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            txHash: string
-                        }
-                    }
-                }
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            error: string
-                        }
-                    }
-                }
-                /** @description Default Response */
-                404: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            error: string
-                        }
-                    }
-                }
-                /** @description Default Response */
-                409: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            error: string
-                        }
-                    }
-                }
-                /** @description Default Response */
-                410: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            error: string
-                        }
-                    }
-                }
-                /** @description Default Response */
-                502: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content: {
-                        'application/json': {
-                            error: string
-                        }
-                    }
-                }
-            }
-        }
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
     '/rain/cards/session-key-address': {
         parameters: {
             query?: never
@@ -6813,6 +7116,112 @@ export interface paths {
                 }
             }
         }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/tokens/price': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get: {
+            parameters: {
+                query: {
+                    address: string
+                    chainId: string
+                }
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+            }
+        }
+        put?: never
+        post?: never
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/tokens/wallet-portfolio': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get: {
+            parameters: {
+                query: {
+                    address: string
+                }
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+            }
+        }
+        put?: never
+        post?: never
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/ws/charges/{username}': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get: {
+            parameters: {
+                query?: never
+                header?: never
+                path: {
+                    username: string
+                }
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+            }
+        }
+        put?: never
+        post?: never
         delete?: never
         options?: never
         head?: never
@@ -9244,41 +9653,6 @@ export interface paths {
                 }
             }
         }
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
-    '/ws/charges/{username}': {
-        parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get: {
-            parameters: {
-                query?: never
-                header?: never
-                path: {
-                    username: string
-                }
-                cookie?: never
-            }
-            requestBody?: never
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown
-                    }
-                    content?: never
-                }
-            }
-        }
-        put?: never
-        post?: never
         delete?: never
         options?: never
         head?: never
