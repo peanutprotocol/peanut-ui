@@ -25,11 +25,12 @@ import { TransactionDetailsDrawer } from '@/components/TransactionDetails/Transa
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
-import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
 import { useUserStore } from '@/redux/hooks'
 import type { TRequestChargeResponse, PaymentCreationResponse, ChargeEntry } from '@/services/services.types'
-import { formatAmount, getInitialsFromName, printableAddress } from '@/utils/general.utils'
+import { formatAmount, getInitialsFromName } from '@/utils/general.utils'
+import { resolveRecipientDisplay } from '@/utils/recipient-display'
 import { useQueryClient } from '@tanstack/react-query'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -61,6 +62,10 @@ type DirectSuccessViewProps = {
     isExternalWalletFlow?: boolean
     isWithdrawFlow?: boolean
     redirectTo?: string
+    // When true, the "Done"/cancel navigation replaces the current history entry instead of
+    // pushing. Use for terminal flows (e.g. deposit success) so browser/device back doesn't
+    // pop the user back into the now-completed flow.
+    replaceOnDone?: boolean
     onComplete?: () => void
     points?: number
     // props to receive data directly instead of from redux
@@ -83,6 +88,7 @@ const PaymentSuccessView = ({
     isExternalWalletFlow,
     isWithdrawFlow,
     redirectTo = '/home',
+    replaceOnDone = false,
     onComplete,
     points,
     chargeDetails,
@@ -111,7 +117,10 @@ const PaymentSuccessView = ({
         if (parsedPaymentData?.recipient?.identifier) {
             return parsedPaymentData.recipient.identifier
         }
-        return printableAddress(chargeDetails?.requestLink?.recipientAddress || '')
+        return resolveRecipientDisplay({
+            user: chargeDetails?.requestLink?.recipientAccount?.user,
+            address: chargeDetails?.requestLink?.recipientAddress || '',
+        }).displayName
     }, [user, parsedPaymentData, chargeDetails])
 
     const amountValue = useMemo(() => {
@@ -154,8 +163,9 @@ const PaymentSuccessView = ({
             initials: getInitialsFromName(recipientName),
             extraDataForDrawer: {
                 isLinkTransaction: false,
-                originalType: EHistoryEntryType.DIRECT_SEND,
+                originalType: 'TRANSACTION_INTENT',
                 originalUserRole: EHistoryUserRole.SENDER,
+                kind: 'DIRECT_TRANSFER',
                 link: receiptLink,
             },
             userName: user?.username || parsedPaymentData?.recipient?.identifier,
@@ -217,10 +227,11 @@ const PaymentSuccessView = ({
     const handleDone = () => {
         // Navigate first, then call onComplete - otherwise onComplete may reset state
         // causing this component to unmount before router.push executes
-        if (!!authUser?.user.userId) {
-            router.push(redirectTo)
+        const target = !!authUser?.user.userId ? redirectTo : '/setup'
+        if (replaceOnDone) {
+            router.replace(target)
         } else {
-            router.push('/setup')
+            router.push(target)
         }
         onComplete?.()
     }
@@ -231,6 +242,7 @@ const PaymentSuccessView = ({
         if (type === 'SEND') return 'You sent '
         if (type === 'REQUEST') return 'You requested '
         if (type === 'DEPOSIT') return 'You added '
+        return undefined
     }
 
     useEffect(() => {

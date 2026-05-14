@@ -8,7 +8,8 @@ import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useUserStore } from '@/redux/hooks'
 import { ESendLinkStatus, sendLinksApi } from '@/services/sendLinks'
-import { formatTokenAmount, getTokenDetails, printableAddress, shortenStringLong } from '@/utils/general.utils'
+import { formatTokenAmount, getTokenDetails, shortenStringLong } from '@/utils/general.utils'
+import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
@@ -35,6 +36,10 @@ export const SuccessClaimLinkView = ({
     const { triggerHaptic } = useHaptic()
     const params = useSearchParams()
     const campaignTag = params.get('campaignTag')
+    const senderDisplay = useRecipientDisplay({
+        user: claimLinkData.sender,
+        address: claimLinkData.senderAddress,
+    })
 
     // @dev: Claimers don't earn points (only senders do), so we don't call calculatePoints
     // Points will show in activity history once the sender's transaction is processed
@@ -134,18 +139,14 @@ export const SuccessClaimLinkView = ({
             | 'CLAIM_LINK_BANK_ACCOUNT'
             | 'CLAIM_LINK',
         recipientType: isBankClaim ? ('BANK_ACCOUNT' as const) : ('USERNAME' as const),
-        recipientName: isBankClaim
-            ? maskedAccountNumber
-            : (claimLinkData.sender?.username ?? printableAddress(claimLinkData.senderAddress)),
+        recipientName: isBankClaim ? maskedAccountNumber : senderDisplay.displayName,
         amount: isBankClaim
             ? (formatTokenAmount(
                   Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * (tokenPrice ?? 0)
               ) ?? '')
             : formatUnits(claimLinkData.amount, tokenDetails?.decimals ?? 6),
         tokenSymbol: isBankClaim ? (offrampDetails?.quote.destination_currency ?? '') : claimLinkData.tokenSymbol,
-        message: isBankClaim
-            ? maskedAccountNumber
-            : `from ${claimLinkData.sender?.username || printableAddress(claimLinkData.senderAddress)}`,
+        message: isBankClaim ? maskedAccountNumber : `from ${senderDisplay.displayName}`,
         title: isBankClaim ? 'You will receive' : 'You claimed',
     }
 

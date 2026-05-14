@@ -1,27 +1,44 @@
 'use client'
 
 import AddMoneyMethodSelection from '@/components/AddMoney/views/AddMoneyMethodSelection.view'
+import AddWithdrawCountriesList from '@/components/AddWithdraw/AddWithdrawCountriesList'
+import dynamic from 'next/dynamic'
+
+// stubs exist for web build; real components are injected by native build script.
+const OnrampBankPage = dynamic(() => import('./_onramp-bank'), { ssr: false })
+const OnrampMantecaPage = dynamic(() => import('./_onramp-manteca'), { ssr: false })
 import { CountryList } from '@/components/Common/CountryList'
 import type { CountryData } from '@/components/AddMoney/consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { checkIfInternalNavigation, getRedirectUrl, clearRedirectUrl, getFromLocalStorage } from '@/utils/general.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { addMoneyCountryUrl } from '@/utils/native-routes'
 
 export default function AddMoneyPage() {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const { resetOnrampFlow } = useOnrampFlow()
     const [method, setMethod] = useQueryState('method', parseAsStringEnum(['bank']))
 
+    // native app passes country as query param instead of path segment
+    const countryFromQuery = searchParams.get('country')
+
     useEffect(() => {
-        resetOnrampFlow()
+        if (!countryFromQuery) resetOnrampFlow()
     }, [])
 
     const handleBack = () => {
+        // if viewing country-specific form, go back to country list
+        if (countryFromQuery) {
+            router.push('/add-money?method=bank')
+            return
+        }
+
         // if on country list view, go back to method selection
         if (method === 'bank') {
             setMethod(null)
@@ -51,7 +68,20 @@ export default function AddMoneyPage() {
             method_type: 'bank',
             country: country.path,
         })
-        router.push(`/add-money/${country.path}`)
+        router.push(addMoneyCountryUrl(country.path))
+    }
+
+    // native app: render sub-views based on query params
+    const viewFromQuery = searchParams.get('view')
+    if (countryFromQuery && viewFromQuery === 'bank') {
+        return <OnrampBankPage />
+    }
+    if (countryFromQuery && viewFromQuery === 'manteca') {
+        return <OnrampMantecaPage />
+    }
+    if (countryFromQuery) {
+        // country method selection: /add-money?country=austria
+        return <AddWithdrawCountriesList flow="add" />
     }
 
     return (

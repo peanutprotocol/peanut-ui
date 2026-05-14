@@ -18,10 +18,12 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { AccountType, type Account } from '@/interfaces'
 import { formatIban, shortenStringLong, isTxReverted } from '@/utils/general.utils'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
-import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
+import { ErrorHandler } from '@/utils/friendly-error.utils'
 import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
 import { getOfframpCurrencyConfig, getCountryFromPath } from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
@@ -42,10 +44,11 @@ import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/count
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
-import { useSearchParams } from 'next/navigation'
 import { parseUnits } from 'viem'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { withdrawCountryUrl } from '@/utils/native-routes'
+import { useSafeBack } from '@/hooks/useSafeBack'
 
 type View = 'INITIAL' | 'SUCCESS'
 
@@ -59,14 +62,16 @@ export default function WithdrawBankPage() {
         setSelectedMethod,
     } = useWithdrawFlow()
     const { user, fetchUser } = useAuth()
-    const { address, sendMoney, balance } = useWallet()
+    const { address, sendMoney, spendableBalance: balance } = useWallet()
     const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
+    const queryClient = useQueryClient()
     const router = useRouter()
     const searchParams = useSearchParams()
     const [isLoading, setIsLoading] = useState(false)
     const [view, setView] = useState<View>('INITIAL')
     const params = useParams()
-    const country = params.country as string
+    // read country from path params (web) or query params (native/capacitor)
+    const country = (params.country as string) || searchParams.get('country') || ''
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const { hasPendingTransactions } = usePendingTransactions()
     const { isBridgeSupportedCountry } = useIdentityVerification()
@@ -93,6 +98,7 @@ export default function WithdrawBankPage() {
     // check if we came from send flow - using method param to detect (only bank goes through this page)
     const methodParam = searchParams.get('method')
     const fromSendFlow = methodParam === 'bank'
+    const onBack = useSafeBack(fromSendFlow ? '/send' : '/withdraw')
 
     const nonEuroCurrency = countryCurrencyMappings.find(
         (currency) =>
@@ -120,7 +126,7 @@ export default function WithdrawBankPage() {
             router.replace('/withdraw')
         } else if (!bankAccount && amountToWithdraw) {
             // If amount is set but no bank account, go to country method selection
-            router.replace(`/withdraw/${country}`)
+            router.replace(withdrawCountryUrl(country))
         }
     }, [bankAccount, router, amountToWithdraw, country, view])
 
@@ -239,17 +245,24 @@ export default function WithdrawBankPage() {
             }
 
             // Step 2: prepare and send the transaction from peanut wallet to the deposit address
-            const { receipt, userOpHash } = await sendMoney(
+            const { receipt, userOpHash, txHash } = await sendMoney(
                 data.depositInstructions.toAddress as `0x${string}`,
-                createPayload.amount
+                createPayload.amount,
+                { kind: 'FIAT_OFFRAMP' }
             )
 
             if (receipt !== null && isTxReverted(receipt)) {
                 throw new Error('Transaction reverted by the network.')
             }
 
-            // Step 3: Confirm the transfer with the backend to make it visible in history
-            const confirmResult = await confirmOfframp(data.transferId, receipt?.transactionHash ?? userOpHash)
+            // Step 3: Confirm the transfer with the backend to make it visible in history.
+            // Prefer the on-chain tx hash; fall back to the collateral withdraw tx hash
+            // (collateral-only path) BEFORE the userOp hash. confirmOfframp expects a real
+            // 32-byte tx hash — userOpHash is an account-abstraction bundler hash, not a
+            // chain tx hash, and the BE rejects it.
+            const txIdentifier = receipt?.transactionHash ?? txHash ?? userOpHash
+            if (!txIdentifier) throw new Error('No transaction identifier returned from sendMoney')
+            const confirmResult = await confirmOfframp(data.transferId, txIdentifier)
 
             if (confirmResult.error) {
                 // This is a tricky state. The on-chain tx succeeded, but the backend failed to record it.
@@ -261,6 +274,11 @@ export default function WithdrawBankPage() {
                 })
                 throw new Error(confirmResult.error)
             }
+
+            // Invalidate the transactions query so the Activity widget shows
+            // the pending OFFRAMP entry immediately, instead of waiting up to
+            // 30s tanstack staleTime + Bridge polling cadence.
+            queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
 
             setView('SUCCESS')
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
@@ -333,7 +351,7 @@ export default function WithdrawBankPage() {
                         setAmountToWithdraw('')
                         setSelectedMethod(null)
                     } else {
-                        router.back()
+                        onBack()
                     }
                 }}
             />

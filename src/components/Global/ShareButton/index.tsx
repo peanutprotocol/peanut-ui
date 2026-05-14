@@ -120,9 +120,9 @@ const ShareButton = ({
             shadowSize="4"
         >
             <span className="flex items-center gap-2">
-                {showIcon && iconPosition === 'left' && <Icon name="share" />}
+                {showIcon && iconPosition === 'left' && <Icon name="share" size={18} />}
                 {children}
-                {showIcon && iconPosition === 'right' && <Icon name="share" />}
+                {showIcon && iconPosition === 'right' && <Icon name="share" size={18} />}
             </span>
         </Button>
     )

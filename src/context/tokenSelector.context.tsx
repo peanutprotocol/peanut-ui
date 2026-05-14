@@ -10,11 +10,11 @@ import {
     PEANUT_WALLET_TOKEN_SYMBOL,
 } from '@/constants/zerodev.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useSquidChainsAndTokens } from '@/hooks/useSquidChainsAndTokens'
+import { useSupportedChainsAndTokens } from '@/hooks/useSupportedChainsAndTokens'
 import { useTokenPrice } from '@/hooks/useTokenPrice'
 import { type ITokenPriceData } from '@/interfaces'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
+import type { ChainWithTokens } from '@/interfaces/chain-meta'
 
 export const tokenSelectorContext = createContext({
     selectedTokenAddress: '',
@@ -33,12 +33,9 @@ export const tokenSelectorContext = createContext({
     resetTokenContextProvider: () => {},
     isXChain: false as boolean,
     setIsXChain: (value: boolean) => {},
-    selectedTokenData: undefined as ITokenPriceData | undefined,
+    selectedTokenData: undefined as ITokenPriceData | null | undefined,
     isFetchingTokenData: false as boolean,
-    supportedSquidChainsAndTokens: {} as Record<
-        string,
-        interfaces.ISquidChain & { networkName: string; tokens: interfaces.ISquidToken[] }
-    >,
+    supportedChainsAndTokens: {} as Record<string, ChainWithTokens>,
     selectedTokenBalance: undefined as string | undefined,
     setSelectedTokenBalance: (balance: string | undefined) => {},
 })
@@ -75,8 +72,8 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [devconnectChainId, setDevconnectChainId] = useState<string>('')
     const [devconnectRecipientAddress, setDevconnectRecipientAddress] = useState<string>('')
 
-    // Fetch Squid chains and tokens (cached for 24 hours - static data)
-    const { data: supportedSquidChainsAndTokens = {} } = useSquidChainsAndTokens()
+    // Fetch supported chains and tokens (cached for 24 hours - static data)
+    const { data: supportedChainsAndTokens = {} } = useSupportedChainsAndTokens()
 
     // Fetch token price using TanStack Query (replaces manual useEffect + state)
     const {
@@ -86,7 +83,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     } = useTokenPrice({
         tokenAddress: selectedTokenAddress,
         chainId: selectedChainID,
-        supportedSquidChainsAndTokens,
+        supportedChainsAndTokens,
         isPeanutWallet,
     })
 
@@ -134,7 +131,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 setIsXChain,
                 selectedTokenData,
                 isFetchingTokenData,
-                supportedSquidChainsAndTokens,
+                supportedChainsAndTokens,
                 selectedTokenBalance,
                 setSelectedTokenBalance,
                 devconnectTokenAddress,

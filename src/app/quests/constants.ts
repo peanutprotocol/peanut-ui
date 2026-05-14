@@ -14,21 +14,6 @@ export const PRIZE_TIERS = {
     3: '$100',
 } as const
 
-export function isQuestActive(): boolean {
-    const now = new Date()
-    return now >= EVENT_START_UTC && now <= EVENT_END_UTC
-}
-
-export function hasQuestStarted(): boolean {
-    const now = new Date()
-    return now >= EVENT_START_UTC
-}
-
-export function hasQuestEnded(): boolean {
-    const now = new Date()
-    return now > EVENT_END_UTC
-}
-
 export function getQuestStatus(): 'not_started' | 'active' | 'ended' {
     const now = new Date()
     if (now < EVENT_START_UTC) return 'not_started'

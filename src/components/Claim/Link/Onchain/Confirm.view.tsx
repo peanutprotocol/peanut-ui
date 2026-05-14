@@ -9,8 +9,9 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { formatTokenAmount, printableAddress, isStableCoin } from '@/utils/general.utils'
-import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
+import { formatTokenAmount, isStableCoin } from '@/utils/general.utils'
+import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
+import { ErrorHandler } from '@/utils/friendly-error.utils'
 import * as Sentry from '@sentry/nextjs'
 import { useContext, useState, useMemo } from 'react'
 import { formatUnits } from 'viem'
@@ -38,6 +39,10 @@ export const ConfirmClaimLinkView = ({
     const { address } = useWallet()
     const { user } = useAuth()
     const { claimLinkXchain, claimLink } = useClaimLink()
+    const senderDisplay = useRecipientDisplay({
+        user: claimLinkData.sender,
+        address: claimLinkData.senderAddress,
+    })
     const { selectedChainID, selectedTokenAddress, isXChain } = useContext(tokenSelectorContext)
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
     const [errorState, setErrorState] = useState<{
@@ -58,19 +63,16 @@ export const ConfirmClaimLinkView = ({
     // Determine which chain/token details to show – prefer the selectedRoute details if present,
     // otherwise fall back to what the user picked in the token selector.
     const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
-        chainId: selectedRoute?.rawResponse.route.params.toChain ?? selectedChainID,
-        tokenAddress: selectedRoute?.rawResponse.route.estimate.toToken.address ?? selectedTokenAddress,
-        tokenSymbol: selectedRoute?.rawResponse.route.estimate.toToken.symbol ?? claimLinkData.tokenSymbol,
+        chainId: selectedRoute?.chainId ?? selectedChainID,
+        tokenAddress: selectedRoute?.tokenAddress ?? selectedTokenAddress,
+        tokenSymbol: claimLinkData.tokenSymbol,
     })
 
     const minReceived = useMemo<string>(() => {
         if (!selectedRoute || !resolvedTokenSymbol) return ''
-        const amount = formatUnits(
-            BigInt(selectedRoute.rawResponse.route.estimate.toAmountMin),
-            selectedRoute.rawResponse.route.estimate.toToken.decimals
-        )
+        const amount = selectedRoute.receiveAmount
         return isStableCoin(resolvedTokenSymbol) ? `$ ${amount}` : `${amount} ${resolvedTokenSymbol}`
-    }, [selectedRoute, resolvedTokenSymbol, claimLinkData])
+    }, [selectedRoute, resolvedTokenSymbol])
 
     // Network fee display – always sponsored in this flow
     const networkFeeDisplay: string = 'Sponsored by Peanut!'
@@ -98,7 +100,7 @@ export const ConfirmClaimLinkView = ({
         try {
             let claimTxHash: string | undefined = ''
             if (selectedRoute) {
-                if (underMaintenanceConfig.disableSquidSend) {
+                if (underMaintenanceConfig.disableXchainSend) {
                     // safety net for stale routes — picker normally prevents reaching this view with a route
                     setErrorState({ showError: true, errorMessage: CROSS_CHAIN_DISABLED_MESSAGE })
                     setLoadingState('Idle')
@@ -171,7 +173,7 @@ export const ConfirmClaimLinkView = ({
                 <PeanutActionDetailsCard
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
-                    recipientName={claimLinkData.sender?.username ?? printableAddress(claimLinkData.senderAddress)}
+                    recipientName={senderDisplay.displayName}
                     amount={
                         isReward
                             ? formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!

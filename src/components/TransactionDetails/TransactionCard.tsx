@@ -2,13 +2,15 @@ import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
+import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { isCardPaymentEntry, isPerkReward } from '@/components/TransactionDetails/transaction-predicates'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import {
     formatNumberForDisplay,
     formatCurrency,
-    printableAddress,
+    printableUserHandle,
     isStableCoin,
     shortenStringLong,
 } from '@/utils/general.utils'
@@ -16,10 +18,11 @@ import { getAvatarUrl, getTransactionSign } from '@/utils/history.utils'
 import React, { lazy, Suspense } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Image from 'next/image'
+import { isAddress } from 'viem'
+import { usePrimaryName } from '@justaname.id/react'
+import { normalizeEnsName } from '@/utils/ens.utils'
 import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
-import { isAddress } from 'viem'
-import { EHistoryEntryType } from '@/utils/history.utils'
 import { PerkIcon } from './PerkIcon'
 import { useHaptic } from 'use-haptic'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
@@ -48,6 +51,10 @@ export type TransactionType =
     | 'claim_external'
     | 'bank_claim'
     | 'pay'
+    // Rain card-spend / card-refund. Distinct from 'pay' (Manteca QR pay)
+    // so the avatar logic can render a credit-card icon instead of the
+    // Mercado Pago / PIX brand mark or the generic wallet fallback.
+    | 'card_pay'
 
 interface TransactionCardProps {
     type: TransactionType
@@ -90,23 +97,43 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     }
 
     const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
-    const isPerkReward = transaction.extraDataForDrawer?.originalType === EHistoryEntryType.PERK_REWARD
+    const isPerkRewardEntry = isPerkReward(transaction)
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const userNameForAvatar =
         transaction.showFullName && transaction.fullName ? transaction.fullName : transaction.userName
     const avatarUrl = getAvatarUrl(transaction)
     // check if this is a test transaction (setup confirmation)
     const isTestTransaction = name === 'Enjoy Peanut!'
-    let displayName = name
-    if (isAddress(displayName)) {
-        displayName = printableAddress(displayName)
-    } else if (type === 'pay' && displayName.length > 19) {
+
+    // ENS reverse-lookup for raw addresses; hook is a no-op when name is a username.
+    const { primaryName } = usePrimaryName({
+        address: isAddress(name) ? (name as `0x${string}`) : undefined,
+        chainId: 1,
+        priority: 'onChain',
+    })
+    let displayName = normalizeEnsName(primaryName) ?? name
+    // Shortens crypto addresses AND raw UUIDs (usernameless Peanut users whose
+    // `identifier` arrives as a userId) so the feed row never renders a 36-char
+    // string.
+    const shortened = printableUserHandle(displayName)
+    if (shortened !== displayName) {
+        displayName = shortened
+    } else if ((type === 'pay' || type === 'card_pay') && displayName.length > 19) {
         displayName = shortenStringLong(displayName, 0, 16)
     }
 
     const sign = getTransactionSign(transaction)
     let usdAmount = amount
-    if (!isStableCoin(transaction.tokenSymbol ?? 'USDC')) {
+    // `currency.amount` is treated as the USD-equivalent ONLY when it's
+    // actually denominated in USD — that's the cross-token-withdraw case
+    // (amount=ETH destination, currency={USD-equiv, USD}). For local-fiat
+    // currency blocks (ARS / BRL on Manteca QR pays + Rain card spends with
+    // a non-USD merchant) `amount` is already the USD-denominated value and
+    // `currency` just carries the local fiat for the "≈ X" subtext below.
+    // Without the USD guard the activity row would render the ARS amount
+    // formatted as `$X` (e.g. `$40,200` for a $30.24 BOYACA card spend).
+    const currencyCodeForUsdCheck = transaction.currency?.code?.toUpperCase()
+    if (!isStableCoin(transaction.tokenSymbol ?? 'USDC') && currencyCodeForUsdCheck === 'USD') {
         usdAmount = Number(transaction.currency?.amount ?? amount)
     }
 
@@ -122,15 +149,36 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     }
 
     let currencyDisplayAmount: string | undefined
-    if (transaction.currency && transaction.currency.code.toUpperCase() !== 'USD') {
+    // Secondary line preference:
+    //   1. Local fiat (e.g. ARS for Manteca off-ramp) via currency.code/amount
+    //   2. Destination token (e.g. ETH for cross-token withdraw) via amount + tokenSymbol
+    // Skip both for USD / USD-pegged stablecoins to avoid `$0.10 / ≈ USDC 0.10` noise.
+    const ccyCode = transaction.currency?.code.toUpperCase()
+    const tokenSymbolUpper = (transaction.tokenSymbol ?? '').toUpperCase()
+    if (transaction.currency && ccyCode && ccyCode !== 'USD' && !isStableCoin(ccyCode)) {
         const formattedCurrencyAmount = formatNumberForDisplay(transaction.currency.amount, { maxDecimals: 2 })
-        currencyDisplayAmount = `≈ ${transaction.currency.code.toUpperCase()} ${formattedCurrencyAmount}`
+        currencyDisplayAmount = `≈ ${ccyCode} ${formattedCurrencyAmount}`
+    } else if (
+        tokenSymbolUpper &&
+        tokenSymbolUpper !== 'USD' &&
+        !isStableCoin(tokenSymbolUpper) &&
+        transaction.tokenAmount
+    ) {
+        const formattedTokenAmount = formatNumberForDisplay(transaction.tokenAmount, { maxDecimals: 6 })
+        currencyDisplayAmount = `≈ ${formattedTokenAmount} ${tokenSymbolUpper}`
     }
+
+    // Spec §4.4: declined card transactions stay in the feed but are visually
+    // de-emphasized so they don't compete with successful items. Scope to
+    // declined SPENDS specifically — refunds also populate cardPayment, but
+    // a failed refund (e.g. processing error) shouldn't be greyed out.
+    const isDeclinedCardSpend =
+        status === 'failed' && isCardPaymentEntry(transaction) && !transaction.extraDataForDrawer?.cardPayment?.isRefund
 
     return (
         <>
             {/* the clickable card */}
-            <Card position={position} onClick={handleClick} className="cursor-pointer">
+            <Card position={position} onClick={handleClick} className="cursor-pointer" data-testid="transaction-card">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
@@ -144,7 +192,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                     height={30}
                                 />
                             </div>
-                        ) : isPerkReward ? (
+                        ) : isPerkRewardEntry ? (
                             <>
                                 <PerkIcon size="extra-small" />
                             </>
@@ -166,6 +214,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 transactionType={type}
                                 context="card"
                                 size="extra-small"
+                                countryCode={getBankAccountCountryCode(
+                                    transaction.bankAccountDetails,
+                                    transaction.currency?.code
+                                )}
                             />
                         )}
                         <div className="flex flex-col">
@@ -187,7 +239,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 <span className="capitalize">
                                     {isTestTransaction
                                         ? 'Setup'
-                                        : isPerkReward
+                                        : isPerkRewardEntry
                                           ? 'Reward'
                                           : getActionText(type, status)}
                                 </span>
@@ -209,7 +261,12 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                         <span
                                             className={twMerge(
                                                 'font-semibold',
-                                                status === 'refunded' && 'text-gray-1 line-through'
+                                                status === 'refunded' && 'text-gray-1 line-through',
+                                                // Declined card spends: gray the amount so the row reads
+                                                // as "didn't go through" without the opacity-60 wash
+                                                // we used before (which dimmed merchant name + icons
+                                                // too and made the row hard to read at a glance).
+                                                isDeclinedCardSpend && 'text-gray-1'
                                             )}
                                         >
                                             {displayAmount}
@@ -284,6 +341,7 @@ function getActionIcon(
             iconSize = 8
             break
         case 'pay':
+        case 'card_pay':
             iconName = 'arrow-up-right'
             break
         case 'add':
@@ -317,6 +375,11 @@ function getActionText(type: TransactionType, status?: StatusPillType): string {
             break
         case 'bank_request_fulfillment':
             actionText = 'Request paid via bank'
+            break
+        case 'card_pay':
+            // 'Pay' for card spends — the underlying type literal `card_pay`
+            // is an internal discriminator (see TransactionType comment).
+            actionText = 'Pay'
             break
     }
     return actionText

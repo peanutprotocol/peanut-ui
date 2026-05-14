@@ -1,7 +1,6 @@
 'use client'
 
 import { Banner } from '@/components/Global/Banner'
-import { ThemeProvider } from '@/config'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { Widget } from '@typeform/embed-react'
 import { Roboto_Flex } from 'next/font/google'
@@ -35,42 +34,40 @@ const Layout = ({ children, className }: LayoutProps) => {
                         font-family: ${roboto.style.fontFamily};
                     }
                 `}</style>
-                <ThemeProvider>
-                    <div className="relative">
-                        <div className="flex min-h-screen flex-col ">
-                            <Banner />
-                            {/* @dev note: temp, remove banner later */}
-                            {/* <GenericBanner message="Under maintenance" icon="⚠️" /> */}
-                            <div className="flex grow justify-center">
-                                <div
-                                    className={`4xl:max-w-full flex grow flex-col justify-center pb-2 pt-6 sm:mx-auto sm:px-16 md:px-5 lg:px-6 2xl:px-8 ${className}`}
-                                    style={{ flexGrow: 1 }}
-                                >
-                                    {children}
-                                </div>
+                <div className="relative">
+                    <div className="flex min-h-screen flex-col ">
+                        <Banner />
+                        {/* @dev note: temp, remove banner later */}
+                        {/* <GenericBanner message="Under maintenance" icon="⚠️" /> */}
+                        <div className="flex grow justify-center">
+                            <div
+                                className={`4xl:max-w-full flex grow flex-col justify-center pb-2 pt-6 sm:mx-auto sm:px-16 md:px-5 lg:px-6 2xl:px-8 ${className}`}
+                                style={{ flexGrow: 1 }}
+                            >
+                                {children}
                             </div>
-                            <FooterVisibilityObserver />
-                            <Modal
-                                visible={showModal}
-                                onClose={() => {
+                        </div>
+                        <FooterVisibilityObserver />
+                        <Modal
+                            visible={showModal}
+                            onClose={() => {
+                                setShowModal(false)
+                            }}
+                            classNameWrapperDiv="px-5 pb-7 pt-8"
+                            classButtonClose="hidden"
+                            className="z-50"
+                        >
+                            <Widget
+                                id="lTEp058W"
+                                style={{ width: '100%', height: '400px' }}
+                                className="center-xy items-center self-center"
+                                onSubmit={() => {
                                     setShowModal(false)
                                 }}
-                                classNameWrapperDiv="px-5 pb-7 pt-8"
-                                classButtonClose="hidden"
-                                className="z-50"
-                            >
-                                <Widget
-                                    id="lTEp058W"
-                                    style={{ width: '100%', height: '400px' }}
-                                    className="center-xy items-center self-center"
-                                    onSubmit={() => {
-                                        setShowModal(false)
-                                    }}
-                                />
-                            </Modal>{' '}
-                        </div>
+                            />
+                        </Modal>{' '}
                     </div>
-                </ThemeProvider>
+                </div>
             </>
         )
     )

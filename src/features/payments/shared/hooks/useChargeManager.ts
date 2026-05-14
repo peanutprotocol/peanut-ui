@@ -20,7 +20,8 @@ import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { type TRequestChargeResponse, type TCharge, type TChargeTransactionType } from '@/services/services.types'
 import { isNativeCurrency } from '@/utils/general.utils'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { BASE_URL } from '@/constants/general.consts'
+import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { type Address } from 'viem'
 
 // params for creating a new charge
@@ -120,7 +121,7 @@ export const useChargeManager = (): UseChargeManagerReturn => {
             } = {
                 pricing_type: 'fixed_price',
                 local_price: localPrice,
-                baseUrl: typeof window !== 'undefined' ? window.location.origin : '',
+                baseUrl: BASE_URL,
                 requestProps: {
                     chainId: params.chainId,
                     tokenAmount: params.tokenAmount,

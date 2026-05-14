@@ -3,43 +3,20 @@ import {
     supportedPeanutChains,
     peanutTokenDetails,
     pathTitles,
-    BASE_URL,
 } from '@/constants/general.consts'
-import { type LoadingStates } from '@/constants/loadingStates.consts'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
-import { AccountType } from '@/interfaces/interfaces'
+import { shareableUrl } from '@/utils/url.utils'
 import * as Sentry from '@sentry/nextjs'
-import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import type { Address, TransactionReceipt } from 'viem'
 import { getAddress, isAddress, erc20Abi } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
-import { NATIVE_TOKEN_ADDRESS, SQUID_ETH_ADDRESS } from './token.utils'
 import { type ChargeEntry } from '@/services/services.types'
+import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS } from '@/constants/tokens.consts'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/zerodev.consts'
-import { CHAIN_LOGOS, type ChainName } from '@/constants/rhino.consts'
+import { CHAIN_LOGOS, TOKEN_LOGOS, type ChainName, type TokenName } from '@/constants/rhino.consts'
 import { isUserKycVerified } from '@/constants/kyc.consts'
-
-export function urlBase64ToUint8Array(base64String: string) {
-    const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-
-    const rawData = window.atob(base64)
-    const outputArray = new Uint8Array(rawData.length)
-
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i)
-    }
-    return outputArray
-}
-
-export const colorMap = {
-    lavender: '#90A8ED',
-    pink: '#FF90E7',
-    green: '#98E9AB',
-    yellow: '#FFC900',
-}
 
 export const shortenAddress = (address?: string, chars?: number) => {
     if (!address) return ''
@@ -67,6 +44,14 @@ export const shortenStringLong = (s?: string, chars?: number, firstChars?: numbe
 // These are for display purposes, not cryptographic validation
 const SOLANA_ADDRESS_REGEX = /^[1-9a-zA-Z]{32,44}$/
 const TRON_ADDRESS_REGEX = /^[Tt][0-9a-zA-Z]{33}$/
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * Checks if a string is a UUID (v1–v5 shape). Used to detect raw user IDs that
+ * leak into the history feed when a peer account has no username (BE falls back
+ * to userId for `recipientAccount.identifier`).
+ */
+export const isUuid = (s: string): boolean => UUID_REGEX.test(s)
 
 /**
  * Checks if a string looks like a Solana address (32-44 alphanumeric characters, no 0)
@@ -94,6 +79,19 @@ export const isCryptoAddress = (address: string): boolean => {
 export const printableAddress = (address: string, firstCharsLen?: number, lastCharsLen?: number): string => {
     if (!isCryptoAddress(address)) return address
     return shortenStringLong(address, undefined, firstCharsLen, lastCharsLen)
+}
+
+/**
+ * Renders a peer handle for the activity feed: shortens crypto addresses and
+ * UUID-shaped identifiers (e.g. usernameless Peanut users whose `identifier`
+ * arrives as a raw userId), and leaves real usernames untouched.
+ */
+export const printableUserHandle = (handle: string, firstCharsLen?: number, lastCharsLen?: number): string => {
+    if (!handle) return handle
+    if (isCryptoAddress(handle) || isUuid(handle)) {
+        return shortenStringLong(handle, undefined, firstCharsLen, lastCharsLen)
+    }
+    return handle
 }
 
 /**
@@ -450,17 +448,17 @@ export async function copyTextToClipboardWithFallback(text: string) {
 }
 
 export const isTestnetChain = (chainId: string) => {
-    const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
-        .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
-        .find((chain) => chain.chainId == chainId)?.mainnet
-
-    return isTestnet
+    // viem's chains carry a `testnet: true` flag; fall through to default
+    // false for unknown chains so prod paths fail closed (treat as mainnet).
+    const all = Object.values(wagmiChains as unknown as Record<string, { id: number; testnet?: boolean }>)
+    const chain = all.find((c) => c?.id === Number(chainId))
+    return chain?.testnet === true
 }
 
 export const areEvmAddressesEqual = (address1: string, address2: string): boolean => {
     if (!isAddress(address1) || !isAddress(address2)) return false
-    if (address1.toLowerCase() === SQUID_ETH_ADDRESS.toLocaleLowerCase()) address1 = NATIVE_TOKEN_ADDRESS
-    if (address2.toLowerCase() === SQUID_ETH_ADDRESS.toLocaleLowerCase()) address2 = NATIVE_TOKEN_ADDRESS
+    if (address1.toLowerCase() === NATIVE_TOKEN_PROXY_ADDRESS.toLocaleLowerCase()) address1 = NATIVE_TOKEN_ADDRESS
+    if (address2.toLowerCase() === NATIVE_TOKEN_PROXY_ADDRESS.toLocaleLowerCase()) address2 = NATIVE_TOKEN_ADDRESS
     // By using getAddress we are safe from different cases
     // and other address formatting
     return getAddress(address1) === getAddress(address2)
@@ -495,16 +493,19 @@ export type UserPreferences = {
     hasSeenBalanceWarning?: { value: boolean; expiry: number }
     /** tracks surprise moment claim count for referral CTA copy (rewards v2). 0=first, 1=second, 2+=normal */
     rewards_surprise_claim_count?: number
-    dismissedCarouselCTAs?: string[]
+    /** Carousel CTAs the user has dismissed, with the ISO timestamp of each dismissal.
+     *  Read by useHomeCarouselCTAs to apply a per-CTA cooldown before re-showing.
+     *  Legacy shape was `string[]` (permanent dismissal); both are accepted on read. */
+    dismissedCarouselCTAs?: string[] | Record<string, string>
 }
 
 export const updateUserPreferences = (
     userId: string | undefined,
     partialPrefs: Partial<UserPreferences>
 ): UserPreferences | undefined => {
-    if (!userId) return
+    if (!userId) return undefined
     try {
-        if (typeof localStorage === 'undefined') return
+        if (typeof localStorage === 'undefined') return undefined
 
         const currentPrefs = getUserPreferences(userId) ?? {}
         const newPrefs: UserPreferences = {
@@ -516,11 +517,12 @@ export const updateUserPreferences = (
     } catch (error) {
         Sentry.captureException(error)
         console.error('Error updating user preferences:', error)
+        return undefined
     }
 }
 
 export const getUserPreferences = (userId: string | undefined): UserPreferences | undefined => {
-    if (!userId) return
+    if (!userId) return undefined
     try {
         const storedData = getFromLocalStorage(`${userId}:user-preferences`)
         if (!storedData) return undefined
@@ -528,6 +530,7 @@ export const getUserPreferences = (userId: string | undefined): UserPreferences 
     } catch (error) {
         Sentry.captureException(error)
         console.error('Error getting user preferences:', error)
+        return undefined
     }
 }
 
@@ -563,7 +566,11 @@ interface Portfolio {
     assetActivities: TransferDetails[]
 }
 
-export function formatDate(date: Date): string {
+export function formatDate(date: Date | null | undefined): string {
+    // Receipts and timeline rows pass dates that may be missing for paths
+    // that haven't reached that lifecycle event yet (e.g. cancelledDate on a
+    // not-yet-cancelled link). Return em-dash instead of throwing RangeError.
+    if (!date || isNaN(date.getTime())) return '—'
     const dateFormatter = new Intl.DateTimeFormat('en-US', {
         year: 'numeric',
         month: 'long',
@@ -585,32 +592,6 @@ export const formatIban = (iban: string) => {
         .toUpperCase()
         .replace(/(.{4})/g, '$1 ')
         .trim()
-}
-
-export const switchNetwork = async ({
-    chainId,
-    currentChainId,
-    setLoadingState,
-    switchChainAsync,
-}: {
-    chainId: string
-    currentChainId: string | undefined
-    setLoadingState: (state: LoadingStates) => void
-    switchChainAsync: ({ chainId }: { chainId: number }) => Promise<void>
-}) => {
-    if (currentChainId !== chainId) {
-        setLoadingState('Allow network switch')
-        try {
-            await switchChainAsync({ chainId: Number(chainId) })
-            setLoadingState('Switching network')
-            await new Promise((resolve) => setTimeout(resolve, 2000))
-            setLoadingState('Loading')
-        } catch (error) {
-            console.error('Error switching network:', error)
-            Sentry.captureException(error)
-            throw new Error('Error switching network.')
-        }
-    }
 }
 
 /** Gets the token decimals for a given token address and chain ID. */
@@ -762,10 +743,10 @@ export const formatExtendedNumber = (amount: string | number, minDigitsForFomatt
 export function getRequestLink(
     requestData: {
         recipientAccount: {
-            type: string
+            type?: string
             user?: {
-                username: string
-            }
+                username?: string | null
+            } | null
         }
         recipientAddress: string
         chainId?: string
@@ -774,13 +755,18 @@ export function getRequestLink(
     } & ({ uuid: string; chargeId?: never } | { uuid?: never; chargeId: string })
 ): string {
     const { recipientAccount, recipientAddress, chainId, tokenAmount, tokenSymbol, uuid, chargeId } = requestData
-    const isPeanutWallet = recipientAccount.type === AccountType.PEANUT_WALLET
-    const recipient = isPeanutWallet ? recipientAccount.user!.username : recipientAddress
-    let chain: string = ''
-    if (!isPeanutWallet && chainId) {
-        chain = `@${chainId}`
-    }
-    let link = `${process.env.NEXT_PUBLIC_BASE_URL}/${recipient}${chain}/`
+
+    // Prefer the Peanut username whenever a user is linked to the
+    // recipient account, regardless of `account.type`. The old check
+    // coupled username preference to a specific account-type discriminator
+    // and broke whenever the BE returned an `EVM_ADDRESS`/`WALLET_SMART`
+    // shape for a recipient who happened to be a Peanut user — every
+    // shared link rendered the address slug instead of the handle.
+    const username = recipientAccount.user?.username
+    const recipient = username || recipientAddress
+    const chain = !username && chainId ? `@${chainId}` : ''
+
+    let link = shareableUrl(`/${recipient}${chain}/`)
     if (tokenAmount) {
         link += `${formatAmount(tokenAmount)}`
     }
@@ -795,9 +781,8 @@ export function getRequestLink(
     return link
 }
 
-// for now it works
 export function getTokenLogo(tokenSymbol: string): string {
-    return `https://raw.githubusercontent.com/0xsquid/assets/main/images/tokens/${tokenSymbol.toLowerCase()}.svg`
+    return TOKEN_LOGOS[tokenSymbol.toUpperCase() as TokenName] ?? ''
 }
 
 export function getChainLogo(chainName: string): string {
@@ -814,13 +799,7 @@ export function getChainLogo(chainName: string): string {
             name = chainName.toLowerCase()
     }
 
-    const chainLogo = CHAIN_LOGOS[name.toUpperCase() as ChainName]
-
-    if (chainLogo) {
-        return chainLogo
-    }
-
-    return `https://raw.githubusercontent.com/0xsquid/assets/main/images/webp128/chains/${name}.webp`
+    return CHAIN_LOGOS[name.toUpperCase() as ChainName] ?? ''
 }
 
 export function isStableCoin(tokenSymbol: string): boolean {
@@ -866,21 +845,6 @@ export const sanitizeRedirectURL = (redirectUrl: string): string | null => {
     }
 }
 
-export function getLinkFromReceipt({
-    txReceipt,
-    linkDetails,
-    password,
-}: {
-    txReceipt: TransactionReceipt
-    linkDetails: peanutInterfaces.IPeanutLinkDetails
-    password: string
-}): string {
-    const { chainId, baseUrl, trackId } = linkDetails
-    const contractVersion = peanut.detectContractVersionFromTxReceipt(txReceipt, chainId)
-    const depositIdx = peanut.getDepositIdxs(txReceipt, chainId, contractVersion)[0]
-    return peanut.getLinkFromParams(chainId, contractVersion, depositIdx, password, baseUrl, trackId)
-}
-
 export const getInitialsFromName = (name: string): string => {
     const nameParts = name.trim().split(/\s+/)
     if (nameParts.length === 1) {
@@ -913,16 +877,12 @@ export function slugify(text: string): string {
         .replace(/^-+|-+$/g, '') // Remove leading and trailing hyphens
 }
 
-export const generateInvitesShareText = (inviteLink: string) => {
-    return `I'm using Peanut, an invite-only app for easy payments. With it you can pay friends, use merchants, and move money in and out of your bank, even cross-border. Here's my invite: ${inviteLink}`
-}
-
 /**
- * Generate a deterministic 3-digit suffix from username
- * This is purely cosmetic and derived from a hash of the username
+ * Generate a deterministic 3-digit suffix from username — pure hash.
  *
- * ⚠️ IMPORTANT: This logic is duplicated in the backend (peanut-api-ts/src/utils.ts)
- * If you change this, you MUST update the backend version to match!
+ * Duplicated on the backend (peanut-api-ts/src/utils/invite.ts). Parity is
+ * enforced by shared test vectors in __tests__/invite-suffix.test.ts and
+ * peanut-api-ts/src/utils/invite.test.ts. Don't edit one without the other.
  */
 export const generateInviteCodeSuffix = (username: string): string => {
     const lowerUsername = username.toLowerCase()
@@ -936,7 +896,7 @@ export const generateInviteCodeSuffix = (username: string): string => {
 export const generateInviteCodeLink = (username: string) => {
     const suffix = generateInviteCodeSuffix(username)
     const inviteCode = `${username.toUpperCase()}INVITESYOU${suffix}`
-    const inviteLink = `${BASE_URL}/invite?code=${inviteCode}`
+    const inviteLink = shareableUrl(`/invite?code=${inviteCode}`)
     return { inviteLink, inviteCode }
 }
 
@@ -980,12 +940,12 @@ export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) 
 export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
     return charges.map((charge) => {
         const successfulPayment = charge.payments.at(-1)
-        let username = successfulPayment?.payerAccount?.user?.username
-        if (successfulPayment?.payerAccount?.type === 'evm-address') {
-            username = successfulPayment.payerAccount.identifier
-        }
-
-        const isPeanutUser = successfulPayment?.payerAccount?.type === AccountType.PEANUT_WALLET
+        // Prefer the Peanut handle whenever the payer has a linked user,
+        // regardless of account.type. Falls back to the raw on-chain
+        // identifier for anonymous on-chain contributors.
+        const payerAccount = successfulPayment?.payerAccount
+        const username = payerAccount?.user?.username || payerAccount?.identifier
+        const isPeanutUser = !!payerAccount?.user?.username
 
         return {
             uuid: charge.uuid,
@@ -993,7 +953,7 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
             amount: charge.tokenAmount,
             username,
             fulfillmentPayment: charge.fulfillmentPayment,
-            isUserVerified: isUserKycVerified(successfulPayment?.payerAccount?.user),
+            isUserVerified: isUserKycVerified(payerAccount?.user),
             isPeanutUser,
         }
     })

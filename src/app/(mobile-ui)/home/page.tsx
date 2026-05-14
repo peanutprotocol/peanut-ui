@@ -12,13 +12,11 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { formatExtendedNumber, getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { printableUsdc } from '@/utils/balance.utils'
-import { useDisconnect } from '@reown/appkit/react'
+import { useDisconnect } from 'wagmi'
 import Link from 'next/link'
 import { useEffect, useMemo, useState, useCallback, lazy, Suspense } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
-// import ReferralCampaignModal from '@/components/Home/ReferralCampaignModal'
-// import FloatingReferralButton from '@/components/Home/FloatingReferralButton'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PostSignupActionManager } from '@/components/Global/PostSignupActionManager'
@@ -28,6 +26,7 @@ import { useNotifications } from '@/hooks/useNotifications'
 import useKycStatus from '@/hooks/useKycStatus'
 import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
 import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
+import EnableAutoBalanceBanner from '@/components/Home/EnableAutoBalanceBanner'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { updateUserById } from '@/app/actions/users'
@@ -55,7 +54,7 @@ const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_
 
 export default function Home() {
     const { showPermissionModal } = useNotifications()
-    const { balance, isFetchingBalance } = useWallet()
+    const { balance, isFetchingBalance, spendableBalance, isFetchingSpendableBalance } = useWallet()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { resetWithdrawFlow } = useWithdrawFlow()
     const { user } = useUserStore()
@@ -69,7 +68,7 @@ export default function Home() {
 
     const { isFetchingUser, fetchUser } = useAuth()
     const { isUserKycApproved } = useKycStatus()
-    const { isActivated, activationStep } = useActivationStatus()
+    const { isActivated, activationStep, dismissCardStep } = useActivationStatus()
     const {
         hasPurchased: hasCardPioneerPurchased,
         isLoading: isCardInfoLoading,
@@ -78,7 +77,6 @@ export default function Home() {
     const username = user?.user.username
 
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
-    // const [showReferralCampaignModal, setShowReferralCampaignModal] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
     const [showKycModal, setShowKycModal] = useState(user?.user.showKycCompletedModal ?? false)
 
@@ -189,10 +187,10 @@ export default function Home() {
                     </ActionButtonGroup>
 
                     <WalletBalance
-                        balance={balance}
+                        balance={spendableBalance}
                         isBalanceHidden={isBalanceHidden}
                         onToggleBalanceVisibility={handleToggleBalanceVisibility}
-                        isFetchingBalance={isFetchingBalance}
+                        isFetchingBalance={isFetchingSpendableBalance}
                     />
 
                     <ActionButtonGroup>
@@ -208,7 +206,12 @@ export default function Home() {
                 </div>
 
                 <div className="space-y-2">
-                    {isActivated ? <HomeCarouselCTA /> : <ActivationCTAs activationStep={activationStep} />}
+                    <EnableAutoBalanceBanner />
+                    {isActivated ? (
+                        <HomeCarouselCTA />
+                    ) : (
+                        <ActivationCTAs activationStep={activationStep} onDismissCard={dismissCardStep} />
+                    )}
                     <HomeHistory
                         username={username ?? undefined}
                         hideTxnAmount={isBalanceHidden}
@@ -309,16 +312,6 @@ export default function Home() {
                     </LazyLoadErrorBoundary>
                 )}
 
-            {/* Referral Campaign Modal - DISABLED FOR NOW */}
-            {/* <ReferralCampaignModal
-                visible={showReferralCampaignModal}
-                onClose={() => setShowReferralCampaignModal(false)}
-            /> */}
-
-            {/* Floating Referral Button - DISABLED FOR NOW */}
-            {/* <FloatingReferralButton onClick={() => setShowReferralCampaignModal(true)} /> */}
-
-            {/* Post Signup Action Modal */}
             <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
         </PageContainer>
     )
@@ -363,11 +356,7 @@ function WalletBalance({
 
             {!isFetchingBalance && (
                 <button onClick={onToggleBalanceVisibility}>
-                    <Icon
-                        name={isBalanceHidden ? 'eye-slash' : 'eye'}
-                        className={'h-8 w-8 md:h-10 md:w-10'}
-                        fill={'black'}
-                    />
+                    <Icon name={isBalanceHidden ? 'eye-slash' : 'eye'} size={24} fill={'black'} />
                 </button> // no balance <> no icon
             )}
         </div>
@@ -391,32 +380,20 @@ function ActionButtonWithHref({ label, action, href, variant = 'primary-soft', s
 }
 
 function ActionButton({ label, action, variant = 'primary-soft', size = 'small' }: Omit<ActionButtonProps, 'href'>) {
+    const iconSize = size === 'large' ? 18 : 16
     const renderIcon = (): React.ReactNode => {
-        return (
-            <div
-                className={twMerge(
-                    'flex items-center justify-center',
-                    size === 'small'
-                        ? 'size-[22px] md:size-[23px]' // Add/Withdraw size
-                        : 'size-[22px] md:size-[23px]' // Send/Request size
-                )}
-            >
-                {(() => {
-                    switch (action) {
-                        case 'send':
-                            return <Icon name="arrow-up-right" className="h-full w-full" fill="currentColor" />
-                        case 'withdraw':
-                            return <Icon name="arrow-up" className="h-full w-full" fill="currentColor" />
-                        case 'add':
-                            return <Icon name="arrow-down" className="h-full w-full" fill="currentColor" />
-                        case 'request':
-                            return <Icon name="arrow-down-left" className="h-full w-full" fill="currentColor" />
-                        default:
-                            return null
-                    }
-                })()}
-            </div>
-        )
+        switch (action) {
+            case 'send':
+                return <Icon name="arrow-up-right" size={iconSize} fill="currentColor" />
+            case 'withdraw':
+                return <Icon name="arrow-up" size={iconSize} fill="currentColor" />
+            case 'add':
+                return <Icon name="arrow-down" size={iconSize} fill="currentColor" />
+            case 'request':
+                return <Icon name="arrow-down-left" size={iconSize} fill="currentColor" />
+            default:
+                return null
+        }
     }
 
     return (

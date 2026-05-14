@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import OneSignal from 'react-onesignal'
+import { captureException } from '@sentry/nextjs'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useUserStore } from '@/redux/hooks'
 import posthog from 'posthog-js'
@@ -30,6 +31,12 @@ export function useNotifications() {
     // track onesignal initialization status
     const [sdkReady, setSdkReady] = useState(false)
     const [oneSignalInitialized, setOneSignalInitialized] = useState(false)
+
+    // OneSignal subscription-level opt-in (looser than browser permission — a user can
+    // have permission revoked at the browser but still appear opted-in in OneSignal,
+    // or vice versa). Tracked as state so consumers (like the carousel notification CTA)
+    // can hide themselves the moment EITHER signal confirms the user is signed up.
+    const [isPushOptedIn, setIsPushOptedIn] = useState(false)
 
     // update permission state from browser api
     const refreshPermissionState = useCallback(() => {
@@ -80,6 +87,7 @@ export function useNotifications() {
 
         const granted = await getPermissionGranted()
         const optedIn = await isPushSubscriptionOptedIn()
+        setIsPushOptedIn(optedIn)
 
         // if permission is granted, hide modal
         if (granted) {
@@ -229,8 +237,14 @@ export function useNotifications() {
                                 }
                             }
 
+                            // mirror OneSignal subscription state into local state so consumers
+                            // that gate on `isPushOptedIn` (e.g. the home carousel CTA) react
+                            // without waiting for the next permissionChange event.
+                            const optedIn = !!event.current?.optedIn
+                            setIsPushOptedIn(optedIn)
+
                             // hide modal when user opts in
-                            if (event.current?.optedIn) {
+                            if (optedIn) {
                                 posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_SUBSCRIBED)
                                 setShowPermissionModal(false)
                             }
@@ -243,7 +257,9 @@ export function useNotifications() {
                 setOneSignalInitialized(true)
                 setSdkReady(true)
             } catch (e) {
+                // Surface Brave/Shields SDK-block failures; previously silent.
                 console.warn('OneSignal init failed', e)
+                captureException(e, { tags: { source: 'onesignal_init' } })
             }
         }
 
@@ -265,6 +281,7 @@ export function useNotifications() {
             }
         } catch (error) {
             console.warn('Error requesting permission:', error)
+            captureException(error, { tags: { source: 'onesignal_request_permission' } })
         } finally {
             setIsRequestingPermission(false)
         }
@@ -353,7 +370,9 @@ export function useNotifications() {
         permissionState,
         isPermissionDenied: permissionState === 'denied',
         isPermissionGranted: permissionState === 'granted',
+        isPushOptedIn,
         isRequestingPermission,
         refreshPermissionState,
+        oneSignalInitialized,
     }
 }

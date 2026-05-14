@@ -1,13 +1,11 @@
-import { PEANUT_API_URL, PEANUT_API_KEY } from '@/constants/general.consts'
 import {
     type MantecaDepositResponseData,
     type MantecaWithdrawData,
     type MantecaWithdrawResponse,
     type CreateMantecaOnrampParams,
 } from '@/types/manteca.types'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { serverFetch } from '@/utils/api-fetch'
 import { jsonStringify } from '@/utils/general.utils'
-import Cookies from 'js-cookie'
 import type { Address } from 'viem'
 import type { SignUserOperationReturnType } from '@zerodev/sdk/actions'
 
@@ -114,12 +112,8 @@ export type WithdrawPriceLock = {
 
 export const mantecaApi = {
     initiateQrPayment: async (data: QrPaymentRequest): Promise<QrPaymentLock> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/qr-payment/init`, {
+        const response = await serverFetch('/manteca/qr-payment/init', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-            },
             body: jsonStringify(data),
         })
 
@@ -131,65 +125,76 @@ export const mantecaApi = {
         return response.json()
     },
     /**
-     * Complete QR payment with a pre-signed UserOperation.
-     * This allows the backend to complete the Manteca payment BEFORE broadcasting the transaction,
-     * preventing funds from being stuck in Manteca if their payment fails.
+     * Complete QR payment with a pre-signed transaction.
      *
-     * Flow:
-     * 1. Frontend signs UserOp (funds still in user's wallet)
-     * 2. Backend receives signed UserOp
-     * 3. Backend completes Manteca payment first
-     * 4. If Manteca succeeds, backend broadcasts UserOp
-     * 5. If Manteca fails, UserOp is never broadcasted (funds safe)
+     * Two shapes by `kind`:
+     * - 'userOp' (smart-only / mixed): backend broadcasts the signed kernel
+     *   UserOp via the bundler. For mixed, the UserOp's batched callData
+     *   embeds a Rain `withdrawAsset` call so collateral materializes into
+     *   the smart account atomically with the transfer to MANTECA.
+     * - 'rainWithdrawal' (collateral-only): backend submits the signed Rain
+     *   withdrawal via the user's session-key UserOp with `directTransfer=true`
+     *   straight to MANTECA's deposit address. One passkey tap (admin EIP-712).
+     *
+     * In all cases, backend creates the Manteca order FIRST so funds don't
+     * leave the user's side if Manteca fails.
      */
-    completeQrPaymentWithSignedTx: async ({
-        paymentLockCode,
-        signedUserOp,
-        chainId,
-        entryPointAddress,
-        qrType,
-    }: {
-        paymentLockCode: string
-        qrType?: string
-        signedUserOp: Pick<
-            SignUserOperationReturnType,
-            | 'sender'
-            | 'nonce'
-            | 'callData'
-            | 'signature'
-            | 'callGasLimit'
-            | 'verificationGasLimit'
-            | 'preVerificationGas'
-            | 'maxFeePerGas'
-            | 'maxPriorityFeePerGas'
-            | 'paymaster'
-            | 'paymasterData'
-            | 'paymasterVerificationGasLimit'
-            | 'paymasterPostOpGasLimit'
-            | 'factory'
-            | 'factoryData'
-        >
-        chainId: string
-        entryPointAddress: Address
-    }): Promise<QrPayment> => {
-        const response = await fetchWithSentry(
-            `${PEANUT_API_URL}/manteca/qr-payment/complete-with-signed-tx`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-                },
-                body: jsonStringify({
-                    paymentLockCode,
-                    signedUserOp,
-                    chainId,
-                    entryPointAddress,
-                    qrType,
-                }),
-            },
-            120000
-        )
+    completeQrPaymentWithSignedTx: async (
+        body:
+            | {
+                  kind: 'userOp'
+                  paymentLockCode: string
+                  qrType?: string
+                  signedUserOp: Pick<
+                      SignUserOperationReturnType,
+                      | 'sender'
+                      | 'nonce'
+                      | 'callData'
+                      | 'signature'
+                      | 'callGasLimit'
+                      | 'verificationGasLimit'
+                      | 'preVerificationGas'
+                      | 'maxFeePerGas'
+                      | 'maxPriorityFeePerGas'
+                      | 'paymaster'
+                      | 'paymasterData'
+                      | 'paymasterVerificationGasLimit'
+                      | 'paymasterPostOpGasLimit'
+                      | 'factory'
+                      | 'factoryData'
+                  >
+                  chainId: string
+                  entryPointAddress: Address
+                  /** Set when the UserOp embeds a Rain `withdrawAsset` call (mixed
+                   *  strategy). Lets backend stamp the prepared intent with the
+                   *  on-chain tx hash so the collateral webhook reconciles to the
+                   *  right kind in history (vs. an unmatched generic charge). */
+                  rainPreparationId?: string
+              }
+            | {
+                  kind: 'rainWithdrawal'
+                  paymentLockCode: string
+                  qrType?: string
+                  signedRainWithdrawal: {
+                      preparationId: string
+                      amount: string
+                      recipientAddress: Address
+                      directTransfer: boolean
+                      adminSalt: string
+                      adminNonce: string
+                      adminSignature: string
+                      executorSignature: string
+                      executorSalt: string
+                      expiresAt: number
+                  }
+                  chainId: string
+              }
+    ): Promise<QrPayment> => {
+        const response = await serverFetch('/manteca/qr-payment/complete-with-signed-tx', {
+            method: 'POST',
+            body: jsonStringify(body),
+            timeoutMs: 120_000, // long-running signed-tx submission
+        })
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
@@ -204,12 +209,8 @@ export const mantecaApi = {
         success: boolean
         perk: { sponsored: boolean; amountSponsored: number; discountPercentage: number; txHash?: string }
     }> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/perks/claim`, {
+        const response = await serverFetch('/perks/claim', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-            },
             body: jsonStringify({ mantecaTransferId }),
         })
 
@@ -221,11 +222,8 @@ export const mantecaApi = {
         return response.json()
     },
     getPrices: async ({ asset, against }: { asset: string; against: string }): Promise<MantecaPrice> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/prices?asset=${asset}&against=${against}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                'api-key': PEANUT_API_KEY,
-            },
+        const response = await serverFetch(`/manteca/prices?asset=${asset}&against=${against}`, {
+            method: 'GET',
         })
 
         if (!response.ok) {
@@ -240,12 +238,8 @@ export const mantecaApi = {
         failureUrl?: string
         exchange?: string
     }): Promise<{ url: string }> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/initiate-onboarding`, {
+        const response = await serverFetch('/manteca/initiate-onboarding', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-            },
             body: jsonStringify(params),
         })
 
@@ -261,12 +255,8 @@ export const mantecaApi = {
         params: CreateMantecaOnrampParams
     ): Promise<{ data?: MantecaDepositResponseData; error?: string }> => {
         try {
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/deposit`, {
+            const response = await serverFetch('/manteca/deposit', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-                },
                 body: jsonStringify({
                     amount: params.amount,
                     isUsdDenominated: params.isUsdDenominated,
@@ -295,11 +285,8 @@ export const mantecaApi = {
 
     cancelDeposit: async (depositId: string): Promise<{ data?: MantecaDepositResponseData; error?: string }> => {
         try {
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/deposit/${depositId}/cancel`, {
+            const response = await serverFetch(`/manteca/deposit/${depositId}/cancel`, {
                 method: 'PATCH',
-                headers: {
-                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-                },
             })
 
             const data = await response.json()
@@ -322,12 +309,8 @@ export const mantecaApi = {
 
     withdraw: async (data: MantecaWithdrawData): Promise<MantecaWithdrawResponse> => {
         try {
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/withdraw`, {
+            const response = await serverFetch('/manteca/withdraw', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-                },
                 body: jsonStringify(data),
             })
 
@@ -360,12 +343,8 @@ export const mantecaApi = {
         currency: string
     }): Promise<{ data?: WithdrawPriceLock; error?: string }> => {
         try {
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/withdraw/init`, {
+            const response = await serverFetch('/manteca/withdraw/init', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-                },
                 body: jsonStringify(params),
             })
 
@@ -385,46 +364,85 @@ export const mantecaApi = {
     },
 
     /**
-     * Complete withdraw with signed UserOp (sign-then-broadcast pattern).
-     * This creates the Manteca order FIRST, then broadcasts the transaction.
-     * Prevents funds from being stuck if Manteca fails.
+     * Complete withdraw with a pre-signed transaction.
+     *
+     * Two shapes by `kind` — same discriminated-union shape as the QR-pay
+     * counterpart so a smart-wallet-empty card user can still offramp:
+     *  - 'userOp' (smart-only / mixed): backend broadcasts the signed
+     *    kernel UserOp via the bundler. For mixed, the UserOp's batched
+     *    callData embeds a Rain `withdrawAsset` call so collateral
+     *    materializes into the smart account atomically with the transfer
+     *    to MANTECA. `rainPreparationId` lets backend stamp the prepared
+     *    Rain intent with the on-chain hash so the collateral webhook
+     *    reconciles to OFFRAMP in history.
+     *  - 'rainWithdrawal' (collateral-only): backend submits the signed
+     *    Rain withdrawal via the user's session-key UserOp with
+     *    `directTransfer=true` straight to MANTECA's deposit address.
+     *    One passkey tap (admin EIP-712).
+     *
+     * In all cases, backend creates the Manteca order FIRST so funds
+     * don't leave the user's side if Manteca fails.
      */
-    withdrawWithSignedTx: async (params: {
-        priceLockCode: string
-        amount: string
-        destinationAddress: string
-        currency: string
-        bankCode?: string
-        accountType?: string
-        signedUserOp: Pick<
-            SignUserOperationReturnType,
-            | 'sender'
-            | 'nonce'
-            | 'callData'
-            | 'signature'
-            | 'callGasLimit'
-            | 'verificationGasLimit'
-            | 'preVerificationGas'
-            | 'maxFeePerGas'
-            | 'maxPriorityFeePerGas'
-            | 'paymaster'
-            | 'paymasterData'
-            | 'paymasterVerificationGasLimit'
-            | 'paymasterPostOpGasLimit'
-            | 'factory'
-            | 'factoryData'
-        >
-        chainId: string
-        entryPointAddress: string
-    }): Promise<MantecaWithdrawResponse> => {
+    withdrawWithSignedTx: async (
+        body:
+            | {
+                  kind: 'userOp'
+                  priceLockCode: string
+                  amount: string
+                  destinationAddress: string
+                  currency: string
+                  bankCode?: string
+                  accountType?: string
+                  signedUserOp: Pick<
+                      SignUserOperationReturnType,
+                      | 'sender'
+                      | 'nonce'
+                      | 'callData'
+                      | 'signature'
+                      | 'callGasLimit'
+                      | 'verificationGasLimit'
+                      | 'preVerificationGas'
+                      | 'maxFeePerGas'
+                      | 'maxPriorityFeePerGas'
+                      | 'paymaster'
+                      | 'paymasterData'
+                      | 'paymasterVerificationGasLimit'
+                      | 'paymasterPostOpGasLimit'
+                      | 'factory'
+                      | 'factoryData'
+                  >
+                  chainId: string
+                  entryPointAddress: Address
+                  rainPreparationId?: string
+              }
+            | {
+                  kind: 'rainWithdrawal'
+                  priceLockCode: string
+                  amount: string
+                  destinationAddress: string
+                  currency: string
+                  bankCode?: string
+                  accountType?: string
+                  signedRainWithdrawal: {
+                      preparationId: string
+                      amount: string
+                      recipientAddress: Address
+                      directTransfer: boolean
+                      adminSalt: string
+                      adminNonce: string
+                      adminSignature: string
+                      executorSignature: string
+                      executorSalt: string
+                      expiresAt: number
+                  }
+                  chainId: string
+              }
+    ): Promise<MantecaWithdrawResponse> => {
         try {
-            const response = await fetchWithSentry(`${PEANUT_API_URL}/manteca/withdraw/complete-with-signed-tx`, {
+            const response = await serverFetch('/manteca/withdraw/complete-with-signed-tx', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-                },
-                body: jsonStringify(params),
+                body: jsonStringify(body),
+                timeoutMs: 120_000, // long-running signed-tx submission, mirrors completeQrPaymentWithSignedTx
             })
 
             const result = await response.json()

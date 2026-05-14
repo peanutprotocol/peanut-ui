@@ -10,9 +10,11 @@ import { useCallback, useEffect, useState } from 'react'
 import ProfileEditField from '../components/ProfileEditField'
 import ProfileHeader from '../components/ProfileHeader'
 import useKycStatus from '@/hooks/useKycStatus'
+import { useSafeBack } from '@/hooks/useSafeBack'
 
 export const ProfileEditView = () => {
     const router = useRouter()
+    const onBack = useSafeBack('/profile')
     const { user, fetchUser } = useAuth()
     const { isUserKycApproved } = useKycStatus()
 
@@ -113,7 +115,7 @@ export const ProfileEditView = () => {
 
     return (
         <div className="space-y-8">
-            <NavHeader title="Edit Profile" onPrev={() => router.back()} />
+            <NavHeader title="Edit Profile" onPrev={onBack} />
 
             <ProfileHeader name={fullName} username={username} isVerified={isUserKycApproved} />
 

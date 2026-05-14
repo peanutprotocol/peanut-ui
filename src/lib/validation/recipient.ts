@@ -4,11 +4,10 @@ import { resolveEns } from '@/app/actions/ens'
 
 import { AccountType } from '@/interfaces'
 import { usersApi } from '@/services/users'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { serverFetch } from '@/utils/api-fetch'
 import * as Sentry from '@sentry/nextjs'
 import { RecipientValidationError } from '../url-parser/errors'
 import { type RecipientType } from '../url-parser/types/payment'
-import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export async function validateAndResolveRecipient(
     recipient: string,
@@ -81,8 +80,7 @@ export const getRecipientType = (recipient: string, isWithdrawal: boolean = fals
 // utility function to check if a handle is a valid peanut username
 export const verifyPeanutUsername = async (username: string): Promise<boolean> => {
     try {
-        // we are in server, call the api directly
-        const res = await fetchWithSentry(`${PEANUT_API_URL}/users/username/${username}`, {
+        const res = await serverFetch(`/users/username/${username}`, {
             method: 'HEAD',
         })
         const isValidPeanutUsername = res.status === 200

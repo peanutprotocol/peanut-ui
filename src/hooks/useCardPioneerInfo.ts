@@ -3,11 +3,15 @@
 import { useQuery } from '@tanstack/react-query'
 import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 /**
  * Hook to fetch Card Pioneer info for the authenticated user.
  * Returns eligibility status, purchase status, and pricing.
+ *
+ * Fetches unconditionally for authenticated users — the maintenance flag
+ * (`underMaintenanceConfig.disableCardPioneers`) gates UI rendering, not
+ * data fetching, so manual-grant users (`hasCardAccess: true`) can still
+ * reach their card during a Pioneer-feature outage.
  */
 export const useCardPioneerInfo = () => {
     const { user } = useAuth()
@@ -15,7 +19,7 @@ export const useCardPioneerInfo = () => {
     const query = useQuery<CardInfoResponse>({
         queryKey: ['card-info', user?.user?.userId],
         queryFn: () => cardApi.getInfo(),
-        enabled: !!user?.user?.userId && !underMaintenanceConfig.disableCardPioneers,
+        enabled: !!user?.user?.userId,
         staleTime: 60_000, // 1 minute
         retry: 1,
     })
@@ -28,6 +32,7 @@ export const useCardPioneerInfo = () => {
         // Convenience booleans - return undefined while loading to prevent flash
         isEligible: query.isLoading ? undefined : (query.data?.isEligible ?? false),
         hasPurchased: query.isLoading ? undefined : (query.data?.hasPurchased ?? false),
+        hasCardAccess: query.isLoading ? undefined : (query.data?.hasCardAccess ?? false),
         price: query.data?.price ?? 10,
     }
 }

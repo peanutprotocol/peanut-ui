@@ -80,11 +80,11 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
                 href="/home"
                 translate="no"
                 className={classNames(
-                    'notranslate mb-4 flex flex-col items-center justify-center object-contain hover:cursor-pointer',
+                    'notranslate flex flex-col items-center justify-center object-contain hover:cursor-pointer',
                     { 'text-primary-1': pathName === '/home' }
                 )}
             >
-                <NavIcon name="home" size={26} fill="currentColor" />
+                <NavIcon name="home" size={24} />
                 <span className="mx-auto block text-center text-xs font-medium">Home</span>
             </Link>
 
@@ -102,11 +102,11 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
                 }}
                 translate="no"
                 className={classNames(
-                    'notranslate mb-4 flex flex-col items-center justify-center object-contain  hover:cursor-pointer',
+                    'notranslate flex flex-col items-center justify-center object-contain hover:cursor-pointer',
                     { 'text-primary-1': pathName === '/support' }
                 )}
             >
-                <NavIcon name="peanut-support" size={20} />
+                <NavIcon name="peanut-support" size={24} />
                 <span className="mx-auto mt-1 block pl-1 text-center text-xs font-medium">Support</span>
             </button>
         </div>

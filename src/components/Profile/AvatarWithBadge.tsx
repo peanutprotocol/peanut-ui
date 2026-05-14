@@ -1,6 +1,6 @@
 import { getInitialsFromName } from '@/utils/general.utils'
 import { getColorForUsername } from '@/utils/color.utils'
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import Image, { type StaticImageData } from 'next/image'
@@ -18,7 +18,14 @@ interface AvatarWithBadgeProps {
     inlineStyle?: React.CSSProperties // for dynamic background colors based on username (hex codes)
     textColor?: string
     iconFillColor?: string
-    logo?: StaticImageData
+    logo?: string | StaticImageData
+    /**
+     * Rendered when `logo` fails to load (next/image onError). Lets a parent
+     * provide a semantic fallback (e.g. bank tx → bank icon on dark bg)
+     * instead of a generic broken-image placeholder when an obscure flag /
+     * merchant logo is missing.
+     */
+    fallback?: { icon: IconName; bgColor?: string; iconFillColor?: string }
 }
 
 /**
@@ -34,7 +41,9 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     textColor,
     iconFillColor,
     logo,
+    fallback,
 }) => {
+    const [logoFailed, setLogoFailed] = useState(false)
     const sizeClasses: Record<AvatarSize, string> = {
         tiny: 'h-6 w-6 text-[10px]',
         'extra-small': 'h-8 w-8 text-xs',
@@ -58,7 +67,7 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
         return ''
     }, [name])
 
-    if (logo) {
+    if (logo && !logoFailed) {
         return (
             <div className={'relative'}>
                 <div
@@ -74,11 +83,21 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
                         width={160}
                         height={160}
                         className={`size-full rounded-full object-cover`}
+                        onError={() => setLogoFailed(true)}
                     />
                 </div>
             </div>
         )
     }
+
+    // When the logo fails AND the caller supplied a `fallback`, prefer that
+    // semantic visual (icon + colors) over whatever icon/colors were originally
+    // passed for the no-logo case.
+    const useFallback = logoFailed && fallback
+    const effectiveIcon = useFallback ? fallback.icon : icon
+    const effectiveIconFill = useFallback && fallback.iconFillColor ? fallback.iconFillColor : iconFillColor
+    const effectiveTextColor = useFallback && fallback.iconFillColor ? fallback.iconFillColor : textColor
+    const effectiveInlineStyle = useFallback && fallback.bgColor ? { backgroundColor: fallback.bgColor } : inlineStyle
 
     return (
         <div className={'relative'}>
@@ -93,23 +112,19 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
 
                 style={{
                     background: name ? getColorForUsername(name).lightShade : undefined,
-                    border: name && !icon ? `1px solid ${getColorForUsername(name).darkShade}` : undefined,
-                    color: name ? getColorForUsername(name).darkShade : !icon ? textColor : undefined,
-                    ...inlineStyle,
+                    border: name && !effectiveIcon ? `1px solid ${getColorForUsername(name).darkShade}` : undefined,
+                    color: name ? getColorForUsername(name).darkShade : !effectiveIcon ? effectiveTextColor : undefined,
+                    ...effectiveInlineStyle,
                 }}
             >
-                {logo && (
-                    <Image
-                        src={logo}
-                        alt={''}
-                        width={160}
-                        height={160}
-                        className={`size-[${iconSizeMap[size]}] rounded-full object-cover`}
-                    />
-                )}
                 {/* display icon if provided, otherwise display initials */}
-                {icon ? (
-                    <Icon name={icon} size={iconSizeMap[size]} fill={iconFillColor} style={{ color: textColor }} />
+                {effectiveIcon ? (
+                    <Icon
+                        name={effectiveIcon}
+                        size={iconSizeMap[size]}
+                        fill={effectiveIconFill}
+                        style={{ color: effectiveTextColor }}
+                    />
                 ) : (
                     initials
                 )}

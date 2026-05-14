@@ -1,33 +1,5 @@
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { type ChainValue, type IUserBalance } from '@/interfaces'
-import * as Sentry from '@sentry/nextjs'
 import { formatUnits } from 'viem'
-
-export function calculateValuePerChain(balances: IUserBalance[]): ChainValue[] {
-    let result: ChainValue[] = []
-
-    try {
-        const chainValueMap: { [key: string]: number } = {}
-        balances.forEach((balance) => {
-            const chainId = balance?.chainId ? balance.chainId.split(':')[1] : '1'
-            if (!chainValueMap[chainId]) {
-                chainValueMap[chainId] = 0
-            }
-            if (balance.value) chainValueMap[chainId] += Number(balance.value)
-        })
-
-        result = Object.keys(chainValueMap).map((chainId) => ({
-            chainId,
-            valuePerChain: chainValueMap[chainId],
-        }))
-
-        result.sort((a, b) => b.valuePerChain - a.valuePerChain)
-    } catch (error) {
-        Sentry.captureException(error)
-        console.log('Error calculating value per chain: ', error)
-    }
-    return result
-}
 
 export const printableUsdc = (balance: bigint): string => {
     // For 6 decimals, we want 2 decimal places in output
@@ -36,4 +8,38 @@ export const printableUsdc = (balance: bigint): string => {
     const flooredBigint = (balance / scaleFactor) * scaleFactor
     const formatted = formatUnits(flooredBigint, PEANUT_WALLET_TOKEN_DECIMALS)
     return Number(formatted).toFixed(2)
+}
+
+/**
+ * Widen a Rain balance figure from integer cents (2 decimals) to a USDC
+ * bigint (matching PEANUT_WALLET_TOKEN_DECIMALS, typically 6) so it can be
+ * summed losslessly with the smart-account balance.
+ *
+ * Returns 0n for null/undefined/negative/non-finite inputs so callers can
+ * safely pass `overview?.balance?.spendingPower` without pre-guarding.
+ */
+export const rainSpendingPowerToWei = (spendingPowerCents: number | null | undefined): bigint => {
+    if (spendingPowerCents == null || !Number.isFinite(spendingPowerCents) || spendingPowerCents <= 0) {
+        return 0n
+    }
+    // cents (2dp) → USDC wei (PEANUT_WALLET_TOKEN_DECIMALS) — widen by 10^(decimals - 2)
+    const widenFactor = BigInt(10 ** (PEANUT_WALLET_TOKEN_DECIMALS - 2))
+    return BigInt(Math.floor(spendingPowerCents)) * widenFactor
+}
+
+/**
+ * Convert a USDC wei amount (PEANUT_WALLET_TOKEN_DECIMALS, typically 6dp) to
+ * cents (2dp), the unit Rain's `/signatures/withdrawals` API takes on its
+ * INPUT side. Rounds up so a sub-cent shortfall still withdraws at least one
+ * cent — Rain rejects 0-amount withdrawals.
+ *
+ * Asymmetry warning: Rain accepts cents on input but RETURNS the signed
+ * amount in USDC wei (it's what the EIP-712 message + on-chain coordinator
+ * sign over). The prepare → /submit roundtrip is cents-in / wei-out. Don't
+ * use this function on values returned from Rain.
+ */
+export const usdcWeiToRainCents = (amountWei: bigint): bigint => {
+    if (amountWei <= 0n) return 0n
+    const divisor = 10n ** BigInt(PEANUT_WALLET_TOKEN_DECIMALS - 2)
+    return (amountWei + divisor - 1n) / divisor
 }

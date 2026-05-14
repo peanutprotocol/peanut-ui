@@ -1,7 +1,7 @@
 'use client'
 
-import * as consts from '@/constants/zerodev.consts'
-import { loadingStateContext } from '@/context'
+import { PASSKEY_SERVER_URL } from '@/constants/zerodev.consts'
+import { loadingStateContext } from '@/context/loadingStates.context'
 import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useAppDispatch, useSetupStore, useZerodevStore } from '@/redux/hooks'
@@ -15,6 +15,7 @@ import { captureException } from '@sentry/nextjs'
 import { invitesApi } from '@/services/invites'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 
 // types
 type UserOpEncodedParams = {
@@ -54,7 +55,7 @@ export const useZeroDev = () => {
     const dispatch = useAppDispatch()
     const { user } = useAuth()
     const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZerodevStore()
-    const { setWebAuthnKey, getClientForChain } = useKernelClient()
+    const { setWebAuthnKey, getClientForChain, ensureClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
     const { inviteCode, inviteType } = useSetupStore()
 
@@ -72,12 +73,16 @@ export const useZeroDev = () => {
 
         dispatch(zerodevActions.setIsRegistering(true))
         try {
+            const rpId = isCapacitor() ? getNativeRpId() : window.location.hostname.replace(/^www\./, '')
+
+            // @capgo/capacitor-passkey shim patches navigator.credentials on native,
+            // so toWebAuthnKey works on all platforms (web, android, ios).
             const webAuthnKey = await toWebAuthnKey({
                 passkeyName: _getPasskeyName(username),
-                passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
+                passkeyServerUrl: PASSKEY_SERVER_URL as string,
                 mode: WebAuthnMode.Register,
                 passkeyServerHeaders: {},
-                rpID: window.location.hostname.replace(/^www\./, ''),
+                rpID: rpId,
             })
 
             const inviteCodeFromCookie = getFromCookie('inviteCode')
@@ -123,7 +128,9 @@ export const useZeroDev = () => {
             if ((e as Error).message.includes('pending')) {
                 return
             }
-            console.error('Error registering passkey', e)
+            const err = e as Error
+            console.error('[useZeroDev] registration failed:', err.name, err.message, err)
+            console.error('[useZeroDev] shim installed:', (globalThis as any).__capgoPasskeyShimInstalled)
             dispatch(zerodevActions.setIsRegistering(false))
             throw e
         }
@@ -139,12 +146,14 @@ export const useZeroDev = () => {
                 passkeyServerHeaders['x-username'] = user.user.username
             }
 
+            const rpId = isCapacitor() ? getNativeRpId() : window.location.hostname.replace(/^www\./, '')
+
             const webAuthnKey = await toWebAuthnKey({
                 passkeyName: '[]',
-                passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
+                passkeyServerUrl: PASSKEY_SERVER_URL as string,
                 mode: WebAuthnMode.Login,
                 passkeyServerHeaders,
-                rpID: window.location.hostname.replace(/^www\./, ''),
+                rpID: rpId,
             })
 
             setWebAuthnKey(webAuthnKey)
@@ -174,6 +183,8 @@ export const useZeroDev = () => {
             calls: UserOpEncodedParams[],
             chainId: string
         ): Promise<{ userOpHash: Hash; receipt: TransactionReceipt | null }> => {
+            // Non-Arb chains (recover-funds) aren't pre-built — wait for lazy build.
+            await ensureClientForChain(chainId)
             const client = getClientForChain(chainId)
             dispatch(zerodevActions.setIsSendingUserOp(true))
 
@@ -235,7 +246,7 @@ export const useZeroDev = () => {
                 receipt: userOpReceipt.receipt,
             }
         },
-        [getClientForChain]
+        [getClientForChain, ensureClientForChain]
     )
 
     return {

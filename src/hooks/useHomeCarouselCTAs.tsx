@@ -2,7 +2,7 @@
 
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useNotifications } from './useNotifications'
 import { useRouter } from 'next/navigation'
@@ -14,8 +14,16 @@ import { usePWAStatus } from './usePWAStatus'
 import { useGeoLocation } from './useGeoLocation'
 import { useCardPioneerInfo } from './useCardPioneerInfo'
 import { useActivationStatus } from './useActivationStatus'
+import { useTransactionHistory } from './useTransactionHistory'
 import { STAR_STRAIGHT_ICON } from '@/assets'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { useToast } from '@/components/0_Bruddle/Toast'
+
+// Days a dismissed CTA stays hidden before reappearing. Set above 1 so dismiss feels
+// "sticky" but below 14 so we still nudge users about valuable actions they haven't
+// adopted. Per-CTA cooldowns can come later via the user-signaling unification project.
+const DISMISS_COOLDOWN_DAYS = 7
+const DISMISS_COOLDOWN_MS = DISMISS_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
 
 export type CarouselCTA = {
     id: string
@@ -27,7 +35,6 @@ export type CarouselCTA = {
     // optional handlers for notification prompt
     onClick?: () => void | Promise<void>
     onClose?: () => void
-    isPermissionDenied?: boolean
     iconContainerClassName?: string
     secondaryIcon?: StaticImageData | string
     iconSize?: number
@@ -35,21 +42,51 @@ export type CarouselCTA = {
     isPerkClaim?: boolean
 }
 
-const getDismissedCTAs = (userId: string | undefined): Set<string> => {
+/** Read dismissals from preferences, dropping any whose cooldown has expired.
+ *  Returns id → dismissedAt so callers can keep the timestamp around if needed.
+ *  Accepts the legacy `string[]` shape (no timestamps) — those entries are
+ *  treated as "dismissed now" so existing users get a fresh 7-day window from
+ *  the moment they pick up this code, rather than CTAs suddenly reappearing. */
+const getDismissedCTAs = (userId: string | undefined): Map<string, Date> => {
     const dismissed = getUserPreferences(userId)?.dismissedCarouselCTAs
-    return new Set(dismissed ?? [])
+    const now = new Date()
+    const cutoff = now.getTime() - DISMISS_COOLDOWN_MS
+
+    if (!dismissed) return new Map()
+
+    if (Array.isArray(dismissed)) {
+        // Legacy permanent-dismissal shape — coerce to "dismissed now".
+        return new Map(dismissed.map((id) => [id, now]))
+    }
+
+    const map = new Map<string, Date>()
+    for (const [id, iso] of Object.entries(dismissed)) {
+        const dismissedAt = new Date(iso)
+        if (!Number.isNaN(dismissedAt.getTime()) && dismissedAt.getTime() > cutoff) {
+            map.set(id, dismissedAt)
+        }
+    }
+    return map
 }
 
 export const useHomeCarouselCTAs = () => {
     const [carouselCTAs, setCarouselCTAs] = useState<CarouselCTA[]>([])
     const { user } = useAuth()
-    const dismissedRef = useRef<Set<string>>(new Set())
-    const { requestPermission, afterPermissionAttempt, isPermissionDenied, isPermissionGranted } = useNotifications()
+    const dismissedRef = useRef<Map<string, Date>>(new Map())
+    const {
+        requestPermission,
+        afterPermissionAttempt,
+        isPermissionDenied,
+        isPermissionGranted,
+        isPushOptedIn,
+        oneSignalInitialized,
+    } = useNotifications()
+    const toast = useToast()
     const router = useRouter()
     const { isUserKycApproved, isUserBridgeKycUnderReview, isUserMantecaKycApproved } = useKycStatus()
     const { deviceType } = useDeviceType()
     const isPwa = usePWAStatus()
-    const { setIsIosPwaInstallModalOpen } = useModalsContext()
+    const { setIsIosPwaInstallModalOpen, openSupportWithMessage } = useModalsContext()
 
     const { setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
@@ -60,17 +97,27 @@ export const useHomeCarouselCTAs = () => {
     } = useCardPioneerInfo()
     const { isActivated } = useActivationStatus()
 
-    // ctas gated by conditions that can change (e.g. permission state) should not be permanently dismissed
-    const TRANSIENT_CTA_IDS = new Set(['notification-prompt'])
+    // Completion signals — used to hide educational CTAs from users who've already
+    // done the action. Shares the React Query cache key with HomeHistory below, so
+    // this read is free when the home page is mounted.
+    const { data: latestHistory } = useTransactionHistory({ mode: 'latest', limit: 50 })
+    // `boolean | undefined` (no `?? false`) so the QR-payment CTA gate can
+    // distinguish "loaded, none found" from "still loading" — see the strict
+    // `=== false` check below.
+    const hasMadeQrPayment: boolean | undefined = useMemo(
+        () => latestHistory?.entries.some((e) => e.extraData?.kind === 'QR_PAY'),
+        [latestHistory]
+    )
+    const hasSentInvites = (user?.invitesSent?.length ?? 0) > 0
 
     const dismissCTA = useCallback(
         (ctaId: string) => {
-            dismissedRef.current.add(ctaId)
-            if (!TRANSIENT_CTA_IDS.has(ctaId)) {
-                updateUserPreferences(user?.user?.userId, {
-                    dismissedCarouselCTAs: Array.from(dismissedRef.current).filter((id) => !TRANSIENT_CTA_IDS.has(id)),
-                })
+            dismissedRef.current.set(ctaId, new Date())
+            const record: Record<string, string> = {}
+            for (const [id, dismissedAt] of dismissedRef.current) {
+                record[id] = dismissedAt.toISOString()
             }
+            updateUserPreferences(user?.user?.userId, { dismissedCarouselCTAs: record })
             setCarouselCTAs((prev) => prev.filter((c) => c.id !== ctaId))
         },
         [user?.user?.userId]
@@ -108,8 +155,8 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        // Generic invite CTA for non-LATAM activated users only
-        if (!isLatamUser && isActivated) {
+        // Generic invite CTA for non-LATAM activated users who haven't invited yet.
+        if (!isLatamUser && isActivated && !hasSentInvites) {
             _carouselCTAs.push({
                 id: 'invite-friends',
                 title: 'Invite friends. Earn rewards',
@@ -122,20 +169,32 @@ export const useHomeCarouselCTAs = () => {
                 },
             })
         }
-        // show notification cta only in pwa when notifications are not granted
-        // clicking it triggers native prompt (or shows reinstall modal if denied)
-        if (!isPermissionGranted && isPwa) {
+        // Brave Shields blocks the OneSignal SDK; requestPermission no-ops
+        // until init succeeds, so don't render a click-to-no-op CTA.
+        if (oneSignalInitialized && !isPermissionGranted && !isPushOptedIn && isPwa) {
             _carouselCTAs.push({
                 id: 'notification-prompt',
                 title: 'Stay in the loop!',
                 description: 'Turn on notifications and get alerts for all your wallet activity.',
                 icon: 'bell',
                 onClick: async () => {
-                    // trigger native notification permission prompt
-                    await requestPermission()
+                    // If the user has already denied browser permission, the OS won't
+                    // re-prompt — they have to reinstall the PWA. Open the install
+                    // modal directly instead of routing through a dead-end "Got it"
+                    // dialog that gave them no path forward.
+                    if (isPermissionDenied) {
+                        setIsIosPwaInstallModalOpen(true)
+                        return
+                    }
+                    const result = await requestPermission()
                     await afterPermissionAttempt()
+                    // 'default' = browser suppressed prompt (policy/Shields) or
+                    // user dismissed it — calling again won't help this session.
+                    if (result === 'default') {
+                        toast.warning('Notifications blocked by your browser. Enable them in site settings and reload.')
+                        dismissCTA('notification-prompt')
+                    }
                 },
-                isPermissionDenied, // if true, CarouselCTA shows reinstall modal instead
             })
         }
 
@@ -153,8 +212,9 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        // Show QR code payment prompt if user's Bridge or Manteca KYC is approved.
-        if (hasKycApproval) {
+        // Strict `=== false` gates on "history loaded, no QR pay" — `undefined`
+        // (still loading) keeps the CTA hidden so it doesn't flash in then out.
+        if (hasKycApproval && hasMadeQrPayment === false) {
             _carouselCTAs.push({
                 id: 'qr-payment',
                 title: (
@@ -177,9 +237,9 @@ export const useHomeCarouselCTAs = () => {
         }
 
         // ------------------------------------------------------------------------------------------------
-        // LATAM rewards CTA - show to activated users in Argentina or Brazil only
-        // Encourage them to invite friends to earn more rewards (and complete KYC if needed)
-        if (isLatamUser && isActivated) {
+        // LATAM rewards CTA - show to activated users in Argentina or Brazil who haven't
+        // invited anyone yet. Encourages first-invite; we hide once they've sent at least one.
+        if (isLatamUser && isActivated && !hasSentInvites) {
             _carouselCTAs.push({
                 id: 'latam-cashback-invite',
                 title: (
@@ -201,6 +261,30 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
+        // Bug bounty — shown to activated users only. Server enforces the real
+        // eligibility (email verified, ≥1 payment OR KYC approved), lifetime
+        // caps, and the daily budget. This gate just keeps the CTA off cold
+        // accounts where the reward would be denied anyway.
+        if (isActivated) {
+            _carouselCTAs.push({
+                id: 'bug-bounty',
+                title: (
+                    <span>
+                        Help us improve and <b>get $5!</b>
+                    </span>
+                ),
+                description: 'Report a bug. Get rewarded! No questions asked.',
+                iconContainerClassName: 'bg-primary-1',
+                icon: 'bug',
+                iconSize: 20,
+                // (mobile-ui) routes don't load the Crisp script directly —
+                // the chat lives inside SupportDrawer's iframe. Use the
+                // ModalsContext helper instead of `window.$crisp.push(...)`,
+                // which only works on (marketing) routes.
+                onClick: () => openSupportWithMessage('I found a bug: '),
+            })
+        }
+
         if (!hasKycApproval && !isUserBridgeKycUnderReview) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
@@ -215,7 +299,8 @@ export const useHomeCarouselCTAs = () => {
                     </span>
                 ),
                 iconContainerClassName: 'bg-secondary-1',
-                icon: 'shield',
+                icon: 'qr-code',
+                iconSize: 16,
                 onClick: () => {
                     router.push('/profile/identity-verification')
                 },
@@ -227,6 +312,7 @@ export const useHomeCarouselCTAs = () => {
         user?.user?.userId,
         isPermissionGranted,
         isPermissionDenied,
+        isPushOptedIn,
         isUserKycApproved,
         isUserBridgeKycUnderReview,
         isUserMantecaKycApproved,
@@ -241,12 +327,19 @@ export const useHomeCarouselCTAs = () => {
         hasCardPioneerPurchased,
         isCardPioneerLoading,
         isActivated,
+        hasMadeQrPayment,
+        hasSentInvites,
+        oneSignalInitialized,
+        setIsIosPwaInstallModalOpen,
+        toast,
+        dismissCTA,
+        openSupportWithMessage,
     ])
 
     useEffect(() => {
         if (!user) {
             setCarouselCTAs([])
-            dismissedRef.current = new Set()
+            dismissedRef.current = new Map()
             return
         }
 

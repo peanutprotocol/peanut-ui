@@ -1,6 +1,5 @@
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { jsonParse } from '@/utils/general.utils'
-import Cookies from 'js-cookie'
 import {
     type TRequestChargeResponse,
     type PaymentCreationResponse,
@@ -8,6 +7,8 @@ import {
     type CreateChargeRequest,
 } from './services.types'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { getAuthToken } from '@/utils/auth-token'
+import { apiFetch, serverFetch } from '@/utils/api-fetch'
 
 export const chargesApi = {
     create: async (data: CreateChargeRequest): Promise<TCharge> => {
@@ -24,8 +25,12 @@ export const chargesApi = {
             }
         })
 
-        const response = await fetchWithSentry(`/api/proxy/withFormData/charges`, {
+        const headers: Record<string, string> = {}
+        const token = getAuthToken()
+        if (token) headers['Authorization'] = `Bearer ${token}`
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/charges`, {
             method: 'POST',
+            headers,
             body: formData,
         })
 
@@ -37,11 +42,8 @@ export const chargesApi = {
     },
 
     get: async (id: string): Promise<TRequestChargeResponse> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/request-charges/${id}`, {
+        const response = await serverFetch(`/request-charges/${id}`, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
         })
 
         if (!response.ok) {
@@ -52,12 +54,8 @@ export const chargesApi = {
     },
 
     cancel: async (id: string): Promise<void> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/charges/${id}`, {
+        const response = await serverFetch(`/charges/${id}`, {
             method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-            },
         })
 
         if (!response.ok) {
@@ -74,7 +72,6 @@ export const chargesApi = {
         sourceChainId,
         sourceTokenAddress,
         sourceTokenSymbol,
-        squidQuoteId,
     }: {
         chargeId: string
         chainId: string
@@ -84,13 +81,9 @@ export const chargesApi = {
         sourceChainId?: string
         sourceTokenAddress?: string
         sourceTokenSymbol?: string
-        squidQuoteId?: string
     }): Promise<PaymentCreationResponse> => {
-        const response = await fetchWithSentry(`/api/proxy/charges/${chargeId}/payments`, {
+        const response = await apiFetch(`/charges/${chargeId}/payments`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify({
                 chainId,
                 hash,
@@ -99,7 +92,6 @@ export const chargesApi = {
                 sourceChainId,
                 sourceTokenAddress,
                 sourceTokenSymbol,
-                squidQuoteId,
             }),
         })
 

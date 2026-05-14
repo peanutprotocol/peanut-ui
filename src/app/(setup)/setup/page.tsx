@@ -10,6 +10,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
+import { isCapacitor } from '@/utils/capacitor'
 import { getFromCookie } from '@/utils/general.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAuth } from '@/context/authContext'
@@ -41,17 +42,37 @@ function SetupPageContent() {
             setIsLoading(true)
             await new Promise((resolve) => setTimeout(resolve, 100)) // ensure other initializations can complete
 
-            // check for native passkey support
+            const localDeviceType = detectedDeviceType
+
+            // in capacitor, passkeys are handled natively — skip all browser/webview/os/pwa checks
+            // and go straight to the landing (signup) flow
+            if (isCapacitor()) {
+                setDeviceType(localDeviceType)
+                // check for invite code — if present, go to signup instead of landing
+                const inviteCodeFromCookie = getFromCookie('inviteCode')
+                const userInviteCode = inviteCode || inviteCodeFromCookie
+                const targetStep = userInviteCode ? 'signup' : 'landing'
+                const stepIndex = steps.findIndex((s: ISetupStep) => s.screenId === targetStep)
+                if (stepIndex !== -1) {
+                    dispatch(setupActions.setStep(stepIndex + 1))
+                }
+                setIsLoading(false)
+                return
+            }
+
+            // check if device has a platform authenticator (biometric/pin).
+            // capacitor already returned above — this only runs on web.
             let passkeySupport = true
             try {
-                passkeySupport = await PublicKeyCredential.isConditionalMediationAvailable()
+                if (PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable) {
+                    passkeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+                }
             } catch (e) {
                 passkeySupport = false
                 console.error('Error checking passkey support:', e)
             }
 
             const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
-            const localDeviceType = detectedDeviceType
             const osSupportedByVersion = isDeviceOsSupported(ua)
             const webviewByUASignature = isLikelyWebview() // initial webview check based on ua signatures
 

@@ -18,13 +18,13 @@ import UserCard from '@/components/User/UserCard'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import SupportCTA from '@/components/Global/SupportCTA'
 import { useContributePotFlow } from '../useContributePotFlow'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useAuth } from '@/context/authContext'
 import { RequestPotActionList } from '../components/RequestPotActionList'
+import { useSafeBack } from '@/hooks/useSafeBack'
 
 export function ContributePotInputView() {
-    const router = useRouter()
+    const onBack = useSafeBack('/')
     const { isFetchingUser } = useAuth()
     const {
         amount,
@@ -53,15 +53,6 @@ export function ContributePotInputView() {
         }
     }
 
-    // handle back navigation
-    const handleGoBack = () => {
-        if (window.history.length > 1) {
-            router.back()
-        } else {
-            router.push('/')
-        }
-    }
-
     // handle External Wallet click
     const [isExternalWalletLoading, setIsExternalWalletLoading] = useState(false)
     const handleOpenExternalWalletFlow = async () => {
@@ -84,7 +75,7 @@ export function ContributePotInputView() {
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader onPrev={handleGoBack} title="Pay" />
+            <NavHeader onPrev={onBack} title="Pay" />
 
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {/* recipient card with pot info */}

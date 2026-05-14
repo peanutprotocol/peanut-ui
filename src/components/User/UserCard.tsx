@@ -48,6 +48,7 @@ const UserCard = ({
         if (type === 'request') return 'arrow-down-left'
         if (type === 'received_link') return 'arrow-down-left'
         if (type === 'request_fulfilment') return 'arrow-up-right'
+        return undefined
     }
 
     const getTitle = useCallback(() => {

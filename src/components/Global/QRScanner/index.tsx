@@ -74,7 +74,7 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
                 className="border-1 mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
                 onClick={onClose}
             >
-                <Icon name="cancel" fill="white" />
+                <Icon name="cancel" size={18} fill="white" />
             </Button>
             <span className="text-3xl font-extrabold">Scan to pay</span>
             <Button

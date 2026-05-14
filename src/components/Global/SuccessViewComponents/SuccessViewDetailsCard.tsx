@@ -24,7 +24,7 @@ export const SuccessViewDetailsCard: React.FC<SuccessViewDetailsCardProps> = ({
                     <div
                         className={`flex h-14 w-14 min-w-14 items-center justify-center rounded-full bg-secondary-7 font-bold`}
                     >
-                        <Icon name="link" size={32} className="text-white" />
+                        <Icon name="link" size={24} className="text-white" />
                     </div>
                     <div className="space-y-1">
                         <h1 className="text-lg font-bold">{title}</h1>

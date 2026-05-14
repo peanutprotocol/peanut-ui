@@ -1,0 +1,78 @@
+/**
+ * Receipt-side type predicates. Centralises every kind/provider check so
+ * adding a flow is one line in one place rather than a grep-and-edit
+ * across the receipt.
+ *
+ * Predicates take `TransactionDetails` (the drawer view model) — not raw
+ * `HistoryEntry` — because some require fields that only exist after the
+ * transformer runs (e.g. `extraDataForDrawer.cardPayment`).
+ */
+
+import { type TransactionDetails } from './transactionTransformer'
+import type { IntentKind } from './strategies/registry'
+
+function kindOf(transaction: TransactionDetails): string | undefined {
+    return transaction.extraDataForDrawer?.kind
+}
+
+function isKind(transaction: TransactionDetails, kind: IntentKind): boolean {
+    return kindOf(transaction) === kind
+}
+
+export function isQRPayment(transaction: TransactionDetails): boolean {
+    return isKind(transaction, 'QR_PAY')
+}
+
+// Shareable receipts: QR payments + bank on/off-ramps. Kept as its own
+// predicate so "shareable" can diverge from "QR" later without a sweep.
+export function hasShareableReceipt(transaction: TransactionDetails): boolean {
+    const k = kindOf(transaction)
+    return k === 'QR_PAY' || k === 'ONRAMP' || k === 'OFFRAMP'
+}
+
+// Renders "Completed" label for the timestamp row instead of "Sent"/"Received".
+// One-shot bank/onchain flows.
+export function usesCompletedTimestampLabel(transaction: TransactionDetails): boolean {
+    const k = kindOf(transaction)
+    return k === 'ONRAMP' || k === 'OFFRAMP' || k === 'CRYPTO_WITHDRAW' || k === 'CRYPTO_DEPOSIT'
+}
+
+/** True for any Rain card-spend or card-refund entry. The transformer fills
+ *  `extraDataForDrawer.cardPayment` for both — that's the discriminator. */
+export function isCardPaymentEntry(transaction: TransactionDetails): boolean {
+    return transaction.extraDataForDrawer?.cardPayment != null
+}
+
+export function isPerkReward(transaction: TransactionDetails): boolean {
+    return isKind(transaction, 'PERK_REWARD')
+}
+
+// SEND_LINK kind covers the entire link lifecycle: created, claimed,
+// reclaimed-by-self. Receipt CTAs (QR, Share, Cancel) gate on this.
+export function isSendLinkEntry(transaction: TransactionDetails): boolean {
+    return isKind(transaction, 'SEND_LINK')
+}
+
+// Request-pot rollups arrive as P2P_REQUEST_FULFILL + isRequestPotRollup
+// flag; individual request payments arrive as plain P2P_REQUEST_FULFILL.
+// Both gate the request-shaped UI.
+export function isRequestEntry(transaction: TransactionDetails): boolean {
+    return isKind(transaction, 'P2P_REQUEST_FULFILL')
+}
+
+// Wallet-to-wallet direct send.
+export function isDirectSendEntry(transaction: TransactionDetails): boolean {
+    return isKind(transaction, 'DIRECT_TRANSFER')
+}
+
+// Any bank-rail deposit (Bridge or Manteca).
+export function isOnrampEntry(transaction: TransactionDetails): boolean {
+    return isKind(transaction, 'ONRAMP')
+}
+
+// Manteca-flavoured onramp specifically (renders the ARS/BRL deposit-info
+// row). Bridge + Manteca share the ONRAMP kind, so provider is the
+// positive-identity discriminator.
+export function isMantecaOnrampEntry(transaction: TransactionDetails): boolean {
+    return isKind(transaction, 'ONRAMP') && transaction.extraDataForDrawer?.provider === 'MANTECA'
+}

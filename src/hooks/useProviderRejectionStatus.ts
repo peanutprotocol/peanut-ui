@@ -79,7 +79,10 @@ export default function useProviderRejectionStatus() {
 
                 // check if fixable: selfHealable flag on rail + rejectType + attempt limit
                 const isFixable =
-                    isSelfHealable && rejectType !== 'PROVIDER_FINAL' && selfHealAttempt < MAX_SELF_HEAL_ATTEMPTS
+                    isSelfHealable &&
+                    rejectType !== 'PROVIDER_FINAL' &&
+                    rejectType !== 'FINAL' &&
+                    selfHealAttempt < MAX_SELF_HEAL_ATTEMPTS
 
                 // extract user-facing message from rejection reasons or endorsement issues
                 let userMessage: string | null = null

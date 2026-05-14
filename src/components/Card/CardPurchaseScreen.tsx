@@ -7,6 +7,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import Card from '@/components/Global/Card'
 import { cardApi, CardPurchaseError } from '@/services/card'
 import Loading from '@/components/Global/Loading'
+import { openExternalUrl } from '@/utils/capacitor'
 
 interface CardPurchaseScreenProps {
     price: number
@@ -70,7 +71,7 @@ const CardPurchaseScreen = ({
     // Open payment URL in new tab
     const openPaymentUrl = useCallback(() => {
         if (paymentUrl) {
-            window.open(paymentUrl, '_blank', 'noopener,noreferrer')
+            openExternalUrl(paymentUrl)
         }
     }, [paymentUrl])
 
@@ -115,7 +116,7 @@ const CardPurchaseScreen = ({
                     <>
                         <Card className="flex flex-col items-center gap-4 p-6">
                             <div className="flex size-16 items-center justify-center rounded-full bg-purple-1">
-                                <Icon name="wallet" size={32} />
+                                <Icon name="wallet" size={24} />
                             </div>
                             <div className="text-center">
                                 <h2 className="text-xl font-bold">Confirm Purchase</h2>
@@ -150,7 +151,7 @@ const CardPurchaseScreen = ({
                     <>
                         <Card className="flex flex-col items-center gap-4 p-6">
                             <div className="flex size-16 items-center justify-center rounded-full bg-yellow-1">
-                                <Icon name="clock" size={32} />
+                                <Icon name="clock" size={24} />
                             </div>
                             <div className="text-center">
                                 <h2 className="text-xl font-bold">Complete Payment</h2>
@@ -180,7 +181,7 @@ const CardPurchaseScreen = ({
                 {purchaseState === 'error' && (
                     <Card className="flex flex-col items-center gap-4 p-6">
                         <div className="flex size-16 items-center justify-center rounded-full bg-error-1">
-                            <Icon name="cancel" size={32} />
+                            <Icon name="cancel" size={24} />
                         </div>
                         <div className="text-center">
                             <h2 className="text-xl font-bold">Something Went Wrong</h2>

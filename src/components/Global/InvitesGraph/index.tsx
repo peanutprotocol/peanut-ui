@@ -2015,7 +2015,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         return (
             <div className="flex flex-1 items-center justify-center">
                 <div className="flex items-center gap-3">
-                    <Icon name="pending" size={32} className="animate-spin text-purple-600" />
+                    <Icon name="pending" size={24} className="animate-spin text-purple-600" />
                     <span className="text-lg font-medium text-gray-700">Loading network...</span>
                 </div>
             </div>

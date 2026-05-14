@@ -13,19 +13,24 @@ import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
 
 interface ActivationCTAsProps {
     activationStep: ActivationStep
+    /** Dismisses the card step (persists locally). Only relevant for step='card'. */
+    onDismissCard?: () => void
 }
 
 interface StepConfig {
     icon: IconName
+    iconBg: string
     title: string
     description: string
     ctaLabel: string
     href: string
+    dismissable?: boolean
 }
 
 const STEPS: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = {
     verify: {
         icon: 'globe-lock',
+        iconBg: 'bg-primary-1',
         title: 'Verify to get started',
         description: 'Use bank accounts and other local payments methods',
         ctaLabel: 'Verify now',
@@ -33,13 +38,24 @@ const STEPS: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = {
     },
     deposit: {
         icon: 'arrow-down',
+        iconBg: 'bg-primary-1',
         title: 'Deposit',
         description: 'Add money to make your first payment',
         ctaLabel: 'Add money',
         href: '/add-money',
     },
+    card: {
+        icon: 'credit-card',
+        iconBg: 'bg-yellow-1',
+        title: 'Spend anywhere Visa is accepted',
+        description: 'Use your balance at 40m+ merchants. Online, contactless.',
+        ctaLabel: 'Get your card',
+        href: '/card',
+        dismissable: true,
+    },
     outbound: {
         icon: 'qr-code',
+        iconBg: 'bg-primary-1',
         title: 'Make your first payment',
         description: 'Start paying to Pix and MercadoPago QR codes',
         ctaLabel: 'Start Spending',
@@ -53,7 +69,7 @@ const STEPS: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = {
  * when sumsub is approved but a provider rejected the user, overrides
  * the deposit/outbound step with a "complete your setup" message.
  */
-export default function ActivationCTAs({ activationStep }: ActivationCTAsProps) {
+export default function ActivationCTAs({ activationStep, onDismissCard }: ActivationCTAsProps) {
     const router = useRouter()
     const { setIsQRScannerOpen, setIsSupportModalOpen } = useModalsContext()
     const { hasFixableRejection, hasBlockedRejection, primaryRejection } = useProviderRejectionStatus()
@@ -70,7 +86,8 @@ export default function ActivationCTAs({ activationStep }: ActivationCTAsProps) 
 
     // provider rejection overrides the step copy when user is past the verify step
     // (sumsub approved but provider rejected — deposit/outbound CTAs are useless)
-    const hasProviderRejection = activationStep !== 'verify' && (hasFixableRejection || hasBlockedRejection)
+    const hasProviderRejection =
+        activationStep !== 'verify' && activationStep !== 'card' && (hasFixableRejection || hasBlockedRejection)
 
     const step: StepConfig | null = useMemo(() => {
         if (activationStep === 'completed' && !hasProviderRejection) return null
@@ -79,6 +96,7 @@ export default function ActivationCTAs({ activationStep }: ActivationCTAsProps) 
             if (hasFixableRejection) {
                 return {
                     icon: 'globe-lock',
+                    iconBg: 'bg-primary-1',
                     title: 'Complete your setup',
                     description:
                         primaryRejection?.userMessage || 'We need an updated document before you can add money.',
@@ -89,6 +107,7 @@ export default function ActivationCTAs({ activationStep }: ActivationCTAsProps) 
             // blocked
             return {
                 icon: 'globe-lock',
+                iconBg: 'bg-primary-1',
                 title: 'Verification issue',
                 description: 'Contact support for help with your verification.',
                 ctaLabel: 'Contact support',
@@ -104,7 +123,7 @@ export default function ActivationCTAs({ activationStep }: ActivationCTAsProps) 
     return (
         <Card position="single" className="p-0">
             <div className="flex flex-col items-center justify-center gap-3 px-4 py-6">
-                <div className="flex size-12 items-center justify-center rounded-full bg-primary-1">
+                <div className={`flex size-12 items-center justify-center rounded-full ${step.iconBg}`}>
                     <Icon name={step.icon} size={24} />
                 </div>
                 <div className="w-full text-center">
@@ -127,6 +146,11 @@ export default function ActivationCTAs({ activationStep }: ActivationCTAsProps) 
                 >
                     {step.ctaLabel}
                 </Button>
+                {step.dismissable && onDismissCard && (
+                    <button type="button" onClick={onDismissCard} className="text-sm font-medium text-black underline">
+                        Maybe later
+                    </button>
+                )}
             </div>
         </Card>
     )

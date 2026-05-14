@@ -1,7 +1,7 @@
 'use client'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import React, { createContext, useCallback, useContext, useState } from 'react'
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 type ToastType = 'success' | 'error' | 'info' | 'warning'
@@ -74,13 +74,18 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
         }, toast.duration)
     }, [])
 
-    const contextValue: ToastContextType = {
-        toast: createToast,
-        success: (message, options) => createToast({ ...options, type: 'success', message }),
-        error: (message, options) => createToast({ ...options, type: 'error', message }),
-        info: (message, options) => createToast({ ...options, type: 'info', message }),
-        warning: (message, options) => createToast({ ...options, type: 'warning', message }),
-    }
+    // Memoized so consumers that include this in effect/callback dep arrays
+    // don't re-fire on every render. createToast is already useCallback-stable.
+    const contextValue: ToastContextType = useMemo(
+        () => ({
+            toast: createToast,
+            success: (message, options) => createToast({ ...options, type: 'success', message }),
+            error: (message, options) => createToast({ ...options, type: 'error', message }),
+            info: (message, options) => createToast({ ...options, type: 'info', message }),
+            warning: (message, options) => createToast({ ...options, type: 'warning', message }),
+        }),
+        [createToast]
+    )
 
     const getPositionClasses = (position: ToastPosition = 'top-right') => {
         const positions: Record<ToastPosition, string> = {

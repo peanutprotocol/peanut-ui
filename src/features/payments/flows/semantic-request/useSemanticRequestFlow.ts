@@ -14,16 +14,16 @@
  */
 
 import { useCallback, useMemo, useEffect, useContext, useState } from 'react'
-import { type Address, type Hash } from 'viem'
+import { parseUnits, type Address, type Hash } from 'viem'
 import { useSemanticRequestFlowContext } from './SemanticRequestFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
-import { useRouteCalculation } from '@/features/payments/shared/hooks/useRouteCalculation'
+import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAuth } from '@/context/authContext'
 import { tokenSelectorContext } from '@/context'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
-import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import { ErrorHandler } from '@/utils/friendly-error.utils'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
@@ -68,31 +68,30 @@ export function useSemanticRequestFlow() {
     const { createCharge, fetchCharge, isCreating: isCreatingCharge, isFetching: isFetchingCharge } = useChargeManager()
     const { recordPayment, isRecording } = usePaymentRecorder()
     const {
-        route: calculatedRoute,
         transactions: routeTransactions,
         estimatedGasCostUsd: calculatedGasCost,
-        calculateRoute,
+        receiveAmount: calculatedReceiveAmount,
+        payAmount: calculatedPayAmount,
+        feeUsd: calculatedFeeUsd,
+        calculate: calculateRoute,
         isCalculating: isCalculatingRoute,
         isFeeEstimationError,
         error: routeError,
         reset: resetRoute,
-    } = useRouteCalculation()
+    } = useCrossChainTransfer()
     const {
         isConnected,
         address: walletAddress,
         sendMoney,
         sendTransactions,
-        formattedBalance,
-        hasSufficientBalance,
-        isFetchingBalance,
+        formattedSpendableBalance,
+        hasSufficientSpendableBalance: hasSufficientBalance,
+        isFetchingSpendableBalance,
     } = useWallet()
 
     // use token selector context for ui integration
     const { selectedChainID, selectedTokenAddress, selectedTokenData, setSelectedChainID, setSelectedTokenAddress } =
         useContext(tokenSelectorContext)
-
-    // route expiry state
-    const [isRouteExpired, setIsRouteExpired] = useState(false)
 
     const isLoggedIn = !!user?.user?.userId
 
@@ -175,13 +174,18 @@ export function useSemanticRequestFlow() {
     }, [amount, hasSufficientBalance])
 
     // check if should show insufficient balance error
-    // gate on !isFetchingBalance to avoid flash while balance is still loading
+    // gate on !isFetchingSpendableBalance (NOT isFetchingBalance) so we wait
+    // for BOTH the smart-account AND the Rain collateral query to settle
+    // before deciding the user has insufficient funds. Otherwise a user with
+    // (smart < amount < smart+collateral) sees a flash of "insufficient" while
+    // collateral is still loading, which redirects them to /add-money even
+    // though useSpendBundle would route through collateral.
     const isInsufficientBalance = useMemo(() => {
         return (
             isLoggedIn &&
             !!amount &&
             !hasEnoughBalance &&
-            !isFetchingBalance &&
+            !isFetchingSpendableBalance &&
             !isLoading &&
             !isCreatingCharge &&
             !isFetchingCharge &&
@@ -192,7 +196,7 @@ export function useSemanticRequestFlow() {
         isLoggedIn,
         amount,
         hasEnoughBalance,
-        isFetchingBalance,
+        isFetchingSpendableBalance,
         isLoading,
         isCreatingCharge,
         isFetchingCharge,
@@ -291,8 +295,19 @@ export function useSemanticRequestFlow() {
                 // if cross-chain or different token → go to confirm view
                 if (isSameChainSameToken) {
                     // direct payment - same as old flow when isPeanutWallet && same token/chain
-                    const txResult = await sendMoney(recipient.resolvedAddress, amount)
-                    const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
+                    const txResult = await sendMoney(recipient.resolvedAddress, amount, {
+                        kind: 'REQUEST_PAY',
+                        // Lets the backend settle the charge directly when the spend
+                        // routes through Rain card collateral (the on-chain validator
+                        // can't verify a collateral-contract tx). recordPayment below
+                        // is then routed through the same trusted-completion path.
+                        chargeId: chargeResult.uuid,
+                    })
+                    // For the collateral-only strategy useSpendBundle returns only
+                    // `txHash` (Rain coordinator submits the on-chain tx). Fall
+                    // back to it so card-collateral users don't get an
+                    // undefined hash here.
+                    const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash ?? txResult.txHash) as Hash
                     setTxHash(hash)
 
                     // record payment
@@ -364,8 +379,6 @@ export function useSemanticRequestFlow() {
     const prepareRoute = useCallback(async () => {
         if (!charge || !walletAddress || !selectedTokenData || !selectedChainID) return
 
-        setIsRouteExpired(false)
-
         // check if charge is for same chain and same token (no route needed)
         const isChargeSameChainToken =
             charge.chainId === PEANUT_WALLET_CHAIN.id.toString() &&
@@ -387,10 +400,12 @@ export function useSemanticRequestFlow() {
                     tokenType: 1, // ERC20
                     chainId: charge.chainId,
                 },
-                usdAmount: usdAmount || amount,
+                context: 'pay-request',
+                contextId: charge.uuid,
+                senderPeanutWalletAddress: walletAddress as Address,
             })
         }
-    }, [charge, walletAddress, selectedTokenData, selectedChainID, needsRoute, calculateRoute, usdAmount, amount])
+    }, [charge, walletAddress, selectedTokenData, selectedChainID, needsRoute, calculateRoute])
 
     // fetch charge from url if chargeIdFromUrl is present but charge is not loaded
     useEffect(() => {
@@ -452,24 +467,7 @@ export function useSemanticRequestFlow() {
         }
     }, [currentView, charge, prepareRoute])
 
-    // handle route expiry - sets state, useEffect will trigger refetch
-    const handleRouteExpired = useCallback(() => {
-        setIsRouteExpired(true)
-    }, [])
-
-    // auto-refetch route when expired
-    useEffect(() => {
-        if (isRouteExpired && currentView === 'CONFIRM' && !isLoading && !isCalculatingRoute) {
-            prepareRoute()
-        }
-    }, [isRouteExpired, currentView, isLoading, isCalculatingRoute, prepareRoute])
-
-    // handle route near expiry - refetch immediately
-    const handleRouteNearExpiry = useCallback(() => {
-        if (!isLoading && !isCalculatingRoute) {
-            prepareRoute()
-        }
-    }, [isLoading, isCalculatingRoute, prepareRoute])
+    // SDA deposit addresses don't expire — no route-expiry handlers needed.
 
     // execute payment from confirm view (handles both same-chain and cross-chain)
     const executePayment = useCallback(async () => {
@@ -491,16 +489,42 @@ export function useSemanticRequestFlow() {
 
             if (isChargeSameChainToken) {
                 // direct payment for same-chain same-token (e.g. direct requests)
-                const txResult = await sendMoney(charge.requestLink.recipientAddress as Address, charge.tokenAmount)
-                hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
+                const txResult = await sendMoney(charge.requestLink.recipientAddress as Address, charge.tokenAmount, {
+                    kind: 'REQUEST_PAY',
+                    // See sibling site (~line 297): lets the backend settle the
+                    // charge directly when the spend routes through Rain card
+                    // collateral; recordPayment below is routed through the same
+                    // trusted-completion path.
+                    chargeId: charge.uuid,
+                })
+                // collateral-only routes return `txHash` only — see
+                // sibling site at line ~293 for the same fallback.
+                hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash ?? txResult.txHash) as Hash
             } else if (needsRoute && routeTransactions && routeTransactions.length > 0) {
-                // cross-chain or token swap payment via squid route
+                // cross-chain or token swap payment via Rhino SDA. Pass
+                // `requiredUsdcAmount = payAmount` (principal + Rhino fee on SDA
+                // path) so a collateral-only payer auto-tops-up the kernel from
+                // their card before the route's transfer fires; without this,
+                // `useWallet.sendTransactions` falls through to the smart-only
+                // legacy path and the spend reverts with ERC20 insufficient
+                // balance. payAmount is null only when the route hasn't been
+                // calculated yet — gated by `needsRoute && routeTransactions`.
+                const requiredUsdcAmount = calculatedPayAmount
+                    ? parseUnits(calculatedPayAmount, PEANUT_WALLET_TOKEN_DECIMALS)
+                    : undefined
                 const txResult = await sendTransactions(
                     routeTransactions.map((tx) => ({
                         to: tx.to,
                         data: tx.data,
                         value: tx.value,
-                    }))
+                    })),
+                    requiredUsdcAmount !== undefined
+                        ? {
+                              chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                              requiredUsdcAmount,
+                              kind: 'REQUEST_PAY',
+                          }
+                        : undefined
                 )
                 hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
             } else {
@@ -510,6 +534,10 @@ export function useSemanticRequestFlow() {
             setTxHash(hash)
 
             // record payment to backend
+            // Under the Rhino SDA flow, BRIDGE_EXECUTED webhook is authoritative
+            // for charge completion — this recordPayment writes the optimistic row
+            // so UI + history update immediately. Cross-chain
+            // path uses the SDA-address + bridgeId correlation in the backend.
             const paymentResult = await recordPayment({
                 chargeId: charge.uuid,
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
@@ -519,7 +547,6 @@ export function useSemanticRequestFlow() {
                 sourceChainId: selectedChainID || undefined,
                 sourceTokenAddress: selectedTokenAddress || undefined,
                 sourceTokenSymbol: selectedTokenData?.symbol,
-                squidQuoteId: calculatedRoute?.rawResponse?.route?.quoteId,
             })
 
             setPayment(paymentResult)
@@ -547,6 +574,7 @@ export function useSemanticRequestFlow() {
         charge,
         needsRoute,
         routeTransactions,
+        calculatedPayAmount,
         selectedChainID,
         selectedTokenAddress,
         selectedTokenData,
@@ -568,7 +596,6 @@ export function useSemanticRequestFlow() {
         setCurrentView('INITIAL')
         setCharge(null)
         resetRoute()
-        setIsRouteExpired(false)
         removeChargeIdFromUrl()
     }, [setCurrentView, setCharge, resetRoute, removeChargeIdFromUrl])
 
@@ -596,13 +623,13 @@ export function useSemanticRequestFlow() {
         isExternalWalletPayment,
 
         // route calculation state (for confirm view)
-        calculatedRoute,
         routeTransactions,
         calculatedGasCost,
+        calculatedReceiveAmount,
+        calculatedFeeUsd,
         isCalculatingRoute,
         isFeeEstimationError,
         routeError,
-        isRouteExpired,
 
         // computed
         canProceed,
@@ -611,7 +638,7 @@ export function useSemanticRequestFlow() {
         isConnected,
         isLoggedIn,
         walletAddress,
-        formattedBalance,
+        formattedBalance: formattedSpendableBalance,
         isXChain,
         isDiffToken,
         needsRoute,
@@ -634,8 +661,6 @@ export function useSemanticRequestFlow() {
         goBackToInitial,
         resetSemanticRequestFlow,
         setCurrentView,
-        handleRouteExpired,
-        handleRouteNearExpiry,
         setIsExternalWalletPayment,
     }
 }

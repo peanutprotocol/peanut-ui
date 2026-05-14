@@ -1,6 +1,6 @@
+import { getAuthToken } from '@/utils/auth-token'
 import { custom, type Transport } from 'viem'
 import { jsonStringify } from './general.utils'
-import Cookies from 'js-cookie'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export function createBackendRpcTransport(chainId: number): Transport {
@@ -8,7 +8,7 @@ export function createBackendRpcTransport(chainId: number): Transport {
         async request({ method, params }) {
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                Authorization: `Bearer ${getAuthToken()}`,
             }
 
             const response = await fetch(`${PEANUT_API_URL}/rpc/proxy`, {
@@ -44,7 +44,7 @@ export function createBackendBundlerTransport(chainId: number): Transport {
         async request({ method, params }) {
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+                Authorization: `Bearer ${getAuthToken()}`,
             }
 
             const response = await fetch(`${PEANUT_API_URL}/rpc/bundler`, {
@@ -117,7 +117,7 @@ export async function requestPaymasterSponsorship(
 
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${Cookies.get('jwt-token')}`,
+        Authorization: `Bearer ${getAuthToken()}`,
     }
 
     const response = await fetch(`${PEANUT_API_URL}/rpc/paymaster`, {

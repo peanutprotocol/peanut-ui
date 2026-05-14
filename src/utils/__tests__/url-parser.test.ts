@@ -35,9 +35,9 @@ jest.mock('@/lib/validation/recipient', () => {
     }
 })
 
-// mock Squid data
-jest.mock('@/app/actions/squid', () => ({
-    getSquidChainsAndTokens: () => ({
+// mock chain + token data
+jest.mock('@/app/actions/supported-chains', () => ({
+    getSupportedChainsAndTokens: () => ({
         '1': {
             chainId: 1,
             name: 'Ethereum',
@@ -57,10 +57,6 @@ jest.mock('@/app/actions/squid', () => ({
         '8453': {
             chainId: '8453',
             name: 'Base',
-            networkIdentifier: 'base',
-            chainName: 'Chain 8453',
-            axelarChainName: 'base',
-            type: 'evm',
             networkName: 'Base',
             tokens: [
                 {
@@ -69,7 +65,6 @@ jest.mock('@/app/actions/squid', () => ({
                     chainId: '8453',
                     name: 'ETH',
                     decimals: 18,
-                    active: true,
                 },
                 {
                     symbol: 'USDC',
@@ -77,7 +72,6 @@ jest.mock('@/app/actions/squid', () => ({
                     chainId: '8453',
                     name: 'USDC',
                     decimals: 6,
-                    active: true,
                 },
             ],
         },
@@ -97,32 +91,6 @@ jest.mock('@/lib/url-parser/parser.consts', () => ({
         '1': ['eth', 'ethereum'],
         '42161': ['arbitrum', 'arb'],
         '8453': ['base'],
-    },
-}))
-
-jest.mock('@/lib/validation/resolvers/chain-resolver', () => ({
-    resolveChainId: (chainIdentifier: string | number): string => {
-        const chainMap: { [key: string]: string } = {
-            eth: '1',
-            ethereum: '1',
-            arbitrum: '42161',
-            base: '8453',
-            '1': '1',
-            '42161': '42161',
-            '8453': '8453',
-        }
-        if (!chainMap[chainIdentifier.toString()]) {
-            throw new Error(`Chain ${chainIdentifier} is either not supported or invalid`)
-        }
-        return chainMap[chainIdentifier.toString()]
-    },
-    getReadableChainName: (chainId: string | number) => {
-        const nameMap: { [key: string]: string } = {
-            '1': 'Ethereum',
-            '42161': 'Arbitrum',
-            '8453': 'Base',
-        }
-        return nameMap[chainId.toString()] || 'Unknown Chain'
     },
 }))
 

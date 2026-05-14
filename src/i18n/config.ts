@@ -17,6 +17,8 @@ export const ROUTE_SLUGS = [
     'stories',
     'pricing',
     'supported-networks',
+    'terms',
+    'privacy',
 ] as const
 
 export type RouteSlug = (typeof ROUTE_SLUGS)[number]
@@ -68,8 +70,5 @@ export function getBareAlternates(...segments: string[]): Record<string, string>
 export function isValidLocale(locale: string): locale is Locale {
     return SUPPORTED_LOCALES.includes(locale as Locale)
 }
-
-/** Non-default locales (used in generateStaticParams for [locale] segment) */
-export const NON_DEFAULT_LOCALES = SUPPORTED_LOCALES.filter((l) => l !== DEFAULT_LOCALE)
 
 export { SUPPORTED_LOCALES, DEFAULT_LOCALE, type Locale }

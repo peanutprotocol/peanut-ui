@@ -34,7 +34,20 @@ try {
 let nextConfig = {
     env: {
         NEXT_PUBLIC_GIT_COMMIT_HASH: gitCommitHash,
+        // Vercel injects VERCEL_ENV and VERCEL_GIT_COMMIT_REF server-side at
+        // build time. Re-export as NEXT_PUBLIC_* so the client bundle (and
+        // src/utils/sentry-env.ts in particular) can read them too.
+        NEXT_PUBLIC_VERCEL_ENV: process.env.VERCEL_ENV,
+        NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF: process.env.VERCEL_GIT_COMMIT_REF,
     },
+
+    // Next.js 16 blocks cross-origin dev requests (HMR, chunk loads) unless
+    // explicitly allowed. Comma-separated list via env so contributors can add
+    // their own tunnel/ngrok hostnames without touching this file.
+    allowedDevOrigins: (process.env.NEXT_ALLOWED_DEV_ORIGINS ?? 'peanut.mucu.dev')
+        .split(',')
+        .map((o) => o.trim())
+        .filter(Boolean),
     images: {
         remotePatterns: [
             {
@@ -113,14 +126,30 @@ let nextConfig = {
                 },
             ],
             afterFiles: [
-                // PostHog reverse proxy — bypasses ad blockers
+                // PostHog reverse proxy — bypasses ad blockers. Path renamed
+                // from /ingest/ (which uBlock Origin's default lists block as
+                // a known PostHog signature, causing retry storms in the
+                // console). Keep this name innocuous; rotate again if it
+                // gets added to the lists.
                 {
-                    source: '/ingest/static/:path*',
+                    source: '/relay/static/:path*',
                     destination: 'https://eu-assets.i.posthog.com/static/:path*',
                 },
                 {
-                    source: '/ingest/:path*',
+                    source: '/relay/:path*',
                     destination: 'https://eu.i.posthog.com/:path*',
+                },
+                // Same-origin passkey path. The backend's /passkeys/{login,register}/verify
+                // returns Set-Cookie: jwt-token=… without a Domain attribute, so the cookie
+                // lands on whatever origin served the response. Direct calls to api.peanut.me
+                // would put the cookie on the wrong subdomain and break web login. This
+                // edge-level rewrite (no Vercel function, no fetch wrapping) keeps the
+                // request same-origin so Set-Cookie lands on peanut.me. Native bypasses
+                // this entirely — static export ignores rewrites and uses the direct
+                // URL + body-token pattern (see PASSKEY_SERVER_URL in zerodev.consts.ts).
+                {
+                    source: '/passkeys/:path*',
+                    destination: `${process.env.NEXT_PUBLIC_PEANUT_API_URL || 'https://api.peanut.me'}/passkeys/:path*`,
                 },
             ],
         }

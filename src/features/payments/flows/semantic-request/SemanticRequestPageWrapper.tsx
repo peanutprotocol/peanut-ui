@@ -17,7 +17,8 @@ import { parsePaymentURL, type ParseUrlError } from '@/lib/url-parser/parser'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { useEffect, useState } from 'react'
 import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { formatAmount } from '@/utils/general.utils'
@@ -27,7 +28,7 @@ interface SemanticRequestPageWrapperProps {
 }
 
 export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWrapperProps) {
-    const router = useRouter()
+    const onBack = useSafeBack('/home')
     const searchParams = useSearchParams()
     const chargeIdFromUrl = searchParams.get('chargeId')
 
@@ -37,14 +38,8 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
 
     // parse the url segments
     useEffect(() => {
-        if (!recipient || recipient.length === 0) {
-            setError({ message: 'Invalid URL format' } as ParseUrlError)
-            setIsLoading(false)
-            return
-        }
-
-        // If we have a chargeId, skip URL parsing - charge will provide all needed data
-        // Use a dummy parsedUrl to satisfy the component contract
+        // if we have a chargeId, skip URL parsing — charge will provide all needed data.
+        // check this before recipient validation so /pay-request?chargeId=X works with empty recipient.
         if (chargeIdFromUrl) {
             setParsedUrl({
                 recipient: null, // Will be populated from charge
@@ -52,6 +47,12 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
                 token: undefined,
                 chain: undefined,
             })
+            setIsLoading(false)
+            return
+        }
+
+        if (!recipient || recipient.length === 0) {
+            setError({ message: 'Invalid URL format' } as ParseUrlError)
             setIsLoading(false)
             return
         }
@@ -85,7 +86,7 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
     if (isLoading) {
         return (
             <div className="flex min-h-[inherit] w-full flex-col gap-4">
-                <NavHeader title="Pay" onPrev={() => router.back()} />
+                <NavHeader title="Pay" onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
                     <PeanutLoading />
                 </div>
@@ -97,7 +98,7 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
     if (error || !parsedUrl) {
         return (
             <div className="flex w-full flex-col gap-4">
-                <NavHeader title="Pay" onPrev={() => router.back()} />
+                <NavHeader title="Pay" onPrev={onBack} />
                 <ErrorAlert description={error?.message || 'invalid payment url'} />
             </div>
         )

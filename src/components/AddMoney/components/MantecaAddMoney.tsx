@@ -2,7 +2,9 @@
 import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
+import { addMoneyCountryUrl } from '@/utils/native-routes'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { type CountryData, countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useCurrency } from '@/hooks/useCurrency'
@@ -31,6 +33,7 @@ type CurrencyDenomination = 'USD' | 'ARS' | 'BRL' | 'MXN' | 'EUR'
 
 const MantecaAddMoney: FC = () => {
     const params = useParams()
+    const searchParams = useSearchParams()
     const queryClient = useQueryClient()
 
     // URL state - persisted in query params
@@ -60,10 +63,12 @@ const MantecaAddMoney: FC = () => {
     const [error, setError] = useState<string | null>(null)
     const [depositDetails, setDepositDetails] = useState<MantecaDepositResponseData>()
 
-    const selectedCountryPath = params.country as string
+    // path params (web) or query params (native static export)
+    const selectedCountryPath = (params.country as string) || searchParams.get('country') || ''
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
+    const onBack = useSafeBack(addMoneyCountryUrl(selectedCountryPath))
     const { isUserSumsubKycApproved } = useKycStatus()
     const { isVerifiedForCountry } = useIdentityVerification()
     const { manteca: mantecaRejection } = useProviderRejectionStatus()
@@ -223,6 +228,14 @@ const MantecaAddMoney: FC = () => {
                     visible={showKycModal}
                     onClose={() => setShowKycModal(false)}
                     onVerify={async () => {
+                        if (mantecaRejection.state === 'blocked') {
+                            // blocked users cannot self-heal — route to support
+                            if (typeof window !== 'undefined' && (window as any).$crisp) {
+                                ;(window as any).$crisp.push(['do', 'chat:open'])
+                            }
+                            setShowKycModal(false)
+                            return
+                        }
                         const hasRejection = mantecaRejection.state === 'fixable'
                         if (hasRejection) {
                             await sumsubFlow.handleSelfHealResubmit('MANTECA')
@@ -256,6 +269,7 @@ const MantecaAddMoney: FC = () => {
                     setDisplayedAmount={handleDisplayedAmountChange}
                     limitsValidation={limitsValidation}
                     limitsCurrency={limitsValidation.currency}
+                    onBack={onBack}
                 />
             </>
         )
@@ -266,7 +280,13 @@ const MantecaAddMoney: FC = () => {
         if (!depositDetails) {
             return null
         }
-        return <MantecaDepositShareDetails depositDetails={depositDetails} currencyAmount={localCurrencyAmount} />
+        return (
+            <MantecaDepositShareDetails
+                depositDetails={depositDetails}
+                currencyAmount={localCurrencyAmount}
+                onBack={() => setUrlState({ step: 'inputAmount' })}
+            />
+        )
     }
 
     return null

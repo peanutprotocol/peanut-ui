@@ -16,8 +16,8 @@ interface QRBottomDrawerProps {
 const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, className }: QRBottomDrawerProps) => {
     const contentRef = useRef<HTMLDivElement>(null)
 
-    const snapPoints = [0.75, 1] // 75%, 100% of screen height
-    const [activeSnapPoint, setActiveSnapPoint] = useState<number | string | null>(snapPoints[0]) // Start with the smallest snap point
+    const snapPoints = [0.75, 1]
+    const [activeSnapPoint, setActiveSnapPoint] = useState<number | string | null>(snapPoints[0])
 
     const handleSnapPointChange = (snapPoint: number | string | null) => {
         setActiveSnapPoint(snapPoint)

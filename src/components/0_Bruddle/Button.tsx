@@ -66,6 +66,12 @@ const buttonSizes: Record<ButtonSize, string> = {
     large: 'btn-large',
 }
 
+const buttonIconSizes: Record<ButtonSize, number> = {
+    small: 16,
+    medium: 16,
+    large: 18,
+}
+
 const buttonShadows: Record<ShadowType, Record<ShadowSize, string>> = {
     primary: {
         '3': 'btn-shadow-primary-3',
@@ -142,16 +148,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             className
         )
 
+        const resolvedIconSize = iconSize ?? (size && buttonIconSizes[size]) ?? 18
+
         const renderIcon = () => {
             if (!icon || loading) return null
             return (
                 <div className={twMerge('flex size-6 items-center justify-center', iconContainerClassName)}>
                     {typeof icon === 'string' ? (
-                        <Icon
-                            size={iconSize}
-                            name={icon as IconName}
-                            className={twMerge(!iconSize && 'min-h-4 min-w-4', iconClassName)}
-                        />
+                        <Icon size={resolvedIconSize} name={icon as IconName} className={iconClassName} />
                     ) : (
                         icon
                     )}

@@ -7,9 +7,11 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { printableUsdc } from '@/utils/balance.utils'
 import { getExchangeRateWidgetRedirectRoute } from '@/utils/exchangeRateWidget.utils'
 import { useRouter } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 
 export default function ExchangeRatePage() {
     const router = useRouter()
+    const onBack = useSafeBack('/profile', { replace: true })
     const { balance } = useWallet()
 
     const handleCtaAction = (sourceCurrency: string, destinationCurrency: string) => {
@@ -21,7 +23,7 @@ export default function ExchangeRatePage() {
 
     return (
         <PageContainer className="flex flex-col">
-            <NavHeader title="Exchange rate & fees" onPrev={() => router.replace('/profile')} />
+            <NavHeader title="Exchange rate & fees" onPrev={onBack} />
             <div className="m-auto">
                 <ExchangeRateWidget ctaIcon="arrow-down" ctaLabel="Try it!" ctaAction={handleCtaAction} />
             </div>

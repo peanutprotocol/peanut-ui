@@ -16,7 +16,7 @@ import { AccountType } from '@/interfaces'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
-import { useRouter } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { useMemo } from 'react'
 import { type Address } from 'viem'
 import type { DirectSendRecipient } from './DirectSendFlowContext'
@@ -27,7 +27,7 @@ interface DirectSendPageWrapperProps {
 }
 
 export function DirectSendPageWrapper({ username }: DirectSendPageWrapperProps) {
-    const router = useRouter()
+    const onBack = useSafeBack('/home')
     const { user, isLoading, error } = useUserByUsername(username)
 
     // resolve user to recipient
@@ -50,7 +50,7 @@ export function DirectSendPageWrapper({ username }: DirectSendPageWrapperProps) 
     if (isLoading) {
         return (
             <div className="flex min-h-[inherit] w-full flex-col gap-4">
-                <NavHeader title="Send" onPrev={() => router.back()} />
+                <NavHeader title="Send" onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
                     <PeanutLoading />
                 </div>
@@ -62,7 +62,7 @@ export function DirectSendPageWrapper({ username }: DirectSendPageWrapperProps) 
     if (error || !recipient) {
         return (
             <div className="flex w-full flex-col gap-4">
-                <NavHeader title="Send" onPrev={() => router.back()} />
+                <NavHeader title="Send" onPrev={onBack} />
                 <ErrorAlert description={error || `user @${username} not found or has no peanut wallet`} />
             </div>
         )

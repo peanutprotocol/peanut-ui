@@ -4,7 +4,7 @@ import ActionModal from '@/components/Global/ActionModal'
 import Card from '@/components/Global/Card'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import ShareButton from '@/components/Global/ShareButton'
-import { generateInviteCodeLink, generateInvitesShareText } from '@/utils/general.utils'
+import { generateInviteCodeLink } from '@/utils/general.utils'
 import { ANALYTICS_EVENTS, MODAL_TYPES, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
 import { useEffect, useRef } from 'react'
@@ -74,7 +74,7 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
                         </Card>
                     </div>
                     <ShareButton
-                        generateText={() => Promise.resolve(generateInvitesShareText(inviteLink))}
+                        url={inviteLink}
                         title="Share your invite link"
                         onSuccess={() => {
                             posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, { source })

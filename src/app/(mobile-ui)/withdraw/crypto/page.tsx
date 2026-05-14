@@ -17,26 +17,29 @@ import type {
     TRequestResponse,
 } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { captureMessage } from '@sentry/nextjs'
-import type { Address } from 'viem'
+import type { Address, Hex, TransactionReceipt } from 'viem'
+import { parseUnits } from 'viem'
 import { Slider } from '@/components/Slider'
 import { tokenSelectorContext } from '@/context'
 import { useHaptic } from 'use-haptic'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
-import { useRouteCalculation } from '@/features/payments/shared/hooks/useRouteCalculation'
+import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { isTxReverted } from '@/utils/general.utils'
-import { ErrorHandler } from '@/utils/sdkErrorHandler.utils'
+import { ErrorHandler } from '@/utils/friendly-error.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
-    const { isConnected: isPeanutWallet, address, sendTransactions } = useWallet()
+    const onBack = useSafeBack('/withdraw')
+    const { isConnected: isPeanutWallet, address, sendTransactions, sendMoney } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
     const {
         amountToWithdraw,
@@ -63,13 +66,17 @@ export default function WithdrawCryptoPage() {
 
     // hooks for route calculation and payment recording
     const {
-        route: xChainRoute,
         transactions,
+        receiveAmount,
+        payAmount,
+        feeUsd,
         isCalculating,
+        isXChain,
+        isDiffToken,
         error: routeError,
-        calculateRoute,
+        calculate: calculateRoute,
         reset: resetRouteCalculation,
-    } = useRouteCalculation()
+    } = useCrossChainTransfer()
 
     const { isRecording, error: recordError, recordPayment, reset: resetPaymentRecorder } = usePaymentRecorder()
 
@@ -126,13 +133,14 @@ export default function WithdrawCryptoPage() {
     // prepare transaction when entering confirm view
     useEffect(() => {
         if (currentView === 'CONFIRM' && chargeDetails && withdrawData && address) {
-            console.log('Preparing withdraw transaction details...')
-            console.dir(chargeDetails)
             calculateRoute({
                 source: {
                     address: address as Address,
-                    tokenAddress: PEANUT_WALLET_TOKEN,
+                    tokenAddress: PEANUT_WALLET_TOKEN as Address,
                     chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                    // amountToWithdraw is USD-denominated; source token is USDC (1:1).
+                    // Required for the bridge path's 'pay' mode (cross-chain ETH/etc).
+                    tokenAmount: amountToWithdraw,
                 },
                 destination: {
                     recipientAddress: chargeDetails.requestLink.recipientAddress as Address,
@@ -142,11 +150,13 @@ export default function WithdrawCryptoPage() {
                     tokenType: Number(chargeDetails.tokenType),
                     chainId: chargeDetails.chainId,
                 },
-                usdAmount: usdAmount,
+                context: 'withdraw',
+                contextId: chargeDetails.uuid,
+                senderPeanutWalletAddress: address as Address,
                 skipGasEstimate: true, // peanut wallet handles gas
             })
         }
-    }, [currentView, chargeDetails, withdrawData, calculateRoute, usdAmount, address])
+    }, [currentView, chargeDetails, withdrawData, calculateRoute, address, amountToWithdraw])
 
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
@@ -161,7 +171,17 @@ export default function WithdrawCryptoPage() {
             setIsPreparingReview(true)
 
             try {
-                const completeWithdrawData = { ...data, amount: amountToWithdraw }
+                // AmountInput's primary denomination is USD ($), so amountToWithdraw
+                // is the USD value the user typed. Convert to destination token
+                // units before persisting the request/charge — otherwise meta
+                // ends up with `tokenAmount: "1"` + `tokenSymbol: "ETH"` and
+                // history renders "1 ETH" for what was actually a $1 withdraw.
+                const usdValue = parseFloat(amountToWithdraw)
+                const tokenPrice = data.token.price ?? 0
+                const destinationTokenAmount =
+                    tokenPrice > 0 ? (usdValue / tokenPrice).toFixed(Number(data.token.decimals)) : amountToWithdraw
+
+                const completeWithdrawData = { ...data, amount: destinationTokenAmount }
                 setWithdrawData(completeWithdrawData)
                 const apiRequestPayload: CreateRequestPayloadServices = {
                     recipientAddress: completeWithdrawData.address,
@@ -172,7 +192,7 @@ export default function WithdrawCryptoPage() {
                             ? peanutInterfaces.EPeanutLinkType.native
                             : peanutInterfaces.EPeanutLinkType.erc20
                     ),
-                    tokenAmount: amountToWithdraw,
+                    tokenAmount: destinationTokenAmount,
                     tokenDecimals: completeWithdrawData.token.decimals.toString(),
                     tokenSymbol: completeWithdrawData.token.symbol,
                 }
@@ -184,12 +204,12 @@ export default function WithdrawCryptoPage() {
 
                 const chargePayload: CreateChargeRequest = {
                     pricing_type: 'fixed_price',
-                    local_price: { amount: completeWithdrawData.amount || amountToWithdraw, currency: 'USD' },
+                    local_price: { amount: usdValue.toString(), currency: 'USD' },
                     baseUrl: window.location.origin,
                     requestId: newRequest.uuid,
                     requestProps: {
                         chainId: completeWithdrawData.chain.chainId.toString(),
-                        tokenAmount: completeWithdrawData.amount,
+                        tokenAmount: destinationTokenAmount,
                         tokenAddress: completeWithdrawData.token.address,
                         tokenType:
                             completeWithdrawData.token.address.toLowerCase() === NATIVE_TOKEN_ADDRESS.toLowerCase()
@@ -240,6 +260,16 @@ export default function WithdrawCryptoPage() {
         }
     }, [chargeDetails, withdrawData, setCurrentView, setShowCompatibilityModal, setError])
 
+    // True when the withdraw needs a Rhino path (SDA or bridge swap) rather
+    // than a direct USDC transfer. Crosses a chain boundary OR a token
+    // boundary — `isCrossChainWithdrawal` historically only checked chains,
+    // which silently downgraded cross-token same-chain (USDC → ETH on Arb)
+    // to a plain USDC.transfer to the recipient.
+    const isCrossChainWithdrawal = useMemo<boolean>(() => {
+        if (!withdrawData || !chargeDetails) return false
+        return isXChain || isDiffToken
+    }, [withdrawData, chargeDetails, isXChain, isDiffToken])
+
     const handleConfirmWithdrawal = useCallback(async () => {
         if (!chargeDetails || !withdrawData || !amountToWithdraw || !address) {
             console.error('Withdraw data, active charge details, or amount missing for final confirmation')
@@ -262,27 +292,89 @@ export default function WithdrawCryptoPage() {
         })
 
         try {
-            // send transactions via peanut wallet
-            const txResult = await sendTransactions(transactions, PEANUT_WALLET_CHAIN.id.toString())
-            const receipt = txResult.receipt
-            const userOpHash = txResult.userOpHash
+            // For same-chain + same-token withdraws, useCrossChainTransfer
+            // produces a single `usdc.transfer(recipient, amount)` call. Route
+            // through sendMoney instead of sendTransactions so `useSpendBundle`
+            // can take the collateral-only path (directTransfer=true straight
+            // to the external recipient — no smart-account hop). Cross-chain
+            // goes through Rhino SDA on the kernel, so it stays on the
+            // sendTransactions mixed path.
+            let finalTxHash: Hex | undefined
+            let receipt: TransactionReceipt | null = null
+            // 'collateral-only' | 'smart-only' | 'mixed' — drives whether we call
+            // recordPayment (smart-only) or rely on the Rain webhook →
+            // TransactionIntent reconciliation path (collateral-only / mixed).
+            let strategy: 'collateral-only' | 'smart-only' | 'mixed' | undefined
+            // Backend TransactionIntent id — used to navigate to the unified
+            // receipt page for collateral/mixed spends.
+            let intentId: string | undefined
 
-            // validate transaction
-            if (receipt !== null && isTxReverted(receipt)) {
-                throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
+            if (!isCrossChainWithdrawal) {
+                const {
+                    userOpHash,
+                    txHash,
+                    receipt: r,
+                    strategy: s,
+                    intentId: i,
+                } = await sendMoney(withdrawData.address as Address, amountToWithdraw, { kind: 'CRYPTO_WITHDRAW' })
+                receipt = r
+                strategy = s
+                intentId = i
+                if (receipt !== null && isTxReverted(receipt)) {
+                    throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
+                }
+                finalTxHash = (receipt?.transactionHash as Hex | undefined) ?? userOpHash ?? txHash
+            } else {
+                // payAmount is the USDC the kernel actually needs on-hand to execute
+                // the first tx — principal + Rhino fee on the SDA path (mode='receive'),
+                // principal on the bridge path. Passing the principal alone here
+                // under-funds the mixed-strategy collateral sweep and the subsequent
+                // transfer reverts with `ERC20: transfer amount exceeds balance`.
+                const sourceUsdcAmount = payAmount ?? usdAmount.toString()
+                const requiredUsdcAmount = parseUnits(sourceUsdcAmount, PEANUT_WALLET_TOKEN_DECIMALS)
+                const txResult = await sendTransactions(transactions, {
+                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                    requiredUsdcAmount,
+                    kind: 'CRYPTO_WITHDRAW',
+                })
+                receipt = txResult.receipt
+                strategy = txResult.strategy
+                intentId = txResult.intentId
+                if (receipt !== null && isTxReverted(receipt)) {
+                    throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
+                }
+                finalTxHash = (receipt?.transactionHash as Hex | undefined) ?? txResult.userOpHash
             }
 
-            const finalTxHash = receipt?.transactionHash ?? userOpHash
+            if (!finalTxHash) throw new Error('Withdrawal returned no transaction identifier')
 
-            // record payment to backend
-            const payment = await recordPayment({
-                chargeId: chargeDetails.uuid,
-                chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                txHash: finalTxHash,
-                tokenAddress: PEANUT_WALLET_TOKEN,
-                payerAddress: address as Address,
-                squidQuoteId: xChainRoute?.rawResponse?.route?.quoteId,
-            })
+            // Skip recordPayment when funds moved via Rain collateral on a
+            // SAME-chain withdrawal — the charge indexer watches for
+            // smart-account-outgoing transfers, but a coordinator-driven
+            // withdraw moves USDC from the collateral proxy and would leave
+            // the Charge unmatched ("failed" in history). The Rain webhook +
+            // TransactionIntent reconciliation is the source of truth there.
+            //
+            // Cross-chain withdraws ALWAYS need recordPayment to fire — the
+            // BE validator's cross-chain branch transitions the charge intent
+            // to COMPLETED directly (trusts the source-chain submission since
+            // Rhino owns delivery downstream). Without this call the intent
+            // gets stuck at PENDING because nothing else triggers the
+            // transition for the bridge-path (depositWithId, mode='pay')
+            // flow we use for non-stable destinations.
+            const routedThroughCollateral = strategy === 'collateral-only' || strategy === 'mixed'
+            const skipRecordPayment = routedThroughCollateral && !isCrossChainWithdrawal
+
+            let payment: Awaited<ReturnType<typeof recordPayment>> | null = null
+            if (!skipRecordPayment) {
+                payment = await recordPayment({
+                    chargeId: chargeDetails.uuid,
+                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                    txHash: finalTxHash,
+                    tokenAddress: PEANUT_WALLET_TOKEN as Address,
+                    payerAddress: address as Address,
+                })
+            }
 
             setTransactionHash(finalTxHash)
             setPaymentDetails(payment)
@@ -309,7 +401,11 @@ export default function WithdrawCryptoPage() {
         amountToWithdraw,
         address,
         transactions,
+        payAmount,
+        usdAmount,
         sendTransactions,
+        sendMoney,
+        isCrossChainWithdrawal,
         recordPayment,
         setCurrentView,
         setTransactionHash,
@@ -319,44 +415,11 @@ export default function WithdrawCryptoPage() {
         triggerHaptic,
     ])
 
-    const handleRouteRefresh = useCallback(async () => {
-        if (!chargeDetails || !address) return
-        console.log('Refreshing withdraw route due to expiry...')
-        await calculateRoute({
-            source: {
-                address: address as Address,
-                tokenAddress: PEANUT_WALLET_TOKEN,
-                chainId: PEANUT_WALLET_CHAIN.id.toString(),
-            },
-            destination: {
-                recipientAddress: chargeDetails.requestLink.recipientAddress as Address,
-                tokenAddress: chargeDetails.tokenAddress as Address,
-                tokenAmount: chargeDetails.tokenAmount,
-                tokenDecimals: chargeDetails.tokenDecimals,
-                tokenType: Number(chargeDetails.tokenType),
-                chainId: chargeDetails.chainId,
-            },
-            usdAmount: usdAmount,
-            skipGasEstimate: true,
-        })
-    }, [chargeDetails, calculateRoute, usdAmount, address])
-
     const handleBackFromConfirm = useCallback(() => {
         setCurrentView('INITIAL')
         clearErrors()
         setChargeDetails(null)
     }, [setCurrentView, clearErrors, setChargeDetails])
-
-    // check if this is a cross-chain withdrawal
-    const isCrossChainWithdrawal = useMemo<boolean>(() => {
-        if (!withdrawData || !chargeDetails) return false
-
-        // in withdraw flow, we're moving from Peanut Wallet to the selected chain
-        const fromChainId = isPeanutWallet ? PEANUT_WALLET_CHAIN.id.toString() : withdrawData.chain.chainId
-        const toChainId = chargeDetails.chainId
-
-        return fromChainId !== toChainId
-    }, [withdrawData, chargeDetails, isPeanutWallet])
 
     // reset withdraw flow when this component unmounts
     useEffect(() => {
@@ -367,35 +430,12 @@ export default function WithdrawCryptoPage() {
         }
     }, [resetRouteCalculation, resetPaymentRecorder, resetTokenContextProvider])
 
-    // Check for route type errors (similar to payment flow)
-    const routeTypeError = useMemo<string | null>(() => {
-        if (!isCrossChainWithdrawal || !xChainRoute || !isPeanutWallet) return null
-
-        // For peanut wallet flows, only RFQ routes are allowed
-        if (xChainRoute.type === 'swap') {
-            captureMessage('No RFQ route found for this token pair', {
-                level: 'warning',
-                extra: {
-                    flow: 'withdraw',
-                    routeObject: xChainRoute,
-                },
-            })
-            return ROUTE_NOT_FOUND_ERROR
-        }
-
-        return null
-    }, [isCrossChainWithdrawal, xChainRoute, isPeanutWallet])
-
     // Display payment errors first (user actions), then route errors (system limitations)
-    const displayError = paymentError ?? routeTypeError
+    const displayError = paymentError
 
-    // Get network fee from route or fallback
-    const networkFee = useMemo<number>(() => {
-        if (xChainRoute?.feeCostsUsd) {
-            return xChainRoute.feeCostsUsd
-        }
-        return 0
-    }, [xChainRoute])
+    // Get network fee from Rhino preview. Under SDA the fee is a transparent
+    // bridge-fee in USD — no slippage distinction.
+    const networkFee = useMemo<number>(() => feeUsd ?? 0, [feeUsd])
 
     if (!amountToWithdraw && currentView !== 'STATUS') {
         // Redirect to main withdraw page for amount input
@@ -411,7 +451,7 @@ export default function WithdrawCryptoPage() {
                 <InitialWithdrawView
                     amount={usdAmount}
                     onReview={handleSetupReview}
-                    onBack={() => router.back()}
+                    onBack={onBack}
                     isProcessing={isPreparingReview}
                 />
             )}
@@ -427,12 +467,9 @@ export default function WithdrawCryptoPage() {
                     isProcessing={isProcessing}
                     error={displayError}
                     networkFee={networkFee}
-                    // timer props for cross-chain withdrawals
                     isCrossChain={isCrossChainWithdrawal}
-                    routeExpiry={xChainRoute?.expiry}
-                    isRouteLoading={isCalculating}
-                    onRouteRefresh={handleRouteRefresh}
-                    xChainRoute={xChainRoute ?? undefined}
+                    isCalculating={isCalculating}
+                    receiveAmount={receiveAmount}
                 />
             )}
 

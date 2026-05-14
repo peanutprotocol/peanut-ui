@@ -1,3 +1,8 @@
+'use client'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { getAuthToken } from '@/utils/auth-token'
+import { isCapacitor } from '@/utils/capacitor'
 import { Suspense } from 'react'
 import { LandingPageShell } from '@/components/LandingPage/LandingPageShell'
 import { LandingPageClient } from '@/components/LandingPage/LandingPageClient'
@@ -11,7 +16,20 @@ import { faqSchema } from '@/lib/seo/schemas'
 import { JsonLd } from '@/components/Marketing/JsonLd'
 import { heroConfig, faqData, marqueeMessages } from '@/components/LandingPage/landingPageData'
 
-export default function LandingPage() {
+export default function RootPage() {
+    const router = useRouter()
+
+    useEffect(() => {
+        // native app has no landing page — go straight to home or setup
+        if (isCapacitor()) {
+            const token = getAuthToken()
+            router.replace(token ? '/home' : '/setup')
+        }
+    }, [router])
+
+    // native app: render nothing while redirecting
+    if (isCapacitor()) return null
+
     const faqJsonLd = faqSchema(faqData.questions.map((q) => ({ question: q.question, answer: q.answer })))
 
     return (

@@ -8,6 +8,9 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { getColorForUsername } from '@/utils/color.utils'
 import Image, { type StaticImageData } from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
+import { withdrawBankUrl, rewriteMethodPath } from '@/utils/native-routes'
+import { isCapacitor } from '@/utils/capacitor'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -44,6 +47,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const router = useRouter()
     const params = useParams()
     const searchParams = useSearchParams()
+    const onBack = useSafeBack(flow === 'add' ? '/add-money' : '/withdraw')
 
     // check if coming from send flow and what type
     const methodParam = searchParams.get('method')
@@ -84,9 +88,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         if (sumsubFlow.showWrapper) setIsKycModalOpen(false)
     }, [sumsubFlow.showWrapper])
 
-    const countryPathParts = Array.isArray(params.country) ? params.country : [params.country]
-    const isBankPage = countryPathParts[countryPathParts.length - 1] === 'bank'
-    const countrySlugFromUrl = isBankPage ? countryPathParts.slice(0, -1).join('-') : countryPathParts.join('-')
+    // read country from path params (web: /add-money/india) or query params (native: /add-money?country=india)
+    const countryFromQuery = searchParams.get('country')
+    const viewFromQuery = searchParams.get('view')
+    const rawCountry = countryFromQuery || params.country
+    const countryPathParts = Array.isArray(rawCountry) ? rawCountry : [rawCountry].filter(Boolean)
+    const isBankPage = viewFromQuery === 'bank' || countryPathParts[countryPathParts.length - 1] === 'bank'
+    const countrySlugFromUrl =
+        isBankPage && !viewFromQuery ? countryPathParts.slice(0, -1).join('-') : countryPathParts.join('-')
 
     const currentCountry = countryData.find(
         (country) => country.type === 'country' && country.path === countrySlugFromUrl
@@ -149,7 +158,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
             if (currentCountry) {
                 const queryParams = isBankFromSend ? `?method=${methodParam}` : ''
-                router.push(`/withdraw/${currentCountry.path}/bank${queryParams}`)
+                router.push(withdrawBankUrl(currentCountry.path, queryParams))
             }
             return {}
         }
@@ -169,9 +178,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
         if (method.path && method.path.includes('/manteca')) {
             // Manteca methods route directly (has own amount input)
-            const separator = method.path.includes('?') ? '&' : '?'
-            const additionalParams = isBankFromSend ? `${separator}method=${methodParam}` : ''
-            router.push(`${method.path}${additionalParams}`)
+            const extraParams = isBankFromSend ? `method=${methodParam}` : undefined
+            router.push(rewriteMethodPath(method.path, extraParams))
         } else if (method.id.includes('default-bank-withdraw') || method.id.includes('sepa-instant-withdraw')) {
             if (isUserBridgeKycUnderReview) {
                 setShowKycStatusModal(true)
@@ -195,10 +203,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             })
             router.push(`/withdraw${methodQueryParam}`)
         } else if (method.path) {
-            // Other methods with paths
-            const separator = method.path.includes('?') ? '&' : '?'
-            const additionalParams = isBankFromSend ? `${separator}method=${methodParam}` : ''
-            router.push(`${method.path}${additionalParams}`)
+            // other methods with paths — rewrite dynamic routes for native
+            const extraParams = isBankFromSend ? `method=${methodParam}` : undefined
+            router.push(rewriteMethodPath(method.path, extraParams))
         }
     }
 
@@ -214,7 +221,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 return
             }
 
-            router.push(method.path)
+            const target = rewriteMethodPath(method.path)
+            // force full navigation in capacitor — router.push to same page with
+            // different query params doesn't trigger useSearchParams re-render in static export
+            if (isCapacitor() && target.startsWith(window.location.pathname)) {
+                window.location.href = target
+            } else {
+                router.push(target)
+            }
         }
     }
 
@@ -249,7 +263,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     if (!currentCountry) {
         return (
             <div className="space-y-8 self-start">
-                <NavHeader title="Not Found" onPrev={() => router.back()} />
+                <NavHeader title="Not Found" onPrev={onBack} />
                 <EmptyState title="Country not found" description="Please try a different country." icon="search" />
             </div>
         )
@@ -415,7 +429,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         router.push(`/withdraw?method=${methodParam}`)
                     } else {
                         setSelectedMethod(null)
-                        router.back()
+                        onBack()
                     }
                 }}
             />

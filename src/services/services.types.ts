@@ -1,5 +1,5 @@
 import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 
 export type TStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED' | 'SUCCESSFUL' | 'CANCELLED'
 
@@ -210,7 +210,10 @@ export interface TRequestChargeResponse {
     }
 }
 
-enum EHistoryEntryType {
+// Event types for the per-request history log (request-creation, claim,
+// cashout). Distinct from the unified `/users/history` wire shape — keep
+// this namespace separate so the two histories don't collide.
+enum ERequestHistoryEventType {
     CLAIM = 'CLAIM',
     REQUEST = 'REQUEST',
     CASHOUT = 'CASHOUT',
@@ -222,7 +225,7 @@ enum EHistoryUserRole {
     BOTH = 'BOTH',
 }
 
-export type HistoryEntryType = `${EHistoryEntryType}`
+export type RequestHistoryEventType = `${ERequestHistoryEventType}`
 export type HistoryUserRole = `${EHistoryUserRole}`
 
 export type Account = {
@@ -234,7 +237,7 @@ export type Account = {
 
 export type TRequestHistory = {
     uuid: string
-    type: HistoryEntryType
+    type: RequestHistoryEventType
     timestamp: Date
     amount: string
     txHash: string
@@ -245,15 +248,6 @@ export type TRequestHistory = {
     userRole: HistoryUserRole
     senderAccount?: Account
     recipientAccount: Account
-}
-
-export type RewardLink = {
-    link: string
-    assetCode: string
-    campaign: {
-        id: string
-        name: string
-    }
 }
 
 // offramp service types
@@ -306,34 +300,6 @@ export interface TCreateOfframpResponse {
     depositAddress: string
     deposit_chain_id: number
     deposit_token_address: string
-}
-
-// manteca service types
-export interface CreateQrPaymentRequest {
-    qrCode: string
-    amount?: string
-}
-
-export interface QrPaymentDetails {
-    paymentAsset?: string
-    paymentAssetAmount?: string
-    paymentPrice?: string
-    priceExpireAt?: string
-}
-
-export interface QrPaymentResponse {
-    id: string
-    externalId: string
-    sessionId: string
-    status: string
-    currentStage: string
-    details?: QrPaymentDetails
-    stages?: any[]
-}
-
-export interface CreateQrPaymentResponse {
-    qrPayment: QrPaymentResponse
-    charge: TRequestChargeResponse
 }
 
 export enum ESendLinkStatus {
@@ -493,4 +459,13 @@ export interface DepositAddressStatusResponse {
     chainIn?: string
     tokenSymbol?: string
     tokenAmount?: string
+}
+
+export type RewardLink = {
+    link: string
+    assetCode: string
+    campaign: {
+        id: string
+        name: string
+    }
 }

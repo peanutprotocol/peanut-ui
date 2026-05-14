@@ -1,9 +1,10 @@
 'use client'
 
 import NavHeader from '@/components/Global/NavHeader'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { useMemo } from 'react'
 import { countryData } from '@/components/AddMoney/consts'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import ShareButton from '@/components/Global/ShareButton'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -21,11 +22,13 @@ import { shortenStringLong, formatCurrency } from '@/utils/general.utils'
 const MantecaDepositShareDetails = ({
     depositDetails,
     currencyAmount,
+    onBack,
 }: {
     depositDetails: MantecaDepositResponseData
     currencyAmount?: string | undefined
+    // Parent owns step navigation — usually a setUrlState({ step: 'inputAmount' }).
+    onBack: () => void
 }) => {
-    const router = useRouter()
     const params = useParams()
     const currentCountryName = params.country as string
 
@@ -83,14 +86,14 @@ const MantecaDepositShareDetails = ({
 
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
-            <NavHeader title={'Add Money'} onPrev={router.back} />
+            <NavHeader title={'Add Money'} onPrev={onBack} />
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
                 {/* Amount Display Card */}
                 <Card className="p-4">
                     <div className="flex items-center space-x-3">
                         <div className="relative h-12 w-12">
                             <Image
-                                src={`https://flagcdn.com/w160/${countryCodeForFlag}.png`}
+                                src={getFlagUrl(countryCodeForFlag)}
                                 alt={`flag`}
                                 width={48}
                                 height={48}

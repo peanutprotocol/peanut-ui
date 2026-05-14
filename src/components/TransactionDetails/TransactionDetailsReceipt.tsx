@@ -12,8 +12,7 @@ import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import { BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME } from '@/constants/payment.consts'
-import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
@@ -21,14 +20,8 @@ import useClaimLink from '@/components/Claim/useClaimLink'
 import { formatAmount, formatDate, isStableCoin, formatCurrency } from '@/utils/general.utils'
 import { formatPoints } from '@/utils/format.utils'
 import { getAvatarUrl } from '@/utils/history.utils'
-import {
-    formatIban,
-    getContributorsFromCharge,
-    printableAddress,
-    shortenAddress,
-    shortenStringLong,
-    slugify,
-} from '@/utils/general.utils'
+import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
+import { maskAccountIdentifier } from '@/utils/account-mask.utils'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
@@ -44,32 +37,32 @@ import QRCodeWrapper from '../Global/QRCodeWrapper'
 import ShareButton from '../Global/ShareButton'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
 import CopyToClipboard from '../Global/CopyToClipboard'
-import MoreInfo from '../Global/MoreInfo'
 import CancelSendLinkModal from '../Global/CancelSendLinkModal'
 import { twMerge } from 'tailwind-merge'
 import { isAddress } from 'viem'
-import {
-    getBankAccountLabel,
-    type TransactionDetailsRowKey,
-    transactionDetailsRowKeys,
-} from './transaction-details.utils'
+import { getBankAccountLabel } from './transaction-details.utils'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useRouter } from 'next/navigation'
-import { countryData } from '@/components/AddMoney/consts'
+import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import {
-    MANTECA_COUNTRIES_CONFIG,
-    MANTECA_ARG_DEPOSIT_CUIT,
-    MANTECA_ARG_DEPOSIT_NAME,
-} from '@/constants/manteca.consts'
-import { mantecaApi } from '@/services/manteca'
+    isPerkReward as isPerkRewardTransaction,
+    isRequestEntry,
+    isSendLinkEntry,
+    usesCompletedTimestampLabel,
+} from './transaction-predicates'
+import { useReceiptViewModel } from './useReceiptViewModel'
+import { CardPaymentRows } from './provider-rows/CardPaymentRows'
+import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
+import { BridgeDepositInstructions } from './provider-rows/BridgeDepositInstructions'
+import { CancelDepositActions } from './provider-actions/CancelDepositActions'
+import { PerkRewardReceipt } from './provider-receipts/PerkRewardReceipt'
 import { getReceiptUrl } from '@/utils/history.utils'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import ContributorCard from '../Global/Contributors/ContributorCard'
 import { requestsApi } from '@/services/requests'
 import { PasskeyDocsLink } from '../Setup/Views/SignTestTransaction'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
-import { generateInviteCodeLink, generateInvitesShareText } from '@/utils/general.utils'
+import { generateInviteCodeLink } from '@/utils/general.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -103,7 +96,6 @@ export const TransactionDetailsReceipt = ({
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
     const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
-    const [showBankDetails, setShowBankDetails] = useState(false)
     const [showCancelLinkModal, setShowCancelLinkModal] = useState(false)
     const [tokenData, setTokenData] = useState<{ symbol: string; icon: string } | null>(null)
     const [isTokenDataLoading, setIsTokenDataLoading] = useState(true)
@@ -118,226 +110,24 @@ export const TransactionDetailsReceipt = ({
         setIsModalOpen?.(showCancelLinkModal)
     }, [showCancelLinkModal, setIsModalOpen])
 
-    const isGuestBankClaim = useMemo(() => {
-        if (!transaction) return false
-        return transaction.extraDataForDrawer?.originalType === EHistoryEntryType.BANK_SEND_LINK_CLAIM
-    }, [transaction])
-
-    const isPendingBankRequest = useMemo(() => {
-        if (!transaction) return false
-        return (
-            transaction.status === 'pending' &&
-            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.REQUEST &&
-            transaction.extraDataForDrawer?.fulfillmentType === 'bridge'
-        )
-    }, [transaction])
-
-    // check if token is usdc on arbitrum to hide token/network section
-    const isPeanutWalletToken = useMemo(() => {
-        if (!transaction) return false
-        const tokenSymbol = transaction.tokenSymbol?.toUpperCase()
-        const chainName = transaction.tokenDisplayDetails?.chainName?.toLowerCase()
-        return tokenSymbol === PEANUT_WALLET_TOKEN_SYMBOL && chainName === PEANUT_WALLET_CHAIN.name.toLowerCase()
-    }, [transaction])
-
-    // config to determine which rows are visible in the receipt
-    // this helps in managing layout and borders without repeating code
-    const rowVisibilityConfig = useMemo((): Record<TransactionDetailsRowKey, boolean> => {
-        if (!transaction) {
-            // if no transaction, return all false
-            return transactionDetailsRowKeys.reduce(
-                (acc, key) => {
-                    acc[key] = false
-                    return acc
-                },
-                {} as Record<TransactionDetailsRowKey, boolean>
-            )
-        }
-
-        // if transaction exists, calculate visibility for each row
-        return {
-            createdAt: !!transaction.createdAt,
-            to: transaction.direction === 'claim_external',
-            tokenAndNetwork: !!(
-                transaction.tokenDisplayDetails &&
-                transaction.sourceView === 'history' &&
-                !isPeanutWalletToken &&
-                // hide token and network for send links in acitvity drawer for sender
-                !(
-                    transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK &&
-                    transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
-                ) &&
-                // hide token and network for refunded entries
-                transaction.status !== 'refunded'
-            ),
-            txId: !!transaction.txHash,
-            // show cancelled row if status is cancelled, use cancelledDate or fallback to createdAt
-            cancelled: transaction.status === 'cancelled',
-            claimed: !!(transaction.status === 'completed' && transaction.claimedAt),
-            completed: !!(
-                transaction.status === 'completed' &&
-                transaction.completedAt &&
-                transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.DIRECT_SEND
-            ),
-            refunded: transaction.status === 'refunded',
-            fee: transaction.fee !== undefined && transaction.status !== 'cancelled',
-            exchangeRate: !!(
-                (transaction.direction === 'bank_deposit' ||
-                    transaction.direction === 'qr_payment' ||
-                    transaction.direction === 'bank_withdraw') &&
-                transaction.currency?.code &&
-                transaction.currency.code.toUpperCase() !== 'USD' &&
-                transaction.status !== 'cancelled'
-            ),
-            bankAccountDetails: !!(
-                transaction.bankAccountDetails &&
-                transaction.bankAccountDetails.identifier &&
-                transaction.status !== 'cancelled'
-            ),
-            transferId: !!(
-                transaction.id &&
-                (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') &&
-                transaction.status !== 'cancelled'
-            ),
-            depositInstructions: !!(
-                (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.BRIDGE_ONRAMP ||
-                    (isPendingBankRequest &&
-                        transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER)) &&
-                transaction.status === 'pending' &&
-                transaction.extraDataForDrawer?.depositInstructions &&
-                transaction.extraDataForDrawer.depositInstructions.bank_name
-            ),
-            peanutFee: false, // Perk fee logic removed - perks now show as separate transactions
-            points: !!(transaction.points && transaction.points > 0 && transaction.status !== 'cancelled'),
-            comment: !!(transaction.memo?.trim() && transaction.status !== 'cancelled'),
-            networkFee: !!(
-                transaction.networkFeeDetails &&
-                transaction.sourceView === 'status' &&
-                transaction.status !== 'cancelled'
-            ),
-            attachment: !!(transaction.attachmentUrl && transaction.status !== 'cancelled'),
-            mantecaDepositInfo:
-                !isPublic &&
-                transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP &&
-                transaction.status === 'pending',
-            closed: !!(transaction.status === 'closed' && transaction.cancelledDate),
-        }
-    }, [transaction, isPendingBankRequest])
-
-    const country = useMemo(() => {
-        if (!transaction?.currency?.code) return undefined
-        return countryData.find((c) => c.currency === transaction.currency?.code)
-    }, [transaction?.currency?.code])
-
-    const visibleRows = useMemo(() => {
-        // filter rowkeys to only include visible rows, maintaining the order
-        return transactionDetailsRowKeys.filter((key) => rowVisibilityConfig[key])
-    }, [rowVisibilityConfig])
-
-    // helper to hide border for the last visible row
-    const shouldHideBorder = (rowKey: TransactionDetailsRowKey) => {
-        const lastVisibleRow = visibleRows[visibleRows.length - 1]
-        return rowKey === lastVisibleRow
-    }
-
-    // reusable helper to get the last visible row in a specific group
-    const getLastVisibleInGroup = (groupKeys: TransactionDetailsRowKey[]) => {
-        const visibleInGroup = groupKeys.filter((key) => rowVisibilityConfig[key])
-        return visibleInGroup[visibleInGroup.length - 1]
-    }
-
-    // define row groups
-    const rowGroups = useMemo(
-        () => ({
-            dateRows: ['createdAt', 'cancelled', 'claimed', 'completed', 'closed'] as TransactionDetailsRowKey[],
-            txnDetails: ['tokenAndNetwork', 'txId'] as TransactionDetailsRowKey[],
-            fees: ['networkFee', 'peanutFee'] as TransactionDetailsRowKey[],
-        }),
-        []
-    )
-
-    // get last visible row for each group
-    const lastVisibleInGroups = useMemo(
-        () => ({
-            dateRows: getLastVisibleInGroup(rowGroups.dateRows),
-            txnDetails: getLastVisibleInGroup(rowGroups.txnDetails),
-            fees: getLastVisibleInGroup(rowGroups.fees),
-        }),
-        [rowVisibilityConfig]
-    )
-
-    // @dev TODO: Enable grouped borders when tackling receipt changes
-    // reusable helper to check if border should be hidden for a row in a specific group
-    const shouldHideGroupBorder = (rowKey: TransactionDetailsRowKey, groupName: keyof typeof rowGroups) => {
-        const isLastInGroup = rowKey === lastVisibleInGroups[groupName]
-        const isGlobalLast = shouldHideBorder(rowKey)
-
-        // if it's the last in its group, show border UNLESS it's also the global last
-        if (isLastInGroup) {
-            return isGlobalLast
-        }
-
-        // if not last in group, always hide border
-        return true
-    }
-
-    const isPendingRequestee = useMemo(() => {
-        if (!transaction) return false
-        return (
-            transaction.status === 'pending' &&
-            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.REQUEST &&
-            transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER &&
-            !transaction.extraDataForDrawer?.fulfillmentType
-        )
-    }, [transaction])
-
-    const isPendingRequester = useMemo(() => {
-        if (!transaction) return false
-        return (
-            transaction.status === 'pending' &&
-            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.REQUEST &&
-            transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.RECIPIENT
-        )
-    }, [transaction])
-
-    const isPendingSentLink = useMemo(() => {
-        if (!transaction) return false
-        return (
-            transaction.status === 'pending' &&
-            transaction.extraDataForDrawer?.originalType === EHistoryEntryType.SEND_LINK &&
-            transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
-        )
-    }, [transaction])
-
-    const shouldShowShareReceipt = useMemo(() => {
-        if (isPublic) return false
-        if (!transaction || isPendingSentLink || isPendingRequester || isPendingRequestee) return false
-        if (transaction?.txHash && transaction.direction !== 'receive' && transaction.direction !== 'request_sent')
-            return true
-        if (
-            [
-                EHistoryEntryType.MANTECA_QR_PAYMENT,
-                EHistoryEntryType.SIMPLEFI_QR_PAYMENT,
-                EHistoryEntryType.MANTECA_OFFRAMP,
-                EHistoryEntryType.MANTECA_ONRAMP,
-            ].includes(transaction.extraDataForDrawer!.originalType)
-        )
-            return true
-        return false
-    }, [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee])
-
-    const isQRPayment =
-        transaction &&
-        [EHistoryEntryType.MANTECA_QR_PAYMENT, EHistoryEntryType.SIMPLEFI_QR_PAYMENT].includes(
-            transaction.extraDataForDrawer!.originalType
-        )
-
-    const requestPotContributors = useMemo(() => {
-        if (!transaction || !transaction.requestPotPayments) return []
-        return getContributorsFromCharge(transaction.requestPotPayments)
-    }, [transaction])
-
-    const formattedTotalAmountCollected = formatCurrency(transaction?.totalAmountCollected?.toString() ?? '0', 2, 0)
+    // All derived row-visibility / status / share-receipt state lives in the
+    // hook so this component stays focused on JSX + callbacks.
+    const {
+        isGuestBankClaim,
+        isPendingBankRequest,
+        isPeanutWalletToken,
+        isPendingRequestee,
+        isPendingRequester,
+        isPendingSentLink,
+        isQRPayment,
+        country,
+        rowVisibilityConfig,
+        shouldHideBorder,
+        shouldHideGroupBorder,
+        shouldShowShareReceipt,
+        requestPotContributors,
+        formattedTotalAmountCollected,
+    } = useReceiptViewModel(transaction, { isPublic })
 
     useEffect(() => {
         const getTokenDetails = async () => {
@@ -388,10 +178,24 @@ export const TransactionDetailsReceipt = ({
 
     const convertedAmount = useMemo(() => {
         if (!transaction) return null
-        if (!transaction?.extraDataForDrawer?.receipt?.exchange_rate) {
-            return null
+        // Preference order:
+        //   1. Local fiat (e.g. ARS for Manteca on/off-ramps) via currency.code/amount
+        //   2. Destination token (e.g. ETH for cross-token withdraw) via amount + tokenSymbol
+        //      — full decimals here, not truncated, so the receipt is auditable.
+        // USD-pegged stablecoins are skipped (same rule as TransactionCard).
+        const code = transaction.currency?.code
+        const amount = transaction.currency?.amount
+        if (code && amount) {
+            const upper = code.toUpperCase()
+            if (upper !== 'USD' && !isStableCoin(upper)) {
+                return `${upper} ${formatCurrency(amount)}`
+            }
         }
-        return `${transaction.currency!.code} ${formatCurrency(transaction.currency!.amount)}`
+        const tokenSymbol = transaction.tokenSymbol?.toUpperCase()
+        if (tokenSymbol && tokenSymbol !== 'USD' && !isStableCoin(tokenSymbol) && transaction.tokenAmount) {
+            return `${transaction.tokenAmount} ${tokenSymbol}`
+        }
+        return null
     }, [transaction])
 
     if (!transaction) return null
@@ -418,24 +222,22 @@ export const TransactionDetailsReceipt = ({
 
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
-    // determine if the qr code and sharing section should be shown
-    // conditions: status is pending, there's a link, and it's a send_link/request sent by the user, or a request received by the user.
+    // QR + Share + Cancel block: pending, has a link, and either the sender of
+    // a send-link OR the recipient of a request. Both gates route through the
+    // kind-keyed predicates so adding a new flow only needs a predicate update.
     const shouldShowQrShare =
         transaction.status === 'pending' &&
-        transaction.extraDataForDrawer?.link &&
-        ((transaction.extraDataForDrawer.originalType === EHistoryEntryType.SEND_LINK &&
+        !!transaction.extraDataForDrawer?.link &&
+        ((isSendLinkEntry(transaction) &&
             transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.SENDER) ||
-            (transaction.extraDataForDrawer.originalType === EHistoryEntryType.REQUEST &&
+            (isRequestEntry(transaction) &&
                 transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.RECIPIENT))
 
     const getLabelText = (transaction: TransactionDetails) => {
-        if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.WITHDRAW) {
-            return 'Completed'
-        } else if (transaction.extraDataForDrawer?.originalType === EHistoryEntryType.DEPOSIT) {
-            return 'Completed'
-        } else {
-            return transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER ? 'Sent' : 'Received'
-        }
+        // Bank off-ramps / on-ramps / bank claims → "Completed" (lifecycle
+        // milestone of a bank transfer, not a peer interaction).
+        if (usesCompletedTimestampLabel(transaction)) return 'Completed'
+        return transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER ? 'Sent' : 'Received'
     }
 
     if (transaction.isRequestPotLink && Number(transaction.amount) > 0) {
@@ -476,102 +278,18 @@ export const TransactionDetailsReceipt = ({
         }
     }
     // Special rendering for PERK_REWARD type
-    const isPerkReward = transaction.extraDataForDrawer?.originalType === EHistoryEntryType.PERK_REWARD
+    const isPerkReward = isPerkRewardTransaction(transaction)
     const perkRewardData = transaction.extraDataForDrawer?.perkReward
 
     if (isPerkReward && perkRewardData) {
         return (
-            <div ref={contentRef} className={twMerge('space-y-4', className)}>
-                {/* Perk Reward Header - Top section with logo, amount, and status */}
-                <Card position="single" className="px-4 py-6">
-                    <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                            <PerkIcon size="medium" />
-                            <div className="flex flex-col">
-                                <h2 className="text-lg font-semibold text-gray-900">Peanut Reward</h2>
-                                <p className="text-2xl font-bold text-gray-900">{amountDisplay}</p>
-                            </div>
-                        </div>
-                        <div className="flex-shrink-0">
-                            {transaction.status === 'completed' ? (
-                                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
-                                    Completed
-                                </span>
-                            ) : transaction.status === 'pending' || transaction.status === 'processing' ? (
-                                <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-700">
-                                    Processing
-                                </span>
-                            ) : (
-                                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                                    {transaction.status}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                    <p className="mt-3 text-sm text-gray-600">Earn rewards every time your friends use Peanut.</p>
-                </Card>
-
-                {/* Perk Details - Middle section with date, reason, and link */}
-                <Card position="single" className="px-4 py-0">
-                    <PaymentInfoRow
-                        label="Received"
-                        value={formatDate(new Date(transaction.date))}
-                        hideBottomBorder={false}
-                    />
-                    {/*
-                     * HACK: Strip payment UUID from reason field.
-                     *
-                     * The backend stores the payment UUID in the reason field for idempotency
-                     * (e.g., "Alice became a Card Pioneer! (payment: uuid)") because PerkUsage
-                     * lacks a dedicated requestPaymentUuid field. The code in purchase-listener.ts
-                     * uses `reason: { contains: paymentUuid }` to prevent duplicate perk issuance.
-                     *
-                     * Proper fix (backend): Add requestPaymentUuid field to PerkUsage model with
-                     * a unique constraint @@unique([userId, perkId, requestPaymentUuid]), similar
-                     * to how mantecaTransferId/bridgeTransferId/simplefiTransferId are handled.
-                     * Then store clean reason text without the UUID suffix.
-                     */}
-                    <PaymentInfoRow
-                        label="Reason"
-                        value={perkRewardData.reason.replace(/\s*\(payment:\s*[a-f0-9-]+\)/i, '')}
-                        // hideBottomBorder={!perkRewardData.originatingTxId}
-                        hideBottomBorder={true}
-                    />
-                    {/* 
-                    
-                    {perkRewardData.originatingTxId && (
-                        <PaymentInfoRow
-                            label="Originating payment"
-                            value={
-                                <button
-                                    className="flex items-center gap-1 text-sm font-medium text-primary-1 hover:underline"
-                                    onClick={() => {
-                                        // Close current drawer so user can find the transaction in history
-                                        if (onClose) {
-                                            onClose()
-                                        }
-                                        // Navigate to home where they can see both transactions
-                                        router.push('/home')
-                                    }}
-                                >
-                                    <span>View in history</span>
-                                    <Icon name="arrow-up-right" size={12} />
-                                </button>
-                            }
-                            hideBottomBorder={true}
-                        />
-                    )} */}
-                </Card>
-
-                {/* Support link section */}
-                <button
-                    onClick={() => setIsSupportModalOpen(true)}
-                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
-                >
-                    <Icon name="peanut-support" size={16} className="text-grey-1" />
-                    Issues with this transaction?
-                </button>
-            </div>
+            <PerkRewardReceipt
+                transaction={transaction}
+                perkRewardData={perkRewardData}
+                amountDisplay={amountDisplay}
+                contentRef={contentRef}
+                className={className}
+            />
         )
     }
 
@@ -603,6 +321,7 @@ export const TransactionDetailsReceipt = ({
                 convertedAmount={convertedAmount ?? undefined}
                 showFullName={transaction.showFullName}
                 fullName={transaction.fullName}
+                countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
             />
 
             {/* Perk eligibility banner */}
@@ -776,7 +495,7 @@ export const TransactionDetailsReceipt = ({
                                         className="flex items-center gap-2 hover:underline"
                                     >
                                         <span>{shortenStringLong(transaction.txHash)}</span>
-                                        <Icon name="external-link" size={12} />
+                                        <Icon name="external-link" size={14} />
                                     </Link>
                                 ) : (
                                     <div className="flex items-center gap-2">
@@ -789,39 +508,16 @@ export const TransactionDetailsReceipt = ({
                         />
                     )}
 
+                    {rowVisibilityConfig.cardPayment && (
+                        <CardPaymentRows transaction={transaction} isLastRow={shouldHideBorder('cardPayment')} />
+                    )}
+
                     {rowVisibilityConfig.fee && (
                         <PaymentInfoRow label="Fee" value={feeDisplay} hideBottomBorder={shouldHideBorder('fee')} />
                     )}
 
                     {rowVisibilityConfig.mantecaDepositInfo && (
-                        <>
-                            {transaction.extraDataForDrawer?.receipt?.depositDetails?.depositAddress && (
-                                <PaymentInfoRow
-                                    label={
-                                        country
-                                            ? (MANTECA_COUNTRIES_CONFIG[country.id]?.depositAddressLabel ??
-                                              'Deposit Address')
-                                            : 'Deposit Address'
-                                    }
-                                    value={transaction.extraDataForDrawer.receipt.depositDetails.depositAddress}
-                                    allowCopy
-                                />
-                            )}
-
-                            {transaction.extraDataForDrawer?.receipt?.depositDetails?.depositAlias && (
-                                <PaymentInfoRow
-                                    label="Alias"
-                                    value={transaction.extraDataForDrawer.receipt.depositDetails.depositAlias}
-                                    allowCopy
-                                />
-                            )}
-                            {country?.id === 'AR' && (
-                                <>
-                                    <PaymentInfoRow label="Razón Social" value={MANTECA_ARG_DEPOSIT_NAME} />
-                                    <PaymentInfoRow label="CUIT" value={MANTECA_ARG_DEPOSIT_CUIT} />
-                                </>
-                            )}
-                        </>
+                        <MantecaDepositInfo transaction={transaction} country={country} />
                     )}
 
                     {/* Exchange rate and original currency for completed bank_deposit transactions */}
@@ -846,9 +542,15 @@ export const TransactionDetailsReceipt = ({
                                     <span>
                                         {isGuestBankClaim
                                             ? transaction.bankAccountDetails.identifier
-                                            : formatIban(transaction.bankAccountDetails.identifier)}
+                                            : maskAccountIdentifier(
+                                                  transaction.bankAccountDetails.identifier,
+                                                  transaction.bankAccountDetails.type
+                                              )}
                                     </span>
                                     {!isGuestBankClaim && (
+                                        // Copy yields the FULL identifier — masking is for
+                                        // visual privacy only; the user owns the account
+                                        // and may need to paste it elsewhere.
                                         <CopyToClipboard
                                             textToCopy={formatIban(transaction.bankAccountDetails.identifier)}
                                             iconSize="4"
@@ -873,257 +575,7 @@ export const TransactionDetailsReceipt = ({
                     )}
 
                     {/* Onramp deposit instructions for bridge_onramp transactions */}
-                    {rowVisibilityConfig.depositInstructions && transaction.extraDataForDrawer?.depositInstructions && (
-                        <>
-                            <PaymentInfoRow
-                                label={
-                                    <div className="flex items-center gap-1">
-                                        <span>Deposit Message</span>
-                                        <MoreInfo text="Make sure you enter this exact message as the transfer concept or description. If it's not included, the deposit can't be processed." />
-                                    </div>
-                                }
-                                value={
-                                    <div className="flex items-center gap-2">
-                                        <span>
-                                            {transaction.extraDataForDrawer.depositInstructions.deposit_message.slice(
-                                                0,
-                                                10
-                                            )}
-                                        </span>
-                                        <CopyToClipboard
-                                            textToCopy={transaction.extraDataForDrawer.depositInstructions.deposit_message.slice(
-                                                0,
-                                                10
-                                            )}
-                                            iconSize="4"
-                                        />
-                                    </div>
-                                }
-                                hideBottomBorder={false} // Always show the border for the deposit message
-                            />
-
-                            {/* Toggle button for bank details */}
-                            <div className="border-grey-11 border-b pb-3">
-                                <button
-                                    onClick={() => setShowBankDetails(!showBankDetails)}
-                                    className="flex w-full items-center justify-between py-3 text-left text-sm font-normal text-black underline transition-colors"
-                                >
-                                    <span>{showBankDetails ? 'Hide bank details' : 'See bank details'}</span>
-                                    <Icon
-                                        name="chevron-up"
-                                        className={`h-4 w-4 transition-transform ${!showBankDetails ? 'rotate-180' : ''}`}
-                                    />
-                                </button>
-                            </div>
-
-                            {/* Collapsible bank details */}
-
-                            {showBankDetails && (
-                                <>
-                                    {/* note: fallback to bridge as account holder name, to cover faster_payments onramp requests as bridge currently doesnt return an account holder name in api response */}
-                                    <PaymentInfoRow
-                                        label="Account Holder Name"
-                                        value={
-                                            transaction.extraDataForDrawer.depositInstructions.account_holder_name ||
-                                            BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME
-                                        }
-                                        allowCopy
-                                        hideBottomBorder={false}
-                                    />
-                                    <PaymentInfoRow
-                                        label="Bank Name"
-                                        value={
-                                            <div className="flex items-center gap-2">
-                                                <span>
-                                                    {transaction.extraDataForDrawer.depositInstructions.bank_name}
-                                                </span>
-                                                <CopyToClipboard
-                                                    textToCopy={
-                                                        transaction.extraDataForDrawer.depositInstructions.bank_name
-                                                    }
-                                                    iconSize="4"
-                                                />
-                                            </div>
-                                        }
-                                        hideBottomBorder={true}
-                                    />
-                                    <PaymentInfoRow
-                                        label="Bank Address"
-                                        value={
-                                            <div className="flex items-center gap-2">
-                                                <span>
-                                                    {transaction.extraDataForDrawer.depositInstructions.bank_address}
-                                                </span>
-                                                <CopyToClipboard
-                                                    textToCopy={
-                                                        transaction.extraDataForDrawer.depositInstructions.bank_address
-                                                    }
-                                                    iconSize="4"
-                                                />
-                                            </div>
-                                        }
-                                        hideBottomBorder={false}
-                                    />
-
-                                    {/* European format (IBAN/BIC) */}
-                                    {transaction.extraDataForDrawer.depositInstructions.iban &&
-                                    transaction.extraDataForDrawer.depositInstructions.bic ? (
-                                        <>
-                                            <PaymentInfoRow
-                                                label="IBAN"
-                                                value={
-                                                    <div className="flex items-center gap-2">
-                                                        <span>
-                                                            {formatIban(
-                                                                transaction.extraDataForDrawer.depositInstructions.iban
-                                                            )}
-                                                        </span>
-                                                        <CopyToClipboard
-                                                            textToCopy={formatIban(
-                                                                transaction.extraDataForDrawer.depositInstructions.iban
-                                                            )}
-                                                            iconSize="4"
-                                                        />
-                                                    </div>
-                                                }
-                                                hideBottomBorder={true}
-                                            />
-                                            <PaymentInfoRow
-                                                label="BIC"
-                                                value={
-                                                    <div className="flex items-center gap-2">
-                                                        <span>
-                                                            {transaction.extraDataForDrawer.depositInstructions.bic}
-                                                        </span>
-                                                        <CopyToClipboard
-                                                            textToCopy={
-                                                                transaction.extraDataForDrawer.depositInstructions.bic
-                                                            }
-                                                            iconSize="4"
-                                                        />
-                                                    </div>
-                                                }
-                                                hideBottomBorder={true}
-                                            />
-                                        </>
-                                    ) : transaction.extraDataForDrawer.depositInstructions.sort_code &&
-                                      transaction.extraDataForDrawer.depositInstructions.account_number ? (
-                                        /* UK faster_payments format (Sort Code/Account Number) */
-                                        <>
-                                            <PaymentInfoRow
-                                                label="Sort Code"
-                                                value={transaction.extraDataForDrawer.depositInstructions.sort_code}
-                                                allowCopy
-                                                hideBottomBorder
-                                            />
-                                            <PaymentInfoRow
-                                                label="Account Number"
-                                                value={
-                                                    transaction.extraDataForDrawer.depositInstructions.account_number
-                                                }
-                                                allowCopy
-                                                hideBottomBorder
-                                            />
-                                        </>
-                                    ) : (
-                                        /* US format (Account Number/Routing Number) */
-                                        <>
-                                            <PaymentInfoRow
-                                                label="Account Number"
-                                                value={
-                                                    <div className="flex items-center gap-2">
-                                                        <span>
-                                                            {
-                                                                transaction.extraDataForDrawer.depositInstructions
-                                                                    .bank_account_number
-                                                            }
-                                                        </span>
-                                                        <CopyToClipboard
-                                                            textToCopy={
-                                                                transaction.extraDataForDrawer.depositInstructions
-                                                                    .bank_account_number!
-                                                            }
-                                                            iconSize="4"
-                                                        />
-                                                    </div>
-                                                }
-                                                hideBottomBorder={false}
-                                            />
-                                            <PaymentInfoRow
-                                                label="Routing Number"
-                                                value={
-                                                    <div className="flex items-center gap-2">
-                                                        <span>
-                                                            {
-                                                                transaction.extraDataForDrawer.depositInstructions
-                                                                    .bank_routing_number
-                                                            }
-                                                        </span>
-                                                        <CopyToClipboard
-                                                            textToCopy={
-                                                                transaction.extraDataForDrawer.depositInstructions
-                                                                    .bank_routing_number!
-                                                            }
-                                                            iconSize="4"
-                                                        />
-                                                    </div>
-                                                }
-                                                hideBottomBorder={false}
-                                            />
-                                            {transaction.extraDataForDrawer.depositInstructions
-                                                .bank_beneficiary_name && (
-                                                <PaymentInfoRow
-                                                    label="Beneficiary Name"
-                                                    value={
-                                                        <div className="flex items-center gap-2">
-                                                            <span>
-                                                                {
-                                                                    transaction.extraDataForDrawer.depositInstructions
-                                                                        .bank_beneficiary_name
-                                                                }
-                                                            </span>
-                                                            <CopyToClipboard
-                                                                textToCopy={
-                                                                    transaction.extraDataForDrawer.depositInstructions
-                                                                        .bank_beneficiary_name
-                                                                }
-                                                                iconSize="4"
-                                                            />
-                                                        </div>
-                                                    }
-                                                    hideBottomBorder={true}
-                                                />
-                                            )}
-                                            {transaction.extraDataForDrawer.depositInstructions
-                                                .bank_beneficiary_address && (
-                                                <PaymentInfoRow
-                                                    label="Beneficiary Address"
-                                                    value={
-                                                        <div className="flex items-center gap-2">
-                                                            <span>
-                                                                {
-                                                                    transaction.extraDataForDrawer.depositInstructions
-                                                                        .bank_beneficiary_address
-                                                                }
-                                                            </span>
-                                                            <CopyToClipboard
-                                                                textToCopy={
-                                                                    transaction.extraDataForDrawer.depositInstructions
-                                                                        .bank_beneficiary_address
-                                                                }
-                                                                iconSize="4"
-                                                            />
-                                                        </div>
-                                                    }
-                                                    hideBottomBorder={true}
-                                                />
-                                            )}
-                                        </>
-                                    )}
-                                </>
-                            )}
-                        </>
-                    )}
+                    {rowVisibilityConfig.depositInstructions && <BridgeDepositInstructions transaction={transaction} />}
 
                     {rowVisibilityConfig.points && transaction.points && (
                         <PaymentInfoRow
@@ -1174,7 +626,7 @@ export const TransactionDetailsReceipt = ({
                                     className="flex items-center underline"
                                 >
                                     Download
-                                    <Icon name="download" className="h-3" />
+                                    <Icon name="download" size={14} />
                                 </Link>
                             }
                             hideBottomBorder
@@ -1192,8 +644,7 @@ export const TransactionDetailsReceipt = ({
                         Share Link
                     </ShareButton>
                     {/* show cancel button only if the current user sent the link/request */}
-                    {(transaction.extraDataForDrawer.originalType === EHistoryEntryType.SEND_LINK ||
-                        transaction.extraDataForDrawer.originalType === EHistoryEntryType.REQUEST) &&
+                    {(isSendLinkEntry(transaction) || isRequestEntry(transaction)) &&
                         transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.SENDER &&
                         setIsLoading &&
                         onClose && (
@@ -1205,14 +656,7 @@ export const TransactionDetailsReceipt = ({
                                 className="flex w-full items-center gap-1"
                                 shadowSize="4"
                             >
-                                <div className="flex items-center">
-                                    {!isLoading && (
-                                        <Icon
-                                            name="cancel"
-                                            className="mr-0.5 min-w-3 rounded-full border border-black p-0.5"
-                                        />
-                                    )}
-                                </div>
+                                <div className="flex items-center">{!isLoading && <Icon name="ban" size={18} />}</div>
                                 <span>{cancelLinkText}</span>
                             </Button>
                         )}
@@ -1229,9 +673,8 @@ export const TransactionDetailsReceipt = ({
             {isPendingRequester && setIsLoading && onClose && (
                 <div className="pr-1">
                     <Button
-                        icon="cancel"
-                        iconContainerClassName="border border-black w-4 h-4 mr-1 rounded-full"
-                        iconClassName="p-1"
+                        icon="ban"
+                        iconSize={18}
                         loading={isLoading}
                         disabled={isLoading}
                         onClick={closeRequestLink}
@@ -1253,13 +696,12 @@ export const TransactionDetailsReceipt = ({
                         shadowSize="4"
                         className="flex w-full items-center gap-1"
                     >
-                        <Icon name="currency" />
+                        <Icon name="currency" size={18} />
                         Pay
                     </Button>
                     <Button
-                        icon="cancel"
-                        iconContainerClassName="border border-black w-4 h-4 mr-1 rounded-full"
-                        iconClassName="p-1"
+                        icon="ban"
+                        iconSize={18}
                         disabled={isLoading}
                         onClick={() => {
                             setIsLoading(true)
@@ -1290,7 +732,7 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
-            {isQRPayment && transaction.status !== 'refunded' && (
+            {!isPublic && isQRPayment && transaction.status !== 'refunded' && (
                 <Button
                     onClick={() => {
                         router.push(`/request?amount=${transaction.amount}&merchant=${transaction.userName}`)
@@ -1310,134 +752,21 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
-            {/* Cancel deposit button for bridge_onramp transactions in awaiting_funds state */}
-            {transaction.direction === 'bank_deposit' &&
-                transaction.extraDataForDrawer?.originalType !== EHistoryEntryType.REQUEST &&
-                transaction.status === 'pending' &&
-                transaction.extraDataForDrawer?.depositInstructions &&
-                setIsLoading &&
-                onClose && (
-                    <Button
-                        disabled={isLoading}
-                        onClick={async () => {
-                            setIsLoading(true)
-                            try {
-                                const result = await cancelOnramp(transaction.id)
+            <CancelDepositActions
+                transaction={transaction}
+                isPendingBankRequest={isPendingBankRequest}
+                isLoading={isLoading}
+                setIsLoading={setIsLoading}
+                onClose={onClose}
+            />
 
-                                if (result.error) {
-                                    throw new Error(result.error)
-                                }
-
-                                // Invalidate queries and close drawer
-                                queryClient
-                                    .invalidateQueries({
-                                        queryKey: [TRANSACTIONS],
-                                    })
-                                    .then(() => {
-                                        setIsLoading(false)
-                                        onClose()
-                                    })
-                            } catch (error) {
-                                captureException(error)
-                                console.error('Error canceling deposit:', error)
-                                setIsLoading(false)
-                            }
-                        }}
-                        variant={'primary-soft'}
-                        className="flex w-full items-center gap-1"
-                        shadowSize="4"
-                    >
-                        <div className="flex items-center">
-                            <Icon name="cancel" className="mr-0.5 min-w-3 rounded-full border border-black p-0.5" />
-                        </div>
-                        <span>Cancel deposit</span>
-                    </Button>
-                )}
-            {transaction.extraDataForDrawer?.originalType === EHistoryEntryType.MANTECA_ONRAMP &&
-                transaction.status === 'pending' &&
-                setIsLoading &&
-                onClose && (
-                    <Button
-                        disabled={isLoading}
-                        onClick={async () => {
-                            setIsLoading(true)
-                            try {
-                                const result = await mantecaApi.cancelDeposit(transaction.id)
-                                if (result.error) {
-                                    throw new Error(result.error)
-                                }
-                                // Invalidate queries and close drawer
-                                queryClient
-                                    .invalidateQueries({
-                                        queryKey: [TRANSACTIONS],
-                                    })
-                                    .then(() => {
-                                        setIsLoading(false)
-                                        onClose()
-                                    })
-                            } catch (error) {
-                                captureException(error)
-                                console.error('Error canceling deposit:', error)
-                                setIsLoading(false)
-                            }
-                        }}
-                        variant={'primary-soft'}
-                        className="flex w-full items-center gap-1"
-                        shadowSize="4"
-                    >
-                        <div className="flex items-center">
-                            <Icon name="cancel" className="mr-0.5 min-w-3 rounded-full border border-black p-0.5" />
-                        </div>
-                        <span>Cancel deposit</span>
-                    </Button>
-                )}
-
-            {isPendingBankRequest &&
-                transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER &&
-                setIsLoading &&
-                onClose && (
-                    <div className="pr-1">
-                        <Button
-                            disabled={isLoading}
-                            onClick={async () => {
-                                setIsLoading(true)
-                                try {
-                                    // first cancel the onramp
-                                    await cancelOnramp(transaction.extraDataForDrawer?.bridgeTransferId!)
-                                    // then cancel the charge
-                                    await chargesApi.cancel(transaction.id)
-
-                                    // Invalidate queries and close drawer
-                                    queryClient
-                                        .invalidateQueries({
-                                            queryKey: [TRANSACTIONS],
-                                        })
-                                        .then(() => {
-                                            setIsLoading(false)
-                                            onClose()
-                                        })
-                                } catch (error) {
-                                    captureException(error)
-                                    console.error('Error canceling deposit:', error)
-                                    setIsLoading(false)
-                                }
-                            }}
-                            variant={'primary-soft'}
-                            className="flex w-full items-center gap-1"
-                            shadowSize="4"
-                        >
-                            <div className="flex items-center">
-                                <Icon name="cancel" className="mr-0.5 min-w-3 rounded-full border border-black p-0.5" />
-                            </div>
-                            <span>Cancel Request</span>
-                        </Button>
-                    </div>
-                )}
-
-            {/* referral nudge for activated users on completed outbound transactions */}
-            {isActivated &&
+            {/* Referral nudge for activated users on completed outbound transactions.
+                QR pay is excluded — it already shows Split + Share, and a third button
+                stacks the drawer past the comfortable 2-CTA ceiling. */}
+            {!isPublic &&
+                isActivated &&
                 transaction.status === 'completed' &&
-                ['send', 'qr_payment', 'withdraw', 'bank_withdraw'].includes(transaction.direction) &&
+                ['send', 'withdraw', 'bank_withdraw'].includes(transaction.direction) &&
                 !isPerkReward &&
                 user?.user.username && (
                     <Button
@@ -1445,13 +774,16 @@ export const TransactionDetailsReceipt = ({
                         shadowSize="4"
                         onClick={async () => {
                             const { inviteLink } = generateInviteCodeLink(user.user.username!)
-                            const text = generateInvitesShareText(inviteLink)
                             posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, { source: 'transaction_receipt' })
                             try {
                                 if (navigator.share) {
-                                    await navigator.share({ text })
+                                    await navigator.share({ url: inviteLink })
                                 } else {
-                                    await navigator.clipboard.writeText(text)
+                                    await navigator.clipboard.writeText(inviteLink)
+                                    // Desktop fallback: navigator.share is mobile-only.
+                                    // Without a toast the click is silent and users assume
+                                    // the button is broken.
+                                    toast.info('Invite link copied!')
                                 }
                             } catch {
                                 // user cancelled share sheet — ignore

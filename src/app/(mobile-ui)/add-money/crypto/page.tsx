@@ -10,11 +10,11 @@ import type { TransactionDetails } from '@/components/TransactionDetails/transac
 import { NETWORK_LABELS, CHAIN_LOGOS, TOKEN_LOGOS, type ChainName, type TokenName } from '@/constants/rhino.consts'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { getExplorerUrl } from '@/utils/general.utils'
-import { EHistoryEntryType, EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useQuery } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
 import { useCallback, useMemo, useState } from 'react'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -23,7 +23,7 @@ const DEPOSIT_EXPLORER_BASE_URL = getExplorerUrl(PEANUT_WALLET_CHAIN.id.toString
 
 const AddMoneyCryptoPage = () => {
     const { user } = useAuth()
-    const router = useRouter()
+    const onBack = useSafeBack('/add-money')
     const { address: peanutWalletAddress } = useWallet()
     const [network] = useQueryState(
         'network',
@@ -84,8 +84,9 @@ const AddMoneyCryptoPage = () => {
             sourceView: 'history',
             extraDataForDrawer: {
                 isLinkTransaction: false,
-                originalType: EHistoryEntryType.DIRECT_SEND,
+                originalType: 'TRANSACTION_INTENT',
                 originalUserRole: EHistoryUserRole.RECIPIENT,
+                kind: 'CRYPTO_DEPOSIT',
             },
             tokenDisplayDetails: {
                 tokenSymbol,
@@ -106,6 +107,7 @@ const AddMoneyCryptoPage = () => {
                 usdAmount={depositResult.amount?.toString()}
                 amount={depositResult.tokenAmount}
                 transactionDetails={depositTransactionDetails}
+                replaceOnDone
                 onComplete={() => {
                     setShowSuccessView(false)
                     setDepositResult(null)
@@ -120,7 +122,7 @@ const AddMoneyCryptoPage = () => {
             depositAddressData={depositAddressData}
             isLoading={isLoading}
             onSuccess={handleSuccess}
-            onBack={() => router.back()}
+            onBack={onBack}
         />
     )
 }

@@ -37,7 +37,6 @@ const COLORS_MAPPING = {
 // specific colors for different avatar types/contexts
 export const AVATAR_LINK_BG = '#FF90E8' // peanut pink for links
 export const AVATAR_WALLET_BG = COLORS_MAPPING.yellow.darkShade // yellow for address/non-user/add/withdraw header
-export const AVATAR_DARK_BG = '#000000' // black for add/withdraw card context
 
 // text/icon colors
 export const AVATAR_TEXT_LIGHT = '#FFFFFF' // white

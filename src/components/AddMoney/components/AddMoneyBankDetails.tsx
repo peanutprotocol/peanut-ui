@@ -17,7 +17,8 @@ import InfoCard from '@/components/Global/InfoCard'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME } from '@/constants/payment.consts'
 import { Button } from '@/components/0_Bruddle/Button'
-import { useExchangeRate } from '@/hooks/useExchangeRate'
+import { useOnrampQuote } from '@/hooks/useOnrampQuote'
+import { currencyToAccountType } from '@/utils/bridge.utils'
 import { useQueryState, parseAsString } from 'nuqs'
 
 /**
@@ -39,11 +40,15 @@ import { useQueryState, parseAsString } from 'nuqs'
  * See PR description of fix/bridge-fee-display-quote for full writeup.
  */
 
-interface IAddMoneyBankDetails {
-    flow?: 'add-money' | 'request-fulfillment'
-}
+// add-money flow requires onBack (parent owns step navigation, typically
+// setUrlState({ step: 'inputAmount' })). request-fulfillment steps back internally via
+// RequestFulfillmentFlowContext.
+type AddMoneyBankDetailsProps =
+    | { flow?: 'add-money'; onBack: () => void }
+    | { flow: 'request-fulfillment'; onBack?: never }
 
-export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBankDetails) {
+export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
+    const { flow = 'add-money' } = props
     const isAddMoneyFlow = flow === 'add-money'
 
     // URL state - read amount from URL query params
@@ -86,13 +91,12 @@ export default function AddMoneyBankDetails({ flow = 'add-money' }: IAddMoneyBan
     // derive onramp currency once and reuse consistently
     const onrampCurrency = getCurrencyConfig(currentCountryDetails?.id || 'US', 'onramp').currency
 
-    // hooks
-    const { exchangeRate, isLoading: isLoadingExchangeRate } = useExchangeRate({
-        // always use the detected onramp currency as source
-        sourceCurrency: onrampCurrency,
-        // always convert to usd so that we can show an approximate usd amount for non-usd deposits
-        destinationCurrency: 'USD',
-        initialSourceAmount: 1,
+    // Onramp quote returns the net rate (after Peanut's 50bps developer
+    // fee), so `sourceAmount * exchangeRate` projects the real USDC the
+    // user will receive — matching the "Recipient Gets" figure on bridge
+    // offramp + ExchangeRateWidget.
+    const { netRate: exchangeRate, isLoading: isLoadingExchangeRate } = useOnrampQuote({
+        accountType: currencyToAccountType(onrampCurrency),
         enabled: true,
     })
 
@@ -240,10 +244,10 @@ Please use these details to complete your bank transfer.`
     }
 
     const handleBack = () => {
-        if (isAddMoneyFlow) {
-            router.back()
-        } else {
+        if (props.flow === 'request-fulfillment') {
             setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
+        } else {
+            props.onBack()
         }
     }
 

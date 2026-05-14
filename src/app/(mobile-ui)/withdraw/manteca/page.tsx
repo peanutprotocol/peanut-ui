@@ -1,9 +1,14 @@
 'use client'
 
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useSignUserOp } from '@/hooks/wallet/useSignUserOp'
+import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
+import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
+import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
+import { rainSpendingPowerToWei } from '@/utils/balance.utils'
+import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import NavHeader from '@/components/Global/NavHeader'
@@ -14,6 +19,7 @@ import { mantecaApi, type WithdrawPriceLock } from '@/services/manteca'
 import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context'
 import { countryData } from '@/components/AddMoney/consts'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Image from 'next/image'
 import { formatAmount, formatNumberForDisplay } from '@/utils/general.utils'
 import {
@@ -48,7 +54,7 @@ import {
     MantecaAccountType,
     type MantecaBankCode,
 } from '@/constants/manteca.consts'
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import { MIN_MANTECA_WITHDRAW_AMOUNT } from '@/constants/payment.consts'
@@ -56,6 +62,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps, isBrUserEligibleForLimitIncrease } from '@/features/limits/utils'
+import { withdrawCountryUrl } from '@/utils/native-routes'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
@@ -85,8 +92,9 @@ export default function MantecaWithdrawFlow() {
     const [priceLock, setPriceLock] = useState<WithdrawPriceLock | null>(null)
     const [isLockingPrice, setIsLockingPrice] = useState(false)
     const router = useRouter()
-    const { sendMoney, balance } = useWallet()
-    const { signTransferUserOp } = useSignUserOp()
+    const { spendableBalance: balance, balance: smartBalance } = useWallet()
+    const { signSpend } = useSignSpendBundle()
+    const { overview: rainCardOverview } = useRainCardOverview()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
     const queryClient = useQueryClient()
@@ -112,6 +120,8 @@ export default function MantecaWithdrawFlow() {
         if (!countryPath) return undefined
         return countryData.find((country) => country.type === 'country' && country.path === countryPath)
     }, [countryPath])
+
+    const onBack = useSafeBack(withdrawCountryUrl(selectedCountry?.path || ''))
 
     const countryConfig = useMemo(() => {
         if (!selectedCountry) return undefined
@@ -298,12 +308,37 @@ export default function MantecaWithdrawFlow() {
         try {
             setLoadingState('Preparing transaction')
 
-            // Step 1: Sign the UserOp (but don't broadcast yet)
-            let signedUserOpData
+            // Step 1: Sign the spend artifact (but don't broadcast yet).
+            // Route across smart-only / mixed / collateral-only — pure-collateral
+            // offramps (smart wallet empty, card collateral covers it) used to
+            // fail here because signTransferUserOp asks the paymaster to
+            // simulate a USDC transfer from a zero-balance smart account, which
+            // ZeroDev refuses to sponsor. signSpend picks the right routing,
+            // including a single-tap collateral-only path that lets Rain
+            // transfer straight from the collateral proxy to MANTECA's deposit
+            // address.
+            let signedArtifact
             try {
-                signedUserOpData = await signTransferUserOp(MANTECA_DEPOSIT_ADDRESS, usdAmount)
+                const requiredUsdcAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
+                signedArtifact = await signSpend({
+                    requiredUsdcAmount,
+                    recipient: MANTECA_DEPOSIT_ADDRESS,
+                    smartBalance: smartBalance ?? 0n,
+                    rainSpendingPower: rainSpendingPowerToWei(rainCardOverview?.balance?.spendingPower),
+                    kind: 'FIAT_OFFRAMP',
+                })
             } catch (error) {
-                if ((error as Error).toString().includes('not allowed')) {
+                const rainMsg = rainCollateralErrorMessage(error)
+                if (error instanceof InsufficientSpendableError) {
+                    setErrorMessage('Not enough USDC in your wallet or card to cover this withdrawal.')
+                } else if (error instanceof SessionKeyGrantRequiredError) {
+                    // Grant prompt was attempted inside signSpend and failed.
+                    // Telling the user "you'll be asked" is misleading — they
+                    // may retry and hit the same loop. Give an actionable hint.
+                    setErrorMessage('Card authorization failed. Please try again or contact support.')
+                } else if (rainMsg) {
+                    setErrorMessage(rainMsg)
+                } else if ((error as Error).toString().includes('not allowed')) {
                     setErrorMessage('Please confirm the transaction.')
                 } else {
                     captureException(error)
@@ -315,38 +350,42 @@ export default function MantecaWithdrawFlow() {
 
             setLoadingState('Withdrawing')
 
-            // Step 2: Build signed UserOp payload for backend
-            const signedUserOp = {
-                sender: signedUserOpData.signedUserOp.sender,
-                nonce: signedUserOpData.signedUserOp.nonce,
-                callData: signedUserOpData.signedUserOp.callData,
-                signature: signedUserOpData.signedUserOp.signature,
-                callGasLimit: signedUserOpData.signedUserOp.callGasLimit,
-                verificationGasLimit: signedUserOpData.signedUserOp.verificationGasLimit,
-                preVerificationGas: signedUserOpData.signedUserOp.preVerificationGas,
-                factory: signedUserOpData.signedUserOp.factory,
-                factoryData: signedUserOpData.signedUserOp.factoryData,
-                maxFeePerGas: signedUserOpData.signedUserOp.maxFeePerGas,
-                maxPriorityFeePerGas: signedUserOpData.signedUserOp.maxPriorityFeePerGas,
-                paymaster: signedUserOpData.signedUserOp.paymaster,
-                paymasterData: signedUserOpData.signedUserOp.paymasterData,
-                paymasterVerificationGasLimit: signedUserOpData.signedUserOp.paymasterVerificationGasLimit,
-                paymasterPostOpGasLimit: signedUserOpData.signedUserOp.paymasterPostOpGasLimit,
-            }
-
-            // Step 3: Call backend with signed tx (sign-then-broadcast pattern)
-            // Backend creates Manteca order FIRST, then broadcasts. No stuck funds!
-            const result = await mantecaApi.withdrawWithSignedTx({
-                priceLockCode: priceLock.priceLockCode,
-                amount: usdAmount,
-                destinationAddress: destinationAddress.toLowerCase(),
-                bankCode: selectedBank?.code,
-                accountType: accountType ?? undefined,
-                currency: currencyCode,
-                signedUserOp,
-                chainId: signedUserOpData.chainId,
-                entryPointAddress: signedUserOpData.entryPointAddress,
-            })
+            // Step 2: Send signed artifact to backend. Backend creates the
+            // Manteca order FIRST, then either broadcasts the signed UserOp
+            // (smart-only / mixed) or submits the Rain withdrawal via the
+            // user's session-key UserOp (collateral-only). No stuck funds.
+            const result = await mantecaApi.withdrawWithSignedTx(
+                signedArtifact.strategy === 'collateral-only'
+                    ? {
+                          kind: 'rainWithdrawal' as const,
+                          priceLockCode: priceLock.priceLockCode,
+                          amount: usdAmount,
+                          destinationAddress: destinationAddress.toLowerCase(),
+                          bankCode: selectedBank?.code,
+                          accountType: accountType ?? undefined,
+                          currency: currencyCode,
+                          signedRainWithdrawal: signedArtifact.rainWithdrawal,
+                          chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                      }
+                    : {
+                          kind: 'userOp' as const,
+                          priceLockCode: priceLock.priceLockCode,
+                          amount: usdAmount,
+                          destinationAddress: destinationAddress.toLowerCase(),
+                          bankCode: selectedBank?.code,
+                          accountType: accountType ?? undefined,
+                          currency: currencyCode,
+                          signedUserOp: signedArtifact.signedUserOp.signedUserOp,
+                          chainId: signedArtifact.signedUserOp.chainId,
+                          entryPointAddress: signedArtifact.signedUserOp.entryPointAddress,
+                          // For mixed: tell backend about the Rain prepare intent
+                          // embedded in the UserOp's batched callData so it can
+                          // reconcile the collateral webhook to OFFRAMP in history.
+                          ...(signedArtifact.strategy === 'mixed'
+                              ? { rainPreparationId: signedArtifact.rainPreparationId }
+                              : {}),
+                      }
+            )
 
             if (result.error) {
                 posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
@@ -533,6 +572,14 @@ export default function MantecaWithdrawFlow() {
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {
+                    if (mantecaRejection.state === 'blocked') {
+                        // blocked users cannot self-heal — route to support
+                        if (typeof window !== 'undefined' && (window as any).$crisp) {
+                            ;(window as any).$crisp.push(['do', 'chat:open'])
+                        }
+                        setShowKycModal(false)
+                        return
+                    }
                     const hasRejection = mantecaRejection.state === 'fixable'
                     if (hasRejection) {
                         await sumsubFlow.handleSelfHealResubmit('MANTECA')
@@ -576,10 +623,7 @@ export default function MantecaWithdrawFlow() {
                     } else if (step === 'bankDetails') {
                         setStep('amountInput')
                     } else {
-                        router.back()
-                        setTimeout(() => {
-                            router.replace(`/withdraw/${selectedCountry?.path}`)
-                        }, 100)
+                        onBack()
                     }
                 }}
             />
@@ -659,7 +703,7 @@ export default function MantecaWithdrawFlow() {
                         <div className="flex items-center space-x-3">
                             <div className="relative h-12 w-12">
                                 <Image
-                                    src={`https://flagcdn.com/w160/${countryFlagCode}.png`}
+                                    src={getFlagUrl(countryFlagCode)}
                                     alt={`flag`}
                                     width={48}
                                     height={48}
@@ -775,7 +819,7 @@ export default function MantecaWithdrawFlow() {
                         <div className="flex items-center space-x-3">
                             <div className="relative h-12 w-12">
                                 <Image
-                                    src={`https://flagcdn.com/w160/${countryFlagCode}.png`}
+                                    src={getFlagUrl(countryFlagCode)}
                                     alt={`flag`}
                                     width={48}
                                     height={48}

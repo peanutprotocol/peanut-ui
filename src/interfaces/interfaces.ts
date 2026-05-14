@@ -1,4 +1,3 @@
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'
@@ -18,19 +17,6 @@ export interface ProviderStatus {
 
 // Moved here from bridge-accounts.utils.ts to avoid circular dependency
 export type BridgeKycStatus = 'not_started' | 'under_review' | 'approved' | 'rejected' | 'incomplete'
-
-export interface IResponse {
-    success: boolean
-    data?: any
-    message?: string
-    details?: {
-        code?: string
-        message?: string
-        requirements?: {
-            [key: string]: string
-        }
-    }
-}
 
 export interface IUserBalance {
     chainId: string
@@ -98,13 +84,6 @@ export type ITokenPriceData = {
     price: number
 } & IToken
 
-export interface ILocalStorageItem {
-    address: string
-    hash: string
-    idx?: string
-    link: string
-}
-
 export interface ILinkDetails {
     link: string
     chainId: string
@@ -131,48 +110,6 @@ export interface IToken {
     address: string
     name: string
     symbol: string
-}
-
-export interface IExtendedPeanutLinkDetails extends peanutInterfaces.IPeanutLinkDetails {
-    link: string
-    depositDate: string
-    USDTokenPrice: number
-    points: number
-    txHash: string
-    message: string | undefined
-    attachmentUrl: string | undefined
-}
-
-export interface IExtendedLinkDetails extends ILinkDetails {
-    USDTokenPrice: number
-    points: number
-    txHash: string
-    message: string | undefined
-    attachmentUrl: string | undefined
-}
-
-export interface IExtendedLinkDetailsOfframp extends IExtendedLinkDetails {
-    liquidationAddress: string
-    recipientType: string
-    accountNumber: string
-    bridgeCustomerId: string
-    bridgeExternalAccountId: string
-    peanutCustomerId: string
-    peanutExternalAccountId: string
-}
-
-export type ChainValue = {
-    chainId: string
-    valuePerChain: number
-}
-
-export interface IDirectSendDetails {
-    chainId: string
-    tokenAmount: string
-    tokenAddress: string
-    date: string
-    points: number
-    txHash: string
 }
 
 export interface IBridgeAccount {
@@ -214,15 +151,6 @@ export interface IBridgeAccount {
     beneficiary_address_valid: boolean
 }
 
-interface Transaction {
-    tx_hash: string
-    chain_id: string
-    address: string
-    points: number
-    description: string | null
-    created_at: string
-}
-
 export type LinkStatus = 'loading' | 'unclaimed' | 'claimed' | 'expired' | 'cancelled'
 
 export interface PaymentLink {
@@ -230,12 +158,6 @@ export interface PaymentLink {
     amount: number
     username: string // creator or requester
     status: LinkStatus
-}
-
-interface ReferralConnection {
-    user_id: string
-    referrer: string
-    account_identifier: string
 }
 
 export enum MantecaKycStatus {
@@ -305,7 +227,6 @@ export enum AccountType {
     GB = 'gb', // uk bank accounts (sort code + account number)
     EVM_ADDRESS = 'evm-address',
     PEANUT_WALLET = 'peanut-wallet',
-    BRIDGE = 'bridgeBankAccount',
     MANTECA = 'manteca',
 }
 
@@ -323,18 +244,10 @@ export interface Account {
     }
     createdAt: string
     updatedAt: string
-    // OLD Points V1 fields removed - use pointsV2 from stats instead
     chainId: string | null
-    connectorUuid: string | null
     bic?: string
     routingNumber?: string
     sortCode?: string // uk bank accounts
-    connector?: {
-        iconUrl: string
-        name: string
-    }
-    transactions: Transaction[]
-    referrals: ReferralConnection[]
 }
 
 interface userInvites {
@@ -370,7 +283,6 @@ export interface IUserProfile {
     accounts: Account[]
     contacts: Contact[]
     totalPoints: number // Kept for backward compatibility - same as pointsV2.totalPoints
-    hasPwaInstalled: boolean
     user: User
     rails: IUserRail[]
     invitesSent: userInvites[]

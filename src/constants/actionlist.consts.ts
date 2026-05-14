@@ -1,6 +1,7 @@
 import { DEVCONNECT_LOGO, MERCADO_PAGO, PIX } from '@/assets'
 import { METAMASK_LOGO, TRUST_WALLET_SMALL_LOGO } from '@/assets/wallets'
 import binanceIcon from '@/assets/exchanges/binance.svg'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 
 export interface PaymentMethod {
     id: string
@@ -16,11 +17,7 @@ export const ACTION_METHODS: PaymentMethod[] = [
         id: 'bank',
         title: 'Bank',
         description: 'EUR, USD, MXN, ARS & more',
-        icons: [
-            'https://flagcdn.com/w160/ar.png',
-            'https://flagcdn.com/w160/de.png',
-            'https://flagcdn.com/w160/us.png',
-        ],
+        icons: [getFlagUrl('ar'), getFlagUrl('de'), getFlagUrl('us')],
         soon: false,
     },
     {

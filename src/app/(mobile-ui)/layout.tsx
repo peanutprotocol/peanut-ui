@@ -6,13 +6,13 @@ import TopNavbar from '@/components/Global/TopNavbar'
 import WalletNavigation from '@/components/Global/WalletNavigation'
 import OfflineScreen from '@/components/Global/OfflineScreen'
 import BackendErrorScreen from '@/components/Global/BackendErrorScreen'
-import { ThemeProvider } from '@/config'
 import { useAuth } from '@/context/authContext'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
+import QRScannerOverlay from '@/components/Global/QRScannerOverlay'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
@@ -21,11 +21,18 @@ import { useSetupStore } from '@/redux/hooks'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { isPublicRoute } from '@/constants/routes'
 import { IS_DEV } from '@/constants/general.consts'
+import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useAccountSetupRedirect } from '@/hooks/useAccountSetupRedirect'
+import { useNativePlugins } from '@/hooks/useNativePlugins'
+// Side-effect import: useSafeBack patches history.pushState at module load. Importing here
+// guarantees the patch is installed before any child page's mount-time router.push.
+import '@/hooks/useSafeBack'
+import { isCapacitor } from '@/utils/capacitor'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
+    useNativePlugins()
     const pathName = usePathname()
 
     // Allow access to public paths without authentication
@@ -35,7 +42,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const { isFetchingUser, user, userFetchError } = useAuth()
     const [isReady, setIsReady] = useState(false)
     const isUserLoggedIn = !!user?.user.userId || false
-    const isHome = pathName === '/home'
+    const isHome = pathName === '/home' || pathName === '/home/'
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
     const isDev = pathName?.startsWith('/dev') ?? false
@@ -82,6 +89,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isRedirecting = useRef(false)
 
     useEffect(() => {
+        // Harness-only: if a reproduce session is in progress, ReproduceBootstrap
+        // will set cookies + reload imminently — don't racing-redirect to /setup
+        // before it completes.
+        if (HARNESS_ENABLED && typeof window !== 'undefined') {
+            const url = new URL(window.location.href)
+            if (url.searchParams.get('__reproduce')) return
+        }
         if (!isPublicPath && isReady && !isFetchingUser && !user && !isRedirecting.current) {
             isRedirecting.current = true
             router.replace('/setup')
@@ -91,6 +105,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             }, 3000)
             return () => clearTimeout(fallback)
         }
+        return undefined
     }, [user, isFetchingUser, isReady, isPublicPath, router])
 
     // redirect logged-in users without peanut wallet account to complete setup
@@ -142,7 +157,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     }
 
     return (
-        <div className="flex min-h-[100dvh] w-full bg-background">
+        <div className="flex min-h-[100dvh] w-full bg-background" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
             {/* Wrapper div for desktop layout */}
             <div className="flex w-full">
                 {/* Sidebar - Fixed on desktop */}
@@ -177,23 +192,22 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                                 !!isSupport && 'p-0 pb-20 md:p-6',
                                 !!isHome && 'p-0 md:p-6 md:pr-0',
                                 isUserLoggedIn ? 'pb-24' : 'pb-4',
-                                isDev && 'p-0 pb-0'
+                                isDev && 'p-0 pb-0',
+                                isHome && isCapacitor() && 'px-0 pt-0'
                             )
                         )}
                     >
-                        <ThemeProvider>
-                            <div
-                                className={twMerge(
-                                    'flex w-full items-center justify-center md:ml-auto md:w-[calc(100%-160px)]',
-                                    alignStart && 'items-start',
-                                    isSupport && 'h-full',
-                                    isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-64px)]',
-                                    isDev && 'min-h-[100dvh] items-start justify-start md:ml-0 md:w-full'
-                                )}
-                            >
-                                {children}
-                            </div>
-                        </ThemeProvider>
+                        <div
+                            className={twMerge(
+                                'flex w-full items-center justify-center md:ml-auto md:w-[calc(100%-160px)]',
+                                alignStart && 'items-start',
+                                isSupport && 'h-full',
+                                isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-64px)]',
+                                isDev && 'min-h-[100dvh] items-start justify-start md:ml-0 md:w-full'
+                            )}
+                        >
+                            {children}
+                        </div>
                     </div>
 
                     {/* Mobile navigation */}
@@ -209,6 +223,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <GuestLoginModal />
 
             <SupportDrawer />
+
+            <QRScannerOverlay />
         </div>
     )
 }

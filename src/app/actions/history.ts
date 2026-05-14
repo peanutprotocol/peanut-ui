@@ -1,26 +1,24 @@
-'use server'
-
-import { EHistoryEntryType, completeHistoryEntry } from '@/utils/history.utils'
+import { completeHistoryEntry } from '@/utils/history.utils'
 import type { HistoryEntry } from '@/utils/history.utils'
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { serverFetch } from '@/utils/api-fetch'
 
 /**
- * Fetches a single history entry from the API. This is used for receipts
+ * Fetches a single history entry from the API. Used for receipt pages.
  *
- * We want to cache the response for final states, that way we have less
- * calls to the backend when sharing the receipt.
- * For intermediate states, we want to avoid caching, so we can show the
- * latest state whenever called.
+ * Final-state entries are cacheable; intermediate states are fetched
+ * fresh so the shared receipt URL always reflects the latest status.
  *
- * @param entryId The id of the entry to fetch
- * @param entryType The type of the entry to fetch
- * @returns The fetched history entry
+ * @param entryId The intent id (or sendlink pubkey, or perk_usage id)
+ * @param kind The canonical TransactionIntentKind (or synthetic
+ *             'PERK_REWARD' / 'REQUEST_POT'); routes the BE single-entry
+ *             dispatcher to the right table.
  */
-export async function getHistoryEntry(entryId: string, entryType: EHistoryEntryType): Promise<HistoryEntry | null> {
-    let response: Awaited<ReturnType<typeof fetchWithSentry>>
+export async function getHistoryEntry(entryId: string, kind: string): Promise<HistoryEntry | null> {
+    let response: Response
     try {
-        response = await fetchWithSentry(`${PEANUT_API_URL}/history/${entryId}?entryType=${entryType}`)
+        const safeEntryId = encodeURIComponent(entryId)
+        const query = new URLSearchParams({ kind }).toString()
+        response = await serverFetch(`/history/${safeEntryId}?${query}`)
     } catch (error) {
         throw new Error(`Unexpected error fetching history entry: ${error}`)
     }

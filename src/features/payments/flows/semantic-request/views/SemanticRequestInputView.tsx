@@ -21,7 +21,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import SupportCTA from '@/components/Global/SupportCTA'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
-import { useRouter } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 import { printableAddress, areEvmAddressesEqual } from '@/utils/general.utils'
@@ -29,7 +29,7 @@ import { tokenSelectorContext } from '@/context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 
 export function SemanticRequestInputView() {
-    const router = useRouter()
+    const onBack = useSafeBack('/')
     const {
         amount,
         recipient,
@@ -56,7 +56,7 @@ export function SemanticRequestInputView() {
         setSelectedTokenAddress,
         selectedChainID,
         selectedTokenAddress,
-        supportedSquidChainsAndTokens,
+        supportedChainsAndTokens,
         selectedTokenData,
     } = useContext(tokenSelectorContext)
 
@@ -77,7 +77,7 @@ export function SemanticRequestInputView() {
             setSelectedTokenAddress(parsedUrl.token.address)
         } else if (parsedUrl.chain?.chainId) {
             // default to usdc on the selected chain
-            const chainData = supportedSquidChainsAndTokens[parsedUrl.chain.chainId]
+            const chainData = supportedChainsAndTokens[parsedUrl.chain.chainId]
             const defaultToken = chainData?.tokens.find((t) => t.symbol.toLowerCase() === 'usdc')
             if (defaultToken) {
                 setSelectedTokenAddress(defaultToken.address)
@@ -86,7 +86,7 @@ export function SemanticRequestInputView() {
             // default to peanut wallet usdc
             setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
         }
-    }, [parsedUrl, setSelectedChainID, setSelectedTokenAddress, supportedSquidChainsAndTokens])
+    }, [parsedUrl, setSelectedChainID, setSelectedTokenAddress, supportedChainsAndTokens])
 
     // handle submit
     const handleSubmit = () => {
@@ -102,15 +102,6 @@ export function SemanticRequestInputView() {
             if (res && res.success) {
                 setCurrentView('EXTERNAL_WALLET')
             }
-        }
-    }
-
-    // handle back navigation
-    const handleGoBack = () => {
-        if (window.history.length > 1) {
-            router.back()
-        } else {
-            router.push('/')
         }
     }
 
@@ -157,7 +148,7 @@ export function SemanticRequestInputView() {
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader onPrev={handleGoBack} title="Pay" />
+            <NavHeader onPrev={onBack} title="Pay" />
 
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {/* recipient card */}

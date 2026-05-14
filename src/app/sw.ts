@@ -20,11 +20,18 @@ const serwist = new Serwist({
     skipWaiting: true,
     clientsClaim: true,
     navigationPreload: true,
+    // Auth API responses are now fetched cross-origin (api.peanut.me) so the SW
+    // doesn't intercept them — same-origin /api/peanut/user/* proxy routes were
+    // deleted with the proxy removal.
+    //
+    // /relay/* is the PostHog reverse-proxy path (see next.config.js rewrites).
+    // Workbox's defaultCache strategies threw "no-response" on the recorder +
+    // dead-clicks scripts, polluting the console. PostHog assets carry their
+    // own versioning + cache headers; let the network handle them. NetworkOnly
+    // first so it wins ahead of any defaultCache JS-asset rule.
     runtimeCaching: [
-        // Never cache auth/user API responses — stale 401s cause infinite loading loops
         {
-            matcher: ({ sameOrigin, url: { pathname } }: { sameOrigin: boolean; url: URL }) =>
-                sameOrigin && pathname.startsWith('/api/peanut/user/'),
+            matcher: ({ url }) => url.pathname.startsWith('/relay/'),
             handler: new NetworkOnly(),
         },
         ...defaultCache,

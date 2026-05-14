@@ -4,7 +4,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useLimits } from '@/hooks/useLimits'
-import { useRouter } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { MAX_QR_PAYMENT_AMOUNT_FOREIGN } from '@/constants/payment.consts'
 import Image from 'next/image'
 import * as Accordion from '@radix-ui/react-accordion'
@@ -23,7 +23,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
  * url state: ?region=us|mexico|europe|argentina|brazil (persists source region)
  */
 const BridgeLimitsView = () => {
-    const router = useRouter()
+    const onBack = useSafeBack('/limits')
     const { bridgeLimits, isLoading, error, hasMantecaLimits } = useLimits()
 
     // url state for source region (where user came from)
@@ -46,7 +46,7 @@ const BridgeLimitsView = () => {
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-6">
-            <NavHeader title="Limits" onPrev={() => router.back()} titleClassName="text-xl md:text-2xl" />
+            <NavHeader title="Limits" onPrev={onBack} titleClassName="text-xl md:text-2xl" />
 
             {isLoading && <PeanutLoading coverFullScreen />}
 

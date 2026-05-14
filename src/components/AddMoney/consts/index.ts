@@ -18,52 +18,10 @@ export const MantecaSupportedExchanges = {
     //BO: 'BOLIVIA',
 }
 
-export interface CryptoToken {
-    id: string
-    name: string
-    symbol: string
-    icon: StaticImageData | string
-}
-
-// @dev: this is a temporary list of tokens for the deposit screen, using this for a couple of weeks, once x-chain is ready, we will use the x-chain tokens and remove this list, only useful token is USDC here for now
-export const DEPOSIT_CRYPTO_TOKENS: CryptoToken[] = [
-    {
-        id: 'usdc',
-        name: 'USD Coin',
-        symbol: 'USDC',
-        icon: 'https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png',
-    },
-    {
-        id: 'usdt',
-        name: 'Tether',
-        symbol: 'USDT',
-        icon: 'https://assets.coingecko.com/coins/images/325/small/Tether-logo.png',
-    },
-    {
-        id: 'eth',
-        name: 'Ethereum',
-        symbol: 'ETH',
-        icon: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
-    },
-    {
-        id: 'sol',
-        name: 'Solana',
-        symbol: 'SOL',
-        icon: SOLANA_ICON,
-    },
-    {
-        id: 'btc',
-        name: 'Bitcoin',
-        symbol: 'BTC',
-        icon: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
-    },
-    {
-        id: 'trx',
-        name: 'Tron',
-        symbol: 'TRX',
-        icon: TRON_ICON,
-    },
-]
+// ISO-2 codes of our highest-volume corridors, surfaced at the top of the
+// add/withdraw country list (after the user's own country if geolocated).
+// Order here is the order shown to users.
+export const PREFERRED_COUNTRY_ISO2 = ['US', 'AR', 'BR', 'GB', 'DE', 'ES', 'PT'] as const
 
 export interface SpecificPaymentMethod {
     id: string
@@ -72,11 +30,6 @@ export interface SpecificPaymentMethod {
     description: string
     isSoon?: boolean
     path?: string
-}
-
-export interface CountrySpecificMethods {
-    add: SpecificPaymentMethod[]
-    withdraw: SpecificPaymentMethod[]
 }
 
 export interface CountryData {
@@ -91,11 +44,12 @@ export interface CountryData {
     region?: 'europe' | 'north-america' | 'latam' | 'rest-of-the-world'
 }
 
-export interface DepositMethods extends CountryData {
-    specificMethods?: CountrySpecificMethods
+interface CountrySpecificMethods {
+    add: SpecificPaymentMethod[]
+    withdraw: SpecificPaymentMethod[]
 }
 
-export const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
+const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
     {
         id: 'bank-transfer-add',
         icon: 'bank' as IconName,
@@ -127,24 +81,9 @@ export const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
         description: 'Instant transfers',
         isSoon: false,
     },
-    // @dev TODO: Re-enable this once we have a way to support it
-    // {
-    //     id: 'apple-pay-add',
-    //     icon: APPLE_PAY,
-    //     title: 'Apple Pay',
-    //     description: 'Usually arrives instantly',
-    //     isSoon: true,
-    // },
-    // {
-    //     id: 'google-pay-add',
-    //     icon: GOOGLE_PAY,
-    //     title: 'Google Pay',
-    //     description: 'Usually arrives instantly',
-    //     isSoon: true,
-    // },
 ]
 
-export const DEFAULT_BANK_WITHDRAW_METHOD: SpecificPaymentMethod = {
+const DEFAULT_BANK_WITHDRAW_METHOD: SpecificPaymentMethod = {
     id: 'default-bank-withdraw',
     icon: 'bank' as IconName,
     title: 'To Bank',
@@ -152,7 +91,7 @@ export const DEFAULT_BANK_WITHDRAW_METHOD: SpecificPaymentMethod = {
     isSoon: false,
 }
 
-export const DEFAULT_WITHDRAW_METHODS: SpecificPaymentMethod[] = [
+const DEFAULT_WITHDRAW_METHODS: SpecificPaymentMethod[] = [
     {
         id: 'crypto-withdraw',
         icon: 'wallet-outline' as IconName,
@@ -2744,58 +2683,15 @@ export const BRIDGE_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     USA: 'US',
 }
 
-export const MEXICO_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
-    MEX: 'MX',
-}
-
 export const MANTECA_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     ARG: 'AR',
     BRA: 'BR',
-}
-
-export const UNSUPPORTED_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
-    AFG: 'AF',
-    BLR: 'BY',
-    COD: 'CD',
-    CUB: 'CU',
-    PSE: 'PS',
-    IRN: 'IR',
-    IRQ: 'IQ',
-    LBN: 'LB',
-    LBY: 'LY',
-    MMR: 'MM',
-    PRK: 'KP',
-    RUS: 'RU',
-    SOM: 'SO',
-    SSD: 'SS',
-    SDN: 'SD',
-    SYR: 'SY',
-    YEM: 'YE',
 }
 
 export const ALL_COUNTRIES_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     ...BRIDGE_ALPHA3_TO_ALPHA2,
     ...MANTECA_ALPHA3_TO_ALPHA2,
 }
-
-// identify sepa corridors where local currency is not eur and disable them temporarily for bank withdrawals
-// this impacts withdraw and claim-to-bank flows (but not add-money from bank)
-export const NON_EUR_SEPA_ALPHA2 = new Set(
-    countryData
-        .filter(
-            (c) =>
-                c.type === 'country' &&
-                !!c.iso3 &&
-                BRIDGE_ALPHA3_TO_ALPHA2[c.iso3] &&
-                // exclude usa explicitly; bridge map includes it but it's not sepa
-                c.iso3 !== 'USA' &&
-                // exclude uk explicitly; uses faster payments, not sepa
-                c.iso3 !== 'GBR'
-        )
-        .map((c) => ({ alpha2: BRIDGE_ALPHA3_TO_ALPHA2[c.iso3!], currency: c.currency }))
-        .filter((x) => x.alpha2 && x.currency && x.currency !== 'EUR')
-        .map((x) => x.alpha2 as string)
-)
 
 const enabledBankWithdrawCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'])
 

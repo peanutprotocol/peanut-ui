@@ -1,4 +1,11 @@
-import { formatAmount, formatExtendedNumber, getRequestLink, formatTokenAmount } from '../general.utils'
+import {
+    formatAmount,
+    formatExtendedNumber,
+    getRequestLink,
+    formatTokenAmount,
+    isUuid,
+    printableUserHandle,
+} from '../general.utils'
 import { AccountType } from '@/interfaces'
 
 describe('General Utilities', () => {
@@ -207,6 +214,20 @@ describe('General Utilities', () => {
     })
 
     describe('getRequestLink', () => {
+        // getRequestLink now uses shareableUrl which reads window.location.origin
+        // (so a link shared from staging stays on staging). Mock origin so existing
+        // assertions against peanut.example.org keep working.
+        const originalLocation = window.location
+        beforeAll(() => {
+            Object.defineProperty(window, 'location', {
+                value: new URL('https://peanut.example.org'),
+                writable: true,
+            })
+        })
+        afterAll(() => {
+            Object.defineProperty(window, 'location', { value: originalLocation, writable: true })
+        })
+
         it.each([
             // For Peanut Wallet users (username-based links)
             {
@@ -337,6 +358,56 @@ describe('General Utilities', () => {
                 },
                 expectedLink: 'https://peanut.example.org/satoshi/?chargeId=charge_123456789',
             },
+            // The bug we're fixing: BE returns an EVM_ADDRESS-typed account
+            // for a recipient that DOES have a Peanut user attached. Username
+            // wins regardless of `type`.
+            {
+                requestData: {
+                    recipientAccount: {
+                        type: AccountType.EVM_ADDRESS,
+                        user: {
+                            username: 'hugo0',
+                        },
+                    },
+                    recipientAddress: '0xb009da0b0824ba04bfd7eb2757e064a8e184d338',
+                    chainId: '42161',
+                    tokenAmount: '0.38',
+                    tokenSymbol: 'USDC',
+                    uuid: '04acc664-c572-4d12-bb15-6d286ac80e81',
+                },
+                expectedLink: 'https://peanut.example.org/hugo0/0.38USDC?id=04acc664-c572-4d12-bb15-6d286ac80e81',
+            },
+            // Defensive: unprojected Prisma enum value flowing through. Same
+            // outcome — username wins.
+            {
+                requestData: {
+                    recipientAccount: {
+                        type: 'WALLET_SMART',
+                        user: {
+                            username: 'satoshi',
+                        },
+                    },
+                    recipientAddress: '0x1234567890123456789012345678901234567890',
+                    chainId: '1',
+                    uuid: 'c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+                },
+                expectedLink: 'https://peanut.example.org/satoshi/?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+            },
+            // PEANUT_WALLET type with no `user` field — previously threw
+            // TypeError via `user!.username`. Now falls back to the address
+            // gracefully.
+            {
+                requestData: {
+                    recipientAccount: {
+                        type: AccountType.PEANUT_WALLET,
+                    },
+                    recipientAddress: '0x1234567890123456789012345678901234567890',
+                    chainId: '42161',
+                    uuid: 'c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+                },
+                expectedLink:
+                    'https://peanut.example.org/0x1234567890123456789012345678901234567890@42161/?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+            },
             // Token symbol but no amount
             {
                 requestData: {
@@ -354,6 +425,47 @@ describe('General Utilities', () => {
             },
         ])('should return the correct link', ({ requestData, expectedLink }) => {
             expect(getRequestLink(requestData)).toBe(expectedLink)
+        })
+    })
+
+    describe('isUuid', () => {
+        it('matches lowercase, uppercase, and mixed-case UUIDs', () => {
+            expect(isUuid('7077676f-2bba-4ef2-b2ab-2d37aed69c69')).toBe(true)
+            expect(isUuid('7077676F-2BBA-4EF2-B2AB-2D37AED69C69')).toBe(true)
+            expect(isUuid('c4fc57cb-deae-4ea2-bdb3-aeaa996255ad')).toBe(true)
+        })
+
+        it('rejects non-UUID strings', () => {
+            expect(isUuid('alice')).toBe(false)
+            expect(isUuid('')).toBe(false)
+            expect(isUuid('0x1234567890123456789012345678901234567890')).toBe(false)
+            // Missing one hex char in the last group.
+            expect(isUuid('7077676f-2bba-4ef2-b2ab-2d37aed69c6')).toBe(false)
+            // Wrong delimiter.
+            expect(isUuid('7077676f2bba4ef2b2ab2d37aed69c69')).toBe(false)
+        })
+    })
+
+    describe('printableUserHandle', () => {
+        it('shortens UUID identifiers so the activity feed never renders the full string', () => {
+            const out = printableUserHandle('7077676f-2bba-4ef2-b2ab-2d37aed69c69')
+            expect(out).not.toBe('7077676f-2bba-4ef2-b2ab-2d37aed69c69')
+            expect(out).toContain('...')
+            expect(out.length).toBeLessThan('7077676f-2bba-4ef2-b2ab-2d37aed69c69'.length)
+        })
+
+        it('shortens EVM addresses', () => {
+            const out = printableUserHandle('0x1234567890123456789012345678901234567890')
+            expect(out).toContain('...')
+        })
+
+        it('leaves real usernames untouched', () => {
+            expect(printableUserHandle('alice')).toBe('alice')
+            expect(printableUserHandle('hugo.peanut')).toBe('hugo.peanut')
+        })
+
+        it('returns empty string unchanged', () => {
+            expect(printableUserHandle('')).toBe('')
         })
     })
 })

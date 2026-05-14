@@ -85,10 +85,7 @@ const LinkSendSuccessView = () => {
                         >
                             {!isLoading && (
                                 <div className="flex items-center">
-                                    <Icon
-                                        name="cancel"
-                                        className="mr-0.5 min-w-3 rounded-full border border-black p-0.5"
-                                    />
+                                    <Icon name="ban" size={18} />
                                 </div>
                             )}
                             <span>{cancelLinkText}</span>

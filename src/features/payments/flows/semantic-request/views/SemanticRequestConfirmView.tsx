@@ -44,7 +44,7 @@ export function SemanticRequestConfirmView() {
         charge,
         attachment,
         error,
-        calculatedRoute,
+        calculatedReceiveAmount,
         calculatedGasCost,
         isCalculatingRoute,
         isFeeEstimationError,
@@ -60,8 +60,6 @@ export function SemanticRequestConfirmView() {
         goBackToInitial,
         executePayment,
         prepareRoute,
-        handleRouteExpired,
-        handleRouteNearExpiry,
     } = useSemanticRequestFlow()
 
     // get the display symbol for the requested amount
@@ -126,17 +124,16 @@ export function SemanticRequestConfirmView() {
         )
     }, [calculatedGasCost, isFeeEstimationError])
 
-    // min received amount
+    // Receive amount from Rhino preview. Same-token bridges are 1:1 minus flat
+    // fee (no slippage) — the preview value is deterministic, not a "minimum".
     const minReceived = useMemo<string | null>(() => {
         if (!charge?.tokenDecimals || !requestedResolvedTokenSymbol) return null
-        if (!calculatedRoute) {
+        if (!calculatedReceiveAmount) {
             return `$ ${charge?.tokenAmount}`
         }
-        const amount = formatAmount(
-            formatUnits(BigInt(calculatedRoute.rawResponse.route.estimate.toAmountMin), charge.tokenDecimals)
-        )
+        const amount = formatAmount(calculatedReceiveAmount)
         return isStableCoin(requestedResolvedTokenSymbol) ? `$ ${amount}` : `${amount} ${requestedResolvedTokenSymbol}`
-    }, [calculatedRoute, charge?.tokenDecimals, charge?.tokenAmount, requestedResolvedTokenSymbol])
+    }, [calculatedReceiveAmount, charge?.tokenDecimals, charge?.tokenAmount, requestedResolvedTokenSymbol])
 
     // error message (route expiry auto-retries)
     const errorMessage = useMemo(() => {
@@ -198,13 +195,6 @@ export function SemanticRequestConfirmView() {
                         tokenSymbol={displayTokenSymbol}
                         message={attachment?.message ?? ''}
                         fileUrl={attachment?.fileUrl ?? ''}
-                        showTimer={isCrossChainPayment && calculatedRoute?.type === 'rfq'}
-                        timerExpiry={calculatedRoute?.expiry}
-                        isTimerLoading={isCalculatingRoute}
-                        onTimerNearExpiry={handleRouteNearExpiry}
-                        onTimerExpired={handleRouteExpired}
-                        disableTimerRefetch={isLoading}
-                        timerError={routeError}
                     />
                 )}
                 {/* payment details card */}

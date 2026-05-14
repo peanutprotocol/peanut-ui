@@ -1,10 +1,4 @@
-'use server'
-
-import { fetchWithSentry } from '@/utils/sentry.utils'
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { getJWTCookie } from '@/utils/cookie-migration.utils'
-
-const API_KEY = process.env.PEANUT_API_KEY!
+import { serverFetch } from '@/utils/api-fetch'
 
 export interface IncreaseLimitsResponse {
     token: string | null
@@ -14,20 +8,10 @@ export interface IncreaseLimitsResponse {
 }
 
 export const initiateIncreaseLimits = async (): Promise<{ data?: IncreaseLimitsResponse; error?: string }> => {
-    const jwtToken = (await getJWTCookie())?.value
-
-    if (!jwtToken) {
-        return { error: 'Authentication required' }
-    }
-
     try {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/increase-limits`, {
+        const response = await serverFetch('/users/increase-limits', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${jwtToken}`,
-                'api-key': API_KEY,
-            },
+            body: JSON.stringify({}),
         })
 
         const responseJson = await response.json()

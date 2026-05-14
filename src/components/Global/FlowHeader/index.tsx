@@ -14,7 +14,7 @@ const FlowHeader = ({ onPrev, disableBackBtn, rightElement }: FlowHeaderProps) =
             <div className="w-fit">
                 {onPrev && (
                     <Button variant="stroke" className="h-7 w-7 p-0" onClick={onPrev} disabled={disableBackBtn}>
-                        <Icon name="chevron-up" size={32} className="h-8 w-8 -rotate-90" />
+                        <Icon name="chevron-up" size={24} className="-rotate-90" />
                     </Button>
                 )}
             </div>

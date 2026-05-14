@@ -17,6 +17,7 @@ jest.mock('../useKycStatus', () => ({
 
 import { useBridgeTosStatus } from '../useBridgeTosStatus'
 import useProviderRejectionStatus from '../useProviderRejectionStatus'
+import type { ProviderRejectionState } from '../useProviderRejectionStatus'
 import useKycStatus from '../useKycStatus'
 
 const mockTosStatus = useBridgeTosStatus as jest.MockedFunction<typeof useBridgeTosStatus>
@@ -25,7 +26,7 @@ const mockKycStatus = useKycStatus as jest.MockedFunction<typeof useKycStatus>
 
 const defaultRejection = {
     provider: 'BRIDGE' as const,
-    state: 'happy' as const,
+    state: 'happy' as ProviderRejectionState,
     userMessage: null,
     rejectedRails: [],
     kycVerification: null,
@@ -35,7 +36,7 @@ const defaultRejection = {
 
 function setup({
     needsBridgeTos = false,
-    bridgeState = 'happy' as const,
+    bridgeState = 'happy' as ProviderRejectionState,
     bridgeUserMessage = null as string | null,
     isSumsubApproved = false,
     isBridgeApproved = false,

@@ -72,11 +72,36 @@ certificates
 public/sw*
 public/swe-worker*
 
+# circle-flags SVGs copied from node_modules via scripts/copy-flags.mjs
+public/flags/
+
 .idea
 
-# mobile POC
-android/
+# mobile — android/ is tracked (native app source code)
+# build artifacts are handled by android/.gitignore
 .claude/
 
 # AI tool worktrees
 .claude/worktrees/
+
+# Playwright e2e harness
+e2e/__results__/
+e2e/__baseline__/
+e2e/__report__/
+e2e/__snapshots__/
+e2e/.auth/
+
+# native app signing
+*.keystore
+keystore.properties
+.env.production.local
+
+# capgo ota signing key
+.capgo_key_v2
+test-results/
+coverage/
+
+# Fetched at CI from peanut-api-ts/test/integration/__fixtures__/history-real-staging.jsonl.
+# See .github/workflows/tests.yml — `Fetch BE render-snapshot baseline` step.
+# Never commit; the canonical 49-entry baseline lives in the BE repo.
+src/components/TransactionDetails/__tests__/fixtures/be-entries.json

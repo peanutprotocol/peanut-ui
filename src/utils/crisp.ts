@@ -1,4 +1,5 @@
 import { type CrispUserData } from '@/hooks/useCrispUserData'
+import { isCapacitor } from '@/utils/capacitor'
 
 /**
  * Sets Crisp user identification and session metadata on a $crisp instance
@@ -91,6 +92,14 @@ export function resetCrispSession(crispInstance: any): void {
  */
 export function resetCrispProxySessions(): void {
     if (typeof window === 'undefined') return
+
+    // in capacitor, reset via native plugin
+    if (isCapacitor()) {
+        import('@capgo/capacitor-crisp')
+            .then(({ CapacitorCrisp }) => CapacitorCrisp.reset())
+            .catch((err) => console.debug('[Crisp] native reset failed:', err))
+        return
+    }
 
     try {
         const iframes = document.querySelectorAll('iframe[src*="crisp-proxy"]')

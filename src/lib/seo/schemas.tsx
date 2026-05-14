@@ -19,34 +19,6 @@ export function faqSchema(faqs: { question: string; answer: string }[]) {
     }
 }
 
-export function howToSchema(name: string, description: string, steps: { name: string; text: string }[]) {
-    return {
-        '@context': 'https://schema.org',
-        '@type': 'HowTo',
-        name,
-        description,
-        step: steps.map((step, i) => ({
-            '@type': 'HowToStep',
-            position: i + 1,
-            name: step.name,
-            text: step.text,
-        })),
-    }
-}
-
-export function breadcrumbSchema(items: { name: string; url: string }[]) {
-    return {
-        '@context': 'https://schema.org',
-        '@type': 'BreadcrumbList',
-        itemListElement: items.map((item, i) => ({
-            '@type': 'ListItem',
-            position: i + 1,
-            name: item.name,
-            item: `${baseUrl}${item.url}`,
-        })),
-    }
-}
-
 export interface ArticleMeta {
     title: string
     description: string

@@ -1,16 +1,10 @@
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { serverFetch } from '@/utils/api-fetch'
 import { type RewardLink } from './services.types'
-import Cookies from 'js-cookie'
-import { PEANUT_API_URL } from '@/constants/general.consts'
 
 export const rewardsApi = {
     getByUser: async (userId: string): Promise<RewardLink[]> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/users/${userId}/rewards`, {
+        const response = await serverFetch(`/users/${userId}/rewards`, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${Cookies.get('jwt-token')}`,
-            },
         })
         if (!response.ok) {
             throw new Error(`Failed to fetch rewards: ${response.statusText}`)

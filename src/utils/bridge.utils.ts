@@ -51,6 +51,18 @@ export const getOfframpCurrencyConfig = (countryId: string): CurrencyConfig => {
 }
 
 /**
+ * Map ISO fiat currency → Bridge bank AccountType. Used by onramp quote
+ * + exchange-rate callers that only have the currency string in hand.
+ */
+export const currencyToAccountType = (currency: string): AccountType => {
+    const normalized = currency.toLowerCase()
+    if (normalized === 'usd') return AccountType.US
+    if (normalized === 'mxn') return AccountType.CLABE
+    if (normalized === 'gbp') return AccountType.GB
+    return AccountType.IBAN
+}
+
+/**
  * Get the fiat currency symbol for display purposes
  */
 export const getCurrencySymbol = (currency: string): string => {
@@ -147,17 +159,18 @@ export function getCountryFromPath(countryPath: string): CountryData | undefined
 }
 
 export function getCountryFromAccount(account: Account): CountryData | undefined {
-    const threeLetterCountryCode = (account.details.countryCode ?? '').toUpperCase()
+    const code = (account.details?.countryCode ?? '').toUpperCase()
 
-    let countryInfo
     if (account.type === AccountType.US) {
-        countryInfo = ALL_METHODS_DATA.find((c) => c.id === 'US')
-    } else {
-        countryInfo = account.details.countryName
-            ? ALL_METHODS_DATA.find((c) => c.path.toLowerCase() === account.details.countryName?.toLowerCase())
-            : ALL_METHODS_DATA.find((c) => c.id === threeLetterCountryCode)
+        return ALL_METHODS_DATA.find((c) => c.id === 'US')
     }
-    return countryInfo
+    // Try countryName first; fall back to the country code. Bridge stores
+    // ISO3 ('USA', 'GBR'); CountryData carries both `iso3` and `iso2` (= `id`),
+    // so accept either shape so a name mismatch doesn't drop the lookup.
+    const byName = account.details?.countryName
+        ? ALL_METHODS_DATA.find((c) => c.path.toLowerCase() === account.details?.countryName?.toLowerCase())
+        : undefined
+    return byName ?? ALL_METHODS_DATA.find((c) => c.iso3 === code || c.id === code)
 }
 
 /**

@@ -4,6 +4,7 @@ import {
     countryData,
     MantecaSupportedExchanges,
     ALL_COUNTRIES_ALPHA3_TO_ALPHA2,
+    PREFERRED_COUNTRY_ISO2,
 } from '@/components/AddMoney/consts'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { SearchInput } from '@/components/SearchInput'
@@ -13,6 +14,7 @@ import { getCardPosition } from '../Global/Card/card.utils'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { CountryListSkeleton } from './CountryListSkeleton'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import EasterEggModal, { EASTER_EGG_COUNTRIES } from '@/components/Global/EasterEggModal'
 import StatusBadge from '../Global/Badges/StatusBadge'
 import Loading from '../Global/Loading'
@@ -75,8 +77,15 @@ export const CountryList = ({
 
     const supportedCountries = countryData.filter((country) => country.type === 'country')
 
-    // sort countries based on user's geo location, fallback to alphabetical order
+    // sort countries: user's geo-located country first, then preferred countries
+    // (in declared order), then everyone else alphabetically.
     const sortedCountries = useMemo(() => {
+        const preferredRank = (country: CountryData) => {
+            const iso2 = country.iso2 ?? ALL_COUNTRIES_ALPHA3_TO_ALPHA2[country.id]
+            const i = iso2 ? PREFERRED_COUNTRY_ISO2.indexOf(iso2 as (typeof PREFERRED_COUNTRY_ISO2)[number]) : -1
+            return i === -1 ? Infinity : i
+        }
+
         return [...supportedCountries].sort((a, b) => {
             if (userGeoLocationCountryCode) {
                 const aIsUserCountry =
@@ -89,6 +98,11 @@ export const CountryList = ({
                 if (aIsUserCountry && !bIsUserCountry) return -1
                 if (!aIsUserCountry && bIsUserCountry) return 1
             }
+
+            const aRank = preferredRank(a)
+            const bRank = preferredRank(b)
+            if (aRank !== bRank) return aRank - bRank
+
             return a.title.localeCompare(b.title)
         })
     }, [userGeoLocationCountryCode])
@@ -206,7 +220,7 @@ export const CountryList = ({
                                     leftIcon={
                                         <div className="relative h-8 w-8">
                                             <Image
-                                                src={`https://flagcdn.com/w160/${twoLetterCountryCode.toLowerCase()}.png`}
+                                                src={getFlagUrl(twoLetterCountryCode)}
                                                 alt={`${country.title} flag`}
                                                 width={80}
                                                 height={80}

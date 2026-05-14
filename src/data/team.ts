@@ -43,8 +43,3 @@ export const TEAM_MEMBERS: TeamMember[] = [
         bio: 'Focused on growth and making Peanut the easiest way to send money internationally.',
     },
 ]
-
-/** Find a team member by slug */
-export function getTeamMember(slug: string): TeamMember | undefined {
-    return TEAM_MEMBERS.find((m) => m.slug === slug)
-}

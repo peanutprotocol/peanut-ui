@@ -3,7 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import PioneerCard3D from '@/components/LandingPage/PioneerCard3D'
-import { useRouter } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { useEffect, useState, useRef } from 'react'
 
 interface CardInfoScreenProps {
@@ -34,6 +34,7 @@ const RollingDigit = ({ digit, duration = 400 }: { digit: string; duration?: num
 
             return () => clearTimeout(timer)
         }
+        return undefined
     }, [digit, duration])
 
     const animationStyle = `
@@ -90,7 +91,7 @@ const RollingNumber = ({ value, duration = 400 }: { value: number; duration?: nu
 }
 
 const CardInfoScreen = ({ onContinue, hasPurchased, slotsRemaining, recentPurchases }: CardInfoScreenProps) => {
-    const router = useRouter()
+    const onBack = useSafeBack('/home')
     const [displayValue, setDisplayValue] = useState<number | null>(null)
     const timeoutRef = useRef<NodeJS.Timeout | null>(null)
     const hasAnimated = useRef(false)
@@ -132,7 +133,7 @@ const CardInfoScreen = ({ onContinue, hasPurchased, slotsRemaining, recentPurcha
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">
-            <NavHeader title="Join Peanut Pioneers" onPrev={() => router.back()} />
+            <NavHeader title="Join Peanut Pioneers" onPrev={onBack} />
 
             <div className="my-auto flex flex-col gap-6">
                 {/* Description and FAQ link */}

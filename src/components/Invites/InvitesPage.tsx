@@ -18,6 +18,7 @@ import { useLogin } from '@/hooks/useLogin'
 import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { profileUrl } from '@/utils/native-routes'
 
 // mapping of special invite codes to their campaign tags
 // when these invite codes are used, the corresponding campaign tag is automatically applied
@@ -25,6 +26,7 @@ const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
     arbiverseinvitesyou: 'ARBIVERSE_DEVCONNECT_BA_2025',
     squirrelinvitesyou: 'ARBIVERSE_DEVCONNECT_BA_2025', // temporary: maps to arbiverse until 12pm noon tomorrow
     founderhaus: 'FOUNDER_HOUSE',
+    survivor: 'SUPPORT_SURVIVOR',
 }
 
 function InvitePageContent() {
@@ -131,7 +133,7 @@ function InvitePageContent() {
                     })
             } else {
                 // no campaign, just redirect to inviter's profile
-                router.push(`/${inviteCodeData.username}`)
+                router.push(profileUrl(inviteCodeData.username))
             }
         }
     }, [user, inviteCodeData, isLoading, isFetchingUser, router, campaign, redirectUri, fetchUser])

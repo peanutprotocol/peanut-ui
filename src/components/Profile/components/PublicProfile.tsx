@@ -10,6 +10,7 @@ import ProfileHeader from './ProfileHeader'
 import { useState, useEffect, useMemo } from 'react'
 import { usersApi } from '@/services/users'
 import { useRouter } from 'next/navigation'
+import { requestUrl } from '@/utils/native-routes'
 import Card from '@/components/Global/Card'
 import { checkIfInternalNavigation } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
@@ -116,16 +117,14 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             shadowSize="4"
                             className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
                         >
-                            <div className="flex size-5 items-center justify-center">
-                                <Icon name="arrow-up-right" size={8} fill="black" />
-                            </div>
+                            <Icon name="arrow-up-right" size={18} fill="black" />
                             <span className="font-bold">Send</span>
                         </Button>
 
                         <Button
                             onClick={() => {
                                 if (isLoggedIn && user?.user.hasAppAccess) {
-                                    router.push(`/request/${username}`)
+                                    router.push(requestUrl(username))
                                 } else {
                                     setShowInviteModal(true)
                                 }
@@ -134,9 +133,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             shadowSize="4"
                             className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
                         >
-                            <div className="flex size-5 items-center justify-center">
-                                <Icon name="arrow-down-left" size={8} fill="black" />
-                            </div>
+                            <Icon name="arrow-down-left" size={18} fill="black" />
                             <span className="font-bold">Request</span>
                         </Button>
                     </div>

@@ -1,11 +1,10 @@
 'use client'
 
+import { getAuthToken } from '@/utils/auth-token'
 import { useQuery } from '@tanstack/react-query'
-import Cookies from 'js-cookie'
-import { fetchWithSentry } from '@/utils/sentry.utils'
-import { PEANUT_API_URL } from '@/constants/general.consts'
 import type { UserLimitsResponse } from '@/interfaces'
 import { LIMITS } from '@/constants/query.consts'
+import { serverFetch } from '@/utils/api-fetch'
 
 interface UseLimitsOptions {
     enabled?: boolean
@@ -20,18 +19,12 @@ export function useLimits(options: UseLimitsOptions = {}) {
     const { enabled = true } = options
 
     const fetchLimits = async (): Promise<UserLimitsResponse> => {
-        const token = Cookies.get('jwt-token')
+        const token = getAuthToken()
         if (!token) {
             return { manteca: null, bridge: null }
         }
 
-        const url = `${PEANUT_API_URL}/users/limits`
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-        }
-
-        const response = await fetchWithSentry(url, { method: 'GET', headers })
+        const response = await serverFetch('/users/limits', { method: 'GET' })
 
         // 400 means user has no kyc - return empty limits
         if (response.status === 400) {

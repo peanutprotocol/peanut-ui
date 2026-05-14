@@ -14,6 +14,7 @@ import { invitesApi } from '@/services/invites'
 import { getInitialsFromName } from '@/utils/general.utils'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { STAR_STRAIGHT_ICON, TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets'
 import Image from 'next/image'
 import { pointsApi } from '@/services/points'
@@ -25,6 +26,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import InvitesGraph from '@/components/Global/InvitesGraph'
 import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { formatPoints, shortenPoints } from '@/utils/format.utils'
+import { profileUrl } from '@/utils/native-routes'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
@@ -32,6 +34,7 @@ import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 
 const PointsPage = () => {
     const router = useRouter()
+    const onBack = useSafeBack('/home')
     const { user, fetchUser } = useAuth()
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
     const inviteesRef = useRef(null)
@@ -111,7 +114,7 @@ const PointsPage = () => {
 
     return (
         <PageContainer className="flex flex-col">
-            <NavHeader title="Rewards" onPrev={() => router.back()} />
+            <NavHeader title="Rewards" onPrev={onBack} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
                 {/* rewards hero — pending claimable as primary, lifetime as secondary */}
@@ -234,7 +237,7 @@ const PointsPage = () => {
                             {user?.invitedBy && (
                                 <>
                                     <span
-                                        onClick={() => router.push(`/${user.invitedBy}`)}
+                                        onClick={() => router.push(profileUrl(user.invitedBy!))}
                                         className="inline-flex cursor-pointer items-center gap-1 font-bold"
                                     >
                                         {user.invitedBy} <Icon name="invite-heart" size={14} />
@@ -271,7 +274,7 @@ const PointsPage = () => {
                                     <Card
                                         key={invite.inviteeId}
                                         position={getCardPosition(i, Math.min(5, invites.invitees.length))}
-                                        onClick={() => router.push(`/${username}`)}
+                                        onClick={() => router.push(profileUrl(username))}
                                         className="cursor-pointer"
                                     >
                                         <div className="flex items-center justify-between gap-4">

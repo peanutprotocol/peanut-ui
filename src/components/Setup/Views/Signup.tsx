@@ -1,7 +1,8 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import ValidatedInput from '@/components/Global/ValidatedInput'
-import { next_proxy_url } from '@/constants/general.consts'
+import { PEANUT_API_URL } from '@/constants/general.consts'
+import { isCapacitor } from '@/utils/capacitor'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
@@ -49,8 +50,9 @@ const SignupStep = () => {
 
         try {
             // here we expect 404 or 400 so dont use the fetchWithSentry helper
-            const res = await fetchWithSentry(`${next_proxy_url}/get/users/username/${username}`, {
-                method: 'HEAD',
+            // capacitorHttp doesn't support HEAD — use GET in native
+            const res = await fetchWithSentry(`${PEANUT_API_URL}/users/username/${username}`, {
+                method: isCapacitor() ? 'GET' : 'HEAD',
             })
             switch (res.status) {
                 case 200:
@@ -149,14 +151,13 @@ const SignupStep = () => {
                 <div>
                     <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
                         <span>By creating account you agree with </span>
-                        <Link
-                            rel="noopener noreferrer"
-                            target="_blank"
-                            href="https://peanutprotocol.notion.site/Terms-of-Service-Privacy-Policy-1f245331837f4b7e860261be8374cc3a?pvs=4"
-                        >
-                            <span className="underline underline-offset-2">T&C</span> and{' '}
+                        <Link rel="noopener noreferrer" target="_blank" href="/terms">
+                            <span className="underline underline-offset-2">T&C</span>
+                        </Link>
+                        {' and '}
+                        <Link rel="noopener noreferrer" target="_blank" href="/privacy">
                             <span className="underline underline-offset-2">Privacy Policy</span>
-                        </Link>{' '}
+                        </Link>
                     </p>
                 </div>
             </div>

@@ -1,12 +1,14 @@
 import { type IUserProfile } from '@/interfaces'
 import { useAppDispatch, useUserStore } from '@/redux/hooks'
 import { userActions } from '@/redux/slices/user-slice'
-import { fetchWithSentry } from '@/utils/sentry.utils'
-import { hitUserMetric } from '@/utils/metrics.utils'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useQuery } from '@tanstack/react-query'
 import { usePWAStatus } from '../usePWAStatus'
 import { useDeviceType } from '../useGetDeviceType'
 import { USER } from '@/constants/query.consts'
+import { apiFetch } from '@/utils/api-fetch'
+import { clearAuthToken, setAuthToken } from '@/utils/auth-token'
 
 // custom error class for backend errors (5xx) that should trigger retry
 export class BackendError extends Error {
@@ -25,23 +27,41 @@ export const useUserQuery = (dependsOn: boolean = true) => {
     const { user: authUser } = useUserStore()
 
     const fetchUser = async (): Promise<IUserProfile | null> => {
-        const userResponse = await fetchWithSentry('/api/peanut/user/get-user-from-cookie')
+        const userResponse = await apiFetch('/get-user', { method: 'POST', body: '{}' })
         if (userResponse.ok) {
-            const userData: IUserProfile | null = await userResponse.json()
-            if (userData) {
-                hitUserMetric(userData.user.userId, 'login', {
-                    isPwa: isPwa,
-                    deviceType: deviceType,
-                })
-                dispatch(userActions.setUser(userData))
+            const payload: (IUserProfile & { token?: string }) | null = await userResponse.json()
+
+            // Sliding refresh: backend re-mints when the JWT crosses half its
+            // lifetime and ships the new one alongside the user payload. Swap
+            // it in client-side so active users never hit the 30d hard logout.
+            // Strip `token` unconditionally so auth state never leaks into the
+            // user store, even if the backend ever sends a falsy value.
+            if (payload && 'token' in payload) {
+                if (payload.token) setAuthToken(payload.token)
+                delete payload.token
             }
-            return userData
+
+            if (payload) {
+                // Was: hitUserMetric(userData.user.userId, 'login', ...) → POST /users/:id/metrics/login.
+                // DB `user_metrics` table deprecated 2026-04-24; analytics is PostHog's job.
+                posthog.capture(ANALYTICS_EVENTS.LOGIN, { isPwa, deviceType })
+                dispatch(userActions.setUser(payload))
+            }
+            return payload
         }
 
         // 5xx = backend error, throw so tanstack retries
         if (userResponse.status >= 500) {
             console.error('Backend error fetching user:', userResponse.status)
             throw new BackendError('Backend error fetching user', userResponse.status)
+        }
+
+        // 401 (expired/invalid JWT) and 404 (user no longer exists — e.g. local
+        // DB re-seeded out from under a stale cookie) both mean the JWT is
+        // irrecoverable. Wipe the token so the next render escapes to /setup
+        // instead of looping on the same dead JWT.
+        if (userResponse.status === 401 || userResponse.status === 404) {
+            clearAuthToken()
         }
 
         // 4xx = auth failure, clear stale redux so layout redirects to /setup
