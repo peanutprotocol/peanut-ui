@@ -13,8 +13,10 @@ export const useBridgeTosStatus = () => {
         const hasRequiresInformation = bridgeRails.some((r) => r.status === 'REQUIRES_INFORMATION')
 
         // bridge can require tos_acceptance as part of additionalRequirements
-        // even when rails are in other states (REJECTED, REQUIRES_EXTRA_INFORMATION)
+        // but only on non-ENABLED rails — ENABLED means tos was already accepted,
+        // stale metadata should not re-trigger the tos modal
         const hasTosInRequirements = bridgeRails.some((r) => {
+            if (r.status === 'ENABLED') return false
             const reqs = Array.isArray(r.metadata?.additionalRequirements)
                 ? (r.metadata.additionalRequirements as string[])
                 : []
