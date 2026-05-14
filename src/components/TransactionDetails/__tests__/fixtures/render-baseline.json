@@ -2697,7 +2697,7 @@
         "kind": "PERK_REWARD",
         "txHash": "<TX_HASH>",
         "perkReward": {
-          "reason": "✨ Peanut Mystery Rewards",
+          "reason": "\u2728 Peanut Mystery Rewards",
           "discountPercentage": 100,
           "originatingTxId": null,
           "originatingTxType": "MANUAL",
@@ -3167,9 +3167,9 @@
                 "price_details": {
                   "rate": 4597916.4,
                   "currency": "ARS",
-                  "base_amount": 0.000026751248,
+                  "base_amount": 2.6751248e-05,
                   "paid_amount": 0,
-                  "final_amount": 0.000026751248,
+                  "final_amount": 2.6751248e-05,
                   "discount_rate": 0,
                   "currency_amount": 123,
                   "currency_final_amount": 123
@@ -3190,9 +3190,9 @@
                 "price_details": {
                   "rate": 4597916.4,
                   "currency": "ARS",
-                  "base_amount": 0.000026751248,
+                  "base_amount": 2.6751248e-05,
                   "paid_amount": 0,
-                  "final_amount": 0.000026751248,
+                  "final_amount": 2.6751248e-05,
                   "discount_rate": 0,
                   "currency_amount": 123,
                   "currency_final_amount": 123
@@ -3236,9 +3236,9 @@
                 "price_details": {
                   "rate": 138734817.45,
                   "currency": "ARS",
-                  "base_amount": 8.9e-7,
+                  "base_amount": 8.9e-07,
                   "paid_amount": 0,
-                  "final_amount": 8.9e-7,
+                  "final_amount": 8.9e-07,
                   "discount_rate": 0,
                   "currency_amount": 123,
                   "currency_final_amount": 123
@@ -3540,9 +3540,9 @@
       "createdAt": "<TIMESTAMP>"
     },
     "expected": {
-      "direction": "send",
-      "userName": "<UUID>",
-      "transactionCardType": "send",
+      "direction": "receive",
+      "userName": "<EVM_ADDRESS>",
+      "transactionCardType": "receive",
       "provider": "PEANUT",
       "cardPaymentDefined": false,
       "bankAccountDetailsDefined": false
