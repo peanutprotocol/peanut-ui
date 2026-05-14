@@ -24,6 +24,7 @@ import { intentFallback } from './fallback'
 export type IntentKind =
     | 'DIRECT_TRANSFER'
     | 'SEND_LINK'
+    | 'SEND_LINK_CLAIM'
     | 'P2P_REQUEST_FULFILL'
     | 'QR_PAY'
     | 'CRYPTO_DEPOSIT'
@@ -39,6 +40,7 @@ const STRATEGIES: Record<IntentKind, TransactionStrategy> = {
     DIRECT_TRANSFER: p2pSendOrRequestFulfill,
     P2P_REQUEST_FULFILL: p2pSendOrRequestFulfill,
     SEND_LINK: sendLink,
+    SEND_LINK_CLAIM: sendLink,
     QR_PAY: qrPay,
     CRYPTO_DEPOSIT: cryptoDeposit,
     CRYPTO_WITHDRAW: cryptoWithdraw,
