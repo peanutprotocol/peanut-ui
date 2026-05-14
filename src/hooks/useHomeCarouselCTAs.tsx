@@ -25,10 +25,6 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 const DISMISS_COOLDOWN_DAYS = 7
 const DISMISS_COOLDOWN_MS = DISMISS_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
 
-// CTAs gated by external state that can flip back (e.g. notification permission)
-// must not be persisted — they should re-evaluate every session.
-const TRANSIENT_CTA_IDS = new Set(['notification-prompt'])
-
 export type CarouselCTA = {
     id: string
     title: string | React.ReactNode
@@ -90,7 +86,7 @@ export const useHomeCarouselCTAs = () => {
     const { isUserKycApproved, isUserBridgeKycUnderReview, isUserMantecaKycApproved } = useKycStatus()
     const { deviceType } = useDeviceType()
     const isPwa = usePWAStatus()
-    const { setIsIosPwaInstallModalOpen } = useModalsContext()
+    const { setIsIosPwaInstallModalOpen, openSupportWithMessage } = useModalsContext()
 
     const { setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
@@ -117,14 +113,11 @@ export const useHomeCarouselCTAs = () => {
     const dismissCTA = useCallback(
         (ctaId: string) => {
             dismissedRef.current.set(ctaId, new Date())
-            if (!TRANSIENT_CTA_IDS.has(ctaId)) {
-                const record: Record<string, string> = {}
-                for (const [id, dismissedAt] of dismissedRef.current) {
-                    if (TRANSIENT_CTA_IDS.has(id)) continue
-                    record[id] = dismissedAt.toISOString()
-                }
-                updateUserPreferences(user?.user?.userId, { dismissedCarouselCTAs: record })
+            const record: Record<string, string> = {}
+            for (const [id, dismissedAt] of dismissedRef.current) {
+                record[id] = dismissedAt.toISOString()
             }
+            updateUserPreferences(user?.user?.userId, { dismissedCarouselCTAs: record })
             setCarouselCTAs((prev) => prev.filter((c) => c.id !== ctaId))
         },
         [user?.user?.userId]
@@ -268,6 +261,30 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
+        // Bug bounty — shown to activated users only. Server enforces the real
+        // eligibility (email verified, ≥1 payment OR KYC approved), lifetime
+        // caps, and the daily budget. This gate just keeps the CTA off cold
+        // accounts where the reward would be denied anyway.
+        if (isActivated) {
+            _carouselCTAs.push({
+                id: 'bug-bounty',
+                title: (
+                    <span>
+                        Help us improve and <b>get $5!</b>
+                    </span>
+                ),
+                description: 'Report a bug. Get rewarded! No questions asked.',
+                iconContainerClassName: 'bg-primary-1',
+                icon: 'bug',
+                iconSize: 20,
+                // (mobile-ui) routes don't load the Crisp script directly —
+                // the chat lives inside SupportDrawer's iframe. Use the
+                // ModalsContext helper instead of `window.$crisp.push(...)`,
+                // which only works on (marketing) routes.
+                onClick: () => openSupportWithMessage('I found a bug: '),
+            })
+        }
+
         if (!hasKycApproval && !isUserBridgeKycUnderReview) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
@@ -282,7 +299,8 @@ export const useHomeCarouselCTAs = () => {
                     </span>
                 ),
                 iconContainerClassName: 'bg-secondary-1',
-                icon: 'shield',
+                icon: 'qr-code',
+                iconSize: 16,
                 onClick: () => {
                     router.push('/profile/identity-verification')
                 },
@@ -315,6 +333,7 @@ export const useHomeCarouselCTAs = () => {
         setIsIosPwaInstallModalOpen,
         toast,
         dismissCTA,
+        openSupportWithMessage,
     ])
 
     useEffect(() => {
