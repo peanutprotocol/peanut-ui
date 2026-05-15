@@ -137,31 +137,13 @@ export const useIdentityVerification = () => {
             const mantecaActive =
                 user?.user.kycVerifications?.some(
                     (v) =>
-                        v.provider === 'MANTECA' &&
+                        (v.provider === 'MANTECA' || v.provider === 'SUMSUB') &&
                         (v.mantecaGeo || '').toUpperCase() === upper &&
                         isKycStatusApproved(v.status)
-                ) ?? false
-
-            const migratedMantecaActive =
-                user?.user.kycVerifications?.some(
-                    (v) =>
-                        v.provider === 'SUMSUB' &&
-                        (v.mantecaGeo || '').toUpperCase() === upper &&
-                        isKycStatusApproved(v.status)
-                ) ?? false
-
-            const hasEnabledMantecaRail =
-                user?.rails?.some(
-                    (rail) =>
-                        rail.rail.provider.code === 'MANTECA' &&
-                        rail.rail.method.country.toUpperCase() === upper &&
-                        rail.status === 'ENABLED'
                 ) ?? false
 
             // Manteca countries need country-specific verification, others just need Bridge KYC
-            return isMantecaSupportedCountry(upper)
-                ? mantecaActive || migratedMantecaActive || hasEnabledMantecaRail
-                : isUserBridgeKycApproved
+            return isMantecaSupportedCountry(upper) ? mantecaActive : isUserBridgeKycApproved
         },
         [user, isUserBridgeKycApproved, isMantecaSupportedCountry]
     )

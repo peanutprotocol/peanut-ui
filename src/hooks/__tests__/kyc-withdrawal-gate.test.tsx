@@ -46,13 +46,14 @@ function setUser(authUser: Record<string, unknown>) {
 describe('kyc withdrawal gating', () => {
     afterEach(() => jest.resetAllMocks())
 
-    it('treats migrated SUMSUB ACTIVE rows as approved', () => {
+    it('treats migrated SUMSUB ACTIVE Manteca rows as approved', () => {
         setUser({
             user: {
                 bridgeKycStatus: null,
                 kycVerifications: [
                     {
                         provider: 'SUMSUB',
+                        mantecaGeo: 'AR',
                         status: 'ACTIVE',
                         updatedAt: '2026-03-26T23:02:30.330Z',
                     },
@@ -64,10 +65,11 @@ describe('kyc withdrawal gating', () => {
         const { result } = renderHook(() => useUnifiedKycStatus())
 
         expect(result.current.isSumsubApproved).toBe(true)
+        expect(result.current.isMantecaApproved).toBe(true)
         expect(result.current.isKycApproved).toBe(true)
     })
 
-    it('allows Argentina Manteca withdrawal when migrated KYC and rails are enabled', () => {
+    it('allows Argentina Manteca withdrawal when migrated KYC is country-scoped', () => {
         setUser({
             user: {
                 bridgeKycStatus: null,
@@ -80,11 +82,46 @@ describe('kyc withdrawal gating', () => {
                     },
                 ],
             },
-            rails: [enabledMantecaArRail],
+            rails: [],
         })
 
         const { result } = renderHook(() => useIdentityVerification())
 
         expect(result.current.isVerifiedForCountry('AR')).toBe(true)
+    })
+
+    it('allows Argentina Manteca withdrawal for a normal active Manteca row', () => {
+        setUser({
+            user: {
+                bridgeKycStatus: null,
+                kycVerifications: [
+                    {
+                        provider: 'MANTECA',
+                        mantecaGeo: 'AR',
+                        status: 'ACTIVE',
+                        updatedAt: '2025-10-30T01:12:06.099Z',
+                    },
+                ],
+            },
+            rails: [],
+        })
+
+        const { result } = renderHook(() => useIdentityVerification())
+
+        expect(result.current.isVerifiedForCountry('AR')).toBe(true)
+    })
+
+    it('does not allow Argentina Manteca withdrawal from an enabled rail alone', () => {
+        setUser({
+            user: {
+                bridgeKycStatus: null,
+                kycVerifications: [],
+            },
+            rails: [enabledMantecaArRail],
+        })
+
+        const { result } = renderHook(() => useIdentityVerification())
+
+        expect(result.current.isVerifiedForCountry('AR')).toBe(false)
     })
 })

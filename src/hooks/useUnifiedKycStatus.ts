@@ -1,7 +1,6 @@
 'use client'
 
 import { useAuth } from '@/context/authContext'
-import { MantecaKycStatus } from '@/interfaces'
 import { useMemo } from 'react'
 import { type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import { isKycStatusApproved, isSumsubStatusInProgress } from '@/constants/kyc.consts'
@@ -18,7 +17,9 @@ export default function useUnifiedKycStatus() {
     const isMantecaApproved = useMemo(
         () =>
             user?.user.kycVerifications?.some(
-                (v) => v.provider === 'MANTECA' && v.status === MantecaKycStatus.ACTIVE
+                (v) =>
+                    (v.provider === 'MANTECA' || (v.provider === 'SUMSUB' && !!v.mantecaGeo)) &&
+                    isKycStatusApproved(v.status)
             ) ?? false,
         [user]
     )
