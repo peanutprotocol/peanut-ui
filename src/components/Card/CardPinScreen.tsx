@@ -128,7 +128,14 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
             <div className="flex flex-col gap-6">
                 <p className="text-sm text-grey-1">Your pin is hidden for security reasons.</p>
                 <div className="flex items-center gap-3">
-                    <span className="text-6xl font-extrabold">{pin ?? '****'}</span>
+                    {loading ? (
+                        // Skeleton in the digits' slot — same height as the
+                        // text-6xl span so the eye button below doesn't shift
+                        // between hidden / loading / revealed states.
+                        <div className="h-14 w-36 animate-pulse rounded bg-grey-2" />
+                    ) : (
+                        <span className="text-6xl font-extrabold">{pin ?? '****'}</span>
+                    )}
                     <button
                         type="button"
                         onClick={pin ? hide : reveal}
@@ -140,7 +147,6 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                         <Icon name={pin ? 'eye' : 'eye-slash'} size={24} />
                     </button>
                 </div>
-                {loading && <p className="text-sm text-grey-1">Loading…</p>}
                 {error && <p className="text-sm text-red">{error}</p>}
                 <ProfileMenuItem
                     icon="more-horizontal"
