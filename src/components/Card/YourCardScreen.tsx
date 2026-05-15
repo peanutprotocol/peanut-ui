@@ -54,17 +54,15 @@ const YourCardScreen: FC<Props> = ({ card, onPrev }) => {
         <div className="flex min-h-[inherit] flex-col gap-6">
             <NavHeader title="Your card" onPrev={onPrev} />
 
-            <div className="flex flex-col gap-2">
-                <CardFace
-                    last4={card.last4}
-                    isLocked={isLocked}
-                    revealed={revealed}
-                    loading={isRevealing}
-                    onToggleReveal={isLocked || isRevealing ? undefined : toggle}
-                    onCopy={handleCopy}
-                />
-                {revealError && <p className="text-center text-sm text-red">{revealError}</p>}
-            </div>
+            <CardFace
+                last4={card.last4}
+                isLocked={isLocked}
+                revealed={revealed}
+                loading={isRevealing}
+                error={revealError}
+                onToggleReveal={isLocked || isRevealing ? undefined : toggle}
+                onCopy={handleCopy}
+            />
 
             {showAutoRenew && (
                 <div className="flex items-start gap-3 rounded-sm border border-n-1 bg-white p-4">
