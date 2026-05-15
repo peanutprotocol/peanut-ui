@@ -1,5 +1,5 @@
 'use client'
-import type { FC } from 'react'
+import { type FC, useState } from 'react'
 import Image from 'next/image'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -18,6 +18,10 @@ interface Props {
     isVirtual?: boolean
     isLocked?: boolean
     revealed?: RevealedCardDetails | null
+    /** Render skeleton blocks where PAN/expiry/CVV would appear. Used between
+     *  "user tapped reveal" and the reveal payload arriving — replaces the
+     *  static loading sentence with in-place skeletons. */
+    loading?: boolean
     onToggleReveal?: () => void
     onCopy?: (value: string, field: 'pan' | 'cvv') => void
     /** Marketing / empty-state preview. Renders a sample PAN + cardholder
@@ -45,6 +49,7 @@ const CardFace: FC<Props> = ({
     isVirtual = true,
     isLocked = false,
     revealed,
+    loading = false,
     onToggleReveal,
     onCopy,
     preview = false,
@@ -55,6 +60,15 @@ const CardFace: FC<Props> = ({
     className,
 }) => {
     const showingDetails = revealed != null
+    const [copiedField, setCopiedField] = useState<'pan' | 'cvv' | null>(null)
+
+    const handleCopy = (value: string, field: 'pan' | 'cvv') => {
+        setCopiedField(field)
+        // Clear only if still showing the same field — guards against an
+        // earlier setTimeout overwriting a fresher copy on the other field.
+        setTimeout(() => setCopiedField((current) => (current === field ? null : current)), 1500)
+        onCopy?.(value, field)
+    }
 
     return (
         <div
@@ -110,10 +124,10 @@ const CardFace: FC<Props> = ({
                                     <button
                                         type="button"
                                         aria-label="Copy card number"
-                                        onClick={() => onCopy(revealed.pan, 'pan')}
+                                        onClick={() => handleCopy(revealed.pan, 'pan')}
                                         className="p-1"
                                     >
-                                        <Icon name="copy" size={16} />
+                                        <Icon name={copiedField === 'pan' ? 'check' : 'copy'} size={16} />
                                     </button>
                                 )}
                             </div>
@@ -135,10 +149,10 @@ const CardFace: FC<Props> = ({
                                             <button
                                                 type="button"
                                                 aria-label="Copy CVV"
-                                                onClick={() => onCopy(revealed.cvv, 'cvv')}
+                                                onClick={() => handleCopy(revealed.cvv, 'cvv')}
                                                 className="p-1"
                                             >
-                                                <Icon name="copy" size={14} />
+                                                <Icon name={copiedField === 'cvv' ? 'check' : 'copy'} size={14} />
                                             </button>
                                         )}
                                     </div>
@@ -153,6 +167,20 @@ const CardFace: FC<Props> = ({
                                         <Icon name="eye-slash" size={22} />
                                     </button>
                                 )}
+                            </div>
+                        </>
+                    ) : loading ? (
+                        <>
+                            <div className="h-7 w-56 animate-pulse rounded bg-white/40" />
+                            <div className="mt-2 flex items-end gap-6 text-xs">
+                                <div>
+                                    <div className="opacity-70">Expiry</div>
+                                    <div className="mt-1 h-4 w-12 animate-pulse rounded bg-white/40" />
+                                </div>
+                                <div>
+                                    <div className="opacity-70">CVV</div>
+                                    <div className="mt-1 h-4 w-10 animate-pulse rounded bg-white/40" />
+                                </div>
                             </div>
                         </>
                     ) : (
