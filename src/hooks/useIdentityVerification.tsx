@@ -4,11 +4,11 @@ import useKycStatus from './useKycStatus'
 import useUnifiedKycStatus from './useUnifiedKycStatus'
 import { useMemo, useCallback } from 'react'
 import { useAuth } from '@/context/authContext'
-import { MantecaKycStatus } from '@/interfaces'
 import { BRIDGE_ALPHA3_TO_ALPHA2, MantecaSupportedExchanges, countryData } from '@/components/AddMoney/consts'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import React from 'react'
+import { isKycStatusApproved } from '@/constants/kyc.consts'
 
 /** Represents a geographic region with its display information */
 export type Region = {
@@ -134,13 +134,12 @@ export const useIdentityVerification = () => {
         (code: string) => {
             const upper = code.toUpperCase()
 
-            // Check if user has active Manteca verification for this specific country
             const mantecaActive =
                 user?.user.kycVerifications?.some(
                     (v) =>
-                        v.provider === 'MANTECA' &&
+                        (v.provider === 'MANTECA' || v.provider === 'SUMSUB') &&
                         (v.mantecaGeo || '').toUpperCase() === upper &&
-                        v.status === MantecaKycStatus.ACTIVE
+                        isKycStatusApproved(v.status)
                 ) ?? false
 
             // Manteca countries need country-specific verification, others just need Bridge KYC
