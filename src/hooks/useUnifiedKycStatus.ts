@@ -4,7 +4,7 @@ import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
 import { useMemo } from 'react'
 import { type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
-import { isSumsubStatusInProgress } from '@/constants/kyc.consts'
+import { isKycStatusApproved, isSumsubStatusInProgress } from '@/constants/kyc.consts'
 
 /**
  * single source of truth for kyc status across all providers (bridge, manteca, sumsub).
@@ -32,7 +32,7 @@ export default function useUnifiedKycStatus() {
         [user]
     )
 
-    const isSumsubApproved = useMemo(() => sumsubVerification?.status === 'APPROVED', [sumsubVerification])
+    const isSumsubApproved = useMemo(() => isKycStatusApproved(sumsubVerification?.status), [sumsubVerification])
 
     const sumsubStatus = useMemo(() => (sumsubVerification?.status as SumsubKycStatus) ?? null, [sumsubVerification])
 
