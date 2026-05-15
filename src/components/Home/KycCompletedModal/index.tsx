@@ -4,12 +4,12 @@ import ActionModal from '@/components/Global/ActionModal'
 import type { IconName } from '@/components/Global/Icons/Icon'
 import InfoCard from '@/components/Global/InfoCard'
 import { useAuth } from '@/context/authContext'
-import { MantecaKycStatus } from '@/interfaces'
 import { countryData, MantecaSupportedExchanges, type CountryData } from '@/components/AddMoney/consts'
 import useUnifiedKycStatus from '@/hooks/useUnifiedKycStatus'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
+import { isKycStatusApproved } from '@/constants/kyc.consts'
 
 const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     const { user } = useAuth()
@@ -28,13 +28,13 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     const { getVerificationUnlockItems } = useIdentityVerification()
 
     const kycApprovalType = useMemo(() => {
+        if (isBridgeApproved && isMantecaApproved) return 'all'
+        if (isMantecaApproved) return 'manteca'
         if (isSumsubApproved) {
             if (sumsubVerificationRegionIntent === 'LATAM') return 'manteca'
             return 'bridge'
         }
-        if (isBridgeApproved && isMantecaApproved) return 'all'
         if (isBridgeApproved) return 'bridge'
-        if (isMantecaApproved) return 'manteca'
         return 'none'
     }, [isBridgeApproved, isMantecaApproved, isSumsubApproved, sumsubVerificationRegionIntent])
 
@@ -51,9 +51,9 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             // get the manteca approved country
             user?.user.kycVerifications?.forEach((v) => {
                 if (
-                    v.provider === 'MANTECA' &&
+                    (v.provider === 'MANTECA' || v.provider === 'SUMSUB') &&
                     supportedCountries.includes((v.mantecaGeo || '').toUpperCase()) &&
-                    v.status === MantecaKycStatus.ACTIVE
+                    isKycStatusApproved(v.status)
                 ) {
                     approvedCountry = v.mantecaGeo
                 }
