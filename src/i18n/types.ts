@@ -78,4 +78,17 @@ export interface Translations {
     // Misc
     lastUpdated: string // "Last updated: {date}"
     relatedPages: string // "Related Pages"
+
+    // Content hub
+    content: string // "Content" (nav label)
+    contentHubTitle: string
+    contentHubSubtitle: string
+    contentSearchPlaceholder: string
+    filterAll: string
+    filterBlog: string
+    filterStories: string
+    filterUseCases: string
+    filterCompare: string
+    noContentResults: string
+    backTo: string // "Back to {name}"
 }

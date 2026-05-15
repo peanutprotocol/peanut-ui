@@ -45,5 +45,16 @@
     "categorySendingReceiving": "Sending & Receiving",
     "categoryTroubleshooting": "Troubleshooting",
     "lastUpdated": "Last updated: {date}",
-    "relatedPages": "Related Pages"
+    "relatedPages": "Related Pages",
+    "content": "Content",
+    "contentHubTitle": "Explore Peanut",
+    "contentHubSubtitle": "Articles, stories, guides, and comparisons.",
+    "contentSearchPlaceholder": "Search articles, stories, guides...",
+    "filterAll": "All",
+    "filterBlog": "Blog",
+    "filterStories": "Stories",
+    "filterUseCases": "Use cases",
+    "filterCompare": "Compare",
+    "noContentResults": "Nothing matches your search.",
+    "backTo": "Back to {name}"
 }
