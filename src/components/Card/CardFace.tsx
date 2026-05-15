@@ -22,6 +22,11 @@ interface Props {
      *  "user tapped reveal" and the reveal payload arriving — replaces the
      *  static loading sentence with in-place skeletons. */
     loading?: boolean
+    /** Reveal-error message. Rendered INSIDE the card face so a failed reveal
+     *  doesn't push surrounding layout. `useCardReveal` clears the error on
+     *  the next attempt, so the eye button (visible when not loading) is
+     *  the retry affordance — no separate dismiss needed. */
+    error?: string | null
     onToggleReveal?: () => void
     onCopy?: (value: string, field: 'pan' | 'cvv') => void
     /** Marketing / empty-state preview. Renders a sample PAN + cardholder
@@ -50,6 +55,7 @@ const CardFace: FC<Props> = ({
     isLocked = false,
     revealed,
     loading = false,
+    error,
     onToggleReveal,
     onCopy,
     preview = false,
@@ -73,7 +79,7 @@ const CardFace: FC<Props> = ({
     return (
         <div
             className={twMerge(
-                'relative aspect-[1.586/1] w-full overflow-hidden rounded-3xl bg-primary-1 text-n-1',
+                'relative aspect-[1.586/1] w-full overflow-hidden rounded-xl bg-primary-1 text-n-1',
                 isLocked && 'grayscale',
                 className
             )}
@@ -181,6 +187,29 @@ const CardFace: FC<Props> = ({
                                     <div className="opacity-70">CVV</div>
                                     <div className="mt-1 h-4 w-10 animate-pulse rounded bg-white/40" />
                                 </div>
+                            </div>
+                        </>
+                    ) : error ? (
+                        <>
+                            <span className="text-sm font-bold leading-snug">{error}</span>
+                            <div className="mt-1 flex items-end justify-between">
+                                {isVirtual ? (
+                                    <span className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold">
+                                        Virtual
+                                    </span>
+                                ) : (
+                                    <span />
+                                )}
+                                {onToggleReveal && (
+                                    <button
+                                        type="button"
+                                        aria-label="Retry showing card details"
+                                        onClick={onToggleReveal}
+                                        className="p-1"
+                                    >
+                                        <Icon name="eye" size={22} />
+                                    </button>
+                                )}
                             </div>
                         </>
                     ) : (

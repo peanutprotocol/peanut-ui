@@ -99,13 +99,13 @@ const Modal = ({
 
                                 <button
                                     className={twMerge(
-                                        `absolute right-2 top-2 p-2 text-0 outline-none hover:fill-primary-1 dark:fill-white dark:hover:fill-primary-1 ${
+                                        `absolute right-2 top-2 p-2 text-0 hover:fill-primary-1 dark:fill-white dark:hover:fill-primary-1 ${
                                             video ? 'absolute right-3 top-3 h-14 w-14 fill-white' : ''
                                         } ${classButtonClose}`
                                     )}
                                     onClick={onClose}
                                 >
-                                    <Icon name="cancel" size={24} fill="inherit" className="transition-colors" />
+                                    <Icon name="cancel" size={24} className="transition-colors" />
                                 </button>
                             </>
                         ) : (

@@ -109,7 +109,7 @@ const LimitsPageView = () => {
                         position="single"
                         leftIcon={<Icon name="credit-card" size={28} />}
                         title="Manage card limits"
-                        description="Per-transaction, daily, and monthly caps for your Peanut card."
+                        description="Transaction cap for your Peanut card."
                         onClick={() => router.push('/card/limit')}
                     />
                 </div>
