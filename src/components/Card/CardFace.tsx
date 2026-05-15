@@ -73,7 +73,7 @@ const CardFace: FC<Props> = ({
     return (
         <div
             className={twMerge(
-                'relative aspect-[1.586/1] w-full overflow-hidden rounded-3xl bg-primary-1 text-n-1',
+                'relative aspect-[1.586/1] w-full overflow-hidden rounded-xl bg-primary-1 text-n-1',
                 isLocked && 'grayscale',
                 className
             )}
