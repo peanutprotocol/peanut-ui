@@ -19,7 +19,6 @@ export interface BlogPost {
         title: string
         description: string
         date: string
-        category?: string
         author?: string
         faqs?: Array<{ question: string; answer: string }>
     }
@@ -69,14 +68,4 @@ export async function getPostBySlug(
     const frontmatter = { ...data, date: coerceDate(data.date) } as BlogPost['frontmatter']
 
     return { frontmatter, content }
-}
-
-export function getPostsByCategory(category: string, locale: Locale = 'en'): BlogPost[] {
-    return getAllPosts(locale).filter((p) => p.frontmatter.category === category)
-}
-
-export function getAllCategories(locale: Locale = 'en'): string[] {
-    const posts = getAllPosts(locale)
-    const cats = new Set(posts.map((p) => p.frontmatter.category).filter(Boolean) as string[])
-    return Array.from(cats).sort()
 }
