@@ -112,7 +112,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
     }
 
     return (
-        <Modal visible={isOpen} onClose={onClose} classWrap="sm:m-auto sm:self-center self-center m-4 rounded-2xl">
+        <Modal visible={isOpen} onClose={onClose} classWrap="sm:m-auto sm:self-center self-center m-4">
             <div className="p-6">
                 {phase === 'success' ? (
                     <div className="flex flex-col items-center gap-4 text-center">
@@ -121,9 +121,6 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                         </div>
                         <div className="text-xl font-extrabold">{copy.success}</div>
                         <p className="text-sm text-grey-1">{copy.successBody(mode === 'lock' ? 'unlock' : 'lock')}</p>
-                        <Button variant="purple" shadowSize="4" className="w-full" onClick={onClose}>
-                            Close
-                        </Button>
                     </div>
                 ) : (
                     <div className="flex flex-col items-center gap-4 text-center">
@@ -151,14 +148,6 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                                 Unlock
                             </Button>
                         )}
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="text-black underline"
-                            disabled={phase === 'loading'}
-                        >
-                            Cancel
-                        </button>
                     </div>
                 )}
             </div>

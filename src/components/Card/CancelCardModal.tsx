@@ -131,14 +131,14 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
         <Modal
             visible={isOpen}
             onClose={handleClose}
-            classWrap="sm:m-auto sm:self-center self-center m-4 rounded-2xl"
+            classWrap="sm:m-auto sm:self-center self-center m-4"
             preventClose={phase === 'canceling' || phase === 'submitting-feedback'}
         >
             <div className="p-6">
                 {phase === 'confirm' || phase === 'canceling' ? (
                     <div className="flex flex-col items-center gap-4 text-center">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-1">
-                            <Icon name="alert-filled" size={20} />
+                            <Icon name="alert" size={20} />
                         </div>
                         <div className="text-xl font-extrabold">Cancel card?</div>
                         <p className="text-sm text-grey-1">
@@ -151,14 +151,6 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                             onComplete={runCancel}
                             disabled={phase === 'canceling'}
                         />
-                        <Button
-                            variant="stroke"
-                            className="w-full"
-                            onClick={handleClose}
-                            disabled={phase === 'canceling'}
-                        >
-                            Close
-                        </Button>
                     </div>
                 ) : phase === 'feedback' || phase === 'submitting-feedback' ? (
                     <div className="flex flex-col items-center gap-4 text-center">
@@ -194,14 +186,6 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                         >
                             Submit
                         </Button>
-                        <button
-                            type="button"
-                            onClick={() => setPhase('thanks')}
-                            className="text-black underline"
-                            disabled={phase === 'submitting-feedback'}
-                        >
-                            Close
-                        </button>
                     </div>
                 ) : (
                     <div className="flex flex-col items-center gap-4 text-center">
