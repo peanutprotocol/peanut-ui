@@ -128,14 +128,19 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
             <div className="flex flex-col gap-6">
                 <p className="text-sm text-grey-1">Your pin is hidden for security reasons.</p>
                 <div className="flex items-center gap-3">
-                    {loading ? (
-                        // Skeleton in the digits' slot — same height as the
-                        // text-6xl span so the eye button below doesn't shift
-                        // between hidden / loading / revealed states.
-                        <div className="h-14 w-36 animate-pulse rounded bg-grey-2" />
-                    ) : (
-                        <span className="text-6xl font-extrabold">{pin ?? '****'}</span>
-                    )}
+                    {/* Fixed-height slot keeps the row geometry constant across
+                     * masked / loading / revealed. text-6xl in this repo's
+                     * Tailwind config is font-size 3rem / line-height 3.25rem
+                     * (52px), so the wrapper locks to that — `****`, the
+                     * skeleton, and the real digits all sit centered in the
+                     * same 52px row and the eye button never jumps. */}
+                    <div className="flex h-[52px] items-center">
+                        {loading ? (
+                            <div className="h-[52px] w-32 animate-pulse rounded bg-grey-2" />
+                        ) : (
+                            <span className="text-6xl font-extrabold leading-none">{pin ?? '****'}</span>
+                        )}
+                    </div>
                     <button
                         type="button"
                         onClick={pin ? hide : reveal}
