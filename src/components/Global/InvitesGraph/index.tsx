@@ -119,6 +119,11 @@ interface BaseProps {
     forceConfig?: ForceConfig
     /** Visibility configuration for toggling element rendering */
     visibilityConfig?: VisibilityConfig
+    /** Seed the selected/focused node by username on first load. Used for
+     *  deep-links like /dev/payment-graph?user=alice from Discord live-log.
+     *  Resolution happens once after the graph data arrives; subsequent
+     *  user clicks override it normally. Case-insensitive match. */
+    initialFocusUsername?: string
     /** Render prop for additional overlays */
     renderOverlays?: (props: {
         showUsernames: boolean
@@ -194,6 +199,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         forceConfig: initialForceConfig = DEFAULT_FORCE_CONFIG,
         visibilityConfig: initialVisibilityConfig = DEFAULT_VISIBILITY_CONFIG,
         renderOverlays,
+        initialFocusUsername,
     } = props
 
     const isMinimal = props.minimal === true
@@ -580,6 +586,24 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             }
         }
     }, [selectedUserId, filteredGraphData])
+
+    // Deep-link focus: resolve `initialFocusUsername` to a node.id once after the
+    // graph data first loads. Used by Discord live-log links like
+    // /dev/payment-graph?user=alice. Ref-guarded so re-renders don't pull the
+    // camera back if the user has since clicked away.
+    const initialFocusAppliedRef = useRef(false)
+    useEffect(() => {
+        if (initialFocusAppliedRef.current) return
+        if (!initialFocusUsername || !filteredGraphData) return
+        const needle = initialFocusUsername.toLowerCase()
+        const match = filteredGraphData.nodes.find((n) => n.username?.toLowerCase() === needle)
+        if (match) {
+            setSelectedUserId(match.id)
+        }
+        // Set the ref regardless of match so we don't spin trying every render
+        // when the username isn't present (filtered out, top-N cap, etc.).
+        initialFocusAppliedRef.current = true
+    }, [initialFocusUsername, filteredGraphData])
 
     // Build map of nodeId → inviter username for tooltips
     const inviterMap = useMemo(() => {
