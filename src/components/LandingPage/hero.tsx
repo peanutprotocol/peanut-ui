@@ -178,7 +178,18 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
                     className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    Buenos Aires. São Paulo. Floripa.
+                    <a href="/en/argentina" className="hover:underline">
+                        Buenos Aires
+                    </a>
+                    .{' '}
+                    <a href="/en/brazil" className="hover:underline">
+                        São Paulo
+                    </a>
+                    .{' '}
+                    <a href="/en/brazil" className="hover:underline">
+                        Floripa
+                    </a>
+                    .
                 </span>
                 <span className="mt-2 block text-center text-sm text-n-1/70 md:text-base" style={{ fontWeight: 400 }}>
                     No local ID or bank required.
