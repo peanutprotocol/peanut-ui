@@ -191,36 +191,58 @@ export const useSpendBundle = () => {
                 }
 
                 // ─── collateral-only ──────────────────────────────────────────────
+                // init → passkey → prepare → submit. /init does no Rain call,
+                // so if the user cancels the passkey at step 2 we never burned
+                // a Rain signature. /prepare verifies the admin sig BEFORE
+                // calling Rain. (See peanut-api-ts/src/routes/rain/withdraw.ts
+                // for the rationale.)
                 if (strategy === 'collateral-only') {
-                    const prep = await rainApi.prepareWithdrawal({
-                        amount: usdcWeiToRainCents(requiredUsdcAmount).toString(),
+                    // Resolve the kernel account BEFORE the init call so we fail
+                    // fast if auth is still hydrating, and pipeline the sync
+                    // setup with the async network call's start.
+                    const kernelClient = getClientForChain(chainIdStr)
+                    const kernelAccount = kernelClient.account
+                    if (!kernelAccount) {
+                        throw new Error('useSpendBundle: kernel account not initialized')
+                    }
+
+                    const amountCents = usdcWeiToRainCents(requiredUsdcAmount).toString()
+                    const init = await rainApi.initWithdrawal({
+                        amount: amountCents,
                         recipientAddress: recipient!,
                         directTransfer: true,
                         kind,
-                        // When set, the backend completes the charge directly on
-                        // confirm — caller must skip recordPayment for this strategy.
                         chargeId,
                     })
 
-                    const kernelClient = getClientForChain(chainIdStr)
-                    const adminSignature = (await kernelClient.account!.signTypedData({
+                    const adminSignature = (await kernelAccount.signTypedData({
                         domain: {
                             name: RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
                             version: RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
                             chainId: chainIdNum,
-                            verifyingContract: prep.collateralProxy as Address,
-                            salt: prep.adminSalt as Hex,
+                            verifyingContract: init.collateralProxy as Address,
+                            salt: init.adminSalt as Hex,
                         },
                         types: rainWithdrawEip712Types,
                         primaryType: 'Withdraw',
                         message: {
-                            user: prep.adminAddress as Address,
-                            asset: prep.tokenAddress as Address,
-                            amount: BigInt(prep.amount),
-                            recipient: prep.recipientAddress as Address,
-                            nonce: BigInt(prep.adminNonce),
+                            user: init.adminAddress as Address,
+                            asset: init.tokenAddress as Address,
+                            amount: BigInt(init.amount),
+                            recipient: init.recipientAddress as Address,
+                            nonce: BigInt(init.adminNonce),
                         },
                     })) as Hex
+
+                    const prep = await rainApi.prepareWithdrawal({
+                        amount: amountCents,
+                        recipientAddress: recipient!,
+                        directTransfer: true,
+                        kind,
+                        chargeId,
+                        initId: init.initId,
+                        adminSignature,
+                    })
 
                     const { txHash } = await rainApi.submitWithdrawal({
                         preparationId: prep.preparationId,
@@ -262,19 +284,32 @@ export const useSpendBundle = () => {
                 }
 
                 // ─── mixed ───────────────────────────────────────────────────────
-                // Pull the shortfall from collateral into the smart account, then
-                // the kernel fires the USDC transfer + any subsequent calls — all in
-                // one atomic UserOp. Two passkey taps total (admin sig, UserOp).
-
-                // Admin address = user's peanut-wallet address (kernel smart account).
+                // init → admin-passkey → prepare → build kernel UserOp → UserOp-passkey.
+                // The init flow saves a Rain sig burn when the admin-passkey is
+                // cancelled. The kernel UserOp passkey still happens AFTER /prepare
+                // (which is where Rain is called), so a cancel at the second prompt
+                // will still burn — there's no way around that without restructuring
+                // the on-chain coordinator interface. ~half the burn cases solved.
+                //
+                // Resolve the kernel account + admin address synchronously up
+                // front so auth-still-hydrating fails fast (before any network
+                // call), and pipeline the sync setup with the init call.
+                const kernelClient = getClientForChain(chainIdStr)
+                const kernelAccount = kernelClient.account
+                if (!kernelAccount) {
+                    throw new Error('useSpendBundle: kernel account not initialized')
+                }
                 const adminAddress = user?.accounts.find((a) => a.type === AccountType.PEANUT_WALLET)?.identifier as
                     | Address
                     | undefined
                 if (!adminAddress) throw new Error('useSpendBundle: missing peanut-wallet address for mixed spend')
 
                 const shortfall = requiredUsdcAmount - smartBalance
-                const prep = await rainApi.prepareWithdrawal({
-                    amount: usdcWeiToRainCents(shortfall).toString(),
+                const shortfallCents = usdcWeiToRainCents(shortfall).toString()
+                const totalCents = usdcWeiToRainCents(requiredUsdcAmount).toString()
+
+                const init = await rainApi.initWithdrawal({
+                    amount: shortfallCents,
                     // directTransfer=false sends tokens to the admin (kernel). We still pass
                     // the admin address here; the backend + coordinator treat it as the
                     // withdraw beneficiary, which equals msg.sender-to-be in the follow-up UserOp.
@@ -283,28 +318,37 @@ export const useSpendBundle = () => {
                     kind,
                     // History shows the full user-initiated spend, not just the
                     // shortfall Rain signed over.
-                    totalAmountCents: usdcWeiToRainCents(requiredUsdcAmount).toString(),
+                    totalAmountCents: totalCents,
                 })
 
-                const kernelClient = getClientForChain(chainIdStr)
-                const adminSignature = (await kernelClient.account!.signTypedData({
+                const adminSignature = (await kernelAccount.signTypedData({
                     domain: {
                         name: RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
                         version: RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
                         chainId: chainIdNum,
-                        verifyingContract: prep.collateralProxy as Address,
-                        salt: prep.adminSalt as Hex,
+                        verifyingContract: init.collateralProxy as Address,
+                        salt: init.adminSalt as Hex,
                     },
                     types: rainWithdrawEip712Types,
                     primaryType: 'Withdraw',
                     message: {
-                        user: prep.adminAddress as Address,
-                        asset: prep.tokenAddress as Address,
-                        amount: BigInt(prep.amount),
-                        recipient: prep.recipientAddress as Address,
-                        nonce: BigInt(prep.adminNonce),
+                        user: init.adminAddress as Address,
+                        asset: init.tokenAddress as Address,
+                        amount: BigInt(init.amount),
+                        recipient: init.recipientAddress as Address,
+                        nonce: BigInt(init.adminNonce),
                     },
                 })) as Hex
+
+                const prep = await rainApi.prepareWithdrawal({
+                    amount: shortfallCents,
+                    recipientAddress: adminAddress,
+                    directTransfer: false,
+                    kind,
+                    totalAmountCents: totalCents,
+                    initId: init.initId,
+                    adminSignature,
+                })
 
                 // Backend `/prepare` normalizes the executor salt (bytes32) and signature
                 // to 0x-hex regardless of what Rain returned — trust the wire shape here.

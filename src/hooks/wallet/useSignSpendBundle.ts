@@ -184,11 +184,14 @@ export const useSignSpendBundle = () => {
             }
 
             // ─── collateral-only ────────────────────────────────────────────
-            // Only sign the admin EIP-712 — backend submits the withdrawal via
-            // the user's session-key UserOp (1 tap total).
+            // init → admin-passkey → prepare. Only the admin EIP-712 sig is
+            // needed here — backend submits via the user's session-key UserOp
+            // downstream. The init flow means a cancelled passkey burns zero
+            // Rain sigs.
             if (strategy === 'collateral-only') {
-                const prep = await rainApi.prepareWithdrawal({
-                    amount: usdcWeiToRainCents(requiredUsdcAmount).toString(),
+                const amountCents = usdcWeiToRainCents(requiredUsdcAmount).toString()
+                const init = await rainApi.initWithdrawal({
+                    amount: amountCents,
                     recipientAddress: recipient,
                     directTransfer: true,
                     kind,
@@ -199,19 +202,28 @@ export const useSignSpendBundle = () => {
                         name: RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
                         version: RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
                         chainId: chainIdNum,
-                        verifyingContract: prep.collateralProxy as Address,
-                        salt: prep.adminSalt as Hex,
+                        verifyingContract: init.collateralProxy as Address,
+                        salt: init.adminSalt as Hex,
                     },
                     types: rainWithdrawEip712Types,
                     primaryType: 'Withdraw',
                     message: {
-                        user: prep.adminAddress as Address,
-                        asset: prep.tokenAddress as Address,
-                        amount: BigInt(prep.amount),
-                        recipient: prep.recipientAddress as Address,
-                        nonce: BigInt(prep.adminNonce),
+                        user: init.adminAddress as Address,
+                        asset: init.tokenAddress as Address,
+                        amount: BigInt(init.amount),
+                        recipient: init.recipientAddress as Address,
+                        nonce: BigInt(init.adminNonce),
                     },
                 })) as Hex
+
+                const prep = await rainApi.prepareWithdrawal({
+                    amount: amountCents,
+                    recipientAddress: recipient,
+                    directTransfer: true,
+                    kind,
+                    initId: init.initId,
+                    adminSignature,
+                })
 
                 return {
                     strategy,
@@ -231,22 +243,23 @@ export const useSignSpendBundle = () => {
             }
 
             // ─── mixed ──────────────────────────────────────────────────────
-            // Pull the shortfall from collateral into the smart account, then
-            // forward the full amount to the recipient — one atomic UserOp,
-            // signed without broadcasting. Two passkey taps (admin sig + UserOp).
-            // Use the kernel account's own address as the admin recipient (the
-            // address we sign FROM) instead of re-deriving from useAuth.
+            // init → admin-passkey → prepare → build kernel UserOp. The kernel
+            // UserOp's own passkey prompt happens downstream (caller broadcasts).
+            // First passkey-cancel saves a Rain sig burn; second still burns.
             const adminAddress = kernelAccount.address as Address
 
             const shortfall = requiredUsdcAmount - smartBalance
-            const prep = await rainApi.prepareWithdrawal({
-                amount: usdcWeiToRainCents(shortfall).toString(),
+            const shortfallCents = usdcWeiToRainCents(shortfall).toString()
+            const totalCents = usdcWeiToRainCents(requiredUsdcAmount).toString()
+
+            const init = await rainApi.initWithdrawal({
+                amount: shortfallCents,
                 // directTransfer=false sends tokens to the admin (kernel). Same
                 // semantics as broadcasting useSpendBundle.spend's mixed path.
                 recipientAddress: adminAddress,
                 directTransfer: false,
                 kind,
-                totalAmountCents: usdcWeiToRainCents(requiredUsdcAmount).toString(),
+                totalAmountCents: totalCents,
             })
 
             const adminSignature = (await kernelAccount.signTypedData({
@@ -254,19 +267,29 @@ export const useSignSpendBundle = () => {
                     name: RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
                     version: RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
                     chainId: chainIdNum,
-                    verifyingContract: prep.collateralProxy as Address,
-                    salt: prep.adminSalt as Hex,
+                    verifyingContract: init.collateralProxy as Address,
+                    salt: init.adminSalt as Hex,
                 },
                 types: rainWithdrawEip712Types,
                 primaryType: 'Withdraw',
                 message: {
-                    user: prep.adminAddress as Address,
-                    asset: prep.tokenAddress as Address,
-                    amount: BigInt(prep.amount),
-                    recipient: prep.recipientAddress as Address,
-                    nonce: BigInt(prep.adminNonce),
+                    user: init.adminAddress as Address,
+                    asset: init.tokenAddress as Address,
+                    amount: BigInt(init.amount),
+                    recipient: init.recipientAddress as Address,
+                    nonce: BigInt(init.adminNonce),
                 },
             })) as Hex
+
+            const prep = await rainApi.prepareWithdrawal({
+                amount: shortfallCents,
+                recipientAddress: adminAddress,
+                directTransfer: false,
+                kind,
+                totalAmountCents: totalCents,
+                initId: init.initId,
+                adminSignature,
+            })
 
             const withdrawCall = {
                 to: prep.coordinatorAddress as Hex,
