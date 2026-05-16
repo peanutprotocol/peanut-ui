@@ -348,6 +348,11 @@ jest.mock('@/components/Global/PeanutLoading', () => ({
     default: (props: any) => <div data-testid="peanut-loading">{props.message && <span>{props.message}</span>}</div>,
 }))
 
+jest.mock('@/components/Global/PeanutLoading/CyclingLoading', () => ({
+    __esModule: true,
+    default: () => <div data-testid="cycling-loading" />,
+}))
+
 jest.mock('@/components/Global/NavHeader', () => ({
     __esModule: true,
     default: (props: any) => (
@@ -943,7 +948,7 @@ describe('GROUP 3: Crypto Deposit', () => {
         expect(screen.getByText('10,000 USD')).toBeInTheDocument()
     })
 
-    test('deposit processing shows PeanutLoading with message', () => {
+    test('deposit processing shows CyclingLoading', () => {
         mockUseCryptoDepositPolling.mockReturnValue({
             status: 'loading',
             resetStatus: jest.fn(),
@@ -965,8 +970,7 @@ describe('GROUP 3: Crypto Deposit', () => {
             />
         )
 
-        expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
-        expect(screen.getByText('Almost there! Processing...')).toBeInTheDocument()
+        expect(screen.getByTestId('cycling-loading')).toBeInTheDocument()
     })
 
     test('deposit failed shows error card with retry button', () => {

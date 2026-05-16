@@ -14,6 +14,7 @@ import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Image from 'next/image'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
 import AmountInput from '@/components/Global/AmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
@@ -1048,11 +1049,7 @@ export default function QRPayPage() {
 
     // show loading spinner if we're still loading payment data
     if (isLoadingPaymentData || loadingState.toLowerCase() === 'paying') {
-        return (
-            <PeanutLoading
-                message={loadingState.toLowerCase() === 'paying' ? 'Almost there! Processing payment...' : undefined}
-            />
-        )
+        return loadingState.toLowerCase() === 'paying' ? <CyclingLoading /> : <PeanutLoading />
     }
 
     //Success

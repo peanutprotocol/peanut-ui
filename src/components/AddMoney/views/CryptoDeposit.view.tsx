@@ -7,6 +7,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
 import ChainChip from '../components/ChainChip'
 import HowToDepositModal from '../components/HowToDepositModal'
 import SupportedNetworksModal from '../components/SupportedNetworksModal'
@@ -95,7 +96,7 @@ const CryptoDepositView = ({ network, depositAddressData, isLoading, onSuccess, 
                 {/* loading state */}
                 {(isLoading || status === 'loading') && (
                     <div className="flex h-[60vh] items-center justify-center">
-                        <PeanutLoading message={status === 'loading' ? 'Almost there! Processing...' : undefined} />
+                        {status === 'loading' ? <CyclingLoading /> : <PeanutLoading />}
                     </div>
                 )}
 
