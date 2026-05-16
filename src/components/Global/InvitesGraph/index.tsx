@@ -595,13 +595,18 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     useEffect(() => {
         if (initialFocusAppliedRef.current) return
         if (!initialFocusUsername || !filteredGraphData) return
+        // Only attempt resolution once nodes are populated. An empty filtered
+        // set (loading races, visibility filter momentarily excluding all)
+        // should NOT trip the ref-lock — wait for real data.
+        if (filteredGraphData.nodes.length === 0) return
         const needle = initialFocusUsername.toLowerCase()
         const match = filteredGraphData.nodes.find((n) => n.username?.toLowerCase() === needle)
         if (match) {
             setSelectedUserId(match.id)
         }
-        // Set the ref regardless of match so we don't spin trying every render
-        // when the username isn't present (filtered out, top-N cap, etc.).
+        // Lock regardless of match — username not in data (filtered out,
+        // top-N cap, deleted user) is a definitive "no result" once nodes
+        // are populated. Avoids spinning.
         initialFocusAppliedRef.current = true
     }, [initialFocusUsername, filteredGraphData])
 
