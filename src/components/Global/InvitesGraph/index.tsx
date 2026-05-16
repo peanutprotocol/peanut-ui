@@ -119,6 +119,11 @@ interface BaseProps {
     forceConfig?: ForceConfig
     /** Visibility configuration for toggling element rendering */
     visibilityConfig?: VisibilityConfig
+    /** Seed the selected/focused node by username on first load. Used for
+     *  deep-links like /dev/payment-graph?user=alice from Discord live-log.
+     *  Resolution happens once after the graph data arrives; subsequent
+     *  user clicks override it normally. Case-insensitive match. */
+    initialFocusUsername?: string
     /** Render prop for additional overlays */
     renderOverlays?: (props: {
         showUsernames: boolean
@@ -194,6 +199,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         forceConfig: initialForceConfig = DEFAULT_FORCE_CONFIG,
         visibilityConfig: initialVisibilityConfig = DEFAULT_VISIBILITY_CONFIG,
         renderOverlays,
+        initialFocusUsername,
     } = props
 
     const isMinimal = props.minimal === true
@@ -580,6 +586,29 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             }
         }
     }, [selectedUserId, filteredGraphData])
+
+    // Deep-link focus: resolve `initialFocusUsername` to a node.id once after the
+    // graph data first loads. Used by Discord live-log links like
+    // /dev/payment-graph?user=alice. Ref-guarded so re-renders don't pull the
+    // camera back if the user has since clicked away.
+    const initialFocusAppliedRef = useRef(false)
+    useEffect(() => {
+        if (initialFocusAppliedRef.current) return
+        if (!initialFocusUsername || !filteredGraphData) return
+        // Only attempt resolution once nodes are populated. An empty filtered
+        // set (loading races, visibility filter momentarily excluding all)
+        // should NOT trip the ref-lock — wait for real data.
+        if (filteredGraphData.nodes.length === 0) return
+        const needle = initialFocusUsername.toLowerCase()
+        const match = filteredGraphData.nodes.find((n) => n.username?.toLowerCase() === needle)
+        if (match) {
+            setSelectedUserId(match.id)
+        }
+        // Lock regardless of match — username not in data (filtered out,
+        // top-N cap, deleted user) is a definitive "no result" once nodes
+        // are populated. Avoids spinning.
+        initialFocusAppliedRef.current = true
+    }, [initialFocusUsername, filteredGraphData])
 
     // Build map of nodeId → inviter username for tooltips
     const inviterMap = useMemo(() => {
