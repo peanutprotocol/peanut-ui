@@ -17,7 +17,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { mantecaApi, type WithdrawPriceLock } from '@/services/manteca'
 import { useCurrency } from '@/hooks/useCurrency'
-import { loadingStateContext } from '@/context'
+import { loadingStateContext } from '@/context/loadingStates.context'
 import { countryData } from '@/components/AddMoney/consts'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Image from 'next/image'
@@ -52,6 +52,7 @@ import {
     MANTECA_COUNTRIES_CONFIG,
     MANTECA_DEPOSIT_ADDRESS,
     MantecaAccountType,
+    isMantecaSupportedCountryCode,
     type MantecaBankCode,
 } from '@/constants/manteca.consts'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -124,7 +125,7 @@ export default function MantecaWithdrawFlow() {
     const onBack = useSafeBack(withdrawCountryUrl(selectedCountry?.path || ''))
 
     const countryConfig = useMemo(() => {
-        if (!selectedCountry) return undefined
+        if (!selectedCountry || !isMantecaSupportedCountryCode(selectedCountry.id)) return undefined
         return MANTECA_COUNTRIES_CONFIG[selectedCountry.id]
     }, [selectedCountry])
     const isUserMantecaKycApprovedForCountry = selectedCountry ? isVerifiedForCountry(selectedCountry.id) : false
@@ -133,7 +134,7 @@ export default function MantecaWithdrawFlow() {
         code: currencyCode,
         price: currencyPrice,
         isLoading: isCurrencyLoading,
-    } = useCurrency(selectedCountry?.currency!)
+    } = useCurrency(selectedCountry?.currency ?? null)
 
     // validates withdrawal against user's limits
     // currency comes from country config - hook normalizes it internally
@@ -485,7 +486,7 @@ export default function MantecaWithdrawFlow() {
 
     // redirect to withdraw page if country is missing or not supported by manteca
     useEffect(() => {
-        if (!countryFromUrl || !selectedCountry || !MANTECA_COUNTRIES_CONFIG[selectedCountry.id]) {
+        if (!countryFromUrl || !selectedCountry || !isMantecaSupportedCountryCode(selectedCountry.id)) {
             router.replace('/withdraw')
         }
     }, [countryFromUrl, selectedCountry, router])
@@ -574,8 +575,12 @@ export default function MantecaWithdrawFlow() {
                 onVerify={async () => {
                     if (mantecaRejection.state === 'blocked') {
                         // blocked users cannot self-heal — route to support
-                        if (typeof window !== 'undefined' && (window as any).$crisp) {
-                            ;(window as any).$crisp.push(['do', 'chat:open'])
+                        const crisp =
+                            typeof window !== 'undefined'
+                                ? (window as Window & { $crisp?: string[][] }).$crisp
+                                : undefined
+                        if (crisp) {
+                            crisp.push(['do', 'chat:open'])
                         }
                         setShowKycModal(false)
                         return

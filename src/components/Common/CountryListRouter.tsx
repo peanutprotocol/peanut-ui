@@ -7,7 +7,8 @@ import { formatTokenAmount } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { CountryList } from '@/components/Common/CountryList'
 import { type ClaimLinkData } from '@/services/sendLinks'
-import { type CountryData, MantecaSupportedExchanges } from '@/components/AddMoney/consts'
+import { type CountryData } from '@/components/AddMoney/consts'
+import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { useCallback, useMemo } from 'react'
 
@@ -29,9 +30,8 @@ export const CountryListRouter = ({ claimLinkData, inputTitle }: ICountryListRou
     const savedAccounts = useSavedAccounts()
 
     const handleCountryClick = (country: CountryData) => {
-        const isMantecaSupportedCountry = Object.keys(MantecaSupportedExchanges).includes(country.id)
         setSelectedCountry(country)
-        if (isMantecaSupportedCountry) {
+        if (isMantecaSupportedCountryCode(country.id)) {
             setFlowStep(null) // reset the flow step to initial view first
             setClaimToMercadoPago(true)
         } else {

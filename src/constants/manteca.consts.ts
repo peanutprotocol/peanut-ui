@@ -3,26 +3,27 @@ export const MANTECA_DEPOSIT_ADDRESS = '0x959e088a09f61aB01cb83b0eBCc74b2CF6d620
 export const MANTECA_ARG_DEPOSIT_NAME = 'Sixalime Sas'
 export const MANTECA_ARG_DEPOSIT_CUIT = '30-71678845-3'
 
-// Countries that use Manteca for bank withdrawals instead of Bridge
-export const MANTECA_COUNTRIES = [
-    'argentina', // ARS, USD, BRL (QR pix payments)
-    'chile', // CLP
-    'brazil', // BRL
-    'colombia', // COP
-    'panama', // PUSD
-    'costa-rica', // CRC
-    'guatemala', // GTQ
-    // 'mexico', // MXN - Keep as Bridge (CoDi disabled)
-    'philippines', // PHP
-    'bolivia', // BOB
-] as const
+// ui mirror of peanut-api-ts/src/manteca/consts.ts MANTECA_SUPPORTED_COUNTRIES.
+// first-party manteca bank/kyc rails are currently active only in argentina and brazil.
+export const MANTECA_SUPPORTED_EXCHANGES = {
+    AR: 'ARGENTINA',
+    BR: 'BRAZIL',
+} as const
 
-// Type for Manteca countries
-export type MantecaCountry = (typeof MANTECA_COUNTRIES)[number]
+export const MANTECA_SUPPORTED_COUNTRY_PATHS = ['argentina', 'brazil'] as const
 
-// Helper function to check if a country uses Manteca
-export const isMantecaCountry = (countryPath: string): boolean => {
-    return MANTECA_COUNTRIES.includes(countryPath as MantecaCountry)
+// type for manteca countries
+export type MantecaCountry = (typeof MANTECA_SUPPORTED_COUNTRY_PATHS)[number]
+
+// helper function to check if a country uses manteca
+export const isMantecaCountry = (countryPath: string | null | undefined): boolean => {
+    if (!countryPath) return false
+    return MANTECA_SUPPORTED_COUNTRY_PATHS.includes(countryPath as MantecaCountry)
+}
+
+export const isMantecaSupportedCountryCode = (countryCode: string | null | undefined): boolean => {
+    if (!countryCode) return false
+    return Object.prototype.hasOwnProperty.call(MANTECA_SUPPORTED_EXCHANGES, countryCode.toUpperCase())
 }
 
 export enum MantecaAccountType {
@@ -56,11 +57,9 @@ type MantecaCountryConfig = {
 )
 
 /**
- * Configuration for each country that uses Manteca
- * Some countries needs only account number but others need extra data,
- * and that data like account type and bank code is different for each
- * country and part of a list of valid values so we need to have a
- * config for each country
+ * destination field config for manteca country forms.
+ * this is not an eligibility gate; use isMantecaCountry or
+ * isMantecaSupportedCountryCode for routing.
  *
  * @see https://docs.manteca.dev/cripto/start-operating/manual-operation/requesting-a-withdraw/defining-the-destination
  */

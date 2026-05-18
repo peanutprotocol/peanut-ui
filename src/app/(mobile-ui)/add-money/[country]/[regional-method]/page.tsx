@@ -1,7 +1,7 @@
 'use client'
 import MantecaAddMoney from '@/components/AddMoney/components/MantecaAddMoney'
 import { type CountryData, countryData } from '@/components/AddMoney/consts'
-import { MantecaSupportedExchanges } from '@/components/AddMoney/consts'
+import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { useParams, useSearchParams } from 'next/navigation'
 
 export default function AddMoneyRegionalMethodPage() {
@@ -13,10 +13,7 @@ export default function AddMoneyRegionalMethodPage() {
 
     const countryDetails: CountryData | undefined = countryData.find((c) => c.path === country)
 
-    if (
-        MantecaSupportedExchanges[countryDetails?.id as keyof typeof MantecaSupportedExchanges] &&
-        method === 'manteca'
-    ) {
+    if (isMantecaSupportedCountryCode(countryDetails?.id) && method === 'manteca') {
         return <MantecaAddMoney />
     }
     return null

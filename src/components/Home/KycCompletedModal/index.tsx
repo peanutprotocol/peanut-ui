@@ -4,8 +4,9 @@ import ActionModal from '@/components/Global/ActionModal'
 import type { IconName } from '@/components/Global/Icons/Icon'
 import InfoCard from '@/components/Global/InfoCard'
 import { useAuth } from '@/context/authContext'
-import { MantecaKycStatus } from '@/interfaces'
-import { countryData, MantecaSupportedExchanges, type CountryData } from '@/components/AddMoney/consts'
+import { MantecaKycStatus } from '@/interfaces/interfaces'
+import { countryData, type CountryData } from '@/components/AddMoney/consts'
+import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import useUnifiedKycStatus from '@/hooks/useUnifiedKycStatus'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import posthog from 'posthog-js'
@@ -45,14 +46,13 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     useEffect(() => {
         // If manteca KYC is approved, then we need to get the approved country
         if (isMantecaApproved) {
-            const supportedCountries = Object.keys(MantecaSupportedExchanges)
             let approvedCountry: string | undefined | null
 
             // get the manteca approved country
             user?.user.kycVerifications?.forEach((v) => {
                 if (
                     v.provider === 'MANTECA' &&
-                    supportedCountries.includes((v.mantecaGeo || '').toUpperCase()) &&
+                    isMantecaSupportedCountryCode(v.mantecaGeo) &&
                     v.status === MantecaKycStatus.ACTIVE
                 ) {
                     approvedCountry = v.mantecaGeo
