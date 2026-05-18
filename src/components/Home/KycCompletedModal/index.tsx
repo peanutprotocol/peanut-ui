@@ -4,13 +4,13 @@ import ActionModal from '@/components/Global/ActionModal'
 import type { IconName } from '@/components/Global/Icons/Icon'
 import InfoCard from '@/components/Global/InfoCard'
 import { useAuth } from '@/context/authContext'
-import { MantecaKycStatus } from '@/interfaces/interfaces'
 import { countryData, type CountryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import useUnifiedKycStatus from '@/hooks/useUnifiedKycStatus'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
+import { isKycStatusApproved } from '@/constants/kyc.consts'
 
 const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     const { user } = useAuth()
@@ -29,13 +29,13 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     const { getVerificationUnlockItems } = useIdentityVerification()
 
     const kycApprovalType = useMemo(() => {
+        if (isBridgeApproved && isMantecaApproved) return 'all'
+        if (isMantecaApproved) return 'manteca'
         if (isSumsubApproved) {
             if (sumsubVerificationRegionIntent === 'LATAM') return 'manteca'
             return 'bridge'
         }
-        if (isBridgeApproved && isMantecaApproved) return 'all'
         if (isBridgeApproved) return 'bridge'
-        if (isMantecaApproved) return 'manteca'
         return 'none'
     }, [isBridgeApproved, isMantecaApproved, isSumsubApproved, sumsubVerificationRegionIntent])
 
@@ -51,9 +51,17 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             // get the manteca approved country
             user?.user.kycVerifications?.forEach((v) => {
                 if (
-                    v.provider === 'MANTECA' &&
+                    // dev: scoped to Manteca via `isMantecaSupportedCountryCode` helper.
+                    // main: broadened to include SUMSUB-provider rows AND switched the
+                    // status gate from `=== MantecaKycStatus.ACTIVE` to
+                    // `isKycStatusApproved` (handles the post-migration cohort whose
+                    // status enum is the unified Bridge/Manteca approved set, not the
+                    // legacy Manteca-only ACTIVE).
+                    // Merge: keep dev's helper for country-gate readability, take
+                    // main's broader provider + status logic (the actual bugfix).
+                    (v.provider === 'MANTECA' || v.provider === 'SUMSUB') &&
                     isMantecaSupportedCountryCode(v.mantecaGeo) &&
-                    v.status === MantecaKycStatus.ACTIVE
+                    isKycStatusApproved(v.status)
                 ) {
                     approvedCountry = v.mantecaGeo
                 }
