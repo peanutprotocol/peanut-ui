@@ -37,6 +37,19 @@ const LEG_W = 0.2
 const HAND_R = 0.28
 const FOOT_R = 0.22
 
+// Ragdoll geometry + joint limits. Inlined from the prototype's `tune` struct;
+// the slider panel that varied these at runtime isn't part of the production
+// build.
+const ARM_L = 0.5975
+const LEG_L = 0.96
+const SHOULDER_X = 0.18
+const HIP_X = 0.3
+const SHOULDER_DEG = 90
+const HIP_DEG = 60
+const WRIST_DEG = 30
+const ANKLE_DEG = 30
+const HAND_DEG = 20
+
 const REST_SETTLE = 1.5
 const IDLE_DWELL_MIN = 1.5,
     IDLE_DWELL_MAX = 3.0
@@ -83,22 +96,13 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
     // that the type checker keeps as non-null.
     const ctx: CanvasRenderingContext2D = ctxNullable
 
-    // ---- runtime-tunable knobs (was `tune` + window.__ragdoll.setTune) ----
-    const tune = {
-        ARM_L: 0.5975,
-        LEG_L: 0.96,
-        SHOULDER_X: 0.18,
-        HIP_X: 0.3,
-        SHOULDER_DEG: 90,
-        HIP_DEG: 60,
-        WRIST_DEG: 30,
-        ANKLE_DEG: 30,
-        HAND_DEG: 20,
-        HAND_FLIPX: false,
-        HAND_FLIPY: false,
-        WIREFRAMES: false,
-        SLEEPY: true,
-    }
+    // Engine sizes itself to the wrapping element rather than the viewport so
+    // the cage fits the modal panel — not the whole window. The React wrapper
+    // is responsible for putting the canvas in a sized container.
+    const containerNullable = canvas.parentElement
+    if (!containerNullable) throw new Error('PeanutRagdoll: canvas must be mounted in a parent element')
+    // Narrowing doesn't survive into nested closures (same trick as `ctx` above).
+    const container: HTMLElement = containerNullable
 
     // ---- rest-time face state machine ----
     let restTime = 0
@@ -223,13 +227,16 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
     }
 
     function resize() {
+        const w = container.clientWidth
+        const h = container.clientHeight
+        if (w === 0 || h === 0) return
         const dpr = Math.min(window.devicePixelRatio || 1, 1.5)
-        canvas.width = Math.round(window.innerWidth * dpr)
-        canvas.height = Math.round(window.innerHeight * dpr)
-        canvas.style.width = window.innerWidth + 'px'
-        canvas.style.height = window.innerHeight + 'px'
+        canvas.width = Math.round(w * dpr)
+        canvas.height = Math.round(h * dpr)
+        canvas.style.width = w + 'px'
+        canvas.style.height = h + 'px'
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-        const newPpu = Math.min(window.innerWidth / PHONE_W_WORLD, window.innerHeight / PHONE_H_WORLD) * 0.95
+        const newPpu = Math.min(w / PHONE_W_WORLD, h / PHONE_H_WORLD) * 0.95
         if (dpr !== currentDpr || newPpu !== pixelsPerUnit) {
             bitmapCache.clear()
             currentDpr = dpr
@@ -240,15 +247,15 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
 
     function worldToScreen(x: number, y: number) {
         return {
-            x: window.innerWidth / 2 + (x - cameraOffset.x) * pixelsPerUnit,
-            y: window.innerHeight / 2 - (y - cameraOffset.y) * pixelsPerUnit,
+            x: container.clientWidth / 2 + (x - cameraOffset.x) * pixelsPerUnit,
+            y: container.clientHeight / 2 - (y - cameraOffset.y) * pixelsPerUnit,
         }
     }
 
     function screenToWorld(sx: number, sy: number) {
         return {
-            x: (sx - window.innerWidth / 2) / pixelsPerUnit + cameraOffset.x,
-            y: -(sy - window.innerHeight / 2) / pixelsPerUnit + cameraOffset.y,
+            x: (sx - container.clientWidth / 2) / pixelsPerUnit + cameraOffset.x,
+            y: -(sy - container.clientHeight / 2) / pixelsPerUnit + cameraOffset.y,
         }
     }
 
@@ -305,12 +312,11 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
         mouseConstraint = null
         dragging = false
 
-        const { ARM_L, LEG_L, SHOULDER_X, HIP_X } = tune
-        const SHOULDER_LIMIT = deg2rad(tune.SHOULDER_DEG)
-        const HIP_LIMIT = deg2rad(tune.HIP_DEG)
-        const WRIST_LIMIT = deg2rad(tune.WRIST_DEG)
-        const ANKLE_LIMIT = deg2rad(tune.ANKLE_DEG)
-        const HAND_REST = deg2rad(tune.HAND_DEG)
+        const SHOULDER_LIMIT = deg2rad(SHOULDER_DEG)
+        const HIP_LIMIT = deg2rad(HIP_DEG)
+        const WRIST_LIMIT = deg2rad(WRIST_DEG)
+        const ANKLE_LIMIT = deg2rad(ANKLE_DEG)
+        const HAND_REST = deg2rad(HAND_DEG)
 
         const ARM_SPRITE_W = ARM_L * 100
         const ARM_SPRITE_H = 22.983
@@ -368,8 +374,8 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
             mass: 0.15,
         })
         leftHand.angle = HAND_REST
-        leftHand.__flipX = tune.HAND_FLIPX
-        leftHand.__flipY = tune.HAND_FLIPY
+        leftHand.__flipX = false
+        leftHand.__flipY = false
         leftHand.__spriteAnchorY = HAND_SPRITE_ANCHOR_Y
         const rightHand: any = makeEndCap({
             position: [rightWristX, rightWristY],
@@ -378,8 +384,8 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
             mass: 0.15,
         })
         rightHand.angle = -HAND_REST
-        rightHand.__flipX = !tune.HAND_FLIPX
-        rightHand.__flipY = tune.HAND_FLIPY
+        rightHand.__flipX = true
+        rightHand.__flipY = false
         rightHand.__spriteAnchorY = HAND_SPRITE_ANCHOR_Y
 
         const hipY = shell.position[1] - SHELL_LOBE_R
@@ -486,7 +492,6 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
 
     function chooseFace(): HTMLImageElement | undefined {
         if (dragging || mouseConstraint) return sprites.faceSurprised
-        if (!tune.SLEEPY) return sprites.face
         if (restPhase === 'cheers') return sprites.face
         if (restPhase === 'idle') {
             if (restTime < winkUntil) return sprites.faceWinking || sprites.face
@@ -520,20 +525,22 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
     }
 
     function drawPhoneFrame() {
+        const w = container.clientWidth
+        const h = container.clientHeight
         const tl = worldToScreen(PHONE_LEFT_X, PHONE_TOP_Y)
         const br = worldToScreen(PHONE_RIGHT_X, GROUND_Y)
         ctx.fillStyle = 'rgba(0,0,0,0.08)'
-        if (tl.y > 0) ctx.fillRect(0, 0, window.innerWidth, tl.y)
-        if (br.y < window.innerHeight) ctx.fillRect(0, br.y, window.innerWidth, window.innerHeight - br.y)
+        if (tl.y > 0) ctx.fillRect(0, 0, w, tl.y)
+        if (br.y < h) ctx.fillRect(0, br.y, w, h - br.y)
         if (tl.x > 0) ctx.fillRect(0, tl.y, tl.x, br.y - tl.y)
-        if (br.x < window.innerWidth) ctx.fillRect(br.x, tl.y, window.innerWidth - br.x, br.y - tl.y)
+        if (br.x < w) ctx.fillRect(br.x, tl.y, w - br.x, br.y - tl.y)
         ctx.strokeStyle = '#000'
         ctx.lineWidth = 3
         ctx.strokeRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y)
     }
 
     function render() {
-        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight)
+        ctx.clearRect(0, 0, container.clientWidth, container.clientHeight)
         drawPhoneFrame()
         for (const b of world.bodies) {
             if (b === parts.shell || b.__isFrame) continue
@@ -541,43 +548,6 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
         }
         drawSprite(parts.shell)
         drawFace()
-        if (tune.WIREFRAMES) drawDebug()
-    }
-
-    function drawDebug() {
-        ctx.lineWidth = 1.5
-        ctx.strokeStyle = 'rgba(0, 150, 255, 0.9)'
-        for (const b of world.bodies) {
-            if (b.__isFrame) continue
-            for (const s of b.shapes) {
-                ctx.save()
-                const sp = worldToScreen(b.position[0], b.position[1])
-                ctx.translate(sp.x, sp.y)
-                ctx.rotate(-b.angle)
-                const ox = (s.position?.[0] ?? 0) * pixelsPerUnit
-                const oy = -(s.position?.[1] ?? 0) * pixelsPerUnit
-                ctx.translate(ox, oy)
-                ctx.rotate(-(s.angle ?? 0))
-                if (s instanceof (p2 as any).Circle) {
-                    ctx.beginPath()
-                    ctx.arc(0, 0, s.radius * pixelsPerUnit, 0, Math.PI * 2)
-                    ctx.stroke()
-                } else if (s instanceof (p2 as any).Box) {
-                    const w = s.width * pixelsPerUnit
-                    const h = s.height * pixelsPerUnit
-                    ctx.strokeRect(-w / 2, -h / 2, w, h)
-                }
-                ctx.restore()
-            }
-        }
-        for (const b of world.bodies) {
-            if (b.__isFrame) continue
-            const sp = worldToScreen(b.position[0], b.position[1])
-            ctx.fillStyle = '#0a0'
-            ctx.beginPath()
-            ctx.arc(sp.x, sp.y, 2.5, 0, Math.PI * 2)
-            ctx.fill()
-        }
     }
 
     function updateFaceBobble(dt: number) {
@@ -688,15 +658,6 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
 
     const onPointerEnd = () => endDrag()
 
-    const onKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'r' || e.key === 'R') {
-            lastInteractionT = performance.now()
-            if (sleeping) wake()
-            frozen = true
-            buildWorld()
-        }
-    }
-
     const onVisibilityChange = () => {
         if (document.hidden) {
             if (dragging) endDrag()
@@ -708,15 +669,16 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
         }
     }
 
-    const onResize = () => resize()
-
     canvas.addEventListener('pointerdown', onPointerDown)
     canvas.addEventListener('pointermove', onPointerMove)
     canvas.addEventListener('pointerup', onPointerEnd)
     canvas.addEventListener('pointercancel', onPointerEnd)
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('resize', onResize)
     document.addEventListener('visibilitychange', onVisibilityChange)
+
+    // ResizeObserver tracks the modal panel rather than the viewport, so a
+    // panel that grows/shrinks reflows the cage. Fires once on .observe().
+    const ro = new ResizeObserver(() => resize())
+    ro.observe(container)
 
     // Async sprite load + bootstrap. Captures `cancelled` so a cleanup() called
     // mid-load never starts the render loop.
@@ -772,9 +734,8 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
         canvas.removeEventListener('pointermove', onPointerMove)
         canvas.removeEventListener('pointerup', onPointerEnd)
         canvas.removeEventListener('pointercancel', onPointerEnd)
-        window.removeEventListener('keydown', onKeyDown)
-        window.removeEventListener('resize', onResize)
         document.removeEventListener('visibilitychange', onVisibilityChange)
+        ro.disconnect()
         if (activePointerId !== null && canvas.hasPointerCapture?.(activePointerId)) {
             canvas.releasePointerCapture(activePointerId)
         }
