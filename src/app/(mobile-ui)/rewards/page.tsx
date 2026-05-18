@@ -38,9 +38,7 @@ import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 // Ragdoll easter egg: lazy-loaded only when the flag is on. When off,
 // `PeanutRagdoll` is `null`, the surrounding `&&` is dead, and webpack drops
 // the import + the entire ragdoll chunk + p2-es. See ragdoll.consts.ts.
-const PeanutRagdoll = RAGDOLL_ENABLED
-    ? dynamic(() => import('@/components/PeanutRagdoll'), { ssr: false })
-    : null
+const PeanutRagdoll = RAGDOLL_ENABLED ? dynamic(() => import('@/components/PeanutRagdoll'), { ssr: false }) : null
 
 const TITLE_CLICKS_TO_OPEN = 3
 const TITLE_CLICK_WINDOW_MS = 1500
@@ -373,7 +371,7 @@ const PointsPage = () => {
                 <Modal
                     visible={isRagdollOpen}
                     onClose={() => setIsRagdollOpen(false)}
-                    className="!p-0 !md:p-0"
+                    className="!md:p-0 !p-0"
                     classWrap="!max-w-none !w-screen !h-screen !rounded-none !m-0 !self-stretch overflow-hidden"
                     classButtonClose="!fixed !top-3 !right-3 !z-30"
                 >
