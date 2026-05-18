@@ -191,7 +191,9 @@ const RegionsVerification = () => {
                 onClose={handleModalClose}
                 title={
                     providerRejectionForRegion.state === 'fixable'
-                        ? 'We need an updated document'
+                        ? providerRejectionForRegion.requiredAction === 'BRIDGE_CUSTOMER_FIELDS'
+                            ? 'We need more details'
+                            : 'We need an updated document'
                         : 'Region unavailable'
                 }
                 description={
@@ -205,9 +207,13 @@ const RegionsVerification = () => {
                 ctas={[
                     providerRejectionForRegion.state === 'fixable'
                         ? {
-                              text: 'Upload document',
+                              text: providerRejectionForRegion.actionLabel || 'Upload document',
                               onClick: () => {
                                   handleModalClose()
+                                  if (providerRejectionForRegion.requiredAction === 'BRIDGE_TOS') {
+                                      flow.handleAcceptTerms()
+                                      return
+                                  }
                                   flow.handleSelfHealResubmit(providerRejectionForRegion.provider)
                               },
                               variant: 'purple' as const,

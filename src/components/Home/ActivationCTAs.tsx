@@ -100,7 +100,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     title: 'Complete your setup',
                     description:
                         primaryRejection?.userMessage || 'We need an updated document before you can add money.',
-                    ctaLabel: 'Upload document',
+                    ctaLabel: primaryRejection?.actionLabel || 'Upload document',
                     href: '/profile/identity-verification',
                 }
             }

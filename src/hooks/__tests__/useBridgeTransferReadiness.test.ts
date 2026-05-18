@@ -32,6 +32,8 @@ const defaultRejection = {
     kycVerification: null,
     selfHealAttempt: 0,
     maxAttempts: 3,
+    requiredAction: null,
+    actionLabel: null,
 }
 
 function setup({

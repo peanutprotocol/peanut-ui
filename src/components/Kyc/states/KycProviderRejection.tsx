@@ -22,6 +22,7 @@ export const KycProviderRejection = ({
     const { setIsSupportModalOpen } = useModalsContext()
     const providerLabel = rejection.provider === 'BRIDGE' ? 'Bank transfers' : 'QR payments'
     const isFixable = rejection.state === 'fixable'
+    const actionLabel = rejection.actionLabel ?? 'Upload document'
 
     return (
         <div className="space-y-4 p-1">
@@ -58,7 +59,7 @@ export const KycProviderRejection = ({
 
             {isFixable ? (
                 <Button variant="purple" shadowSize="4" className="w-full" onClick={onStartResubmission}>
-                    Upload document
+                    {actionLabel}
                 </Button>
             ) : (
                 <Button variant="stroke" className="w-full" onClick={() => setIsSupportModalOpen(true)}>
