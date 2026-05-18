@@ -93,9 +93,9 @@ export const KycStatusItem = ({
     const isInitiatedButNotStarted = !!verification && isKycStatusNotStarted(kycStatus)
 
     const subtitle = useMemo(() => {
-        // provider rejection takes priority when sumsub is approved
-        if (isApproved && hasFixableRejection) return 'Action needed'
-        if (isApproved && hasBlockedRejection) return 'Verification issue'
+        // provider remediation takes priority over the raw bridge status.
+        if (hasFixableRejection) return 'Action needed'
+        if (hasBlockedRejection) return 'Verification issue'
         if (hasBridgeDocsNeeded) return 'Action needed'
         if (isInitiatedButNotStarted) return 'Not completed'
         if (isActionRequired) return 'Action needed'
@@ -142,9 +142,9 @@ export const KycStatusItem = ({
                                         isInitiatedButNotStarted ||
                                         isActionRequired ||
                                         isPending ||
-                                        (isApproved && hasFixableRejection)
+                                        hasFixableRejection
                                             ? 'pending'
-                                            : isRejected || (isApproved && hasBlockedRejection)
+                                            : isRejected || hasBlockedRejection
                                               ? 'cancelled'
                                               : 'completed'
                                     }

@@ -48,7 +48,14 @@ export interface SelfHealResubmissionResponse {
     applicantId: string
     actionId: string
     externalActionId: string
-    requiredAction: 'REUPLOAD_ID' | 'REUPLOAD_ADDRESS_PROOF' | 'CONTACT_SUPPORT'
+    requiredAction:
+        | 'REUPLOAD_ID'
+        | 'REUPLOAD_ADDRESS_PROOF'
+        | 'CONTACT_SUPPORT'
+        | 'BRIDGE_TOS'
+        | 'BRIDGE_IDENTIFYING_INFORMATION'
+        | 'BRIDGE_DOCUMENT'
+        | 'BRIDGE_CUSTOMER_FIELDS'
     userMessage: string
     attempt: number
     maxAttempts: number

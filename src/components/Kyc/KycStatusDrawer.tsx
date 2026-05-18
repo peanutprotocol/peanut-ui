@@ -105,6 +105,15 @@ export const KycStatusDrawer = ({
 
     // provider rejection status
     const { bridge: bridgeRejection, manteca: mantecaRejection, hasAnyRejection } = useProviderRejectionStatus()
+    const primaryProviderRejection =
+        bridgeRejection.state === 'fixable' || bridgeRejection.state === 'blocked' ? bridgeRejection : mantecaRejection
+    const showProviderRejection =
+        hasAnyRejection &&
+        (statusCategory === 'completed' ||
+            bridgeRejection.state === 'fixable' ||
+            bridgeRejection.state === 'blocked' ||
+            mantecaRejection.state === 'fixable' ||
+            mantecaRejection.state === 'blocked')
 
     const renderContent = () => {
         // user initiated kyc but abandoned before submitting — close drawer visually
@@ -115,16 +124,17 @@ export const KycStatusDrawer = ({
 
         // provider rejection: sumsub approved but bridge/manteca rejected
         // show two-level status: identity verified + provider-specific rejection
-        if (statusCategory === 'completed' && hasAnyRejection) {
-            const rejection =
-                bridgeRejection.state === 'fixable' || bridgeRejection.state === 'blocked'
-                    ? bridgeRejection
-                    : mantecaRejection
+        if (showProviderRejection) {
+            const rejection = primaryProviderRejection
             return (
                 <KycProviderRejection
                     rejection={rejection}
                     onStartResubmission={async () => {
                         onKeepMounted?.(true)
+                        if (rejection.requiredAction === 'BRIDGE_TOS') {
+                            await sumsubFlow.handleAcceptTerms()
+                            return
+                        }
                         onClose()
                         await sumsubFlow.handleSelfHealResubmit(rejection.provider)
                         // release keep-mounted if SDK didn't open (error path)
@@ -205,8 +215,11 @@ export const KycStatusDrawer = ({
                 <DrawerContent className="p-5 pb-12">
                     <DrawerTitle className="sr-only">KYC Status</DrawerTitle>
                     {renderContent()}
-                    {sumsubFlow.error && provider === 'SUMSUB' && (
+                    {sumsubFlow.error && (provider === 'SUMSUB' || showProviderRejection) && (
                         <p className="text-red-500 mt-3 text-center text-sm">{sumsubFlow.error}</p>
+                    )}
+                    {sumsubFlow.tosError && showProviderRejection && (
+                        <p className="text-red-500 mt-3 text-center text-sm">{sumsubFlow.tosError}</p>
                     )}
                 </DrawerContent>
             </Drawer>
