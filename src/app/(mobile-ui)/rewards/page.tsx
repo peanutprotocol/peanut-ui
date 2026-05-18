@@ -25,7 +25,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { RAGDOLL_ENABLED } from '@/constants/ragdoll.consts'
 import dynamic from 'next/dynamic'
-import Modal from '@/components/Global/Modal'
+import { Drawer, DrawerContent } from '@/components/Global/Drawer'
 import InvitesGraph from '@/components/Global/InvitesGraph'
 import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { formatPoints, shortenPoints } from '@/utils/format.utils'
@@ -368,16 +368,14 @@ const PointsPage = () => {
                     source="points_page"
                 />
             </section>
-            {PeanutRagdoll && isRagdollOpen && (
-                <Modal
-                    visible={isRagdollOpen}
-                    onClose={() => setIsRagdollOpen(false)}
-                    className="!md:p-0 !p-0"
-                    classWrap="!max-w-none !w-screen !h-screen !rounded-none !m-0 !self-stretch overflow-hidden"
-                    classButtonClose="!fixed !top-3 !right-3 !z-30"
-                >
-                    <PeanutRagdoll />
-                </Modal>
+            {PeanutRagdoll && (
+                <Drawer open={isRagdollOpen} onOpenChange={setIsRagdollOpen}>
+                    <DrawerContent>
+                        <div className="h-[80vh] w-full">
+                            <PeanutRagdoll />
+                        </div>
+                    </DrawerContent>
+                </Drawer>
             )}
         </PageContainer>
     )
