@@ -20,7 +20,7 @@ import { useZeroDev } from '@/hooks/useZeroDev'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey, type GrantSessionKeyError } from './useGrantSessionKey'
 import { usdcWeiToRainCents } from '@/utils/balance.utils'
-import { useModalsContext } from '@/context/ModalsContext'
+import { useModalsContextOptional } from '@/context/ModalsContext'
 
 export type SpendStrategy = 'collateral-only' | 'smart-only' | 'mixed' | 'insufficient'
 
@@ -137,7 +137,12 @@ export const useSpendBundle = () => {
     const { user } = useAuth()
     const { overview } = useRainCardOverview()
     const { grant } = useGrantSessionKey()
-    const { setIsSecurityVerificationOpen } = useModalsContext()
+    // Optional — overlay is UI polish, not correctness. If ModalsProvider
+    // isn't mounted (isolated component tests, future Storybook stories,
+    // etc.), the toggle silently no-ops instead of throwing and blocking
+    // the actual spend. Production trees mount the provider via
+    // contextProvider, so the overlay still renders end-to-end.
+    const modals = useModalsContextOptional()
 
     const spend = useCallback(
         async (input: SpendBundleInput): Promise<SpendBundleResult> => {
@@ -315,7 +320,7 @@ export const useSpendBundle = () => {
                 // look at and the UI feels intentional rather than frozen.
                 // try/finally guarantees the overlay closes on success AND on
                 // bundler / kernel failure.
-                setIsSecurityVerificationOpen(true)
+                modals?.setIsSecurityVerificationOpen?.(true)
                 try {
                     // Backend `/prepare` normalizes the executor salt (bytes32) and signature
                     // to 0x-hex regardless of what Rain returned — trust the wire shape here.
@@ -373,7 +378,7 @@ export const useSpendBundle = () => {
                     posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, { strategy, kind })
                     return { strategy, userOpHash, receipt, intentId: prep.preparationId }
                 } finally {
-                    setIsSecurityVerificationOpen(false)
+                    modals?.setIsSecurityVerificationOpen?.(false)
                 }
             } catch (e) {
                 const errorKind =
@@ -389,7 +394,7 @@ export const useSpendBundle = () => {
                 throw e
             }
         },
-        [getClientForChain, handleSendUserOpEncoded, user, overview, grant, setIsSecurityVerificationOpen]
+        [getClientForChain, handleSendUserOpEncoded, user, overview, grant, modals]
     )
 
     return { spend }

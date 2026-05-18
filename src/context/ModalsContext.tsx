@@ -99,3 +99,14 @@ export function useModalsContext() {
     }
     return context
 }
+
+/**
+ * Non-throwing variant — returns the context or `undefined` when the
+ * provider isn't mounted (isolated test trees, Storybook, etc.). Use
+ * when the consumer can sensibly no-op without modal access (e.g.
+ * UI-polish overlays); prefer `useModalsContext` everywhere a missing
+ * provider should be a hard error.
+ */
+export function useModalsContextOptional(): ModalsContextType | undefined {
+    return useContext(ModalsContext)
+}
