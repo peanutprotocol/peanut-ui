@@ -5,7 +5,8 @@ import useUnifiedKycStatus from './useUnifiedKycStatus'
 import { useMemo, useCallback } from 'react'
 import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
-import { BRIDGE_ALPHA3_TO_ALPHA2, MantecaSupportedExchanges, countryData } from '@/components/AddMoney/consts'
+import { BRIDGE_ALPHA3_TO_ALPHA2, countryData } from '@/components/AddMoney/consts'
+import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import React from 'react'
@@ -24,7 +25,7 @@ export type VerificationUnlockItem = {
     type: 'bridge' | 'manteca'
 }
 
-// Manteca handles LATAM countries (Argentina, Brazil, Mexico, etc.)
+// latam region access is separate from the ar/br manteca country gate.
 const MANTECA_SUPPORTED_REGIONS = ['LATAM']
 
 // Bridge handles North America and Europe
@@ -111,13 +112,12 @@ export const useIdentityVerification = () => {
     const { sumsubVerificationRegionIntent } = useUnifiedKycStatus()
 
     /**
-     * Check if a country is supported by Manteca (LATAM countries).
-     * @param code - Country code (e.g., 'AR', 'BR', 'MX')
+     * Check if a country is supported by first-party Manteca rails.
+     * @param code - Country code (e.g., 'AR', 'BR')
      * @returns true if the country is supported by Manteca
      */
     const isMantecaSupportedCountry = useCallback((code: string) => {
-        const upper = code.toUpperCase()
-        return Object.prototype.hasOwnProperty.call(MantecaSupportedExchanges, upper)
+        return isMantecaSupportedCountryCode(code)
     }, [])
 
     /**

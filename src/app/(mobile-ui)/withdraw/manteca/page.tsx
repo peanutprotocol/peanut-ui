@@ -52,6 +52,7 @@ import {
     MANTECA_COUNTRIES_CONFIG,
     MANTECA_DEPOSIT_ADDRESS,
     MantecaAccountType,
+    isMantecaSupportedCountryCode,
     type MantecaBankCode,
 } from '@/constants/manteca.consts'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -124,7 +125,7 @@ export default function MantecaWithdrawFlow() {
     const onBack = useSafeBack(withdrawCountryUrl(selectedCountry?.path || ''))
 
     const countryConfig = useMemo(() => {
-        if (!selectedCountry) return undefined
+        if (!selectedCountry || !isMantecaSupportedCountryCode(selectedCountry.id)) return undefined
         return MANTECA_COUNTRIES_CONFIG[selectedCountry.id]
     }, [selectedCountry])
     const isUserMantecaKycApprovedForCountry = selectedCountry ? isVerifiedForCountry(selectedCountry.id) : false
@@ -485,7 +486,7 @@ export default function MantecaWithdrawFlow() {
 
     // redirect to withdraw page if country is missing or not supported by manteca
     useEffect(() => {
-        if (!countryFromUrl || !selectedCountry || !MANTECA_COUNTRIES_CONFIG[selectedCountry.id]) {
+        if (!countryFromUrl || !selectedCountry || !isMantecaSupportedCountryCode(selectedCountry.id)) {
             router.replace('/withdraw')
         }
     }, [countryFromUrl, selectedCountry, router])
