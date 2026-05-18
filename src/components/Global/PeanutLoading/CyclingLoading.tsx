@@ -37,55 +37,18 @@ export default function CyclingLoading({ coverFullScreen = false }: { coverFullS
                     <span className="sr-only">{word}</span>
                 </div>
             </div>
-            <div key={word} className="cycling-fade mt-6 self-center text-center font-medium tabular-nums">
+            <div key={word} className="animate-cycling-fade mt-6 self-center text-center font-medium tabular-nums">
                 <span>{word}</span>
-                <span className="dots">
-                    <span>.</span>
-                    <span>.</span>
-                    <span>.</span>
+                <span className="ml-px inline-block">
+                    <span className="animate-cycling-blink">.</span>
+                    <span className="animate-cycling-blink" style={{ animationDelay: '0.2s' }}>
+                        .
+                    </span>
+                    <span className="animate-cycling-blink" style={{ animationDelay: '0.4s' }}>
+                        .
+                    </span>
                 </span>
             </div>
-            <style jsx>{`
-                @keyframes cyclingFadeIn {
-                    from {
-                        opacity: 0;
-                        transform: translateY(2px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-                .cycling-fade {
-                    animation: cyclingFadeIn 240ms ease-out;
-                }
-                .dots {
-                    margin-left: 1px;
-                    display: inline-block;
-                }
-                .dots span {
-                    display: inline-block;
-                    animation: cyclingBlink 1.4s infinite both;
-                }
-                .dots span:nth-child(2) {
-                    animation-delay: 0.2s;
-                }
-                .dots span:nth-child(3) {
-                    animation-delay: 0.4s;
-                }
-                @keyframes cyclingBlink {
-                    0%,
-                    20% {
-                        opacity: 0;
-                    }
-                    50% {
-                        opacity: 1;
-                    }
-                    100% {
-                        opacity: 0;
-                    }
-                }
-            `}</style>
         </div>
     )
 }

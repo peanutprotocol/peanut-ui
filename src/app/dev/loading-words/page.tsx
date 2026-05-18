@@ -117,24 +117,9 @@ export default function LoadingWordsPreview() {
 
 function LoadingMessage({ word, className = '' }: { word: string; className?: string }) {
     return (
-        <div key={word} className={`animate-fade-in text-center tabular-nums ${className}`}>
+        <div key={word} className={`animate-cycling-fade text-center tabular-nums ${className}`}>
             <span>{word}</span>
             <Dots />
-            <style jsx>{`
-                @keyframes fadeIn {
-                    from {
-                        opacity: 0;
-                        transform: translateY(2px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-                .animate-fade-in {
-                    animation: fadeIn 240ms ease-out;
-                }
-            `}</style>
         </div>
     )
 }
@@ -151,33 +136,13 @@ function SizeSwatch({ label, word, className }: { label: string; word: string; c
 function Dots() {
     return (
         <span className="ml-0.5 inline-block">
-            <span className="dot">.</span>
-            <span className="dot">.</span>
-            <span className="dot">.</span>
-            <style jsx>{`
-                .dot {
-                    display: inline-block;
-                    animation: blink 1.4s infinite both;
-                }
-                .dot:nth-child(2) {
-                    animation-delay: 0.2s;
-                }
-                .dot:nth-child(3) {
-                    animation-delay: 0.4s;
-                }
-                @keyframes blink {
-                    0%,
-                    20% {
-                        opacity: 0;
-                    }
-                    50% {
-                        opacity: 1;
-                    }
-                    100% {
-                        opacity: 0;
-                    }
-                }
-            `}</style>
+            <span className="animate-cycling-blink">.</span>
+            <span className="animate-cycling-blink" style={{ animationDelay: '0.2s' }}>
+                .
+            </span>
+            <span className="animate-cycling-blink" style={{ animationDelay: '0.4s' }}>
+                .
+            </span>
         </span>
     )
 }
