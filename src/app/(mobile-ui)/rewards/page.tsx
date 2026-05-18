@@ -23,6 +23,9 @@ import { type PointsInvite } from '@/services/services.types'
 import { useEffect, useRef, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { RAGDOLL_ENABLED } from '@/constants/ragdoll.consts'
+import dynamic from 'next/dynamic'
+import Modal from '@/components/Global/Modal'
 import InvitesGraph from '@/components/Global/InvitesGraph'
 import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { formatPoints, shortenPoints } from '@/utils/format.utils'
@@ -32,13 +35,41 @@ import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 
+// Ragdoll easter egg: lazy-loaded only when the flag is on. When off,
+// `PeanutRagdoll` is `null`, the surrounding `&&` is dead, and webpack drops
+// the import + the entire ragdoll chunk + p2-es. See ragdoll.consts.ts.
+const PeanutRagdoll = RAGDOLL_ENABLED
+    ? dynamic(() => import('@/components/PeanutRagdoll'), { ssr: false })
+    : null
+
+const TITLE_CLICKS_TO_OPEN = 3
+const TITLE_CLICK_WINDOW_MS = 1500
+
 const PointsPage = () => {
     const router = useRouter()
     const onBack = useSafeBack('/home')
     const { user, fetchUser } = useAuth()
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
+    const [isRagdollOpen, setIsRagdollOpen] = useState(false)
+    const titleClicksRef = useRef(0)
+    const titleClickResetRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const inviteesRef = useRef(null)
     const inviteesInView = useInView(inviteesRef, { once: true, margin: '-50px' })
+
+    const handleTitleClick = PeanutRagdoll
+        ? () => {
+              if (titleClickResetRef.current) clearTimeout(titleClickResetRef.current)
+              titleClicksRef.current += 1
+              if (titleClicksRef.current >= TITLE_CLICKS_TO_OPEN) {
+                  titleClicksRef.current = 0
+                  setIsRagdollOpen(true)
+                  return
+              }
+              titleClickResetRef.current = setTimeout(() => {
+                  titleClicksRef.current = 0
+              }, TITLE_CLICK_WINDOW_MS)
+          }
+        : undefined
 
     const getTierBadge = (tier: number) => {
         const badges = [TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE]
@@ -114,7 +145,7 @@ const PointsPage = () => {
 
     return (
         <PageContainer className="flex flex-col">
-            <NavHeader title="Rewards" onPrev={onBack} />
+            <NavHeader title="Rewards" onPrev={onBack} onTitleClick={handleTitleClick} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
                 {/* rewards hero — pending claimable as primary, lifetime as secondary */}
@@ -338,6 +369,17 @@ const PointsPage = () => {
                     source="points_page"
                 />
             </section>
+            {PeanutRagdoll && isRagdollOpen && (
+                <Modal
+                    visible={isRagdollOpen}
+                    onClose={() => setIsRagdollOpen(false)}
+                    className="!p-0 !md:p-0"
+                    classWrap="!max-w-none !w-screen !h-screen !rounded-none !m-0 !self-stretch overflow-hidden"
+                    classButtonClose="!fixed !top-3 !right-3 !z-30"
+                >
+                    <PeanutRagdoll />
+                </Modal>
+            )}
         </PageContainer>
     )
 }

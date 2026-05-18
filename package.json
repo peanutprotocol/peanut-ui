@@ -90,6 +90,7 @@
         "next": "16.2.3",
         "next-mdx-remote": "^6.0.0",
         "nuqs": "^2.8.6",
+        "p2-es": "^1.2.3",
         "pix-utils": "^2.8.2",
         "posthog-js": "^1.360.0",
         "posthog-node": "5.29.2",
