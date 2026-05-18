@@ -35,9 +35,10 @@ import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 
-// Ragdoll easter egg: lazy-loaded only when the flag is on. When off,
-// `PeanutRagdoll` is `null`, the surrounding `&&` is dead, and webpack drops
-// the import + the entire ragdoll chunk + p2-es. See ragdoll.consts.ts.
+// Ragdoll easter egg: on by default, kill-switchable via
+// NEXT_PUBLIC_RAGDOLL_ENABLED=false. When killed, `PeanutRagdoll` is `null`,
+// the surrounding `&&` is dead, and webpack drops the import + the entire
+// ragdoll chunk + p2-es. See ragdoll.consts.ts.
 const PeanutRagdoll = RAGDOLL_ENABLED ? dynamic(() => import('@/components/PeanutRagdoll'), { ssr: false }) : null
 
 const TITLE_CLICKS_TO_OPEN = 3

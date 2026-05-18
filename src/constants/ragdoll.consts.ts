@@ -1,6 +1,6 @@
-// Build-time gate for the rewards-screen ragdoll easter egg. Next.js inlines
-// `process.env.NEXT_PUBLIC_*` at compile time, so when this is false every
-// `if (RAGDOLL_ENABLED)` and the `dynamic(() => import(...))` behind it become
-// dead code the bundler drops. The ragdoll chunk + p2-es never ship in
-// flag-off builds. Mirrors the harness gate in `harness.consts.ts`.
-export const RAGDOLL_ENABLED = process.env.NEXT_PUBLIC_RAGDOLL_ENABLED === 'true'
+// Build-time kill-switch for the rewards-screen ragdoll easter egg.
+// On by default; set NEXT_PUBLIC_RAGDOLL_ENABLED=false to disable. Next.js
+// inlines `process.env.NEXT_PUBLIC_*` at compile time, so a `false` build
+// dead-code-eliminates the `dynamic(() => import(...))` and tree-shakes the
+// ragdoll chunk + p2-es out entirely.
+export const RAGDOLL_ENABLED = process.env.NEXT_PUBLIC_RAGDOLL_ENABLED !== 'false'
