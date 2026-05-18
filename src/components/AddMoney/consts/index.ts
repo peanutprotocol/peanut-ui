@@ -1,7 +1,6 @@
-import { MERCADO_PAGO, SOLANA_ICON, TRON_ICON, PIX } from '@/assets'
+import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { MANTECA_SUPPORTED_EXCHANGES, isMantecaCountry } from '@/constants/manteca.consts'
-import { type StaticImageData } from 'next/image'
 
 // ISO-2 codes of our highest-volume corridors, surfaced at the top of the
 // add/withdraw country list (after the user's own country if geolocated).
