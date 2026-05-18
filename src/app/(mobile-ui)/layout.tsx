@@ -13,6 +13,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
 import QRScannerOverlay from '@/components/Global/QRScannerOverlay'
+import SecurityVerificationOverlay from '@/components/Global/SecurityVerificationOverlay'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
@@ -225,6 +226,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <SupportDrawer />
 
             <QRScannerOverlay />
+
+            <SecurityVerificationOverlay />
         </div>
     )
 }
