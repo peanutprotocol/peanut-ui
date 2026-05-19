@@ -3,12 +3,13 @@ import { type FC, useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import Image from 'next/image'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
-import Modal from '@/components/Global/Modal'
 import CardFace from '@/components/Card/CardFace'
 import { rainApi } from '@/services/rain'
+import { PEANUTMAN_RAISING_HANDS } from '@/assets/peanut'
 
 export const PHYSICAL_WAITLIST_QUERY_KEY = 'rain-physical-waitlist'
 
@@ -21,7 +22,6 @@ interface Props {
 const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
     const queryClient = useQueryClient()
     const [joining, setJoining] = useState(false)
-    const [showJoinedModal, setShowJoinedModal] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     const { data, isLoading } = useQuery({
@@ -49,7 +49,11 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
             const result = await rainApi.joinPhysicalWaitlist(cardId)
             await queryClient.invalidateQueries({ queryKey: [PHYSICAL_WAITLIST_QUERY_KEY, cardId] })
             posthog.capture(ANALYTICS_EVENTS.CARD_PHYSICAL_WAITLIST_JOINED, { position: result.position })
-            setShowJoinedModal(true)
+            // Inline "You are on the list!" status (driven by data?.joinedAt
+            // after the invalidate above) is the only confirmation now. The
+            // separate "You are in!" modal that used to fire here rendered as
+            // a stacked second confirmation over the inline status and ended
+            // up positioned over the page chrome — see 2026-05-19 screenshot.
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Failed to join waitlist')
         } finally {
@@ -69,6 +73,7 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
                 </div>
             ) : data?.joinedAt ? (
                 <div className="flex flex-col items-center gap-3 text-center">
+                    <Image src={PEANUTMAN_RAISING_HANDS} alt="" aria-hidden className="h-32 w-auto" />
                     <h1 className="text-xl font-extrabold">You are on the list!</h1>
                     <p className="text-sm text-grey-1">
                         You are #{data.position} on the list. We&apos;ll let you know when cards are ready to be
@@ -94,29 +99,6 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
                     </Button>
                 </div>
             )}
-
-            <Modal
-                visible={showJoinedModal}
-                onClose={() => setShowJoinedModal(false)}
-                className="items-center justify-center"
-            >
-                <div className="mx-auto w-full max-w-sm rounded-sm border border-n-1 bg-white p-6">
-                    <div className="flex flex-col items-center gap-4 text-center">
-                        <div className="text-xl font-extrabold">You are in!</div>
-                        <p className="text-sm text-grey-1">
-                            We will let you know as soon as cards are ready to be shipped.
-                        </p>
-                        <Button
-                            variant="purple"
-                            shadowSize="4"
-                            className="w-full"
-                            onClick={() => setShowJoinedModal(false)}
-                        >
-                            Close
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
         </div>
     )
 }

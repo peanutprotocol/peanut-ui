@@ -94,6 +94,12 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
         )
     }
 
+    // Validate live once the user has typed all 4 digits so they see the
+    // failure reason BEFORE clicking Continue (and the button stays disabled
+    // for invalid PINs). Past behavior: 1111 only failed on the next step
+    // after the user re-entered + submitted, surprising them.
+    const choosePinValidation = first.length === 4 ? validatePin(first) : null
+
     return (
         <div className="flex flex-col items-center gap-6 text-center">
             <div className="flex flex-col gap-2">
@@ -106,13 +112,16 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
                 <li>No repeating digits (1111)</li>
                 <li>You can change your PIN later</li>
             </ul>
+            {choosePinValidation && !choosePinValidation.valid && (
+                <p className="text-sm text-red">{choosePinValidation.reason}</p>
+            )}
             {error && <p className="text-sm text-red">{error}</p>}
             <Button
                 variant="purple"
                 shadowSize="4"
                 className="w-full"
                 onClick={onContinueFromChoose}
-                disabled={first.length < 4}
+                disabled={!choosePinValidation || !choosePinValidation.valid}
             >
                 Continue
             </Button>
