@@ -1,11 +1,13 @@
 'use client'
-import { type FC, useState } from 'react'
+import { type FC, useCallback, useState } from 'react'
 import { parseAsStringEnum, useQueryState } from 'nuqs'
 import posthog from 'posthog-js'
+import { useHaptic } from 'use-haptic'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import ProfileMenuItem from '@/components/Profile/components/ProfileMenuItem'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import CardFace from '@/components/Card/CardFace'
 import CancelCardModal from '@/components/Card/CancelCardModal'
 import LockCardModal from '@/components/Card/LockCardModal'
@@ -30,32 +32,37 @@ const YourCardScreen: FC<Props> = ({ card, onPrev }) => {
     const walletPlatform = useWalletPlatform()
     const walletLabel =
         walletPlatform === 'android' ? 'Add to Google Wallet' : walletPlatform === 'ios' ? 'Add to Apple Wallet' : null
+    const { triggerHaptic } = useHaptic()
+    const toast = useToast()
 
     const isLocked = card.status === 'LOCKED'
     const closeAction = () => void setAction(null)
     const showAutoRenew = !autoRenewDismissed && shouldShowAutoRenewBanner(card.expiryMonth, card.expiryYear)
     const daysLeft = daysUntilExpiry(card.expiryMonth, card.expiryYear)
 
-    const handleCopy = (value: string) => {
-        // Fire-and-forget; the util captures failures to Sentry.
-        void copyTextToClipboardWithFallback(value)
-    }
+    const handleCopy = useCallback(
+        (value: string, field: 'pan' | 'cvv') => {
+            // Fire-and-forget; the util captures failures to Sentry.
+            void copyTextToClipboardWithFallback(value)
+            triggerHaptic()
+            toast.success(field === 'pan' ? 'Card number copied' : 'CVV copied')
+        },
+        [triggerHaptic, toast]
+    )
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-6">
             <NavHeader title="Your card" onPrev={onPrev} />
 
-            <div className="flex flex-col gap-2">
-                <CardFace
-                    last4={card.last4}
-                    isLocked={isLocked}
-                    revealed={revealed}
-                    onToggleReveal={isLocked || isRevealing ? undefined : toggle}
-                    onCopy={handleCopy}
-                />
-                {isRevealing && <p className="text-center text-sm text-grey-1">Loading card details…</p>}
-                {revealError && <p className="text-center text-sm text-red">{revealError}</p>}
-            </div>
+            <CardFace
+                last4={card.last4}
+                isLocked={isLocked}
+                revealed={revealed}
+                loading={isRevealing}
+                error={revealError}
+                onToggleReveal={isLocked || isRevealing ? undefined : toggle}
+                onCopy={handleCopy}
+            />
 
             {showAutoRenew && (
                 <div className="flex items-start gap-3 rounded-sm border border-n-1 bg-white p-4">

@@ -23,8 +23,8 @@ const COPY: Record<Variant, { title: string; body: string }> = {
         body: "We need to do a manual review of your submission. This usually takes 1-2 days and we'll let you know when it's ready.",
     },
     rejected: {
-        title: "We couldn't verify your identity",
-        body: "Your card application wasn't approved. This might be because of incomplete documents, information mismatch, or regional restrictions.",
+        title: "We couldn't issue you a card",
+        body: "Your card application wasn't approved. This might be because of duplicate attempt, incomplete documents, information mismatch, or regional restrictions.",
     },
 }
 

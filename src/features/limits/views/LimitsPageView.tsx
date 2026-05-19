@@ -1,16 +1,18 @@
 'use client'
 
 import { ActionListCard } from '@/components/ActionListCard'
+import { findActiveCard } from '@/components/Card/cardState.utils'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
+import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { useIdentityVerification, type Region } from '@/hooks/useIdentityVerification'
 import useKycStatus from '@/hooks/useKycStatus'
 import { useLimits } from '@/hooks/useLimits'
+import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
-import { useSafeBack } from '@/hooks/useSafeBack'
 import CryptoLimitsSection from '../components/CryptoLimitsSection'
 import FiatLimitsLockedCard from '../components/FiatLimitsLockedCard'
 import { REST_OF_WORLD_GLOBE_ICON } from '@/assets'
@@ -18,10 +20,12 @@ import InfoCard from '@/components/Global/InfoCard'
 import { getProviderRoute } from '../utils'
 
 const LimitsPageView = () => {
-    const onBack = useSafeBack('/profile', { replace: true })
+    const router = useRouter()
     const { unlockedRegions, lockedRegions } = useIdentityVerification()
     const { isUserKycApproved, isUserBridgeKycUnderReview, isUserBridgeKycIncomplete } = useKycStatus()
     const { hasMantecaLimits } = useLimits()
+    const { overview: rainCardOverview } = useRainCardOverview()
+    const activeCard = findActiveCard(rainCardOverview)
 
     // check if user has any kyc at all
     const hasAnyKyc = isUserKycApproved
@@ -49,7 +53,11 @@ const LimitsPageView = () => {
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-6">
-            <NavHeader title="Payment limits" onPrev={onBack} titleClassName="text-xl md:text-2xl" />
+            <NavHeader
+                title="Payment limits"
+                onPrev={() => router.replace('/profile')}
+                titleClassName="text-xl md:text-2xl"
+            />
 
             {/* page description */}
             <InfoCard
@@ -92,6 +100,20 @@ const LimitsPageView = () => {
                         onClick={() => {}}
                         isDisabled={true}
                         rightContent={<StatusBadge status="custom" customText="Coming soon" />}
+                    />
+                </div>
+            )}
+
+            {/* card limits — separate from KYC/region limits; managed per-card via Rain */}
+            {activeCard && (
+                <div className="space-y-2">
+                    <h2 className="font-bold">Card limits</h2>
+                    <ActionListCard
+                        position="single"
+                        leftIcon={<Icon name="credit-card" size={28} />}
+                        title="Manage card limits"
+                        description="Transaction cap for your Peanut card."
+                        onClick={() => router.push('/card/limit')}
                     />
                 </div>
             )}

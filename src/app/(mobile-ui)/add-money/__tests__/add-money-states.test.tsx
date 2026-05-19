@@ -13,6 +13,7 @@
  * Strategy: mock every hook and service at the module level, then configure
  * per-test via mockReturnValue / mockImplementation.
  */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, @typescript-eslint/no-require-imports, react/display-name, @next/next/no-img-element */
 import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -280,6 +281,12 @@ jest.mock('@/constants/payment.consts', () => ({
 jest.mock('@/constants/manteca.consts', () => ({
     MANTECA_ARG_DEPOSIT_CUIT: '30-12345678-9',
     MANTECA_ARG_DEPOSIT_NAME: 'Manteca SA',
+    MANTECA_SUPPORTED_EXCHANGES: {
+        AR: 'ARGENTINA',
+        BR: 'BRAZIL',
+    },
+    isMantecaCountry: (countryPath: string) => ['argentina', 'brazil'].includes(countryPath),
+    isMantecaSupportedCountryCode: (countryCode: string) => ['AR', 'BR'].includes(countryCode?.toUpperCase()),
     MANTECA_COUNTRIES_CONFIG: {
         AR: { depositAddressLabel: 'CBU/CVU' },
         BR: { depositAddressLabel: 'PIX Key' },
@@ -656,10 +663,6 @@ jest.mock('@/components/Slider', () => ({
 
 // Consts for AddMoney
 jest.mock('@/components/AddMoney/consts', () => ({
-    MantecaSupportedExchanges: {
-        AR: 'ARGENTINA',
-        BR: 'BRAZIL',
-    },
     countryData: [
         { type: 'country', id: 'AR', path: 'argentina', currency: 'ARS', iso3: 'ARG' },
         { type: 'country', id: 'BR', path: 'brazil', currency: 'BRL', iso3: 'BRA' },

@@ -2,7 +2,6 @@
 import {
     type CountryData,
     countryData,
-    MantecaSupportedExchanges,
     ALL_COUNTRIES_ALPHA3_TO_ALPHA2,
     PREFERRED_COUNTRY_ISO2,
 } from '@/components/AddMoney/consts'
@@ -21,6 +20,7 @@ import Loading from '../Global/Loading'
 import { useSearchParams } from 'next/navigation'
 import { ActionListCard } from '../ActionListCard'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 
 interface CountryListViewProps {
     inputTitle: string
@@ -159,9 +159,7 @@ export const CountryList = ({
                             const position = getCardPosition(index, filteredCountries.length)
 
                             const isBridgeSupportedCountry = isBridgeSupportedCountryHook(country.id)
-                            const isMantecaSupportedCountry = Object.keys(MantecaSupportedExchanges).includes(
-                                country.id
-                            )
+                            const isMantecaSupportedCountry = isMantecaSupportedCountryCode(country.id)
 
                             // determine if country is supported based on view mode
                             let isSupported = false

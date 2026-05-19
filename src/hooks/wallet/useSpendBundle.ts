@@ -20,6 +20,7 @@ import { useZeroDev } from '@/hooks/useZeroDev'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey, type GrantSessionKeyError } from './useGrantSessionKey'
 import { usdcWeiToRainCents } from '@/utils/balance.utils'
+import { useModalsContextOptional } from '@/context/ModalsContext'
 
 export type SpendStrategy = 'collateral-only' | 'smart-only' | 'mixed' | 'insufficient'
 
@@ -136,6 +137,12 @@ export const useSpendBundle = () => {
     const { user } = useAuth()
     const { overview } = useRainCardOverview()
     const { grant } = useGrantSessionKey()
+    // Optional — overlay is UI polish, not correctness. If ModalsProvider
+    // isn't mounted (isolated component tests, future Storybook stories,
+    // etc.), the toggle silently no-ops instead of throwing and blocking
+    // the actual spend. Production trees mount the provider via
+    // contextProvider, so the overlay still renders end-to-end.
+    const modals = useModalsContextOptional()
 
     const spend = useCallback(
         async (input: SpendBundleInput): Promise<SpendBundleResult> => {
@@ -306,59 +313,73 @@ export const useSpendBundle = () => {
                     },
                 })) as Hex
 
-                // Backend `/prepare` normalizes the executor salt (bytes32) and signature
-                // to 0x-hex regardless of what Rain returned — trust the wire shape here.
-                const withdrawCall: UserOpEncodedParams = {
-                    to: prep.coordinatorAddress as Hex,
-                    value: 0n,
-                    data: encodeFunctionData({
-                        abi: rainCoordinatorAbi,
-                        functionName: 'withdrawAsset',
-                        args: [
-                            prep.collateralProxy as Address,
-                            prep.tokenAddress as Address,
-                            BigInt(prep.amount),
-                            prep.recipientAddress as Address,
-                            BigInt(prep.expiresAt),
-                            prep.executorSalt as Hex,
-                            prep.executorSignature as Hex,
-                            [prep.adminSalt as Hex],
-                            [adminSignature],
-                            prep.directTransfer,
-                        ],
-                    }),
+                // Mixed = two passkey taps. The admin EIP-712 sig (tap #1) just
+                // resolved; the kernel now prepares the follow-up UserOp which
+                // will trigger tap #2. The gap is short but visible — show the
+                // security-verification overlay so the user has something to
+                // look at and the UI feels intentional rather than frozen.
+                // try/finally guarantees the overlay closes on success AND on
+                // bundler / kernel failure.
+                modals?.setIsSecurityVerificationOpen?.(true)
+                try {
+                    // Backend `/prepare` normalizes the executor salt (bytes32) and signature
+                    // to 0x-hex regardless of what Rain returned — trust the wire shape here.
+                    const withdrawCall: UserOpEncodedParams = {
+                        to: prep.coordinatorAddress as Hex,
+                        value: 0n,
+                        data: encodeFunctionData({
+                            abi: rainCoordinatorAbi,
+                            functionName: 'withdrawAsset',
+                            args: [
+                                prep.collateralProxy as Address,
+                                prep.tokenAddress as Address,
+                                BigInt(prep.amount),
+                                prep.recipientAddress as Address,
+                                BigInt(prep.expiresAt),
+                                prep.executorSalt as Hex,
+                                prep.executorSignature as Hex,
+                                [prep.adminSalt as Hex],
+                                [adminSignature],
+                                prep.directTransfer,
+                            ],
+                        }),
+                    }
+
+                    const transferCall: UserOpEncodedParams | null = recipient
+                        ? {
+                              to: PEANUT_WALLET_TOKEN as Hex,
+                              value: 0n,
+                              data: encodeFunctionData({
+                                  abi: erc20Abi,
+                                  functionName: 'transfer',
+                                  args: [recipient, requiredUsdcAmount],
+                              }),
+                          }
+                        : null
+
+                    const calls: UserOpEncodedParams[] = [
+                        withdrawCall,
+                        ...(transferCall ? [transferCall] : []),
+                        ...subsequentCalls,
+                    ]
+                    const { userOpHash, receipt } = await handleSendUserOpEncoded(calls, chainIdStr)
+
+                    // Stamp the intent so the Rain collateral webhook reconciles to the
+                    // right category (P2P_SEND, CRYPTO_WITHDRAW, etc). Non-blocking —
+                    // a stamp failure leaves the intent PENDING, which only affects
+                    // history labeling, not the spend itself.
+                    const mixedTxHash = (receipt?.transactionHash as Hex | undefined) ?? (userOpHash as Hex | undefined)
+                    if (mixedTxHash) {
+                        rainApi
+                            .stampWithdrawal({ preparationId: prep.preparationId, txHash: mixedTxHash })
+                            .catch(() => {})
+                    }
+
+                    posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, { strategy, kind })
+                    return { strategy, userOpHash, receipt, intentId: prep.preparationId }
+                } finally {
+                    modals?.setIsSecurityVerificationOpen?.(false)
                 }
-
-                const transferCall: UserOpEncodedParams | null = recipient
-                    ? {
-                          to: PEANUT_WALLET_TOKEN as Hex,
-                          value: 0n,
-                          data: encodeFunctionData({
-                              abi: erc20Abi,
-                              functionName: 'transfer',
-                              args: [recipient, requiredUsdcAmount],
-                          }),
-                      }
-                    : null
-
-                const calls: UserOpEncodedParams[] = [
-                    withdrawCall,
-                    ...(transferCall ? [transferCall] : []),
-                    ...subsequentCalls,
-                ]
-                const { userOpHash, receipt } = await handleSendUserOpEncoded(calls, chainIdStr)
-
-                // Stamp the intent so the Rain collateral webhook reconciles to the
-                // right category (P2P_SEND, CRYPTO_WITHDRAW, etc). Non-blocking —
-                // a stamp failure leaves the intent PENDING, which only affects
-                // history labeling, not the spend itself.
-                const mixedTxHash = (receipt?.transactionHash as Hex | undefined) ?? (userOpHash as Hex | undefined)
-                if (mixedTxHash) {
-                    rainApi.stampWithdrawal({ preparationId: prep.preparationId, txHash: mixedTxHash }).catch(() => {})
-                }
-
-                posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, { strategy, kind })
-                return { strategy, userOpHash, receipt, intentId: prep.preparationId }
             } catch (e) {
                 const errorKind =
                     e instanceof SessionKeyGrantRequiredError
@@ -373,7 +394,7 @@ export const useSpendBundle = () => {
                 throw e
             }
         },
-        [getClientForChain, handleSendUserOpEncoded, user, overview, grant]
+        [getClientForChain, handleSendUserOpEncoded, user, overview, grant, modals]
     )
 
     return { spend }

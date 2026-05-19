@@ -4,7 +4,8 @@ import ActionModal from '@/components/Global/ActionModal'
 import type { IconName } from '@/components/Global/Icons/Icon'
 import InfoCard from '@/components/Global/InfoCard'
 import { useAuth } from '@/context/authContext'
-import { countryData, MantecaSupportedExchanges, type CountryData } from '@/components/AddMoney/consts'
+import { countryData, type CountryData } from '@/components/AddMoney/consts'
+import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import useUnifiedKycStatus from '@/hooks/useUnifiedKycStatus'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import posthog from 'posthog-js'
@@ -45,14 +46,21 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     useEffect(() => {
         // If manteca KYC is approved, then we need to get the approved country
         if (isMantecaApproved) {
-            const supportedCountries = Object.keys(MantecaSupportedExchanges)
             let approvedCountry: string | undefined | null
 
             // get the manteca approved country
             user?.user.kycVerifications?.forEach((v) => {
                 if (
+                    // dev: scoped to Manteca via `isMantecaSupportedCountryCode` helper.
+                    // main: broadened to include SUMSUB-provider rows AND switched the
+                    // status gate from `=== MantecaKycStatus.ACTIVE` to
+                    // `isKycStatusApproved` (handles the post-migration cohort whose
+                    // status enum is the unified Bridge/Manteca approved set, not the
+                    // legacy Manteca-only ACTIVE).
+                    // Merge: keep dev's helper for country-gate readability, take
+                    // main's broader provider + status logic (the actual bugfix).
                     (v.provider === 'MANTECA' || v.provider === 'SUMSUB') &&
-                    supportedCountries.includes((v.mantecaGeo || '').toUpperCase()) &&
+                    isMantecaSupportedCountryCode(v.mantecaGeo) &&
                     isKycStatusApproved(v.status)
                 ) {
                     approvedCountry = v.mantecaGeo

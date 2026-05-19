@@ -21,6 +21,12 @@ interface ModalsContextType {
     // QR Scanner
     isQRScannerOpen: boolean
     setIsQRScannerOpen: (isOpen: boolean) => void
+
+    // Security Verification Overlay — shown between the two passkey taps
+    // of the mixed card-withdraw flow so the user has something to look at
+    // while the kernel prepares the follow-up UserOp.
+    isSecurityVerificationOpen: boolean
+    setIsSecurityVerificationOpen: (isOpen: boolean) => void
 }
 
 const ModalsContext = createContext<ModalsContextType | undefined>(undefined)
@@ -38,6 +44,9 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
 
     // QR Scanner
     const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
+
+    // Security Verification Overlay
+    const [isSecurityVerificationOpen, setIsSecurityVerificationOpen] = useState(false)
 
     const openSupportWithMessage = useCallback((message: string) => {
         setSupportPrefilledMessage(message)
@@ -64,6 +73,10 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
             // QR Scanner
             isQRScannerOpen,
             setIsQRScannerOpen,
+
+            // Security Verification Overlay
+            isSecurityVerificationOpen,
+            setIsSecurityVerificationOpen,
         }),
         [
             isIosPwaInstallModalOpen,
@@ -72,6 +85,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
             supportPrefilledMessage,
             openSupportWithMessage,
             isQRScannerOpen,
+            isSecurityVerificationOpen,
         ]
     )
 
@@ -84,4 +98,15 @@ export function useModalsContext() {
         throw new Error('useModalsContext must be used within a ModalsProvider')
     }
     return context
+}
+
+/**
+ * Non-throwing variant — returns the context or `undefined` when the
+ * provider isn't mounted (isolated test trees, Storybook, etc.). Use
+ * when the consumer can sensibly no-op without modal access (e.g.
+ * UI-polish overlays); prefer `useModalsContext` everywhere a missing
+ * provider should be a hard error.
+ */
+export function useModalsContextOptional(): ModalsContextType | undefined {
+    return useContext(ModalsContext)
 }

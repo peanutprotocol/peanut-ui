@@ -1,22 +1,6 @@
-import { MERCADO_PAGO, SOLANA_ICON, TRON_ICON, PIX } from '@/assets'
+import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { type IconName } from '@/components/Global/Icons/Icon'
-import { type StaticImageData } from 'next/image'
-
-// ref: https://docs.manteca.dev/cripto/key-concepts/exchanges-multi-country#Available-Exchanges
-// DISABLED most exchanges because manteca support is fragile, and we need to
-// check kyc for all countries
-export const MantecaSupportedExchanges = {
-    AR: 'ARGENTINA',
-    //CL: 'CHILE',
-    BR: 'BRAZIL',
-    //CO: 'COLOMBIA',
-    //PA: 'PANAMA',
-    //CR: 'COSTA_RICA',
-    //GT: 'GUATEMALA',
-    // MX: 'MEXICO',
-    //PH: 'PHILIPPINES',
-    //BO: 'BOLIVIA',
-}
+import { MANTECA_SUPPORTED_EXCHANGES, isMantecaCountry } from '@/constants/manteca.consts'
 
 // ISO-2 codes of our highest-volume corridors, surfaced at the top of the
 // add/withdraw country list (after the user's own country if geolocated).
@@ -2613,30 +2597,6 @@ export const countryData: CountryData[] = [
 
 export const COUNTRY_SPECIFIC_METHODS: Record<string, CountrySpecificMethods> = {}
 
-// LATAM country codes
-const LATAM_COUNTRY_CODES = [
-    'AR',
-    'BO',
-    'BR',
-    'CL',
-    'CO',
-    'CR',
-    'DO',
-    'EC',
-    'SV',
-    'GT',
-    'HN',
-    'HT',
-    'MX',
-    'NI',
-    'PA',
-    'PY',
-    'PE',
-    'PR',
-    'UY',
-    'VE',
-]
-
 // bridge EAA country codes, source: https://apidocs.bridge.xyz/docs/sepa-euro-transactions
 // note: this is a map of 3-letter country codes to 2-letter country codes, for flags to work, bridge expects 3 letter codes
 export const BRIDGE_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
@@ -2725,18 +2685,7 @@ countryData.forEach((country) => {
             specificMethodDetails.forEach((method) => {
                 const methodId = `${countryCode.toLowerCase()}-${method.title.toLowerCase().replace(/\s+/g, '-')}-withdraw`
 
-                // Check if this is a Manteca country to add appropriate routing
-                const isMantecaCountry = [
-                    'argentina',
-                    'chile',
-                    'brazil',
-                    'colombia',
-                    'panama',
-                    'costa-rica',
-                    'guatemala',
-                    'philippines',
-                    'bolivia',
-                ].includes(country.path)
+                const isMantecaSupportedCountry = isMantecaCountry(country.path)
 
                 withdrawList.push({
                     id: methodId,
@@ -2744,8 +2693,7 @@ countryData.forEach((country) => {
                     title: method.title,
                     description: method.description,
                     isSoon: method.isSoon ?? true,
-                    // Add path for Manteca countries to route to Manteca flow
-                    path: isMantecaCountry
+                    path: isMantecaSupportedCountry
                         ? `/withdraw/manteca?method=${method.title.toLowerCase().replace(/\s+/g, '-')}&country=${country.path}`
                         : undefined,
                 })
@@ -2779,22 +2727,12 @@ countryData.forEach((country) => {
         // only add default bank if it doesn't already exist AND (SEPA was not added OR it's not considered redundant by SEPA)
         // for now, we simplify: if SEPA was added, we assume default bank is redundant.
         if (!genericBankExists && !sepaWasAdded) {
-            const isMantecaCountry = [
-                'argentina',
-                'chile',
-                'brazil',
-                'colombia',
-                'panama',
-                'costa-rica',
-                'guatemala',
-                'philippines',
-                'bolivia',
-            ].includes(country.path)
+            const isMantecaSupportedCountry = isMantecaCountry(country.path)
 
             withdrawList.push({
                 ...DEFAULT_BANK_WITHDRAW_METHOD,
                 id: `${countryCode.toLowerCase()}-default-bank-withdraw`,
-                path: isMantecaCountry
+                path: isMantecaSupportedCountry
                     ? `/withdraw/manteca?method=bank-transfer&country=${country.path}`
                     : `/withdraw/${countryCode.toLowerCase()}/bank`,
                 isSoon: !isCountryEnabledForBankTransfer(countryCode, 'withdraw'),
@@ -2821,7 +2759,7 @@ countryData.forEach((country) => {
         }).map((m) => {
             const newMethod = { ...m }
             if (newMethod.id === 'bank-transfer-add') {
-                if (MantecaSupportedExchanges[countryCode as keyof typeof MantecaSupportedExchanges]) {
+                if (MANTECA_SUPPORTED_EXCHANGES[countryCode as keyof typeof MANTECA_SUPPORTED_EXCHANGES]) {
                     newMethod.path = `/add-money/${country.path}/manteca`
                 } else {
                     newMethod.path = `/add-money/${country.path}/bank`
