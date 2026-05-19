@@ -181,6 +181,15 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             const extraParams = isBankFromSend ? `method=${methodParam}` : undefined
             router.push(rewriteMethodPath(method.path, extraParams))
         } else if (method.id.includes('default-bank-withdraw') || method.id.includes('sepa-instant-withdraw')) {
+            // check transfer readiness gate first — tos takes priority over generic "under review"
+            if (gate.type !== 'ready') {
+                if (gate.type === 'accept_tos') {
+                    guardWithTos()
+                } else {
+                    setIsKycModalOpen(true)
+                }
+                return
+            }
             if (isUserBridgeKycUnderReview) {
                 setShowKycStatusModal(true)
                 return
@@ -215,7 +224,15 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 setIsSupportedTokensModalOpen(true)
                 return
             }
-            // show kyc status modal if user is kyc under review
+            // check transfer readiness gate first — tos takes priority over generic "under review"
+            if (gate.type !== 'ready') {
+                if (gate.type === 'accept_tos') {
+                    guardWithTos()
+                } else {
+                    setIsKycModalOpen(true)
+                }
+                return
+            }
             if (isUserBridgeKycUnderReview) {
                 setShowKycStatusModal(true)
                 return
@@ -453,6 +470,38 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             <KycVerifiedOrReviewModal
                 isKycApprovedModalOpen={showKycStatusModal}
                 onClose={() => setShowKycStatusModal(false)}
+            />
+            <InitiateKycModal
+                visible={isKycModalOpen}
+                onClose={() => setIsKycModalOpen(false)}
+                onVerify={async () => {
+                    if (gate.type === 'fixable_rejection') {
+                        await sumsubFlow.handleSelfHealResubmit('BRIDGE')
+                    } else {
+                        await sumsubFlow.handleInitiateKyc(
+                            'STANDARD',
+                            undefined,
+                            gate.type === 'needs_enrollment' || undefined
+                        )
+                    }
+                }}
+                onContactSupport={() => {
+                    setIsKycModalOpen(false)
+                    setIsSupportModalOpen(true)
+                }}
+                isLoading={sumsubFlow.isLoading}
+                error={sumsubFlow.error}
+                variant={getKycModalVariant(gate.type)}
+                providerMessage={getGateProviderMessage(gate)}
+                regionName={currentCountry?.title}
+            />
+            <BridgeTosStep
+                visible={showBridgeTos}
+                onComplete={() => {
+                    hideTos()
+                    // re-attempt the action after tos acceptance
+                }}
+                onSkip={hideTos}
             />
             <SumsubKycModals flow={sumsubFlow} />
         </div>
