@@ -25,7 +25,8 @@ export type BridgeGateAction =
 export function useBridgeTransferReadiness() {
     const { needsBridgeTos } = useBridgeTosStatus()
     const { bridge: bridgeRejection } = useProviderRejectionStatus()
-    const { isUserSumsubKycApproved, isUserBridgeKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
+    const { isUserSumsubKycApproved, isUserBridgeKycApproved, isUserBridgeKycUnderReview, isUserBridgeKycIncomplete } =
+        useKycStatus()
 
     const gate: BridgeGateAction = useMemo(() => {
         // 1. hard rejection — contact support (checked first because tos is moot for hard-rejected users)
@@ -41,14 +42,26 @@ export function useBridgeTransferReadiness() {
             return { type: 'fixable_rejection', userMessage: bridgeRejection.userMessage }
         }
 
-        // 4. needs enrollment (sumsub approved but bridge not started/approved)
-        if (isUserSumsubKycApproved && !isUserBridgeKycApproved && !isUserBridgeKycUnderReview) {
+        // 4. needs enrollment (sumsub approved but bridge not started/approved/in-progress)
+        if (
+            isUserSumsubKycApproved &&
+            !isUserBridgeKycApproved &&
+            !isUserBridgeKycUnderReview &&
+            !isUserBridgeKycIncomplete
+        ) {
             return { type: 'needs_enrollment' }
         }
 
         // 5. ready
         return { type: 'ready' }
-    }, [needsBridgeTos, bridgeRejection, isUserSumsubKycApproved, isUserBridgeKycApproved, isUserBridgeKycUnderReview])
+    }, [
+        needsBridgeTos,
+        bridgeRejection,
+        isUserSumsubKycApproved,
+        isUserBridgeKycApproved,
+        isUserBridgeKycUnderReview,
+        isUserBridgeKycIncomplete,
+    ])
 
     return { gate }
 }

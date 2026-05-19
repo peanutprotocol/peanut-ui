@@ -83,7 +83,8 @@ export const useHomeCarouselCTAs = () => {
     } = useNotifications()
     const toast = useToast()
     const router = useRouter()
-    const { isUserKycApproved, isUserBridgeKycUnderReview, isUserMantecaKycApproved } = useKycStatus()
+    const { isUserKycApproved, isUserBridgeKycUnderReview, isUserBridgeKycIncomplete, isUserMantecaKycApproved } =
+        useKycStatus()
     const { deviceType } = useDeviceType()
     const isPwa = usePWAStatus()
     const { setIsIosPwaInstallModalOpen, openSupportWithMessage } = useModalsContext()
@@ -287,7 +288,7 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        if (!hasKycApproval && !isUserBridgeKycUnderReview) {
+        if (!hasKycApproval && !isUserBridgeKycUnderReview && !isUserBridgeKycIncomplete) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
                 title: (
@@ -317,6 +318,7 @@ export const useHomeCarouselCTAs = () => {
         isPushOptedIn,
         isUserKycApproved,
         isUserBridgeKycUnderReview,
+        isUserBridgeKycIncomplete,
         isUserMantecaKycApproved,
         router,
         requestPermission,

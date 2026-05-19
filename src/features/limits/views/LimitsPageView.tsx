@@ -20,7 +20,7 @@ import { getProviderRoute } from '../utils'
 const LimitsPageView = () => {
     const onBack = useSafeBack('/profile', { replace: true })
     const { unlockedRegions, lockedRegions } = useIdentityVerification()
-    const { isUserKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
+    const { isUserKycApproved, isUserBridgeKycUnderReview, isUserBridgeKycIncomplete } = useKycStatus()
     const { hasMantecaLimits } = useLimits()
 
     // check if user has any kyc at all
@@ -67,7 +67,10 @@ const LimitsPageView = () => {
 
             {/* locked regions - only render if there are actual locked regions */}
             {filteredLockedRegions.length > 0 && (
-                <LockedRegionsList regions={filteredLockedRegions} isBridgeKycPending={isUserBridgeKycUnderReview} />
+                <LockedRegionsList
+                    regions={filteredLockedRegions}
+                    isBridgeKycPending={isUserBridgeKycUnderReview || isUserBridgeKycIncomplete}
+                />
             )}
 
             {/* rest of world - always shown with coming soon */}

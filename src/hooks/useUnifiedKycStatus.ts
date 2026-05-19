@@ -55,18 +55,19 @@ export default function useUnifiedKycStatus() {
         [isBridgeApproved, isMantecaApproved, isSumsubApproved]
     )
 
-    const isBridgeUnderReview = useMemo(
-        () => user?.user.bridgeKycStatus === 'under_review' || user?.user.bridgeKycStatus === 'incomplete',
-        [user]
-    )
+    // bridge is actively reviewing submitted docs
+    const isBridgeUnderReview = useMemo(() => user?.user.bridgeKycStatus === 'under_review', [user])
+
+    // user still needs to complete requirements (tos, proof of address, etc.)
+    const isBridgeIncomplete = useMemo(() => user?.user.bridgeKycStatus === 'incomplete', [user])
 
     const isSumsubActionRequired = useMemo(() => sumsubStatus === 'ACTION_REQUIRED', [sumsubStatus])
 
     const isSumsubInProgress = useMemo(() => isSumsubStatusInProgress(sumsubStatus), [sumsubStatus])
 
     const isKycInProgress = useMemo(
-        () => isBridgeUnderReview || isSumsubInProgress,
-        [isBridgeUnderReview, isSumsubInProgress]
+        () => isBridgeUnderReview || isBridgeIncomplete || isSumsubInProgress,
+        [isBridgeUnderReview, isBridgeIncomplete, isSumsubInProgress]
     )
 
     return {
@@ -76,6 +77,7 @@ export default function useUnifiedKycStatus() {
         // bridge
         isBridgeApproved,
         isBridgeUnderReview,
+        isBridgeIncomplete,
         // manteca
         isMantecaApproved,
         // sumsub
