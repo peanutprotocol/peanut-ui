@@ -308,6 +308,11 @@ jest.mock('@/components/Global/PeanutLoading', () => ({
     default: (props: any) => <div data-testid="peanut-loading">{props.message && <span>{props.message}</span>}</div>,
 }))
 
+jest.mock('@/components/Global/PeanutLoading/CyclingLoading', () => ({
+    __esModule: true,
+    default: () => <div data-testid="cycling-loading" />,
+}))
+
 jest.mock('@/components/Global/NavHeader', () => ({
     __esModule: true,
     default: (props: any) => <div data-testid="nav-header">{props.title}</div>,
@@ -834,11 +839,11 @@ describe('GROUP 3: Processing States', () => {
             fireEvent.click(payButton)
         })
 
-        // After clicking pay, loading state should trigger PeanutLoading
+        // After clicking pay, loading state should trigger PeanutLoading or CyclingLoading
         // (signSpend resolves, then completeQrPayment hangs)
         await waitFor(() => {
-            // Component is in loading state - either shows PeanutLoading or loading button text
-            const loadingEl = screen.queryByTestId('peanut-loading')
+            // Component is in loading state - either shows a loading variant or loading button text
+            const loadingEl = screen.queryByTestId('peanut-loading') ?? screen.queryByTestId('cycling-loading')
             const loadingButton = screen.queryByText('Loading...')
             expect(loadingEl || loadingButton).toBeTruthy()
         })
