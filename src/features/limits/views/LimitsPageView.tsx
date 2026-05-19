@@ -22,7 +22,7 @@ import { getProviderRoute } from '../utils'
 const LimitsPageView = () => {
     const router = useRouter()
     const { unlockedRegions, lockedRegions } = useIdentityVerification()
-    const { isUserKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
+    const { isUserKycApproved, isUserBridgeKycUnderReview, isUserBridgeKycIncomplete } = useKycStatus()
     const { hasMantecaLimits } = useLimits()
     const { overview: rainCardOverview } = useRainCardOverview()
     const activeCard = findActiveCard(rainCardOverview)
@@ -75,7 +75,10 @@ const LimitsPageView = () => {
 
             {/* locked regions - only render if there are actual locked regions */}
             {filteredLockedRegions.length > 0 && (
-                <LockedRegionsList regions={filteredLockedRegions} isBridgeKycPending={isUserBridgeKycUnderReview} />
+                <LockedRegionsList
+                    regions={filteredLockedRegions}
+                    isBridgeKycPending={isUserBridgeKycUnderReview || isUserBridgeKycIncomplete}
+                />
             )}
 
             {/* rest of world - always shown with coming soon */}

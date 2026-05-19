@@ -41,6 +41,7 @@ function setup({
     isSumsubApproved = false,
     isBridgeApproved = false,
     isBridgeUnderReview = false,
+    isBridgeIncomplete = false,
 } = {}) {
     mockTosStatus.mockReturnValue({
         needsBridgeTos,
@@ -59,6 +60,7 @@ function setup({
         isUserSumsubKycApproved: isSumsubApproved,
         isUserBridgeKycApproved: isBridgeApproved,
         isUserBridgeKycUnderReview: isBridgeUnderReview,
+        isUserBridgeKycIncomplete: isBridgeIncomplete,
         isUserMantecaKycApproved: false,
         isUserKycApproved: isBridgeApproved,
     })
@@ -105,6 +107,12 @@ describe('useBridgeTransferReadiness', () => {
         expect(result.current.gate.type).toBe('ready')
     })
 
+    it('ready when sumsub approved and bridge incomplete (enrollment not needed)', () => {
+        setup({ isSumsubApproved: true, isBridgeIncomplete: true })
+        const { result } = renderHook(() => useBridgeTransferReadiness())
+        expect(result.current.gate.type).toBe('ready')
+    })
+
     it('ready when sumsub approved and bridge approved', () => {
         setup({ isSumsubApproved: true, isBridgeApproved: true })
         const { result } = renderHook(() => useBridgeTransferReadiness())
@@ -119,6 +127,12 @@ describe('useBridgeTransferReadiness', () => {
 
     it('accept_tos takes priority over needs_enrollment', () => {
         setup({ needsBridgeTos: true, isSumsubApproved: true })
+        const { result } = renderHook(() => useBridgeTransferReadiness())
+        expect(result.current.gate.type).toBe('accept_tos')
+    })
+
+    it('accept_tos when bridge incomplete and tos needed (main bug scenario)', () => {
+        setup({ needsBridgeTos: true, isBridgeIncomplete: true, isSumsubApproved: true })
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('accept_tos')
     })
