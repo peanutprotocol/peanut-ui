@@ -144,6 +144,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             return { error: 'gate_blocked', silent: true }
         }
 
+        // bridge kyc still under review — don't initiate a new sumsub flow
+        if (isUserBridgeKycUnderReview) {
+            setShowKycStatusModal(true)
+            return { error: 'gate_blocked', silent: true }
+        }
+
         // scenario (1): happy path: if the user has already completed kyc, we can add the bank account directly
         // email and name are now collected by sumsub — no need to check them here
         if (isUserKycApproved) {

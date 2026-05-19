@@ -130,6 +130,12 @@ describe('useBridgeTransferReadiness', () => {
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('accept_tos')
     })
+
+    it('accept_tos when bridge incomplete and tos needed (main bug scenario)', () => {
+        setup({ needsBridgeTos: true, isBridgeIncomplete: true, isSumsubApproved: true })
+        const { result } = renderHook(() => useBridgeTransferReadiness())
+        expect(result.current.gate.type).toBe('accept_tos')
+    })
 })
 
 describe('getKycModalVariant', () => {
