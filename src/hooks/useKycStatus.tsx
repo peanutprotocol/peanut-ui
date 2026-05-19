@@ -7,8 +7,14 @@ import useUnifiedKycStatus from './useUnifiedKycStatus'
  * existing consumers keep the same api shape.
  */
 export default function useKycStatus() {
-    const { isBridgeApproved, isMantecaApproved, isSumsubApproved, isKycApproved, isBridgeUnderReview, isBridgeIncomplete } =
-        useUnifiedKycStatus()
+    const {
+        isBridgeApproved,
+        isMantecaApproved,
+        isSumsubApproved,
+        isKycApproved,
+        isBridgeUnderReview,
+        isBridgeIncomplete,
+    } = useUnifiedKycStatus()
 
     return {
         isUserBridgeKycApproved: isBridgeApproved,

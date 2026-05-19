@@ -67,7 +67,10 @@ const LimitsPageView = () => {
 
             {/* locked regions - only render if there are actual locked regions */}
             {filteredLockedRegions.length > 0 && (
-                <LockedRegionsList regions={filteredLockedRegions} isBridgeKycPending={isUserBridgeKycUnderReview || isUserBridgeKycIncomplete} />
+                <LockedRegionsList
+                    regions={filteredLockedRegions}
+                    isBridgeKycPending={isUserBridgeKycUnderReview || isUserBridgeKycIncomplete}
+                />
             )}
 
             {/* rest of world - always shown with coming soon */}
