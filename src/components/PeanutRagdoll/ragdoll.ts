@@ -529,7 +529,9 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
         const h = container.clientHeight
         const tl = worldToScreen(PHONE_LEFT_X, PHONE_TOP_Y)
         const br = worldToScreen(PHONE_RIGHT_X, GROUND_Y)
-        ctx.fillStyle = 'rgba(0,0,0,0.08)'
+        // Outside-the-cage area is solid white so only the play area shows the
+        // brand-pink wrapper background.
+        ctx.fillStyle = '#fff'
         if (tl.y > 0) ctx.fillRect(0, 0, w, tl.y)
         if (br.y < h) ctx.fillRect(0, br.y, w, h - br.y)
         if (tl.x > 0) ctx.fillRect(0, tl.y, tl.x, br.y - tl.y)
