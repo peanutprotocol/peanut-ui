@@ -13,6 +13,7 @@ import { getExchangeRateWidgetRedirectRoute } from '@/utils/exchangeRateWidget.u
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAuth } from '@/context/authContext'
 import { twMerge } from 'tailwind-merge'
+import { ContextualLinks } from './ContextualLinks'
 
 export function NoFees({ className }: { className?: string }) {
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
@@ -152,6 +153,16 @@ export function NoFees({ className }: { className?: string }) {
                 </div>
 
                 <ExchangeRateWidget ctaIcon="arrow-up-right" ctaLabel="Send Money" ctaAction={handleCtaAction} />
+
+                <ContextualLinks
+                    className="mt-6"
+                    label="See the markup on:"
+                    links={[
+                        { label: 'Wise', href: '/en/compare/wise' },
+                        { label: 'PayPal', href: '/en/compare/paypal' },
+                        { label: 'Western Union', href: '/en/compare/western-union' },
+                    ]}
+                />
             </div>
         </section>
     )

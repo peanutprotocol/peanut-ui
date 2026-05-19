@@ -14,6 +14,8 @@ interface Feature {
     description: string
     iconSrc: any
     iconAlt: string
+    learnMoreHref?: string
+    learnMoreLabel?: string
 }
 
 const features: Feature[] = [
@@ -25,6 +27,8 @@ const features: Feature[] = [
             'Peanut is 100% non-custodial. Every transaction is approved via Passkeys using Face ID, Touch ID or passcode. No one else can move your assets. Not even us.',
         iconSrc: handThumbsUp,
         iconAlt: 'Thumbs up',
+        learnMoreHref: '/en/help/passkeys',
+        learnMoreLabel: 'Learn more',
     },
     {
         id: 2,
@@ -34,6 +38,8 @@ const features: Feature[] = [
             'You verify your identity only when a feature truly requires it. The rest of the time you operate without mandatory KYC or friction.',
         iconSrc: handWaving,
         iconAlt: 'Hand waving',
+        learnMoreHref: '/en/help/verification',
+        learnMoreLabel: 'Learn more',
     },
     {
         id: 3,
@@ -82,6 +88,14 @@ export function SecurityBuiltIn() {
                                 >
                                     {feature.description}
                                 </p>
+                                {feature.learnMoreHref && feature.learnMoreLabel && (
+                                    <a
+                                        href={feature.learnMoreHref}
+                                        className="font-roboto-flex mt-4 inline-block text-base text-n-1 underline hover:no-underline md:text-lg"
+                                    >
+                                        {feature.learnMoreLabel} →
+                                    </a>
+                                )}
                                 {feature.id === 3 && (
                                     <div className="mt-6">
                                         <a href="/support">

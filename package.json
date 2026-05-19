@@ -82,6 +82,7 @@
         "embla-carousel-react": "^8.6.0",
         "ethers": "5.7.2",
         "framer-motion": "^11.11.17",
+        "fuse.js": "^7.3.0",
         "gray-matter": "^4.0.3",
         "i18n-iso-countries": "^7.13.0",
         "iban-to-bic": "^1.4.0",
