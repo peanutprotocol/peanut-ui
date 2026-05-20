@@ -57,7 +57,7 @@ export const setupSteps: ISetupStep[] = [
         screenId: 'welcome',
         layoutType: 'signup',
         title: 'Peanut is invite-only',
-        description: `Enter your invite code to continue or join the waitlist. We'll reach out when you're eligible.`,
+        description: `Who invited you? Enter their username to continue, or join the waitlist and we'll reach out when you're eligible.`,
         image: chillPeanutAnim.src,
         component: JoinWaitlist,
         showBackButton: true,
