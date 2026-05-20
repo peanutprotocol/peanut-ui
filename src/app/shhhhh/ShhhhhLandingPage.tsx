@@ -1,14 +1,15 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Marquee } from '@/components/LandingPage'
-import { FAQsPanel } from '@/components/Global/FAQs'
 import { useAuth } from '@/context/authContext'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
-import { CARD_GRADIENT_10 } from '@/assets/cards'
+import { CARD_GRADIENT_10_PIXEL } from '@/assets/cards'
+import { Sparkle, Star } from '@/assets'
 
 const marqueeMessages = ['IYKYK', 'WORD TRAVELS', 'CLOSED BETA', 'SHHHH', 'PEANUT CLUB']
 
@@ -19,54 +20,116 @@ const stats: Array<{ value: string; label: string }> = [
     { value: '0', label: 'middlemen' },
 ]
 
-const badges: Array<{ code: string; short: string; classes: string }> = [
-    { code: 'OG_2025_10_12', short: 'OG', classes: 'bg-secondary-1 text-n-1' },
-    { code: 'DEVCONNECT_BA_2025', short: 'DC', classes: 'bg-primary-1 text-n-1' },
-    { code: 'ARBIVERSE_DEVCONNECT_BA_2025', short: 'AV', classes: 'bg-n-1 text-primary-1' },
+const badges: Array<{ code: string; name: string; src: string }> = [
+    { code: 'OG_2025_10_12', name: 'Peanut OG', src: '/badges/og_v1.svg' },
+    { code: 'DEVCONNECT_BA_2025', name: 'Devconnect BA', src: '/badges/devconnect_2025.svg' },
+    { code: 'ARBIVERSE_DEVCONNECT_BA_2025', name: 'Arbiverse', src: '/badges/arbiverse_devconnect.svg' },
 ]
 
 const faqQuestions = [
     {
-        id: '0',
-        question: "What's the peanut card?",
+        question: "WHAT'S THE PEANUT CARD?",
         answer: 'A non-custodial card. Top up with stablecoins, then use the card for everyday spending wherever Visa is accepted.',
     },
     {
-        id: '1',
-        question: 'Where does it work?',
+        question: 'WHERE DOES IT WORK?',
         answer: 'Accepted wherever Visa is accepted — about 150 million merchants. Online, in-store, ATMs.',
     },
     {
-        id: '2',
-        question: 'Is my money safe?',
+        question: 'IS MY MONEY SAFE?',
         answer: "It's yours. Non-custodial — your stablecoins stay in your wallet until the moment you use the card. We don't hold custody. We don't lend it out.",
     },
     {
-        id: '3',
-        question: "What's the $10?",
+        question: "WHAT'S THE $10?",
         answer: 'A welcome reward. Complete verification + first $100 in card spend → $10 unlocked to your balance. Same deal whether you signed up yourself or got referred. If you referred someone, you also are eligible for $10 when they activate. Subject to eligibility and program terms.',
     },
     {
-        id: '4',
-        question: 'How long is the waitlist?',
+        question: 'HOW LONG IS THE WAITLIST?',
         answer: "We're letting in about 20 people a week during closed beta. Order matters. Badges skip the line entirely.",
     },
     {
-        id: '5',
-        question: 'Where can I get the card?',
+        question: 'WHERE CAN I GET THE CARD?',
         answer: "We're rolling out to select regions first and adding more as our partners' coverage expands. Eligibility is shown during signup.",
     },
     {
-        id: '6',
-        question: 'Any fees?',
+        question: 'ANY FEES?',
         answer: 'No monthly fees. No annual fees. Standard fees and limits apply per the cardholder terms.',
     },
     {
-        id: '7',
-        question: 'Why "shhhhh"?',
+        question: 'WHY "SHHHHH"?',
         answer: "We'd rather under-promise and over-deliver to a small group than blast the whole internet on day one. Word travels.",
     },
 ]
+
+const ctaButtonClassName =
+    '!w-auto bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl'
+
+function ScarcityCounter() {
+    const [count, setCount] = useState(21)
+    useEffect(() => {
+        const timer = setTimeout(() => setCount(20), 2500)
+        return () => clearTimeout(timer)
+    }, [])
+    return (
+        <motion.span
+            className="inline-block whitespace-nowrap bg-n-1 px-2 py-0.5 text-[0.92em] font-extraBlack uppercase tracking-wider text-primary-1"
+            animate={count === 20 ? { scale: [1, 1.18, 1] } : {}}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+        >
+            only {count}
+        </motion.span>
+    )
+}
+
+function StickyShhhhhCTA({ onClick }: { onClick: () => void }) {
+    const [visible, setVisible] = useState(false)
+    const rafId = useRef(0)
+    const lastVisible = useRef(false)
+
+    useEffect(() => {
+        const check = () => {
+            const atBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 100
+            const next = window.scrollY >= 300 && !atBottom
+            if (next !== lastVisible.current) {
+                lastVisible.current = next
+                setVisible(next)
+            }
+        }
+        const onScroll = () => {
+            cancelAnimationFrame(rafId.current)
+            rafId.current = requestAnimationFrame(check)
+        }
+        window.addEventListener('scroll', onScroll, { passive: true })
+        check()
+        return () => {
+            window.removeEventListener('scroll', onScroll)
+            cancelAnimationFrame(rafId.current)
+        }
+    }, [])
+
+    return (
+        <AnimatePresence>
+            {visible && (
+                <motion.div
+                    initial={{ y: 80, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: 80, opacity: 0 }}
+                    transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                    className="pointer-events-none fixed bottom-0 left-0 right-0 z-50 border-t-2 border-n-1 bg-white px-4 py-3 md:hidden"
+                >
+                    <Button
+                        variant="purple"
+                        shadowSize="4"
+                        onClick={onClick}
+                        className="pointer-events-auto w-full py-3 text-base font-extrabold"
+                    >
+                        TRY THE DOOR
+                    </Button>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    )
+}
 
 export default function ShhhhhLandingPage() {
     const { user } = useAuth()
@@ -96,31 +159,61 @@ export default function ShhhhhLandingPage() {
         <>
             {/* §1 — Hero (pink) */}
             <section className="relative overflow-hidden bg-primary-1 px-4 py-20 text-n-1 md:py-24">
-                <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[1.1fr_0.9fr]">
+                <motion.img
+                    src={Star.src}
+                    alt=""
+                    aria-hidden
+                    initial={{ opacity: 0, translateY: 20, translateX: 5 }}
+                    whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
+                    transition={{ type: 'spring', damping: 5 }}
+                    className="pointer-events-none absolute left-[3%] top-[8%] z-10 w-10 md:left-[6%] md:top-[12%] md:w-14"
+                />
+                <motion.img
+                    src={Star.src}
+                    alt=""
+                    aria-hidden
+                    initial={{ opacity: 0, translateY: 28, translateX: -5 }}
+                    whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
+                    transition={{ type: 'spring', damping: 5, delay: 0.15 }}
+                    className="pointer-events-none absolute bottom-[5%] right-[4%] z-10 w-8 md:bottom-[8%] md:right-[8%] md:w-12"
+                />
+                <motion.img
+                    src={Sparkle.src}
+                    alt=""
+                    aria-hidden
+                    initial={{ opacity: 0, scale: 0.4 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'spring', damping: 8, delay: 0.3 }}
+                    className="pointer-events-none absolute right-[12%] top-[10%] z-10 hidden w-8 md:block md:w-10"
+                />
+                <div className="relative z-20 mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[1.1fr_0.9fr]">
                     <div className="text-center md:text-left">
-                        <h1 className="font-roboto-flex-extrabold text-[5rem] font-extraBlack leading-[0.82] tracking-[-0.06em] md:text-[9rem] lg:text-[11rem]">
+                        <h1 className="font-roboto-flex-extrabold text-headingMedium font-extraBlack md:text-headingLarge lg:text-[12rem]">
                             shhhhh.
                         </h1>
-                        <p className="font-roboto-flex-extrabold mt-6 max-w-xl text-2xl font-extraBlack leading-tight md:text-3xl">
+                        <p className="font-roboto-flex-extrabold mt-6 max-w-xl text-2xl font-extraBlack uppercase md:text-3xl">
                             The peanut card is out. For you. Maybe.
                         </p>
-                        <p className="font-roboto-flex mt-6 max-w-xl text-base leading-relaxed md:text-lg">
+                        <p className="font-roboto-flex mt-6 max-w-xl text-xl leading-relaxed md:text-2xl">
                             A card accepted at over 150 million Visa-accepting merchants. We&apos;re letting beta users
-                            in slowly —{' '}
-                            <span className="inline-block whitespace-nowrap bg-n-1 px-2 py-0.5 text-[0.92em] font-extraBlack uppercase tracking-wider text-primary-1">
-                                only 20
-                            </span>{' '}
-                            a week. If you&apos;ve got the right badge, you skip the line entirely.
+                            in slowly — <ScarcityCounter /> a week. If you&apos;ve got the right badge, you skip the
+                            line entirely.
                         </p>
                         <div className="mt-8 flex flex-col items-center gap-5 md:flex-row md:items-center md:gap-6">
-                            <Button
-                                variant="purple"
-                                shadowSize="4"
-                                onClick={handleCTA}
-                                className="bg-white px-10 py-5 text-lg font-extrabold uppercase tracking-wider text-n-1 md:px-12 md:py-6 md:text-xl"
-                            >
-                                Try the door
-                            </Button>
+                            <div className="relative">
+                                <Button shadowSize="4" onClick={handleCTA} className={ctaButtonClassName}>
+                                    TRY THE DOOR
+                                </Button>
+                                <motion.img
+                                    src={Sparkle.src}
+                                    alt=""
+                                    aria-hidden
+                                    initial={{ opacity: 0, scale: 0.4, rotate: -30 }}
+                                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                                    transition={{ type: 'spring', damping: 10, delay: 0.6 }}
+                                    className="pointer-events-none absolute -right-4 -top-4 w-8 md:-right-5 md:-top-5 md:w-10"
+                                />
+                            </div>
                             <button
                                 type="button"
                                 onClick={handleCTA}
@@ -131,12 +224,14 @@ export default function ShhhhhLandingPage() {
                         </div>
                     </div>
                     <div className="flex justify-center md:justify-end">
-                        <Image
-                            src={CARD_GRADIENT_10}
-                            alt="peanut card"
-                            priority
-                            className="w-full max-w-md -rotate-12 drop-shadow-[16px_24px_0_#000]"
-                        />
+                        <div className="w-full max-w-md -rotate-12 overflow-hidden rounded-2xl border-2 border-n-1 bg-white shadow-[16px_24px_0_#000]">
+                            <Image
+                                src={CARD_GRADIENT_10_PIXEL}
+                                alt="peanut card"
+                                priority
+                                className="block h-auto w-full"
+                            />
+                        </div>
                     </div>
                 </div>
             </section>
@@ -146,15 +241,14 @@ export default function ShhhhhLandingPage() {
             {/* §2 — What it does (yellow) */}
             <section className="relative overflow-hidden bg-secondary-1 px-4 py-24 text-center text-n-1 md:py-32">
                 <div className="mx-auto max-w-5xl">
-                    <h2 className="font-roboto-flex-extrabold mx-auto max-w-3xl text-4xl font-extraBlack leading-[0.88] md:text-6xl lg:text-7xl">
+                    <h2 className="font-roboto-flex-extrabold mx-auto max-w-3xl text-heading font-extraBlack uppercase md:text-headingMedium">
                         It&apos;s a card.
                         <br />
                         That&apos;s the whole trick.
                     </h2>
-                    <p className="font-roboto-flex mx-auto mt-8 max-w-2xl text-lg leading-relaxed md:text-xl">
-                        Top up with stablecoins. Tap at any Visa-accepting merchant — groceries in Lisbon, a hotel in
-                        Tokyo, coffee in Buenos Aires, an Uber pretty much anywhere on the planet. Your balance is
-                        yours.
+                    <p className="font-roboto-flex mx-auto mt-8 max-w-2xl text-xl leading-relaxed md:text-2xl">
+                        Fund the card however you already move money: bank transfer, exchange withdrawal, or stablecoins
+                        (USDC, USDT). Your balance is yours. Non-custodial. No monthly fees. No annual fees.
                     </p>
                     <div className="mt-12 flex flex-wrap justify-center gap-3 md:flex-nowrap md:gap-4">
                         {stats.map((stat) => (
@@ -162,7 +256,7 @@ export default function ShhhhhLandingPage() {
                                 key={stat.label}
                                 className="flex basis-[calc(50%-0.375rem)] flex-col items-center justify-center rounded-sm border-2 border-n-1 bg-white px-4 py-8 text-center shadow-[4px_4px_0_#000] md:flex-1 md:basis-0 md:py-10"
                             >
-                                <div className="font-roboto-flex-extrabold text-5xl font-extraBlack leading-none tracking-tight md:text-6xl">
+                                <div className="font-roboto-flex-extrabold text-5xl font-extraBlack md:text-6xl">
                                     {stat.value}
                                 </div>
                                 <div className="font-roboto-flex mt-3 text-xs font-bold uppercase tracking-wider md:text-sm">
@@ -174,13 +268,15 @@ export default function ShhhhhLandingPage() {
                 </div>
             </section>
 
-            {/* §3 — Who it's for (BLACK) */}
-            <section className="relative overflow-hidden bg-n-1 px-4 py-24 text-white md:py-32">
+            <Marquee {...marqueeProps} />
+
+            {/* §3 — Who it's for (PINK) */}
+            <section className="relative overflow-hidden bg-primary-1 px-4 py-24 text-n-1 md:py-32">
                 <div className="mx-auto max-w-3xl">
-                    <h2 className="font-roboto-flex-extrabold text-4xl font-extraBlack leading-[0.95] md:text-6xl">
+                    <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack uppercase md:text-headingMedium">
                         If you live in more than one country, this is for you.
                     </h2>
-                    <p className="font-roboto-flex mt-10 text-lg leading-relaxed opacity-90 md:text-xl">
+                    <p className="font-roboto-flex mt-10 text-xl leading-relaxed md:text-2xl">
                         We built peanut for people who don&apos;t fit. Digital nomads who get bounced by every
                         neobank&apos;s verification the moment they cross a border. Expats who pay 4% on every
                         transaction home. LATAM users who earn in dollars and spend in pesos and reais.
@@ -190,41 +286,53 @@ export default function ShhhhhLandingPage() {
 
             <Marquee {...marqueeProps} />
 
-            {/* §4 — How to get in (pink, 2 doors) */}
-            <section className="relative overflow-hidden bg-primary-1 px-4 py-24 text-n-1 md:py-32">
+            {/* §4 — How to get in (blue, 2 doors) */}
+            <section
+                className="relative overflow-hidden px-4 py-24 text-n-1 md:py-32"
+                style={{ backgroundColor: '#90A8ED' }}
+            >
                 <div className="mx-auto max-w-5xl">
-                    <h2 className="font-roboto-flex-extrabold text-center text-4xl font-extraBlack leading-tight md:text-6xl">
+                    <h2 className="font-roboto-flex-extrabold text-center text-heading font-extraBlack uppercase md:text-headingMedium">
                         How to get in.
                     </h2>
                     <p className="font-roboto-flex mt-3 text-center text-xl font-bold md:text-2xl">
-                        Two doors. Pick yours.
+                        Cred check. Badge skips the queue.
                     </p>
                     <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8">
                         <div className="rounded-sm border-2 border-n-1 bg-white p-8 shadow-[10px_10px_0_#000] md:p-10">
                             <div
-                                className="font-roboto-flex-extrabold text-6xl font-extraBlack leading-none text-primary-1"
+                                className="font-roboto-flex-extrabold text-6xl font-extraBlack text-primary-1"
                                 style={{ WebkitTextStroke: '2px #000' }}
                             >
                                 01
                             </div>
-                            <h3 className="font-roboto-flex-extrabold mt-5 text-3xl font-extraBlack leading-tight md:text-4xl">
+                            <h3 className="font-roboto-flex-extrabold mt-5 text-3xl font-extraBlack uppercase md:text-4xl">
                                 Got a badge.
                             </h3>
                             <p className="font-roboto-flex mt-4 text-base leading-relaxed">
                                 You skip the line. We&apos;re whitelisting holders of:
                             </p>
-                            <ul className="mt-4 space-y-3">
+                            <div className="mt-6 grid grid-cols-3 gap-3">
                                 {badges.map((b) => (
-                                    <li key={b.code} className="flex items-center gap-3">
-                                        <span
-                                            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-sm border-2 border-n-1 font-mono text-sm font-extrabold shadow-[3px_3px_0_#000] ${b.classes}`}
-                                        >
-                                            {b.short}
+                                    <div
+                                        key={b.code}
+                                        className="flex flex-col items-center gap-2 rounded-sm border-2 border-n-1 bg-primary-3 p-3 shadow-[3px_3px_0_#000]"
+                                    >
+                                        <div className="relative aspect-square w-full">
+                                            <Image
+                                                src={b.src}
+                                                alt={b.name}
+                                                fill
+                                                className="object-contain"
+                                                sizes="(max-width: 768px) 80px, 120px"
+                                            />
+                                        </div>
+                                        <span className="font-roboto-flex text-center text-[0.7rem] font-bold uppercase leading-tight tracking-tight">
+                                            {b.name}
                                         </span>
-                                        <span className="break-all font-mono text-xs leading-tight">{b.code}</span>
-                                    </li>
+                                    </div>
                                 ))}
-                            </ul>
+                            </div>
                             <p className="font-roboto-flex mt-5 text-base leading-relaxed">
                                 Sign in, we check the badges on your account, you go straight to verification. No peanut
                                 account yet? Sign up first — takes a minute.
@@ -233,12 +341,12 @@ export default function ShhhhhLandingPage() {
 
                         <div className="rounded-sm border-2 border-n-1 bg-white p-8 shadow-[10px_10px_0_#000] md:p-10">
                             <div
-                                className="font-roboto-flex-extrabold text-6xl font-extraBlack leading-none text-primary-1"
+                                className="font-roboto-flex-extrabold text-6xl font-extraBlack text-primary-1"
                                 style={{ WebkitTextStroke: '2px #000' }}
                             >
                                 02
                             </div>
-                            <h3 className="font-roboto-flex-extrabold mt-5 text-3xl font-extraBlack leading-tight md:text-4xl">
+                            <h3 className="font-roboto-flex-extrabold mt-5 text-3xl font-extraBlack uppercase md:text-4xl">
                                 No badge.
                             </h3>
                             <p className="font-roboto-flex mt-4 text-base leading-relaxed">
@@ -252,16 +360,18 @@ export default function ShhhhhLandingPage() {
                 </div>
             </section>
 
-            {/* §5 — Probably not for you (yellow) */}
-            <section className="relative overflow-hidden bg-secondary-1 px-4 py-24 text-n-1 md:py-32">
+            <Marquee {...marqueeProps} />
+
+            {/* §5 — Probably not for you (BLACK) */}
+            <section className="relative overflow-hidden bg-n-1 px-4 py-24 text-white md:py-32">
                 <div className="mx-auto max-w-3xl">
-                    <h2 className="font-roboto-flex-extrabold text-4xl font-extraBlack leading-tight md:text-6xl">
+                    <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack uppercase md:text-headingMedium">
                         Probably not for you.
                     </h2>
-                    <p className="font-roboto-flex mt-8 text-lg leading-relaxed md:text-xl">
+                    <p className="font-roboto-flex mt-8 text-xl leading-relaxed opacity-90 md:text-2xl">
                         If your money lives in one country and one currency, your bank card already works. Keep it.
                     </p>
-                    <p className="font-roboto-flex mt-4 text-lg leading-relaxed md:text-xl">
+                    <p className="font-roboto-flex mt-4 text-xl leading-relaxed opacity-90 md:text-2xl">
                         If your money lives elsewhere — across borders, in dollars, in self-custody — the peanut card
                         was built for you.
                     </p>
@@ -270,32 +380,72 @@ export default function ShhhhhLandingPage() {
 
             <Marquee {...marqueeProps} />
 
-            {/* §6 — FAQ (cream) */}
-            <section className="relative overflow-hidden" style={{ backgroundColor: '#F9F4F0' }}>
-                <FAQsPanel heading="FAQ" questions={faqQuestions} />
+            {/* §6 — FAQ (cream — inline accordion, no white panel) */}
+            <section
+                className="relative overflow-hidden px-4 py-24 text-n-1 md:py-32"
+                style={{ backgroundColor: '#F9F4F0' }}
+            >
+                <div className="mx-auto max-w-3xl">
+                    <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack uppercase md:text-headingMedium">
+                        FAQ.
+                    </h2>
+                    <div className="mt-10 border-y-2 border-n-1">
+                        {faqQuestions.map((q, idx) => (
+                            <details
+                                key={q.question}
+                                className={`group py-5 ${idx > 0 ? 'border-t-2 border-n-1' : ''}`}
+                            >
+                                <summary className="font-roboto-flex-extrabold flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-extraBlack uppercase md:text-xl [&::-webkit-details-marker]:hidden">
+                                    <span>{q.question}</span>
+                                    <span className="shrink-0 text-3xl leading-none transition-transform duration-200 group-open:rotate-45">
+                                        +
+                                    </span>
+                                </summary>
+                                <p className="mt-4 text-lg font-semibold leading-6 text-n-1 md:text-xl">{q.answer}</p>
+                            </details>
+                        ))}
+                    </div>
+                </div>
             </section>
+
+            <Marquee {...marqueeProps} />
 
             {/* §7 — Ready? (BLACK) */}
             <section className="relative overflow-hidden bg-n-1 px-4 py-32 text-center text-white md:py-40">
-                <div className="mx-auto max-w-3xl">
-                    <h2 className="font-roboto-flex-extrabold text-[5rem] font-extraBlack leading-[0.82] tracking-[-0.06em] md:text-[9rem] lg:text-[10rem]">
+                <motion.img
+                    src={Sparkle.src}
+                    alt=""
+                    aria-hidden
+                    initial={{ opacity: 0, scale: 0.4, rotate: -30 }}
+                    whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+                    transition={{ type: 'spring', damping: 8 }}
+                    className="pointer-events-none absolute left-[8%] top-[18%] w-10 md:left-[15%] md:top-[20%] md:w-14"
+                />
+                <motion.img
+                    src={Sparkle.src}
+                    alt=""
+                    aria-hidden
+                    initial={{ opacity: 0, scale: 0.4, rotate: 30 }}
+                    whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+                    transition={{ type: 'spring', damping: 8, delay: 0.2 }}
+                    className="pointer-events-none absolute bottom-[20%] right-[10%] w-8 md:bottom-[24%] md:right-[18%] md:w-12"
+                />
+                <div className="relative z-10 mx-auto max-w-3xl">
+                    <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack md:text-headingMedium lg:text-headingLarge">
                         ready?
                     </h2>
-                    <p className="font-roboto-flex-extrabold mt-6 text-2xl font-extraBlack md:text-3xl">
+                    <p className="font-roboto-flex-extrabold mt-6 text-2xl font-extraBlack uppercase md:text-3xl">
                         Try the door.
                     </p>
                     <div className="mt-10 flex justify-center">
-                        <Button
-                            variant="purple"
-                            shadowSize="4"
-                            onClick={handleCTA}
-                            className="bg-white px-10 py-5 text-lg font-extrabold uppercase tracking-wider text-n-1 md:px-12 md:py-6 md:text-xl"
-                        >
-                            Try the door
+                        <Button shadowSize="4" onClick={handleCTA} className={ctaButtonClassName}>
+                            TRY THE DOOR
                         </Button>
                     </div>
                 </div>
             </section>
+
+            <StickyShhhhhCTA onClick={handleCTA} />
         </>
     )
 }
