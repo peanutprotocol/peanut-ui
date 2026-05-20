@@ -9,7 +9,7 @@ export const heroConfig = {
 export const marqueeMessages = ['No fees', 'Instant', '24/7', 'USD', 'EUR', 'USDT/USDC', 'GLOBAL', 'SELF-CUSTODIAL']
 
 export const faqData = {
-    heading: 'Faqs',
+    heading: 'FAQ',
     questions: [
         {
             id: '0',
