@@ -1,7 +1,5 @@
 'use client'
 
-import { useCallback, useState } from 'react'
-
 export type FAQsProps = {
     heading: string
     questions: Array<{
@@ -40,71 +38,50 @@ function linkifyText(text: string) {
 }
 
 export function FAQsPanel({ heading, questions }: FAQsProps) {
-    const [openId, setOpenId] = useState<string | null>(questions[0]?.id ?? null)
-
-    const toggle = useCallback((id: string) => {
-        setOpenId((prev) => (prev === id ? null : id))
-    }, [])
-
     return (
-        <div className="w-full overflow-x-hidden bg-background">
-            <div className="px-6 py-24 md:px-8 md:py-32">
-                <h2 className="mb-12 text-center text-5xl font-black leading-[0.9] tracking-[-0.035em] md:mb-14 md:text-7xl">
+        <section
+            className="relative overflow-hidden px-4 py-24 text-n-1 md:py-32"
+            style={{ backgroundColor: '#F9F4F0' }}
+        >
+            <div className="mx-auto max-w-3xl">
+                <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack uppercase md:text-headingMedium">
                     {heading}
                 </h2>
-
-                <div className="mx-auto max-w-[780px]">
-                    {questions.map((faq) => {
-                        const isOpen = openId === faq.id
-                        return (
-                            <div
-                                key={faq.id}
-                                className="mb-3.5 overflow-hidden rounded-sm border-2 border-n-1 bg-white shadow-[4px_4px_0_#000]"
-                            >
-                                <button
-                                    type="button"
-                                    onClick={() => toggle(faq.id)}
-                                    aria-expanded={isOpen}
-                                    aria-controls={`faq-answer-${faq.id}`}
-                                    className="flex w-full cursor-pointer items-center justify-between gap-4 px-6 py-5 text-left text-lg font-black md:px-7 md:py-6"
-                                >
-                                    <span className="grow leading-tight">{faq.question}</span>
-                                    <span className="shrink-0 text-3xl font-black leading-none">
-                                        {isOpen ? '–' : '+'}
-                                    </span>
-                                </button>
-                                {isOpen && (
-                                    <div
-                                        id={`faq-answer-${faq.id}`}
-                                        className="px-6 pb-5 text-[15px] leading-relaxed text-n-1 md:px-7 md:pb-6"
+                <div className="mt-10 border-y-2 border-n-1">
+                    {questions.map((faq, idx) => (
+                        <details key={faq.id} className={`group py-5 ${idx > 0 ? 'border-t-2 border-n-1' : ''}`}>
+                            <summary className="font-roboto-flex-extrabold flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-extraBlack uppercase md:text-xl [&::-webkit-details-marker]:hidden">
+                                <span>{faq.question}</span>
+                                <span className="shrink-0 text-3xl leading-none transition-transform duration-200 group-open:rotate-45">
+                                    +
+                                </span>
+                            </summary>
+                            <div className="mt-4 text-lg font-semibold leading-6 text-n-1 md:text-xl">
+                                <p className="whitespace-pre-line">{linkifyText(faq.answer)}</p>
+                                {faq.calModal && (
+                                    <a
+                                        data-cal-link="kkonrad+hugo0/15min?duration=30"
+                                        data-cal-config='{"layout":"month_view"}'
+                                        className="underline"
                                     >
-                                        <p className="whitespace-pre-line">{linkifyText(faq.answer)}</p>
-                                        {faq.calModal && (
-                                            <a
-                                                data-cal-link="kkonrad+hugo0/15min?duration=30"
-                                                data-cal-config='{"layout":"month_view"}'
-                                                className="underline"
-                                            >
-                                                Let&apos;s talk!
-                                            </a>
-                                        )}
-                                        {faq.redirectUrl && faq.redirectText && (
-                                            <a
-                                                href={faq.redirectUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-black underline"
-                                            >
-                                                {faq.redirectText}
-                                            </a>
-                                        )}
-                                    </div>
+                                        Let&apos;s talk!
+                                    </a>
+                                )}
+                                {faq.redirectUrl && faq.redirectText && (
+                                    <a
+                                        href={faq.redirectUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-black underline"
+                                    >
+                                        {faq.redirectText}
+                                    </a>
                                 )}
                             </div>
-                        )
-                    })}
+                        </details>
+                    ))}
                 </div>
             </div>
-        </div>
+        </section>
     )
 }
