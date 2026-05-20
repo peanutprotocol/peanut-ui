@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Marquee } from '@/components/LandingPage'
+import { FAQsPanel } from '@/components/Global/FAQs'
 import { useAuth } from '@/context/authContext'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { CARD_GRADIENT_10_PIXEL } from '@/assets/cards'
@@ -28,34 +29,42 @@ const badges: Array<{ code: string; name: string; src: string }> = [
 
 const faqQuestions = [
     {
+        id: 'what',
         question: "WHAT'S THE PEANUT CARD?",
         answer: 'A non-custodial card. Top up with stablecoins, then use the card for everyday spending wherever Visa is accepted.',
     },
     {
+        id: 'where',
         question: 'WHERE DOES IT WORK?',
         answer: 'Accepted wherever Visa is accepted — about 150 million merchants. Online, in-store, ATMs.',
     },
     {
+        id: 'safe',
         question: 'IS MY MONEY SAFE?',
         answer: "It's yours. Non-custodial — your stablecoins stay in your wallet until the moment you use the card. We don't hold custody. We don't lend it out.",
     },
     {
+        id: 'ten',
         question: "WHAT'S THE $10?",
         answer: 'A welcome reward. Complete verification + first $100 in card spend → $10 unlocked to your balance. Same deal whether you signed up yourself or got referred. If you referred someone, you also are eligible for $10 when they activate. Subject to eligibility and program terms.',
     },
     {
+        id: 'waitlist',
         question: 'HOW LONG IS THE WAITLIST?',
         answer: "We're letting in about 20 people a week during closed beta. Order matters. Badges skip the line entirely.",
     },
     {
+        id: 'regions',
         question: 'WHERE CAN I GET THE CARD?',
         answer: "We're rolling out to select regions first and adding more as our partners' coverage expands. Eligibility is shown during signup.",
     },
     {
+        id: 'fees',
         question: 'ANY FEES?',
         answer: 'No monthly fees. No annual fees. Standard fees and limits apply per the cardholder terms.',
     },
     {
+        id: 'shhhhh',
         question: 'WHY "SHHHHH"?',
         answer: "We'd rather under-promise and over-deliver to a small group than blast the whole internet on day one. Word travels.",
     },
@@ -380,33 +389,8 @@ export default function ShhhhhLandingPage() {
 
             <Marquee {...marqueeProps} />
 
-            {/* §6 — FAQ (cream — inline accordion, no white panel) */}
-            <section
-                className="relative overflow-hidden px-4 py-24 text-n-1 md:py-32"
-                style={{ backgroundColor: '#F9F4F0' }}
-            >
-                <div className="mx-auto max-w-3xl">
-                    <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack uppercase md:text-headingMedium">
-                        FAQ.
-                    </h2>
-                    <div className="mt-10 border-y-2 border-n-1">
-                        {faqQuestions.map((q, idx) => (
-                            <details
-                                key={q.question}
-                                className={`group py-5 ${idx > 0 ? 'border-t-2 border-n-1' : ''}`}
-                            >
-                                <summary className="font-roboto-flex-extrabold flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-extraBlack uppercase md:text-xl [&::-webkit-details-marker]:hidden">
-                                    <span>{q.question}</span>
-                                    <span className="shrink-0 text-3xl leading-none transition-transform duration-200 group-open:rotate-45">
-                                        +
-                                    </span>
-                                </summary>
-                                <p className="mt-4 text-lg font-semibold leading-6 text-n-1 md:text-xl">{q.answer}</p>
-                            </details>
-                        ))}
-                    </div>
-                </div>
-            </section>
+            {/* §6 — FAQ */}
+            <FAQsPanel heading="FAQ." questions={faqQuestions} />
 
             <Marquee {...marqueeProps} />
 
