@@ -11,8 +11,7 @@ export function StickyMobileCTA() {
 
     useEffect(() => {
         const check = () => {
-            const atBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 100
-            const next = window.scrollY >= 300 && !atBottom
+            const next = window.scrollY >= 300
 
             if (next !== lastVisible.current) {
                 lastVisible.current = next
