@@ -7,8 +7,7 @@ import type { ProviderRejectionInfo } from '@/hooks/useProviderRejectionStatus'
 import { useModalsContext } from '@/context/ModalsContext'
 
 /**
- * shown when a user is sumsub-approved but a provider (bridge/manteca) rejected their documents.
- * displays two-level status: identity verified + provider-specific rejection with action.
+ * shown when a user has a provider-specific verification issue or request for more information.
  * onStartResubmission is called when user clicks "Upload document" — the parent (KycStatusDrawer)
  * handles the actual API call + SDK opening via sumsubFlow.handleSelfHealResubmit.
  */
@@ -25,10 +24,11 @@ export const KycProviderRejection = ({
 
     return (
         <div className="space-y-4 p-1">
-            {/* identity verified status */}
-            <KYCStatusDrawerItem status="completed" customText="Identity verified" />
+            <KYCStatusDrawerItem
+                status={isFixable ? 'pending' : 'cancelled'}
+                customText={isFixable ? 'Action needed' : 'Verification issue'}
+            />
 
-            {/* provider-specific status */}
             <div className="rounded-sm border border-n-1 p-4">
                 <div className="flex items-center gap-3">
                     <div
