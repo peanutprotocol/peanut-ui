@@ -138,6 +138,8 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                         variant="purple"
                         shadowSize="4"
                         className="mt-2 w-full"
+                        disabled={hasProviderRejection && (sumsubFlow.isLoading || sumsubFlow.isLoadingTos)}
+                        loading={hasProviderRejection && (sumsubFlow.isLoading || sumsubFlow.isLoadingTos)}
                         onClick={async () => {
                             if (hasProviderRejection && hasBlockedRejection && !hasFixableRejection) {
                                 setIsSupportModalOpen(true)

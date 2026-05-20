@@ -129,6 +129,7 @@ export const KycStatusDrawer = ({
             return (
                 <KycProviderRejection
                     rejection={rejection}
+                    isLoading={sumsubFlow.isLoading || sumsubFlow.isLoadingTos}
                     onStartResubmission={async () => {
                         onKeepMounted?.(true)
                         if (rejection.requiredAction === 'BRIDGE_TOS') {

@@ -14,9 +14,11 @@ import { useModalsContext } from '@/context/ModalsContext'
 export const KycProviderRejection = ({
     rejection,
     onStartResubmission,
+    isLoading,
 }: {
     rejection: ProviderRejectionInfo
     onStartResubmission?: () => void
+    isLoading?: boolean
 }) => {
     const { setIsSupportModalOpen } = useModalsContext()
     const isFixable = rejection.state === 'fixable'
@@ -55,7 +57,14 @@ export const KycProviderRejection = ({
             </div>
 
             {isFixable ? (
-                <Button variant="purple" shadowSize="4" className="w-full" onClick={onStartResubmission}>
+                <Button
+                    variant="purple"
+                    shadowSize="4"
+                    className="w-full"
+                    onClick={onStartResubmission}
+                    disabled={isLoading}
+                    loading={isLoading}
+                >
                     {actionLabel}
                 </Button>
             ) : (
