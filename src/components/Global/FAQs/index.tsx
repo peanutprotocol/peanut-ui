@@ -1,13 +1,6 @@
 'use client'
 
-import { AnimatePresence, motion } from 'framer-motion'
-import dynamic from 'next/dynamic'
 import { useCallback, useState } from 'react'
-
-// dynamically import icon for lazy loading
-const Icon = dynamic(() => import('../Icons/Icon').then((mod) => mod.Icon), {
-    loading: () => <span>...</span>,
-})
 
 export type FAQsProps = {
     heading: string
@@ -21,126 +14,96 @@ export type FAQsProps = {
     }>
 }
 
+function linkifyText(text: string) {
+    const markdownLinkRegex = /\[([^\]]+)\]\(([^\s)]+)\)/g
+    const parts: (string | JSX.Element)[] = []
+    let lastIndex = 0
+    let match: RegExpExecArray | null
+
+    while ((match = markdownLinkRegex.exec(text)) !== null) {
+        if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index))
+        const isExternal = match[2].startsWith('http')
+        parts.push(
+            <a
+                key={match.index}
+                href={match[2]}
+                {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                className="text-black underline hover:text-accent"
+            >
+                {match[1]}
+            </a>
+        )
+        lastIndex = match.index + match[0].length
+    }
+    if (lastIndex < text.length) parts.push(text.slice(lastIndex))
+    return parts
+}
+
 export function FAQsPanel({ heading, questions }: FAQsProps) {
-    const [openFaq, setOpenFaq] = useState<string | null>(null)
+    const [openId, setOpenId] = useState<string | null>(questions[0]?.id ?? null)
 
-    const setFaq = useCallback((id: string) => {
-        setOpenFaq((prevId) => (prevId === id ? null : id))
-    }, [])
-
-    // helper to convert markdown links [text](url) and raw urls in text to clickable links
-    const linkifyText = useCallback((text: string) => {
-        const markdownLinkRegex = /\[([^\]]+)\]\(([^\s)]+)\)/g
-        const parts: (string | JSX.Element)[] = []
-        let lastIndex = 0
-
-        let match
-        while ((match = markdownLinkRegex.exec(text)) !== null) {
-            // add text before this match
-            if (match.index > lastIndex) {
-                parts.push(text.slice(lastIndex, match.index))
-            }
-            const isExternal = match[2].startsWith('http')
-            parts.push(
-                <a
-                    key={match.index}
-                    href={match[2]}
-                    {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                    className="text-black underline hover:text-accent"
-                >
-                    {match[1]}
-                </a>
-            )
-            lastIndex = match.index + match[0].length
-        }
-
-        // add remaining text
-        if (lastIndex < text.length) {
-            parts.push(text.slice(lastIndex))
-        }
-
-        return parts
+    const toggle = useCallback((id: string) => {
+        setOpenId((prev) => (prev === id ? null : id))
     }, [])
 
     return (
         <div className="w-full overflow-x-hidden bg-background">
-            <div className="relative px-6 py-12 md:px-8 md:py-16">
-                <motion.div
-                    initial={{ opacity: 0, translateY: 20 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    transition={{ type: 'spring', damping: 10 }}
-                    className="relative mx-auto max-w-3xl rounded-md border-2 border-n-1 bg-white px-2 py-6 shadow ring-2 ring-white transition-transform duration-300 hover:rotate-0 md:-rotate-2 md:p-14"
-                >
-                    <h2 className="absolute -left-2 -top-8 rounded-full border-2 border-n-1 bg-primary-1 px-5 py-3 font-display text-[1.5rem] font-bold text-white shadow ring-2 ring-white sm:-left-6 md:text-[2rem]">
-                        {heading}
-                    </h2>
+            <div className="px-6 py-24 md:px-8 md:py-32">
+                <h2 className="mb-12 text-center text-5xl font-black leading-[0.9] tracking-[-0.035em] md:mb-14 md:text-7xl">
+                    {heading}
+                </h2>
 
-                    <div className="space-y-1">
-                        {questions.map((faq) => (
-                            <motion.div
-                                animate={{ height: 'auto' }}
-                                transition={{ duration: 0.4 }}
+                <div className="mx-auto max-w-[780px]">
+                    {questions.map((faq) => {
+                        const isOpen = openId === faq.id
+                        return (
+                            <div
                                 key={faq.id}
-                                className="px-4 py-4 text-lg font-semibold md:text-xl"
+                                className="mb-3.5 overflow-hidden rounded-sm border-2 border-n-1 bg-white shadow-[4px_4px_0_#000]"
                             >
                                 <button
                                     type="button"
-                                    className="flex w-full cursor-pointer items-start justify-between text-left focus:outline-none"
-                                    onClick={() => setFaq(faq.id)}
-                                    aria-expanded={openFaq === faq.id}
+                                    onClick={() => toggle(faq.id)}
+                                    aria-expanded={isOpen}
                                     aria-controls={`faq-answer-${faq.id}`}
+                                    className="flex w-full cursor-pointer items-center justify-between gap-4 px-6 py-5 text-left text-lg font-black md:px-7 md:py-6"
                                 >
-                                    <div className="grow uppercase leading-6 text-accent">{faq.question}</div>
-
-                                    <motion.div
-                                        className="-mt-1.5 ml-6"
-                                        animate={{ rotate: openFaq === faq.id ? 180 : 0 }}
-                                        transition={{ duration: 0.3, transformOrigin: 'center' }}
-                                    >
-                                        <Icon
-                                            name={openFaq === faq.id ? 'minus-circle' : 'plus-circle'}
-                                            className="h-6 w-6 text-accent md:h-9 md:w-9"
-                                        />
-                                    </motion.div>
+                                    <span className="grow leading-tight">{faq.question}</span>
+                                    <span className="shrink-0 text-3xl font-black leading-none">
+                                        {isOpen ? '–' : '+'}
+                                    </span>
                                 </button>
-
-                                <AnimatePresence initial={false}>
-                                    {openFaq === faq.id && (
-                                        <motion.p
-                                            id={`faq-answer-${faq.id}`}
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: 'auto', opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            transition={{ duration: 0.2 }}
-                                            className="mt-1 overflow-hidden whitespace-pre-line leading-6 text-n-1"
-                                        >
-                                            {linkifyText(faq.answer)}
-                                            {faq.calModal && (
-                                                <a
-                                                    data-cal-link="kkonrad+hugo0/15min?duration=30"
-                                                    data-cal-config='{"layout":"month_view"}'
-                                                    className="underline"
-                                                >
-                                                    Let's talk!
-                                                </a>
-                                            )}
-                                            {faq.redirectUrl && faq.redirectText && (
-                                                <a
-                                                    href={faq.redirectUrl}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-black underline"
-                                                >
-                                                    {faq.redirectText}
-                                                </a>
-                                            )}
-                                        </motion.p>
-                                    )}
-                                </AnimatePresence>
-                            </motion.div>
-                        ))}
-                    </div>
-                </motion.div>
+                                {isOpen && (
+                                    <div
+                                        id={`faq-answer-${faq.id}`}
+                                        className="px-6 pb-5 text-[15px] leading-relaxed text-n-1 md:px-7 md:pb-6"
+                                    >
+                                        <p className="whitespace-pre-line">{linkifyText(faq.answer)}</p>
+                                        {faq.calModal && (
+                                            <a
+                                                data-cal-link="kkonrad+hugo0/15min?duration=30"
+                                                data-cal-config='{"layout":"month_view"}'
+                                                className="underline"
+                                            >
+                                                Let&apos;s talk!
+                                            </a>
+                                        )}
+                                        {faq.redirectUrl && faq.redirectText && (
+                                            <a
+                                                href={faq.redirectUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-black underline"
+                                            >
+                                                {faq.redirectText}
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    })}
+                </div>
             </div>
         </div>
     )
