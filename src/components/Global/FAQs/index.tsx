@@ -39,10 +39,7 @@ function linkifyText(text: string) {
 
 export function FAQsPanel({ heading, questions }: FAQsProps) {
     return (
-        <section
-            className="relative overflow-hidden px-4 py-24 text-n-1 md:py-32"
-            style={{ backgroundColor: '#F9F4F0' }}
-        >
+        <section className="relative overflow-hidden bg-[#F9F4F0] px-4 py-24 text-n-1 md:py-32">
             <div className="mx-auto max-w-3xl">
                 <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack uppercase md:text-headingMedium">
                     {heading}
