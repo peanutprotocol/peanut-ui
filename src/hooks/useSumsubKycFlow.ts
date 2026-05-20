@@ -334,21 +334,24 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             if (response.error) {
                 selfHealProviderRef.current = null
                 setError(response.error)
-                return
+                return false
             }
 
             if (response.data?.token) {
                 setAccessToken(response.data.token)
                 setIsActionFlow(true)
                 setShowWrapper(true)
+                return true
             } else {
                 selfHealProviderRef.current = null
                 setError('Could not initiate document resubmission. Please try again.')
+                return false
             }
         } catch (e: unknown) {
             selfHealProviderRef.current = null
             const message = e instanceof Error ? e.message : 'An unexpected error occurred'
             setError(message)
+            return false
         } finally {
             setIsLoading(false)
         }
