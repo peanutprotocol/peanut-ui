@@ -77,15 +77,15 @@ function getActionLabel(payloadType?: ProviderRemediationPayloadType) {
 function getBridgeActionMessage(action?: ProviderRemediationAction) {
     switch (action?.payloadType) {
         case 'BRIDGE_TOS':
-            return 'Bridge requires terms acceptance before verification can continue.'
+            return 'Please accept the terms to continue verification.'
         case 'BRIDGE_IDENTIFYING_INFORMATION':
-            return 'Bridge needs a new identity document to retry verification.'
+            return 'We need a new identity document to continue verification.'
         case 'BRIDGE_CUSTOMER_FIELDS':
-            return 'Bridge needs a few more details to continue verification.'
+            return 'We need a few more details to continue verification.'
         case 'BRIDGE_DOCUMENT':
-            return 'Bridge needs an additional document to continue verification.'
+            return 'We need an additional document to continue verification.'
         default:
-            return 'Bridge needs more information to continue verification.'
+            return 'We need more information to continue verification.'
     }
 }
 

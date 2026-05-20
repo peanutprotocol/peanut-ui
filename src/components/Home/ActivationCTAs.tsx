@@ -10,6 +10,8 @@ import { useEffect, useMemo, useRef } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 
 interface ActivationCTAsProps {
     activationStep: ActivationStep
@@ -73,6 +75,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     const router = useRouter()
     const { setIsQRScannerOpen, setIsSupportModalOpen } = useModalsContext()
     const { hasFixableRejection, hasBlockedRejection, primaryRejection } = useProviderRejectionStatus()
+    const sumsubFlow = useMultiPhaseKycFlow({})
 
     const lastTrackedStep = useRef<ActivationStep | null>(null)
     useEffect(() => {
@@ -97,9 +100,9 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 return {
                     icon: 'globe-lock',
                     iconBg: 'bg-primary-1',
-                    title: 'Complete your setup',
+                    title: 'Complete verification',
                     description:
-                        primaryRejection?.userMessage || 'We need an updated document before you can add money.',
+                        primaryRejection?.userMessage || 'We need a few more details to continue verification.',
                     ctaLabel: primaryRejection?.actionLabel || 'Upload document',
                     href: '/profile/identity-verification',
                 }
@@ -121,37 +124,56 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     if (!step) return null
 
     return (
-        <Card position="single" className="p-0">
-            <div className="flex flex-col items-center justify-center gap-3 px-4 py-6">
-                <div className={`flex size-12 items-center justify-center rounded-full ${step.iconBg}`}>
-                    <Icon name={step.icon} size={24} />
+        <>
+            <Card position="single" className="p-0">
+                <div className="flex flex-col items-center justify-center gap-3 px-4 py-6">
+                    <div className={`flex size-12 items-center justify-center rounded-full ${step.iconBg}`}>
+                        <Icon name={step.icon} size={24} />
+                    </div>
+                    <div className="w-full text-center">
+                        <div className="text-lg font-bold">{step.title}</div>
+                        <div className="text-sm text-grey-1">{step.description}</div>
+                    </div>
+                    <Button
+                        variant="purple"
+                        shadowSize="4"
+                        className="mt-2 w-full"
+                        onClick={async () => {
+                            if (hasProviderRejection && hasBlockedRejection && !hasFixableRejection) {
+                                setIsSupportModalOpen(true)
+                            } else if (hasProviderRejection && hasFixableRejection && primaryRejection) {
+                                if (primaryRejection.requiredAction === 'BRIDGE_TOS') {
+                                    await sumsubFlow.handleAcceptTerms()
+                                    return
+                                }
+                                await sumsubFlow.handleSelfHealResubmit(primaryRejection.provider)
+                            } else if (activationStep === 'outbound') {
+                                setIsQRScannerOpen(true)
+                            } else {
+                                router.push(step.href)
+                            }
+                        }}
+                    >
+                        {step.ctaLabel}
+                    </Button>
+                    {sumsubFlow.error && hasProviderRejection && (
+                        <p className="text-red-500 text-center text-sm">{sumsubFlow.error}</p>
+                    )}
+                    {sumsubFlow.tosError && hasProviderRejection && (
+                        <p className="text-red-500 text-center text-sm">{sumsubFlow.tosError}</p>
+                    )}
+                    {step.dismissable && onDismissCard && (
+                        <button
+                            type="button"
+                            onClick={onDismissCard}
+                            className="text-sm font-medium text-black underline"
+                        >
+                            Maybe later
+                        </button>
+                    )}
                 </div>
-                <div className="w-full text-center">
-                    <div className="text-lg font-bold">{step.title}</div>
-                    <div className="text-sm text-grey-1">{step.description}</div>
-                </div>
-                <Button
-                    variant="purple"
-                    shadowSize="4"
-                    className="mt-2 w-full"
-                    onClick={() => {
-                        if (hasProviderRejection && hasBlockedRejection && !hasFixableRejection) {
-                            setIsSupportModalOpen(true)
-                        } else if (activationStep === 'outbound' && !hasProviderRejection) {
-                            setIsQRScannerOpen(true)
-                        } else {
-                            router.push(step.href)
-                        }
-                    }}
-                >
-                    {step.ctaLabel}
-                </Button>
-                {step.dismissable && onDismissCard && (
-                    <button type="button" onClick={onDismissCard} className="text-sm font-medium text-black underline">
-                        Maybe later
-                    </button>
-                )}
-            </div>
-        </Card>
+            </Card>
+            <SumsubKycModals flow={sumsubFlow} autoStartSdk />
+        </>
     )
 }

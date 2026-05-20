@@ -20,7 +20,6 @@ export const KycProviderRejection = ({
     onStartResubmission?: () => void
 }) => {
     const { setIsSupportModalOpen } = useModalsContext()
-    const providerLabel = rejection.provider === 'BRIDGE' ? 'Bank transfers' : 'QR payments'
     const isFixable = rejection.state === 'fixable'
     const actionLabel = rejection.actionLabel ?? 'Upload document'
 
@@ -40,9 +39,7 @@ export const KycProviderRejection = ({
                         <Icon name={isFixable ? 'alert' : 'failed'} size={16} />
                     </div>
                     <div>
-                        <p className="font-semibold">
-                            {providerLabel}: {isFixable ? 'action needed' : 'unavailable'}
-                        </p>
+                        <p className="font-semibold">Verification {isFixable ? 'action needed' : 'unavailable'}</p>
                         <p className="text-sm text-grey-1">
                             {rejection.userMessage ||
                                 (isFixable ? 'We need an updated document.' : 'Contact support for help.')}
