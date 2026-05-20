@@ -8,7 +8,6 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Marquee } from '@/components/LandingPage'
 import { FAQsPanel } from '@/components/Global/FAQs'
 import { useAuth } from '@/context/authContext'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { CARD_GRADIENT_10_PIXEL } from '@/assets/cards'
 import { Sparkle, Star } from '@/assets'
 
@@ -143,16 +142,6 @@ function StickyShhhhhCTA({ onClick }: { onClick: () => void }) {
 export default function ShhhhhLandingPage() {
     const { user } = useAuth()
     const router = useRouter()
-
-    useEffect(() => {
-        if (underMaintenanceConfig.disableCardPioneers) {
-            router.replace('/')
-        }
-    }, [router])
-
-    if (underMaintenanceConfig.disableCardPioneers) {
-        return null
-    }
 
     const handleCTA = () => {
         if (user) {
