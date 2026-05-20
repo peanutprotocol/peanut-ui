@@ -91,6 +91,16 @@
         "permanent": true
     },
     {
+        "source": "/sh",
+        "destination": "/card",
+        "permanent": false
+    },
+    {
+        "source": "/sh/:path*",
+        "destination": "/card",
+        "permanent": false
+    },
+    {
         "source": "/pints",
         "destination": "https://luma.com/zwh7l3ro",
         "permanent": false

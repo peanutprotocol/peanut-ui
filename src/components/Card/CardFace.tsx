@@ -29,22 +29,10 @@ interface Props {
     error?: string | null
     onToggleReveal?: () => void
     onCopy?: (value: string, field: 'pan' | 'cvv') => void
-    /** Marketing / empty-state preview. Renders a sample PAN + cardholder
-     *  + expiry with no interactive controls (no eye toggle, no copy, no
-     *  Virtual pill). Overrides `revealed` / `last4`. */
-    preview?: boolean
-    previewPan?: string
-    previewCardholderName?: string
-    previewCardholderLabel?: string
-    previewExpiry?: string
+    /** Pre-activation preview: PAN/cardholder/expiry rendered as `?`s.
+     *  Used on AddCardEntryScreen before KYC + first spend. */
+    locked?: boolean
     className?: string
-}
-
-const DEFAULT_PREVIEW = {
-    pan: '6969042088800420',
-    cardholderName: 'NUTTY YOU',
-    cardholderLabel: 'Peanut Pioneer',
-    expiry: '06/69',
 }
 
 const formatPan = (pan: string) => pan.replace(/(.{4})/g, '$1 ').trim()
@@ -58,11 +46,7 @@ const CardFace: FC<Props> = ({
     error,
     onToggleReveal,
     onCopy,
-    preview = false,
-    previewPan = DEFAULT_PREVIEW.pan,
-    previewCardholderName = DEFAULT_PREVIEW.cardholderName,
-    previewCardholderLabel = DEFAULT_PREVIEW.cardholderLabel,
-    previewExpiry = DEFAULT_PREVIEW.expiry,
+    locked = false,
     className,
 }) => {
     const showingDetails = revealed != null
@@ -104,21 +88,20 @@ const CardFace: FC<Props> = ({
                 </div>
 
                 {/* Bottom block — PAN sits at the very bottom (in the slot the
-                 * Virtual pill occupies when masked). When revealed, the PAN
-                 * stays on top and expiry + CVV sit below it. Preview mode
-                 * mimics an embossed plastic card for marketing screens. */}
+                 * Virtual pill occupies when masked). When revealed, PAN stays
+                 * on top and expiry + CVV sit below it. */}
                 <div className="mt-auto flex flex-col">
-                    {preview ? (
+                    {locked ? (
                         <>
-                            <span className="text-xl font-extrabold tracking-wider">{formatPan(previewPan)}</span>
+                            <span className="text-xl font-extrabold tracking-wider">???? ???? ???? ????</span>
                             <div className="mt-1 flex items-end justify-between gap-6 text-xs">
                                 <div>
-                                    <div className="opacity-70">{previewCardholderLabel}</div>
-                                    <div className="font-bold">{previewCardholderName}</div>
+                                    <div className="opacity-70">Peanut Pioneer</div>
+                                    <div className="font-bold">????</div>
                                 </div>
                                 <div>
                                     <div className="opacity-70">Valid</div>
-                                    <div className="font-bold">{previewExpiry}</div>
+                                    <div className="font-bold">??/??</div>
                                 </div>
                             </div>
                         </>

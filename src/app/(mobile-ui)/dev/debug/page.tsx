@@ -25,6 +25,12 @@ import { debugLog } from '@/utils/debug-console'
 
 type ActionResult = { ok: boolean; raw: any; ms: number }
 
+const WAITLIST_SKIP_BADGES = [
+    { code: 'OG_2025_10_12', holders: 2196 },
+    { code: 'DEVCONNECT_BA_2025', holders: 735 },
+    { code: 'ARBIVERSE_DEVCONNECT_BA_2025', holders: 488 },
+] as const
+
 interface DebugAction {
     key: string
     label: string
@@ -273,6 +279,51 @@ export default function DebugPage() {
                             userId,
                             amountMicros: '5000000',
                         }),
+                },
+                {
+                    key: 'resetCard',
+                    label: 'Reset card → re-walk activation flow',
+                    description:
+                        "Deletes the user's Rain card rows + clears card_access_granted_at so /card drops back to the Pioneer paywall / AddCardEntryScreen. Use between activation-funnel iterations. KYC + ledger + wallet state untouched.",
+                    run: async () => {
+                        await call('resetCard', '/dev/cheats/reset-card', { userId })
+                        await refreshWhoami()
+                    },
+                },
+            ],
+        },
+        {
+            title: '🎖️ Badges — waitlist gate testing',
+            actions: [
+                // Waitlist-skip badges: holding any of these routes the user past the queue
+                // straight into the VIP-celebration intermediary on the new card waitlist.
+                ...WAITLIST_SKIP_BADGES.map(({ code, holders }) => ({
+                    key: `grant_${code}`,
+                    label: `Grant ${code} (waitlist skip)`,
+                    description: `Inserts the ${code} badge (~${holders.toLocaleString()} holders in prod).`,
+                    run: () => call(`grant_${code}`, '/dev/cheats/grant-badge', { userId, code }),
+                })),
+                {
+                    key: 'revokeAllSkipBadges',
+                    label: 'Revoke all waitlist-skip badges',
+                    description:
+                        'Clears every waitlist-skip badge so the user falls back to the waitlist queue path.',
+                    run: async () => {
+                        for (const { code } of WAITLIST_SKIP_BADGES) {
+                            await call(`revoke_${code}`, '/dev/cheats/grant-badge', { userId, code, revoke: true })
+                        }
+                    },
+                },
+                {
+                    key: 'promptGrantBadge',
+                    label: 'Prompt: grant any badge code',
+                    description:
+                        'Type any code from BADGE_CODES (BETA_TESTER, CARD_PIONEER, FOUNDER_HOUSE, SUPPORT_SURVIVOR, …). Useful for testing the badge-modal styling without restarting the user.',
+                    run: async () => {
+                        const code = window.prompt('badge code', 'CARD_PIONEER')
+                        if (!code) return
+                        return call('promptGrantBadge', '/dev/cheats/grant-badge', { userId, code })
+                    },
                 },
             ],
         },
