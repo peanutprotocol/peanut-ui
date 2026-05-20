@@ -264,11 +264,15 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // called when sdk signals applicant submitted
     const handleSdkComplete = useCallback(() => {
         userInitiatedRef.current = true
-        selfHealProviderRef.current = null
         setShowWrapper(false)
+        if (selfHealProviderRef.current || isActionFlow) {
+            selfHealProviderRef.current = null
+            setIsActionFlow(false)
+            return
+        }
         setIsActionFlow(false)
         setIsVerificationProgressModalOpen(true)
-    }, [])
+    }, [isActionFlow])
 
     // called when user manually closes the sdk modal
     const handleClose = useCallback(() => {
@@ -335,6 +339,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
             if (response.data?.token) {
                 setAccessToken(response.data.token)
+                setIsActionFlow(true)
                 setShowWrapper(true)
             } else {
                 selfHealProviderRef.current = null
