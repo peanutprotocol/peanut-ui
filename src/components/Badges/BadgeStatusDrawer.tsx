@@ -63,11 +63,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                     <div className="pb-4">
                         <ShareButton
                             title=""
-                            generateText={() =>
-                                Promise.resolve(
-                                    `I earned ${badge.name} badge on Peanut!\n\nJoin Peanut now and start earning points, unlocking achievements and moving money worldwide\n\n${profileLink}`
-                                )
-                            }
+                            generateText={() => Promise.resolve(`Earned: ${badge.name} 🥜\n\n${profileLink}`)}
                         >
                             Share Achievement
                         </ShareButton>
