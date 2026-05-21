@@ -23,6 +23,12 @@ export const KycProviderRejection = ({
     const { setIsSupportModalOpen } = useModalsContext()
     const isFixable = rejection.state === 'fixable'
     const actionLabel = rejection.actionLabel ?? 'Upload document'
+    const fixableTitle =
+        rejection.requiredAction === 'BRIDGE_TOS'
+            ? 'Terms acceptance needed'
+            : rejection.requiredAction === 'BRIDGE_CUSTOMER_FIELDS'
+              ? 'Additional details needed'
+              : 'Additional documents needed'
 
     return (
         <div className="space-y-4 p-1">
@@ -42,12 +48,10 @@ export const KycProviderRejection = ({
                         <Icon name="alert" size={16} className={isFixable ? '' : 'text-error'} />
                     </div>
                     <div>
-                        <p className="font-semibold">
-                            {isFixable ? 'Additional documents needed' : 'Payment setup unavailable'}
-                        </p>
+                        <p className="font-semibold">{isFixable ? fixableTitle : 'Payment setup unavailable'}</p>
                         <p className="text-sm text-grey-1">
                             {rejection.userMessage ||
-                                (isFixable ? 'We need an updated document.' : 'Contact support for help.')}
+                                (isFixable ? 'We need a few more details.' : 'Contact support for help.')}
                         </p>
                     </div>
                 </div>

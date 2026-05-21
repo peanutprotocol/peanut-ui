@@ -97,10 +97,17 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
 
         if (hasProviderRejection) {
             if (hasFixableRejection) {
+                const title =
+                    primaryRejection?.requiredAction === 'BRIDGE_TOS'
+                        ? 'Terms acceptance needed'
+                        : primaryRejection?.requiredAction === 'BRIDGE_CUSTOMER_FIELDS'
+                          ? 'Additional details needed'
+                          : 'Additional documents needed'
+
                 return {
                     icon: 'globe-lock',
                     iconBg: 'bg-primary-1',
-                    title: 'Additional information needed',
+                    title,
                     description: primaryRejection?.userMessage || 'We need a few more details to enable payments.',
                     ctaLabel: primaryRejection?.actionLabel || 'Upload document',
                     href: '/profile/identity-verification',
