@@ -18,6 +18,12 @@ const CODE_TO_PATH: Record<string, string> = {
     SUPPORT_SURVIVOR: '/badges/support_survivor.svg',
 }
 
+// front-end display name overrides for badges. backend codes/names stay the same;
+// this is purely for what the user sees.
+const DISPLAY_NAME_OVERRIDES: Record<string, string> = {
+    FOUNDER_HOUSE: 'Founder Haus',
+}
+
 // public-facing descriptions for badges (third-person perspective)
 const PUBLIC_DESCRIPTIONS: Record<string, string> = {
     BETA_TESTER: `They broke things so others don't have to. Welcome to the chaos club.`,
@@ -32,7 +38,7 @@ const PUBLIC_DESCRIPTIONS: Record<string, string> = {
     SEEDLING_DEVCONNECT_BA_2025: 'Peanut Ambassador. They spread the word and brought others into the ecosystem.',
     ARBIVERSE_DEVCONNECT_BA_2025: 'Peanut 🤝 Arbiverse. They joined us at the amazing Arbiverse booth.',
     CARD_PIONEER: 'A true Card Pioneer. Among the first to pay everywhere with Peanut.',
-    FOUNDER_HOUSE: 'Checked in at the Founder House. Builds IRL, not just on-chain.',
+    FOUNDER_HOUSE: 'Checked in at the Founder Haus. Builds IRL, not just on-chain.',
     SUPPORT_SURVIVOR: 'Survived a real bug and helped us fix it. The brave kind of user.',
 }
 
@@ -46,4 +52,11 @@ export function getBadgeIcon(code?: string) {
 export function getPublicBadgeDescription(code?: string): string | null {
     if (!code) return null
     return PUBLIC_DESCRIPTIONS[code] || null
+}
+
+// returns the display name for a badge, applying any front-end override on top
+// of whatever the backend provided. backend storage is untouched.
+export function getBadgeDisplayName(code: string | undefined, fallback: string): string {
+    if (code && DISPLAY_NAME_OVERRIDES[code]) return DISPLAY_NAME_OVERRIDES[code]
+    return fallback
 }
