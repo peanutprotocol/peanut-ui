@@ -26,15 +26,25 @@ import { useAuth } from '@/context/authContext'
 
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
 
-const enabledMantecaArRail = {
-    id: 'rail-1',
+// ENABLED Manteca AR rail with no mantecaUserId — a "QR-tier" rail. Enough to
+// pay QR via the corporate pool, but NOT to deposit / withdraw.
+const qrTierMantecaArRail = {
+    id: 'rail-qr',
     railId: 'rail-def-1',
     status: 'ENABLED',
+    metadata: null,
     rail: {
         id: 'rail-def-1',
         provider: { code: 'MANTECA', name: 'Manteca' },
         method: { code: 'BANK_TRANSFER_AR', name: 'Bank Transfer AR', country: 'AR', currency: 'ARS' },
     },
+}
+
+// Same rail, ENABLED and carrying a mantecaUserId — "full-tier", real Manteca KYC.
+const fullTierMantecaArRail = {
+    ...qrTierMantecaArRail,
+    id: 'rail-full',
+    metadata: { mantecaUserId: '2414354' },
 }
 
 function setUser(authUser: Record<string, unknown>) {
@@ -46,7 +56,7 @@ function setUser(authUser: Record<string, unknown>) {
 describe('kyc withdrawal gating', () => {
     afterEach(() => jest.resetAllMocks())
 
-    it('treats migrated SUMSUB ACTIVE Manteca rows as approved', () => {
+    it('treats migrated SUMSUB ACTIVE Manteca rows as approved (useUnifiedKycStatus)', () => {
         setUser({
             user: {
                 bridgeKycStatus: null,
@@ -69,20 +79,12 @@ describe('kyc withdrawal gating', () => {
         expect(result.current.isKycApproved).toBe(true)
     })
 
-    it('allows Argentina Manteca withdrawal when migrated KYC is country-scoped', () => {
+    // Phase 6 (rail-gating): isVerifiedForCountry — the deposit / withdraw gate —
+    // is now derived from rails, and requires a *full-tier* Manteca rail.
+    it('isVerifiedForCountry(AR) is true with a full-tier Manteca rail (ENABLED + mantecaUserId)', () => {
         setUser({
-            user: {
-                bridgeKycStatus: null,
-                kycVerifications: [
-                    {
-                        provider: 'SUMSUB',
-                        mantecaGeo: 'AR',
-                        status: 'ACTIVE',
-                        updatedAt: '2026-03-17T14:47:34.702Z',
-                    },
-                ],
-            },
-            rails: [],
+            user: { bridgeKycStatus: null, kycVerifications: [] },
+            rails: [fullTierMantecaArRail],
         })
 
         const { result } = renderHook(() => useIdentityVerification())
@@ -90,34 +92,21 @@ describe('kyc withdrawal gating', () => {
         expect(result.current.isVerifiedForCountry('AR')).toBe(true)
     })
 
-    it('allows Argentina Manteca withdrawal for a normal active Manteca row', () => {
+    it('isVerifiedForCountry(AR) is false from a QR-tier rail alone (ENABLED, no mantecaUserId)', () => {
         setUser({
-            user: {
-                bridgeKycStatus: null,
-                kycVerifications: [
-                    {
-                        provider: 'MANTECA',
-                        mantecaGeo: 'AR',
-                        status: 'ACTIVE',
-                        updatedAt: '2025-10-30T01:12:06.099Z',
-                    },
-                ],
-            },
-            rails: [],
+            user: { bridgeKycStatus: null, kycVerifications: [] },
+            rails: [qrTierMantecaArRail],
         })
 
         const { result } = renderHook(() => useIdentityVerification())
 
-        expect(result.current.isVerifiedForCountry('AR')).toBe(true)
+        expect(result.current.isVerifiedForCountry('AR')).toBe(false)
     })
 
-    it('does not allow Argentina Manteca withdrawal from an enabled rail alone', () => {
+    it('isVerifiedForCountry(AR) is false with no Manteca rail', () => {
         setUser({
-            user: {
-                bridgeKycStatus: null,
-                kycVerifications: [],
-            },
-            rails: [enabledMantecaArRail],
+            user: { bridgeKycStatus: null, kycVerifications: [] },
+            rails: [],
         })
 
         const { result } = renderHook(() => useIdentityVerification())

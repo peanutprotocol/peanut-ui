@@ -14,7 +14,7 @@ import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import React from 'react'
-import { isKycStatusApproved } from '@/constants/kyc.consts'
+import { hasEnabledRail, hasFullMantecaRail } from '@/utils/railGate.utils'
 
 /** Represents a geographic region with its display information */
 export type Region = {
@@ -138,19 +138,15 @@ export const useIdentityVerification = () => {
     const isVerifiedForCountry = useCallback(
         (code: string) => {
             const upper = code.toUpperCase()
-
-            const mantecaActive =
-                user?.user.kycVerifications?.some(
-                    (v) =>
-                        (v.provider === 'MANTECA' || v.provider === 'SUMSUB') &&
-                        (v.mantecaGeo || '').toUpperCase() === upper &&
-                        isKycStatusApproved(v.status)
-                ) ?? false
-
-            // Manteca countries need country-specific verification, others just need Bridge KYC
-            return isMantecaSupportedCountry(upper) ? mantecaActive : isUserBridgeKycApproved
+            // Phase 6 (rail-gating): verified for a Manteca country = a full-tier
+            // ENABLED Manteca rail for it (carries a mantecaUserId — QR-tier rails
+            // do not count; deposit / withdraw need real KYC). Other countries: an
+            // ENABLED Bridge rail.
+            return isMantecaSupportedCountry(upper)
+                ? hasFullMantecaRail(user?.rails, upper)
+                : hasEnabledRail(user?.rails, 'BRIDGE')
         },
-        [user, isUserBridgeKycApproved, isMantecaSupportedCountry]
+        [user?.rails, isMantecaSupportedCountry]
     )
 
     /**
