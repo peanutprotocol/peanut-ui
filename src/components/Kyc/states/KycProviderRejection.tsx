@@ -23,12 +23,7 @@ export const KycProviderRejection = ({
     const { setIsSupportModalOpen } = useModalsContext()
     const isFixable = rejection.state === 'fixable'
     const actionLabel = rejection.actionLabel ?? 'Upload document'
-    const fixableTitle =
-        rejection.requiredAction === 'BRIDGE_TOS'
-            ? 'Terms acceptance needed'
-            : rejection.requiredAction === 'BRIDGE_CUSTOMER_FIELDS'
-              ? 'Additional details needed'
-              : 'Additional documents needed'
+    const fixableTitle = rejection.actionTitle ?? 'Additional documents needed'
 
     return (
         <div className="space-y-4 p-1">

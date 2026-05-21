@@ -200,15 +200,14 @@ const RegionsVerification = () => {
                 onClose={handleModalClose}
                 title={
                     providerRejectionForRegion.state === 'fixable'
-                        ? providerRejectionForRegion.requiredAction === 'BRIDGE_CUSTOMER_FIELDS'
-                            ? 'We need more details'
-                            : 'We need an updated document'
+                        ? providerRejectionForRegion.modalTitle || 'We need an updated document'
                         : 'Region unavailable'
                 }
                 description={
                     providerRejectionForRegion.state === 'fixable'
                         ? providerRejectionForRegion.userMessage ||
-                          'Please upload a clearer photo of your ID to unlock this region.'
+                          providerRejectionForRegion.modalDescription ||
+                          'Please upload the requested document to unlock this region.'
                         : 'This region is not available for your account. Contact support for help.'
                 }
                 icon="alert"
@@ -217,13 +216,13 @@ const RegionsVerification = () => {
                     providerRejectionForRegion.state === 'fixable'
                         ? {
                               text: providerRejectionForRegion.actionLabel || 'Upload document',
-                              onClick: () => {
+                              onClick: async () => {
                                   handleModalClose()
-                                  if (providerRejectionForRegion.requiredAction === 'BRIDGE_TOS') {
-                                      flow.handleAcceptTerms()
+                                  if (providerRejectionForRegion.actionHandler === 'tos') {
+                                      await flow.handleAcceptTerms()
                                       return
                                   }
-                                  flow.handleSelfHealResubmit(providerRejectionForRegion.provider)
+                                  await flow.handleSelfHealResubmit(providerRejectionForRegion.provider)
                               },
                               variant: 'purple' as const,
                               shadowSize: '4' as const,

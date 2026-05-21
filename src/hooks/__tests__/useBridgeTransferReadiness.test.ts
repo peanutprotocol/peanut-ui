@@ -33,7 +33,11 @@ const defaultRejection = {
     selfHealAttempt: 0,
     maxAttempts: 3,
     requiredAction: null,
+    actionTitle: null,
+    modalTitle: null,
+    modalDescription: null,
     actionLabel: null,
+    actionHandler: null,
 }
 
 function setup({

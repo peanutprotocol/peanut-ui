@@ -97,20 +97,13 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
 
         if (hasProviderRejection) {
             if (hasFixableRejection) {
-                const title =
-                    primaryRejection?.requiredAction === 'BRIDGE_TOS'
-                        ? 'Terms acceptance needed'
-                        : primaryRejection?.requiredAction === 'BRIDGE_CUSTOMER_FIELDS'
-                          ? 'Additional details needed'
-                          : 'Additional documents needed'
-
                 return {
                     icon: 'globe-lock',
                     iconBg: 'bg-primary-1',
-                    title,
+                    title: primaryRejection?.actionTitle || 'Additional documents needed',
                     description: primaryRejection?.userMessage || 'We need a few more details to enable payments.',
                     ctaLabel: primaryRejection?.actionLabel || 'Upload document',
-                    href: '/profile/identity-verification',
+                    href: STEPS.verify.href,
                 }
             }
             // blocked
@@ -152,7 +145,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                             if (hasProviderRejection && hasBlockedRejection && !hasFixableRejection) {
                                 setIsSupportModalOpen(true)
                             } else if (hasProviderRejection && hasFixableRejection && primaryRejection) {
-                                if (primaryRejection.requiredAction === 'BRIDGE_TOS') {
+                                if (primaryRejection.actionHandler === 'tos') {
                                     await sumsubFlow.handleAcceptTerms()
                                     return
                                 }

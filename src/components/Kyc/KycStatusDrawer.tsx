@@ -133,8 +133,12 @@ export const KycStatusDrawer = ({
                     isLoading={sumsubFlow.isLoading || sumsubFlow.isLoadingTos}
                     onStartResubmission={async () => {
                         onKeepMounted?.(true)
-                        if (rejection.requiredAction === 'BRIDGE_TOS') {
-                            await sumsubFlow.handleAcceptTerms()
+                        if (rejection.actionHandler === 'tos') {
+                            try {
+                                await sumsubFlow.handleAcceptTerms()
+                            } finally {
+                                onKeepMounted?.(false)
+                            }
                             return
                         }
                         const started = await sumsubFlow.handleSelfHealResubmit(rejection.provider)

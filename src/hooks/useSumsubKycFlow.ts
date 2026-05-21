@@ -5,6 +5,7 @@ import { useUserStore } from '@/redux/hooks'
 import { initiateSumsubKyc, initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import { isCapacitor } from '@/utils/capacitor'
+import { useAuth } from '@/context/authContext'
 
 interface UseSumsubKycFlowOptions {
     onKycSuccess?: () => void
@@ -14,6 +15,7 @@ interface UseSumsubKycFlowOptions {
 
 export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: UseSumsubKycFlowOptions = {}) => {
     const { user } = useUserStore()
+    const { fetchUser } = useAuth()
     const router = useRouter()
 
     const [accessToken, setAccessToken] = useState<string | null>(null)
@@ -265,14 +267,15 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const handleSdkComplete = useCallback(() => {
         userInitiatedRef.current = true
         setShowWrapper(false)
-        if (selfHealProviderRef.current || isActionFlow) {
+        if (selfHealProviderRef.current) {
             selfHealProviderRef.current = null
             setIsActionFlow(false)
+            void fetchUser()
             return
         }
         setIsActionFlow(false)
         setIsVerificationProgressModalOpen(true)
-    }, [isActionFlow])
+    }, [fetchUser])
 
     // called when user manually closes the sdk modal
     const handleClose = useCallback(() => {

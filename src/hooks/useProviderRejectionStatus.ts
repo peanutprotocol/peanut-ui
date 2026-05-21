@@ -10,6 +10,7 @@ export type ProviderRemediationPayloadType =
     | 'BRIDGE_IDENTIFYING_INFORMATION'
     | 'BRIDGE_DOCUMENT'
     | 'BRIDGE_CUSTOMER_FIELDS'
+export type ProviderRemediationHandler = 'tos' | 'sumsub'
 type ProviderRemediationStatus = 'APPROVED' | 'AWAITING_INPUT' | 'AWAITING_PROVIDER' | 'TERMINAL'
 
 interface ProviderRemediationAction {
@@ -34,7 +35,11 @@ export interface ProviderRejectionInfo {
     selfHealAttempt: number
     maxAttempts: number
     requiredAction: ProviderRemediationPayloadType | null
+    actionTitle: string | null
+    modalTitle: string | null
+    modalDescription: string | null
     actionLabel: string | null
+    actionHandler: ProviderRemediationHandler | null
 }
 
 const MAX_SELF_HEAL_ATTEMPTS = 3
@@ -56,8 +61,59 @@ function emptyProviderInfo(
         selfHealAttempt,
         maxAttempts,
         requiredAction: null,
+        actionTitle: null,
+        modalTitle: null,
+        modalDescription: null,
         actionLabel: null,
+        actionHandler: null,
     }
+}
+
+function getActionTitle(payloadType?: ProviderRemediationPayloadType) {
+    switch (payloadType) {
+        case 'BRIDGE_TOS':
+            return 'Terms acceptance needed'
+        case 'BRIDGE_CUSTOMER_FIELDS':
+            return 'Additional details needed'
+        case 'BRIDGE_IDENTIFYING_INFORMATION':
+        case 'BRIDGE_DOCUMENT':
+            return 'Additional documents needed'
+        default:
+            return null
+    }
+}
+
+function getActionModalTitle(payloadType?: ProviderRemediationPayloadType) {
+    switch (payloadType) {
+        case 'BRIDGE_TOS':
+            return 'Terms acceptance needed'
+        case 'BRIDGE_CUSTOMER_FIELDS':
+            return 'We need more details'
+        case 'BRIDGE_IDENTIFYING_INFORMATION':
+        case 'BRIDGE_DOCUMENT':
+            return 'We need an updated document'
+        default:
+            return null
+    }
+}
+
+function getActionModalDescription(payloadType?: ProviderRemediationPayloadType) {
+    switch (payloadType) {
+        case 'BRIDGE_TOS':
+            return 'Please accept the terms to enable payments.'
+        case 'BRIDGE_CUSTOMER_FIELDS':
+            return 'Please provide the missing details to unlock this region.'
+        case 'BRIDGE_IDENTIFYING_INFORMATION':
+        case 'BRIDGE_DOCUMENT':
+            return 'Please upload the requested document to unlock this region.'
+        default:
+            return null
+    }
+}
+
+function getActionHandler(payloadType?: ProviderRemediationPayloadType): ProviderRemediationHandler | null {
+    if (!payloadType) return null
+    return payloadType === 'BRIDGE_TOS' ? 'tos' : 'sumsub'
 }
 
 function getActionLabel(payloadType?: ProviderRemediationPayloadType) {
@@ -121,7 +177,7 @@ function getBridgeRemediation(
         .map((rail) => rail.metadata?.bridgeRemediation)
         .find((value) => value && typeof value === 'object')
     const verificationMetadata = kycVerification?.metadata?.bridgeRemediation
-    const remediation = railMetadata ?? verificationMetadata
+    const remediation = verificationMetadata ?? railMetadata
 
     if (!remediation || typeof remediation !== 'object') return null
 
@@ -169,6 +225,10 @@ export function deriveProviderRejectionInfo(
             ? providerRails.filter((rail) => rail.status === 'REJECTED' || rail.status === 'REQUIRES_EXTRA_INFORMATION')
             : rejectedRails
 
+    if (bridgeRemediation?.status === 'APPROVED') {
+        return emptyProviderInfo(providerCode, kycVerification, selfHealAttempt, maxAttempts)
+    }
+
     if (bridgeRemediation?.status === 'TERMINAL') {
         return {
             provider: providerCode,
@@ -179,7 +239,11 @@ export function deriveProviderRejectionInfo(
             selfHealAttempt,
             maxAttempts,
             requiredAction: bridgeAction?.payloadType ?? null,
+            actionTitle: null,
+            modalTitle: null,
+            modalDescription: null,
             actionLabel: null,
+            actionHandler: null,
         }
     }
 
@@ -193,11 +257,16 @@ export function deriveProviderRejectionInfo(
             selfHealAttempt,
             maxAttempts,
             requiredAction: null,
+            actionTitle: null,
+            modalTitle: null,
+            modalDescription: null,
             actionLabel: null,
+            actionHandler: null,
         }
     }
 
     if (bridgeRemediation?.status === 'AWAITING_INPUT' && selfHealAttempt < maxAttempts) {
+        const payloadType = bridgeAction?.payloadType
         return {
             provider: providerCode,
             state: 'fixable',
@@ -206,8 +275,12 @@ export function deriveProviderRejectionInfo(
             kycVerification,
             selfHealAttempt,
             maxAttempts,
-            requiredAction: bridgeAction?.payloadType ?? null,
-            actionLabel: getActionLabel(bridgeAction?.payloadType),
+            requiredAction: payloadType ?? null,
+            actionTitle: getActionTitle(payloadType),
+            modalTitle: getActionModalTitle(payloadType),
+            modalDescription: getActionModalDescription(payloadType),
+            actionLabel: getActionLabel(payloadType),
+            actionHandler: getActionHandler(payloadType),
         }
     }
 
@@ -221,7 +294,11 @@ export function deriveProviderRejectionInfo(
             selfHealAttempt,
             maxAttempts,
             requiredAction: bridgeAction?.payloadType ?? null,
+            actionTitle: null,
+            modalTitle: null,
+            modalDescription: null,
             actionLabel: null,
+            actionHandler: null,
         }
     }
 
@@ -272,7 +349,11 @@ export function deriveProviderRejectionInfo(
             selfHealAttempt,
             maxAttempts: MAX_SELF_HEAL_ATTEMPTS,
             requiredAction: null,
+            actionTitle: isFixable ? 'Additional documents needed' : null,
+            modalTitle: isFixable ? 'We need an updated document' : null,
+            modalDescription: isFixable ? 'Please upload the requested document to unlock this region.' : null,
             actionLabel: isFixable ? DEFAULT_ACTION_LABEL : null,
+            actionHandler: isFixable ? 'sumsub' : null,
         }
     }
 
@@ -287,7 +368,11 @@ export function deriveProviderRejectionInfo(
             selfHealAttempt,
             maxAttempts: MAX_SELF_HEAL_ATTEMPTS,
             requiredAction: null,
+            actionTitle: null,
+            modalTitle: null,
+            modalDescription: null,
             actionLabel: null,
+            actionHandler: null,
         }
     }
 
@@ -301,7 +386,11 @@ export function deriveProviderRejectionInfo(
         selfHealAttempt,
         maxAttempts: MAX_SELF_HEAL_ATTEMPTS,
         requiredAction: null,
+        actionTitle: null,
+        modalTitle: null,
+        modalDescription: null,
         actionLabel: null,
+        actionHandler: null,
     }
 }
 
