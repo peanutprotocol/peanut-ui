@@ -268,7 +268,7 @@ export default function ShhhhhLandingPage() {
                     <p className="font-roboto-flex mt-10 text-xl leading-relaxed md:text-2xl">
                         We built peanut for people who don&apos;t fit. Digital nomads who get bounced by every
                         neobank&apos;s verification the moment they cross a border. Expats who pay 4% on every
-                        transaction home. LATAM users who earn in dollars and spend in pesos and reais.
+                        transaction home. Cross-border users who earn in one currency and spend in another.
                     </p>
                 </div>
             </section>
