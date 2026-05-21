@@ -86,7 +86,16 @@ const RegionsVerification = () => {
         !!selectedRegion &&
         isSumsubApproved &&
         (providerRejectionForRegion.state === 'fixable' || providerRejectionForRegion.state === 'blocked')
-    const modalVariant = hasProviderRejectionForRegion ? ('provider_rejection' as const) : baseModalVariant
+    const hasProviderProcessingForRegion =
+        !!selectedRegion &&
+        isSumsubApproved &&
+        providerRejectionForRegion.state === 'processing' &&
+        providerRejectionForRegion.rejectedRails.length > 0
+    const modalVariant = hasProviderProcessingForRegion
+        ? ('processing' as const)
+        : hasProviderRejectionForRegion
+          ? ('provider_rejection' as const)
+          : baseModalVariant
 
     const handleFinalKycSuccess = useCallback(() => {
         setSelectedRegion(null)
@@ -140,7 +149,7 @@ const RegionsVerification = () => {
                 {unlockedRegions.length === 0 && (
                     <EmptyState
                         title="You haven't unlocked any countries yet."
-                        description="No countries unlocked yet. Complete verification to unlock countries and use supported payment methods."
+                        description="No countries unlocked yet. Verify your identity to unlock countries and use supported payment methods."
                         icon="globe-lock"
                         containerClassName="mt-3"
                     />

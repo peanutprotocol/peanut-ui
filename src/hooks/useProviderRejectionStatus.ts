@@ -22,6 +22,7 @@ interface ProviderRemediationClassification {
     status: ProviderRemediationStatus
     nextAction?: ProviderRemediationAction
     reason?: string
+    terminalKeys?: string[]
 }
 
 export interface ProviderRejectionInfo {
@@ -77,16 +78,39 @@ function getActionLabel(payloadType?: ProviderRemediationPayloadType) {
 function getBridgeActionMessage(action?: ProviderRemediationAction) {
     switch (action?.payloadType) {
         case 'BRIDGE_TOS':
-            return 'Please accept the terms to continue verification.'
+            return 'Please accept the terms to enable payments.'
         case 'BRIDGE_IDENTIFYING_INFORMATION':
-            return 'We need a new identity document to continue verification.'
+            return 'We need a new identity document to enable payments.'
         case 'BRIDGE_CUSTOMER_FIELDS':
-            return 'We need a few more details to continue verification.'
+            return 'We need a few more details to enable payments.'
         case 'BRIDGE_DOCUMENT':
-            return 'We need an additional document to continue verification.'
+            return 'We need an additional document to enable payments.'
         default:
-            return 'We need more information to continue verification.'
+            return 'We need more information to enable payments.'
     }
+}
+
+const BRIDGE_TERMINAL_MESSAGES: Record<string, string> = {
+    endorsement_not_available_in_customers_region:
+        "We can't enable payments for your region right now. Contact support if you need help.",
+    unsupported_country: 'Payments are not available in your country right now. Contact support if you need help.',
+    prohibited_country: "We can't enable payments for your country. Contact support if you need help.",
+    prohibited_state_province: "We can't enable payments for your state or province. Contact support if you need help.",
+    person_is_deceased: "We couldn't enable payments with the information provided. Contact support if you need help.",
+    potential_pep: 'Your payment setup needs additional compliance review. Contact support if you need help.',
+    compromised_id_detected:
+        "We couldn't accept the identity document you submitted. Contact support if you need help.",
+    likely_fabrication_detected:
+        "We couldn't accept the identity document you submitted. Contact support if you need help.",
+    tampering_detected: "We couldn't accept the identity document you submitted. Contact support if you need help.",
+}
+
+function getBridgeBlockedMessage(remediation?: ProviderRemediationClassification | null) {
+    const terminalKeys = remediation?.terminalKeys ?? []
+    const terminalMessage = terminalKeys.map((key) => BRIDGE_TERMINAL_MESSAGES[key]).find(Boolean)
+    if (terminalMessage) return terminalMessage
+
+    return "We couldn't enable payments for your account. Please contact support for assistance."
 }
 
 function getBridgeRemediation(
@@ -149,13 +173,26 @@ export function deriveProviderRejectionInfo(
         return {
             provider: providerCode,
             state: 'blocked',
-            userMessage:
-                bridgeRemediation.reason || "We couldn't verify your identity. Please contact support for assistance.",
+            userMessage: getBridgeBlockedMessage(bridgeRemediation),
             rejectedRails: bridgeAttentionRails,
             kycVerification,
             selfHealAttempt,
             maxAttempts,
             requiredAction: bridgeAction?.payloadType ?? null,
+            actionLabel: null,
+        }
+    }
+
+    if (bridgeRemediation?.status === 'AWAITING_PROVIDER') {
+        return {
+            provider: providerCode,
+            state: 'processing',
+            userMessage: "We're reviewing your documents. We'll update your payment setup when the review is complete.",
+            rejectedRails: bridgeAttentionRails,
+            kycVerification,
+            selfHealAttempt,
+            maxAttempts,
+            requiredAction: null,
             actionLabel: null,
         }
     }
@@ -213,7 +250,10 @@ export function deriveProviderRejectionInfo(
 
         if (!isFixable) {
             // permanently rejected — generic message regardless of underlying reason
-            userMessage = "We couldn't verify your identity. Please contact support for assistance."
+            userMessage =
+                providerCode === 'BRIDGE'
+                    ? "We couldn't enable payments for your account. Please contact support for assistance."
+                    : "We couldn't verify your identity. Please contact support for assistance."
         } else if (Array.isArray(reasons) && reasons.length > 0) {
             // bridge format: { reason: string, developer_reason: string }
             // manteca format: { task: string, reason: string }

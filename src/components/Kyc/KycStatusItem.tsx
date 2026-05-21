@@ -95,7 +95,7 @@ export const KycStatusItem = ({
     const subtitle = useMemo(() => {
         // provider remediation takes priority over the raw bridge status.
         if (hasFixableRejection) return 'Action needed'
-        if (hasBlockedRejection) return 'Verification issue'
+        if (hasBlockedRejection) return 'Setup issue'
         if (hasBridgeDocsNeeded) return 'Action needed'
         if (isInitiatedButNotStarted) return 'Not completed'
         if (isActionRequired) return 'Action needed'
@@ -113,6 +113,7 @@ export const KycStatusItem = ({
         hasFixableRejection,
         hasBlockedRejection,
     ])
+    const title = hasFixableRejection || hasBlockedRejection ? 'Payment setup' : 'Identity verification'
 
     // only hide for bridge's default "not_started" state.
     // if a verification record exists, the user has initiated KYC — show it.
@@ -133,7 +134,7 @@ export const KycStatusItem = ({
                     <div className="flex items-center gap-4">
                         <KYCStatusIcon />
                         <div className="flex-1">
-                            <p className="font-semibold">Identity verification</p>
+                            <p className="font-semibold">{title}</p>
                             <div className="flex items-center gap-2">
                                 <p className="text-sm text-grey-1">{subtitle}</p>
                                 <StatusPill

@@ -100,9 +100,8 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 return {
                     icon: 'globe-lock',
                     iconBg: 'bg-primary-1',
-                    title: 'Complete verification',
-                    description:
-                        primaryRejection?.userMessage || 'We need a few more details to continue verification.',
+                    title: 'Additional information needed',
+                    description: primaryRejection?.userMessage || 'We need a few more details to enable payments.',
                     ctaLabel: primaryRejection?.actionLabel || 'Upload document',
                     href: '/profile/identity-verification',
                 }
@@ -111,8 +110,10 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             return {
                 icon: 'globe-lock',
                 iconBg: 'bg-primary-1',
-                title: 'Verification issue',
-                description: 'Contact support for help with your verification.',
+                title: 'Payment setup issue',
+                description:
+                    primaryRejection?.userMessage ||
+                    "We couldn't enable payments for your account. Contact support for help.",
                 ctaLabel: 'Contact support',
                 href: '', // handled in onClick
             }

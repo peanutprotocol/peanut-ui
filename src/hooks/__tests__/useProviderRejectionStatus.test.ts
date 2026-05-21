@@ -57,7 +57,8 @@ describe('deriveProviderRejectionInfo', () => {
                 bridgeRail({
                     bridgeRemediation: {
                         status: 'TERMINAL',
-                        reason: 'This region is not available.',
+                        reason: 'terminal_bridge_issue',
+                        terminalKeys: ['endorsement_not_available_in_customers_region'],
                     },
                 }),
             ],
@@ -65,7 +66,78 @@ describe('deriveProviderRejectionInfo', () => {
         )
 
         expect(info.state).toBe('blocked')
-        expect(info.userMessage).toBe('This region is not available.')
+        expect(info.userMessage).toBe(
+            "We can't enable payments for your region right now. Contact support if you need help."
+        )
+        expect(info.actionLabel).toBeNull()
+    })
+
+    it('maps Bridge terminal identity document flags to support copy', () => {
+        const info = deriveProviderRejectionInfo(
+            'BRIDGE',
+            [
+                bridgeRail({
+                    bridgeRemediation: {
+                        status: 'TERMINAL',
+                        reason: 'terminal_bridge_issue',
+                        terminalKeys: ['tampering_detected'],
+                    },
+                }),
+            ],
+            [bridgeVerification({})]
+        )
+
+        expect(info.state).toBe('blocked')
+        expect(info.userMessage).toBe(
+            "We couldn't accept the identity document you submitted. Contact support if you need help."
+        )
+    })
+
+    it('uses generic blocked copy for unknown Bridge terminal reasons', () => {
+        const info = deriveProviderRejectionInfo(
+            'BRIDGE',
+            [
+                bridgeRail({
+                    bridgeRemediation: {
+                        status: 'TERMINAL',
+                        reason: 'terminal_bridge_issue',
+                        terminalKeys: ['unknown_terminal_reason'],
+                    },
+                }),
+            ],
+            [bridgeVerification({})]
+        )
+
+        expect(info.state).toBe('blocked')
+        expect(info.userMessage).toBe(
+            "We couldn't enable payments for your account. Please contact support for assistance."
+        )
+    })
+
+    it('marks Bridge awaiting-provider remediation as processing', () => {
+        const info = deriveProviderRejectionInfo(
+            'BRIDGE',
+            [
+                bridgeRail(
+                    {
+                        bridgeRemediation: {
+                            status: 'AWAITING_PROVIDER',
+                            reason: 'no_retryable_bridge_requirements',
+                            terminalKeys: [],
+                            retryableActions: [],
+                        },
+                    },
+                    'REQUIRES_EXTRA_INFORMATION'
+                ),
+            ],
+            [bridgeVerification({})]
+        )
+
+        expect(info.state).toBe('processing')
+        expect(info.userMessage).toBe(
+            "We're reviewing your documents. We'll update your payment setup when the review is complete."
+        )
+        expect(info.rejectedRails).toHaveLength(1)
         expect(info.actionLabel).toBeNull()
     })
 

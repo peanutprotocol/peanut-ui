@@ -32,7 +32,7 @@ export const KycActionRequiredModal = ({
             }
             ctas={[
                 {
-                    text: isLoading ? 'Loading...' : 'Re-submit verification',
+                    text: isLoading ? 'Loading...' : 'Re-submit documents',
                     icon: 'retry',
                     onClick: onResubmit,
                     disabled: isLoading,

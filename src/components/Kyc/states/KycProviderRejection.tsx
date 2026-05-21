@@ -28,20 +28,23 @@ export const KycProviderRejection = ({
         <div className="space-y-4 p-1">
             <KYCStatusDrawerItem
                 status={isFixable ? 'pending' : 'cancelled'}
-                customText={isFixable ? 'Action needed' : 'Verification issue'}
+                customText={isFixable ? 'Action needed' : 'Setup issue'}
+                title="Payment setup"
             />
 
             <div className="rounded-sm border border-n-1 p-4">
                 <div className="flex items-center gap-3">
                     <div
                         className={`flex size-8 shrink-0 items-center justify-center rounded-full ${
-                            isFixable ? 'bg-yellow-1' : 'bg-red-1'
+                            isFixable ? 'bg-yellow-1' : 'bg-error-1'
                         }`}
                     >
-                        <Icon name={isFixable ? 'alert' : 'failed'} size={16} />
+                        <Icon name="alert" size={16} className={isFixable ? '' : 'text-error'} />
                     </div>
                     <div>
-                        <p className="font-semibold">Verification {isFixable ? 'action needed' : 'unavailable'}</p>
+                        <p className="font-semibold">
+                            {isFixable ? 'Additional documents needed' : 'Payment setup unavailable'}
+                        </p>
                         <p className="text-sm text-grey-1">
                             {rejection.userMessage ||
                                 (isFixable ? 'We need an updated document.' : 'Contact support for help.')}
@@ -68,7 +71,7 @@ export const KycProviderRejection = ({
                     {actionLabel}
                 </Button>
             ) : (
-                <Button variant="stroke" className="w-full" onClick={() => setIsSupportModalOpen(true)}>
+                <Button variant="purple" shadowSize="4" className="w-full" onClick={() => setIsSupportModalOpen(true)}>
                     Contact support
                 </Button>
             )}

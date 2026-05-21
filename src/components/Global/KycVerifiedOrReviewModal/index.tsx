@@ -15,10 +15,10 @@ const KycVerifiedOrReviewModal = ({
         <ActionModal
             visible={isKycApprovedModalOpen}
             onClose={onClose}
-            title={isUserBridgeKycUnderReview ? 'Your verification is under review' : 'You’re already verified'}
+            title={isUserBridgeKycUnderReview ? 'Payment setup in review' : 'You’re already verified'}
             description={
                 isUserBridgeKycUnderReview
-                    ? 'Your verification is under review. You will be notified when it is completed.'
+                    ? "Your identity is already verified. We're setting up your payment methods and will notify you when they're ready."
                     : 'Your identity has already been successfully verified. No further action is needed.'
             }
             icon={isUserBridgeKycUnderReview ? 'clock' : 'shield'}

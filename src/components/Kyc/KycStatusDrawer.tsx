@@ -105,6 +105,7 @@ export const KycStatusDrawer = ({
 
     // provider rejection status
     const { bridge: bridgeRejection, manteca: mantecaRejection, hasAnyRejection } = useProviderRejectionStatus()
+    const showProviderProcessing = bridgeRejection.state === 'processing' && bridgeRejection.rejectedRails.length > 0
     const primaryProviderRejection =
         bridgeRejection.state === 'fixable' || bridgeRejection.state === 'blocked' ? bridgeRejection : mantecaRejection
     const showProviderRejection =
@@ -143,6 +144,21 @@ export const KycStatusDrawer = ({
                             onKeepMounted?.(false)
                         }
                     }}
+                />
+            )
+        }
+
+        if (showProviderProcessing) {
+            return (
+                <KycProcessing
+                    bridgeKycStartedAt={verification?.createdAt ?? user?.user?.bridgeKycStartedAt}
+                    countryCode={countryCode ?? undefined}
+                    isBridge={isBridgeKyc || region === 'STANDARD'}
+                    title="Payment setup"
+                    statusMessage={
+                        bridgeRejection.userMessage ||
+                        "We're reviewing your documents. We'll update your payment setup when the review is complete."
+                    }
                 />
             )
         }

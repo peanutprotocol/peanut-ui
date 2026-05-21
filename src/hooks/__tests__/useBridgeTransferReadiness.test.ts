@@ -40,6 +40,7 @@ function setup({
     needsBridgeTos = false,
     bridgeState = 'happy' as ProviderRejectionState,
     bridgeUserMessage = null as string | null,
+    bridgeRejectedRailCount = 0,
     isSumsubApproved = false,
     isBridgeApproved = false,
     isBridgeUnderReview = false,
@@ -51,7 +52,15 @@ function setup({
         bridgeRails: [],
     })
     mockRejectionStatus.mockReturnValue({
-        bridge: { ...defaultRejection, state: bridgeState, userMessage: bridgeUserMessage },
+        bridge: {
+            ...defaultRejection,
+            state: bridgeState,
+            userMessage: bridgeUserMessage,
+            rejectedRails: Array.from(
+                { length: bridgeRejectedRailCount },
+                (_, index) => ({ id: `rail-${index}` }) as any
+            ),
+        },
         manteca: { ...defaultRejection, provider: 'MANTECA' },
         hasFixableRejection: bridgeState === 'fixable',
         hasBlockedRejection: bridgeState === 'blocked',
@@ -103,6 +112,18 @@ describe('useBridgeTransferReadiness', () => {
         expect(result.current.gate.type).toBe('needs_enrollment')
     })
 
+    it('provider_processing blocks enrollment while Bridge is reviewing submitted remediation', () => {
+        setup({
+            bridgeState: 'processing',
+            bridgeUserMessage: "We're reviewing your documents.",
+            bridgeRejectedRailCount: 1,
+            isSumsubApproved: true,
+        })
+        const { result } = renderHook(() => useBridgeTransferReadiness())
+        expect(result.current.gate.type).toBe('provider_processing')
+        expect((result.current.gate as any).userMessage).toBe("We're reviewing your documents.")
+    })
+
     it('ready when sumsub approved and bridge under review (enrollment not needed)', () => {
         setup({ isSumsubApproved: true, isBridgeUnderReview: true })
         const { result } = renderHook(() => useBridgeTransferReadiness())
@@ -144,6 +165,7 @@ describe('getKycModalVariant', () => {
     it('maps gate types to modal variants', () => {
         expect(getKycModalVariant('blocked_rejection')).toBe('blocked')
         expect(getKycModalVariant('fixable_rejection')).toBe('provider_rejection')
+        expect(getKycModalVariant('provider_processing')).toBe('processing')
         expect(getKycModalVariant('needs_enrollment')).toBe('cross_region')
         expect(getKycModalVariant('accept_tos')).toBe('default')
         expect(getKycModalVariant('ready')).toBe('default')
@@ -154,6 +176,9 @@ describe('getGateProviderMessage', () => {
     it('returns userMessage for rejection gates', () => {
         expect(getGateProviderMessage({ type: 'blocked_rejection', userMessage: 'blocked msg' })).toBe('blocked msg')
         expect(getGateProviderMessage({ type: 'fixable_rejection', userMessage: 'fix msg' })).toBe('fix msg')
+        expect(getGateProviderMessage({ type: 'provider_processing', userMessage: 'processing msg' })).toBe(
+            'processing msg'
+        )
     })
 
     it('returns undefined for null userMessage', () => {

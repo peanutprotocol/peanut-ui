@@ -10,10 +10,14 @@ export const KycProcessing = ({
     bridgeKycStartedAt,
     countryCode,
     isBridge,
+    title,
+    statusMessage,
 }: {
     bridgeKycStartedAt?: string
     countryCode?: string | null
     isBridge?: boolean
+    title?: string
+    statusMessage?: string
 }) => {
     const submittedOn = useMemo(() => {
         if (!bridgeKycStartedAt) return 'N/A'
@@ -27,13 +31,13 @@ export const KycProcessing = ({
 
     return (
         <div className="space-y-4">
-            <KYCStatusDrawerItem status="processing" />
+            <KYCStatusDrawerItem status="processing" title={title} />
             <Card position="single">
                 <PaymentInfoRow label="Submitted" value={submittedOn} />
                 <CountryRegionRow countryCode={countryCode} isBridge={isBridge} />
                 <PaymentInfoRow
                     label="Status"
-                    value="We're reviewing your documents. This usually takes 5-10 min."
+                    value={statusMessage || "We're reviewing your documents. This usually takes 5-10 min."}
                     hideBottomBorder
                 />
             </Card>

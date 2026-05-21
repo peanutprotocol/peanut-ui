@@ -9,6 +9,7 @@ export type BridgeGateAction =
     | { type: 'accept_tos' }
     | { type: 'fixable_rejection'; userMessage: string | null }
     | { type: 'blocked_rejection'; userMessage: string | null }
+    | { type: 'provider_processing'; userMessage: string | null }
     | { type: 'needs_enrollment' }
     | { type: 'ready' }
 
@@ -19,8 +20,9 @@ export type BridgeGateAction =
  *   1. hard rejection (contact support — tos is moot)
  *   2. tos acceptance
  *   3. fixable rejection (user can submit additional details)
- *   4. needs enrollment (sumsub approved, bridge not started)
- *   5. ready
+ *   4. provider processing (submitted to provider, waiting for review)
+ *   5. needs enrollment (sumsub approved, bridge not started)
+ *   6. ready
  */
 export function useBridgeTransferReadiness() {
     const { needsBridgeTos } = useBridgeTosStatus()
@@ -42,7 +44,12 @@ export function useBridgeTransferReadiness() {
             return { type: 'fixable_rejection', userMessage: bridgeRejection.userMessage }
         }
 
-        // 4. needs enrollment (sumsub approved but bridge not started/approved/in-progress)
+        // 4. provider processing — no user action needed
+        if (bridgeRejection.state === 'processing' && bridgeRejection.rejectedRails.length > 0) {
+            return { type: 'provider_processing', userMessage: bridgeRejection.userMessage }
+        }
+
+        // 5. needs enrollment (sumsub approved but bridge not started/approved/in-progress)
         if (
             isUserSumsubKycApproved &&
             !isUserBridgeKycApproved &&
@@ -70,13 +77,14 @@ export function useBridgeTransferReadiness() {
 export function getKycModalVariant(gateType: BridgeGateAction['type']) {
     if (gateType === 'blocked_rejection') return 'blocked' as const
     if (gateType === 'fixable_rejection') return 'provider_rejection' as const
+    if (gateType === 'provider_processing') return 'processing' as const
     if (gateType === 'needs_enrollment') return 'cross_region' as const
     return 'default' as const
 }
 
 /** extracts provider message from gate for InitiateKycModal */
 export function getGateProviderMessage(gate: BridgeGateAction): string | undefined {
-    if (gate.type === 'fixable_rejection' || gate.type === 'blocked_rejection') {
+    if (gate.type === 'fixable_rejection' || gate.type === 'blocked_rejection' || gate.type === 'provider_processing') {
         return gate.userMessage ?? undefined
     }
     return undefined

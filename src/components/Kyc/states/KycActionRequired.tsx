@@ -27,7 +27,7 @@ export const KycActionRequired = ({
                 onClick={onResume}
                 disabled={isLoading}
             >
-                {isLoading ? 'Loading...' : 'Re-submit verification'}
+                {isLoading ? 'Loading...' : 'Re-submit documents'}
             </Button>
         </div>
     )

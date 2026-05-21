@@ -2,12 +2,20 @@ import Card from '@/components/Global/Card'
 import StatusBadge, { type StatusType } from '../Global/Badges/StatusBadge'
 import { KYCStatusIcon } from './KYCStatusIcon'
 
-export const KYCStatusDrawerItem = ({ status, customText }: { status: StatusType; customText?: string }) => {
+export const KYCStatusDrawerItem = ({
+    status,
+    customText,
+    title = 'Identity verification',
+}: {
+    status: StatusType
+    customText?: string
+    title?: string
+}) => {
     return (
         <Card position="single" className="flex items-center gap-4">
             <KYCStatusIcon />
             <div className="flex flex-col gap-2">
-                <h3 className="text-lg font-extrabold">Identity verification</h3>
+                <h3 className="text-lg font-extrabold">{title}</h3>
                 <StatusBadge status={status} customText={customText} className="w-fit" size="small" />
             </div>
         </Card>
