@@ -6,6 +6,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { friendlyDeclineReason } from '@/utils/cardDeclineReason'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
+import { extractMerchantIso2 } from '@/components/TransactionDetails/transaction-details.utils'
 
 /** Strings from Rain's sandbox arrive whitespace-padded ("  ", " - ") and
  *  legacy intents in the DB pre-date the backend cleanField pass — treat any
@@ -24,20 +25,6 @@ function parseCents(value: string | null | undefined): number | null {
     if (value == null) return null
     const n = Number(value)
     return Number.isFinite(n) ? n : null
-}
-
-/** Extract a 2-letter ISO code from a merchant-country value. Rain populates
- *  the field as ISO-2 in nominal data, but legacy intents and edge merchants
- *  sometimes ship it joined with the city ("San Francisco, US") or in
- *  whitespace-padded form. Return the lowercased 2-letter tail when one is
- *  recoverable, null otherwise. Drives both the visibility gate and the
- *  flag URL — a single source so the row never renders without a flag. */
-function extractIso2(value: string | null | undefined): string | null {
-    if (!value) return null
-    const trimmed = value.trim()
-    if (trimmed.length === 0) return null
-    const tail = trimmed.split(/[\s,]+/).pop() ?? ''
-    return /^[a-z]{2}$/i.test(tail) ? tail.toLowerCase() : null
 }
 
 /**
@@ -62,7 +49,7 @@ export function hasCardPaymentRowsContent(transaction: TransactionDetails): bool
     const card = transaction.extraDataForDrawer?.cardPayment
     if (!card) return false
 
-    if (extractIso2(card.merchantCountry)) return true
+    if (extractMerchantIso2(card.merchantCountry)) return true
     if (card.settlementAdjusted && parseCents(card.authAmount) != null) return true
     // declineCategory is BE-controlled (one of 3 enum literals) — no
     // whitespace risk. declineReason is Rain's free-form prose — gate it
@@ -119,7 +106,7 @@ export function CardPaymentRows({
     // Country flag replaces the prior "City, COUNTRY" text — it's denser
     // and recognisable at a glance; the merchant name on the receipt head
     // carries the city information for users who want it.
-    const iso2 = extractIso2(card.merchantCountry)
+    const iso2 = extractMerchantIso2(card.merchantCountry)
     if (iso2) {
         subRows.push({
             key: 'location',
