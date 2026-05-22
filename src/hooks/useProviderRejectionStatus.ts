@@ -118,7 +118,7 @@ function getActionModalTitle(action?: ProviderRemediationAction) {
 
 function getActionModalDescription(action?: ProviderRemediationAction) {
     if (isEeaTinReuploadAction(action)) {
-        return 'Please re-upload your tax ID so Bridge can verify it against your personal details.'
+        return 'Please re-upload your tax ID so our verification provider can check it against your personal details.'
     }
 
     const payloadType = action?.payloadType
@@ -163,7 +163,7 @@ function getBridgeActionMessage(action?: ProviderRemediationAction) {
         return 'We need additional details to keep payments enabled.'
     }
     if (isEeaTinReuploadAction(action)) {
-        return 'Bridge could not match your tax ID to your personal details. Please re-upload your tax ID document.'
+        return 'Our verification provider could not match your tax ID to your personal details. Please re-upload your tax ID document.'
     }
 
     switch (action?.payloadType) {

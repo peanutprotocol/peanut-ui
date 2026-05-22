@@ -101,12 +101,12 @@ describe('deriveProviderRejectionInfo', () => {
         expect(info.actionTitle).toBe('TIN re-upload needed')
         expect(info.modalTitle).toBe('Re-upload your TIN')
         expect(info.modalDescription).toBe(
-            'Please re-upload your tax ID so Bridge can verify it against your personal details.'
+            'Please re-upload your tax ID so our verification provider can check it against your personal details.'
         )
         expect(info.actionLabel).toBe('Re-upload TIN')
         expect(info.actionHandler).toBe('sumsub')
         expect(info.userMessage).toBe(
-            'Bridge could not match your tax ID to your personal details. Please re-upload your tax ID document.'
+            'Our verification provider could not match your tax ID to your personal details. Please re-upload your tax ID document.'
         )
     })
 
