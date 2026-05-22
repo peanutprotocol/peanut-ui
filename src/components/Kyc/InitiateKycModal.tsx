@@ -12,14 +12,16 @@ interface InitiateKycModalProps {
     error?: string | null
     /** when set, shows provider-specific messaging instead of generic "verify your identity" */
     variant?: 'default' | 'provider_rejection' | 'blocked' | 'cross_region' | 'processing'
+    providerTitle?: string
     providerMessage?: string
+    providerActionLabel?: string
     /** country name shown in cross_region variant (e.g. "Brazil", "Argentina") */
     regionName?: string
 }
 
 // confirmation modal shown before starting KYC or provider resubmission.
 // for fresh KYC: "Verify your identity"
-// for provider rejections: "We need extra documents"
+// for provider rejections: provider-specific copy when available
 // for blocked: provider payment setup issue — contact support
 // for cross-region: "Your identity is verified, submit a local ID"
 export const InitiateKycModal = ({
@@ -30,7 +32,9 @@ export const InitiateKycModal = ({
     isLoading,
     error,
     variant = 'default',
+    providerTitle,
     providerMessage,
+    providerActionLabel,
     regionName,
 }: InitiateKycModalProps) => {
     const isProviderRejection = variant === 'provider_rejection'
@@ -42,7 +46,7 @@ export const InitiateKycModal = ({
         if (error) return 'Something went wrong'
         if (isProcessing) return 'Document review in progress'
         if (isBlocked) return 'Payment setup issue'
-        if (isProviderRejection) return 'We need extra documents'
+        if (isProviderRejection) return providerTitle || 'We need more details'
         if (isCrossRegion) return 'Submit local ID'
         return 'Verify your identity'
     }
@@ -81,7 +85,7 @@ export const InitiateKycModal = ({
         }
         if (isProviderRejection) {
             return {
-                text: isLoading ? 'Loading...' : 'Upload document',
+                text: isLoading ? 'Loading...' : providerActionLabel || 'Provide details',
                 onClick: onVerify,
                 icon: 'upload' as IconName,
             }

@@ -70,7 +70,7 @@ describe('deriveProviderRejectionInfo', () => {
         expect(info.requiredAction).toBe('BRIDGE_CUSTOMER_FIELDS')
         expect(info.actionLabel).toBe('Provide required details')
         expect(info.actionHandler).toBe('sumsub')
-        expect(info.userMessage).toBe('We need required EEA details to keep payments enabled.')
+        expect(info.userMessage).toBe('We need additional details to keep payments enabled.')
     })
 
     it('marks Bridge RFI customer-field remediation as fixable even when Bridge rejected the customer', () => {

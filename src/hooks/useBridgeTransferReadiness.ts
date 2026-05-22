@@ -7,7 +7,12 @@ import useKycStatus from './useKycStatus'
 
 export type BridgeGateAction =
     | { type: 'accept_tos' }
-    | { type: 'fixable_rejection'; userMessage: string | null }
+    | {
+          type: 'fixable_rejection'
+          userMessage: string | null
+          modalTitle: string | null
+          actionLabel: string | null
+      }
     | { type: 'blocked_rejection'; userMessage: string | null }
     | { type: 'provider_processing'; userMessage: string | null }
     | { type: 'needs_enrollment' }
@@ -41,7 +46,12 @@ export function useBridgeTransferReadiness() {
 
         // 3. fixable rejection — user can submit additional details
         if (bridgeRejection.state === 'fixable') {
-            return { type: 'fixable_rejection', userMessage: bridgeRejection.userMessage }
+            return {
+                type: 'fixable_rejection',
+                userMessage: bridgeRejection.userMessage,
+                modalTitle: bridgeRejection.modalTitle,
+                actionLabel: bridgeRejection.actionLabel,
+            }
         }
 
         // 4. provider processing — no user action needed
@@ -87,5 +97,15 @@ export function getGateProviderMessage(gate: BridgeGateAction): string | undefin
     if (gate.type === 'fixable_rejection' || gate.type === 'blocked_rejection' || gate.type === 'provider_processing') {
         return gate.userMessage ?? undefined
     }
+    return undefined
+}
+
+export function getGateProviderTitle(gate: BridgeGateAction): string | undefined {
+    if (gate.type === 'fixable_rejection') return gate.modalTitle ?? undefined
+    return undefined
+}
+
+export function getGateActionLabel(gate: BridgeGateAction): string | undefined {
+    if (gate.type === 'fixable_rejection') return gate.actionLabel ?? undefined
     return undefined
 }

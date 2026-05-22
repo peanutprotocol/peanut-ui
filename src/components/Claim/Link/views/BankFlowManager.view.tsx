@@ -37,6 +37,8 @@ import {
     useBridgeTransferReadiness,
     getKycModalVariant,
     getGateProviderMessage,
+    getGateProviderTitle,
+    getGateActionLabel,
 } from '@/hooks/useBridgeTransferReadiness'
 import { useBridgeTosGuard } from '@/hooks/useBridgeTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
@@ -538,7 +540,9 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                             isLoading={sumsubFlow.isLoading}
                             error={sumsubFlow.error}
                             variant={getKycModalVariant(gate.type)}
+                            providerTitle={getGateProviderTitle(gate)}
                             providerMessage={getGateProviderMessage(gate)}
+                            providerActionLabel={getGateActionLabel(gate)}
                         />
                     </>
                 )

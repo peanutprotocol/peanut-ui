@@ -14,6 +14,8 @@ import {
     useBridgeTransferReadiness,
     getKycModalVariant,
     getGateProviderMessage,
+    getGateProviderTitle,
+    getGateActionLabel,
 } from '@/hooks/useBridgeTransferReadiness'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
@@ -419,7 +421,9 @@ export default function OnrampBankPage() {
                     isLoading={sumsubFlow.isLoading}
                     error={sumsubFlow.error}
                     variant={getKycModalVariant(gate.type)}
+                    providerTitle={getGateProviderTitle(gate)}
                     providerMessage={getGateProviderMessage(gate)}
+                    providerActionLabel={getGateActionLabel(gate)}
                     regionName={selectedCountry?.title}
                 />
 

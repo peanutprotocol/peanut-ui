@@ -137,7 +137,7 @@ function getActionLabel(action?: ProviderRemediationAction) {
 
 function getBridgeActionMessage(action?: ProviderRemediationAction) {
     if (action?.questionnaireCluster === 'eea_uplift') {
-        return 'We need required EEA details to keep payments enabled.'
+        return 'We need additional details to keep payments enabled.'
     }
 
     switch (action?.payloadType) {
