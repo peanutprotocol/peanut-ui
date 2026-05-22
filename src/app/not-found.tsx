@@ -42,6 +42,7 @@ export default function NotFound() {
                             {/* Raw <a> instead of <Link>: forces a full page load when leaving the
                                 404, avoiding the historical React error #310 from hook-count
                                 mismatch between this route and the (mobile-ui) tree. */}
+                            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                             <a href="/" className="btn btn-purple shadow-4 block w-full text-center">
                                 Take me home
                             </a>
