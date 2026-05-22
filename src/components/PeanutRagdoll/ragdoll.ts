@@ -19,16 +19,14 @@ import faceWinkingSvg from './parts/Winking.svg'
 
 const SVG_PX_PER_UNIT = 100
 
-// Phone-screen play area. Aspect-locked (~9:16) so the bounds always feel
-// like a phone regardless of window dimensions; resize() zooms the camera
-// to fit this area into the viewport.
+// Play-area bounds. Height is anchored (GROUND_Y..TOP_Y is always 7 units
+// tall — defines how big the peanut feels). Width is derived from the
+// container's aspect ratio at resize() time so the cage always matches the
+// layout — no enforced phone-aspect, no letterbox.
 const GROUND_Y = -3.0
-const PHONE_H_WORLD = 7.0
-const PHONE_W_WORLD = PHONE_H_WORLD * (9 / 16)
-const PHONE_LEFT_X = -PHONE_W_WORLD / 2
-const PHONE_RIGHT_X = PHONE_W_WORLD / 2
-const PHONE_TOP_Y = GROUND_Y + PHONE_H_WORLD
-const PHONE_CENTER_Y = (GROUND_Y + PHONE_TOP_Y) / 2
+const WORLD_H = 7.0
+const TOP_Y = GROUND_Y + WORLD_H
+const CENTER_Y = (GROUND_Y + TOP_Y) / 2
 
 const SHELL_LOBE_R = 0.45
 const SHELL_OVERLAP = 0.55
@@ -118,7 +116,11 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
     let world: any = null
     let parts: any = null
     let pixelsPerUnit = 140
-    const cameraOffset = { x: 0, y: PHONE_CENTER_Y }
+    const cameraOffset = { x: 0, y: CENTER_Y }
+    // Live half-width of the cage. resize() recomputes from container aspect
+    // and moves the side-wall bodies; the initial value matches the rendered
+    // canvas aspect before the first resize() runs.
+    let halfWorldW = (WORLD_H * 9) / 32
 
     // ---- sprite + bitmap caches ----
     const sprites: Record<string, HTMLImageElement> = {}
@@ -236,7 +238,15 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
         canvas.style.width = w + 'px'
         canvas.style.height = h + 'px'
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-        const newPpu = Math.min(w / PHONE_W_WORLD, h / PHONE_H_WORLD) * 0.95
+        // Anchor scale to the height (WORLD_H units), then derive the cage's
+        // horizontal half-extent from the container's aspect. The walls move
+        // with the layout — wide container → wider play area, no letterbox.
+        const newPpu = (h / WORLD_H) * 0.95
+        halfWorldW = w / newPpu / 2
+        if (parts) {
+            parts.leftWall.position[0] = -halfWorldW
+            parts.rightWall.position[0] = halfWorldW
+        }
         if (dpr !== currentDpr || newPpu !== pixelsPerUnit) {
             bitmapCache.clear()
             currentDpr = dpr
@@ -453,9 +463,12 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
             return body
         }
         const ground = makeFrame([0, GROUND_Y], 0)
-        const leftWall = makeFrame([PHONE_LEFT_X, 0], -Math.PI / 2)
-        const rightWall = makeFrame([PHONE_RIGHT_X, 0], Math.PI / 2)
-        const ceiling = makeFrame([0, PHONE_TOP_Y], Math.PI)
+        // Side walls are positioned from halfWorldW, which resize() keeps in
+        // sync with the container aspect. Initial values match the
+        // pre-first-resize() halfWorldW so bodies aren't created at 0/0.
+        const leftWall = makeFrame([-halfWorldW, 0], -Math.PI / 2)
+        const rightWall = makeFrame([halfWorldW, 0], Math.PI / 2)
+        const ceiling = makeFrame([0, TOP_Y], Math.PI)
         world.addBody(ground)
         world.addBody(leftWall)
         world.addBody(rightWall)
@@ -524,26 +537,11 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
         ctx.restore()
     }
 
-    function drawPhoneFrame() {
-        const w = container.clientWidth
-        const h = container.clientHeight
-        const tl = worldToScreen(PHONE_LEFT_X, PHONE_TOP_Y)
-        const br = worldToScreen(PHONE_RIGHT_X, GROUND_Y)
-        // Outside-the-cage area is solid white so only the play area shows the
-        // brand-pink wrapper background.
-        ctx.fillStyle = '#fff'
-        if (tl.y > 0) ctx.fillRect(0, 0, w, tl.y)
-        if (br.y < h) ctx.fillRect(0, br.y, w, h - br.y)
-        if (tl.x > 0) ctx.fillRect(0, tl.y, tl.x, br.y - tl.y)
-        if (br.x < w) ctx.fillRect(br.x, tl.y, w - br.x, br.y - tl.y)
-        ctx.strokeStyle = '#000'
-        ctx.lineWidth = 3
-        ctx.strokeRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y)
-    }
-
     function render() {
+        // Clear leaves the canvas transparent so the wrapper's bg shows
+        // through everywhere — no letterbox, no frame. Cage bounds are now
+        // implicit (the side walls live at the container edges).
         ctx.clearRect(0, 0, container.clientWidth, container.clientHeight)
-        drawPhoneFrame()
         for (const b of world.bodies) {
             if (b === parts.shell || b.__isFrame) continue
             drawSprite(b)
