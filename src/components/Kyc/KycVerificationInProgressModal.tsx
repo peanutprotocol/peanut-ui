@@ -68,6 +68,22 @@ export const KycVerificationInProgressModal = ({
         )
     }
 
+    if (phase === 'checking') {
+        return (
+            <ActionModal
+                visible={isOpen}
+                onClose={onClose}
+                isLoadingIcon
+                iconContainerClassName="bg-yellow-1 text-black"
+                title="Checking your details..."
+                description="Please keep this open while we check whether anything else is needed."
+                ctas={[]}
+                preventClose
+                hideModalCloseButton
+            />
+        )
+    }
+
     if (phase === 'preparing') {
         // Progressive copy based on elapsed time in preparing phase
         const getPreparingCopy = () => {

@@ -73,6 +73,43 @@ describe('deriveProviderRejectionInfo', () => {
         expect(info.userMessage).toBe('We need additional details to keep payments enabled.')
     })
 
+    it('shows EEA TIN reupload copy for database-check follow-up', () => {
+        const info = deriveProviderRejectionInfo(
+            'BRIDGE',
+            [
+                bridgeRail(
+                    {
+                        bridgeRemediation: {
+                            status: 'AWAITING_INPUT',
+                            nextAction: {
+                                payloadType: 'BRIDGE_CUSTOMER_FIELDS',
+                                requirementKey: 'database_check_failed',
+                                questionnaireCluster: 'eea_tin_reupload',
+                                effectiveDate: '2026-06-29',
+                                maxAttempts: 3,
+                            },
+                        },
+                    },
+                    'REQUIRES_EXTRA_INFORMATION'
+                ),
+            ],
+            [bridgeVerification({ selfHealAttempt: 1 })]
+        )
+
+        expect(info.state).toBe('fixable')
+        expect(info.requiredAction).toBe('BRIDGE_CUSTOMER_FIELDS')
+        expect(info.actionTitle).toBe('TIN re-upload needed')
+        expect(info.modalTitle).toBe('Re-upload your TIN')
+        expect(info.modalDescription).toBe(
+            'Please re-upload your tax ID so Bridge can verify it against your personal details.'
+        )
+        expect(info.actionLabel).toBe('Re-upload TIN')
+        expect(info.actionHandler).toBe('sumsub')
+        expect(info.userMessage).toBe(
+            'Bridge could not match your tax ID to your personal details. Please re-upload your tax ID document.'
+        )
+    })
+
     it('marks Bridge RFI customer-field remediation as fixable even when Bridge rejected the customer', () => {
         const info = deriveProviderRejectionInfo(
             'BRIDGE',

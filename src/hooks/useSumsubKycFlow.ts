@@ -43,6 +43,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const userInitiatedRef = useRef(false)
     // tracks self-heal provider for token refresh — null when in regular KYC flow
     const selfHealProviderRef = useRef<'BRIDGE' | 'MANTECA' | null>(null)
+    const [lastSelfHealQuestionnaireCluster, setLastSelfHealQuestionnaireCluster] = useState<string | null>(null)
 
     useEffect(() => {
         regionIntentRef.current = regionIntent
@@ -144,6 +145,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             userInitiatedRef.current = true
             initiatingRef.current = true
             selfHealProviderRef.current = null
+            setLastSelfHealQuestionnaireCluster(null)
             setIsLoading(true)
             setError(null)
 
@@ -293,6 +295,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 throw new Error(response.error || 'Failed to refresh self-heal token')
             }
             setAccessToken(response.data.token)
+            setLastSelfHealQuestionnaireCluster(response.data.questionnaireCluster ?? null)
             return response.data.token
         }
 
@@ -342,6 +345,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
             if (response.data?.token) {
                 setAccessToken(response.data.token)
+                setLastSelfHealQuestionnaireCluster(response.data.questionnaireCluster ?? null)
                 setIsActionFlow(true)
                 setShowWrapper(true)
                 return true
@@ -377,5 +381,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         closeVerificationModalAndGoHome,
         resetError,
         isActionFlow,
+        lastSelfHealQuestionnaireCluster,
     }
 }

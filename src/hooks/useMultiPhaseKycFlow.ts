@@ -3,12 +3,48 @@ import { useAuth } from '@/context/authContext'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { useRailStatusTracking } from '@/hooks/useRailStatusTracking'
 import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
-import { type KycModalPhase } from '@/interfaces'
+import { type IUserProfile, type KycModalPhase } from '@/interfaces'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const PREPARING_TIMEOUT_MS = 30000
+const BRIDGE_ACTION_AUTO_CONTINUE_TIMEOUT_MS = 20000
+const BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS = 2000
+
+function wait(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return !!value && typeof value === 'object'
+}
+
+function getBridgeRemediationFromUser(userProfile?: IUserProfile | null): Record<string, unknown> | null {
+    const bridgeVerification = userProfile?.user?.kycVerifications
+        ?.filter((verification) => verification.provider === 'BRIDGE')
+        .sort((a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime())[0]
+    const verificationRemediation = bridgeVerification?.metadata?.bridgeRemediation
+    if (isRecord(verificationRemediation)) return verificationRemediation
+
+    const railRemediation = userProfile?.rails
+        ?.filter((rail) => rail.rail.provider.code === 'BRIDGE')
+        .map((rail) => rail.metadata?.bridgeRemediation)
+        .find(isRecord)
+
+    return railRemediation ?? null
+}
+
+export function getBridgeNextQuestionnaireClusterFromUser(userProfile?: IUserProfile | null): string | null {
+    const bridgeRemediation = getBridgeRemediationFromUser(userProfile)
+    if (bridgeRemediation?.status !== 'AWAITING_INPUT') return null
+
+    const nextAction = bridgeRemediation.nextAction
+    if (!isRecord(nextAction)) return null
+
+    const questionnaireCluster = nextAction.questionnaireCluster
+    return typeof questionnaireCluster === 'string' ? questionnaireCluster : null
+}
 
 /**
  * confirms bridge ToS acceptance (with one retry) then polls fetchUser
@@ -150,6 +186,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
         isVerificationProgressModalOpen,
         closeVerificationProgressModal,
         isActionFlow,
+        lastSelfHealQuestionnaireCluster,
     } = useSumsubKycFlow({ onKycSuccess: handleSumsubApproved, onManualClose, regionIntent })
 
     // keep ref in sync
@@ -169,6 +206,39 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
         }
     }, [liveKycStatus, fetchUser, regionIntent])
 
+    const handleActionFlowComplete = useCallback(async () => {
+        setModalPhase('checking')
+        setForceShowModal(true)
+
+        const canAutoContinueTin = lastSelfHealQuestionnaireCluster !== 'eea_tin_reupload'
+        for (
+            let elapsed = 0;
+            elapsed <= BRIDGE_ACTION_AUTO_CONTINUE_TIMEOUT_MS;
+            elapsed += BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS
+        ) {
+            const updatedUser = await fetchUser()
+            const nextCluster = getBridgeNextQuestionnaireClusterFromUser(updatedUser)
+
+            if (nextCluster === 'eea_tin_reupload' && canAutoContinueTin) {
+                const started = await handleSelfHealResubmit('BRIDGE')
+                if (started) {
+                    setForceShowModal(false)
+                    return
+                }
+                break
+            }
+
+            if (nextCluster === 'eea_tin_reupload') break
+            if (elapsed < BRIDGE_ACTION_AUTO_CONTINUE_TIMEOUT_MS) {
+                await wait(BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS)
+            }
+        }
+
+        setModalPhase('preparing')
+        setForceShowModal(true)
+        startTracking()
+    }, [fetchUser, handleSelfHealResubmit, lastSelfHealQuestionnaireCluster, startTracking])
+
     // wrap handleSdkComplete to track real-time flow
     const handleSdkComplete = useCallback(() => {
         posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: regionIntent })
@@ -177,9 +247,9 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
         // for action flows (manteca, self-heal), the base status is already APPROVED
         // and won't transition — directly start the preparing/tracking phase
         if (isActionFlow) {
-            handleSumsubApproved()
+            void handleActionFlowComplete()
         }
-    }, [originalHandleSdkComplete, handleSumsubApproved, isActionFlow, regionIntent])
+    }, [originalHandleSdkComplete, handleActionFlowComplete, isActionFlow, regionIntent])
 
     // wrap handleInitiateKyc to reset state for new attempts
     const handleInitiateKyc = useCallback(
