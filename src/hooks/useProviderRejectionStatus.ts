@@ -16,6 +16,8 @@ type ProviderRemediationStatus = 'APPROVED' | 'AWAITING_INPUT' | 'AWAITING_PROVI
 interface ProviderRemediationAction {
     payloadType: ProviderRemediationPayloadType
     requirementKey?: string
+    questionnaireCluster?: 'source_of_funds' | 'tax_id' | 'address' | 'birth_details' | 'eea_uplift'
+    effectiveDate?: string
     maxAttempts?: number
 }
 
@@ -116,8 +118,10 @@ function getActionHandler(payloadType?: ProviderRemediationPayloadType): Provide
     return payloadType === 'BRIDGE_TOS' ? 'tos' : 'sumsub'
 }
 
-function getActionLabel(payloadType?: ProviderRemediationPayloadType) {
-    switch (payloadType) {
+function getActionLabel(action?: ProviderRemediationAction) {
+    if (action?.questionnaireCluster === 'eea_uplift') return 'Provide required details'
+
+    switch (action?.payloadType) {
         case 'BRIDGE_TOS':
             return 'Accept terms'
         case 'BRIDGE_IDENTIFYING_INFORMATION':
@@ -132,6 +136,10 @@ function getActionLabel(payloadType?: ProviderRemediationPayloadType) {
 }
 
 function getBridgeActionMessage(action?: ProviderRemediationAction) {
+    if (action?.questionnaireCluster === 'eea_uplift') {
+        return 'We need required EEA details to keep payments enabled.'
+    }
+
     switch (action?.payloadType) {
         case 'BRIDGE_TOS':
             return 'Please accept the terms to enable payments.'
@@ -279,7 +287,7 @@ export function deriveProviderRejectionInfo(
             actionTitle: getActionTitle(payloadType),
             modalTitle: getActionModalTitle(payloadType),
             modalDescription: getActionModalDescription(payloadType),
-            actionLabel: getActionLabel(payloadType),
+            actionLabel: getActionLabel(bridgeAction),
             actionHandler: getActionHandler(payloadType),
         }
     }
