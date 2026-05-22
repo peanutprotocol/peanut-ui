@@ -3,6 +3,10 @@
 import { useAuth } from '@/context/authContext'
 import { useMemo } from 'react'
 import type { IUserRail, IUserKycVerification } from '@/interfaces/interfaces'
+import {
+    MANTECA_US_NATIONALITY_RESTRICTION_CODE,
+    MANTECA_US_NATIONALITY_RESTRICTION_MESSAGE,
+} from '@/constants/manteca.consts'
 
 export type ProviderRejectionState = 'happy' | 'processing' | 'fixable' | 'blocked'
 
@@ -76,9 +80,15 @@ export default function useProviderRejectionStatus() {
                 const firstRejectedMetadata = (rejectedRails[0].metadata ?? {}) as Record<string, unknown>
                 const isSelfHealable = firstRejectedMetadata.selfHealable === true
                 const rejectType = kycVerification?.rejectType
+                const restrictionCode =
+                    (metadata.restrictionCode as string | undefined) ??
+                    (firstRejectedMetadata.restrictionCode as string | undefined)
+                const isMantecaUsNationalityRestricted =
+                    providerCode === 'MANTECA' && restrictionCode === MANTECA_US_NATIONALITY_RESTRICTION_CODE
 
                 // check if fixable: selfHealable flag on rail + rejectType + attempt limit
                 const isFixable =
+                    !isMantecaUsNationalityRestricted &&
                     isSelfHealable &&
                     rejectType !== 'PROVIDER_FINAL' &&
                     rejectType !== 'FINAL' &&
@@ -91,7 +101,9 @@ export default function useProviderRejectionStatus() {
 
                 if (!isFixable) {
                     // permanently rejected — generic message regardless of underlying reason
-                    userMessage = "We couldn't verify your identity. Please contact support for assistance."
+                    userMessage = isMantecaUsNationalityRestricted
+                        ? MANTECA_US_NATIONALITY_RESTRICTION_MESSAGE
+                        : "We couldn't verify your identity. Please contact support for assistance."
                 } else if (Array.isArray(reasons) && reasons.length > 0) {
                     // bridge format: { reason: string, developer_reason: string }
                     // manteca format: { task: string, reason: string }

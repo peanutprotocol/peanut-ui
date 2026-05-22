@@ -4,6 +4,10 @@ import { useCallback, useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
 import { isKycStatusApproved, isSumsubStatusInProgress } from '@/constants/kyc.consts'
+import {
+    MANTECA_US_NATIONALITY_RESTRICTION_CODE,
+    MANTECA_US_NATIONALITY_RESTRICTION_MESSAGE,
+} from '@/constants/manteca.consts'
 
 const MAX_SELF_HEAL_ATTEMPTS = 3
 
@@ -19,6 +23,7 @@ export enum QrKycState {
 export interface QrKycGateResult {
     kycGateState: QrKycState
     shouldBlockPay: boolean
+    userMessage: string | null
 }
 
 /**
@@ -30,13 +35,19 @@ export interface QrKycGateResult {
 export function useQrKycGate(paymentProcessor?: 'MANTECA' | null): QrKycGateResult {
     const { user, isFetchingUser, fetchUser } = useAuth()
     const [kycGateState, setKycGateState] = useState<QrKycState>(QrKycState.LOADING)
+    const [userMessage, setUserMessage] = useState<string | null>(null)
     const hasRequestedUserFetchRef = useRef(false)
+
+    const setGateState = useCallback((state: QrKycState, message: string | null = null) => {
+        setKycGateState(state)
+        setUserMessage(message)
+    }, [])
 
     const determineKycGateState = useCallback(async () => {
         const currentUser = user?.user
         // while auth is fetching, keep loading to avoid flashing the verify modal
         if (isFetchingUser) {
-            setKycGateState(QrKycState.LOADING)
+            setGateState(QrKycState.LOADING)
             return
         }
 
@@ -44,7 +55,7 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | null): QrKycGateResu
             // on public routes (like qr pay), auth may not auto-fetch; trigger it explicitly once and wait
             if (!hasRequestedUserFetchRef.current) {
                 hasRequestedUserFetchRef.current = true
-                setKycGateState(QrKycState.LOADING)
+                setGateState(QrKycState.LOADING)
                 try {
                     await fetchUser()
                 } catch {
@@ -53,7 +64,7 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | null): QrKycGateResu
                 return
             }
             // if we already tried fetching and still have no user, require verification
-            setKycGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
+            setGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
             return
         }
 
@@ -72,16 +83,21 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | null): QrKycGateResu
                     ?.filter((v) => v.provider === 'MANTECA')
                     .sort((a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime())[0]
                 const kycMeta = (mantecaKyc?.metadata ?? {}) as Record<string, unknown>
+                const restrictionCode =
+                    (kycMeta.restrictionCode as string | undefined) ?? (railMeta.restrictionCode as string | undefined)
+                const isMantecaUsNationalityRestricted = restrictionCode === MANTECA_US_NATIONALITY_RESTRICTION_CODE
                 const isFixable =
+                    !isMantecaUsNationalityRestricted &&
                     railMeta.selfHealable === true &&
                     mantecaKyc?.rejectType !== 'PROVIDER_FINAL' &&
                     ((kycMeta.selfHealAttempt as number) || 0) < MAX_SELF_HEAL_ATTEMPTS
-                setKycGateState(
-                    isFixable ? QrKycState.PROVIDER_REJECTION_FIXABLE : QrKycState.PROVIDER_REJECTION_BLOCKED
+                setGateState(
+                    isFixable ? QrKycState.PROVIDER_REJECTION_FIXABLE : QrKycState.PROVIDER_REJECTION_BLOCKED,
+                    isMantecaUsNationalityRestricted ? MANTECA_US_NATIONALITY_RESTRICTION_MESSAGE : null
                 )
                 return
             }
-            setKycGateState(QrKycState.PROCEED_TO_PAY)
+            setGateState(QrKycState.PROCEED_TO_PAY)
             return
         }
 
@@ -93,24 +109,24 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | null): QrKycGateResu
             mantecaKycs.some((v) => v.provider === 'MANTECA' && v.status === MantecaKycStatus.ACTIVE)
 
         if (hasAnyActiveMantecaKyc) {
-            setKycGateState(QrKycState.PROCEED_TO_PAY)
+            setGateState(QrKycState.PROCEED_TO_PAY)
             return
         }
 
         if (currentUser.bridgeKycStatus === 'approved') {
-            setKycGateState(QrKycState.PROCEED_TO_PAY)
+            setGateState(QrKycState.PROCEED_TO_PAY)
             return
         }
 
         // check if bridge kyc is in progress (user started but hasn't completed)
         // bridge kyc status is 'incomplete' or 'under_review' when user has initiated the kyc process
         if (currentUser.bridgeKycStatus === 'under_review' || currentUser.bridgeKycStatus === 'incomplete') {
-            setKycGateState(QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS)
+            setGateState(QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS)
             return
         }
 
         if (hasAnyMantecaKyc) {
-            setKycGateState(QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS)
+            setGateState(QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS)
             return
         }
 
@@ -119,12 +135,12 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | null): QrKycGateResu
             (v) => v.provider === 'SUMSUB' && isSumsubStatusInProgress(v.status)
         )
         if (hasSumsubInProgress) {
-            setKycGateState(QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS)
+            setGateState(QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS)
             return
         }
 
-        setKycGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
-    }, [user?.user, user?.rails, isFetchingUser, paymentProcessor, fetchUser])
+        setGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
+    }, [user?.user, user?.rails, isFetchingUser, paymentProcessor, fetchUser, setGateState])
 
     useEffect(() => {
         determineKycGateState()
@@ -132,6 +148,7 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | null): QrKycGateResu
 
     const result: QrKycGateResult = {
         kycGateState,
+        userMessage,
         shouldBlockPay:
             kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION ||
             kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS ||
