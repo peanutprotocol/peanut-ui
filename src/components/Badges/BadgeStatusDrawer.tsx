@@ -4,7 +4,7 @@ import { formatDate } from '@/utils/general.utils'
 import Card from '../Global/Card'
 import { PaymentInfoRow } from '../Payment/PaymentInfoRow'
 import ShareButton from '../Global/ShareButton'
-import { getBadgeDisplayName, getBadgeIcon } from './badge.utils'
+import { getBadgeIcon } from './badge.utils'
 import { BASE_URL } from '@/constants/general.consts'
 import { useAuth } from '@/context/authContext'
 
@@ -26,7 +26,6 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
     const username = authUser?.user.username
     const earnedAt = badge.earnedAt ? new Date(badge.earnedAt) : undefined
     const dateStr = earnedAt ? formatDate(earnedAt) : undefined
-    const displayName = getBadgeDisplayName(badge.code, badge.name)
 
     // generate profile link for sharing
     const profileLink = username ? `${BASE_URL}/${username}` : BASE_URL
@@ -51,7 +50,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                                 <h2 className="flex items-center gap-2 text-xs font-medium text-grey-1">
                                     Badge unlocked!
                                 </h2>
-                                <h1 className={`text-lg font-extrabold md:text-4xl`}>{displayName}</h1>
+                                <h1 className={`text-lg font-extrabold md:text-4xl`}>{badge.name}</h1>
                             </div>
                         </div>
                     </Card>
@@ -66,7 +65,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                             title=""
                             generateText={() =>
                                 Promise.resolve(
-                                    `I earned ${displayName} badge on Peanut!\n\nJoin Peanut now and start earning points, unlocking achievements and moving money worldwide\n\n${profileLink}`
+                                    `I earned ${badge.name} badge on Peanut!\n\nJoin Peanut now and start earning points, unlocking achievements and moving money worldwide\n\n${profileLink}`
                                 )
                             }
                         >

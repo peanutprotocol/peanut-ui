@@ -4,7 +4,7 @@ import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { BadgeStatusDrawer } from './BadgeStatusDrawer'
 import Image from 'next/image'
 import InvitesIcon from '../Home/InvitesIcon'
-import { getBadgeDisplayName, getBadgeIcon } from './badge.utils'
+import { getBadgeIcon } from './badge.utils'
 import { type BadgeHistoryEntry } from './badge.types'
 
 export const BadgeStatusItem = ({
@@ -15,7 +15,6 @@ export const BadgeStatusItem = ({
     entry: BadgeHistoryEntry
 }) => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-    const displayName = getBadgeDisplayName(entry.code, entry.name)
 
     const badge = useMemo(
         () => ({
@@ -39,7 +38,7 @@ export const BadgeStatusItem = ({
                 <div className={'relative flex h-8 w-8 items-center justify-center rounded-full'}>
                     <Image
                         src={getBadgeIcon(entry.code)}
-                        alt={`${displayName} icon`}
+                        alt={`${entry.name} icon`}
                         className="size-10 object-contain"
                         width={32}
                         height={32}
@@ -49,7 +48,7 @@ export const BadgeStatusItem = ({
                 {/* text content */}
                 <div className="flex-1">
                     <div className="flex flex-row items-center gap-2">
-                        <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">{displayName}</div>
+                        <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">{entry.name}</div>
                     </div>
                     <div className="flex items-center gap-1 text-sm font-medium text-gray-1">
                         <span className="capitalize">Badge unlocked!</span>
