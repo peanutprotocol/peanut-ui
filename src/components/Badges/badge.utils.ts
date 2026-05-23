@@ -16,6 +16,11 @@ const CODE_TO_PATH: Record<string, string> = {
     CARD_PIONEER: '/badges/peanut-pioneer.png',
     FOUNDER_HOUSE: '/badges/founder_house.png',
     SUPPORT_SURVIVOR: '/badges/support_survivor.svg',
+    // Card-launch badges — assets only. No backend trigger yet; entries are here
+    // so the icons render the moment the API starts awarding the codes.
+    SHHHHH: '/badges/shhhhh.svg', // TODO(card-launch): award on shhhhh-waitlist signup
+    CARD_FIRST_SWIPE: '/badges/happy_card.svg', // TODO(card-launch): award on first settled Rain card payment
+    CARD_SPENT_1K: '/badges/money_stack.svg', // TODO(card-launch): award on cumulative card spend ≥ $1K
 }
 
 // front-end display name overrides for badges. backend codes/names stay the same;
@@ -40,6 +45,9 @@ const PUBLIC_DESCRIPTIONS: Record<string, string> = {
     CARD_PIONEER: 'A true Card Pioneer. Among the first to pay everywhere with Peanut.',
     FOUNDER_HOUSE: 'Checked in at the Founder Haus. Builds IRL, not just on-chain.',
     SUPPORT_SURVIVOR: 'Survived a real bug and helped us fix it. The brave kind of user.',
+    SHHHHH: 'They know the secret.',
+    CARD_FIRST_SWIPE: 'First swipe. They finally used the plastic.',
+    CARD_SPENT_1K: '$1K swiped. They put their money where their card is.',
 }
 
 export function getBadgeIcon(code?: string) {
