@@ -14,15 +14,21 @@ const PeanutRagdoll = RAGDOLL_ENABLED ? dynamic(() => import('@/components/Peanu
 export default function NotFound() {
     const { openSupportWithMessage } = useModalsContext()
 
+    // Send only the pathname — query + hash can carry magic-link tokens,
+    // OAuth callback secrets, or signed-share params that we don't want
+    // landing in Crisp chat logs.
     const openSupport = () =>
         openSupportWithMessage(
-            `Hey! I hit a 404 — can you help?${typeof window !== 'undefined' ? `\n\nURL: ${window.location.href}` : ''}`
+            `Hey! I hit a 404 — can you help?${typeof window !== 'undefined' ? `\n\nPath: ${window.location.pathname}` : ''}`
         )
 
     return (
         <>
             <div className="flex min-h-[100dvh] flex-col md:h-[100dvh] md:flex-row">
-                <div className="relative h-[55dvh] w-full overflow-hidden bg-purple-1 md:h-full md:w-7/12">
+                <div
+                    aria-hidden="true"
+                    className="relative h-[55dvh] w-full overflow-hidden bg-purple-1 md:h-full md:w-7/12"
+                >
                     {PeanutRagdoll && <PeanutRagdoll />}
                 </div>
 
@@ -46,7 +52,7 @@ export default function NotFound() {
                             <a href="/" className="btn btn-purple shadow-4 block w-full text-center">
                                 Take me home
                             </a>
-                            <Button variant="stroke" onClick={openSupport}>
+                            <Button variant="stroke" className="w-full" onClick={openSupport}>
                                 Contact support
                             </Button>
                         </div>
