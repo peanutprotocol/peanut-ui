@@ -134,7 +134,11 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                      * (52px), so the wrapper locks to that — `****`, the
                      * skeleton, and the real digits all sit centered in the
                      * same 52px row and the eye button never jumps. */}
-                    <div className="flex h-[52px] items-center">
+                    {/* ph-no-capture: PostHog skips this subtree in session
+                     * replays so the revealed PIN digits never land in
+                     * recordings. The skeleton + masked '****' state are
+                     * also covered, which is fine — they're not sensitive. */}
+                    <div className="ph-no-capture flex h-[52px] items-center">
                         {loading ? (
                             <div className="h-[52px] w-32 animate-pulse rounded bg-grey-2" />
                         ) : (

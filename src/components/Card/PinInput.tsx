@@ -28,7 +28,10 @@ const PinInput: FC<Props> = ({ value, onChange, length = 4, autoFocus = true, di
         <button
             type="button"
             onClick={() => inputRef.current?.focus()}
-            className={twMerge('flex items-center justify-center gap-4', className)}
+            // ph-no-capture: PostHog skips this subtree in session replays
+            // so neither the entered digits nor the filled-dot count (which
+            // would leak partial PINs) ever land in recordings.
+            className={twMerge('ph-no-capture flex items-center justify-center gap-4', className)}
             disabled={disabled}
         >
             {Array.from({ length }).map((_, i) => {
