@@ -32,5 +32,5 @@ export const PAYMENT_LOADING_WORDS = [
     'Beating your card!',
     'Cooking',
     'Marinating',
-    'Yodling',
+    'Yodeling',
 ] as const

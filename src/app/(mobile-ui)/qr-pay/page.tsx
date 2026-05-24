@@ -1048,8 +1048,8 @@ export default function QRPayPage() {
     }
 
     // show loading spinner if we're still loading payment data
-    if (isLoadingPaymentData || loadingState.toLowerCase() === 'paying') {
-        return loadingState.toLowerCase() === 'paying' ? <CyclingLoading /> : <PeanutLoading />
+    if (isLoadingPaymentData || loadingState === 'Paying') {
+        return loadingState === 'Paying' ? <CyclingLoading /> : <PeanutLoading />
     }
 
     //Success

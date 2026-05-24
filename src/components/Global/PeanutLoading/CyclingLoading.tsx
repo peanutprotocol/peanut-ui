@@ -2,12 +2,11 @@
 
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 import { useEffect, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
 import { PAYMENT_LOADING_WORDS } from './words'
 
 const ROTATE_MS = 1800
 
-export default function CyclingLoading({ coverFullScreen = false }: { coverFullScreen?: boolean }) {
+export default function CyclingLoading() {
     const [index, setIndex] = useState(() => Math.floor(Math.random() * PAYMENT_LOADING_WORDS.length))
 
     useEffect(() => {
@@ -25,13 +24,7 @@ export default function CyclingLoading({ coverFullScreen = false }: { coverFullS
 
     return (
         <div className="w-full flex-col items-center justify-center self-center text-center">
-            <div
-                className={twMerge(
-                    'flex w-full items-center justify-center self-center',
-                    coverFullScreen &&
-                        'fixed left-0 top-0 z-50 flex h-screen w-full items-center justify-center bg-background'
-                )}
-            >
+            <div className="flex w-full items-center justify-center self-center">
                 <div className="animate-spin">
                     <img src={PEANUTMAN_LOGO.src} alt="logo" className="h-10" />
                     <span className="sr-only">{word}</span>
