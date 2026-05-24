@@ -284,9 +284,60 @@ export default function DebugPage() {
                     key: 'resetCard',
                     label: 'Reset card → re-walk activation flow',
                     description:
-                        "Deletes the user's Rain card rows + clears card_access_granted_at so /card drops back to the Pioneer paywall / AddCardEntryScreen. Use between activation-funnel iterations. KYC + ledger + wallet state untouched.",
+                        "Deletes the user's Rain card rows + clears card_access_granted_at so /card drops back to AddCardEntryScreen / waitlist. Use between activation-funnel iterations. KYC + ledger + wallet state untouched.",
                     run: async () => {
                         await call('resetCard', '/dev/cheats/reset-card', { userId })
+                        await refreshWhoami()
+                    },
+                },
+                {
+                    key: 'grantFlowEarlyAccess',
+                    label: 'Stamp /shhhhh early-access',
+                    description:
+                        "Stamps users.card_flow_early_access_at so the outer gate opens without going through /shhhhh. Idempotent. Use to skip the LP when testing the inner flow directly.",
+                    run: async () => {
+                        await call('grantFlowEarlyAccess', '/dev/cheats/grant-flow-early-access', { userId })
+                        await refreshWhoami()
+                    },
+                },
+                {
+                    key: 'joinCardWaitlist',
+                    label: 'Join card waitlist (queue)',
+                    description:
+                        "Stamps cardWaitlistJoinedAt so /card shows the waitlist screen with the user's queue position. Idempotent.",
+                    run: () => call('joinCardWaitlist', '/dev/cheats/join-card-waitlist', { userId }),
+                },
+                {
+                    key: 'releaseFromWaitlist',
+                    label: 'Release from waitlist (admin grant)',
+                    description:
+                        'Stamps cardAccessGrantedAt as if an admin had released this user. /card flips to add-card after refresh.',
+                    run: async () => {
+                        await call('releaseFromWaitlist', '/dev/cheats/release-from-waitlist', { userId })
+                        await refreshWhoami()
+                    },
+                },
+                {
+                    key: 'clearSkipCelebration',
+                    label: 'Clear skip-badge celebration seen',
+                    description:
+                        "Resets cardWaitlistSkipCelebrationSeenAt so the next /card visit re-fires the gift-box reveal. Useful when QA'ing the celebration UI.",
+                    run: () => call('clearSkipCelebration', '/dev/cheats/clear-skip-celebration', { userId }),
+                },
+                {
+                    key: 'hitActivationThreshold',
+                    label: 'Mint activation reward ($100 → $10)',
+                    description:
+                        'Inserts a synthetic CARD_SPEND_AUTH worth $100 + fires the activation listener. If the perk campaign is seeded, the $10 reward (and referrer $10 if invited) lands instantly.',
+                    run: () => call('hitActivationThreshold', '/dev/cheats/hit-activation-threshold', { userId }),
+                },
+                {
+                    key: 'resetCardWaitlist',
+                    label: 'Reset waitlist state (full wipe)',
+                    description:
+                        'Clears every cardWaitlist* column on the user + deletes any open activation PerkUsage rows. Pairs with "Reset card" for a full re-walk of the waitlist + activation funnel.',
+                    run: async () => {
+                        await call('resetCardWaitlist', '/dev/cheats/reset-card-waitlist', { userId })
                         await refreshWhoami()
                     },
                 },
