@@ -57,14 +57,15 @@ const WINK_DURATION = 0.8
 const WINK_GAP_MIN = 1.5,
     WINK_GAP_MAX = 3.0
 
+// Only includes sprite keys that the bootstrap actually loads. faceNeutral,
+// faceCurious, faceTalking, faceExcited were in the original pool but no
+// loadImage() call ever populated those keys, so picks of those names
+// silently `undefined`'d. Drop them until the assets exist; re-add the
+// entries alongside the corresponding loadImage() calls.
 const IDLE_POOL: { name: string; weight: number }[] = [
     { name: 'faceThoughtful', weight: 30 },
-    { name: 'faceNeutral', weight: 25 },
     { name: 'faceWhistling', weight: 20 },
-    { name: 'faceCurious', weight: 15 },
     { name: 'face', weight: 7 }, // Cheers
-    { name: 'faceTalking', weight: 2 },
-    { name: 'faceExcited', weight: 1 },
 ]
 
 const BODYPARTS = 1 << 2
