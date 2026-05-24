@@ -36,10 +36,10 @@ const PUBLIC_DESCRIPTIONS: Record<string, string> = {
     SUPPORT_SURVIVOR: 'Survived a real bug and helped us fix it. The brave kind of user.',
 }
 
-export function getBadgeIcon(code?: string) {
+export function getBadgeIcon(code?: string): string {
     if (code && CODE_TO_PATH[code]) return CODE_TO_PATH[code]
-    // fallback to peanutman logo
-    return PEANUTMAN_LOGO
+    // fallback to peanutman logo (static SVG import → URL string)
+    return PEANUTMAN_LOGO.src
 }
 
 // returns the public-facing description for a badge code (third-person perspective)
