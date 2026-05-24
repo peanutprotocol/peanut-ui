@@ -332,8 +332,6 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
         const ARM_SPRITE_H = 22.983
         const LEG_SPRITE_W = 30
         const LEG_SPRITE_H = LEG_L * 100
-        void LEG_SPRITE_W
-        void LEG_SPRITE_H
 
         world = new (p2 as any).World({ gravity: [0, -10] })
         world.solver.iterations = 10
@@ -404,20 +402,20 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
             width: LEG_W,
             length: LEG_L,
             vertical: true,
-            sprite: sprites.arm,
+            sprite: sprites.leg,
         })
-        leftLeg.__sw = ARM_SPRITE_W
-        leftLeg.__sh = ARM_SPRITE_H
+        leftLeg.__sw = LEG_SPRITE_W
+        leftLeg.__sh = LEG_SPRITE_H
         leftLeg.__spriteAngle = -Math.PI / 2
         const rightLeg: any = makeLimbSegment({
             position: [HIP_X, hipY - LEG_L / 2],
             width: LEG_W,
             length: LEG_L,
             vertical: true,
-            sprite: sprites.arm,
+            sprite: sprites.leg,
         })
-        rightLeg.__sw = ARM_SPRITE_W
-        rightLeg.__sh = ARM_SPRITE_H
+        rightLeg.__sw = LEG_SPRITE_W
+        rightLeg.__sh = LEG_SPRITE_H
         rightLeg.__spriteAngle = Math.PI / 2
 
         const FOOT_DX = FOOT_R * 0.5
@@ -624,6 +622,10 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
 
     const onPointerDown = (e: PointerEvent) => {
         if (!world) return
+        // Reject secondary pointers while a drag is active. Without this, a
+        // second touch leaks the previous mouseConstraint into world.constraints
+        // and any subsequent pointerup tears down the drag for both pointers.
+        if (activePointerId !== null) return
         lastInteractionT = performance.now()
         if (sleeping) wake()
         if (frozen) thaw()
@@ -666,6 +668,12 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
                 rafId = 0
             }
             sleeping = true
+        } else if (started && !rafId) {
+            // Tab became visible again — restart the loop so the ragdoll
+            // resumes mid-pose. Without this the simulation stays frozen
+            // until the user clicks the canvas (the only other wake path).
+            lastT = performance.now()
+            rafId = requestAnimationFrame(loop)
         }
     }
 
