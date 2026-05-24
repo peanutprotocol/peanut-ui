@@ -44,6 +44,7 @@ export const DEDICATED_ROUTES = [
     'terms',
     'lp',
     'exchange',
+    'shhhhh',
 
     // Future SEO routes (pre-register so catch-all doesn't intercept)
     'send-money-to',
