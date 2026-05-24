@@ -30,12 +30,17 @@ interface PixelatedCardFaceProps {
     className?: string
     /** Extra inline styles merged on top of the defaults (width/height/shadow). */
     style?: CSSProperties
+    /** When true, blur every element on the card (logos, "•••• XXXX", Virtual
+     *  pill) so the card silhouette is recognisable but no detail is legible.
+     *  The pixelated hand stays sharp. Used by the /shhhhh closed-beta LP. */
+    blurAll?: boolean
 }
 
 export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
     last4 = 'XXXX',
     className,
     style,
+    blurAll = false,
 }) => (
     <div
         className={`relative border-[4px] border-black rounded-3xl overflow-hidden ${className ?? ''}`}
@@ -50,7 +55,13 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
         <PixelatedHand />
         <div
             className="absolute flex items-start justify-between"
-            style={{ top: 24, left: 28, right: 28, zIndex: 2 }}
+            style={{
+                top: 24,
+                left: 28,
+                right: 28,
+                zIndex: 2,
+                filter: blurAll ? 'blur(14px) saturate(1.2)' : undefined,
+            }}
         >
             <img src={ASSET_PEANUTMAN_LOGO} alt="" aria-hidden style={{ height: 52, width: 'auto' }} />
             <img
@@ -59,7 +70,15 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
                 style={{ height: 32, width: 'auto', filter: 'brightness(0) invert(1)' }}
             />
         </div>
-        <div className="absolute" style={{ bottom: 24, left: 28, zIndex: 2 }}>
+        <div
+            className="absolute"
+            style={{
+                bottom: 24,
+                left: 28,
+                zIndex: 2,
+                filter: blurAll ? 'blur(14px) saturate(1.2)' : undefined,
+            }}
+        >
             <div
                 style={{
                     fontFamily: 'var(--font-roboto), sans-serif',

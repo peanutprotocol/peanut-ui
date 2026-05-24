@@ -240,7 +240,9 @@ export default function ShhhhhLandingPage() {
                                 transformOrigin: 'center center',
                             }}
                         >
-                            <PixelatedCardFace last4="0420" />
+                            {/* blurAll: closed-beta tease — card shape recognisable,
+                                logos + number unreadable. */}
+                            <PixelatedCardFace last4="0420" blurAll />
                         </div>
                     </div>
                 </div>
