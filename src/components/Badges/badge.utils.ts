@@ -1,7 +1,7 @@
 // per-badge metadata: asset path under public/badges, public-facing description,
 // and optional front-end display-name override. Backend codes/names stay the same;
 // overrides only affect what the user sees.
-import { PEANUTMAN_LOGO } from '@/assets'
+import { PEANUTMAN_LOGO } from '@/assets/peanut'
 
 type BadgeMeta = {
     path: string
