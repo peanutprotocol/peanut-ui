@@ -12,11 +12,11 @@ type BadgeMeta = {
 const BADGES: Record<string, BadgeMeta> = {
     BETA_TESTER: {
         path: '/badges/beta_tester.svg',
-        description: `They broke things so others don't have to. Welcome to the chaos club.`,
+        description: `They're in the lab with us. Early enough to be part of the experiment.`,
     },
     DEVCONNECT_BA_2025: {
         path: '/badges/devconnect_2025.svg',
-        description: 'Not anon. Touched grass, shook hands, breathed the same air as Vitalik.',
+        description: 'Buenos Aires, baby. They came, they claimed, they ate the steak.',
     },
     PRODUCT_HUNT: {
         path: '/badges/product_hunt.svg',
@@ -24,19 +24,19 @@ const BADGES: Record<string, BadgeMeta> = {
     },
     OG_2025_10_12: {
         path: '/badges/og_v1.svg',
-        description: 'This is a real OG. They were with Peanut before it was cool.',
+        description: 'A real OG. They were with Peanut before it was cool.',
     },
     MOST_RESTAURANTS_DEVCON: {
         path: '/badges/foodie.svg',
-        description: 'This person is a real gourmet!',
+        description: 'Hit more restaurants than the Michelin guide. Touched every menu in BA.',
     },
     BIG_SPENDER_5K: {
         path: '/badges/big_spender.svg',
-        description: 'This person is a top spender.',
+        description: `They didn't come to Devconnect to network. They came to spend.`,
     },
     MOST_PAYMENTS_DEVCON: {
         path: '/badges/most_payments.svg',
-        description: `Money Machine - They move money like it's light work. Most payments made!`,
+        description: `Money Machine — they move money like it's light work. Most payments made!`,
     },
     MOST_INVITES: {
         path: '/badges/most_invites.svg',
@@ -48,24 +48,31 @@ const BADGES: Record<string, BadgeMeta> = {
     },
     SEEDLING_DEVCONNECT_BA_2025: {
         path: '/badges/seedlings_devconnect.svg',
-        description: 'Peanut Ambassador. They spread the word and brought others into the ecosystem.',
+        description: `They shill Peanut so we don't have to. Honorary squirrel.`,
     },
     ARBIVERSE_DEVCONNECT_BA_2025: {
         path: '/badges/arbiverse_devconnect.svg',
-        description: 'Peanut 🤝 Arbiverse. They joined us at the amazing Arbiverse booth.',
+        description: 'They found the Arbiverse booth. We found them. Mutual onboarding achieved.',
     },
     CARD_PIONEER: {
         path: '/badges/peanut-pioneer.png',
         description: 'A true Card Pioneer. Among the first to pay everywhere with Peanut.',
     },
     FOUNDER_HOUSE: {
-        path: '/badges/founder_house.png',
-        description: 'Checked in at the Founder Haus. Builds IRL, not just on-chain.',
+        path: '/badges/founder_house.svg',
+        description: 'Built IRL at Founder Haus. On-chain energy, off-chain handshakes.',
         displayName: 'Founder Haus',
     },
+    BUG_WHISPERER: {
+        path: '/badges/bug_whisperer.svg',
+        description: 'They found a real bug, reported it, and stayed. We owe them a beer.',
+    },
+    // Legacy code from the original "SUPPORT_SURVIVOR" badge. Backend still emits this code;
+    // we render the new beetle asset + the renamed copy. Drop once backend migrates to BUG_WHISPERER.
     SUPPORT_SURVIVOR: {
-        path: '/badges/support_survivor.svg',
-        description: 'Survived a real bug and helped us fix it. The brave kind of user.',
+        path: '/badges/bug_whisperer.svg',
+        description: 'They found a real bug, reported it, and stayed. We owe them a beer.',
+        displayName: 'Bug Whisperer',
     },
     // Card-launch badges — assets only. No backend trigger yet; entries are here
     // so the icons render the moment the API starts awarding the codes.
@@ -76,7 +83,7 @@ const BADGES: Record<string, BadgeMeta> = {
     },
     CARD_FIRST_SWIPE: {
         path: '/badges/happy_card.svg',
-        description: 'First swipe. They finally used the plastic.',
+        description: 'First swipe. They put their card to work.',
         // TODO(card-launch): award on first settled Rain card payment
     },
     CARD_SPENT_1K: {
