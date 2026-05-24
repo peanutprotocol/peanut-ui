@@ -55,8 +55,8 @@ const underMaintenanceConfig: MaintenanceConfig = {
     enableFullMaintenance: false, // set to true to redirect all pages to /maintenance
     enableMaintenanceBanner: false, // set to true to show maintenance banner on all pages
     disabledPaymentProviders: [], // set to ['MANTECA'] to disable Manteca QR payments
-    disableXchainWithdraw: false, // set to true to disable cross-chain withdrawals (only allows USDC on Arbitrum)
-    disableXchainSend: false, // set to true to disable cross-chain sends (claim, request payments - only allows USDC on Arbitrum)
+    disableXchainWithdraw: true, // set to true to disable cross-chain withdrawals (only allows USDC on Arbitrum)
+    disableXchainSend: true, // set to true to disable cross-chain sends (claim, request payments - only allows USDC on Arbitrum)
     disableCardPioneers: true, // set to false to enable the Card Pioneers waitlist feature
 }
 
