@@ -61,7 +61,6 @@ const BADGES: Record<string, BadgeMeta> = {
     FOUNDER_HOUSE: {
         path: '/badges/founder_house.svg',
         description: 'Built IRL at Founder Haus. On-chain energy, off-chain handshakes.',
-        displayName: 'Founder Haus',
     },
     BUG_WHISPERER: {
         path: '/badges/bug_whisperer.svg',
