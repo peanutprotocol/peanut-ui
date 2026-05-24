@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Marquee } from '@/components/LandingPage'
 import { useAuth } from '@/context/authContext'
-import { CARD_GRADIENT_10_PIXEL } from '@/assets/cards'
+import { PixelatedCardFace } from '@/components/Card/share-asset/PixelatedCardFace'
 import { Sparkle, Star } from '@/assets'
 
 const marqueeMessages = ['IYKYK', 'WORD TRAVELS', 'CLOSED BETA', 'SHHHH', 'PEANUT CLUB']
@@ -185,8 +185,8 @@ export default function ShhhhhLandingPage() {
                         </p>
                         <p className="font-roboto-flex mt-6 max-w-xl text-xl leading-relaxed md:text-2xl">
                             A card accepted at over 150 million Visa-accepting merchants. We&apos;re letting beta users
-                            in slowly — <ScarcityCounter /> a week. If you&apos;ve got the right badge, you skip the
-                            line entirely.
+                            in slowly — <ScarcityCounter />{' '}
+                            a week. If you&apos;ve got the right badge, you skip the line entirely.
                         </p>
                         <div className="mt-8 flex flex-col items-center gap-5 md:flex-row md:items-center md:gap-6">
                             <div className="relative">
@@ -213,13 +213,20 @@ export default function ShhhhhLandingPage() {
                         </div>
                     </div>
                     <div className="flex justify-center md:justify-end">
-                        <div className="w-full max-w-md -rotate-12 overflow-hidden rounded-2xl border-2 border-n-1 bg-white shadow-[16px_24px_0_#000]">
-                            <Image
-                                src={CARD_GRADIENT_10_PIXEL}
-                                alt="peanut card"
-                                priority
-                                className="block h-auto w-full"
-                            />
+                        {/* Match ShareAssetD3 pixelation: same PixelatedCardFace component
+                            scaled into the hero column. Native dims are 620×391; the
+                            inner absolute-positioned layout scales linearly with the
+                            transform. Width-bounded so the rotated card stays in column. */}
+                        <div
+                            className="origin-center -rotate-12"
+                            style={{
+                                width: 400,
+                                height: 252,
+                                transform: 'scale(0.645) rotate(-12deg)',
+                                transformOrigin: 'center center',
+                            }}
+                        >
+                            <PixelatedCardFace last4="0420" />
                         </div>
                     </div>
                 </div>

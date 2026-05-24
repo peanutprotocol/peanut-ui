@@ -21,8 +21,6 @@ import { SeededRandom } from './seededRandom'
 import {
     CANVAS_W,
     CANVAS_H,
-    CARD_W,
-    CARD_H,
     CARD_LEFT,
     CARD_TOP,
     CARD_ROTATION_DEG,
@@ -35,19 +33,15 @@ import {
 } from './shareAssetLayout'
 import type { ShareAssetD3Props, TierLevel } from './shareAsset.types'
 import { TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets/badges'
-import { PEANUTMAN_LOGO, PEANUTMAN_WAVING, PEANUTMAN_RAISING_HANDS } from '@/assets/peanut'
+import { PEANUTMAN_WAVING, PEANUTMAN_RAISING_HANDS } from '@/assets/peanut'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import { HandThumbsUp } from '@/assets'
-import PEANUT_CARD_HAND_ASSET from '@/assets/cards/peanut-card-hand.svg'
-import VISA_BRAND_MARK_ASSET from '@/assets/cards/visa-brand-mark.png'
+import { PixelatedCardFace } from './PixelatedCardFace'
 
 const ASSET_STAR = STAR_STRAIGHT_ICON.src
 const ASSET_HAND_THUMBS = HandThumbsUp.src
 const ASSET_PEANUTMAN_WAVING = PEANUTMAN_WAVING.src
 const ASSET_PEANUT_HANDS = PEANUTMAN_RAISING_HANDS.src
-const ASSET_PEANUTMAN_LOGO = PEANUTMAN_LOGO.src
-const ASSET_VISA_BRAND = VISA_BRAND_MARK_ASSET.src
-const ASSET_CARD_HAND = PEANUT_CARD_HAND_ASSET.src
 
 const TIER_SVG: Record<TierLevel, string> = {
     0: TIER_0_BADGE,
@@ -290,7 +284,7 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                     animation: animate ? `cardSlide 800ms cubic-bezier(0.18, 0.89, 0.32, 1.28) ${ANIM_CARD_DELAY}ms both` : 'none',
                 }}
             >
-                <CardFaceForShare last4={safeLast4} />
+                <PixelatedCardFace last4={safeLast4} />
             </div>
 
             {/* ─── Stamps IN FRONT (z-index 4) ─── */}
@@ -506,108 +500,5 @@ const DecorationEl: FC<{ deco: DecorationPlacement; animate: boolean; delay: num
         />
     )
 }
-
-// TODO: consolidate with src/components/Card/CardFace.tsx via a `pixelHand`
-// prop. Kept separate for now to avoid cross-agent churn on CardFace.
-const CardFaceForShare: FC<{ last4: string }> = ({ last4 }) => (
-    <div
-        className="relative border-[4px] border-black rounded-3xl overflow-hidden"
-        style={{
-            background: '#FF90E8',
-            width: CARD_W,
-            height: CARD_H,
-            boxShadow: '0.625rem 0.625rem 0 #000',
-        }}
-    >
-        <PixelatedHand />
-        <div
-            className="absolute flex items-start justify-between"
-            style={{ top: 24, left: 28, right: 28, zIndex: 2 }}
-        >
-            <img src={ASSET_PEANUTMAN_LOGO} alt="" aria-hidden style={{ height: 52, width: 'auto' }} />
-            <img
-                src={ASSET_VISA_BRAND}
-                alt="Visa"
-                style={{ height: 32, width: 'auto', filter: 'brightness(0) invert(1)' }}
-            />
-        </div>
-        <div className="absolute" style={{ bottom: 24, left: 28, zIndex: 2 }}>
-            <div
-                style={{
-                    fontFamily: 'var(--font-roboto), sans-serif',
-                    fontWeight: 1000,
-                    letterSpacing: '0.06em',
-                    fontSize: 38,
-                    lineHeight: 1,
-                }}
-            >
-                •••• {last4}
-            </div>
-            <span
-                className="inline-block bg-white border-[1.5px] border-black rounded-full font-semibold"
-                style={{ fontSize: 15, padding: '2px 14px', marginTop: 8 }}
-            >
-                Virtual
-            </span>
-        </div>
-    </div>
-)
-
-// Module-level cache: rasterize the peanut-card-hand SVG into a tiny canvas
-// exactly once. Every mount clones the cached canvas (cheap) instead of
-// re-decoding the SVG + re-running drawImage. Without this, every remount
-// — including reroll button presses and animation toggles — paid 5-15ms
-// to re-rasterize the same asset.
-//
-// Server-side OG renderers (satori/sharp) will need their own pre-rasterized
-// PNG; this client-side cache is only for the in-app /dev/share-builder.
-const PIXEL_SIZE = 36
-let cachedHandCanvas: HTMLCanvasElement | null = null
-
-function makePixelatedHand(onReady: (canvas: HTMLCanvasElement) => void) {
-    if (cachedHandCanvas) {
-        onReady(cachedHandCanvas.cloneNode(true) as HTMLCanvasElement)
-        return
-    }
-    const img = new Image()
-    img.decoding = 'async'
-    img.onload = () => {
-        const ratio = img.naturalWidth / img.naturalHeight || 1
-        const cw = ratio > 1 ? PIXEL_SIZE : Math.max(1, Math.round(PIXEL_SIZE * ratio))
-        const ch = ratio > 1 ? Math.max(1, Math.round(PIXEL_SIZE / ratio)) : PIXEL_SIZE
-        const canvas = document.createElement('canvas')
-        canvas.width = cw
-        canvas.height = ch
-        const ctx = canvas.getContext('2d')!
-        ctx.imageSmoothingEnabled = false
-        ctx.drawImage(img, 0, 0, cw, ch)
-        cachedHandCanvas = canvas
-        onReady(canvas.cloneNode(true) as HTMLCanvasElement)
-    }
-    img.src = ASSET_CARD_HAND
-}
-
-const PixelatedHand: FC = () => (
-    <div
-        ref={(node) => {
-            if (!node || node.firstChild) return
-            makePixelatedHand((canvas) => {
-                canvas.style.width = '100%'
-                canvas.style.height = '100%'
-                canvas.style.imageRendering = 'pixelated'
-                node.appendChild(canvas)
-            })
-        }}
-        className="absolute pointer-events-none select-none"
-        style={{
-            top: -40,
-            right: -20,
-            width: 560,
-            height: 471,
-            transform: 'rotate(-15deg)',
-            transformOrigin: 'center',
-        }}
-    />
-)
 
 export default ShareAssetD3
