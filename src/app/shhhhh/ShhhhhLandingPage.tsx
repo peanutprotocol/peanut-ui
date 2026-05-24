@@ -4,11 +4,14 @@ import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
+import posthog from 'posthog-js'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Marquee } from '@/components/LandingPage'
 import { useAuth } from '@/context/authContext'
 import { PixelatedCardFace } from '@/components/Card/share-asset/PixelatedCardFace'
 import { Sparkle, Star } from '@/assets'
+import { cardApi } from '@/services/card'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const marqueeMessages = ['IYKYK', 'WORD TRAVELS', 'CLOSED BETA', 'SHHHH', 'PEANUT CLUB']
 
@@ -134,12 +137,23 @@ export default function ShhhhhLandingPage() {
     const { user } = useAuth()
     const router = useRouter()
 
-    const handleCTA = () => {
-        if (user) {
-            router.push('/card')
-        } else {
+    const handleCTA = async () => {
+        posthog.capture(ANALYTICS_EVENTS.DOOR_TRY, { signed_in: !!user })
+        if (!user) {
             router.push('/setup?redirect_uri=/shhhhh')
+            return
         }
+        // Stamp the early-access flag so the user can pass the /card outer
+        // gate. Idempotent: subsequent presses no-op. Failure is non-fatal —
+        // we still navigate to /card so the user isn't left on the LP; the
+        // gate redirect will catch them gracefully if the stamp didn't land.
+        try {
+            await cardApi.grantFlowEarlyAccess()
+            posthog.capture(ANALYTICS_EVENTS.CARD_FLOW_EARLY_ACCESS_GRANTED)
+        } catch (err) {
+            console.error('[shhhhh] grantFlowEarlyAccess failed:', err)
+        }
+        router.push('/card')
     }
 
     const marqueeProps = { visible: true, message: marqueeMessages }

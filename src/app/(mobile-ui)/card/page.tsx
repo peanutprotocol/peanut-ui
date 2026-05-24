@@ -1,22 +1,19 @@
 'use client'
 import { type FC, useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { isCapacitor } from '@/utils/capacitor'
-import { chargePayUrl } from '@/utils/native-routes'
-import { useQueryStates, parseAsStringEnum } from 'nuqs'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { computeCardState, findActiveCard, type CardTopLevelState } from '@/components/Card/cardState.utils'
 import { pollUntilApplyAdvances } from '@/components/Card/cardApply.utils'
-import CardPioneerFlow from '@/components/Card/CardPioneerFlow'
 import AddCardEntryScreen from '@/components/Card/AddCardEntryScreen'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 import CardTermsScreen from '@/components/Card/CardTermsScreen'
+import CardWaitlistScreen from '@/components/Card/CardWaitlistScreen'
+import BadgeSkipCelebration from '@/components/Card/BadgeSkipCelebration'
 import YourCardScreen from '@/components/Card/YourCardScreen'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -26,6 +23,23 @@ import { rainApi, type ApplyForCardResponse } from '@/services/rain'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSafeBack } from '@/hooks/useSafeBack'
+
+// Skip badge codes — must mirror BE src/card/waitlist.ts SKIP_BADGE_CODES.
+const SKIP_BADGE_CODES = ['OG_2025_10_12', 'DEVCONNECT_BA_2025', 'ARBIVERSE_DEVCONNECT_BA_2025'] as const
+
+// localStorage key for the one-time celebration gate. Phase 5 will swap
+// this for a BE-persisted `cardWaitlistSkipCelebrationSeenAt` lookup.
+const SKIP_CELEBRATION_SEEN_KEY = 'card_skip_celebration_seen_v1'
+
+function getSkipCelebrationSeen(): boolean {
+    if (typeof window === 'undefined') return false
+    return window.localStorage.getItem(SKIP_CELEBRATION_SEEN_KEY) === 'true'
+}
+
+function markSkipCelebrationSeen(): void {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(SKIP_CELEBRATION_SEEN_KEY, 'true')
+}
 
 const CardPage: FC = () => {
     const router = useRouter()
@@ -62,25 +76,30 @@ const CardPage: FC = () => {
     // Card mid-apply before the state machine sees the new state.
     const [isIssuing, setIsIssuing] = useState(false)
 
-    // Maintenance gate: redirect non-access users away during a Pioneer
-    // outage, but let users with hasCardAccess (manual grant or completed
-    // purchase) keep reaching their card. Wait for cardInfo so we don't
-    // bounce them before we know their access state — and bail on fetch
-    // error so the retry UI below stays reachable instead of redirecting
-    // a granted user mid-blip.
+    // Track whether the user has acknowledged the skip-badge celebration.
+    // localStorage for M2; Phase 5 will read this from BE's
+    // cardWaitlistSkipCelebrationSeenAt column.
+    const [skipCelebrationSeen, setSkipCelebrationSeen] = useState<boolean>(() =>
+        getSkipCelebrationSeen()
+    )
+
+    // Outer gate: pre-public-launch, redirect users without /shhhhh early
+    // access back to the landing page so they don't see a half-baked /card
+    // shell. BE returns `flowEarlyAccess: false` in that case.
     useEffect(() => {
-        if (!underMaintenanceConfig.disableCardPioneers) return
-        if (pioneerLoading) return
-        if (pioneerError) return
-        if (cardInfo?.hasCardAccess) return
-        router.replace('/home')
-    }, [router, pioneerLoading, pioneerError, cardInfo?.hasCardAccess])
+        if (pioneerLoading || pioneerError) return
+        if (!cardInfo) return
+        if (cardInfo.flowEarlyAccess) return
+        posthog.capture(ANALYTICS_EVENTS.CARD_FLOW_GATED)
+        router.replace('/shhhhh')
+    }, [router, pioneerLoading, pioneerError, cardInfo])
 
     const state = computeCardState({
         overview,
-        pioneerInfo: cardInfo,
+        cardInfo,
         overviewLoading,
-        pioneerLoading,
+        cardInfoLoading: pioneerLoading,
+        skipCelebrationSeen,
     })
 
     // Fire CARD_STATE_VIEWED on each distinct top-level state entry. Skip the
@@ -270,7 +289,9 @@ const CardPage: FC = () => {
         return ''
     }, [invalidateOverview])
 
-    if (underMaintenanceConfig.disableCardPioneers && !pioneerLoading && !pioneerError && !cardInfo?.hasCardAccess) {
+    // Outer-gate fail — we already kicked off the redirect to /shhhhh in
+    // the useEffect above; render nothing here so the page doesn't flash.
+    if (state === 'no-flow-access') {
         return null
     }
 
@@ -318,8 +339,39 @@ const CardPage: FC = () => {
             )
         }
         switch (state) {
-            case 'pioneer':
-                return <CardPioneerFlow cardInfo={cardInfo!} refetchCardInfo={refetchCardInfo} />
+            case 'waitlist': {
+                const userSkipBadges = new Set(cardInfo!.skipBadges)
+                const missingSkipBadges = SKIP_BADGE_CODES.filter((c) => !userSkipBadges.has(c))
+                return (
+                    <CardWaitlistScreen
+                        cardInfo={cardInfo!}
+                        onPrev={onBack}
+                        onJoined={refetchCardInfo}
+                        missingSkipBadges={missingSkipBadges}
+                    />
+                )
+            }
+            case 'waitlist-skip-celebration': {
+                // Pick the freshest skip badge for the celebration headline.
+                const skipCode = cardInfo!.skipBadges[0]
+                return (
+                    <BadgeSkipCelebration
+                        badgeCode={skipCode}
+                        username={user?.user?.username ?? undefined}
+                        // Pass the skip badges through to the share asset so the
+                        // stamps reflect the user's actual collection. Earned-at
+                        // dates aren't on /card's response — share asset will
+                        // sort by code order, which is fine for the celebration.
+                        badges={cardInfo!.skipBadges.map((code) => ({ code }))}
+                        onContinue={() => {
+                            markSkipCelebrationSeen()
+                            setSkipCelebrationSeen(true)
+                            invalidateOverview()
+                            void refetchCardInfo()
+                        }}
+                    />
+                )
+            }
             case 'add-card':
                 return <AddCardEntryScreen onApply={() => handleApply(false)} onPrev={onBack} applyError={applyError} />
             case 'pending':
