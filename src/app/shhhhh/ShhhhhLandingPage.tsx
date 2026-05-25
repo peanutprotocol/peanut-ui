@@ -207,8 +207,8 @@ export default function ShhhhhLandingPage() {
                         </p>
                         <p className="font-roboto-flex mt-6 max-w-xl text-xl leading-relaxed md:text-2xl">
                             A card accepted at over 150 million Visa-accepting merchants. We&apos;re letting beta users
-                            in slowly — <ScarcityCounter />{' '}
-                            a week. If you&apos;ve got the right badge, you skip the line entirely.
+                            in slowly — <ScarcityCounter /> a week. If you&apos;ve got the right badge, you skip the
+                            line entirely.
                         </p>
                         <div className="mt-8 flex flex-col items-center gap-5 md:flex-row md:items-center md:gap-6">
                             <div className="relative">

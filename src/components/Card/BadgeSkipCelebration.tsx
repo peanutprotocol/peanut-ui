@@ -56,15 +56,7 @@ const SKIP_BADGE_HEADLINES: Record<string, string> = {
 
 type Phase = 'pre-reveal' | 'shaking' | 'revealed'
 
-const BadgeSkipCelebration: FC<Props> = ({
-    badgeCode,
-    username,
-    badges,
-    stats,
-    tier,
-    pointsBalance,
-    onContinue,
-}) => {
+const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, tier, pointsBalance, onContinue }) => {
     const [phase, setPhase] = useState<Phase>('pre-reveal')
     const { triggerHaptic } = useHaptic()
     const scaleHostRef = useRef<HTMLDivElement | null>(null)
@@ -87,8 +79,7 @@ const BadgeSkipCelebration: FC<Props> = ({
         return () => ro.disconnect()
     }, [])
 
-    const headline =
-        (badgeCode && SKIP_BADGE_HEADLINES[badgeCode]) || 'You skipped the line.'
+    const headline = (badgeCode && SKIP_BADGE_HEADLINES[badgeCode]) || 'You skipped the line.'
 
     // Auto-reveal sequence: brief shake → confetti → asset on screen.
     useEffect(() => {
@@ -122,9 +113,7 @@ const BadgeSkipCelebration: FC<Props> = ({
 
             <div className="flex flex-col gap-2 text-center">
                 <h1 className="text-3xl font-extrabold text-n-1">{headline}</h1>
-                <p className="text-grey-1">
-                    You hold a badge that skips the closed-beta queue. Card&apos;s yours.
-                </p>
+                <p className="text-grey-1">You hold a badge that skips the closed-beta queue. Card&apos;s yours.</p>
             </div>
 
             {/* Share asset container — pre-reveal dims it, shaking applies
