@@ -30,19 +30,39 @@ export const isCardUnlockHistoryItem = (entry: unknown): entry is CardUnlockHist
     )
 }
 
-/** Returns null if the user has no card-access timestamp yet (still on the
- *  waitlist) — the row should only render once they're released. */
+/** Returns null if the user doesn't have card access yet. Otherwise picks
+ *  the best available timestamp:
+ *    1. Explicit `cardAccessGrantedAt` (admin grant / waitlist release).
+ *    2. Earliest skip-badge `earnedAt` (badge-driven access — user has
+ *       been "in" since they earned the badge, even if the BE never
+ *       stamped a separate grant timestamp).
+ *  If neither is present, returns null rather than fabricating one. */
 export function deriveCardUnlockEntry(args: {
+    hasCardAccess: boolean
     cardAccessGrantedAt: string | null | undefined
     skipBadges: string[]
+    userBadges?: Array<{ code: string; earnedAt?: string | Date | null }>
 }): CardUnlockHistoryEntry | null {
-    if (!args.cardAccessGrantedAt) return null
+    if (!args.hasCardAccess) return null
+
+    let timestamp = args.cardAccessGrantedAt ?? undefined
+    if (!timestamp && args.userBadges && args.skipBadges.length > 0) {
+        const skipSet = new Set(args.skipBadges)
+        const earned = args.userBadges
+            .filter((b) => skipSet.has(b.code) && b.earnedAt)
+            .map((b) => new Date(b.earnedAt as string | Date).getTime())
+            .filter((t) => Number.isFinite(t))
+            .sort((a, b) => a - b)
+        if (earned.length > 0) timestamp = new Date(earned[0]).toISOString()
+    }
+    if (!timestamp) return null
+
     const badgeCode = args.skipBadges[0]
     const via: CardUnlockVia = badgeCode ? 'badge' : 'admin'
     return {
         isCardUnlock: true,
         uuid: 'card-unlock',
-        timestamp: args.cardAccessGrantedAt,
+        timestamp,
         via,
         badgeCode,
     }

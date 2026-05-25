@@ -217,8 +217,8 @@ export default function ShhhhhLandingPage() {
                     transition={{ type: 'spring', damping: 8, delay: 0.3 }}
                     className="pointer-events-none absolute right-[12%] top-[10%] z-10 hidden w-8 md:block md:w-10"
                 />
-                <div className="relative z-20 mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[1.1fr_0.9fr]">
-                    <div className="text-center md:text-left">
+                <div className="relative z-20 mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 md:grid-cols-[1.1fr_0.9fr]">
+                    <div className="min-w-0 text-center md:text-left">
                         <h1 className="font-roboto-flex-extrabold text-headingMedium font-extraBlack md:text-headingLarge lg:text-[12rem]">
                             shhhhh.
                         </h1>
@@ -254,7 +254,7 @@ export default function ShhhhhLandingPage() {
                             </button>
                         </div>
                     </div>
-                    <div className="flex justify-center md:justify-end">
+                    <div className="flex min-w-0 justify-center md:justify-end">
                         {/* Match ShareAssetD3 pixelation: same PixelatedCardFace component
                             scaled into the hero column. Native dims are 620×391; the
                             inner absolute-positioned layout scales linearly with the

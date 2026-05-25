@@ -229,14 +229,19 @@ const HomeHistory = ({
                     entries.push(...regionEntries)
                 }
 
-                // Synthetic card-unlock entry — only renders once the user has
-                // card access (waitlist released OR skip-badge granted). Same
-                // pattern as KYC: derived client-side, sorted into the feed
-                // by timestamp.
+                // Synthetic card-unlock entry — once the user has card
+                // access (hasCardAccess=true), regardless of WHY (waitlist
+                // released, admin grant, OR skip-badge held). Falls back to
+                // the earliest skip-badge earnedAt when BE didn't stamp an
+                // explicit cardAccessGrantedAt — common for badge-only
+                // access where the user has been "in" since they earned the
+                // badge.
                 if (isViewingOwnHistory && cardInfo) {
                     const unlock = deriveCardUnlockEntry({
+                        hasCardAccess: cardInfo.hasCardAccess,
                         cardAccessGrantedAt: cardInfo.waitlistReleasedAt,
                         skipBadges: cardInfo.skipBadges,
+                        userBadges: user?.user?.badges,
                     })
                     if (unlock) entries.push(unlock)
                 }
@@ -251,8 +256,17 @@ const HomeHistory = ({
                     return dateB - dateA
                 })
 
-                // Limit to the most recent entries
-                setCombinedEntries(entries.slice(0, 5))
+                // Cap at 5 fresh entries — but ALWAYS keep the synthetic
+                // card-unlock row if it exists (it's an evergreen
+                // shoulder-tap to re-share the asset, not a transient
+                // event that should age out behind 5 fresh badge unlocks).
+                const RECENT_LIMIT = 5
+                const recent = entries.slice(0, RECENT_LIMIT)
+                const unlock = entries.find(isCardUnlockHistoryItem)
+                if (unlock && !recent.some(isCardUnlockHistoryItem)) {
+                    recent.push(unlock)
+                }
+                setCombinedEntries(recent)
             }
 
             processEntries()
