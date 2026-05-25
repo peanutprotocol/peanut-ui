@@ -127,8 +127,20 @@ describe('useBridgeTransferReadiness', () => {
         expect(result.current.gate.type).toBe('ready')
     })
 
-    it('does not flag needs_enrollment when sumsub is not approved', () => {
+    it('needs_kyc when user has not started standard verification', () => {
         setup({ isSumsubApproved: false, bridgeRailStatus: null })
+        const { result } = renderHook(() => useBridgeTransferReadiness())
+        expect(result.current.gate.type).toBe('needs_kyc')
+    })
+
+    it('needs_kyc when standard verification is not approved and bridge rail is pending', () => {
+        setup({ isSumsubApproved: false, bridgeRailStatus: 'PENDING' })
+        const { result } = renderHook(() => useBridgeTransferReadiness())
+        expect(result.current.gate.type).toBe('needs_kyc')
+    })
+
+    it('ready when standard verification is not approved but bridge rail is enabled', () => {
+        setup({ isSumsubApproved: false, bridgeRailStatus: 'ENABLED' })
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('ready')
     })
@@ -151,6 +163,7 @@ describe('getKycModalVariant', () => {
         expect(getKycModalVariant('blocked_rejection')).toBe('blocked')
         expect(getKycModalVariant('fixable_rejection')).toBe('provider_rejection')
         expect(getKycModalVariant('needs_enrollment')).toBe('cross_region')
+        expect(getKycModalVariant('needs_kyc')).toBe('default')
         expect(getKycModalVariant('accept_tos')).toBe('default')
         expect(getKycModalVariant('ready')).toBe('default')
     })
@@ -168,6 +181,7 @@ describe('getGateProviderMessage', () => {
 
     it('returns undefined for non-rejection gates', () => {
         expect(getGateProviderMessage({ type: 'accept_tos' })).toBeUndefined()
+        expect(getGateProviderMessage({ type: 'needs_kyc' })).toBeUndefined()
         expect(getGateProviderMessage({ type: 'needs_enrollment' })).toBeUndefined()
         expect(getGateProviderMessage({ type: 'ready' })).toBeUndefined()
     })
