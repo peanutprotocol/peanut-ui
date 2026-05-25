@@ -168,7 +168,7 @@ export function placeStamps(badges: ShareAssetBadge[], rng: SeededRandom): Stamp
 // `kind` selects which SVG. PRNG picks which subset to actually render.
 
 interface DecorationCandidate {
-    kind: 'star' | 'thumbsUp' | 'peanutWaving' | 'eyes' | 'sparkle' | 'cloud'
+    kind: 'star' | 'thumbsUp' | 'peanutChar' | 'eyes' | 'sparkle' | 'cloud'
     top?: number
     bottom?: number
     left?: number
@@ -180,15 +180,11 @@ interface DecorationCandidate {
     safe: boolean
 }
 
-// Decoration pool. Peanut characters (peanutWaving / peanutHands) were
-// dropped from the default set — their large native size (140px) made
-// them collide with stamp slots at the right and bottom-left, which
-// then hid stamps underneath. Stars and thumbsUp are small enough to
-// tuck into gaps without competing with stamp positions.
-//
-// `peanutWaving` + `peanutHands` are still in the type union so we can
-// re-introduce them in low-stamp-count layouts later if design wants
-// the character vibe back.
+// Decoration pool. `peanutChar` is now backed by the raising-hands
+// asset (peanut-raising-hands.svg) — peanutman-waving.svg has a viewBox
+// that crops the feet, which Hugo flagged twice; raising-hands renders
+// the full body. Bottom-anchored via `bottom:` to keep feet clear of
+// the canvas edge regardless of natural aspect ratio.
 const DECORATION_POOL: readonly DecorationCandidate[] = [
     // Top strip — between EDITION block (left) and EARNED stamp (right)
     { kind: 'star', top: 36, left: 380, size: 72, rotation: 8, safe: true },
@@ -212,7 +208,7 @@ const DECORATION_POOL: readonly DecorationCandidate[] = [
     // taller than nominal (Hugo flagged this getting clipped at the
     // bottom). bottom:148 + size:96 leaves a comfortable gutter to the
     // pill region (y≥770).
-    { kind: 'peanutWaving', bottom: 220, left: 200, size: 96, rotation: -6, safe: true },
+    { kind: 'peanutChar', bottom: 220, left: 200, size: 96, rotation: -6, safe: true },
     // Bottom strip — between card-bottom (y=645) and username pill
     // (y≥770). Pill x range ~[400..800] worst case; keep decorations
     // in the gutters left of x=380 and right of x=820.
@@ -223,7 +219,7 @@ const DECORATION_POOL: readonly DecorationCandidate[] = [
 ] as const
 
 export interface DecorationPlacement {
-    kind: 'star' | 'thumbsUp' | 'peanutWaving' | 'eyes' | 'sparkle' | 'cloud'
+    kind: 'star' | 'thumbsUp' | 'peanutChar' | 'eyes' | 'sparkle' | 'cloud'
     top?: number
     bottom?: number
     left?: number

@@ -108,8 +108,8 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
         <div className="absolute" style={{ bottom: 32, left: 28, zIndex: 2 }}>
             {blurAll ? (
                 <PixelatedText
-                    text="•••• ????"
-                    displayW={260}
+                    text="????"
+                    displayW={140}
                     displayH={42}
                     font="1000 42px Roboto, sans-serif"
                     color="#000"
@@ -124,7 +124,7 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
                         lineHeight: 1,
                     }}
                 >
-                    •••• ????
+                    ????
                 </div>
             )}
         </div>
