@@ -42,6 +42,9 @@ const CELL_PX = 14
 const HAND_RASTER_PX = 36
 
 export interface PixelatedCardFaceProps {
+    /** Kept in the type for in-app surfaces that render the real card
+     *  number — the share-asset rendering deliberately ignores this and
+     *  always shows "????" so a screenshot can't leak the PAN. */
     last4?: string
     /** Extra classes for the outer card div (the pink rounded box). */
     className?: string
@@ -54,7 +57,6 @@ export interface PixelatedCardFaceProps {
 }
 
 export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
-    last4 = 'XXXX',
     className,
     style,
     blurAll = false,
