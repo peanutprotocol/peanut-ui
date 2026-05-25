@@ -1,20 +1,28 @@
 'use client'
 
 /**
- * <BadgeSkipCelebration /> — one-time celebration moment when a user holds
- * a skip badge and lands on /card. Reuses the perk-claim shake intensity
- * (`getShakeClass`) for the gift-box → reveal animation, then surfaces the
- * shareable Twitter asset (D3) so the user can post about getting in.
+ * <BadgeSkipCelebration /> — celebration moment when a user with a skip
+ * badge passes the eligibility check.
  *
- * Once dismissed, stamps the seen marker (localStorage for M2; a
- * BE-persisted `cardWaitlistSkipCelebrationSeenAt` column is also wired up
- * — flip the constant below to switch over in Phase 5 cleanup).
+ * Reveal choreography (driven by `phase`):
+ *   1. `looking-up` (0 → 600ms) — pixelated card from the eligibility
+ *      screen carries over, with a "Looking you up…" headline that
+ *      sells the moment between hold-complete and the asset arriving.
+ *   2. `shaking` (600 → 1100ms) — perk-claim shake + haptic + the asset
+ *      starts fading/sliding in behind the pixelated card.
+ *   3. `revealed` (1100ms+) — pixelated card animates out, share asset
+ *      lands at full opacity with confetti + the inner D3 animation.
+ *
+ * Once dismissed, the parent stamps the seen marker + advances to add-card.
  */
 
-import { type FC, useEffect, useRef, useState } from 'react'
+import { type FC, useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
-import ShareAssetD3 from '@/components/Card/share-asset/ShareAssetD3'
+import { ScaledShareAsset } from '@/components/Card/share-asset/ScaledShareAsset'
+import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
+import { shareCardOnTwitter } from '@/components/Card/share-asset/share.utils'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { getShakeClass } from '@/utils/perk.utils'
 import { useHaptic } from 'use-haptic'
@@ -22,29 +30,18 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import type { TierLevel } from '@/components/Card/share-asset/shareAsset.types'
 
-const SHARE_ASSET_NATIVE_W = 1200
-const SHARE_ASSET_NATIVE_H = 675
-
 interface Props {
-    /** Skip-badge code that unlocked card access (for the celebration headline). */
     badgeCode?: string
-    /** Username for the share asset. Falls back to 'anon'. */
     username?: string
-    /** User's badges, used by the share asset for the stamps. Shape mirrors
-     *  ShareAssetBadge so the array flows straight through. */
     badges: Array<{ code: string; earnedAt?: string }>
-    /** Stats for the share asset (joined date / spend / txns / invited count). */
     stats?: {
         joinedAt?: string | null
         totalMovedUsd?: number
         totalTxns?: number
         invitedCount?: number
     }
-    /** Optional points/tier — falls back to 0/0 when omitted. */
     tier?: TierLevel
     pointsBalance?: number
-    /** Called when the user dismisses the celebration — parent should mark
-     *  it seen + advance to add-card. */
     onContinue: () => void
 }
 
@@ -54,106 +51,117 @@ const SKIP_BADGE_HEADLINES: Record<string, string> = {
     ARBIVERSE_DEVCONNECT_BA_2025: 'Arbiverse. You skipped the line.',
 }
 
-type Phase = 'pre-reveal' | 'shaking' | 'revealed'
+// Fallback when the user has card access but no skip badge (e.g. admin
+// grant, waitlist roll-out). Same celebration moment, different framing.
+const NO_BADGE_HEADLINE = "You're in."
 
-const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, tier, pointsBalance, onContinue }) => {
-    const [phase, setPhase] = useState<Phase>('pre-reveal')
+type Phase = 'looking-up' | 'shaking' | 'revealed'
+
+const BadgeSkipCelebration: FC<Props> = ({
+    badgeCode,
+    username,
+    badges,
+    stats,
+    tier,
+    pointsBalance,
+    onContinue,
+}) => {
+    const [phase, setPhase] = useState<Phase>('looking-up')
     const { triggerHaptic } = useHaptic()
-    const scaleHostRef = useRef<HTMLDivElement | null>(null)
-    const [scale, setScale] = useState<number>(0)
+    const hasBadge = !!badgeCode
+    const headline = (badgeCode && SKIP_BADGE_HEADLINES[badgeCode]) || (hasBadge ? 'You skipped the line.' : NO_BADGE_HEADLINE)
+    const subline = hasBadge
+        ? 'You hold a badge that skips the closed-beta queue. Card’s yours.'
+        : 'Welcome to the closed beta. Card’s yours.'
 
-    // Compute scale-to-fit based on the host element's actual width.
-    // Re-runs on resize so the asset stays sized to its container. We use a
-    // ResizeObserver instead of CSS container queries because the wrapper
-    // chain doesn't reliably forward `container-type: inline-size` here.
     useEffect(() => {
-        const host = scaleHostRef.current
-        if (!host) return
-        const measure = (): void => {
-            const w = host.clientWidth
-            if (w > 0) setScale(Math.min(1, w / SHARE_ASSET_NATIVE_W))
-        }
-        measure()
-        const ro = new ResizeObserver(measure)
-        ro.observe(host)
-        return () => ro.disconnect()
-    }, [])
-
-    const headline = (badgeCode && SKIP_BADGE_HEADLINES[badgeCode]) || 'You skipped the line.'
-
-    // Auto-reveal sequence: brief shake → confetti → asset on screen.
-    useEffect(() => {
-        if (phase !== 'pre-reveal') return
         posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_SKIPPED_BY_BADGE, { badge_code: badgeCode })
         const shakeAt = setTimeout(() => {
             setPhase('shaking')
             triggerHaptic()
-        }, 250)
+        }, 600)
         const revealAt = setTimeout(() => {
             setPhase('revealed')
             shootDoubleStarConfetti()
             posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_VIEWED, { source: 'celebration' })
-        }, 900)
+        }, 1100)
         return () => {
             clearTimeout(shakeAt)
             clearTimeout(revealAt)
         }
-    }, [phase, badgeCode, triggerHaptic])
+    }, [badgeCode, triggerHaptic])
 
     const handleShare = (): void => {
         posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, { source: 'celebration' })
-        const text = encodeURIComponent("I got my Peanut card. shhhh — it's a closed beta.")
-        const url = encodeURIComponent('https://peanut.me/shhhhh')
-        window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank')
+        shareCardOnTwitter()
     }
+
+    const showAsset = phase === 'revealed' || phase === 'shaking'
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-6">
             <NavHeader title="Welcome in" />
 
-            <div className="flex flex-col gap-2 text-center">
-                <h1 className="text-3xl font-extrabold text-n-1">{headline}</h1>
-                <p className="text-grey-1">You hold a badge that skips the closed-beta queue. Card&apos;s yours.</p>
-            </div>
+            <AnimatePresence mode="wait">
+                {phase === 'looking-up' ? (
+                    <motion.div
+                        key="looking"
+                        className="flex flex-col gap-2 text-center"
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        <h1 className="text-3xl font-extrabold text-n-1">Looking you up…</h1>
+                        <p className="text-grey-1">Checking your badges.</p>
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        key="headline"
+                        className="flex flex-col gap-2 text-center"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.35, ease: 'easeOut' }}
+                    >
+                        <h1 className="text-3xl font-extrabold text-n-1">{headline}</h1>
+                        <p className="text-grey-1">{subline}</p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-            {/* Share asset container — pre-reveal dims it, shaking applies
-                the perk shake class, revealed shows the asset at full opacity.
-                The asset renders at native 1200×675 and is scaled via a
-                ResizeObserver-driven JS scale factor (CSS container queries
-                weren't propagating reliably here). */}
+            {/* Stage: pixelated card hangs out at first (carrying over from the
+                eligibility screen), then animates away while the share asset
+                slides up into view. */}
             <div
-                className={`mx-auto w-full max-w-2xl ${getShakeClass(phase === 'shaking', 'strong')}`}
-                style={{
-                    transition: 'opacity 200ms ease-out',
-                    opacity: phase === 'revealed' ? 1 : phase === 'shaking' ? 0.6 : 0.2,
-                }}
+                className={`relative mx-auto w-full max-w-2xl ${getShakeClass(phase === 'shaking', 'strong')}`}
             >
-                <div
-                    ref={scaleHostRef}
-                    style={{
-                        width: '100%',
-                        // Reserve vertical space proportional to the scaled
-                        // asset — keeps the layout stable across resizes and
-                        // avoids the asset clipping behind the CTA row.
-                        height: scale > 0 ? SHARE_ASSET_NATIVE_H * scale : 'auto',
-                        aspectRatio: scale > 0 ? undefined : `${SHARE_ASSET_NATIVE_W} / ${SHARE_ASSET_NATIVE_H}`,
-                        position: 'relative',
-                        overflow: 'hidden',
-                    }}
-                >
-                    {scale > 0 && (
-                        <div
-                            style={{
-                                width: SHARE_ASSET_NATIVE_W,
-                                height: SHARE_ASSET_NATIVE_H,
-                                transformOrigin: 'top left',
-                                transform: `scale(${scale})`,
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                            }}
+                <AnimatePresence>
+                    {!showAsset && (
+                        <motion.div
+                            key="pixel-card"
+                            className="mx-auto w-full max-w-sm"
+                            initial={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.92, y: -12 }}
+                            transition={{ duration: 0.35, ease: 'easeIn' }}
                         >
-                            <ShareAssetD3
+                            <ScaledPixelatedCardFace last4="????" blurAll />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                    {showAsset && (
+                        <motion.div
+                            key="share-asset"
+                            initial={{ opacity: 0, y: 32, scale: 0.9 }}
+                            animate={{
+                                opacity: phase === 'revealed' ? 1 : 0.7,
+                                y: 0,
+                                scale: 1,
+                            }}
+                            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                        >
+                            <ScaledShareAsset
                                 username={username ?? 'anon'}
                                 badges={badges}
                                 stats={stats}
@@ -162,19 +170,24 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
                                 cardLast4="0420"
                                 animate={phase === 'revealed'}
                             />
-                        </div>
+                        </motion.div>
                     )}
-                </div>
+                </AnimatePresence>
             </div>
 
-            <div className="mt-auto flex flex-col gap-3">
+            <motion.div
+                className="mt-auto flex flex-col gap-3"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: phase === 'revealed' ? 1 : 0, y: phase === 'revealed' ? 0 : 12 }}
+                transition={{ duration: 0.3, ease: 'easeOut', delay: phase === 'revealed' ? 0.1 : 0 }}
+            >
                 <Button onClick={handleShare} variant="purple" shadowSize="4" className="w-full">
                     Share on X
                 </Button>
                 <Button onClick={onContinue} variant="stroke" className="w-full">
                     Continue to your card
                 </Button>
-            </div>
+            </motion.div>
         </div>
     )
 }

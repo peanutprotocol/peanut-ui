@@ -101,8 +101,12 @@ export function computeCardState({
     // Rail ENABLED (or no application) without any non-canceled card. From
     // here, BE's hasCardAccess + skipBadges drive the new state machine.
     if (cardInfo.hasCardAccess) {
-        // User has access; check if a skip-badge celebration is owed.
-        if (cardInfo.skipBadges.length > 0 && !skipCelebrationSeen) {
+        // Everyone who just passed the eligibility hold + has card access
+        // gets the celebration moment, not just skip-badge holders. The
+        // headline copy inside the celebration branches on whether a skip
+        // badge is present. Once seen (localStorage stamp), straight to
+        // add-card on subsequent visits.
+        if (!skipCelebrationSeen) {
             return 'waitlist-skip-celebration'
         }
         return 'add-card'

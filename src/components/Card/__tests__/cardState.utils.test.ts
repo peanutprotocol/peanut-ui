@@ -115,12 +115,24 @@ describe('computeCardState', () => {
         ).toBe('add-card')
     })
 
-    it('returns add-card when user has access via admin grant (no skip badge)', () => {
+    it('still routes admin-granted users (no skip badge) through the celebration once', () => {
         expect(
             computeCardState({
                 ...base,
                 overview: emptyOverview,
                 cardInfo: cardInfo({ hasCardAccess: true, skipBadges: [] }),
+                skipCelebrationSeen: false,
+            })
+        ).toBe('waitlist-skip-celebration')
+    })
+
+    it('returns add-card for admin-granted users after the celebration has been seen', () => {
+        expect(
+            computeCardState({
+                ...base,
+                overview: emptyOverview,
+                cardInfo: cardInfo({ hasCardAccess: true, skipBadges: [] }),
+                skipCelebrationSeen: true,
             })
         ).toBe('add-card')
     })

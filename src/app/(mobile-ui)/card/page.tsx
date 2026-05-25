@@ -30,7 +30,10 @@ const SKIP_BADGE_CODES = ['OG_2025_10_12', 'DEVCONNECT_BA_2025', 'ARBIVERSE_DEVC
 
 // localStorage key for the one-time celebration gate. Phase 5 will swap
 // this for a BE-persisted `cardWaitlistSkipCelebrationSeenAt` lookup.
-const SKIP_CELEBRATION_SEEN_KEY = 'card_skip_celebration_seen_v1'
+// v2 (2026-05-25): celebration now fires for ALL hasCardAccess users, not
+// just skip-badge holders. v1's stale `true` values from earlier QA runs
+// would silently skip the celebration — bumping the key invalidates them.
+const SKIP_CELEBRATION_SEEN_KEY = 'card_skip_celebration_seen_v2'
 
 function getSkipCelebrationSeen(): boolean {
     if (typeof window === 'undefined') return false
@@ -137,6 +140,20 @@ const CardPage: FC = () => {
             previous_state: lastReportedStateRef.current,
         })
         lastReportedStateRef.current = state
+    }, [state])
+
+    // Write-only URL mirror for the computed state. Lets you see at a glance
+    // which screen the user is on (?card_state=eligibility-check, etc.) without
+    // making the URL the source of truth — manipulating the param has no
+    // effect on the rendered screen, the server state still wins. Skips
+    // 'loading' to avoid a noisy intermediate value on mount.
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+        if (state === 'loading') return
+        const url = new URL(window.location.href)
+        if (url.searchParams.get('card_state') === state) return
+        url.searchParams.set('card_state', state)
+        window.history.replaceState(window.history.state, '', url.toString())
     }, [state])
 
     const invalidateOverview = useCallback(() => {

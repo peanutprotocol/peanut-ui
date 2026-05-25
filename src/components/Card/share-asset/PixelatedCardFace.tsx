@@ -4,12 +4,19 @@
  *
  * Renders at native 620×391 (CARD_W/CARD_H). Wrap in `transform: scale(...)`
  * if you need a smaller preview — the inner layout uses absolute pixel
- * offsets that scale linearly with the wrapper.
+ * offsets that scale linearly with the wrapper. For width-fit, use
+ * <ScaledPixelatedCardFace />.
  *
- * Shared between <ShareAssetD3 /> (in-app share asset / dev-builder) and
- * the `/shhhhh` closed-beta landing page hero. Keep this file the single
- * source of truth for the pixelation algorithm — the module-level canvas
- * cache below means the SVG only gets re-rasterized once per session.
+ * When `blurAll` is true (the closed-beta tease), the visa logo, peanut
+ * logo, card number, and Virtual pill all get rasterised through the
+ * SAME canvas → image-rendering:pixelated pipeline as the hand, with a
+ * shared CELL_PX cell size — so every detail on the card is hidden by
+ * consistent chunky pixels instead of a mix of pixelation + CSS blur.
+ *
+ * Shared between <ShareAssetD3 />, the eligibility-check screen, and the
+ * `/shhhhh` LP hero. Keep this file the single source of truth for the
+ * pixelation algorithm — the module-level canvas cache means assets are
+ * decoded once per session.
  */
 
 'use client'
@@ -24,15 +31,25 @@ const ASSET_PEANUTMAN_LOGO = PEANUTMAN_LOGO.src
 const ASSET_VISA_BRAND = VISA_BRAND_MARK_ASSET.src
 const ASSET_CARD_HAND = PEANUT_CARD_HAND_ASSET.src
 
-interface PixelatedCardFaceProps {
+// Shared pixel-cell target across every element on the card. Each
+// element rasterises to (displayPx / CELL_PX) pixels then stretches back
+// up with `image-rendering: pixelated`, so the visible "blockiness" looks
+// uniform regardless of element size.
+const CELL_PX = 14
+
+// The hand is much bigger and benefits from a finer raster — keep it at
+// its original 36px so the silhouette stays recognisable.
+const HAND_RASTER_PX = 36
+
+export interface PixelatedCardFaceProps {
     last4?: string
     /** Extra classes for the outer card div (the pink rounded box). */
     className?: string
     /** Extra inline styles merged on top of the defaults (width/height/shadow). */
     style?: CSSProperties
-    /** When true, blur every element on the card (logos, "•••• XXXX", Virtual
-     *  pill) so the card silhouette is recognisable but no detail is legible.
-     *  The pixelated hand stays sharp. Used by the /shhhhh closed-beta LP. */
+    /** When true, every element on the card (logos, number, pill) is run
+     *  through the same canvas-rasterisation pipeline as the hand so the
+     *  whole card reads as chunky pixels, not a mix of pixels + blur. */
     blurAll?: boolean
 }
 
@@ -53,66 +70,89 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
         }}
     >
         <PixelatedHand />
+
+        {/* Top row: peanut logo (left) + visa logo (right) */}
         <div
             className="absolute flex items-start justify-between"
-            style={{
-                top: 24,
-                left: 28,
-                right: 28,
-                zIndex: 2,
-                filter: blurAll ? 'blur(14px) saturate(1.2)' : undefined,
-            }}
+            style={{ top: 24, left: 28, right: 28, zIndex: 2 }}
         >
-            <img src={ASSET_PEANUTMAN_LOGO} alt="" aria-hidden style={{ height: 52, width: 'auto' }} />
-            <img
-                src={ASSET_VISA_BRAND}
-                alt="Visa"
-                style={{ height: 32, width: 'auto', filter: 'brightness(0) invert(1)' }}
-            />
+            {blurAll ? (
+                <PixelatedImg src={ASSET_PEANUTMAN_LOGO} displayW={52} displayH={52} />
+            ) : (
+                <img src={ASSET_PEANUTMAN_LOGO} alt="" aria-hidden style={{ height: 52, width: 'auto' }} />
+            )}
+            {blurAll ? (
+                <PixelatedImg
+                    src={ASSET_VISA_BRAND}
+                    displayW={80}
+                    displayH={32}
+                    invert
+                />
+            ) : (
+                <img
+                    src={ASSET_VISA_BRAND}
+                    alt="Visa"
+                    style={{ height: 32, width: 'auto', filter: 'brightness(0) invert(1)' }}
+                />
+            )}
         </div>
-        <div
-            className="absolute"
-            style={{
-                bottom: 24,
-                left: 28,
-                zIndex: 2,
-                filter: blurAll ? 'blur(14px) saturate(1.2)' : undefined,
-            }}
-        >
-            <div
-                style={{
-                    fontFamily: 'var(--font-roboto), sans-serif',
-                    fontWeight: 1000,
-                    letterSpacing: '0.06em',
-                    fontSize: 38,
-                    lineHeight: 1,
-                }}
-            >
-                •••• {last4}
-            </div>
-            <span
-                className="inline-block rounded-full border-[1.5px] border-black bg-white font-semibold"
-                style={{ fontSize: 15, padding: '2px 14px', marginTop: 8 }}
-            >
-                Virtual
-            </span>
+
+        {/* Bottom block: card number + Virtual pill */}
+        <div className="absolute" style={{ bottom: 24, left: 28, zIndex: 2 }}>
+            {blurAll ? (
+                <PixelatedText
+                    text={`•••• ${last4}`}
+                    displayW={260}
+                    displayH={38}
+                    font="1000 38px Roboto, sans-serif"
+                    color="#000"
+                />
+            ) : (
+                <div
+                    style={{
+                        fontFamily: 'var(--font-roboto), sans-serif',
+                        fontWeight: 1000,
+                        letterSpacing: '0.06em',
+                        fontSize: 38,
+                        lineHeight: 1,
+                    }}
+                >
+                    •••• {last4}
+                </div>
+            )}
+            {blurAll ? (
+                <div style={{ marginTop: 8 }}>
+                    <PixelatedText
+                        text="Virtual"
+                        displayW={80}
+                        displayH={22}
+                        font="600 15px Roboto, sans-serif"
+                        color="#000"
+                        bg="#FFF"
+                        borderColor="#000"
+                    />
+                </div>
+            ) : (
+                <span
+                    className="inline-block rounded-full border-[1.5px] border-black bg-white font-semibold"
+                    style={{ fontSize: 15, padding: '2px 14px', marginTop: 8 }}
+                >
+                    Virtual
+                </span>
+            )}
         </div>
     </div>
 )
 
-// Module-level cache: rasterize the peanut-card-hand SVG into a tiny canvas
-// exactly once per session. Subsequent mounts copy the cached pixels into a
-// fresh canvas via drawImage (cheap), rather than re-decoding the SVG +
-// re-running the initial drawImage (5-15ms each).
-//
-// NB: a canvas's drawing surface is NOT part of the DOM, so `cloneNode` does
-// not duplicate pixel content — copying via `drawImage(cachedCanvas, …)` is
-// the only correct approach.
-//
-// Server-side OG renderers (satori/sharp) will need their own pre-rasterized
-// PNG; this client-side cache is only for in-app surfaces.
-const PIXEL_SIZE = 36
-let cachedHandCanvas: HTMLCanvasElement | null = null
+// ---------------------------------------------------------------------------
+// Canvas raster helpers — shared pixelation pipeline for every element.
+// ---------------------------------------------------------------------------
+
+// Module-level cache: each unique asset src + raster resolution is decoded
+// at most once per session. A canvas's drawing surface isn't cloneable via
+// cloneNode, so we copy pixels with drawImage(cachedCanvas, ...) into a
+// fresh canvas for each mount.
+const rasterCache = new Map<string, HTMLCanvasElement>()
 
 function cloneCanvas(source: HTMLCanvasElement): HTMLCanvasElement {
     const out = document.createElement('canvas')
@@ -122,36 +162,147 @@ function cloneCanvas(source: HTMLCanvasElement): HTMLCanvasElement {
     return out
 }
 
-function makePixelatedHand(onReady: (canvas: HTMLCanvasElement) => void): void {
-    if (cachedHandCanvas) {
-        onReady(cloneCanvas(cachedHandCanvas))
+function rasterImg(
+    src: string,
+    rasterW: number,
+    rasterH: number,
+    onReady: (canvas: HTMLCanvasElement) => void,
+): void {
+    const key = `${src}|${rasterW}x${rasterH}`
+    const cached = rasterCache.get(key)
+    if (cached) {
+        onReady(cloneCanvas(cached))
         return
     }
     const img = new Image()
     img.decoding = 'async'
     img.onload = (): void => {
-        const ratio = img.naturalWidth / img.naturalHeight || 1
-        const cw = ratio > 1 ? PIXEL_SIZE : Math.max(1, Math.round(PIXEL_SIZE * ratio))
-        const ch = ratio > 1 ? Math.max(1, Math.round(PIXEL_SIZE / ratio)) : PIXEL_SIZE
         const canvas = document.createElement('canvas')
-        canvas.width = cw
-        canvas.height = ch
+        canvas.width = rasterW
+        canvas.height = rasterH
         const ctx = canvas.getContext('2d')!
         ctx.imageSmoothingEnabled = false
-        ctx.drawImage(img, 0, 0, cw, ch)
-        cachedHandCanvas = canvas
-        // First call: hand the just-drawn canvas directly. There is no other
-        // mount that could conflict on it yet (the cache was just populated).
+        ctx.drawImage(img, 0, 0, rasterW, rasterH)
+        rasterCache.set(key, canvas)
         onReady(canvas)
     }
-    img.src = ASSET_CARD_HAND
+    img.src = src
 }
+
+interface PixelatedImgProps {
+    src: string
+    displayW: number
+    displayH: number
+    /** When true, render the image as white (visa brand is dark; we want it
+     *  bright on the pink card). Applies a `brightness(0) invert(1)` filter
+     *  before rasterisation. */
+    invert?: boolean
+}
+
+const PixelatedImg: FC<PixelatedImgProps> = ({ src, displayW, displayH, invert }) => {
+    const rasterW = Math.max(1, Math.round(displayW / CELL_PX))
+    const rasterH = Math.max(1, Math.round(displayH / CELL_PX))
+    return (
+        <div
+            ref={(node) => {
+                if (!node || node.firstChild) return
+                rasterImg(src, rasterW, rasterH, (canvas) => {
+                    canvas.style.width = `${displayW}px`
+                    canvas.style.height = `${displayH}px`
+                    canvas.style.imageRendering = 'pixelated'
+                    if (invert) canvas.style.filter = 'brightness(0) invert(1)'
+                    node.appendChild(canvas)
+                })
+            }}
+            style={{ width: displayW, height: displayH }}
+        />
+    )
+}
+
+interface PixelatedTextProps {
+    text: string
+    displayW: number
+    displayH: number
+    /** Canvas font shorthand (e.g. "1000 38px Roboto, sans-serif"). */
+    font: string
+    color: string
+    /** Fill background colour before drawing the text (for the Virtual pill). */
+    bg?: string
+    /** Border colour drawn 1 raster-px inside the canvas edge. */
+    borderColor?: string
+}
+
+const PixelatedText: FC<PixelatedTextProps> = ({
+    text,
+    displayW,
+    displayH,
+    font,
+    color,
+    bg,
+    borderColor,
+}) => {
+    // Use a slightly finer cell for text so glyphs remain just-readable as
+    // blocky shapes; pure CELL_PX/14 produces unreadable mush at this size.
+    const textCellPx = 6
+    const rasterW = Math.max(1, Math.round(displayW / textCellPx))
+    const rasterH = Math.max(1, Math.round(displayH / textCellPx))
+    // Scale the font size proportionally to the canvas resolution so the
+    // glyphs fill the raster correctly before being upscaled.
+    const fontScale = rasterH / displayH
+    return (
+        <div
+            ref={(node) => {
+                if (!node || node.firstChild) return
+                const canvas = document.createElement('canvas')
+                canvas.width = rasterW
+                canvas.height = rasterH
+                const ctx = canvas.getContext('2d')!
+                ctx.imageSmoothingEnabled = false
+                if (bg) {
+                    ctx.fillStyle = bg
+                    ctx.fillRect(0, 0, rasterW, rasterH)
+                }
+                if (borderColor) {
+                    ctx.strokeStyle = borderColor
+                    ctx.lineWidth = 1
+                    ctx.strokeRect(0.5, 0.5, rasterW - 1, rasterH - 1)
+                }
+                ctx.fillStyle = color
+                // Replace the px size inside the canvas-font shorthand with the
+                // raster-scaled px size. The original string drives styling
+                // (weight, family); we only adjust the numeric size.
+                ctx.font = font.replace(/(\d+(?:\.\d+)?)px/, (_, n) =>
+                    `${Math.max(1, Math.round(Number(n) * fontScale))}px`
+                )
+                ctx.textBaseline = 'middle'
+                ctx.textAlign = 'left'
+                ctx.fillText(text, 1, rasterH / 2)
+                canvas.style.width = `${displayW}px`
+                canvas.style.height = `${displayH}px`
+                canvas.style.imageRendering = 'pixelated'
+                canvas.style.display = 'inline-block'
+                node.appendChild(canvas)
+            }}
+            style={{ display: 'inline-block' }}
+        />
+    )
+}
+
+// ---------------------------------------------------------------------------
+// The hand — same algorithm, just keeps its larger 36px raster so the
+// silhouette stays recognisable.
+// ---------------------------------------------------------------------------
 
 const PixelatedHand: FC = () => (
     <div
         ref={(node) => {
             if (!node || node.firstChild) return
-            makePixelatedHand((canvas) => {
+            const handRatio = 560 / 471 // hand display w/h
+            const rasterW =
+                handRatio > 1 ? HAND_RASTER_PX : Math.max(1, Math.round(HAND_RASTER_PX * handRatio))
+            const rasterH =
+                handRatio > 1 ? Math.max(1, Math.round(HAND_RASTER_PX / handRatio)) : HAND_RASTER_PX
+            rasterImg(ASSET_CARD_HAND, rasterW, rasterH, (canvas) => {
                 canvas.style.width = '100%'
                 canvas.style.height = '100%'
                 canvas.style.imageRendering = 'pixelated'
