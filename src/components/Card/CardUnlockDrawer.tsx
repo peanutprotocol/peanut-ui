@@ -23,10 +23,13 @@ interface Props {
     onClose: () => void
     entry: CardUnlockHistoryEntry
     username?: string
-    skipBadges: string[]
+    /** Full user-badges payload (with `earnedAt`) so the share asset can
+     *  stamp every badge the user holds, not just the skip-the-line
+     *  subset. Empty array → asset renders without stamps. */
+    badges?: Array<{ code: string; earnedAt?: string | Date | null }>
 }
 
-export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, skipBadges }) => {
+export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, badges }) => {
     const captureRef = useRef<HTMLDivElement | null>(null)
 
     useEffect(() => {
@@ -34,31 +37,43 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
         posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_VIEWED, { source: 'history-replay' })
     }, [isOpen])
 
+    // Normalize earnedAt: ScaledShareAsset's `ShareAssetBadge` expects
+    // `string | Date | undefined` — drop nulls.
+    const assetBadges = (badges ?? [])
+        .filter((b) => !!b.code)
+        .map((b) => ({ code: b.code, earnedAt: b.earnedAt ?? undefined }))
+
     return (
         <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DrawerContent>
                 {/* DrawerTitle has no built-in padding — must be wrapped in
-                    DrawerHeader (mono Drawer pattern). Without this the
-                    title hugs the drawer-pull handle with no top/horizontal
-                    breathing room. */}
+                    DrawerHeader (mono Drawer pattern). */}
                 <DrawerHeader>
                     <DrawerTitle className="text-2xl font-extrabold">
                         {entry.via === 'badge' ? 'You skipped the line' : 'Card access unlocked'}
                     </DrawerTitle>
                 </DrawerHeader>
+                {/* Asset is capped at max-w-md on desktop so a 4:3 asset
+                    doesn't blow up to 432px tall at the drawer's full xl
+                    width and force a scrollbar. Centred so the buttons
+                    below it span the same content column. */}
                 <div className="flex flex-col gap-4 px-4 pb-6">
-                    <ScaledShareAsset
-                        ref={captureRef}
-                        username={username ?? 'anon'}
-                        badges={skipBadges.map((code) => ({ code }))}
-                        cardLast4="0420"
-                        animate={false}
-                    />
-                    <ShareAssetActions
-                        captureRef={captureRef}
-                        source="history-replay"
-                        shareText="I got my Peanut card. shhhh."
-                    />
+                    <div className="mx-auto w-full max-w-md">
+                        <ScaledShareAsset
+                            ref={captureRef}
+                            username={username ?? 'anon'}
+                            badges={assetBadges}
+                            cardLast4="0420"
+                            animate={false}
+                        />
+                    </div>
+                    <div className="mx-auto flex w-full max-w-md flex-col gap-2">
+                        <ShareAssetActions
+                            captureRef={captureRef}
+                            source="history-replay"
+                            shareText="I got my Peanut card. shhhh."
+                        />
+                    </div>
                 </div>
             </DrawerContent>
         </Drawer>

@@ -7,13 +7,14 @@
  * stamps → tape/overlays → text anchors.
  */
 
-import type { BadgeCode } from './badgeCatalog'
-
 /** One badge entry — shape mirrors the production `user.badges[]` from /get-user. */
 export interface ShareAssetBadge {
-    code: BadgeCode | string
+    /** Backend badge code (e.g. "OG_2025_10_12"). Any string accepted —
+     *  unknown codes fall back to the peanut logo icon. */
+    code: string
     earnedAt?: string | Date
-    /** Display label override. If omitted, falls back to the catalog default. */
+    /** Display label override. Unused by the share asset (we don't render
+     *  text per stamp anymore) but kept for API compatibility. */
     name?: string
 }
 

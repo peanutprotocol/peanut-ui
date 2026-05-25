@@ -11,7 +11,6 @@
  */
 
 import { SeededRandom } from './seededRandom'
-import { getBadgeMeta } from './badgeCatalog'
 import { getBadgeIcon } from '@/components/Badges/badge.utils'
 import type { ShareAssetBadge, ShareAssetStats } from './shareAsset.types'
 
@@ -87,7 +86,7 @@ const STAMP_SLOTS: readonly StampSlot[] = [
 ] as const
 
 export interface StampPlacement {
-    badge: { code: string; caption: string; captionBg: string; iconUrl: string; year?: string }
+    badge: { code: string; iconUrl: string; year?: string }
     top: number
     left: number
     rotation: number
@@ -142,13 +141,10 @@ export function placeStamps(badges: ShareAssetBadge[], rng: SeededRandom): Stamp
         const cycle = Math.floor(i / STAMP_SLOTS.length)
         const base = STAMP_SLOTS[slotIdx]
         const stackOffset = cycle * 22
-        const meta = getBadgeMeta(badge.code)
         const year = badge.earnedAt ? `'${String(new Date(badge.earnedAt).getFullYear()).slice(-2)}` : undefined
         return {
             badge: {
                 code: badge.code,
-                caption: meta.caption,
-                captionBg: meta.captionBg,
                 iconUrl: getBadgeIcon(badge.code),
                 year,
             },

@@ -465,7 +465,7 @@ const HomeHistory = ({
                                     entry={item}
                                     position={position}
                                     username={user?.user?.username ?? undefined}
-                                    skipBadges={cardInfo?.skipBadges ?? []}
+                                    badges={user?.user?.badges}
                                 />
                             )
                         }
