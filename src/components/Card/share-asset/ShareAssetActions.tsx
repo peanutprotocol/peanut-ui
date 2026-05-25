@@ -20,7 +20,7 @@
 import { type FC, type RefObject, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { captureShareAsset, canShareImageFile, downloadBlob } from './captureShareAsset'
+import { captureShareAsset, canShareImageFiles, downloadBlob } from './captureShareAsset'
 import { shareCardOnTwitter } from './share.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -51,24 +51,29 @@ export const ShareAssetActions: FC<Props> = ({
         setError(null)
         setIsSharing(true)
         try {
+            // CHECK SUPPORT FIRST — capturing the PNG is expensive
+            // (html-to-image, 2× retina); on desktop we'd waste it. Probe
+            // the Web Share API with a 1-byte dummy file BEFORE capture.
+            // If unsupported (every desktop browser today), jump to the
+            // twitter intent immediately. Also guarantees the fallback
+            // still fires if capture itself fails later.
+            if (!canShareImageFiles()) {
+                posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, {
+                    source,
+                    method: 'twitter-intent-fallback',
+                })
+                shareCardOnTwitter()
+                return
+            }
             const node = captureRef.current
             if (!node) throw new Error('share asset not yet rendered — try again in a moment')
             const blob = await captureShareAsset(node)
-            if (canShareImageFile(blob)) {
-                const file = new File([blob], filename, { type: 'image/png' })
-                await navigator.share({ text: shareText, files: [file] })
-                posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, {
-                    source,
-                    method: 'native-share-with-file',
-                })
-                return
-            }
-            // Desktop / unsupported: fall back to text-only Twitter intent.
+            const file = new File([blob], filename, { type: 'image/png' })
+            await navigator.share({ text: shareText, files: [file] })
             posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, {
                 source,
-                method: 'twitter-intent-fallback',
+                method: 'native-share-with-file',
             })
-            shareCardOnTwitter()
         } catch (err) {
             // AbortError = user cancelled the share sheet. Don't show an
             // error in that case; do log other failures.

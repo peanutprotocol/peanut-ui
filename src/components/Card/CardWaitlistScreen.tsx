@@ -46,9 +46,14 @@ const CardWaitlistScreen: FC<Props> = ({ onPrev, onJoined }) => {
             posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_JOINED, { position: res.position })
             onJoined?.()
         } catch (e) {
-            const message = e instanceof Error ? e.message : 'Failed to join waitlist'
-            setJoinError(message)
-            posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_JOIN_FAILED, { error_message: message })
+            // User-facing message stays generic; raw BE error text can leak
+            // internals/PII. PostHog gets the error CLASS only — enough to
+            // bucket failures without exposing details.
+            console.error('[card-waitlist] join failed', e)
+            setJoinError('Failed to join waitlist. Please try again.')
+            posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_JOIN_FAILED, {
+                error_name: e instanceof Error ? e.name : 'unknown',
+            })
         } finally {
             setJoining(false)
         }

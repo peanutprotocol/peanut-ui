@@ -51,13 +51,17 @@ export function downloadBlob(blob: Blob, filename: string): void {
 }
 
 /**
- * Detects whether the current browser can natively share the captured
- * PNG via the Web Share API. iOS Safari + Chrome Android handle this;
+ * Detects whether the current browser can natively share an image PNG
+ * via the Web Share API. iOS Safari + Chrome Android handle this;
  * desktop browsers do NOT support `files` in navigator.share.
+ *
+ * Uses a 1-byte placeholder File so the check is cheap and can run
+ * BEFORE expensive capture — desktop callers should skip capture and
+ * fall straight back to the text-only intent.
  */
-export function canShareImageFile(blob: Blob): boolean {
+export function canShareImageFiles(): boolean {
     if (typeof navigator === 'undefined') return false
     if (!('share' in navigator) || !('canShare' in navigator)) return false
-    const file = new File([blob], 'peanut-card.png', { type: 'image/png' })
-    return navigator.canShare({ files: [file] })
+    const probe = new File([new Uint8Array(1)], 'probe.png', { type: 'image/png' })
+    return navigator.canShare({ files: [probe] })
 }

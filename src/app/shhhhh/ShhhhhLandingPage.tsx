@@ -10,7 +10,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Marquee } from '@/components/LandingPage'
 import { useAuth } from '@/context/authContext'
 import { PixelatedCardFace } from '@/components/Card/share-asset/PixelatedCardFace'
-import { Sparkle, Star } from '@/assets'
+import { Sparkle, Star } from '@/assets/illustrations'
 import { cardApi } from '@/services/card'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 

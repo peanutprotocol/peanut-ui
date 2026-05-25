@@ -56,23 +56,30 @@ const CardUnlockHistoryItem: FC<Props> = ({
 
     return (
         <>
-            <Card
-                position={position}
+            {/* Wrap in a native <button> so the row is keyboard-activatable
+                (Enter / Space) and screen readers announce it as interactive.
+                The shared <Card> primitive doesn't forward role / tabIndex
+                / onKeyDown, so this is the cleanest a11y path. */}
+            <button
+                type="button"
                 onClick={() => setIsDrawerOpen(true)}
-                className={twMerge('cursor-pointer', className)}
+                aria-label={`${copy.title} — open share asset`}
+                className="block w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-1"
             >
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-3">
-                            <Icon name="credit-card" size={18} />
-                        </div>
-                        <div className="flex-1">
-                            <p className="font-semibold">{copy.title}</p>
-                            <p className="text-sm text-grey-1">{copy.subtitle}</p>
+                <Card position={position} className={twMerge('cursor-pointer', className)}>
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-3">
+                                <Icon name="credit-card" size={18} />
+                            </div>
+                            <div className="flex-1">
+                                <p className="font-semibold">{copy.title}</p>
+                                <p className="text-sm text-grey-1">{copy.subtitle}</p>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </Card>
+                </Card>
+            </button>
 
             {isDrawerOpen && (
                 <CardUnlockDrawer

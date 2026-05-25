@@ -332,8 +332,14 @@ const HomeHistory = ({
     // check source data directly — combinedEntries lags behind due to async processing
     const hasSourceEntries = (historyData?.entries?.length ?? 0) > 0 || wsHistoryEntries.length > 0
 
+    // Synthetic entries (KYC region rows, card-unlock) live in
+    // combinedEntries but NOT in source-side historyData/wsHistoryEntries.
+    // Without this, a user whose only activity is "card unlocked" sees
+    // their unlock row suppressed by the hide-empty guard on /home.
+    const hasSyntheticEntries = combinedEntries.length > 0
+
     // hide empty activity for pre-activation users when there's genuinely nothing
-    if (!isLoading && !hasSourceEntries && hideEmptyState && isViewingOwnHistory) {
+    if (!isLoading && !hasSourceEntries && !hasSyntheticEntries && hideEmptyState && isViewingOwnHistory) {
         return null
     }
 

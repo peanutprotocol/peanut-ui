@@ -76,7 +76,12 @@ const BadgeSkipCelebration: FC<Props> = ({
         : 'Welcome to the closed beta. Card’s yours.'
 
     useEffect(() => {
-        posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_SKIPPED_BY_BADGE, { badge_code: badgeCode })
+        // Only fire the skipped-BY-BADGE event when the user actually has one.
+        // Non-badge unlocks (admin grant, waitlist roll-out) reach this screen
+        // too — misclassifying them inflates the badge-funnel metric.
+        if (badgeCode) {
+            posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_SKIPPED_BY_BADGE, { badge_code: badgeCode })
+        }
         const shakeAt = setTimeout(() => {
             setPhase('shaking')
             triggerHaptic()

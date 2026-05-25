@@ -42,7 +42,7 @@ const JoinWaitlist = () => {
                 setError("We couldn't find that user")
             }
             return isValid
-        } catch (e) {
+        } catch {
             posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, { valid: false, source: 'setup' })
             setError("We couldn't find that user")
             return false

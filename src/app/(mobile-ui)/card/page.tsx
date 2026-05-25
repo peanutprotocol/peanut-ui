@@ -156,11 +156,16 @@ const CardPage: FC = () => {
         if (pioneerLoading || pioneerError) return
         if (!cardInfo) return
         if (cardInfo.flowEarlyAccess) return
-        const hasIssuedCard = !!overview?.cards.some((c) => c.status !== 'CANCELED')
+        // CR FE#1: wait for overview before checking issued cards — otherwise
+        // legacy card-holders (overview still loading) get incorrectly bounced
+        // to /shhhhh because `overview?.cards.some(...)` returns false on
+        // undefined input.
+        if (overviewLoading || !overview) return
+        const hasIssuedCard = overview.cards.some((c) => c.status !== 'CANCELED')
         if (hasIssuedCard) return
         posthog.capture(ANALYTICS_EVENTS.CARD_FLOW_GATED)
         router.replace('/shhhhh')
-    }, [router, pioneerLoading, pioneerError, cardInfo, overview, pressDoorMode])
+    }, [router, pioneerLoading, pioneerError, cardInfo, overview, overviewLoading, pressDoorMode])
 
     const state = computeCardState({
         overview,

@@ -819,6 +819,7 @@ input::placeholder {
    ───────────────────────────────────────────────────────────────── */
 .stamp {
     --stamp-bg: #ffc900;
+
     position: relative;
     background: #fff;
     background-image: radial-gradient(ellipse at top left, #fff8e1 0%, transparent 60%);

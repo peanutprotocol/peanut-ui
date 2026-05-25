@@ -68,7 +68,9 @@ export default function Home() {
     const { isFetchingUser, fetchUser } = useAuth()
     const { isUserKycApproved } = useKycStatus()
     const { isActivated, activationStep, dismissCardStep } = useActivationStatus()
-    const { isLoading: isCardInfoLoading, error: cardInfoError } = useCardPioneerInfo()
+    // Fire-and-forget: warms the card-info cache so /card mounts fast.
+    // Return values intentionally unused — only the fetch side effect matters.
+    useCardPioneerInfo()
     const username = user?.user.username
 
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)

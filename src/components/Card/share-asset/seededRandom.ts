@@ -43,8 +43,11 @@ export class SeededRandom {
         return Math.floor(this.float(min, max + 1))
     }
 
-    /** Pick one element from an array. Does not mutate. */
+    /** Pick one element from an array. Does not mutate. Throws on empty. */
     pick<T>(arr: readonly T[]): T {
+        if (arr.length === 0) {
+            throw new Error('SeededRandom.pick() requires a non-empty array')
+        }
         return arr[Math.floor(this.next() * arr.length)]
     }
 

@@ -92,7 +92,7 @@ export const HoldToClaimButton: FC<Props> = ({
             {...buttonProps}
             variant="purple"
             shadowSize="4"
-            disabled={disabled}
+            disabled={disabled || loading}
             loading={loading}
             aria-label={ariaLabel}
             className={`${buttonProps.className ?? ''} w-full`}

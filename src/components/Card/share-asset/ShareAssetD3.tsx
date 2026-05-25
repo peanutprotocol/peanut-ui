@@ -36,7 +36,7 @@ import type { ShareAssetD3Props, TierLevel } from './shareAsset.types'
 import { TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets/badges'
 import { PEANUTMAN_WAVING, PEANUTMAN_RAISING_HANDS, PEANUTMAN_PFP } from '@/assets/peanut'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
-import { HandThumbsUp, Eyes, Sparkle, Cloud } from '@/assets'
+import { HandThumbsUp, Eyes, Sparkle, Cloud } from '@/assets/illustrations'
 import { PixelatedCardFace } from './PixelatedCardFace'
 
 const ASSET_STAR = STAR_STRAIGHT_ICON.src
