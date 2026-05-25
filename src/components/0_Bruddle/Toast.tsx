@@ -84,42 +84,39 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
         setToasts((prev) => prev.filter((t) => t.id !== id))
     }, [])
 
-    const createToast = useCallback(
-        (options: ToastOptions | string): ToastId => {
-            const defaults: Partial<ToastOptions> = {
-                type: 'info',
-                duration: 3000,
-                position: 'bottom-right',
+    const createToast = useCallback((options: ToastOptions | string): ToastId => {
+        const defaults: Partial<ToastOptions> = {
+            type: 'info',
+            duration: 3000,
+            position: 'bottom-right',
+        }
+
+        const toastOptions = typeof options === 'string' ? { message: options } : options
+        const id: ToastId = toastOptions.id ?? Date.now()
+
+        // De-dupe: a persistent toast (or any explicitly-id'd toast) is a
+        // no-op if one with the same id is already showing. Stops a retry
+        // mid-cooldown from re-pushing the pill and re-animating it in.
+        let alreadyPresent = false
+        setToasts((prev) => {
+            if (prev.some((t) => t.id === id)) {
+                alreadyPresent = true
+                return prev
             }
+            return [...prev, { ...defaults, ...toastOptions, id }]
+        })
 
-            const toastOptions = typeof options === 'string' ? { message: options } : options
-            const id: ToastId = toastOptions.id ?? Date.now()
+        const duration = toastOptions.duration ?? defaults.duration
+        if (!alreadyPresent && duration !== 'persistent') {
+            const handle = setTimeout(() => {
+                timersRef.current.delete(id)
+                setToasts((prev) => prev.filter((t) => t.id !== id))
+            }, duration as number)
+            timersRef.current.set(id, handle)
+        }
 
-            // De-dupe: a persistent toast (or any explicitly-id'd toast) is a
-            // no-op if one with the same id is already showing. Stops a retry
-            // mid-cooldown from re-pushing the pill and re-animating it in.
-            let alreadyPresent = false
-            setToasts((prev) => {
-                if (prev.some((t) => t.id === id)) {
-                    alreadyPresent = true
-                    return prev
-                }
-                return [...prev, { ...defaults, ...toastOptions, id }]
-            })
-
-            const duration = toastOptions.duration ?? defaults.duration
-            if (!alreadyPresent && duration !== 'persistent') {
-                const handle = setTimeout(() => {
-                    timersRef.current.delete(id)
-                    setToasts((prev) => prev.filter((t) => t.id !== id))
-                }, duration as number)
-                timersRef.current.set(id, handle)
-            }
-
-            return id
-        },
-        []
-    )
+        return id
+    }, [])
 
     // Memoized so consumers that include this in effect/callback dep arrays
     // don't re-fire on every render. createToast/dismiss are useCallback-stable.
