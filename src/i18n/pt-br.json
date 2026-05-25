@@ -45,5 +45,16 @@
     "categorySendingReceiving": "Envios e Recebimentos",
     "categoryTroubleshooting": "Solução de Problemas",
     "lastUpdated": "Última atualização: {date}",
-    "relatedPages": "Páginas Relacionadas"
+    "relatedPages": "Páginas Relacionadas",
+    "content": "Conteúdo",
+    "contentHubTitle": "Explore o Peanut",
+    "contentHubSubtitle": "Artigos, histórias, guias e comparações.",
+    "contentSearchPlaceholder": "Buscar artigos, histórias, guias...",
+    "filterAll": "Todos",
+    "filterBlog": "Blog",
+    "filterStories": "Histórias",
+    "filterUseCases": "Casos de uso",
+    "filterCompare": "Comparar",
+    "noContentResults": "Nada corresponde à sua busca.",
+    "backTo": "Voltar para {name}"
 }

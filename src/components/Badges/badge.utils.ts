@@ -1,49 +1,108 @@
-// maps badge codes or '/badges/...' paths to static files under public/badges
-import { PEANUTMAN_LOGO } from '@/assets'
+// per-badge metadata: asset path under public/badges, public-facing description,
+// and optional front-end display-name override. Backend codes/names stay the same;
+// overrides only affect what the user sees.
+import { PEANUTMAN_LOGO } from '@/assets/peanut'
 
-const CODE_TO_PATH: Record<string, string> = {
-    BETA_TESTER: '/badges/beta_tester.svg',
-    DEVCONNECT_BA_2025: '/badges/devconnect_2025.svg',
-    PRODUCT_HUNT: '/badges/product_hunt.svg',
-    OG_2025_10_12: '/badges/og_v1.svg',
-    MOST_RESTAURANTS_DEVCON: '/badges/foodie.svg',
-    BIG_SPENDER_5K: '/badges/big_spender.svg',
-    MOST_PAYMENTS_DEVCON: '/badges/most_payments.svg',
-    MOST_INVITES: '/badges/most_invites.svg',
-    BIGGEST_REQUEST_POT: '/badges/biggest_request_pot.svg',
-    SEEDLING_DEVCONNECT_BA_2025: '/badges/seedlings_devconnect.svg',
-    ARBIVERSE_DEVCONNECT_BA_2025: '/badges/arbiverse_devconnect.svg',
-    CARD_PIONEER: '/badges/peanut-pioneer.png',
-    FOUNDER_HOUSE: '/badges/founder_house.png',
-    SUPPORT_SURVIVOR: '/badges/support_survivor.svg',
+type BadgeMeta = {
+    path: string
+    description?: string
+    displayName?: string
 }
 
-// public-facing descriptions for badges (third-person perspective)
-const PUBLIC_DESCRIPTIONS: Record<string, string> = {
-    BETA_TESTER: `They broke things so others don't have to. Welcome to the chaos club.`,
-    OG_2025_10_12: 'This is a real OG. They were with Peanut before it was cool.',
-    DEVCONNECT_BA_2025: 'Not anon. Touched grass, shook hands, breathed the same air as Vitalik.',
-    PRODUCT_HUNT: 'Hope Dealer. Their upvote felt like a VC term sheet!',
-    MOST_RESTAURANTS_DEVCON: 'This person is a real gourmet!',
-    BIG_SPENDER_5K: 'This person is a top spender.',
-    MOST_PAYMENTS_DEVCON: `Money Machine - They move money like it's light work. Most payments made!`,
-    MOST_INVITES: 'Onboarded more users than Coinbase ads!',
-    BIGGEST_REQUEST_POT: 'High Roller or Master Beggar? They created the pot with the highest number of contributors.',
-    SEEDLING_DEVCONNECT_BA_2025: 'Peanut Ambassador. They spread the word and brought others into the ecosystem.',
-    ARBIVERSE_DEVCONNECT_BA_2025: 'Peanut 🤝 Arbiverse. They joined us at the amazing Arbiverse booth.',
-    CARD_PIONEER: 'A true Card Pioneer. Among the first to pay everywhere with Peanut.',
-    FOUNDER_HOUSE: 'Checked in at the Founder House. Builds IRL, not just on-chain.',
-    SUPPORT_SURVIVOR: 'Survived a real bug and helped us fix it. The brave kind of user.',
+const BADGES: Record<string, BadgeMeta> = {
+    BETA_TESTER: {
+        path: '/badges/beta_tester.svg',
+        description: `They're in the lab with us. Early enough to be part of the experiment.`,
+    },
+    DEVCONNECT_BA_2025: {
+        path: '/badges/devconnect_2025.svg',
+        description: 'Buenos Aires, baby. They came, they claimed, they ate the steak.',
+    },
+    PRODUCT_HUNT: {
+        path: '/badges/product_hunt.svg',
+        description: 'Hope Dealer. Their upvote felt like a VC term sheet!',
+    },
+    OG_2025_10_12: {
+        path: '/badges/og_v1.svg',
+        description: 'A real OG. They were with Peanut before it was cool.',
+    },
+    MOST_RESTAURANTS_DEVCON: {
+        path: '/badges/foodie.svg',
+        description: 'Hit more restaurants than the Michelin guide. Touched every menu in BA.',
+    },
+    BIG_SPENDER_5K: {
+        path: '/badges/big_spender.svg',
+        description: `They didn't come to Devconnect to network. They came to spend.`,
+    },
+    MOST_PAYMENTS_DEVCON: {
+        path: '/badges/most_payments.svg',
+        description: `Money Machine — they move money like it's light work. Most payments made!`,
+    },
+    MOST_INVITES: {
+        path: '/badges/most_invites.svg',
+        description: 'Onboarded more users than Coinbase ads!',
+    },
+    BIGGEST_REQUEST_POT: {
+        path: '/badges/biggest_request_pot.svg',
+        description: 'High Roller or Master Beggar? They created the pot with the highest number of contributors.',
+    },
+    SEEDLING_DEVCONNECT_BA_2025: {
+        path: '/badges/seedlings_devconnect.svg',
+        description: `They shill Peanut so we don't have to. Honorary squirrel.`,
+    },
+    ARBIVERSE_DEVCONNECT_BA_2025: {
+        path: '/badges/arbiverse_devconnect.svg',
+        description: 'They found the Arbiverse booth. We found them. Mutual onboarding achieved.',
+    },
+    CARD_PIONEER: {
+        path: '/badges/peanut-pioneer.png',
+        description: 'A true Card Pioneer. Among the first to pay everywhere with Peanut.',
+    },
+    FOUNDER_HOUSE: {
+        path: '/badges/founder_house.svg',
+        description: 'Built IRL at Founder Haus. On-chain energy, off-chain handshakes.',
+    },
+    BUG_WHISPERER: {
+        path: '/badges/bug_whisperer.svg',
+        description: 'They found a real bug, reported it, and stayed. We owe them a beer.',
+    },
+    // Legacy code from the original "SUPPORT_SURVIVOR" badge. Backend still emits this code;
+    // we render the new beetle asset + the renamed copy. Drop once backend migrates to BUG_WHISPERER.
+    SUPPORT_SURVIVOR: {
+        path: '/badges/bug_whisperer.svg',
+        description: 'They found a real bug, reported it, and stayed. We owe them a beer.',
+        displayName: 'Bug Whisperer',
+    },
+    // Card-launch badges — assets only. No backend trigger yet; entries are here
+    // so the icons render the moment the API starts awarding the codes.
+    SHHHHH: {
+        path: '/badges/shhhhh.svg',
+        description: 'They know the secret.',
+        // TODO(card-launch): award on shhhhh-waitlist signup
+    },
+    CARD_FIRST_SWIPE: {
+        path: '/badges/happy_card.svg',
+        description: 'First swipe. They put their card to work.',
+        // TODO(card-launch): award on first settled Rain card payment
+    },
+    CARD_SPENT_1K: {
+        path: '/badges/money_stack.svg',
+        description: '$1K swiped. They put their money where their card is.',
+        // TODO(card-launch): award on cumulative card spend ≥ $1K
+    },
 }
 
-export function getBadgeIcon(code?: string): string {
-    if (code && CODE_TO_PATH[code]) return CODE_TO_PATH[code]
-    // fallback to peanutman logo (static SVG import → URL string)
-    return PEANUTMAN_LOGO.src
+export function getBadgeIcon(code?: string) {
+    return (code && BADGES[code]?.path) || PEANUTMAN_LOGO
 }
 
 // returns the public-facing description for a badge code (third-person perspective)
 export function getPublicBadgeDescription(code?: string): string | null {
-    if (!code) return null
-    return PUBLIC_DESCRIPTIONS[code] || null
+    return (code && BADGES[code]?.description) || null
+}
+
+// returns the display name for a badge, applying any front-end override on top
+// of whatever the backend provided. backend storage is untouched.
+export function getBadgeDisplayName(code: string | undefined, fallback: string): string {
+    return (code && BADGES[code]?.displayName) || fallback
 }

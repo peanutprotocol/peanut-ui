@@ -18,7 +18,7 @@ export const marqueeMessages = [
 ]
 
 export const faqData = {
-    heading: 'Faqs',
+    heading: 'FAQ.',
     questions: [
         {
             id: '0',

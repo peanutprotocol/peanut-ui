@@ -108,7 +108,12 @@ const CardFace: FC<Props> = ({
                     ) : showingDetails ? (
                         <>
                             <div className="flex items-center gap-2">
-                                <span className="text-xl font-extrabold tracking-wider">{formatPan(revealed.pan)}</span>
+                                {/* ph-no-capture: PAN out of session recordings. Wraps only
+                                 * the digits, not the copy button — we still want to see in
+                                 * replays whether the user tapped copy. */}
+                                <span className="ph-no-capture text-xl font-extrabold tracking-wider">
+                                    {formatPan(revealed.pan)}
+                                </span>
                                 {onCopy && (
                                     <button
                                         type="button"
@@ -124,7 +129,8 @@ const CardFace: FC<Props> = ({
                                 <div className="text-s flex gap-6">
                                     <div>
                                         <div className="opacity-70">Expiry</div>
-                                        <div className="font-bold">
+                                        {/* ph-no-capture: expiry digits out of recordings. */}
+                                        <div className="ph-no-capture font-bold">
                                             {String(revealed.expiryMonth).padStart(2, '0')}/
                                             {String(revealed.expiryYear).slice(-2)}
                                         </div>
@@ -132,7 +138,8 @@ const CardFace: FC<Props> = ({
                                     <div className="flex items-end gap-1">
                                         <div>
                                             <div className="opacity-70">CVV</div>
-                                            <div className="font-bold">{revealed.cvv}</div>
+                                            {/* ph-no-capture: CVV out of recordings. */}
+                                            <div className="ph-no-capture font-bold">{revealed.cvv}</div>
                                         </div>
                                         {onCopy && (
                                             <button

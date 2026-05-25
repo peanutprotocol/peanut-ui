@@ -14,6 +14,7 @@ import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Image from 'next/image'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
 import AmountInput from '@/components/Global/AmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
@@ -125,7 +126,7 @@ export default function QRPayPage() {
         return paymentProcessor ? maintenanceConfig.disabledPaymentProviders.includes(paymentProcessor) : false
     }, [paymentProcessor])
 
-    const { shouldBlockPay, kycGateState } = useQrKycGate(paymentProcessor)
+    const { shouldBlockPay, kycGateState, userMessage: qrKycUserMessage } = useQrKycGate(paymentProcessor)
     const { isUserSumsubKycApproved } = useKycStatus()
     const sumsubFlow = useMultiPhaseKycFlow({})
     const queryClient = useQueryClient()
@@ -863,7 +864,8 @@ export default function QRPayPage() {
                     description={
                         isFixable
                             ? 'We need an updated document to enable QR payments. Please upload a clearer photo of your ID.'
-                            : 'QR payments are not available for your account. Contact support for help.'
+                            : (qrKycUserMessage ??
+                              'QR payments are not available for your account. Contact support for help.')
                     }
                     icon={
                         methodIcon ? (
@@ -1047,12 +1049,8 @@ export default function QRPayPage() {
     }
 
     // show loading spinner if we're still loading payment data
-    if (isLoadingPaymentData || loadingState.toLowerCase() === 'paying') {
-        return (
-            <PeanutLoading
-                message={loadingState.toLowerCase() === 'paying' ? 'Almost there! Processing payment...' : undefined}
-            />
-        )
+    if (isLoadingPaymentData || loadingState === 'Paying') {
+        return loadingState === 'Paying' ? <CyclingLoading /> : <PeanutLoading />
     }
 
     //Success
