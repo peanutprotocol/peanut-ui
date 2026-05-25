@@ -1,6 +1,5 @@
 import { supportedBridgeTokensDictionary, supportedBridgeChainsDictionary } from '@/constants/cashout.consts'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
-import { fetchWithSentry } from '@/utils/sentry.utils'
 import { isIBAN } from 'validator'
 import { apiFetch } from '@/utils/api-fetch'
 

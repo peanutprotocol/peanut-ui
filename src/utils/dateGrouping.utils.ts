@@ -23,15 +23,6 @@ const DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
     year: 'numeric',
 }
 
-const MONTH_YEAR_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
-    month: 'long',
-    year: 'numeric',
-}
-
-const YEAR_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-}
-
 /**
  * checks if two dates are on the same day, ignoring time.
  * @param date1 first date.

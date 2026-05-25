@@ -459,9 +459,11 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                             title="Receive"
                             onPrev={() => {
                                 dispatch(bankFormActions.clearFormData()) // clear DynamicBankAccountForm data
-                                savedAccounts.length > 0
-                                    ? setClaimBankFlowStep(ClaimBankFlowStep.SavedAccountsList)
-                                    : setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
+                                if (savedAccounts.length > 0) {
+                                    setClaimBankFlowStep(ClaimBankFlowStep.SavedAccountsList)
+                                } else {
+                                    setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
+                                }
                             }}
                         />
                     </div>

@@ -59,8 +59,7 @@ const STAR_POSITIONS = [
  * navigation component for back, skip, and logout buttons
  * rendered at the top of the layout when any button is enabled
  */
-const Navigation = memo(
-    ({
+const Navigation = memo(function Navigation({
         showBackButton,
         showSkipButton,
         showLogoutButton,
@@ -71,7 +70,7 @@ const Navigation = memo(
     }: Pick<
         SetupWrapperProps,
         'showBackButton' | 'showSkipButton' | 'showLogoutButton' | 'onBack' | 'onSkip' | 'onLogout' | 'isLoggingOut'
-    >) => {
+    >) {
         if (!showBackButton && !showSkipButton && !showLogoutButton) return null
 
         return (
@@ -187,8 +186,7 @@ const ImageSection = ({
  * provides a responsive layout structure for setup/onboarding screens
  * uses dynamic viewport height (dvh) for better mobile browser compatibility
  */
-export const SetupWrapper = memo(
-    ({
+export const SetupWrapper = memo(function SetupWrapper({
         layoutType,
         children,
         image,
@@ -208,7 +206,7 @@ export const SetupWrapper = memo(
         canInstall,
         deviceType,
         titleClassName,
-    }: SetupWrapperProps) => {
+    }: SetupWrapperProps) {
         const { isBrave } = useBravePWAInstallState()
         const [showBraveSuccessMessage, setShowBraveSuccessMessage] = useState(false)
 

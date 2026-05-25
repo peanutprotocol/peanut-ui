@@ -1,4 +1,4 @@
-// @ts-ignore: CommonJS module without types
+// @ts-expect-error: CommonJS module without types
 import { ibanToBic } from 'iban-to-bic'
 
 /**

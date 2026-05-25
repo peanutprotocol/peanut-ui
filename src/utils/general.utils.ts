@@ -560,12 +560,6 @@ interface TransferDetails {
     details: any
 }
 
-interface Portfolio {
-    id: string
-    ownerAddress: string
-    assetActivities: TransferDetails[]
-}
-
 export function formatDate(date: Date | null | undefined): string {
     // Receipts and timeline rows pass dates that may be missing for paths
     // that haven't reached that lifecycle event yet (e.g. cancelledDate on a

@@ -76,7 +76,6 @@ describe('render snapshot — TRANSACTION_INTENT wire shape', () => {
         test('bake baseline from vendored BE entries', () => {
             const cases = bakeFromBeEntries()
             writeFileSync(FIXTURE_PATH, JSON.stringify(cases, null, 2) + '\n')
-            // eslint-disable-next-line no-console
             console.warn(`[render-snapshot] wrote ${cases.length} cases to ${FIXTURE_PATH}`)
             expect(cases.length).toBeGreaterThan(0)
         })
