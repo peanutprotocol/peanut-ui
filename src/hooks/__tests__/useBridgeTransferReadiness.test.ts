@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react'
 import { useBridgeTransferReadiness, getKycModalVariant, getGateProviderMessage } from '../useBridgeTransferReadiness'
-import type { BridgeGateAction } from '../useBridgeTransferReadiness'
+import { type IUserRail, type UserRailStatus } from '@/interfaces'
 
 // mock the three dependency hooks
 jest.mock('../useBridgeTosStatus', () => ({
@@ -34,19 +34,33 @@ const defaultRejection = {
     maxAttempts: 3,
 }
 
+function bridgeRail(status: UserRailStatus): IUserRail {
+    return {
+        id: `ur-bridge-${status}`,
+        railId: 'r-bridge',
+        status,
+        metadata: null,
+        rail: {
+            id: 'r-bridge',
+            provider: { code: 'BRIDGE', name: 'Bridge' },
+            method: { code: 'ACH_US', name: 'ACH', country: 'US', currency: 'USD' },
+        },
+    }
+}
+
 function setup({
     needsBridgeTos = false,
     bridgeState = 'happy' as ProviderRejectionState,
     bridgeUserMessage = null as string | null,
     isSumsubApproved = false,
-    isBridgeApproved = false,
-    isBridgeUnderReview = false,
-    isBridgeIncomplete = false,
+    // null → no Bridge rails (not enrolled); otherwise the user's single Bridge rail status
+    bridgeRailStatus = null as UserRailStatus | null,
 } = {}) {
+    const bridgeRails = bridgeRailStatus ? [bridgeRail(bridgeRailStatus)] : []
     mockTosStatus.mockReturnValue({
         needsBridgeTos,
-        isBridgeFullyEnabled: false,
-        bridgeRails: [],
+        isBridgeFullyEnabled: bridgeRailStatus === 'ENABLED',
+        bridgeRails,
     })
     mockRejectionStatus.mockReturnValue({
         bridge: { ...defaultRejection, state: bridgeState, userMessage: bridgeUserMessage },
@@ -58,19 +72,19 @@ function setup({
     })
     mockKycStatus.mockReturnValue({
         isUserSumsubKycApproved: isSumsubApproved,
-        isUserBridgeKycApproved: isBridgeApproved,
-        isUserBridgeKycUnderReview: isBridgeUnderReview,
-        isUserBridgeKycIncomplete: isBridgeIncomplete,
+        isUserBridgeKycApproved: false,
+        isUserBridgeKycUnderReview: false,
+        isUserBridgeKycIncomplete: false,
         isUserMantecaKycApproved: false,
-        isUserKycApproved: isBridgeApproved,
+        isUserKycApproved: false,
     })
 }
 
 describe('useBridgeTransferReadiness', () => {
     afterEach(() => jest.resetAllMocks())
 
-    it('returns ready when no issues', () => {
-        setup({ isSumsubApproved: true, isBridgeApproved: true })
+    it('returns ready when bridge rail is ENABLED', () => {
+        setup({ isSumsubApproved: true, bridgeRailStatus: 'ENABLED' })
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('ready')
     })
@@ -79,7 +93,7 @@ describe('useBridgeTransferReadiness', () => {
         setup({ needsBridgeTos: true, bridgeState: 'blocked', bridgeUserMessage: 'permanently rejected' })
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('blocked_rejection')
-        expect((result.current.gate as any).userMessage).toBe('permanently rejected')
+        expect((result.current.gate as { userMessage?: string }).userMessage).toBe('permanently rejected')
     })
 
     it('accept_tos fires when tos needed and no hard rejection', () => {
@@ -92,29 +106,29 @@ describe('useBridgeTransferReadiness', () => {
         setup({ bridgeState: 'fixable', bridgeUserMessage: 'upload clearer photo' })
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('fixable_rejection')
-        expect((result.current.gate as any).userMessage).toBe('upload clearer photo')
+        expect((result.current.gate as { userMessage?: string }).userMessage).toBe('upload clearer photo')
     })
 
-    it('needs_enrollment when sumsub approved but bridge not started', () => {
-        setup({ isSumsubApproved: true })
+    it('needs_enrollment when sumsub approved but no bridge rail exists', () => {
+        setup({ isSumsubApproved: true, bridgeRailStatus: null })
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('needs_enrollment')
     })
 
-    it('ready when sumsub approved and bridge under review (enrollment not needed)', () => {
-        setup({ isSumsubApproved: true, isBridgeUnderReview: true })
+    it('ready when sumsub approved and bridge rail is PENDING (enrollment already started)', () => {
+        setup({ isSumsubApproved: true, bridgeRailStatus: 'PENDING' })
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('ready')
     })
 
-    it('ready when sumsub approved and bridge incomplete (enrollment not needed)', () => {
-        setup({ isSumsubApproved: true, isBridgeIncomplete: true })
+    it('ready when sumsub approved and bridge rail is REQUIRES_INFORMATION', () => {
+        setup({ isSumsubApproved: true, bridgeRailStatus: 'REQUIRES_INFORMATION' })
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('ready')
     })
 
-    it('ready when sumsub approved and bridge approved', () => {
-        setup({ isSumsubApproved: true, isBridgeApproved: true })
+    it('does not flag needs_enrollment when sumsub is not approved', () => {
+        setup({ isSumsubApproved: false, bridgeRailStatus: null })
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('ready')
     })
@@ -127,12 +141,6 @@ describe('useBridgeTransferReadiness', () => {
 
     it('accept_tos takes priority over needs_enrollment', () => {
         setup({ needsBridgeTos: true, isSumsubApproved: true })
-        const { result } = renderHook(() => useBridgeTransferReadiness())
-        expect(result.current.gate.type).toBe('accept_tos')
-    })
-
-    it('accept_tos when bridge incomplete and tos needed (main bug scenario)', () => {
-        setup({ needsBridgeTos: true, isBridgeIncomplete: true, isSumsubApproved: true })
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('accept_tos')
     })
