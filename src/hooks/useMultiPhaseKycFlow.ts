@@ -219,42 +219,49 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
 
         // the second SDK completion happens after React records the TIN cluster from the first auto-continue.
         const canAutoContinueTin = lastSelfHealQuestionnaireCluster !== 'eea_tin_reupload'
-        for (
-            let elapsed = 0;
-            elapsed < BRIDGE_ACTION_AUTO_CONTINUE_TIMEOUT_MS;
-            elapsed += BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS
-        ) {
-            if (!isMountedRef.current) return
+        try {
+            for (
+                let elapsed = 0;
+                elapsed < BRIDGE_ACTION_AUTO_CONTINUE_TIMEOUT_MS;
+                elapsed += BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS
+            ) {
+                if (!isMountedRef.current) return
 
-            let updatedUser
-            try {
-                updatedUser = await fetchUser()
-            } catch (error) {
-                console.error('[useMultiPhaseKycFlow] failed to refresh user during action continuation', error)
+                let updatedUser
+                try {
+                    updatedUser = await fetchUser()
+                } catch (error) {
+                    console.error('[useMultiPhaseKycFlow] failed to refresh user during action continuation', error)
+                    if (elapsed + BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS < BRIDGE_ACTION_AUTO_CONTINUE_TIMEOUT_MS) {
+                        await wait(BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS)
+                    }
+                    continue
+                }
+                if (!isMountedRef.current) return
+
+                const nextCluster = getBridgeNextQuestionnaireClusterFromUser(updatedUser)
+
+                if (nextCluster === 'eea_tin_reupload' && canAutoContinueTin) {
+                    const started = await handleSelfHealResubmit('BRIDGE')
+                    if (!isMountedRef.current) return
+                    if (started) {
+                        setForceShowModal(false)
+                        return
+                    }
+                    console.warn('[useMultiPhaseKycFlow] failed to start EEA TIN reupload continuation')
+                    break
+                }
+
+                if (nextCluster === 'eea_tin_reupload') {
+                    await wait(BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS)
+                    break
+                }
                 if (elapsed + BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS < BRIDGE_ACTION_AUTO_CONTINUE_TIMEOUT_MS) {
                     await wait(BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS)
                 }
-                continue
             }
-            const nextCluster = getBridgeNextQuestionnaireClusterFromUser(updatedUser)
-
-            if (nextCluster === 'eea_tin_reupload' && canAutoContinueTin) {
-                const started = await handleSelfHealResubmit('BRIDGE')
-                if (started) {
-                    setForceShowModal(false)
-                    return
-                }
-                console.warn('[useMultiPhaseKycFlow] failed to start EEA TIN reupload continuation')
-                break
-            }
-
-            if (nextCluster === 'eea_tin_reupload') {
-                await wait(BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS)
-                break
-            }
-            if (elapsed + BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS < BRIDGE_ACTION_AUTO_CONTINUE_TIMEOUT_MS) {
-                await wait(BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS)
-            }
+        } catch (error) {
+            console.error('[useMultiPhaseKycFlow] action continuation failed', error)
         }
 
         if (!isMountedRef.current) return

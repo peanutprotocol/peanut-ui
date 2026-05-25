@@ -272,6 +272,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         if (selfHealProviderRef.current) {
             selfHealProviderRef.current = null
             setIsActionFlow(false)
+            // this intentionally reads the captured pre-update value. action flows are polled by useMultiPhaseKycFlow.
             if (!isActionFlow) void fetchUser()
             return
         }
@@ -333,6 +334,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         setError(null)
         userInitiatedRef.current = true
         selfHealProviderRef.current = provider
+        setLastSelfHealQuestionnaireCluster(null)
 
         try {
             const response = await initiateSelfHealResubmission(provider)
