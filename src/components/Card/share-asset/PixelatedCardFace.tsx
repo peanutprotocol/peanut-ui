@@ -97,19 +97,19 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
             )}
         </div>
 
-        {/* Bottom: card number. The share asset deliberately obscures the
-            real PAN so it can't be screen-grabbed and posted — render
-            four groups of four `?` instead of the user's actual last4.
-            (The `last4` prop is still in the type for the in-app card
-            preview surface that uses the real number; share-asset
-            callers don't need to pass it.) Lowered toward the card
-            edge now that the Virtual pill is gone — gives the layout
-            room to breathe. */}
+        {/* Bottom: card number — same `•••• ????` pattern in both modes.
+            The share asset deliberately obscures the real PAN so a
+            screenshot can't leak it; the eligibility-check tease uses
+            the same string for visual continuity. (The `last4` prop is
+            still in the type for in-app surfaces that show the real
+            card face — share-asset + tease callers just don't pass it.)
+            Lowered toward the card edge now that the Virtual pill is
+            gone — gives the layout room to breathe. */}
         <div className="absolute" style={{ bottom: 32, left: 28, zIndex: 2 }}>
             {blurAll ? (
                 <PixelatedText
-                    text="???? ???? ???? ????"
-                    displayW={420}
+                    text="•••• ????"
+                    displayW={260}
                     displayH={42}
                     font="1000 42px Roboto, sans-serif"
                     color="#000"
@@ -124,7 +124,7 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
                         lineHeight: 1,
                     }}
                 >
-                    ???? ???? ???? ????
+                    •••• ????
                 </div>
             )}
         </div>
