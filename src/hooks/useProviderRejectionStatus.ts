@@ -3,10 +3,9 @@
 import { useAuth } from '@/context/authContext'
 import { useMemo } from 'react'
 import type { IUserRail, IUserKycVerification } from '@/interfaces/interfaces'
-import {
-    MANTECA_US_NATIONALITY_RESTRICTION_CODE,
-    MANTECA_US_NATIONALITY_RESTRICTION_MESSAGE,
-} from '@/constants/manteca.consts'
+import { MANTECA_US_NATIONALITY_RESTRICTION_MESSAGE } from '@/constants/manteca.consts'
+import { MAX_SELF_HEAL_ATTEMPTS } from '@/constants/kyc.consts'
+import { hasMantecaUsNationalityRestrictionMetadata } from '@/utils/manteca-restriction.utils'
 
 export type ProviderRejectionState = 'happy' | 'processing' | 'fixable' | 'blocked'
 
@@ -19,8 +18,6 @@ export interface ProviderRejectionInfo {
     selfHealAttempt: number
     maxAttempts: number
 }
-
-const MAX_SELF_HEAL_ATTEMPTS = 3
 
 /**
  * derives per-provider fixable/blocked/processing state from rails + kycVerifications.
@@ -78,13 +75,12 @@ export default function useProviderRejectionStatus() {
             // has rejected rails
             if (rejectedRails.length > 0) {
                 const firstRejectedMetadata = (rejectedRails[0].metadata ?? {}) as Record<string, unknown>
+                const rejectedRailsMetadata = rejectedRails.map((rail) => rail.metadata)
                 const isSelfHealable = firstRejectedMetadata.selfHealable === true
                 const rejectType = kycVerification?.rejectType
-                const restrictionCode =
-                    (metadata.restrictionCode as string | undefined) ??
-                    (firstRejectedMetadata.restrictionCode as string | undefined)
                 const isMantecaUsNationalityRestricted =
-                    providerCode === 'MANTECA' && restrictionCode === MANTECA_US_NATIONALITY_RESTRICTION_CODE
+                    providerCode === 'MANTECA' &&
+                    hasMantecaUsNationalityRestrictionMetadata([metadata, ...rejectedRailsMetadata])
 
                 // check if fixable: selfHealable flag on rail + rejectType + attempt limit
                 const isFixable =

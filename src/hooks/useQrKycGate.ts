@@ -3,13 +3,9 @@
 import { useCallback, useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
-import { isKycStatusApproved, isSumsubStatusInProgress } from '@/constants/kyc.consts'
-import {
-    MANTECA_US_NATIONALITY_RESTRICTION_CODE,
-    MANTECA_US_NATIONALITY_RESTRICTION_MESSAGE,
-} from '@/constants/manteca.consts'
-
-const MAX_SELF_HEAL_ATTEMPTS = 3
+import { isKycStatusApproved, isSumsubStatusInProgress, MAX_SELF_HEAL_ATTEMPTS } from '@/constants/kyc.consts'
+import { MANTECA_US_NATIONALITY_RESTRICTION_MESSAGE } from '@/constants/manteca.consts'
+import { hasMantecaUsNationalityRestrictionMetadata } from '@/utils/manteca-restriction.utils'
 
 export enum QrKycState {
     LOADING = 'loading',
@@ -79,13 +75,15 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | null): QrKycGateResu
             )
             if (rejectedMantecaRails.length > 0) {
                 const railMeta = (rejectedMantecaRails[0].metadata ?? {}) as Record<string, unknown>
+                const rejectedRailMetadata = rejectedMantecaRails.map((rail) => rail.metadata)
                 const mantecaKyc = currentUser.kycVerifications
                     ?.filter((v) => v.provider === 'MANTECA')
                     .sort((a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime())[0]
                 const kycMeta = (mantecaKyc?.metadata ?? {}) as Record<string, unknown>
-                const restrictionCode =
-                    (kycMeta.restrictionCode as string | undefined) ?? (railMeta.restrictionCode as string | undefined)
-                const isMantecaUsNationalityRestricted = restrictionCode === MANTECA_US_NATIONALITY_RESTRICTION_CODE
+                const isMantecaUsNationalityRestricted = hasMantecaUsNationalityRestrictionMetadata([
+                    kycMeta,
+                    ...rejectedRailMetadata,
+                ])
                 const isFixable =
                     !isMantecaUsNationalityRestricted &&
                     railMeta.selfHealable === true &&
