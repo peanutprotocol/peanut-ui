@@ -55,24 +55,39 @@ export function useQrKycGate(_paymentProcessor?: 'MANTECA' | null): QrKycGateRes
         }
 
         if (!user) {
-            // on public routes (like qr pay) auth may not auto-fetch; trigger it once and wait
+            // on public routes (like qr pay) auth may not auto-fetch; trigger
+            // it once. If the fetch produced a user, the re-render will pick
+            // up the new branch; if it produced nothing (returned null or
+            // threw), fall through to REQUIRES_IDENTITY_VERIFICATION rather
+            // than leaving the gate stuck in LOADING (CR comment on this PR).
             if (!hasRequestedUserFetchRef.current) {
                 hasRequestedUserFetchRef.current = true
                 setGateState(QrKycState.LOADING)
                 try {
-                    await fetchUser()
+                    const fetched = await fetchUser()
+                    if (fetched) return
                 } catch {
-                    // ignore errors and fall through after one attempt
+                    // ignore errors and fall through
                 }
-                return
             }
             setGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
             return
         }
 
-        // a provider rejection takes precedence over rail presence. propagate the
-        // hook's userMessage (carries US-nationality restriction copy etc.) so
-        // the consumer surfaces the same wording dev's legacy gate produced.
+        const rails = user.rails
+
+        // An ENABLED Manteca rail wins before the rejection check — this
+        // covers dev #2092's "Sumsub-approved pool fallback" intent: a
+        // user with a US-restricted rejected full-tier Manteca rail but an
+        // ENABLED Sumsub-pool rail can still pay QR through the pool. The
+        // rejection branches only fire when there's nothing functional.
+        if (hasEnabledRail(rails, 'MANTECA')) {
+            setGateState(QrKycState.PROCEED_TO_PAY)
+            return
+        }
+
+        // No enabled rail — defer to the provider rejection state. The
+        // userMessage carries US-nationality copy etc. when applicable.
         if (mantecaRejection.state === 'blocked') {
             setGateState(QrKycState.PROVIDER_REJECTION_BLOCKED, mantecaRejection.userMessage)
             return
@@ -82,11 +97,6 @@ export function useQrKycGate(_paymentProcessor?: 'MANTECA' | null): QrKycGateRes
             return
         }
 
-        const rails = user.rails
-        if (hasEnabledRail(rails, 'MANTECA')) {
-            setGateState(QrKycState.PROCEED_TO_PAY)
-            return
-        }
         if (hasRailInProgress(rails, 'MANTECA')) {
             setGateState(QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS)
             return
