@@ -70,23 +70,19 @@ const CardWaitlistScreen: FC<Props> = ({ cardInfo, onPrev, onJoined, missingSkip
 
             <div className="flex flex-col gap-2">
                 {alreadyJoined && position !== null ? (
-                    <h1 className="text-2xl font-extrabold text-n-1">
-                        You&apos;re #{position} in line
-                    </h1>
+                    <h1 className="text-2xl font-extrabold text-n-1">You&apos;re #{position} in line</h1>
                 ) : (
                     <h1 className="text-2xl font-extrabold text-n-1">Join the waitlist</h1>
                 )}
                 <p className="text-grey-1">
-                    We&apos;re letting people in slowly — about 20 a week during closed beta. Skip
-                    the line with the right badge.
+                    We&apos;re letting people in slowly — about 20 a week during closed beta. Skip the line with the
+                    right badge.
                 </p>
             </div>
 
             {missingSkipBadges.length > 0 && (
                 <div className="rounded-sm border border-n-1 bg-primary-3 p-4">
-                    <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-n-1">
-                        Skip the line
-                    </h2>
+                    <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-n-1">Skip the line</h2>
                     <ul className="flex flex-col gap-3">
                         {missingSkipBadges.map((code) => {
                             const meta = SKIP_BADGE_LABELS[code] ?? {

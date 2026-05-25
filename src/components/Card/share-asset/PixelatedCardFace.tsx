@@ -43,7 +43,7 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
     blurAll = false,
 }) => (
     <div
-        className={`relative border-[4px] border-black rounded-3xl overflow-hidden ${className ?? ''}`}
+        className={`relative overflow-hidden rounded-3xl border-[4px] border-black ${className ?? ''}`}
         style={{
             background: '#FF90E8',
             width: CARD_W,
@@ -91,7 +91,7 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
                 •••• {last4}
             </div>
             <span
-                className="inline-block bg-white border-[1.5px] border-black rounded-full font-semibold"
+                className="inline-block rounded-full border-[1.5px] border-black bg-white font-semibold"
                 style={{ fontSize: 15, padding: '2px 14px', marginTop: 8 }}
             >
                 Virtual
@@ -158,7 +158,7 @@ const PixelatedHand: FC = () => (
                 node.appendChild(canvas)
             })
         }}
-        className="absolute pointer-events-none select-none"
+        className="pointer-events-none absolute select-none"
         style={{
             top: -40,
             right: -20,

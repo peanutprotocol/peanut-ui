@@ -100,7 +100,7 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
 
     return (
         <div
-            className="relative overflow-hidden border-2 border-black rounded-sm"
+            className="relative overflow-hidden rounded-sm border-2 border-black"
             style={{
                 width: CANVAS_W,
                 height: CANVAS_H,
@@ -157,10 +157,9 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
 
             {/* ─── Background pattern (faint pink polka) ─── */}
             <div
-                className="absolute inset-0 pointer-events-none"
+                className="pointer-events-none absolute inset-0"
                 style={{
-                    backgroundImage:
-                        'radial-gradient(circle, rgba(255,144,232,0.45) 1px, transparent 1.5px)',
+                    backgroundImage: 'radial-gradient(circle, rgba(255,144,232,0.45) 1px, transparent 1.5px)',
                     backgroundSize: '32px 32px',
                     opacity: 0.5,
                 }}
@@ -173,7 +172,7 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
 
             {/* ─── Vertical editorial header (magazine spine) ─── */}
             <div
-                className="absolute hero-caps text-black/55"
+                className="hero-caps absolute text-black/55"
                 style={{
                     left: 28,
                     top: '50%',
@@ -193,7 +192,12 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
             {/* ─── EDITION header (top-left) ─── */}
             <div
                 className="absolute"
-                style={{ top: 36, left: 80, zIndex: 6, animation: animate ? `fadeUp 600ms ease-out ${ANIM_CARD_DELAY}ms both` : 'none' }}
+                style={{
+                    top: 36,
+                    left: 80,
+                    zIndex: 6,
+                    animation: animate ? `fadeUp 600ms ease-out ${ANIM_CARD_DELAY}ms both` : 'none',
+                }}
             >
                 <HeroCaps style={{ fontSize: 11, letterSpacing: '0.2em' }}>EDITION · 01</HeroCaps>
                 <HeroCaps style={{ fontSize: 10, letterSpacing: '0.16em', opacity: 0.55, marginTop: 2 }}>
@@ -238,7 +242,7 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                     {/* Stats inline strip — renders only the cols present */}
                     {statCols.length > 0 && (
                         <div
-                            className={`border-[2.5px] border-black bg-white inline-block ${showTierBlock ? 'mt-3' : ''}`}
+                            className={`inline-block border-[2.5px] border-black bg-white ${showTierBlock ? 'mt-3' : ''}`}
                             style={{
                                 padding: '6px 12px',
                                 boxShadow: '0.125rem 0.125rem 0 #000',
@@ -281,7 +285,9 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                     top: CARD_TOP,
                     left: CARD_LEFT,
                     zIndex: 3,
-                    animation: animate ? `cardSlide 800ms cubic-bezier(0.18, 0.89, 0.32, 1.28) ${ANIM_CARD_DELAY}ms both` : 'none',
+                    animation: animate
+                        ? `cardSlide 800ms cubic-bezier(0.18, 0.89, 0.32, 1.28) ${ANIM_CARD_DELAY}ms both`
+                        : 'none',
                 }}
             >
                 <PixelatedCardFace last4={safeLast4} />
@@ -304,7 +310,7 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
 
             {/* ─── EARNED ✓ rubber stamp (top-right) ─── */}
             <div
-                className="absolute pointer-events-none"
+                className="pointer-events-none absolute"
                 style={{
                     top: 184,
                     right: 138,
@@ -344,11 +350,9 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                     animation: animate ? `fadeUp 600ms ease-out ${ANIM_ATTRIBUTION_DELAY}ms both` : 'none',
                 }}
             >
-                <HeroCaps style={{ fontSize: 12, letterSpacing: '0.18em', opacity: 0.65 }}>
-                    Who invited you? ↓
-                </HeroCaps>
+                <HeroCaps style={{ fontSize: 12, letterSpacing: '0.18em', opacity: 0.65 }}>Who invited you? ↓</HeroCaps>
                 <span
-                    className="border-[3px] border-black rounded-full bg-secondary-1 inline-block"
+                    className="inline-block rounded-full border-[3px] border-black bg-secondary-1"
                     style={{
                         fontSize: usernameFontSize(safeUsername),
                         padding: '5px 24px',
@@ -402,7 +406,7 @@ const StampEl: FC<StampElProps> = ({ stamp, animate, delay }) => {
     const restTransform = `rotate(${stamp.rotation}deg)`
     return (
         <figure
-            className="absolute stamp"
+            className="stamp absolute"
             style={{
                 width: stamp.width,
                 height: stamp.height,
@@ -469,11 +473,7 @@ const StampEl: FC<StampElProps> = ({ stamp, animate, delay }) => {
     )
 }
 
-const DecorationEl: FC<{ deco: DecorationPlacement; animate: boolean; delay: number }> = ({
-    deco,
-    animate,
-    delay,
-}) => {
+const DecorationEl: FC<{ deco: DecorationPlacement; animate: boolean; delay: number }> = ({ deco, animate, delay }) => {
     const src = DECO_ASSET[deco.kind]
     const restTransform = `rotate(${deco.rotation}deg)`
     const opacity = deco.kind === 'star' ? 0.85 : 0.95
@@ -482,7 +482,7 @@ const DecorationEl: FC<{ deco: DecorationPlacement; animate: boolean; delay: num
             src={src}
             alt=""
             aria-hidden
-            className="absolute select-none pointer-events-none"
+            className="pointer-events-none absolute select-none"
             style={{
                 top: deco.top,
                 bottom: deco.bottom,

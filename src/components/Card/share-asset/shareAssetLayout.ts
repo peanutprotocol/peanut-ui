@@ -105,9 +105,7 @@ export function placeStamps(badges: ShareAssetBadge[], rng: SeededRandom): Stamp
     return slots.map((slot, i): StampPlacement => {
         const badge = shuffledBadges[i]
         const meta = getBadgeMeta(badge.code)
-        const year = badge.earnedAt
-            ? `'${String(new Date(badge.earnedAt).getFullYear()).slice(-2)}`
-            : undefined
+        const year = badge.earnedAt ? `'${String(new Date(badge.earnedAt).getFullYear()).slice(-2)}` : undefined
         return {
             badge: {
                 code: badge.code,

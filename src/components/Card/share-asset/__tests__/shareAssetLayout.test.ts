@@ -81,7 +81,10 @@ describe('placeStamps', () => {
 
     it('stamp size scales inversely with badge count', () => {
         const single = placeStamps([badge('A')], rng())
-        const six = placeStamps(Array.from({ length: 6 }, (_, i) => badge(`B${i}`)), rng())
+        const six = placeStamps(
+            Array.from({ length: 6 }, (_, i) => badge(`B${i}`)),
+            rng()
+        )
         expect(single[0].width).toBeGreaterThan(six[0].width)
     })
 
