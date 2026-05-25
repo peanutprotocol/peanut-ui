@@ -122,7 +122,9 @@ const mockGate = jest.fn().mockReturnValue({ type: 'ready' })
 jest.mock('@/hooks/useBridgeTransferReadiness', () => ({
     useBridgeTransferReadiness: () => ({ gate: mockGate() }),
     getKycModalVariant: () => 'default',
+    getGateProviderTitle: () => undefined,
     getGateProviderMessage: () => undefined,
+    getGateActionLabel: () => undefined,
 }))
 
 jest.mock('@/context/ModalsContext', () => ({
