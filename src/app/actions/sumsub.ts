@@ -59,6 +59,14 @@ export interface SelfHealResubmissionResponse {
     userMessage: string
     attempt: number
     maxAttempts: number
+    questionnaireCluster?:
+        | 'source_of_funds'
+        | 'tax_id'
+        | 'address'
+        | 'birth_details'
+        | 'eea_uplift'
+        | 'eea_tin_reupload'
+    questionnaireVariant?: 'eea_uplift_with_tin'
 }
 
 // initiate self-heal document resubmission for a provider-rejected user

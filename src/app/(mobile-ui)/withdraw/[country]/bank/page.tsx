@@ -37,6 +37,8 @@ import {
     useBridgeTransferReadiness,
     getKycModalVariant,
     getGateProviderMessage,
+    getGateProviderTitle,
+    getGateActionLabel,
 } from '@/hooks/useBridgeTransferReadiness'
 import { useModalsContext } from '@/context/ModalsContext'
 import ExchangeRate from '@/components/ExchangeRate'
@@ -493,7 +495,9 @@ export default function WithdrawBankPage() {
                 isLoading={sumsubFlow.isLoading}
                 error={sumsubFlow.error}
                 variant={getKycModalVariant(gate.type)}
+                providerTitle={getGateProviderTitle(gate)}
                 providerMessage={getGateProviderMessage(gate)}
+                providerActionLabel={getGateActionLabel(gate)}
                 regionName={getCountryFromPath(country)?.title}
             />
             <SumsubKycModals flow={sumsubFlow} />

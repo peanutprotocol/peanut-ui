@@ -16,6 +16,15 @@ type ProviderRemediationStatus = 'APPROVED' | 'AWAITING_INPUT' | 'AWAITING_PROVI
 interface ProviderRemediationAction {
     payloadType: ProviderRemediationPayloadType
     requirementKey?: string
+    questionnaireCluster?:
+        | 'source_of_funds'
+        | 'tax_id'
+        | 'address'
+        | 'birth_details'
+        | 'eea_uplift'
+        | 'eea_tin_reupload'
+    questionnaireVariant?: 'eea_uplift_with_tin'
+    effectiveDate?: string
     maxAttempts?: number
 }
 
@@ -69,7 +78,14 @@ function emptyProviderInfo(
     }
 }
 
-function getActionTitle(payloadType?: ProviderRemediationPayloadType) {
+function isEeaTinReuploadAction(action?: ProviderRemediationAction) {
+    return action?.questionnaireCluster === 'eea_tin_reupload'
+}
+
+function getActionTitle(action?: ProviderRemediationAction) {
+    if (isEeaTinReuploadAction(action)) return 'TIN re-upload needed'
+
+    const payloadType = action?.payloadType
     switch (payloadType) {
         case 'BRIDGE_TOS':
             return 'Terms acceptance needed'
@@ -83,7 +99,10 @@ function getActionTitle(payloadType?: ProviderRemediationPayloadType) {
     }
 }
 
-function getActionModalTitle(payloadType?: ProviderRemediationPayloadType) {
+function getActionModalTitle(action?: ProviderRemediationAction) {
+    if (isEeaTinReuploadAction(action)) return 'Re-upload your TIN'
+
+    const payloadType = action?.payloadType
     switch (payloadType) {
         case 'BRIDGE_TOS':
             return 'Terms acceptance needed'
@@ -97,7 +116,12 @@ function getActionModalTitle(payloadType?: ProviderRemediationPayloadType) {
     }
 }
 
-function getActionModalDescription(payloadType?: ProviderRemediationPayloadType) {
+function getActionModalDescription(action?: ProviderRemediationAction) {
+    if (isEeaTinReuploadAction(action)) {
+        return 'Please re-upload your tax ID so our verification provider can check it against your personal details.'
+    }
+
+    const payloadType = action?.payloadType
     switch (payloadType) {
         case 'BRIDGE_TOS':
             return 'Please accept the terms to enable payments.'
@@ -116,8 +140,11 @@ function getActionHandler(payloadType?: ProviderRemediationPayloadType): Provide
     return payloadType === 'BRIDGE_TOS' ? 'tos' : 'sumsub'
 }
 
-function getActionLabel(payloadType?: ProviderRemediationPayloadType) {
-    switch (payloadType) {
+function getActionLabel(action?: ProviderRemediationAction) {
+    if (action?.questionnaireCluster === 'eea_uplift') return 'Provide required details'
+    if (isEeaTinReuploadAction(action)) return 'Re-upload TIN'
+
+    switch (action?.payloadType) {
         case 'BRIDGE_TOS':
             return 'Accept terms'
         case 'BRIDGE_IDENTIFYING_INFORMATION':
@@ -132,6 +159,13 @@ function getActionLabel(payloadType?: ProviderRemediationPayloadType) {
 }
 
 function getBridgeActionMessage(action?: ProviderRemediationAction) {
+    if (action?.questionnaireCluster === 'eea_uplift') {
+        return 'We need additional details to keep payments enabled.'
+    }
+    if (isEeaTinReuploadAction(action)) {
+        return 'Our verification provider could not match your tax ID to your personal details. Please re-upload your tax ID document.'
+    }
+
     switch (action?.payloadType) {
         case 'BRIDGE_TOS':
             return 'Please accept the terms to enable payments.'
@@ -276,10 +310,10 @@ export function deriveProviderRejectionInfo(
             selfHealAttempt,
             maxAttempts,
             requiredAction: payloadType ?? null,
-            actionTitle: getActionTitle(payloadType),
-            modalTitle: getActionModalTitle(payloadType),
-            modalDescription: getActionModalDescription(payloadType),
-            actionLabel: getActionLabel(payloadType),
+            actionTitle: getActionTitle(bridgeAction),
+            modalTitle: getActionModalTitle(bridgeAction),
+            modalDescription: getActionModalDescription(bridgeAction),
+            actionLabel: getActionLabel(bridgeAction),
             actionHandler: getActionHandler(payloadType),
         }
     }

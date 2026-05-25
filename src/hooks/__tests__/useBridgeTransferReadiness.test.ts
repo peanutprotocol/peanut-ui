@@ -1,5 +1,11 @@
 import { renderHook } from '@testing-library/react'
-import { useBridgeTransferReadiness, getKycModalVariant, getGateProviderMessage } from '../useBridgeTransferReadiness'
+import {
+    useBridgeTransferReadiness,
+    getKycModalVariant,
+    getGateProviderMessage,
+    getGateProviderTitle,
+    getGateActionLabel,
+} from '../useBridgeTransferReadiness'
 import type { BridgeGateAction } from '../useBridgeTransferReadiness'
 
 // mock the three dependency hooks
@@ -44,6 +50,8 @@ function setup({
     needsBridgeTos = false,
     bridgeState = 'happy' as ProviderRejectionState,
     bridgeUserMessage = null as string | null,
+    bridgeModalTitle = null as string | null,
+    bridgeActionLabel = null as string | null,
     bridgeRejectedRailCount = 0,
     isSumsubApproved = false,
     isBridgeApproved = false,
@@ -60,6 +68,8 @@ function setup({
             ...defaultRejection,
             state: bridgeState,
             userMessage: bridgeUserMessage,
+            modalTitle: bridgeModalTitle,
+            actionLabel: bridgeActionLabel,
             rejectedRails: Array.from(
                 { length: bridgeRejectedRailCount },
                 (_, index) => ({ id: `rail-${index}` }) as any
@@ -104,10 +114,17 @@ describe('useBridgeTransferReadiness', () => {
     })
 
     it('fixable_rejection when selfHealable and no tos needed', () => {
-        setup({ bridgeState: 'fixable', bridgeUserMessage: 'upload clearer photo' })
+        setup({
+            bridgeState: 'fixable',
+            bridgeUserMessage: 'upload clearer photo',
+            bridgeModalTitle: 'We need an updated document',
+            bridgeActionLabel: 'Upload ID',
+        })
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('fixable_rejection')
         expect((result.current.gate as any).userMessage).toBe('upload clearer photo')
+        expect((result.current.gate as any).modalTitle).toBe('We need an updated document')
+        expect((result.current.gate as any).actionLabel).toBe('Upload ID')
     })
 
     it('needs_enrollment when sumsub approved but bridge not started', () => {
@@ -179,7 +196,14 @@ describe('getKycModalVariant', () => {
 describe('getGateProviderMessage', () => {
     it('returns userMessage for rejection gates', () => {
         expect(getGateProviderMessage({ type: 'blocked_rejection', userMessage: 'blocked msg' })).toBe('blocked msg')
-        expect(getGateProviderMessage({ type: 'fixable_rejection', userMessage: 'fix msg' })).toBe('fix msg')
+        expect(
+            getGateProviderMessage({
+                type: 'fixable_rejection',
+                userMessage: 'fix msg',
+                modalTitle: null,
+                actionLabel: null,
+            })
+        ).toBe('fix msg')
         expect(getGateProviderMessage({ type: 'provider_processing', userMessage: 'processing msg' })).toBe(
             'processing msg'
         )
@@ -193,5 +217,24 @@ describe('getGateProviderMessage', () => {
         expect(getGateProviderMessage({ type: 'accept_tos' })).toBeUndefined()
         expect(getGateProviderMessage({ type: 'needs_enrollment' })).toBeUndefined()
         expect(getGateProviderMessage({ type: 'ready' })).toBeUndefined()
+    })
+})
+
+describe('getGateProviderTitle and getGateActionLabel', () => {
+    it('returns fixable rejection modal copy', () => {
+        const gate: BridgeGateAction = {
+            type: 'fixable_rejection',
+            userMessage: 'details needed',
+            modalTitle: 'We need more details',
+            actionLabel: 'Provide required details',
+        }
+
+        expect(getGateProviderTitle(gate)).toBe('We need more details')
+        expect(getGateActionLabel(gate)).toBe('Provide required details')
+    })
+
+    it('returns undefined for non-fixable gates', () => {
+        expect(getGateProviderTitle({ type: 'accept_tos' })).toBeUndefined()
+        expect(getGateActionLabel({ type: 'ready' })).toBeUndefined()
     })
 })

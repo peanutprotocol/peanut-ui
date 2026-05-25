@@ -43,6 +43,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const userInitiatedRef = useRef(false)
     // tracks self-heal provider for token refresh — null when in regular KYC flow
     const selfHealProviderRef = useRef<'BRIDGE' | 'MANTECA' | null>(null)
+    const [lastSelfHealQuestionnaireCluster, setLastSelfHealQuestionnaireCluster] = useState<string | null>(null)
 
     useEffect(() => {
         regionIntentRef.current = regionIntent
@@ -144,6 +145,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             userInitiatedRef.current = true
             initiatingRef.current = true
             selfHealProviderRef.current = null
+            setLastSelfHealQuestionnaireCluster(null)
             setIsLoading(true)
             setError(null)
 
@@ -270,12 +272,13 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         if (selfHealProviderRef.current) {
             selfHealProviderRef.current = null
             setIsActionFlow(false)
-            void fetchUser()
+            // this intentionally reads the captured pre-update value. action flows are polled by useMultiPhaseKycFlow.
+            if (!isActionFlow) void fetchUser()
             return
         }
         setIsActionFlow(false)
         setIsVerificationProgressModalOpen(true)
-    }, [fetchUser])
+    }, [fetchUser, isActionFlow])
 
     // called when user manually closes the sdk modal
     const handleClose = useCallback(() => {
@@ -293,6 +296,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 throw new Error(response.error || 'Failed to refresh self-heal token')
             }
             setAccessToken(response.data.token)
+            setLastSelfHealQuestionnaireCluster(response.data.questionnaireCluster ?? null)
             return response.data.token
         }
 
@@ -330,6 +334,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         setError(null)
         userInitiatedRef.current = true
         selfHealProviderRef.current = provider
+        setLastSelfHealQuestionnaireCluster(null)
 
         try {
             const response = await initiateSelfHealResubmission(provider)
@@ -342,6 +347,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
             if (response.data?.token) {
                 setAccessToken(response.data.token)
+                setLastSelfHealQuestionnaireCluster(response.data.questionnaireCluster ?? null)
                 setIsActionFlow(true)
                 setShowWrapper(true)
                 return true
@@ -377,5 +383,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         closeVerificationModalAndGoHome,
         resetError,
         isActionFlow,
+        lastSelfHealQuestionnaireCluster,
     }
 }
