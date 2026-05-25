@@ -168,7 +168,7 @@ export function placeStamps(badges: ShareAssetBadge[], rng: SeededRandom): Stamp
 // `kind` selects which SVG. PRNG picks which subset to actually render.
 
 interface DecorationCandidate {
-    kind: 'star' | 'thumbsUp' | 'peanutWaving' | 'peanutHands'
+    kind: 'star' | 'thumbsUp' | 'peanutWaving' | 'peanutHands' | 'eyes' | 'sparkle' | 'cloud' | 'peanutPfp'
     top?: number
     bottom?: number
     left?: number
@@ -190,19 +190,27 @@ interface DecorationCandidate {
 // re-introduce them in low-stamp-count layouts later if design wants
 // the character vibe back.
 const DECORATION_POOL: readonly DecorationCandidate[] = [
-    // Top margin (between EDITION block and EARNED stamp)
+    // Top strip — between EDITION block (left) and EARNED stamp (right)
     { kind: 'star', top: 36, left: 380, size: 72, rotation: 8, safe: true },
-    { kind: 'star', top: 52, left: 720, size: 60, rotation: -12, safe: true },
-    { kind: 'thumbsUp', top: 56, left: 232, size: 100, rotation: -10, safe: true },
-    // Mid margins (small stars only — characters would clash with slots 3/5)
-    { kind: 'star', top: 286, right: 22, size: 56, rotation: 45, safe: true },
-    // Bottom margin (between card-bottom and username pill; away from slots 2/6)
-    { kind: 'star', bottom: 220, right: 280, size: 52, rotation: -8, safe: true },
-    { kind: 'star', bottom: 320, left: 320, size: 48, rotation: 22, safe: true },
+    { kind: 'sparkle', top: 52, left: 720, size: 56, rotation: -12, safe: true },
+    { kind: 'thumbsUp', top: 56, left: 232, size: 92, rotation: -10, safe: true },
+    { kind: 'eyes', top: 28, left: 580, size: 48, rotation: 6, safe: true },
+    { kind: 'cloud', top: 16, left: 880, size: 64, rotation: -4, safe: true },
+    // Mid-right gap between slot 3 (y≤396) and slot 5 (y≥470)
+    { kind: 'star', top: 410, right: 30, size: 44, rotation: 45, safe: true },
+    { kind: 'sparkle', top: 420, right: 140, size: 42, rotation: -10, safe: true },
+    // Mid-left gap between slot 4 (y≤612) and slot 2 (y≥710)
+    { kind: 'peanutPfp', top: 640, left: 230, size: 64, rotation: -8, safe: true },
+    { kind: 'star', top: 650, left: 340, size: 40, rotation: 18, safe: true },
+    // Bottom-center between card-bottom (y=645) and username pill (y≥770).
+    // Pill x range ~[400..800] worst case; keep these in the gutters.
+    { kind: 'sparkle', bottom: 220, right: 280, size: 52, rotation: -8, safe: true },
+    { kind: 'star', bottom: 110, left: 350, size: 40, rotation: 22, safe: true },
+    { kind: 'eyes', bottom: 150, right: 260, size: 48, rotation: -14, safe: true },
 ] as const
 
 export interface DecorationPlacement {
-    kind: 'star' | 'thumbsUp' | 'peanutWaving' | 'peanutHands'
+    kind: 'star' | 'thumbsUp' | 'peanutWaving' | 'peanutHands' | 'eyes' | 'sparkle' | 'cloud' | 'peanutPfp'
     top?: number
     bottom?: number
     left?: number
@@ -211,10 +219,11 @@ export interface DecorationPlacement {
     rotation: number
 }
 
-/** Pick a handful of decorations from the pool. Pool is small (stars +
- *  thumbsUp) and stamp-safe, so we just shuffle and take 3-4. */
+/** Pick a handful of decorations from the pool. Pool is curated (stars,
+ *  thumbsUp, eyes, sparkle, cloud, mini peanut) and stamp-safe, so we
+ *  just shuffle and take 6-8 to fill the canvas margins. */
 export function placeDecorations(rng: SeededRandom): DecorationPlacement[] {
-    const picked = rng.shuffle([...DECORATION_POOL]).slice(0, rng.int(3, 4))
+    const picked = rng.shuffle([...DECORATION_POOL]).slice(0, rng.int(6, 8))
     return picked.map((d) => ({
         kind: d.kind,
         top: d.top,

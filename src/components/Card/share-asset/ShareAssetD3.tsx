@@ -34,15 +34,19 @@ import {
 } from './shareAssetLayout'
 import type { ShareAssetD3Props, TierLevel } from './shareAsset.types'
 import { TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets/badges'
-import { PEANUTMAN_WAVING, PEANUTMAN_RAISING_HANDS } from '@/assets/peanut'
+import { PEANUTMAN_WAVING, PEANUTMAN_RAISING_HANDS, PEANUTMAN_PFP } from '@/assets/peanut'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
-import { HandThumbsUp } from '@/assets'
+import { HandThumbsUp, Eyes, Sparkle, Cloud } from '@/assets'
 import { PixelatedCardFace } from './PixelatedCardFace'
 
 const ASSET_STAR = STAR_STRAIGHT_ICON.src
 const ASSET_HAND_THUMBS = HandThumbsUp.src
 const ASSET_PEANUTMAN_WAVING = PEANUTMAN_WAVING.src
 const ASSET_PEANUT_HANDS = PEANUTMAN_RAISING_HANDS.src
+const ASSET_EYES = Eyes.src
+const ASSET_SPARKLE = Sparkle.src
+const ASSET_CLOUD = Cloud.src
+const ASSET_PEANUTMAN_PFP = PEANUTMAN_PFP.src
 
 const TIER_SVG: Record<TierLevel, string> = {
     0: TIER_0_BADGE,
@@ -63,6 +67,10 @@ const DECO_ASSET: Record<DecorationPlacement['kind'], string> = {
     thumbsUp: ASSET_HAND_THUMBS,
     peanutWaving: ASSET_PEANUTMAN_WAVING,
     peanutHands: ASSET_PEANUT_HANDS,
+    eyes: ASSET_EYES,
+    sparkle: ASSET_SPARKLE,
+    cloud: ASSET_CLOUD,
+    peanutPfp: ASSET_PEANUTMAN_PFP,
 }
 
 const ANIM_CARD_DELAY = 100
