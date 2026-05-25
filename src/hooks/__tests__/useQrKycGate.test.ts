@@ -1,9 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { useAuth } from '@/context/authContext'
-import {
-    MANTECA_US_NATIONALITY_RESTRICTION_CODE,
-    MANTECA_US_NATIONALITY_RESTRICTION_MESSAGE,
-} from '@/constants/manteca.consts'
+import { MANTECA_US_NATIONALITY_RESTRICTION_CODE } from '@/constants/manteca.consts'
 import { QrKycState, useQrKycGate } from '../useQrKycGate'
 
 jest.mock('@/context/authContext', () => ({
@@ -15,7 +12,7 @@ const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
 describe('useQrKycGate', () => {
     afterEach(() => jest.resetAllMocks())
 
-    it('blocks restricted Manteca users and returns the restriction message', async () => {
+    it('allows Sumsub-approved users to pay QR through fallback despite Manteca US restriction', async () => {
         mockUseAuth.mockReturnValue({
             isFetchingUser: false,
             fetchUser: jest.fn(),
@@ -51,12 +48,12 @@ describe('useQrKycGate', () => {
 
         const { result } = renderHook(() => useQrKycGate('MANTECA'))
 
-        await waitFor(() => expect(result.current.kycGateState).toBe(QrKycState.PROVIDER_REJECTION_BLOCKED))
-        expect(result.current.shouldBlockPay).toBe(true)
-        expect(result.current.userMessage).toBe(MANTECA_US_NATIONALITY_RESTRICTION_MESSAGE)
+        await waitFor(() => expect(result.current.kycGateState).toBe(QrKycState.PROCEED_TO_PAY))
+        expect(result.current.shouldBlockPay).toBe(false)
+        expect(result.current.userMessage).toBeNull()
     })
 
-    it('blocks restricted Manteca users when restriction metadata is only on a rail', async () => {
+    it('allows Sumsub-approved users when restriction metadata is only on a rail', async () => {
         mockUseAuth.mockReturnValue({
             isFetchingUser: false,
             fetchUser: jest.fn(),
@@ -100,8 +97,9 @@ describe('useQrKycGate', () => {
 
         const { result } = renderHook(() => useQrKycGate('MANTECA'))
 
-        await waitFor(() => expect(result.current.kycGateState).toBe(QrKycState.PROVIDER_REJECTION_BLOCKED))
-        expect(result.current.userMessage).toBe(MANTECA_US_NATIONALITY_RESTRICTION_MESSAGE)
+        await waitFor(() => expect(result.current.kycGateState).toBe(QrKycState.PROCEED_TO_PAY))
+        expect(result.current.shouldBlockPay).toBe(false)
+        expect(result.current.userMessage).toBeNull()
     })
 
     it('marks self-healable Manteca rejections as fixable', async () => {

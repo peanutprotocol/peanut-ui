@@ -4,7 +4,6 @@ import { useCallback, useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/context/authContext'
 import { MantecaKycStatus } from '@/interfaces'
 import { isKycStatusApproved, isSumsubStatusInProgress, MAX_SELF_HEAL_ATTEMPTS } from '@/constants/kyc.consts'
-import { MANTECA_US_NATIONALITY_RESTRICTION_MESSAGE } from '@/constants/manteca.consts'
 import { hasMantecaUsNationalityRestrictionMetadata } from '@/utils/manteca-restriction.utils'
 
 export enum QrKycState {
@@ -84,14 +83,17 @@ export function useQrKycGate(paymentProcessor?: 'MANTECA' | null): QrKycGateResu
                     kycMeta,
                     ...rejectedRailMetadata,
                 ])
+                if (isMantecaUsNationalityRestricted) {
+                    setGateState(QrKycState.PROCEED_TO_PAY)
+                    return
+                }
                 const isFixable =
-                    !isMantecaUsNationalityRestricted &&
                     railMeta.selfHealable === true &&
                     mantecaKyc?.rejectType !== 'PROVIDER_FINAL' &&
                     ((kycMeta.selfHealAttempt as number) || 0) < MAX_SELF_HEAL_ATTEMPTS
                 setGateState(
                     isFixable ? QrKycState.PROVIDER_REJECTION_FIXABLE : QrKycState.PROVIDER_REJECTION_BLOCKED,
-                    isMantecaUsNationalityRestricted ? MANTECA_US_NATIONALITY_RESTRICTION_MESSAGE : null
+                    null
                 )
                 return
             }
