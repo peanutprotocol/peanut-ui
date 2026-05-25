@@ -1,34 +1,49 @@
 'use client'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 type ToastType = 'success' | 'error' | 'info' | 'warning'
 type ToastPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
+type ToastId = string | number
 
 interface ToastOptions {
-    message: string
+    /** Plain-string message — wrapped in a styled <p>. Ignored when `content` is provided. */
+    message?: string
+    /** Custom inner content. Use this when the toast needs an icon + dynamic text
+     *  (e.g. a live countdown). Takes precedence over `message`. */
+    content?: React.ReactNode
     type?: ToastType
-    duration?: number
+    /** Number = ms until auto-dismiss. `'persistent'` = stays until `dismiss(id)` is called. */
+    duration?: number | 'persistent'
     position?: ToastPosition
+    /** Caller-supplied id. Lets the same toast be `dismiss(id)`-able and prevents
+     *  duplicate stacking — if a toast with this id is already on screen, the
+     *  duplicate call is a no-op (no re-animation). Auto-generated when omitted. */
+    id?: ToastId
+    /** Extra classes merged into the toast container — for one-off accents like
+     *  `border-yellow-1` that don't fit the standard success/error/info/warning. */
+    className?: string
 }
 
-interface ToastMessage extends ToastOptions {
-    id: number
+interface ToastMessage extends Omit<ToastOptions, 'id'> {
+    id: ToastId
 }
 
 interface ToastContextType {
-    toast: (options: ToastOptions | string) => void
-    success: (message: string, options?: Omit<ToastOptions, 'message' | 'type'>) => void
-    error: (message: string, options?: Omit<ToastOptions, 'message' | 'type'>) => void
-    info: (message: string, options?: Omit<ToastOptions, 'message' | 'type'>) => void
-    warning: (message: string, options?: Omit<ToastOptions, 'message' | 'type'>) => void
+    toast: (options: ToastOptions | string) => ToastId
+    success: (message: string, options?: Omit<ToastOptions, 'message' | 'type'>) => ToastId
+    error: (message: string, options?: Omit<ToastOptions, 'message' | 'type'>) => ToastId
+    info: (message: string, options?: Omit<ToastOptions, 'message' | 'type'>) => ToastId
+    warning: (message: string, options?: Omit<ToastOptions, 'message' | 'type'>) => ToastId
+    /** Remove a toast by id. No-op if not present. Used for `'persistent'` toasts. */
+    dismiss: (id: ToastId) => void
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined)
 
-const Toast: React.FC<ToastMessage> = ({ type = 'info', message }) => {
+const Toast: React.FC<ToastMessage> = ({ type = 'info', message, content, className }) => {
     const colors = {
         success: 'border-green-500 ',
         error: 'border-red-500 ',
@@ -42,40 +57,72 @@ const Toast: React.FC<ToastMessage> = ({ type = 'info', message }) => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 80 }}
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            className={twMerge(`border-2 px-6 py-1`, 'card shadow-4 min-w-fit max-w-[90vw] md:max-w-md', colors[type])}
+            className={twMerge(
+                'border-2 px-6 py-1',
+                'card shadow-4 min-w-fit max-w-[90vw] md:max-w-md',
+                colors[type],
+                className
+            )}
         >
-            <p className="break-words text-sm font-bold">{message}</p>
+            {content ?? <p className="break-words text-sm font-bold">{message}</p>}
         </motion.div>
     )
 }
 
 export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
     const [toasts, setToasts] = useState<ToastMessage[]>([])
+    // Tracks the auto-dismiss timer per toast id so `dismiss(id)` can cancel it
+    // (avoids a late timer firing after the toast was removed manually).
+    const timersRef = useRef<Map<ToastId, ReturnType<typeof setTimeout>>>(new Map())
 
-    const createToast = useCallback((options: ToastOptions | string) => {
-        const defaults: Partial<ToastOptions> = {
-            type: 'info',
-            duration: 3000,
-            position: 'bottom-right',
+    const dismiss = useCallback((id: ToastId) => {
+        const t = timersRef.current.get(id)
+        if (t) {
+            clearTimeout(t)
+            timersRef.current.delete(id)
         }
-
-        const toastOptions = typeof options === 'string' ? { message: options } : options
-
-        const toast = {
-            ...defaults,
-            ...toastOptions,
-            id: Date.now(),
-        }
-
-        setToasts((prev) => [...prev, toast])
-
-        setTimeout(() => {
-            setToasts((prev) => prev.filter((t) => t.id !== toast.id))
-        }, toast.duration)
+        setToasts((prev) => prev.filter((t) => t.id !== id))
     }, [])
 
+    const createToast = useCallback(
+        (options: ToastOptions | string): ToastId => {
+            const defaults: Partial<ToastOptions> = {
+                type: 'info',
+                duration: 3000,
+                position: 'bottom-right',
+            }
+
+            const toastOptions = typeof options === 'string' ? { message: options } : options
+            const id: ToastId = toastOptions.id ?? Date.now()
+
+            // De-dupe: a persistent toast (or any explicitly-id'd toast) is a
+            // no-op if one with the same id is already showing. Stops a retry
+            // mid-cooldown from re-pushing the pill and re-animating it in.
+            let alreadyPresent = false
+            setToasts((prev) => {
+                if (prev.some((t) => t.id === id)) {
+                    alreadyPresent = true
+                    return prev
+                }
+                return [...prev, { ...defaults, ...toastOptions, id }]
+            })
+
+            const duration = toastOptions.duration ?? defaults.duration
+            if (!alreadyPresent && duration !== 'persistent') {
+                const handle = setTimeout(() => {
+                    timersRef.current.delete(id)
+                    setToasts((prev) => prev.filter((t) => t.id !== id))
+                }, duration as number)
+                timersRef.current.set(id, handle)
+            }
+
+            return id
+        },
+        []
+    )
+
     // Memoized so consumers that include this in effect/callback dep arrays
-    // don't re-fire on every render. createToast is already useCallback-stable.
+    // don't re-fire on every render. createToast/dismiss are useCallback-stable.
     const contextValue: ToastContextType = useMemo(
         () => ({
             toast: createToast,
@@ -83,16 +130,17 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
             error: (message, options) => createToast({ ...options, type: 'error', message }),
             info: (message, options) => createToast({ ...options, type: 'info', message }),
             warning: (message, options) => createToast({ ...options, type: 'warning', message }),
+            dismiss,
         }),
-        [createToast]
+        [createToast, dismiss]
     )
 
     const getPositionClasses = (position: ToastPosition = 'top-right') => {
         const positions: Record<ToastPosition, string> = {
             'top-right': 'top-4 right-4',
             'top-left': 'top-4 left-4',
-            'bottom-right': 'bottom-[80px] right-4',
-            'bottom-left': 'bottom-[80px] left-4',
+            'bottom-right': 'bottom-[100px] right-4',
+            'bottom-left': 'bottom-[100px] left-4',
         }
         return positions[position]
     }

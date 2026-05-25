@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react'
+import { ToastProvider } from '@/components/0_Bruddle/Toast'
 import { RainCooldownProvider, useRainCooldown } from '../RainCooldownContext'
 
 // Dispatch the same window event that `rainRequest` fires on a 425 from
@@ -9,7 +10,11 @@ function fireCooldown(retryAfterSec: number, message = 'cooling down') {
     window.dispatchEvent(new CustomEvent('rain:cooldown', { detail: { retryAfterSec, message } }))
 }
 
-const wrapper = ({ children }: { children: React.ReactNode }) => <RainCooldownProvider>{children}</RainCooldownProvider>
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <ToastProvider>
+        <RainCooldownProvider>{children}</RainCooldownProvider>
+    </ToastProvider>
+)
 
 describe('RainCooldownContext', () => {
     beforeEach(() => {

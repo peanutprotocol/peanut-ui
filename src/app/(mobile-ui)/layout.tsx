@@ -16,7 +16,6 @@ import QRScannerOverlay from '@/components/Global/QRScannerOverlay'
 import SecurityVerificationOverlay from '@/components/Global/SecurityVerificationOverlay'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import RainCooldownIntroModal from '@/components/Global/RainCooldown/IntroModal'
-import RainCooldownFloatingTimer from '@/components/Global/RainCooldown/FloatingTimer'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
 import { Banner } from '@/components/Global/Banner'
@@ -228,7 +227,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <SupportDrawer />
 
             <RainCooldownIntroModal />
-            <RainCooldownFloatingTimer />
 
             <QRScannerOverlay />
 

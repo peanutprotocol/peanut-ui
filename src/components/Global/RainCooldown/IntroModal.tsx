@@ -20,8 +20,13 @@ const RainCooldownIntroModal = () => {
             onClose={dismissIntroModal}
             icon="clock"
             iconContainerClassName="bg-yellow-1"
-            title="One spend at a time"
-            description="Your card needs a short cool-down between back-to-back spends from collateral. We'll keep a timer in the corner — try again once it hits zero."
+            title="Please wait"
+            description={
+                <>
+                    Your card needs a short cool-down between back-to-back spends. To avoid this in the future, you can
+                    lower your card limit to be below your wallet balance; the extra will always be available.
+                </>
+            }
             ctas={[
                 {
                     text: 'Got it',
@@ -30,6 +35,16 @@ const RainCooldownIntroModal = () => {
                     onClick: dismissIntroModal,
                 },
             ]}
+            footer={
+                <a
+                    href="/en/help/card-collateral"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block pt-2 text-center text-sm text-black underline"
+                >
+                    Read more
+                </a>
+            }
         />
     )
 }
