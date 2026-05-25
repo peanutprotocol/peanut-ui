@@ -272,12 +272,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         if (selfHealProviderRef.current) {
             selfHealProviderRef.current = null
             setIsActionFlow(false)
-            void fetchUser()
+            if (!isActionFlow) void fetchUser()
             return
         }
         setIsActionFlow(false)
         setIsVerificationProgressModalOpen(true)
-    }, [fetchUser])
+    }, [fetchUser, isActionFlow])
 
     // called when user manually closes the sdk modal
     const handleClose = useCallback(() => {

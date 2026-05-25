@@ -93,6 +93,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
     const preparingTimerRef = useRef<NodeJS.Timeout | null>(null)
     const preparingElapsedIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const isRealtimeFlowRef = useRef(false)
+    const isMountedRef = useRef(true)
 
     // bridge ToS state
     const [tosLink, setTosLink] = useState<string | null>(null)
@@ -105,6 +106,12 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
 
     // rail tracking
     const { allSettled, needsBridgeTos, startTracking, stopTracking } = useRailStatusTracking()
+
+    useEffect(() => {
+        return () => {
+            isMountedRef.current = false
+        }
+    }, [])
 
     const clearPreparingTimer = useCallback(() => {
         if (preparingTimerRef.current) {
@@ -210,13 +217,25 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
         setModalPhase('checking')
         setForceShowModal(true)
 
+        // the second SDK completion happens after React records the TIN cluster from the first auto-continue.
         const canAutoContinueTin = lastSelfHealQuestionnaireCluster !== 'eea_tin_reupload'
         for (
             let elapsed = 0;
-            elapsed <= BRIDGE_ACTION_AUTO_CONTINUE_TIMEOUT_MS;
+            elapsed < BRIDGE_ACTION_AUTO_CONTINUE_TIMEOUT_MS;
             elapsed += BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS
         ) {
-            const updatedUser = await fetchUser()
+            if (!isMountedRef.current) return
+
+            let updatedUser
+            try {
+                updatedUser = await fetchUser()
+            } catch (error) {
+                console.error('[useMultiPhaseKycFlow] failed to refresh user during action continuation', error)
+                if (elapsed + BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS < BRIDGE_ACTION_AUTO_CONTINUE_TIMEOUT_MS) {
+                    await wait(BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS)
+                }
+                continue
+            }
             const nextCluster = getBridgeNextQuestionnaireClusterFromUser(updatedUser)
 
             if (nextCluster === 'eea_tin_reupload' && canAutoContinueTin) {
@@ -225,15 +244,20 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
                     setForceShowModal(false)
                     return
                 }
+                console.warn('[useMultiPhaseKycFlow] failed to start EEA TIN reupload continuation')
                 break
             }
 
-            if (nextCluster === 'eea_tin_reupload') break
-            if (elapsed < BRIDGE_ACTION_AUTO_CONTINUE_TIMEOUT_MS) {
+            if (nextCluster === 'eea_tin_reupload') {
+                await wait(BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS)
+                break
+            }
+            if (elapsed + BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS < BRIDGE_ACTION_AUTO_CONTINUE_TIMEOUT_MS) {
                 await wait(BRIDGE_ACTION_AUTO_CONTINUE_INTERVAL_MS)
             }
         }
 
+        if (!isMountedRef.current) return
         setModalPhase('preparing')
         setForceShowModal(true)
         startTracking()

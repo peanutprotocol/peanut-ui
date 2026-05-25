@@ -69,7 +69,7 @@ export function useBridgeTransferReadiness() {
             return { type: 'needs_enrollment' }
         }
 
-        // 5. ready
+        // 6. ready
         return { type: 'ready' }
     }, [
         needsBridgeTos,
