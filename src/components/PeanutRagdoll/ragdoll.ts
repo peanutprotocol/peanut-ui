@@ -407,7 +407,6 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
         })
         leftLeg.__sw = LEG_SPRITE_W
         leftLeg.__sh = LEG_SPRITE_H
-        leftLeg.__spriteAngle = -Math.PI / 2
         const rightLeg: any = makeLimbSegment({
             position: [HIP_X, hipY - LEG_L / 2],
             width: LEG_W,
@@ -417,7 +416,7 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
         })
         rightLeg.__sw = LEG_SPRITE_W
         rightLeg.__sh = LEG_SPRITE_H
-        rightLeg.__spriteAngle = Math.PI / 2
+        rightLeg.__flipX = true
 
         const FOOT_DX = FOOT_R * 0.5
         const leftFoot: any = makeEndCap({
