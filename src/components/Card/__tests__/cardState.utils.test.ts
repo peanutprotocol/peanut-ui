@@ -55,6 +55,10 @@ const base = {
     overviewLoading: false,
     cardInfoLoading: false,
     skipCelebrationSeen: false,
+    // Tests pre-date the eligibility-check screen; default to "done" so they
+    // exercise the post-check precedence as before. A dedicated test below
+    // covers the eligibility-check state itself.
+    eligibilityCheckDone: true,
 }
 
 describe('computeCardState', () => {
@@ -169,6 +173,32 @@ describe('computeCardState', () => {
                 cardInfo: cardInfo({ hasCardAccess: false }),
             })
         ).toBe('waitlist')
+    })
+
+    it('returns eligibility-check when user just arrived from /shhhhh and has not held the gate yet', () => {
+        // Default base.eligibilityCheckDone=true would skip this state — we
+        // explicitly flip it to false to model first-arrival.
+        expect(
+            computeCardState({
+                ...base,
+                overview: emptyOverview,
+                cardInfo: cardInfo({ hasCardAccess: false }),
+                eligibilityCheckDone: false,
+            })
+        ).toBe('eligibility-check')
+    })
+
+    it('eligibility-check NOT shown for users with existing access who already cleared the gate', () => {
+        // Once eligibilityCheckDone is true, the state machine flows past it.
+        expect(
+            computeCardState({
+                ...base,
+                overview: emptyOverview,
+                cardInfo: cardInfo({ hasCardAccess: true, skipBadges: ['OG_2025_10_12'] }),
+                eligibilityCheckDone: true,
+                skipCelebrationSeen: false,
+            })
+        ).toBe('waitlist-skip-celebration')
     })
 
     it('returns active even when flowEarlyAccess is false (legacy card-holder regression)', () => {

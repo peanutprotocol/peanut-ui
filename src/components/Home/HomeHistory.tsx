@@ -18,6 +18,9 @@ import { type CardPosition, getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem, isKycStatusItem, type KycHistoryEntry } from '../Kyc/KycStatusItem'
 import { groupKycByRegion } from '@/utils/kyc-grouping.utils'
+import CardUnlockHistoryItem from '../Card/CardUnlockHistoryItem'
+import { deriveCardUnlockEntry, isCardUnlockHistoryItem, type CardUnlockHistoryEntry } from '../Card/cardUnlock.types'
+import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
 import { isBadgeHistoryItem } from '@/components/Badges/badge.types'
@@ -71,6 +74,10 @@ const HomeHistory = ({
         () => (isLoggedIn && !username) || (isLoggedIn && username === user?.user.username),
         [isLoggedIn, username, user?.user.username]
     )
+    // Pull /card response to derive the synthetic "card unlocked" history
+    // entry. Mirrors how kyc derives from user state. Only meaningful when
+    // viewing your own history.
+    const { cardInfo } = useCardPioneerInfo()
 
     // WebSocket for real-time updates
     const { historyEntries: wsHistoryEntries } = useWebSocket({
@@ -140,7 +147,9 @@ const HomeHistory = ({
             // Process entries asynchronously to handle completeHistoryEntry
             const processEntries = async () => {
                 // Start with the fetched entries
-                const entries: Array<HistoryEntry | KycHistoryEntry> = [...historyData.entries]
+                const entries: Array<HistoryEntry | KycHistoryEntry | CardUnlockHistoryEntry> = [
+                    ...historyData.entries,
+                ]
 
                 // inject badge entries using user's badges (newest first) and earnedAt chronology
                 // filter out beta tester badge — it creates confusing first impressions for new users
@@ -220,6 +229,18 @@ const HomeHistory = ({
                     entries.push(...regionEntries)
                 }
 
+                // Synthetic card-unlock entry — only renders once the user has
+                // card access (waitlist released OR skip-badge granted). Same
+                // pattern as KYC: derived client-side, sorted into the feed
+                // by timestamp.
+                if (isViewingOwnHistory && cardInfo) {
+                    const unlock = deriveCardUnlockEntry({
+                        cardAccessGrantedAt: cardInfo.waitlistReleasedAt,
+                        skipBadges: cardInfo.skipBadges,
+                    })
+                    if (unlock) entries.push(unlock)
+                }
+
                 // Check cancellation before setting state
                 if (cancelled) return
 
@@ -242,7 +263,7 @@ const HomeHistory = ({
             }
         }
         return undefined
-    }, [historyData, wsHistoryEntries, user, isLoading, isViewingOwnHistory])
+    }, [historyData, wsHistoryEntries, user, isLoading, isViewingOwnHistory, cardInfo])
 
     const pendingRequests = useMemo(() => {
         if (!combinedEntries.length) return []
@@ -262,7 +283,7 @@ const HomeHistory = ({
     const drawerByUuid = useMemo(() => {
         const m = new Map<string, ReturnType<typeof mapTransactionDataForDrawer>>()
         for (const item of combinedEntries) {
-            if (isKycStatusItem(item) || isBadgeHistoryItem(item)) continue
+            if (isKycStatusItem(item) || isBadgeHistoryItem(item) || isCardUnlockHistoryItem(item)) continue
             if (!m.has(item.uuid)) m.set(item.uuid, mapTransactionDataForDrawer(item))
         }
         return m
@@ -416,6 +437,19 @@ const HomeHistory = ({
                         // render badge milestone entries
                         if (isBadgeHistoryItem(item)) {
                             return <BadgeStatusItem key={item.uuid} position={position} entry={item} />
+                        }
+
+                        // render the card-unlock milestone entry
+                        if (isCardUnlockHistoryItem(item)) {
+                            return (
+                                <CardUnlockHistoryItem
+                                    key={item.uuid}
+                                    entry={item}
+                                    position={position}
+                                    username={user?.user?.username ?? undefined}
+                                    skipBadges={cardInfo?.skipBadges ?? []}
+                                />
+                            )
                         }
 
                         const { transactionDetails, transactionCardType } =

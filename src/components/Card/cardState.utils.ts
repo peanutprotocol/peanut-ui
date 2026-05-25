@@ -15,8 +15,9 @@ export function findActiveCard(overview: RainCardOverview | undefined): RainCard
  * Top-level state for the /card flow.
  *
  * Precedence (top wins) in `computeCardState`:
- *   loading → no-flow-access → active → rejected → pending/manual-review →
- *   hasCardAccess?: add-card → hasUnacknowledgedSkipBadge?: waitlist-skip-celebration → waitlist
+ *   loading → active → no-flow-access → rejected → pending/manual-review →
+ *   eligibility-check (first arrival, not yet held) → skip-celebration →
+ *   add-card → waitlist
  *
  * Removed in Phase 2 of the M2 Card Waitlist Launch:
  *   - 'pioneer'  — replaced by 'waitlist' (free queue) + 'waitlist-skip-celebration'
@@ -25,6 +26,10 @@ export type CardTopLevelState =
     | 'loading'
     /** Outer-gate fail — user hasn't passed /shhhhh AND public launch isn't here yet. */
     | 'no-flow-access'
+    /** First arrival from /shhhhh: press-and-hold "see if you qualify" gate.
+     *  Once held, the user lands on celebration or waitlist depending on
+     *  whether they hold a skip badge. */
+    | 'eligibility-check'
     /** Queued — has flow access but no card access yet, no skip badge to celebrate. */
     | 'waitlist'
     /** One-time celebration: user has a skip badge AND hasn't acknowledged it yet.
@@ -44,6 +49,10 @@ interface ComputeArgs {
     /** Has the user already seen the badge-skip celebration in this app session
      *  OR in a prior session (`cardWaitlistSkipCelebrationSeenAt` set)? */
     skipCelebrationSeen: boolean
+    /** Has the user pressed-and-held through the eligibility-check screen
+     *  yet? Set to false on /shhhhh entry; flipped true once they release the
+     *  hold. localStorage-persisted so refresh doesn't re-show. */
+    eligibilityCheckDone: boolean
 }
 
 export function computeCardState({
@@ -52,6 +61,7 @@ export function computeCardState({
     overviewLoading,
     cardInfoLoading,
     skipCelebrationSeen,
+    eligibilityCheckDone,
 }: ComputeArgs): CardTopLevelState {
     if (overviewLoading || cardInfoLoading) return 'loading'
     if (!overview || !cardInfo) return 'loading'
@@ -81,6 +91,12 @@ export function computeCardState({
         }
         return 'pending'
     }
+
+    // First arrival from /shhhhh: gate everything else behind the press-and-hold
+    // "see if you qualify" moment. Applies whether the user ultimately lands on
+    // celebration or waitlist — the user explicitly engages the door before
+    // the verdict is revealed.
+    if (!eligibilityCheckDone) return 'eligibility-check'
 
     // Rail ENABLED (or no application) without any non-canceled card. From
     // here, BE's hasCardAccess + skipBadges drive the new state machine.

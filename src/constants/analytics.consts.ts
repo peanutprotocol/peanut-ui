@@ -148,6 +148,10 @@ export const ANALYTICS_EVENTS = {
     CARD_FLOW_EARLY_ACCESS_GRANTED: 'card_flow_early_access_granted',
     // Outer-gate fail: user landed on /card without /shhhhh early access pre-launch.
     CARD_FLOW_GATED: 'card_flow_gated',
+    // Eligibility-check screen — press-and-hold gate between /shhhhh and the
+    // celebration/waitlist verdict.
+    CARD_ELIGIBILITY_CHECK_VIEWED: 'card_eligibility_check_viewed',
+    CARD_ELIGIBILITY_CHECK_COMPLETED: 'card_eligibility_check_completed',
     // Waitlist screen (no card access yet).
     CARD_WAITLIST_VIEWED: 'card_waitlist_viewed',
     CARD_WAITLIST_JOINED: 'card_waitlist_joined',

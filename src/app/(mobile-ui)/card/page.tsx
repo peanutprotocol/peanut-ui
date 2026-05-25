@@ -14,6 +14,7 @@ import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 import CardTermsScreen from '@/components/Card/CardTermsScreen'
 import CardWaitlistScreen from '@/components/Card/CardWaitlistScreen'
 import BadgeSkipCelebration from '@/components/Card/BadgeSkipCelebration'
+import CardEligibilityCheckScreen from '@/components/Card/CardEligibilityCheckScreen'
 import YourCardScreen from '@/components/Card/YourCardScreen'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -39,6 +40,21 @@ function getSkipCelebrationSeen(): boolean {
 function markSkipCelebrationSeen(): void {
     if (typeof window === 'undefined') return
     window.localStorage.setItem(SKIP_CELEBRATION_SEEN_KEY, 'true')
+}
+
+// localStorage flag for the press-and-hold eligibility-check screen. Set
+// when the user releases the hold on the EligibilityCheck screen, persisted
+// so refresh / back-nav doesn't replay the moment.
+const ELIGIBILITY_CHECK_DONE_KEY = 'card_eligibility_check_done_v1'
+
+function getEligibilityCheckDone(): boolean {
+    if (typeof window === 'undefined') return false
+    return window.localStorage.getItem(ELIGIBILITY_CHECK_DONE_KEY) === 'true'
+}
+
+function markEligibilityCheckDone(): void {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(ELIGIBILITY_CHECK_DONE_KEY, 'true')
 }
 
 const CardPage: FC = () => {
@@ -83,6 +99,13 @@ const CardPage: FC = () => {
         getSkipCelebrationSeen()
     )
 
+    // Press-and-hold "see if you qualify" gate. Stays false on first
+    // /shhhhh entry until the user releases the hold; then sticks across
+    // refresh via localStorage.
+    const [eligibilityCheckDone, setEligibilityCheckDone] = useState<boolean>(() =>
+        getEligibilityCheckDone()
+    )
+
     // Outer gate: pre-public-launch, redirect users without /shhhhh early
     // access back to the landing page so they don't see a half-baked /card
     // shell. BE returns `flowEarlyAccess: false` in that case.
@@ -108,6 +131,7 @@ const CardPage: FC = () => {
         overviewLoading,
         cardInfoLoading: pioneerLoading,
         skipCelebrationSeen,
+        eligibilityCheckDone,
     })
 
     // Fire CARD_STATE_VIEWED on each distinct top-level state entry. Skip the
@@ -347,6 +371,22 @@ const CardPage: FC = () => {
             )
         }
         switch (state) {
+            case 'eligibility-check':
+                return (
+                    <CardEligibilityCheckScreen
+                        username={user?.user?.username ?? undefined}
+                        onPrev={onBack}
+                        onComplete={() => {
+                            markEligibilityCheckDone()
+                            setEligibilityCheckDone(true)
+                            // The state machine re-evaluates on the next render
+                            // and either lands on 'waitlist-skip-celebration' or
+                            // 'waitlist' based on skipBadges. No nav, just a
+                            // state flip — keeps the share-asset reveal feeling
+                            // continuous.
+                        }}
+                    />
+                )
             case 'waitlist': {
                 const userSkipBadges = new Set(cardInfo!.skipBadges)
                 const missingSkipBadges = SKIP_BADGE_CODES.filter((c) => !userSkipBadges.has(c))
