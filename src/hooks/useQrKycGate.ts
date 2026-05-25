@@ -103,9 +103,7 @@ export function useQrKycGate(_paymentProcessor?: 'MANTECA' | null): QrKycGateRes
                 .filter((r) => r.rail.provider.code === 'MANTECA' && r.status === 'REJECTED')
                 .map((r) => r.metadata)
             const mantecaKycMetadata =
-                user.user?.kycVerifications
-                    ?.filter((v) => v.provider === 'MANTECA')
-                    .map((v) => v.metadata) ?? []
+                user.user?.kycVerifications?.filter((v) => v.provider === 'MANTECA').map((v) => v.metadata) ?? []
             const isUsRestricted = hasMantecaUsNationalityRestrictionMetadata([
                 ...rejectedMantecaMetadata,
                 ...mantecaKycMetadata,
