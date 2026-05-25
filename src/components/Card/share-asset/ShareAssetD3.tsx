@@ -34,17 +34,25 @@ import {
 } from './shareAssetLayout'
 import type { ShareAssetD3Props, TierLevel } from './shareAsset.types'
 import { TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets/badges'
-import { PEANUTMAN_WAVING } from '@/assets/peanut'
+import { PEANUTMAN_HOLDING_BEER } from '@/assets/peanut'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
-import { HandThumbsUp, Eyes, Sparkle, Cloud } from '@/assets/illustrations'
+import { HandThumbsUp, HandThumbsUpV2, Eyes, Sparkle, Cloud, Star } from '@/assets/illustrations'
 import { PixelatedCardFace } from './PixelatedCardFace'
 
 const ASSET_STAR = STAR_STRAIGHT_ICON.src
+const ASSET_STAR_ALT = Star.src
 const ASSET_HAND_THUMBS = HandThumbsUp.src
-const ASSET_PEANUTMAN_WAVING = PEANUTMAN_WAVING.src
+const ASSET_HAND_THUMBS_V2 = HandThumbsUpV2.src
 const ASSET_EYES = Eyes.src
 const ASSET_SPARKLE = Sparkle.src
 const ASSET_CLOUD = Cloud.src
+// The peanut character art style is intentionally legless — the body
+// tapers to a rounded point. Rather than dropping the character, we
+// place him BEHIND the card with his bottom inside the card's bbox so
+// only his head + arms peek out above the card edge. Of the available
+// poses, peanut-holding-beer is the most expressive (both arms visible,
+// holding a beer, peace sign) and reads cleanly at small sizes.
+const ASSET_PEANUT_CHAR = PEANUTMAN_HOLDING_BEER.src
 
 const TIER_SVG: Record<TierLevel, string> = {
     0: TIER_0_BADGE,
@@ -62,11 +70,13 @@ const TIER_LABEL: Record<TierLevel, string> = {
 
 const DECO_ASSET: Record<DecorationPlacement['kind'], string> = {
     star: ASSET_STAR,
+    starAlt: ASSET_STAR_ALT,
     thumbsUp: ASSET_HAND_THUMBS,
-    peanutWaving: ASSET_PEANUTMAN_WAVING,
+    thumbsUpV2: ASSET_HAND_THUMBS_V2,
     eyes: ASSET_EYES,
     sparkle: ASSET_SPARKLE,
     cloud: ASSET_CLOUD,
+    peanutChar: ASSET_PEANUT_CHAR,
 }
 
 const ANIM_CARD_DELAY = 100
@@ -439,39 +449,24 @@ const StampEl: FC<StampElProps> = ({ stamp, animate, delay }) => {
                 />
             )}
             <span className="stamp-issuer">PEANUT</span>
+            {/* Year denomination — dynamic, derived from badge.earnedAt at
+                layout time (see placeStamps in shareAssetLayout.ts). */}
             {stamp.badge.year && <span className="stamp-denom">{stamp.badge.year}</span>}
+            {/* Badge icon fills the stamp. Caption row was dropped (Hugo:
+                "remove the colored subtitle from the stamps, just the
+                badge svg, a bit larger") — icon now uses the full
+                stamp interior below the issuer/year row. */}
             <div
                 className="absolute inset-0 flex items-center justify-center"
-                style={{ paddingTop: '5%', paddingBottom: '15%' }}
+                style={{ paddingTop: '14%', paddingBottom: '6%' }}
             >
                 <img
                     src={stamp.badge.iconUrl}
                     alt=""
                     aria-hidden
-                    style={{ maxWidth: '88%', maxHeight: '70%', objectFit: 'contain' }}
+                    style={{ maxWidth: '94%', maxHeight: '94%', objectFit: 'contain' }}
                 />
             </div>
-            <figcaption
-                className="absolute"
-                style={{
-                    left: 8,
-                    right: 8,
-                    bottom: 10,
-                    textAlign: 'center',
-                    border: '2px solid #000',
-                    background: stamp.badge.captionBg,
-                    fontFamily: 'var(--font-roboto), sans-serif',
-                    fontWeight: 1000,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                    fontSize: stamp.width >= 170 ? 22 : 18,
-                    padding: '4px 0',
-                    color: '#000',
-                    lineHeight: 1.05,
-                }}
-            >
-                {stamp.badge.caption}
-            </figcaption>
         </figure>
     )
 }

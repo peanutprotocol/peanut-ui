@@ -27,7 +27,14 @@ export default function ShareBuilderPage() {
     // ─── User inputs ─────────────────────────────────────────────────────
     const [username, setUsername] = useState('kkonrad')
     const [selectedBadges, setSelectedBadges] = useState<Set<string>>(
-        new Set(['OG_2025_10_12', 'DEVCONNECT_BA_2025', 'ARBIVERSE_DEVCONNECT_BA_2025', 'CARD_PIONEER', 'BETA_TESTER', 'SUPPORT_SURVIVOR'])
+        new Set([
+            'OG_2025_10_12',
+            'DEVCONNECT_BA_2025',
+            'ARBIVERSE_DEVCONNECT_BA_2025',
+            'CARD_PIONEER',
+            'BETA_TESTER',
+            'SUPPORT_SURVIVOR',
+        ])
     )
     const [tier, setTier] = useState<TierLevel>(3)
     const [points, setPoints] = useState(1247)
@@ -109,7 +116,7 @@ export default function ShareBuilderPage() {
                                 <button
                                     key={code}
                                     onClick={() => toggleBadge(code)}
-                                    className={`border-2 border-black rounded-full px-3 py-1 text-xs font-bold transition-colors ${
+                                    className={`rounded-full border-2 border-black px-3 py-1 text-xs font-bold transition-colors ${
                                         selectedBadges.has(code)
                                             ? 'bg-primary-1 text-n-1'
                                             : 'bg-white text-grey-1 hover:bg-grey-2'
@@ -120,13 +127,15 @@ export default function ShareBuilderPage() {
                                 </button>
                             ))}
                         </div>
-                        <div className="flex gap-2 mt-3 flex-wrap">
+                        <div className="mt-3 flex flex-wrap gap-2">
                             <PresetButton onClick={() => setSelectedBadges(new Set())}>0 badges</PresetButton>
                             <PresetButton onClick={() => setSelectedBadges(new Set(['OG_2025_10_12']))}>
                                 1 badge
                             </PresetButton>
                             <PresetButton
-                                onClick={() => setSelectedBadges(new Set(['OG_2025_10_12', 'DEVCONNECT_BA_2025', 'CARD_PIONEER']))}
+                                onClick={() =>
+                                    setSelectedBadges(new Set(['OG_2025_10_12', 'DEVCONNECT_BA_2025', 'CARD_PIONEER']))
+                                }
                             >
                                 3
                             </PresetButton>
@@ -143,7 +152,7 @@ export default function ShareBuilderPage() {
                                     <button
                                         key={t}
                                         onClick={() => setTier(t as TierLevel)}
-                                        className={`flex-1 border-2 border-black rounded-sm py-2 font-bold transition-colors ${
+                                        className={`flex-1 rounded-sm border-2 border-black py-2 font-bold transition-colors ${
                                             tier === t ? 'bg-primary-1' : 'bg-white hover:bg-grey-2'
                                         }`}
                                     >
@@ -244,12 +253,8 @@ export default function ShareBuilderPage() {
                     <Section title="Edge-case shortcuts">
                         <div className="grid grid-cols-2 gap-2 text-xs">
                             <PresetButton onClick={() => setUsername('me')}>2-char user</PresetButton>
-                            <PresetButton onClick={() => setUsername('twelvechars1')}>
-                                12 chars (max)
-                            </PresetButton>
-                            <PresetButton onClick={() => setUsername('thisistwentyplus_chars')}>
-                                20+ chars
-                            </PresetButton>
+                            <PresetButton onClick={() => setUsername('twelvechars1')}>12 chars (max)</PresetButton>
+                            <PresetButton onClick={() => setUsername('thisistwentyplus_chars')}>20+ chars</PresetButton>
                             <PresetButton
                                 onClick={() => {
                                     setMovedUsd(0)
@@ -287,27 +292,24 @@ export default function ShareBuilderPage() {
                             </PresetButton>
                         </div>
                         {username.length > 12 && (
-                            <p className="text-[10px] text-red mt-2 font-bold leading-snug">
-                                ⚠️ Username &gt; 12 chars · production caps at 12. The asset
-                                shrinks the @username pill defensively, but check the input gate
-                                in your caller.
+                            <p className="mt-2 text-[10px] font-bold leading-snug text-red">
+                                ⚠️ Username &gt; 12 chars · production caps at 12. The asset shrinks the @username pill
+                                defensively, but check the input gate in your caller.
                             </p>
                         )}
                     </Section>
                 </aside>
 
                 {/* ─── RIGHT: Preview ──────────────────────────────────── */}
-                <main className="flex-1 flex flex-col gap-4">
-                    <div className="border border-n-1 rounded-sm bg-grey-3 p-2 flex items-center justify-between text-xs">
+                <main className="flex flex-1 flex-col gap-4">
+                    <div className="flex items-center justify-between rounded-sm border border-n-1 bg-grey-3 p-2 text-xs">
                         <span className="font-mono">
                             {CANVAS_W} × {CANVAS_H} · scaled {(previewScale * 100).toFixed(0)}%
                         </span>
-                        <span className="font-mono text-grey-1">
-                            seed: {seedOverride ?? username ?? 'anon'}
-                        </span>
+                        <span className="font-mono text-grey-1">seed: {seedOverride ?? username ?? 'anon'}</span>
                     </div>
                     <div
-                        className="border-2 border-n-1 rounded-sm bg-background overflow-auto"
+                        className="overflow-auto rounded-sm border-2 border-n-1 bg-background"
                         style={{ minHeight: 200 }}
                     >
                         <div
@@ -343,9 +345,9 @@ export default function ShareBuilderPage() {
                         </div>
                     </div>
 
-                    <div className="border border-n-1 rounded-sm bg-white p-4 text-xs space-y-2">
+                    <div className="space-y-2 rounded-sm border border-n-1 bg-white p-4 text-xs">
                         <div className="font-bold uppercase tracking-wider text-grey-1">Resulting props</div>
-                        <pre className="font-mono text-[11px] overflow-auto whitespace-pre-wrap">
+                        <pre className="overflow-auto whitespace-pre-wrap font-mono text-[11px]">
                             {JSON.stringify(
                                 {
                                     username,
@@ -371,8 +373,8 @@ export default function ShareBuilderPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
     return (
-        <section className="border-2 border-n-1 rounded-sm bg-white shadow-4 p-4">
-            <h2 className="text-xs font-extrabold uppercase tracking-wider mb-3 text-grey-1">{title}</h2>
+        <section className="shadow-4 rounded-sm border-2 border-n-1 bg-white p-4">
+            <h2 className="mb-3 text-xs font-extrabold uppercase tracking-wider text-grey-1">{title}</h2>
             <div className="flex flex-col gap-3">{children}</div>
         </section>
     )
@@ -391,7 +393,7 @@ function PresetButton({ onClick, children }: { onClick: () => void; children: Re
     return (
         <button
             onClick={onClick}
-            className="border border-n-1 rounded-full bg-white hover:bg-grey-2 px-2 py-1 text-xs font-bold transition-colors"
+            className="rounded-full border border-n-1 bg-white px-2 py-1 text-xs font-bold transition-colors hover:bg-grey-2"
         >
             {children}
         </button>

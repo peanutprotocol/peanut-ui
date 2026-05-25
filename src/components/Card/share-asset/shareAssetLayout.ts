@@ -168,7 +168,7 @@ export function placeStamps(badges: ShareAssetBadge[], rng: SeededRandom): Stamp
 // `kind` selects which SVG. PRNG picks which subset to actually render.
 
 interface DecorationCandidate {
-    kind: 'star' | 'thumbsUp' | 'peanutWaving' | 'eyes' | 'sparkle' | 'cloud'
+    kind: 'star' | 'starAlt' | 'thumbsUp' | 'thumbsUpV2' | 'eyes' | 'sparkle' | 'cloud' | 'peanutChar'
     top?: number
     bottom?: number
     left?: number
@@ -180,40 +180,76 @@ interface DecorationCandidate {
     safe: boolean
 }
 
-// Decoration pool. Peanut characters (peanutWaving / peanutHands) were
-// dropped from the default set — their large native size (140px) made
-// them collide with stamp slots at the right and bottom-left, which
-// then hid stamps underneath. Stars and thumbsUp are small enough to
-// tuck into gaps without competing with stamp positions.
+// Decoration pool. No peanut characters — both peanut-raising-hands.svg
+// and peanutman-waving.svg crop the lower body at the SVG source (it's
+// the art style, not a bug we can fix). The pool sticks to stars,
+// sparkles, eyes, clouds, and thumbs-up so every decoration renders
+// fully formed.
 //
-// `peanutWaving` + `peanutHands` are still in the type union so we can
-// re-introduce them in low-stamp-count layouts later if design wants
-// the character vibe back.
+// Layout-zone map on the 1200×900 canvas:
+//   - EARNED stamp:          x[920..1200], y[20..200]    (top-right)
+//   - EDITION + tier block:  x[20..360],   y[20..460]    (left band)
+//   - @username pill:        x[400..1144], y[770..900]   (bottom-right)
+//   - Card bbox:             x[264..884],  y[254..645]   (centre)
+//   - Stamp slots:           see STAMP_SLOTS above
+// All slots below sit OUTSIDE the chrome zones AND outside stamp slots.
 const DECORATION_POOL: readonly DecorationCandidate[] = [
-    // Top strip — between EDITION block (left) and EARNED stamp (right)
+    // ── Top strip (y=16..160) — above the card, between EDITION left and
+    //    EARNED right. Two natural columns left/right of the centre stamp.
+    { kind: 'cloud', top: 16, left: 880, size: 64, rotation: -4, safe: true },
     { kind: 'star', top: 36, left: 380, size: 72, rotation: 8, safe: true },
     { kind: 'sparkle', top: 52, left: 720, size: 56, rotation: -12, safe: true },
     { kind: 'thumbsUp', top: 56, left: 232, size: 92, rotation: -10, safe: true },
+    { kind: 'thumbsUpV2', top: 80, left: 700, size: 76, rotation: 12, safe: true },
     { kind: 'eyes', top: 28, left: 580, size: 48, rotation: 6, safe: true },
-    { kind: 'cloud', top: 16, left: 880, size: 64, rotation: -4, safe: true },
-    // Mid-right gap between slot 3 (y≤396) and slot 5 (y≥470)
+    { kind: 'sparkle', top: 130, left: 980, size: 40, rotation: 18, safe: true },
+    { kind: 'starAlt', top: 110, left: 320, size: 52, rotation: -20, safe: true },
+
+    // ── Top-LEFT quadrant (Hugo flagged this as empty) — fits between
+    //    the EDITION header (y<120) and the tier block (y>158, x<360).
+    //    Tight space; small accents only.
+    { kind: 'star', top: 14, left: 56, size: 32, rotation: 22, safe: true },
+    { kind: 'sparkle', top: 8, left: 460, size: 36, rotation: -16, safe: true },
+    { kind: 'eyes', top: 130, left: 180, size: 36, rotation: 14, safe: true },
+
+    // ── Mid-right gap between stamp slot 3 (y≤396) and slot 5 (y≥470).
     { kind: 'star', top: 410, right: 30, size: 44, rotation: 45, safe: true },
     { kind: 'sparkle', top: 420, right: 140, size: 42, rotation: -10, safe: true },
-    // Mid-left gap between slot 4 (y≤612) and slot 2 (y≥710). Small
-    // peanut character + a star. peanutWaving is the full-body asset
-    // — peanut-pfp.svg's viewBox crops the lower body so it can't be
-    // used as a small floater here (the SVG itself renders truncated).
-    { kind: 'peanutWaving', top: 640, left: 220, size: 64, rotation: -6, safe: true },
-    { kind: 'star', top: 650, left: 340, size: 40, rotation: 18, safe: true },
-    // Bottom-center between card-bottom (y=645) and username pill (y≥770).
-    // Pill x range ~[400..800] worst case; keep these in the gutters.
+
+    // ── Mid-left / mid-right margins outside the card.
+    { kind: 'cloud', top: 380, left: 26, size: 48, rotation: 10, safe: true },
+    { kind: 'eyes', top: 540, right: 220, size: 38, rotation: 22, safe: true },
+    { kind: 'starAlt', top: 480, right: 200, size: 44, rotation: -8, safe: true },
+
+    // ── Bottom-CENTRE (Hugo flagged this as empty) — between card-bottom
+    //    (y=645) and the username pill top (y≥770). The pill ends at
+    //    x≈400 worst case, so anything in x[120..380] is safely in the
+    //    gutter to the LEFT of the pill.
+    { kind: 'star', top: 660, left: 200, size: 44, rotation: -14, safe: true },
+    { kind: 'sparkle', top: 700, left: 320, size: 48, rotation: 18, safe: true },
+    { kind: 'eyes', top: 670, left: 60, size: 40, rotation: -6, safe: true },
+    { kind: 'thumbsUpV2', top: 690, left: 130, size: 64, rotation: 8, safe: true },
+
+    // ── Lower-right (small sprinkles between EARNED-zone clear point and
+    //    the pill's top edge at y≈770).
     { kind: 'sparkle', bottom: 220, right: 280, size: 52, rotation: -8, safe: true },
-    { kind: 'star', bottom: 110, left: 350, size: 40, rotation: 22, safe: true },
-    { kind: 'eyes', bottom: 150, right: 260, size: 48, rotation: -14, safe: true },
+    { kind: 'star', bottom: 60, right: 360, size: 34, rotation: -12, safe: true },
+    { kind: 'cloud', bottom: 80, right: 60, size: 56, rotation: 8, safe: true },
+
+    // ── Peanut character — peeks up from BEHIND the card. The peanut
+    //    art style is legless (body tapers to a rounded point), so we
+    //    place him with his bottom inside the card's bbox (y≥254) and
+    //    only the head/arms visible above the card edge. Decorations
+    //    render at z-index 1; the card at z-index 3, with overflow:
+    //    hidden — so the body inside the card region is naturally
+    //    clipped without any extra masking. Two candidate positions
+    //    flanking the centre HERO stamp slot (top:140, left:504).
+    { kind: 'peanutChar', top: 120, left: 320, size: 180, rotation: -6, safe: true },
+    { kind: 'peanutChar', top: 130, left: 760, size: 170, rotation: 8, safe: true },
 ] as const
 
 export interface DecorationPlacement {
-    kind: 'star' | 'thumbsUp' | 'peanutWaving' | 'eyes' | 'sparkle' | 'cloud'
+    kind: 'star' | 'starAlt' | 'thumbsUp' | 'thumbsUpV2' | 'eyes' | 'sparkle' | 'cloud' | 'peanutChar'
     top?: number
     bottom?: number
     left?: number
@@ -222,20 +258,60 @@ export interface DecorationPlacement {
     rotation: number
 }
 
-/** Pick a handful of decorations from the pool. Pool is curated (stars,
- *  thumbsUp, eyes, sparkle, cloud, mini peanut) and stamp-safe, so we
- *  just shuffle and take 6-8 to fill the canvas margins. */
+/** Axis-aligned bounding-box of a placed decoration in canvas coords.
+ *  Used by the non-overlap check below — treats every decoration as a
+ *  size × size square (conservative; tall assets won't be over-tight). */
+function decorationBbox(d: { top?: number; bottom?: number; left?: number; right?: number; size: number }): {
+    x0: number
+    y0: number
+    x1: number
+    y1: number
+} {
+    const left = d.left ?? CANVAS_W - (d.right ?? 0) - d.size
+    const top = d.top ?? CANVAS_H - (d.bottom ?? 0) - d.size
+    return { x0: left, y0: top, x1: left + d.size, y1: top + d.size }
+}
+
+/** AABB intersection with a small padding so decorations aren't just-not-touching. */
+function bboxesOverlap(
+    a: { x0: number; y0: number; x1: number; y1: number },
+    b: { x0: number; y0: number; x1: number; y1: number },
+    pad = 8
+): boolean {
+    return !(a.x1 + pad < b.x0 || a.x0 - pad > b.x1 || a.y1 + pad < b.y0 || a.y0 - pad > b.y1)
+}
+
+/** Greedy non-overlap placement. Walks the shuffled pool and accepts a
+ *  candidate only if its bbox doesn't intersect any already-placed
+ *  decoration. Target count 12-15; if the pool can't satisfy that
+ *  (collisions), returns whatever fit — never compromises the no-overlap
+ *  invariant. */
 export function placeDecorations(rng: SeededRandom): DecorationPlacement[] {
-    const picked = rng.shuffle([...DECORATION_POOL]).slice(0, rng.int(6, 8))
-    return picked.map((d) => ({
-        kind: d.kind,
-        top: d.top,
-        bottom: d.bottom,
-        left: d.left,
-        right: d.right,
-        size: d.size + rng.float(-4, 4),
-        rotation: d.rotation + rng.float(-6, 6),
-    }))
+    const target = rng.int(12, 15)
+    const shuffled = rng.shuffle([...DECORATION_POOL])
+    const accepted: DecorationPlacement[] = []
+    const acceptedBboxes: ReturnType<typeof decorationBbox>[] = []
+
+    for (const d of shuffled) {
+        if (accepted.length >= target) break
+        const sizeJitter = rng.float(-4, 4)
+        const rotJitter = rng.float(-6, 6)
+        const placement: DecorationPlacement = {
+            kind: d.kind,
+            top: d.top,
+            bottom: d.bottom,
+            left: d.left,
+            right: d.right,
+            size: d.size + sizeJitter,
+            rotation: d.rotation + rotJitter,
+        }
+        const bbox = decorationBbox(placement)
+        const collides = acceptedBboxes.some((other) => bboxesOverlap(bbox, other))
+        if (collides) continue
+        accepted.push(placement)
+        acceptedBboxes.push(bbox)
+    }
+    return accepted
 }
 
 // ─── Stats inline block ─────────────────────────────────────────────────

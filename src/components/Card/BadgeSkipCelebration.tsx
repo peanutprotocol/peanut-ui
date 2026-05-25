@@ -57,20 +57,13 @@ const NO_BADGE_HEADLINE = "You're in."
 
 type Phase = 'looking-up' | 'shaking' | 'revealed'
 
-const BadgeSkipCelebration: FC<Props> = ({
-    badgeCode,
-    username,
-    badges,
-    stats,
-    tier,
-    pointsBalance,
-    onContinue,
-}) => {
+const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, tier, pointsBalance, onContinue }) => {
     const [phase, setPhase] = useState<Phase>('looking-up')
     const { triggerHaptic } = useHaptic()
     const captureRef = useRef<HTMLDivElement | null>(null)
     const hasBadge = !!badgeCode
-    const headline = (badgeCode && SKIP_BADGE_HEADLINES[badgeCode]) || (hasBadge ? 'You skipped the line.' : NO_BADGE_HEADLINE)
+    const headline =
+        (badgeCode && SKIP_BADGE_HEADLINES[badgeCode]) || (hasBadge ? 'You skipped the line.' : NO_BADGE_HEADLINE)
     const subline = hasBadge
         ? 'You hold a badge that skips the closed-beta queue. Card’s yours.'
         : 'Welcome to the closed beta. Card’s yours.'
@@ -133,9 +126,7 @@ const BadgeSkipCelebration: FC<Props> = ({
             {/* Stage: pixelated card hangs out at first (carrying over from the
                 eligibility screen), then animates away while the share asset
                 slides up into view. */}
-            <div
-                className={`relative mx-auto w-full max-w-2xl ${getShakeClass(phase === 'shaking', 'strong')}`}
-            >
+            <div className={`relative mx-auto w-full max-w-2xl ${getShakeClass(phase === 'shaking', 'strong')}`}>
                 <AnimatePresence>
                     {!showAsset && (
                         <motion.div

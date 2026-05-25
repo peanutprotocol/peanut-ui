@@ -50,9 +50,7 @@ const CardEligibilityCheckScreen: FC<Props> = ({ onComplete, onPrev, username })
     }
 
     return (
-        <div
-            className={`flex min-h-[inherit] flex-col gap-6 ${getShakeClass(shake.on, shake.intensity)}`}
-        >
+        <div className={`flex min-h-[inherit] flex-col gap-6 ${getShakeClass(shake.on, shake.intensity)}`}>
             <NavHeader title="The door" onPrev={onPrev} />
 
             <div className="flex flex-col gap-2 text-center">

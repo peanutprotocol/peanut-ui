@@ -42,6 +42,9 @@ const CELL_PX = 14
 const HAND_RASTER_PX = 36
 
 export interface PixelatedCardFaceProps {
+    /** Kept in the type for in-app surfaces that render the real card
+     *  number — the share-asset rendering deliberately ignores this and
+     *  always shows "????" so a screenshot can't leak the PAN. */
     last4?: string
     /** Extra classes for the outer card div (the pink rounded box). */
     className?: string
@@ -53,12 +56,7 @@ export interface PixelatedCardFaceProps {
     blurAll?: boolean
 }
 
-export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
-    last4 = 'XXXX',
-    className,
-    style,
-    blurAll = false,
-}) => (
+export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({ className, style, blurAll = false }) => (
     <div
         className={`relative overflow-hidden rounded-3xl border-[4px] border-black ${className ?? ''}`}
         style={{
@@ -72,22 +70,14 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
         <PixelatedHand />
 
         {/* Top row: peanut logo (left) + visa logo (right) */}
-        <div
-            className="absolute flex items-start justify-between"
-            style={{ top: 24, left: 28, right: 28, zIndex: 2 }}
-        >
+        <div className="absolute flex items-start justify-between" style={{ top: 24, left: 28, right: 28, zIndex: 2 }}>
             {blurAll ? (
                 <PixelatedImg src={ASSET_PEANUTMAN_LOGO} displayW={52} displayH={52} />
             ) : (
                 <img src={ASSET_PEANUTMAN_LOGO} alt="" aria-hidden style={{ height: 52, width: 'auto' }} />
             )}
             {blurAll ? (
-                <PixelatedImg
-                    src={ASSET_VISA_BRAND}
-                    displayW={80}
-                    displayH={32}
-                    invert
-                />
+                <PixelatedImg src={ASSET_VISA_BRAND} displayW={80} displayH={32} invert />
             ) : (
                 <img
                     src={ASSET_VISA_BRAND}
@@ -97,14 +87,21 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
             )}
         </div>
 
-        {/* Bottom block: card number + Virtual pill */}
-        <div className="absolute" style={{ bottom: 24, left: 28, zIndex: 2 }}>
+        {/* Bottom: card number — same `•••• ????` pattern in both modes.
+            The share asset deliberately obscures the real PAN so a
+            screenshot can't leak it; the eligibility-check tease uses
+            the same string for visual continuity. (The `last4` prop is
+            still in the type for in-app surfaces that show the real
+            card face — share-asset + tease callers just don't pass it.)
+            Lowered toward the card edge now that the Virtual pill is
+            gone — gives the layout room to breathe. */}
+        <div className="absolute" style={{ bottom: 32, left: 28, zIndex: 2 }}>
             {blurAll ? (
                 <PixelatedText
-                    text={`•••• ${last4}`}
-                    displayW={260}
-                    displayH={38}
-                    font="1000 38px Roboto, sans-serif"
+                    text="????"
+                    displayW={140}
+                    displayH={42}
+                    font="1000 42px Roboto, sans-serif"
                     color="#000"
                 />
             ) : (
@@ -113,32 +110,12 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
                         fontFamily: 'var(--font-roboto), sans-serif',
                         fontWeight: 1000,
                         letterSpacing: '0.06em',
-                        fontSize: 38,
+                        fontSize: 42,
                         lineHeight: 1,
                     }}
                 >
-                    •••• {last4}
+                    ????
                 </div>
-            )}
-            {blurAll ? (
-                <div style={{ marginTop: 8 }}>
-                    <PixelatedText
-                        text="Virtual"
-                        displayW={80}
-                        displayH={22}
-                        font="600 15px Roboto, sans-serif"
-                        color="#000"
-                        bg="#FFF"
-                        borderColor="#000"
-                    />
-                </div>
-            ) : (
-                <span
-                    className="inline-block rounded-full border-[1.5px] border-black bg-white font-semibold"
-                    style={{ fontSize: 15, padding: '2px 14px', marginTop: 8 }}
-                >
-                    Virtual
-                </span>
             )}
         </div>
     </div>
@@ -162,12 +139,7 @@ function cloneCanvas(source: HTMLCanvasElement): HTMLCanvasElement {
     return out
 }
 
-function rasterImg(
-    src: string,
-    rasterW: number,
-    rasterH: number,
-    onReady: (canvas: HTMLCanvasElement) => void,
-): void {
+function rasterImg(src: string, rasterW: number, rasterH: number, onReady: (canvas: HTMLCanvasElement) => void): void {
     const key = `${src}|${rasterW}x${rasterH}`
     const cached = rasterCache.get(key)
     if (cached) {
@@ -232,15 +204,7 @@ interface PixelatedTextProps {
     borderColor?: string
 }
 
-const PixelatedText: FC<PixelatedTextProps> = ({
-    text,
-    displayW,
-    displayH,
-    font,
-    color,
-    bg,
-    borderColor,
-}) => {
+const PixelatedText: FC<PixelatedTextProps> = ({ text, displayW, displayH, font, color, bg, borderColor }) => {
     // Use a slightly finer cell for text so glyphs remain just-readable as
     // blocky shapes; pure CELL_PX/14 produces unreadable mush at this size.
     const textCellPx = 6
@@ -271,8 +235,9 @@ const PixelatedText: FC<PixelatedTextProps> = ({
                 // Replace the px size inside the canvas-font shorthand with the
                 // raster-scaled px size. The original string drives styling
                 // (weight, family); we only adjust the numeric size.
-                ctx.font = font.replace(/(\d+(?:\.\d+)?)px/, (_, n) =>
-                    `${Math.max(1, Math.round(Number(n) * fontScale))}px`
+                ctx.font = font.replace(
+                    /(\d+(?:\.\d+)?)px/,
+                    (_, n) => `${Math.max(1, Math.round(Number(n) * fontScale))}px`
                 )
                 ctx.textBaseline = 'middle'
                 ctx.textAlign = 'left'
@@ -298,10 +263,8 @@ const PixelatedHand: FC = () => (
         ref={(node) => {
             if (!node || node.firstChild) return
             const handRatio = 560 / 471 // hand display w/h
-            const rasterW =
-                handRatio > 1 ? HAND_RASTER_PX : Math.max(1, Math.round(HAND_RASTER_PX * handRatio))
-            const rasterH =
-                handRatio > 1 ? Math.max(1, Math.round(HAND_RASTER_PX / handRatio)) : HAND_RASTER_PX
+            const rasterW = handRatio > 1 ? HAND_RASTER_PX : Math.max(1, Math.round(HAND_RASTER_PX * handRatio))
+            const rasterH = handRatio > 1 ? Math.max(1, Math.round(HAND_RASTER_PX / handRatio)) : HAND_RASTER_PX
             rasterImg(ASSET_CARD_HAND, rasterW, rasterH, (canvas) => {
                 canvas.style.width = '100%'
                 canvas.style.height = '100%'

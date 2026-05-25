@@ -74,9 +74,7 @@ const CardWaitlistScreen: FC<Props> = ({ onPrev, onJoined }) => {
                 />
 
                 <div className="flex flex-col gap-3">
-                    <h1 className="text-2xl font-extrabold text-n-1">
-                        You don&apos;t have the required badge :(
-                    </h1>
+                    <h1 className="text-2xl font-extrabold text-n-1">You don&apos;t have the required badge :(</h1>
                     <p className="text-grey-1">
                         Instead, you can join the waitlist. We let in a few people every week.
                     </p>
