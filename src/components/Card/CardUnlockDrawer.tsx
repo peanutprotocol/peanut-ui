@@ -11,7 +11,7 @@
  */
 
 import { type FC, useEffect, useRef } from 'react'
-import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { ScaledShareAsset } from '@/components/Card/share-asset/ScaledShareAsset'
 import { ShareAssetActions } from '@/components/Card/share-asset/ShareAssetActions'
 import posthog from 'posthog-js'
@@ -37,10 +37,16 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
     return (
         <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DrawerContent>
-                <DrawerTitle>
-                    {entry.via === 'badge' ? 'You skipped the line' : 'Card access unlocked'}
-                </DrawerTitle>
-                <div className="flex flex-col gap-4 p-4">
+                {/* DrawerTitle has no built-in padding — must be wrapped in
+                    DrawerHeader (mono Drawer pattern). Without this the
+                    title hugs the drawer-pull handle with no top/horizontal
+                    breathing room. */}
+                <DrawerHeader>
+                    <DrawerTitle className="text-2xl font-extrabold">
+                        {entry.via === 'badge' ? 'You skipped the line' : 'Card access unlocked'}
+                    </DrawerTitle>
+                </DrawerHeader>
+                <div className="flex flex-col gap-4 px-4 pb-6">
                     <ScaledShareAsset
                         ref={captureRef}
                         username={username ?? 'anon'}

@@ -168,7 +168,7 @@ export function placeStamps(badges: ShareAssetBadge[], rng: SeededRandom): Stamp
 // `kind` selects which SVG. PRNG picks which subset to actually render.
 
 interface DecorationCandidate {
-    kind: 'star' | 'thumbsUp' | 'peanutWaving' | 'peanutHands' | 'eyes' | 'sparkle' | 'cloud' | 'peanutPfp'
+    kind: 'star' | 'thumbsUp' | 'peanutWaving' | 'eyes' | 'sparkle' | 'cloud'
     top?: number
     bottom?: number
     left?: number
@@ -213,7 +213,7 @@ const DECORATION_POOL: readonly DecorationCandidate[] = [
 ] as const
 
 export interface DecorationPlacement {
-    kind: 'star' | 'thumbsUp' | 'peanutWaving' | 'peanutHands' | 'eyes' | 'sparkle' | 'cloud' | 'peanutPfp'
+    kind: 'star' | 'thumbsUp' | 'peanutWaving' | 'eyes' | 'sparkle' | 'cloud'
     top?: number
     bottom?: number
     left?: number

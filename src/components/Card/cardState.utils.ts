@@ -50,8 +50,10 @@ interface ComputeArgs {
      *  OR in a prior session (`cardWaitlistSkipCelebrationSeenAt` set)? */
     skipCelebrationSeen: boolean
     /** Has the user pressed-and-held through the eligibility-check screen
-     *  yet? Set to false on /shhhhh entry; flipped true once they release the
-     *  hold. localStorage-persisted so refresh doesn't re-show. */
+     *  yet? Per-mount React state (NOT persisted) — every fresh /card visit
+     *  shows the gate again until a card is issued. Within the same mount,
+     *  this stays true after the hold so the user isn't pulled back from
+     *  celebration / add-card. */
     eligibilityCheckDone: boolean
 }
 
