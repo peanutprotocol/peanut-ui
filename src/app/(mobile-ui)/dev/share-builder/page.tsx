@@ -18,6 +18,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import ShareAssetD3 from '@/components/Card/share-asset/ShareAssetD3'
 import { BADGE_CODES, getBadgeMeta } from '@/components/Card/share-asset/badgeCatalog'
+import { CANVAS_W, CANVAS_H } from '@/components/Card/share-asset/shareAssetLayout'
 import type { TierLevel } from '@/components/Card/share-asset/shareAsset.types'
 
 const ALL_CODES = BADGE_CODES as readonly string[]
@@ -299,7 +300,7 @@ export default function ShareBuilderPage() {
                 <main className="flex-1 flex flex-col gap-4">
                     <div className="border border-n-1 rounded-sm bg-grey-3 p-2 flex items-center justify-between text-xs">
                         <span className="font-mono">
-                            1200 × 675 (Twitter summary_large_image · scaled {(previewScale * 100).toFixed(0)}%)
+                            {CANVAS_W} × {CANVAS_H} · scaled {(previewScale * 100).toFixed(0)}%
                         </span>
                         <span className="font-mono text-grey-1">
                             seed: {seedOverride ?? username ?? 'anon'}
@@ -311,15 +312,15 @@ export default function ShareBuilderPage() {
                     >
                         <div
                             style={{
-                                width: 1200 * previewScale,
-                                height: 675 * previewScale,
+                                width: CANVAS_W * previewScale,
+                                height: CANVAS_H * previewScale,
                                 position: 'relative',
                             }}
                         >
                             <div
                                 style={{
-                                    width: 1200,
-                                    height: 675,
+                                    width: CANVAS_W,
+                                    height: CANVAS_H,
                                     transform: `scale(${previewScale})`,
                                     transformOrigin: 'top left',
                                 }}

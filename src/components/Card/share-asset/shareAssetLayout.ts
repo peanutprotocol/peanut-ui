@@ -16,15 +16,20 @@ import { getBadgeIcon } from '@/components/Badges/badge.utils'
 import type { ShareAssetBadge, ShareAssetStats } from './shareAsset.types'
 
 // ─── Canvas + element constants ─────────────────────────────────────────
+// 4:3 — postage-stamp-ish proportions. Was 16:9 (Twitter summary_large_image)
+// but the asset is no longer linked from the X intent (text-only share now),
+// so the aspect ratio is a pure design call. 4:3 gives more vertical room
+// for the card + username pill without crowding.
 export const CANVAS_W = 1200
-export const CANVAS_H = 675
+export const CANVAS_H = 900
 
 // Card box (rendered with rotation around its center) — matches the
 // in-app CardFace.tsx aspect ratio 1.586:1.
 export const CARD_W = 620
 export const CARD_H = Math.round(CARD_W / 1.586) // ≈ 391
 export const CARD_LEFT = 264
-export const CARD_TOP = 134
+// Vertically centered in the new 900-tall canvas: (900 - 391) / 2 ≈ 254.
+export const CARD_TOP = 254
 export const CARD_ROTATION_DEG = -8
 
 // ─── Stamp positions ────────────────────────────────────────────────────
@@ -49,17 +54,37 @@ export interface StampSlot {
     withTape?: boolean
 }
 
+// Priority-ordered stamp slots. The order matters: when a user has 1
+// stamp it must look intentional (hero placement, no collision with the
+// username pill / EARNED / tier block). 2-3 stamps should balance. 6
+// stamps fill the canvas.
+//
+// Excluded zones (do NOT place stamps here — they collide with fixed
+// editorial chrome on the 1200×900 canvas):
+//   - EARNED rubber stamp: top:0-180, right:0-300
+//   - EDITION + tier block: top:0-460, left:0-360
+//   - @username pill + tagline: bottom:0-220, right:0-720
+//
+// Slot 1 is the HERO slot for single-stamp users: behind the card,
+// peeking out the top-center. Visually centered, no chrome collision.
 const STAMP_SLOTS: readonly StampSlot[] = [
-    // FRONT — overlap card edges. These get filled first because they're
-    // visually most prominent (in front).
-    { top: 437, left: 786, jitterXY: 12, rotation: 9, jitterRot: 4, behind: false },
-    { top: 431, left: 102, jitterXY: 12, rotation: 12, jitterRot: 4, behind: false },
-    { top: 36, left: 944, jitterXY: 10, rotation: -18, jitterRot: 4, behind: false, withTape: true },
-    // BEHIND — peek out from behind the card. Filled second.
-    { top: 80, left: 504, jitterXY: 14, rotation: -12, jitterRot: 5, behind: true },
-    { top: 407, left: 876, jitterXY: 14, rotation: 16, jitterRot: 5, behind: true },
-    // FRONT extras for users with many badges.
-    { top: 60, left: 36, jitterXY: 10, rotation: -22, jitterRot: 4, behind: false },
+    // 1. HERO (behind, top-center) — peeks out from above the card.
+    { top: 160, left: 504, jitterXY: 14, rotation: -12, jitterRot: 5, behind: true, withTape: true },
+    // 2. Front lower-left of card — balances the @username (bottom-right).
+    { top: 620, left: 132, jitterXY: 12, rotation: 12, jitterRot: 4, behind: false },
+    // 3. Behind upper-right of card — fills the right side without
+    //    touching EARNED.
+    { top: 220, left: 820, jitterXY: 12, rotation: 16, jitterRot: 5, behind: true },
+    // 4. Front mid-left — peeks at left card edge below the tier block.
+    { top: 478, left: 60, jitterXY: 10, rotation: -18, jitterRot: 4, behind: false },
+    // 5. Behind mid-right card — peeks from card's right side.
+    { top: 470, left: 900, jitterXY: 12, rotation: 18, jitterRot: 5, behind: true },
+    // 6. Front bottom — pinned LEFT (not centered) because the
+    //    @username pill anchors bottom-right and its hit-box extends as
+    //    far left as x≈424 for the longest 16-char usernames. Keeping
+    //    slot #6 at left:140 leaves an 80px gap to the pill's worst-case
+    //    left edge.
+    { top: 720, left: 140, jitterXY: 10, rotation: -8, jitterRot: 4, behind: false },
 ] as const
 
 export interface StampPlacement {
@@ -142,18 +167,21 @@ interface DecorationCandidate {
     safe: boolean
 }
 
+// Peanut characters get a much bigger native size than stars — the
+// SVGs have fine line detail that goes blurry below ~100px native, and
+// stars are simple geometric shapes that downscale cleanly even at 50px.
 const DECORATION_POOL: readonly DecorationCandidate[] = [
     // Top margin
-    { kind: 'star', top: 36, left: 380, size: 42, rotation: 8, safe: true },
-    { kind: 'star', top: 52, left: 720, size: 32, rotation: -12, safe: true },
-    { kind: 'thumbsUp', top: 56, left: 232, size: 52, rotation: -10, safe: true },
+    { kind: 'star', top: 36, left: 380, size: 72, rotation: 8, safe: true },
+    { kind: 'star', top: 52, left: 720, size: 60, rotation: -12, safe: true },
+    { kind: 'thumbsUp', top: 56, left: 232, size: 132, rotation: -10, safe: true },
     // Mid-right margin
-    { kind: 'star', top: 286, right: 22, size: 34, rotation: 45, safe: true },
-    { kind: 'peanutWaving', top: 316, right: 24, size: 56, rotation: 12, safe: true },
+    { kind: 'star', top: 286, right: 22, size: 64, rotation: 45, safe: true },
+    { kind: 'peanutWaving', top: 316, right: 24, size: 140, rotation: 12, safe: true },
     // Bottom margin
-    { kind: 'star', bottom: 96, right: 320, size: 28, rotation: -8, safe: true },
-    { kind: 'star', bottom: 282, right: 64, size: 26, rotation: 22, safe: true },
-    { kind: 'peanutHands', bottom: 124, left: 26, size: 56, rotation: -8, safe: true },
+    { kind: 'star', bottom: 96, right: 320, size: 56, rotation: -8, safe: true },
+    { kind: 'star', bottom: 282, right: 64, size: 52, rotation: 22, safe: true },
+    { kind: 'peanutHands', bottom: 124, left: 26, size: 140, rotation: -8, safe: true },
 ] as const
 
 export interface DecorationPlacement {
@@ -225,11 +253,14 @@ function formatUsd(n: number): string {
 }
 
 /** Sizing function for the username pill — auto-shrinks for long names.
- *  Max 12 chars per current peanut constraint, but defensive past that. */
+ *  Tuned for the 1200×900 canvas where the pill is the bottom-right
+ *  anchor; floor is 56 so even max-length usernames stay readable at
+ *  Twitter mobile thumbnail (~3.4× downscale → ≥16px on-screen). */
 export function usernameFontSize(username: string): number {
     const len = username.length
-    if (len <= 6) return 32
-    if (len <= 9) return 28
-    if (len <= 12) return 24
-    return 20
+    if (len <= 5) return 92
+    if (len <= 8) return 80
+    if (len <= 11) return 68
+    if (len <= 14) return 60
+    return 56
 }

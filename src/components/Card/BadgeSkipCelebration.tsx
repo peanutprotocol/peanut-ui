@@ -16,13 +16,13 @@
  * Once dismissed, the parent stamps the seen marker + advances to add-card.
  */
 
-import { type FC, useEffect, useState } from 'react'
+import { type FC, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import { ScaledShareAsset } from '@/components/Card/share-asset/ScaledShareAsset'
 import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
-import { shareCardOnTwitter } from '@/components/Card/share-asset/share.utils'
+import { ShareAssetActions } from '@/components/Card/share-asset/ShareAssetActions'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { getShakeClass } from '@/utils/perk.utils'
 import { useHaptic } from 'use-haptic'
@@ -68,6 +68,7 @@ const BadgeSkipCelebration: FC<Props> = ({
 }) => {
     const [phase, setPhase] = useState<Phase>('looking-up')
     const { triggerHaptic } = useHaptic()
+    const captureRef = useRef<HTMLDivElement | null>(null)
     const hasBadge = !!badgeCode
     const headline = (badgeCode && SKIP_BADGE_HEADLINES[badgeCode]) || (hasBadge ? 'You skipped the line.' : NO_BADGE_HEADLINE)
     const subline = hasBadge
@@ -90,11 +91,6 @@ const BadgeSkipCelebration: FC<Props> = ({
             clearTimeout(revealAt)
         }
     }, [badgeCode, triggerHaptic])
-
-    const handleShare = (): void => {
-        posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, { source: 'celebration' })
-        shareCardOnTwitter()
-    }
 
     const showAsset = phase === 'revealed' || phase === 'shaking'
 
@@ -162,6 +158,7 @@ const BadgeSkipCelebration: FC<Props> = ({
                             transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
                         >
                             <ScaledShareAsset
+                                ref={captureRef}
                                 username={username ?? 'anon'}
                                 badges={badges}
                                 stats={stats}
@@ -181,9 +178,11 @@ const BadgeSkipCelebration: FC<Props> = ({
                 animate={{ opacity: phase === 'revealed' ? 1 : 0, y: phase === 'revealed' ? 0 : 12 }}
                 transition={{ duration: 0.3, ease: 'easeOut', delay: phase === 'revealed' ? 0.1 : 0 }}
             >
-                <Button onClick={handleShare} variant="purple" shadowSize="4" className="w-full">
-                    Share on X
-                </Button>
+                <ShareAssetActions
+                    captureRef={captureRef}
+                    source="celebration"
+                    shareText="I got my Peanut card. shhhh."
+                />
                 <Button onClick={onContinue} variant="stroke" className="w-full">
                     Continue to your card
                 </Button>

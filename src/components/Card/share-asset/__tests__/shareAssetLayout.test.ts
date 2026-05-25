@@ -176,19 +176,19 @@ describe('buildStatColumns', () => {
 
 describe('usernameFontSize', () => {
     it('shrinks with length', () => {
-        expect(usernameFontSize('me')).toBe(32)
-        expect(usernameFontSize('konrad')).toBe(32)
-        expect(usernameFontSize('kkonrad')).toBe(28)
-        expect(usernameFontSize('aaahugo123')).toBe(24)
-        expect(usernameFontSize('twelvecharsxx')).toBeLessThanOrEqual(24)
-        expect(usernameFontSize('reallylongusernameseriouslytwentyplus')).toBe(20)
+        expect(usernameFontSize('me')).toBe(92)
+        expect(usernameFontSize('konrad')).toBe(80)
+        expect(usernameFontSize('kkonrad')).toBe(80)
+        expect(usernameFontSize('aaahugo123')).toBe(68)
+        expect(usernameFontSize('twelvecharsxx')).toBeLessThanOrEqual(60)
+        expect(usernameFontSize('reallylongusernameseriouslytwentyplus')).toBe(56)
     })
 })
 
 describe('canvas constants', () => {
-    it('matches Twitter summary_large_image dimensions', () => {
+    it('uses 4:3 postage-stamp proportions', () => {
         expect(CANVAS_W).toBe(1200)
-        expect(CANVAS_H).toBe(675)
+        expect(CANVAS_H).toBe(900)
     })
 
     it('card anchor sits inside the canvas', () => {

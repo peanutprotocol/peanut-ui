@@ -6,14 +6,14 @@
  *
  * Renders the same ShareAssetD3 the user saw on the BadgeSkipCelebration
  * screen, deterministically seeded from username so it reproduces the
- * same visual layout they shared earlier. Plus the Twitter share button.
+ * same visual layout they shared earlier. Plus the shared
+ * <ShareAssetActions /> (Share + Save image).
  */
 
-import { type FC, useEffect } from 'react'
+import { type FC, useEffect, useRef } from 'react'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
-import { Button } from '@/components/0_Bruddle/Button'
 import { ScaledShareAsset } from '@/components/Card/share-asset/ScaledShareAsset'
-import { shareCardOnTwitter } from '@/components/Card/share-asset/share.utils'
+import { ShareAssetActions } from '@/components/Card/share-asset/ShareAssetActions'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import type { CardUnlockHistoryEntry } from './cardUnlock.types'
@@ -27,15 +27,12 @@ interface Props {
 }
 
 export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, skipBadges }) => {
+    const captureRef = useRef<HTMLDivElement | null>(null)
+
     useEffect(() => {
         if (!isOpen) return
         posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_VIEWED, { source: 'history-replay' })
     }, [isOpen])
-
-    const handleShare = (): void => {
-        posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, { source: 'history-replay' })
-        shareCardOnTwitter()
-    }
 
     return (
         <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -45,14 +42,17 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
                 </DrawerTitle>
                 <div className="flex flex-col gap-4 p-4">
                     <ScaledShareAsset
+                        ref={captureRef}
                         username={username ?? 'anon'}
                         badges={skipBadges.map((code) => ({ code }))}
                         cardLast4="0420"
                         animate={false}
                     />
-                    <Button onClick={handleShare} variant="purple" shadowSize="4" className="w-full">
-                        Share on X
-                    </Button>
+                    <ShareAssetActions
+                        captureRef={captureRef}
+                        source="history-replay"
+                        shareText="I got my Peanut card. shhhh."
+                    />
                 </div>
             </DrawerContent>
         </Drawer>

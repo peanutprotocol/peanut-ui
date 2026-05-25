@@ -7,11 +7,9 @@
  * route through a server-rendered OG image, this is the choke point.
  */
 
-const SHARE_TEXT = "I got my Peanut card. shhhh — it's a closed beta."
-const SHARE_URL = 'https://peanut.me/shhhhh'
+const SHARE_TEXT = 'I got my Peanut card. shhhh.'
 
 export function shareCardOnTwitter(): void {
     const text = encodeURIComponent(SHARE_TEXT)
-    const url = encodeURIComponent(SHARE_URL)
-    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank')
+    window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank')
 }

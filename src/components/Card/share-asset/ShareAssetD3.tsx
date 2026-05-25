@@ -1,17 +1,18 @@
 /**
- * <ShareAssetD3 /> — the Twitter share asset for card activation.
+ * <ShareAssetD3 /> — the in-app share asset that users can post or save
+ * after they get their Peanut card.
  *
- * Renders the floating-collage Design 3 from
- * `designs/2026-05-20-card-waitlist-flow/index.html` as a production
- * React component. Same shape works both client-side (with CSS-only
- * staggered animation on mount) and server-rendered (animations skipped,
- * final frame outputs deterministically — suitable for satori/sharp OG
- * routes).
+ * Asset is 1200×900 (4:3 postage-stamp proportions — see CANVAS_W /
+ * CANVAS_H in shareAssetLayout.ts). It's NOT a Twitter card image: the
+ * X intent (see share.utils.ts) is text-only and doesn't include a URL,
+ * so there's no OG/twitter:image scrape path. Capture is via
+ * captureShareAsset.ts (html-to-image at native 1200×900, attached to
+ * navigator.share or downloaded by the user).
  *
- * Sizing: this renders at native 1200×675. Wrap in a container that
- * scales via `transform: scale(...)` if you need a smaller preview.
- *
- * Branch ownership: card-rebuild agent (see WORKING.md).
+ * Type hierarchy is tuned for readability at the captured PNG's typical
+ * downscale on social timelines: every meaningful text is ≥22px native
+ * (~7px at 3.4× downscale, bold-readable), with the username pill +
+ * EDITION header far larger.
  */
 
 'use client'
@@ -57,7 +58,6 @@ const TIER_LABEL: Record<TierLevel, string> = {
     3: 'TIER 3',
 }
 
-// Decoration kind → asset URL. Replaces a nested ternary in <DecorationEl>.
 const DECO_ASSET: Record<DecorationPlacement['kind'], string> = {
     star: ASSET_STAR,
     thumbsUp: ASSET_HAND_THUMBS,
@@ -155,12 +155,12 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                 }
             `}</style>
 
-            {/* ─── Background pattern (faint pink polka) ─── */}
+            {/* ─── Background pattern (faint pink polka — texture, no content) ─── */}
             <div
                 className="pointer-events-none absolute inset-0"
                 style={{
                     backgroundImage: 'radial-gradient(circle, rgba(255,144,232,0.45) 1px, transparent 1.5px)',
-                    backgroundSize: '32px 32px',
+                    backgroundSize: '40px 40px',
                     opacity: 0.5,
                 }}
             />
@@ -170,93 +170,89 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                 <DecorationEl key={i} deco={deco} animate={animate} delay={50 * i + 800} />
             ))}
 
-            {/* ─── Vertical editorial header (magazine spine) ─── */}
-            <div
-                className="hero-caps absolute text-black/55"
-                style={{
-                    left: 28,
-                    top: '50%',
-                    transform: 'translateY(-50%) rotate(-90deg)',
-                    transformOrigin: 'left center',
-                    whiteSpace: 'nowrap',
-                    fontSize: 13,
-                    letterSpacing: '0.4em',
-                    fontWeight: 1000,
-                    textTransform: 'uppercase',
-                    zIndex: 1,
-                }}
-            >
-                PEANUT.ME / {safeUsername.toUpperCase()} &nbsp;&nbsp; ✦ &nbsp;&nbsp; SHARE EDITION
-            </div>
-
-            {/* ─── EDITION header (top-left) ─── */}
+            {/* ─── EDITION header (top-left) — consolidated single banner.
+                 Was 2 lines + a rotated vertical spine; now one tighter
+                 line that reads cleanly at thumbnail scale and stops
+                 fighting the EARNED stamp on the right. */}
             <div
                 className="absolute"
                 style={{
-                    top: 36,
-                    left: 80,
+                    top: 56,
+                    left: 56,
                     zIndex: 6,
                     animation: animate ? `fadeUp 600ms ease-out ${ANIM_CARD_DELAY}ms both` : 'none',
                 }}
             >
-                <HeroCaps style={{ fontSize: 11, letterSpacing: '0.2em' }}>EDITION · 01</HeroCaps>
-                <HeroCaps style={{ fontSize: 10, letterSpacing: '0.16em', opacity: 0.55, marginTop: 2 }}>
-                    THE PEANUT CARD ARRIVES
+                <HeroCaps style={{ fontSize: 36, letterSpacing: '0.16em' }}>EDITION · 01</HeroCaps>
+                <HeroCaps style={{ fontSize: 22, letterSpacing: '0.18em', opacity: 0.55, marginTop: 6 }}>
+                    PEANUT CARD ARRIVES
                 </HeroCaps>
             </div>
 
-            {/* ─── Tier badge + stats anchor (top-left) ─── */}
+            {/* ─── Tier badge + stats anchor (left mid) ─── */}
             {(showTierBlock || statCols.length > 0) && (
                 <div
                     className="absolute"
                     style={{
-                        top: 124,
-                        left: 56,
+                        top: 158,
+                        left: 88,
                         transform: 'rotate(-4deg)',
                         zIndex: 6,
                         animation: animate ? `fadeUp 700ms ease-out ${ANIM_TIER_DELAY}ms both` : 'none',
                     }}
                 >
                     {showTierBlock && (
-                        <div className="flex items-end gap-3">
+                        <div className="flex items-end" style={{ gap: 14 }}>
                             <img
                                 src={TIER_SVG[tier]}
                                 alt=""
                                 aria-hidden
                                 style={{
-                                    height: 124,
+                                    height: 140,
                                     width: 'auto',
-                                    filter: 'drop-shadow(0.25rem 0.25rem 0 rgba(0,0,0,0.85))',
+                                    filter: 'drop-shadow(0.3rem 0.3rem 0 rgba(0,0,0,0.85))',
                                 }}
                             />
-                            <div style={{ paddingBottom: 6 }}>
-                                <HeroCaps style={{ fontSize: 10, letterSpacing: '0.15em', opacity: 0.6 }}>
+                            <div style={{ paddingBottom: 10 }}>
+                                <HeroCaps style={{ fontSize: 18, letterSpacing: '0.14em', opacity: 0.62 }}>
                                     {TIER_LABEL[tier]} · PEANUT PTS
                                 </HeroCaps>
-                                <HeroCaps style={{ fontSize: 38, lineHeight: 0.95 }}>
+                                <HeroCaps style={{ fontSize: 56, lineHeight: 0.95, marginTop: 4 }}>
                                     {pointsBalance.toLocaleString('en-US')}
                                 </HeroCaps>
                             </div>
                         </div>
                     )}
-                    {/* Stats inline strip — renders only the cols present */}
+                    {/* Stats strip — renders only the cols present */}
                     {statCols.length > 0 && (
                         <div
-                            className={`inline-block border-[2.5px] border-black bg-white ${showTierBlock ? 'mt-3' : ''}`}
+                            className={`inline-block border-[3px] border-black bg-white ${showTierBlock ? 'mt-4' : ''}`}
                             style={{
-                                padding: '6px 12px',
-                                boxShadow: '0.125rem 0.125rem 0 #000',
+                                padding: '10px 18px',
+                                boxShadow: '0.2rem 0.2rem 0 #000',
                             }}
                         >
-                            <div className="flex items-baseline" style={{ gap: 14 }}>
+                            <div className="flex items-baseline" style={{ gap: 22 }}>
                                 {statCols.map((col, i) => (
-                                    <span key={col.label} className="flex items-baseline" style={{ gap: 14 }}>
-                                        {i > 0 && <span className="text-black/30">·</span>}
+                                    <span key={col.label} className="flex items-baseline" style={{ gap: 22 }}>
+                                        {i > 0 && (
+                                            <span className="text-black/30" style={{ fontSize: 28 }}>
+                                                ·
+                                            </span>
+                                        )}
                                         <span>
-                                            <HeroCaps style={{ fontSize: 8, letterSpacing: '0.14em', opacity: 0.55 }}>
+                                            <HeroCaps
+                                                style={{
+                                                    fontSize: 16,
+                                                    letterSpacing: '0.14em',
+                                                    opacity: 0.6,
+                                                }}
+                                            >
                                                 {col.label}
                                             </HeroCaps>
-                                            <HeroCaps style={{ fontSize: 14, lineHeight: 1 }}>{col.value}</HeroCaps>
+                                            <HeroCaps style={{ fontSize: 30, lineHeight: 1, marginTop: 4 }}>
+                                                {col.value}
+                                            </HeroCaps>
                                         </span>
                                     </span>
                                 ))}
@@ -266,7 +262,7 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                 </div>
             )}
 
-            {/* ─── Stamps BEHIND the card (z-index 2, below card's 3) ─── */}
+            {/* ─── Stamps BEHIND the card (z-index 2) ─── */}
             {stamps
                 .filter((s) => s.behind)
                 .map((s, i) => (
@@ -308,13 +304,13 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                     )
                 })}
 
-            {/* ─── EARNED ✓ rubber stamp (top-right) ─── */}
+            {/* ─── EARNED ✓ rubber stamp (top-right corner, tasteful) ─── */}
             <div
                 className="pointer-events-none absolute"
                 style={{
-                    top: 184,
-                    right: 138,
-                    transform: 'rotate(-22deg)',
+                    top: 48,
+                    right: 56,
+                    transform: 'rotate(-12deg)',
                     zIndex: 7,
                     animation: animate ? `fadeUp 500ms ease-out ${ANIM_EARNED_DELAY}ms both` : 'none',
                 }}
@@ -322,15 +318,15 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                 <div
                     style={{
                         fontFamily: 'var(--font-roboto), sans-serif',
-                        fontSize: 16,
+                        fontSize: 36,
                         fontWeight: 1000,
                         color: '#b3261e',
-                        border: '3px solid #b3261e',
-                        padding: '5px 14px',
-                        borderRadius: 6,
-                        background: 'rgba(255,255,255,0.55)',
-                        letterSpacing: '0.1em',
-                        opacity: 0.85,
+                        border: '5px solid #b3261e',
+                        padding: '8px 22px',
+                        borderRadius: 10,
+                        background: 'rgba(255,255,255,0.65)',
+                        letterSpacing: '0.12em',
+                        opacity: 0.92,
                         textTransform: 'uppercase',
                     }}
                 >
@@ -338,32 +334,33 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                 </div>
             </div>
 
-            {/* ─── @username attribution (bottom-center) ─── */}
+            {/* ─── @username attribution (bottom-right) ─── */}
             <div
-                className="absolute flex flex-col items-center"
+                className="absolute flex flex-col items-end"
                 style={{
-                    bottom: 22,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    gap: 8,
+                    bottom: 48,
+                    right: 56,
+                    gap: 12,
                     zIndex: 6,
                     animation: animate ? `fadeUp 600ms ease-out ${ANIM_ATTRIBUTION_DELAY}ms both` : 'none',
                 }}
             >
-                <HeroCaps style={{ fontSize: 12, letterSpacing: '0.18em', opacity: 0.65 }}>Who invited you? ↓</HeroCaps>
+                <HeroCaps style={{ fontSize: 22, letterSpacing: '0.18em', opacity: 0.6 }}>Who invited you? ↓</HeroCaps>
                 <span
-                    className="inline-block rounded-full border-[3px] border-black bg-secondary-1"
+                    className="inline-block rounded-full border-[5px] border-black bg-secondary-1"
                     style={{
                         fontSize: usernameFontSize(safeUsername),
-                        padding: '5px 24px',
+                        padding: '10px 44px',
                         fontWeight: 1000,
-                        textTransform: 'uppercase',
-                        letterSpacing: '-0.01em',
-                        boxShadow: '0.125rem 0.125rem 0 #000',
+                        textTransform: 'lowercase',
+                        letterSpacing: '-0.02em',
+                        boxShadow: '0.375rem 0.375rem 0 #000',
                         whiteSpace: 'nowrap',
-                        maxWidth: 600,
+                        maxWidth: 720,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
+                        lineHeight: 1.05,
+                        transform: 'rotate(-3deg)',
                     }}
                 >
                     @{safeUsername}
@@ -456,15 +453,16 @@ const StampEl: FC<StampElProps> = ({ stamp, animate, delay }) => {
                     right: 8,
                     bottom: 10,
                     textAlign: 'center',
-                    border: '1.5px solid #000',
+                    border: '2px solid #000',
                     background: stamp.badge.captionBg,
                     fontFamily: 'var(--font-roboto), sans-serif',
                     fontWeight: 1000,
                     textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    fontSize: stamp.width >= 170 ? 12 : 11,
-                    padding: '2px 0',
+                    letterSpacing: '0.06em',
+                    fontSize: stamp.width >= 170 ? 22 : 18,
+                    padding: '4px 0',
                     color: '#000',
+                    lineHeight: 1.05,
                 }}
             >
                 {stamp.badge.caption}

@@ -75,7 +75,7 @@ function ScarcityCounter() {
     }, [])
     return (
         <motion.span
-            className="inline-block whitespace-nowrap bg-n-1 px-2 py-0.5 text-[0.92em] font-extraBlack uppercase tracking-wider text-primary-1"
+            className="mx-1 inline-block whitespace-nowrap bg-n-1 px-2 py-0.5 text-[0.92em] font-extraBlack uppercase tracking-wider text-primary-1"
             animate={count === 20 ? { scale: [1, 1.18, 1] } : {}}
             transition={{ duration: 0.5, ease: 'easeOut' }}
         >
@@ -142,7 +142,14 @@ export default function ShhhhhLandingPage() {
     const handleCTA = async () => {
         posthog.capture(ANALYTICS_EVENTS.DOOR_TRY, { signed_in: !!user })
         if (!user) {
-            router.push('/setup?redirect_uri=/shhhhh')
+            // After signup, drop the user STRAIGHT into the card flow — not
+            // back here. The `press_door=1` flag tells /card to call
+            // grantFlowEarlyAccess on their behalf (the BE call needs auth,
+            // so we can't pre-stamp it before the user has an account).
+            // The whole redirect_uri value is URL-encoded so setup's
+            // searchParams.get('redirect_uri') receives '/card?press_door=1'
+            // intact instead of dropping the inner query string.
+            router.push(`/setup?redirect_uri=${encodeURIComponent('/card?press_door=1')}`)
             return
         }
         // Stamp the early-access flag so the user can pass the /card outer

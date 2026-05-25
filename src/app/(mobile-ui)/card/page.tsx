@@ -13,6 +13,7 @@ import AddCardEntryScreen from '@/components/Card/AddCardEntryScreen'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 import CardTermsScreen from '@/components/Card/CardTermsScreen'
 import CardWaitlistScreen from '@/components/Card/CardWaitlistScreen'
+import CardWaitlistJoinedScreen from '@/components/Card/CardWaitlistJoinedScreen'
 import BadgeSkipCelebration from '@/components/Card/BadgeSkipCelebration'
 import CardEligibilityCheckScreen from '@/components/Card/CardEligibilityCheckScreen'
 import YourCardScreen from '@/components/Card/YourCardScreen'
@@ -24,9 +25,6 @@ import { rainApi, type ApplyForCardResponse } from '@/services/rain'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSafeBack } from '@/hooks/useSafeBack'
-
-// Skip badge codes — must mirror BE src/card/waitlist.ts SKIP_BADGE_CODES.
-const SKIP_BADGE_CODES = ['OG_2025_10_12', 'DEVCONNECT_BA_2025', 'ARBIVERSE_DEVCONNECT_BA_2025'] as const
 
 // localStorage key for the one-time celebration gate. Phase 5 will swap
 // this for a BE-persisted `cardWaitlistSkipCelebrationSeenAt` lookup.
@@ -101,6 +99,47 @@ const CardPage: FC = () => {
     // exists (see cardState.utils.ts — active-card wins first).
     const [eligibilityCheckDone, setEligibilityCheckDone] = useState<boolean>(false)
 
+    // `?press_door=1` arrives from /shhhhh → /setup → here. It means: the
+    // user clicked "press the door" on /shhhhh while signed out, just
+    // completed signup, and now expects to enter the card flow. We
+    // auto-stamp `flowEarlyAccess` on their behalf so they don't have to
+    // re-press the door. Initial value is read synchronously to gate the
+    // outer-gate redirect on first paint; the param is cleared once the
+    // stamp lands.
+    const [pressDoorMode, setPressDoorMode] = useState<boolean>(() => {
+        if (typeof window === 'undefined') return false
+        return new URL(window.location.href).searchParams.get('press_door') === '1'
+    })
+    const pressDoorFiredRef = useRef(false)
+    useEffect(() => {
+        if (!pressDoorMode) return
+        if (pioneerLoading || !cardInfo) return
+        if (pressDoorFiredRef.current) return
+        pressDoorFiredRef.current = true
+        const finish = (): void => {
+            const url = new URL(window.location.href)
+            url.searchParams.delete('press_door')
+            window.history.replaceState(window.history.state, '', url.toString())
+            setPressDoorMode(false)
+        }
+        if (cardInfo.flowEarlyAccess) {
+            // Already stamped (e.g. quick refresh after stamp landed) — just clean up.
+            finish()
+            return
+        }
+        void (async () => {
+            try {
+                await cardApi.grantFlowEarlyAccess()
+                posthog.capture(ANALYTICS_EVENTS.CARD_FLOW_EARLY_ACCESS_GRANTED)
+                await queryClient.invalidateQueries({ queryKey: ['card-info'] })
+            } catch (err) {
+                console.error('[card] press_door auto-stamp failed:', err)
+            } finally {
+                finish()
+            }
+        })()
+    }, [pressDoorMode, pioneerLoading, cardInfo, queryClient])
+
     // Outer gate: pre-public-launch, redirect users without /shhhhh early
     // access back to the landing page so they don't see a half-baked /card
     // shell. BE returns `flowEarlyAccess: false` in that case.
@@ -109,8 +148,11 @@ const CardPage: FC = () => {
     // card. Legacy Pioneers + admin-granted users issued cards before
     // /shhhhh existed and have no flowEarlyAccess stamp — they must still
     // reach YourCardScreen. The computeCardState() precedence below mirrors
-    // this rule (active-card before no-flow-access).
+    // this rule (active-card before no-flow-access). Also skip while
+    // pressDoorMode is in flight: the stamp is about to land any tick now,
+    // and bouncing to /shhhhh mid-stamp creates a momentary flash.
     useEffect(() => {
+        if (pressDoorMode) return
         if (pioneerLoading || pioneerError) return
         if (!cardInfo) return
         if (cardInfo.flowEarlyAccess) return
@@ -118,7 +160,7 @@ const CardPage: FC = () => {
         if (hasIssuedCard) return
         posthog.capture(ANALYTICS_EVENTS.CARD_FLOW_GATED)
         router.replace('/shhhhh')
-    }, [router, pioneerLoading, pioneerError, cardInfo, overview])
+    }, [router, pioneerLoading, pioneerError, cardInfo, overview, pressDoorMode])
 
     const state = computeCardState({
         overview,
@@ -396,14 +438,18 @@ const CardPage: FC = () => {
                     />
                 )
             case 'waitlist': {
-                const userSkipBadges = new Set(cardInfo!.skipBadges)
-                const missingSkipBadges = SKIP_BADGE_CODES.filter((c) => !userSkipBadges.has(c))
+                // Joined vs not-joined are two distinct screens — keeps each
+                // tight to its own purpose (let-down + CTA vs confirmation +
+                // exit). The skip-badge gallery was dropped per design: the
+                // not-joined view is a conversion moment, not a hunt prompt.
+                if (cardInfo!.waitlistJoinedAt) {
+                    return <CardWaitlistJoinedScreen onPrev={onBack} />
+                }
                 return (
                     <CardWaitlistScreen
                         cardInfo={cardInfo!}
                         onPrev={onBack}
                         onJoined={refetchCardInfo}
-                        missingSkipBadges={missingSkipBadges}
                     />
                 )
             }

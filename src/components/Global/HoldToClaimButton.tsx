@@ -23,7 +23,7 @@
  *   - Card eligibility-check (/card)
  */
 
-import { type FC, type ReactNode, useEffect } from 'react'
+import { type FC, type ReactNode, useEffect, useRef } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useHoldToClaim, type ShakeIntensity } from '@/hooks/useHoldToClaim'
 
@@ -73,12 +73,19 @@ export const HoldToClaimButton: FC<Props> = ({
         decayRate,
     })
 
-    // Surface shake state to the parent. useEffect so we don't setState
-    // during render in the parent (would loop). Fires once per shake
-    // transition since useHoldToClaim already debounces internally.
+    // Surface shake state to the parent. Use a latest-ref so inline
+    // arrow-fn callers don't cause an infinite render loop (their callback
+    // identity changes every render; if we depended on it here, the
+    // useEffect would fire → parent setState → re-render → new callback
+    // identity → loop). We only care about value changes, not callback
+    // identity, so the ref pattern is correct.
+    const onShakeChangeRef = useRef(onShakeChange)
     useEffect(() => {
-        onShakeChange?.(isShaking, shakeIntensity)
-    }, [isShaking, shakeIntensity, onShakeChange])
+        onShakeChangeRef.current = onShakeChange
+    })
+    useEffect(() => {
+        onShakeChangeRef.current?.(isShaking, shakeIntensity)
+    }, [isShaking, shakeIntensity])
 
     return (
         <Button

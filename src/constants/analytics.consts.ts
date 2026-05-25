@@ -160,6 +160,11 @@ export const ANALYTICS_EVENTS = {
     CARD_WAITLIST_SKIPPED_BY_BADGE: 'card_waitlist_skipped_by_badge',
     CARD_SHARE_ASSET_VIEWED: 'card_share_asset_viewed',
     CARD_SHARE_ASSET_SHARED: 'card_share_asset_shared',
+    CARD_SHARE_ASSET_SAVED: 'card_share_asset_saved',
+    // Capture/share failures (CORS taint, ref unmounted, OS share-sheet
+    // rejection). Lets the funnel distinguish "users not tapping share"
+    // from "users tapping share but it silently fails".
+    CARD_SHARE_ASSET_FAILED: 'card_share_asset_failed',
     // Admin wave release (BE event, mirrored here so FE doesn't accidentally
     // step on the namespace).
     CARD_WAITLIST_RELEASED: 'card_waitlist_released',
