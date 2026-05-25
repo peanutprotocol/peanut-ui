@@ -1,18 +1,19 @@
 'use client'
 
+/**
+ * Hook to fetch /card info for the authenticated user — returns waitlist
+ * state, eligibility, skip-badge holdings, and the inner/outer gate
+ * booleans.
+ *
+ * Name is legacy ("Pioneer") — kept for backwards compatibility with the
+ * call sites that still import this. Phase 6.5 cleanup will rename to
+ * `useCardInfo`.
+ */
+
 import { useQuery } from '@tanstack/react-query'
 import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
 
-/**
- * Hook to fetch Card Pioneer info for the authenticated user.
- * Returns eligibility status, purchase status, and pricing.
- *
- * Fetches unconditionally for authenticated users — the maintenance flag
- * (`underMaintenanceConfig.disableCardPioneers`) gates UI rendering, not
- * data fetching, so manual-grant users (`hasCardAccess: true`) can still
- * reach their card during a Pioneer-feature outage.
- */
 export const useCardPioneerInfo = () => {
     const { user } = useAuth()
 
@@ -31,8 +32,8 @@ export const useCardPioneerInfo = () => {
         refetch: query.refetch,
         // Convenience booleans - return undefined while loading to prevent flash
         isEligible: query.isLoading ? undefined : (query.data?.isEligible ?? false),
-        hasPurchased: query.isLoading ? undefined : (query.data?.hasPurchased ?? false),
         hasCardAccess: query.isLoading ? undefined : (query.data?.hasCardAccess ?? false),
-        price: query.data?.price ?? 10,
+        flowEarlyAccess: query.isLoading ? undefined : (query.data?.flowEarlyAccess ?? false),
+        skipBadges: query.data?.skipBadges ?? [],
     }
 }

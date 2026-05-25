@@ -1,8 +1,9 @@
 'use client'
 import { type FC, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
+import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
-import CardFace from '@/components/Card/CardFace'
+import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
 import { Icon } from '@/components/Global/Icons/Icon'
 
 interface Props {
@@ -28,14 +29,15 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
         <div className="flex min-h-[inherit] flex-col gap-6">
             <NavHeader title="Add Card" onPrev={onPrev} />
 
-            {/* Preview of the card the user will receive — uses CardFace's
-             * preview mode so the PAN + cardholder + expiry render as sample
-             * data, without any interactive controls. */}
-            <CardFace last4="0420" preview />
+            {/* Pixelated card — keeps the anticipation/tease intact through
+                the "Get your card" CTA, matching the /shhhhh + eligibility
+                screens. The card's real details are still hidden until
+                issuance, so the same chunky-pixel treatment applies. */}
+            <ScaledPixelatedCardFace last4="????" blurAll />
 
             <div className="flex flex-col gap-2">
                 <h1 className="text-2xl font-extrabold text-n-1">Spend anywhere Visa is accepted</h1>
-                <p className="text-grey-1">Use your balance at 40M+ merchants. Online, contactless.</p>
+                <p className="text-grey-1">Use your balance at 140M+ merchants. Online, contactless.</p>
             </div>
 
             <ul className="flex flex-col gap-2 rounded-sm bg-primary-3 p-4 text-n-1">
@@ -47,14 +49,20 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
                 ))}
             </ul>
 
-            {applyError && <p className="text-sm text-red">{applyError}</p>}
+            {/* Error above the CTA, not below: the (mobile-ui) layout pins a
+             * QR FAB at the bottom-center that pokes ~27px UP into the page,
+             * so any text rendered immediately below the CTA gets bisected
+             * by it. Other surfaces (Withdraw, Send link) get away with
+             * below-CTA because their pages scroll; this one fits the
+             * viewport so the FAB collision is unavoidable. */}
+            {applyError && <ErrorAlert description={applyError} />}
             <Button
                 onClick={handleClick}
                 loading={isApplying}
                 disabled={isApplying}
                 variant="purple"
                 shadowSize="4"
-                className="mt-auto w-full"
+                className="w-full"
             >
                 Get your card
             </Button>

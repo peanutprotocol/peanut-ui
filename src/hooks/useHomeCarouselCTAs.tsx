@@ -93,7 +93,7 @@ export const useHomeCarouselCTAs = () => {
     const { countryCode: userCountryCode } = useGeoLocation()
     const {
         isEligible: isCardPioneerEligible,
-        hasPurchased: hasCardPioneerPurchased,
+        hasCardAccess: hasCardAccessGranted,
         isLoading: isCardPioneerLoading,
     } = useCardPioneerInfo()
     const { isActivated } = useActivationStatus()
@@ -132,10 +132,12 @@ export const useHomeCarouselCTAs = () => {
         const hasKycApproval = isUserKycApproved || isUserMantecaKycApproved
         const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
 
-        // Card Pioneer CTA - show to all users who haven't purchased yet
-        // Eligibility check happens during the flow (geo screen)
-        // Only show when we know for sure they haven't purchased (not while loading)
-        if (!underMaintenanceConfig.disableCardPioneers && hasCardPioneerPurchased === false) {
+        // Card CTA — Pioneers replaced by free badge-gated waitlist (M2).
+        // Show to all users who don't already have card access.
+        // Routes via /shhhhh so the user passes the outer gate AND lands on
+        // the marketing context for the closed beta. Users with badges that
+        // skip the queue will go straight to celebration on /card.
+        if (!underMaintenanceConfig.disableCardPioneers && hasCardAccessGranted === false) {
             _carouselCTAs.push({
                 id: 'card-pioneer',
                 title: (
@@ -145,13 +147,13 @@ export const useHomeCarouselCTAs = () => {
                 ),
                 description: (
                     <span>
-                        Join Card Pioneers for <b>early access</b> and earn <b>$5</b> per referral.
+                        Closed beta. <b>Badges skip the line.</b> $10 unlocks on your first $100 spend.
                     </span>
                 ),
                 iconContainerClassName: 'bg-purple-1',
                 icon: 'credit-card',
                 onClick: () => {
-                    router.push('/card')
+                    router.push('/shhhhh')
                 },
                 iconSize: 16,
             })
@@ -328,7 +330,7 @@ export const useHomeCarouselCTAs = () => {
         isPwa,
         userCountryCode,
         isCardPioneerEligible,
-        hasCardPioneerPurchased,
+        hasCardAccessGranted,
         isCardPioneerLoading,
         isActivated,
         hasMadeQrPayment,

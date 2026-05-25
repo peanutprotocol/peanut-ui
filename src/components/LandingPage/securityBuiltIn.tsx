@@ -35,7 +35,7 @@ const features: Feature[] = [
         title: 'TRUE CONTROL',
         titleSvg: selfCustodialDesign,
         description:
-            'You verify your identity only when a feature truly requires it. The rest of the time you operate without mandatory KYC or friction.',
+            'You verify your identity only when a feature truly requires it — like bank connections or the Peanut Card. For everyday peer-to-peer use, no mandatory KYC or friction.',
         iconSrc: handWaving,
         iconAlt: 'Hand waving',
         learnMoreHref: '/en/help/verification',

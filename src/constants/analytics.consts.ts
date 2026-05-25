@@ -142,6 +142,37 @@ export const ANALYTICS_EVENTS = {
     CARD_SESSION_KEY_GRANTED: 'card_session_key_granted',
     CARD_SESSION_KEY_FAILED: 'card_session_key_failed',
 
+    // ── Card: waitlist + early-access funnel (M2 Card Waitlist Launch) ──
+    // /shhhhh closed-beta landing page → /card.
+    DOOR_TRY: 'door_try',
+    CARD_FLOW_EARLY_ACCESS_GRANTED: 'card_flow_early_access_granted',
+    // Outer-gate fail: user landed on /card without /shhhhh early access pre-launch.
+    CARD_FLOW_GATED: 'card_flow_gated',
+    // Eligibility-check screen — press-and-hold gate between /shhhhh and the
+    // celebration/waitlist verdict.
+    CARD_ELIGIBILITY_CHECK_VIEWED: 'card_eligibility_check_viewed',
+    CARD_ELIGIBILITY_CHECK_COMPLETED: 'card_eligibility_check_completed',
+    // Waitlist screen (no card access yet).
+    CARD_WAITLIST_VIEWED: 'card_waitlist_viewed',
+    CARD_WAITLIST_JOINED: 'card_waitlist_joined',
+    CARD_WAITLIST_JOIN_FAILED: 'card_waitlist_join_failed',
+    // Skip-badge celebration (one-time gift-box reveal of the share asset).
+    CARD_WAITLIST_SKIPPED_BY_BADGE: 'card_waitlist_skipped_by_badge',
+    CARD_SHARE_ASSET_VIEWED: 'card_share_asset_viewed',
+    CARD_SHARE_ASSET_SHARED: 'card_share_asset_shared',
+    CARD_SHARE_ASSET_SAVED: 'card_share_asset_saved',
+    // Capture/share failures (CORS taint, ref unmounted, OS share-sheet
+    // rejection). Lets the funnel distinguish "users not tapping share"
+    // from "users tapping share but it silently fails".
+    CARD_SHARE_ASSET_FAILED: 'card_share_asset_failed',
+    // Admin wave release (BE event, mirrored here so FE doesn't accidentally
+    // step on the namespace).
+    CARD_WAITLIST_RELEASED: 'card_waitlist_released',
+    // Activation reward — $10 perk minted on first $100 spend (and same to referrer).
+    CARD_ACTIVATION_THRESHOLD_REACHED: 'card_activation_threshold_reached',
+    CARD_ACTIVATION_REWARD_CLAIMED: 'card_activation_reward_claimed',
+    CARD_REFERRER_REWARD_EARNED: 'card_referrer_reward_earned',
+
     // ── Card: active card behavior ──
     CARD_PAN_REVEAL_ATTEMPTED: 'card_pan_reveal_attempted',
     CARD_PAN_REVEALED: 'card_pan_revealed',

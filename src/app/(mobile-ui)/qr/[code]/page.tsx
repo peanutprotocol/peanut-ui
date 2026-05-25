@@ -13,7 +13,8 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { saveRedirectUrl, generateInviteCodeLink, sanitizeRedirectURL } from '@/utils/general.utils'
 import { getShakeClass } from '@/utils/perk.utils'
 import { useRedirectQrStatus } from '@/hooks/useRedirectQrStatus'
-import { useHoldToClaim } from '@/hooks/useHoldToClaim'
+import { HoldToClaimButton } from '@/components/Global/HoldToClaimButton'
+import type { ShakeIntensity } from '@/hooks/useHoldToClaim'
 import { qrSuccessUrl } from '@/utils/native-routes'
 
 export default function RedirectQrClaimPage() {
@@ -114,16 +115,17 @@ export default function RedirectQrClaimPage() {
         }
     }, [code, router, user])
 
-    // Hold-to-claim mechanics with shake animation
-    const { holdProgress, isShaking, shakeIntensity, buttonProps } = useHoldToClaim({
-        onComplete: handleClaim,
-        disabled: isLoading,
+    // Shake state surfaced by <HoldToClaimButton /> so the surrounding
+    // column shakes with the button — same scope as the eligibility-check.
+    const [shake, setShake] = useState<{ on: boolean; intensity: ShakeIntensity }>({
+        on: false,
+        intensity: 'none',
     })
 
     // Show loading while checking status or if we're in the process of redirecting
     if (isCheckingStatus || (redirectQrData?.claimed && redirectQrData?.redirectUrl)) {
         return (
-            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
+            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(shake.on, shake.intensity)}`}>
                 <NavHeader title="Loading" />
                 <div className="my-auto flex h-full items-center justify-center">
                     <PeanutLoading />
@@ -136,7 +138,7 @@ export default function RedirectQrClaimPage() {
     // This loading screen will show briefly during that redirect
     if (!user) {
         return (
-            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
+            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(shake.on, shake.intensity)}`}>
                 <NavHeader title="Loading" />
                 <div className="my-auto flex h-full items-center justify-center">
                     <PeanutLoading />
@@ -152,7 +154,7 @@ export default function RedirectQrClaimPage() {
             console.error('QR status check error:', redirectQrError)
         }
         return (
-            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
+            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(shake.on, shake.intensity)}`}>
                 <NavHeader title="Claim QR Code" />
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
                     <Card className="space-y-4 p-6">
@@ -179,7 +181,7 @@ export default function RedirectQrClaimPage() {
     }
 
     return (
-        <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
+        <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(shake.on, shake.intensity)}`}>
             <NavHeader title="Your Invite QR" />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {/* QR Code Visual */}
@@ -207,25 +209,16 @@ export default function RedirectQrClaimPage() {
                     </div>
                 </Card>
 
-                {/* Claim button - Hold to claim */}
-                <Button
-                    {...buttonProps}
-                    variant="purple"
-                    shadowSize="4"
+                {/* Claim button — DRY with /card eligibility-check via
+                    <HoldToClaimButton />. */}
+                <HoldToClaimButton
+                    onComplete={handleClaim}
                     disabled={isLoading}
                     loading={isLoading}
-                    className={`${buttonProps.className} w-full`}
+                    onShakeChange={(on, intensity) => setShake({ on, intensity })}
                 >
-                    {/* Black progress fill from left to right */}
-                    <div
-                        className="absolute inset-0 bg-black transition-all duration-100"
-                        style={{
-                            width: `${holdProgress}%`,
-                            left: 0,
-                        }}
-                    />
-                    <span className="relative z-10">{isLoading ? 'Claiming...' : 'Hold to make it yours forever'}</span>
-                </Button>
+                    {isLoading ? 'Claiming...' : 'Hold to make it yours forever'}
+                </HoldToClaimButton>
 
                 {error && <ErrorAlert description={error} />}
             </div>
