@@ -4,6 +4,7 @@ import { useCallback, useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/context/authContext'
 import useProviderRejectionStatus from './useProviderRejectionStatus'
 import { hasEnabledRail, hasRailInProgress } from '@/utils/railGate.utils'
+import { hasMantecaUsNationalityRestrictionMetadata } from '@/utils/manteca-restriction.utils'
 
 export enum QrKycState {
     LOADING = 'loading',
@@ -89,6 +90,30 @@ export function useQrKycGate(_paymentProcessor?: 'MANTECA' | null): QrKycGateRes
         // No enabled rail — defer to the provider rejection state. The
         // userMessage carries US-nationality copy etc. when applicable.
         if (mantecaRejection.state === 'blocked') {
+            // Exception (dev #2092): a Sumsub-approved user whose Manteca
+            // rejection is the US-nationality restriction can still pay QR
+            // through the Sumsub-pool fallback. BE enableQrPoolRails creates
+            // the enabling rail on Sumsub approval — but the FE may not
+            // have observed it yet (or the user is mid-migration). Surface
+            // PROCEED and let the BE adjudicate.
+            const hasSumsubApproved = user.user?.kycVerifications?.some(
+                (v) => v.provider === 'SUMSUB' && v.status === 'APPROVED'
+            )
+            const rejectedMantecaMetadata = (user.rails ?? [])
+                .filter((r) => r.rail.provider.code === 'MANTECA' && r.status === 'REJECTED')
+                .map((r) => r.metadata)
+            const mantecaKycMetadata =
+                user.user?.kycVerifications
+                    ?.filter((v) => v.provider === 'MANTECA')
+                    .map((v) => v.metadata) ?? []
+            const isUsRestricted = hasMantecaUsNationalityRestrictionMetadata([
+                ...rejectedMantecaMetadata,
+                ...mantecaKycMetadata,
+            ])
+            if (hasSumsubApproved && isUsRestricted) {
+                setGateState(QrKycState.PROCEED_TO_PAY)
+                return
+            }
             setGateState(QrKycState.PROVIDER_REJECTION_BLOCKED, mantecaRejection.userMessage)
             return
         }
