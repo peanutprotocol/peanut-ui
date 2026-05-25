@@ -42,20 +42,11 @@ function markSkipCelebrationSeen(): void {
     window.localStorage.setItem(SKIP_CELEBRATION_SEEN_KEY, 'true')
 }
 
-// localStorage flag for the press-and-hold eligibility-check screen. Set
-// when the user releases the hold on the EligibilityCheck screen, persisted
-// so refresh / back-nav doesn't replay the moment.
-const ELIGIBILITY_CHECK_DONE_KEY = 'card_eligibility_check_done_v1'
-
-function getEligibilityCheckDone(): boolean {
-    if (typeof window === 'undefined') return false
-    return window.localStorage.getItem(ELIGIBILITY_CHECK_DONE_KEY) === 'true'
-}
-
-function markEligibilityCheckDone(): void {
-    if (typeof window === 'undefined') return
-    window.localStorage.setItem(ELIGIBILITY_CHECK_DONE_KEY, 'true')
-}
+// Eligibility-check screen lifetime per Hugo's spec: gate fires every
+// /card mount UNTIL the user has an issued card. Persisting across mount
+// would skip the moment on revisit — wrong. Within a single mount, once
+// the user releases the hold, the in-React state below stays true so
+// they don't re-see the gate after celebration / add-card transitions.
 
 const CardPage: FC = () => {
     const router = useRouter()
@@ -99,12 +90,13 @@ const CardPage: FC = () => {
         getSkipCelebrationSeen()
     )
 
-    // Press-and-hold "see if you qualify" gate. Stays false on first
-    // /shhhhh entry until the user releases the hold; then sticks across
-    // refresh via localStorage.
-    const [eligibilityCheckDone, setEligibilityCheckDone] = useState<boolean>(() =>
-        getEligibilityCheckDone()
-    )
+    // Press-and-hold "see if you qualify" gate. Resets per mount: as long
+    // as the user has not been issued a card, every fresh /card visit
+    // re-shows the gate. Within the same mount, this stays true after they
+    // release the hold so they don't get pulled back from celebration /
+    // add-card. State machine ALSO skips the gate when an issued card
+    // exists (see cardState.utils.ts — active-card wins first).
+    const [eligibilityCheckDone, setEligibilityCheckDone] = useState<boolean>(false)
 
     // Outer gate: pre-public-launch, redirect users without /shhhhh early
     // access back to the landing page so they don't see a half-baked /card
@@ -377,7 +369,6 @@ const CardPage: FC = () => {
                         username={user?.user?.username ?? undefined}
                         onPrev={onBack}
                         onComplete={() => {
-                            markEligibilityCheckDone()
                             setEligibilityCheckDone(true)
                             // The state machine re-evaluates on the next render
                             // and either lands on 'waitlist-skip-celebration' or
