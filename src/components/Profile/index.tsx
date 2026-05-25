@@ -25,7 +25,10 @@ export const Profile = () => {
     const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
     const router = useRouter()
     const onBack = useSafeBack('/home')
-    const { isUserKycApproved } = useKycStatus()
+    // Profile "verified" reflects identity verification only. Bridge/Manteca
+    // approval just means a payment rail is enabled, not that the human has
+    // been ID-verified — only Sumsub clears that bar.
+    const { isUserSumsubKycApproved } = useKycStatus()
     const { hasCardAccess } = useCardPioneerInfo()
 
     const logout = async () => {
@@ -41,7 +44,7 @@ export const Profile = () => {
         <div className="h-full w-full bg-background">
             <NavHeader hideLabel showLogoutBtn onPrev={onBack} />
             <div className="space-y-8">
-                <ProfileHeader name={displayName} username={username} isVerified={isUserKycApproved} />
+                <ProfileHeader name={displayName} username={username} isVerified={isUserSumsubKycApproved} />
                 <div className="space-y-4">
                     <ProfileMenuItem
                         icon="smile"
@@ -76,7 +79,7 @@ export const Profile = () => {
                             label="Regions & Verification"
                             href="/profile/identity-verification"
                             position="middle"
-                            highlight={!isUserKycApproved}
+                            highlight={!isUserSumsubKycApproved}
                         />
 
                         <ProfileMenuItem icon="meter" label="Payment limits" href="/limits" position="middle" />
