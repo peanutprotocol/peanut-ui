@@ -98,7 +98,7 @@ const ZKSyncSepolia = {
     contracts: {},
 } as const satisfies Chain
 
-//@ts-ignore
+// @ts-expect-error — wagmi chain union type is too narrow for the merged list
 export const chains = [
     ...Object.values(wagmiChains),
     milkomeda,

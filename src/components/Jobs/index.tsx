@@ -15,6 +15,7 @@ export function Careers() {
                         href="https://www.notion.so/peanutprotocol/Work-with-Us-b351de56d92e405e962f0027b3a60f52?pvs=4"
                         target="_blank"
                         className="text-link"
+                        rel="noreferrer"
                     >
                         Job Positions!
                     </a>

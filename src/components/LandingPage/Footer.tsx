@@ -17,7 +17,7 @@ const Footer = ({ showSiteDirectory = true }: { showSiteDirectory?: boolean }) =
                     </Link>
                     <p className="text-xs text-white">
                         made with love by{' '}
-                        <a className="underline" href="https://squirrellabs.dev/" target="_blank">
+                        <a className="underline" href="https://squirrellabs.dev/" target="_blank" rel="noreferrer">
                             Squirrel Labs
                         </a>
                     </p>
