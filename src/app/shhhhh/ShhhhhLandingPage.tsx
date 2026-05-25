@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useQueryClient } from '@tanstack/react-query'
 import posthog from 'posthog-js'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Marquee } from '@/components/LandingPage'
@@ -136,6 +137,7 @@ function StickyShhhhhCTA({ onClick }: { onClick: () => void }) {
 export default function ShhhhhLandingPage() {
     const { user } = useAuth()
     const router = useRouter()
+    const queryClient = useQueryClient()
 
     const handleCTA = async () => {
         posthog.capture(ANALYTICS_EVENTS.DOOR_TRY, { signed_in: !!user })
@@ -144,15 +146,21 @@ export default function ShhhhhLandingPage() {
             return
         }
         // Stamp the early-access flag so the user can pass the /card outer
-        // gate. Idempotent: subsequent presses no-op. Failure is non-fatal —
-        // we still navigate to /card so the user isn't left on the LP; the
-        // gate redirect will catch them gracefully if the stamp didn't land.
+        // gate. Idempotent: subsequent presses no-op. We MUST invalidate the
+        // 'card-info' query before navigating — without it, /card mounts with
+        // a cached `flowEarlyAccess=false` (staleTime 60s), the outer-gate
+        // useEffect fires, and the user gets bounced back here in a loop.
+        // Failure to stamp is non-fatal: we still navigate to /card; the gate
+        // will redirect back gracefully if the API call really failed.
         try {
             await cardApi.grantFlowEarlyAccess()
             posthog.capture(ANALYTICS_EVENTS.CARD_FLOW_EARLY_ACCESS_GRANTED)
         } catch (err) {
             console.error('[shhhhh] grantFlowEarlyAccess failed:', err)
         }
+        // Invalidate AND wait for the refetch so the next /card mount reads
+        // the fresh shape (with flowEarlyAccess=true).
+        await queryClient.invalidateQueries({ queryKey: ['card-info'] })
         router.push('/card')
     }
 

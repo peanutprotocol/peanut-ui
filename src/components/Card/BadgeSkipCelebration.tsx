@@ -11,7 +11,7 @@
  * — flip the constant below to switch over in Phase 5 cleanup).
  */
 
-import { type FC, useEffect, useState } from 'react'
+import { type FC, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import ShareAssetD3 from '@/components/Card/share-asset/ShareAssetD3'
@@ -21,6 +21,9 @@ import { useHaptic } from 'use-haptic'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import type { TierLevel } from '@/components/Card/share-asset/shareAsset.types'
+
+const SHARE_ASSET_NATIVE_W = 1200
+const SHARE_ASSET_NATIVE_H = 675
 
 interface Props {
     /** Skip-badge code that unlocked card access (for the celebration headline). */
@@ -64,6 +67,25 @@ const BadgeSkipCelebration: FC<Props> = ({
 }) => {
     const [phase, setPhase] = useState<Phase>('pre-reveal')
     const { triggerHaptic } = useHaptic()
+    const scaleHostRef = useRef<HTMLDivElement | null>(null)
+    const [scale, setScale] = useState<number>(0)
+
+    // Compute scale-to-fit based on the host element's actual width.
+    // Re-runs on resize so the asset stays sized to its container. We use a
+    // ResizeObserver instead of CSS container queries because the wrapper
+    // chain doesn't reliably forward `container-type: inline-size` here.
+    useEffect(() => {
+        const host = scaleHostRef.current
+        if (!host) return
+        const measure = (): void => {
+            const w = host.clientWidth
+            if (w > 0) setScale(Math.min(1, w / SHARE_ASSET_NATIVE_W))
+        }
+        measure()
+        const ro = new ResizeObserver(measure)
+        ro.observe(host)
+        return () => ro.disconnect()
+    }, [])
 
     const headline =
         (badgeCode && SKIP_BADGE_HEADLINES[badgeCode]) || 'You skipped the line.'
@@ -105,51 +127,54 @@ const BadgeSkipCelebration: FC<Props> = ({
                 </p>
             </div>
 
-            {/* Share asset container — pre-reveal shows nothing (or a gift box
-                placeholder in a future polish), shaking applies the perk shake
-                class, revealed shows the asset itself scaled to fit. */}
+            {/* Share asset container — pre-reveal dims it, shaking applies
+                the perk shake class, revealed shows the asset at full opacity.
+                The asset renders at native 1200×675 and is scaled via a
+                ResizeObserver-driven JS scale factor (CSS container queries
+                weren't propagating reliably here). */}
             <div
-                className={`mx-auto w-full max-w-md ${getShakeClass(phase === 'shaking', 'strong')}`}
+                className={`mx-auto w-full max-w-2xl ${getShakeClass(phase === 'shaking', 'strong')}`}
                 style={{
                     transition: 'opacity 200ms ease-out',
                     opacity: phase === 'revealed' ? 1 : phase === 'shaking' ? 0.6 : 0.2,
                 }}
             >
-                {/* Native 1200×675; scale-to-fit the column. Wrapped in a div
-                    that constrains height so the rotated asset doesn't
-                    overflow into adjacent layout. */}
                 <div
+                    ref={scaleHostRef}
                     style={{
                         width: '100%',
-                        aspectRatio: '1200 / 675',
+                        // Reserve vertical space proportional to the scaled
+                        // asset — keeps the layout stable across resizes and
+                        // avoids the asset clipping behind the CTA row.
+                        height: scale > 0 ? SHARE_ASSET_NATIVE_H * scale : 'auto',
+                        aspectRatio: scale > 0 ? undefined : `${SHARE_ASSET_NATIVE_W} / ${SHARE_ASSET_NATIVE_H}`,
                         position: 'relative',
                         overflow: 'hidden',
                     }}
                 >
-                    <div
-                        style={{
-                            width: 1200,
-                            height: 675,
-                            transformOrigin: 'top left',
-                            transform: 'scale(var(--scale))',
-                            position: 'absolute',
-                            inset: 0,
-                            // CSS variable picked up by container query (closest
-                            // ancestor width). 28rem = 448px max — scale ≈ 0.37.
-                            // Use a JS-set value below as fallback for non-CQ.
-                            ['--scale' as string]: 'min(1, calc(100cqw / 1200))',
-                        }}
-                    >
-                        <ShareAssetD3
-                            username={username ?? 'anon'}
-                            badges={badges}
-                            stats={stats}
-                            tier={tier ?? 0}
-                            pointsBalance={pointsBalance ?? 0}
-                            cardLast4="0420"
-                            animate={phase === 'revealed'}
-                        />
-                    </div>
+                    {scale > 0 && (
+                        <div
+                            style={{
+                                width: SHARE_ASSET_NATIVE_W,
+                                height: SHARE_ASSET_NATIVE_H,
+                                transformOrigin: 'top left',
+                                transform: `scale(${scale})`,
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                            }}
+                        >
+                            <ShareAssetD3
+                                username={username ?? 'anon'}
+                                badges={badges}
+                                stats={stats}
+                                tier={tier ?? 0}
+                                pointsBalance={pointsBalance ?? 0}
+                                cardLast4="0420"
+                                animate={phase === 'revealed'}
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
 
