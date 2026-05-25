@@ -86,13 +86,21 @@ const CardPage: FC = () => {
     // Outer gate: pre-public-launch, redirect users without /shhhhh early
     // access back to the landing page so they don't see a half-baked /card
     // shell. BE returns `flowEarlyAccess: false` in that case.
+    //
+    // IMPORTANT: skip the redirect if the user already has a non-canceled
+    // card. Legacy Pioneers + admin-granted users issued cards before
+    // /shhhhh existed and have no flowEarlyAccess stamp — they must still
+    // reach YourCardScreen. The computeCardState() precedence below mirrors
+    // this rule (active-card before no-flow-access).
     useEffect(() => {
         if (pioneerLoading || pioneerError) return
         if (!cardInfo) return
         if (cardInfo.flowEarlyAccess) return
+        const hasIssuedCard = !!overview?.cards.some((c) => c.status !== 'CANCELED')
+        if (hasIssuedCard) return
         posthog.capture(ANALYTICS_EVENTS.CARD_FLOW_GATED)
         router.replace('/shhhhh')
-    }, [router, pioneerLoading, pioneerError, cardInfo])
+    }, [router, pioneerLoading, pioneerError, cardInfo, overview])
 
     const state = computeCardState({
         overview,
