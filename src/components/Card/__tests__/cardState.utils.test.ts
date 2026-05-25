@@ -170,4 +170,18 @@ describe('computeCardState', () => {
             })
         ).toBe('waitlist')
     })
+
+    it('returns active even when flowEarlyAccess is false (legacy card-holder regression)', () => {
+        // Pioneers + admin-granted users got their cards before /shhhhh
+        // existed and therefore lack a flowEarlyAccess stamp. Active-card
+        // check MUST win over the outer-gate redirect — otherwise they get
+        // bounced to /shhhhh on every visit and can't reach YourCardScreen.
+        expect(
+            computeCardState({
+                ...base,
+                overview: withCard('ACTIVE'),
+                cardInfo: cardInfo({ hasCardAccess: true, flowEarlyAccess: false }),
+            })
+        ).toBe('active')
+    })
 })

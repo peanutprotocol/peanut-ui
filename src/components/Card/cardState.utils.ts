@@ -56,12 +56,17 @@ export function computeCardState({
     if (overviewLoading || cardInfoLoading) return 'loading'
     if (!overview || !cardInfo) return 'loading'
 
-    // Outer gate: pre-public-launch, only users who passed /shhhhh can enter.
-    // BE's `flowEarlyAccess` field already factors in the public-launch date.
-    if (!cardInfo.flowEarlyAccess) return 'no-flow-access'
-
+    // Active-card check FIRST, before the outer gate. Existing card holders
+    // (legacy Pioneers, admin-granted users issued cards before /shhhhh
+    // existed) may not have a flowEarlyAccess stamp — we must NOT bounce
+    // them to the LP. Their card already lives, so always reach YourCardScreen.
     const hasIssuedCard = overview.cards.some((c) => c.status !== 'CANCELED')
     if (hasIssuedCard) return 'active'
+
+    // Outer gate: pre-public-launch, only users who passed /shhhhh can enter
+    // the funnel. BE's `flowEarlyAccess` field factors in the public-launch
+    // date. Applied AFTER the active-card check above by design.
+    if (!cardInfo.flowEarlyAccess) return 'no-flow-access'
 
     const rail = overview.status.railStatus
     const app = overview.status.applicationStatus
