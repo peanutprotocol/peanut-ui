@@ -142,11 +142,13 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 }}
                 isLoading={sumsubFlow.isLoading}
                 variant={
-                    mantecaRejection.state === 'fixable' || mantecaRejection.state === 'blocked'
-                        ? 'provider_rejection'
-                        : isUserSumsubKycApproved
-                          ? 'cross_region'
-                          : 'default'
+                    mantecaRejection.state === 'blocked'
+                        ? 'blocked'
+                        : mantecaRejection.state === 'fixable'
+                          ? 'provider_rejection'
+                          : isUserSumsubKycApproved
+                            ? 'cross_region'
+                            : 'default'
                 }
                 providerMessage={mantecaRejection.userMessage ?? undefined}
                 regionName={selectedCountry?.title}

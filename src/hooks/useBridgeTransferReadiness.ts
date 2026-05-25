@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { useBridgeTosStatus } from './useBridgeTosStatus'
 import useProviderRejectionStatus from './useProviderRejectionStatus'
 import useKycStatus from './useKycStatus'
+import { hasFunctionalRail } from '@/utils/railGate.utils'
 
 export type BridgeGateAction =
     | { type: 'accept_tos' }
@@ -19,14 +20,18 @@ export type BridgeGateAction =
  *   1. hard rejection (contact support — tos is moot)
  *   2. tos acceptance
  *   3. fixable rejection (user can submit additional details)
- *   4. needs enrollment (sumsub approved, bridge not started)
+ *   4. needs enrollment (sumsub approved, no functional bridge rail yet)
  *   5. ready
+ *
+ * Phase 6 of rail-gating: the bridge-state checks are derived from the
+ * user's Bridge rails (via useBridgeTosStatus / useProviderRejectionStatus).
+ * Sumsub approval has no rail representation, so it is still read from
+ * useKycStatus — it is a precondition, not the gate.
  */
 export function useBridgeTransferReadiness() {
-    const { needsBridgeTos } = useBridgeTosStatus()
+    const { needsBridgeTos, bridgeRails } = useBridgeTosStatus()
     const { bridge: bridgeRejection } = useProviderRejectionStatus()
-    const { isUserSumsubKycApproved, isUserBridgeKycApproved, isUserBridgeKycUnderReview, isUserBridgeKycIncomplete } =
-        useKycStatus()
+    const { isUserSumsubKycApproved } = useKycStatus()
 
     const gate: BridgeGateAction = useMemo(() => {
         // 1. hard rejection — contact support (checked first because tos is moot for hard-rejected users)
@@ -42,26 +47,15 @@ export function useBridgeTransferReadiness() {
             return { type: 'fixable_rejection', userMessage: bridgeRejection.userMessage }
         }
 
-        // 4. needs enrollment (sumsub approved but bridge not started/approved/in-progress)
-        if (
-            isUserSumsubKycApproved &&
-            !isUserBridgeKycApproved &&
-            !isUserBridgeKycUnderReview &&
-            !isUserBridgeKycIncomplete
-        ) {
+        // 4. needs enrollment — sumsub approved but no Bridge rail in a
+        // functional or in-progress state (the user has not started Bridge)
+        if (isUserSumsubKycApproved && !hasFunctionalRail(bridgeRails, 'BRIDGE')) {
             return { type: 'needs_enrollment' }
         }
 
         // 5. ready
         return { type: 'ready' }
-    }, [
-        needsBridgeTos,
-        bridgeRejection,
-        isUserSumsubKycApproved,
-        isUserBridgeKycApproved,
-        isUserBridgeKycUnderReview,
-        isUserBridgeKycIncomplete,
-    ])
+    }, [needsBridgeTos, bridgeRejection, isUserSumsubKycApproved, bridgeRails])
 
     return { gate }
 }

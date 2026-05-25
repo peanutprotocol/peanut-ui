@@ -28,6 +28,10 @@ const WORLD_H = 7.0
 const TOP_Y = GROUND_Y + WORLD_H
 const CENTER_Y = (GROUND_Y + TOP_Y) / 2
 
+// Drop-from-near-the-ceiling so the very first frame shows movement —
+// the fall is the affordance that tells users the peanut is draggable.
+const SPAWN_Y = TOP_Y - 1.0
+
 const SHELL_LOBE_R = 0.45
 const SHELL_OVERLAP = 0.55
 const ARM_W = 0.2
@@ -135,7 +139,6 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
 
     // ---- loop / sleep state ----
     let paused = false
-    let frozen = true
     let lastT = performance.now()
     let sleeping = false
     let rafId = 0
@@ -271,7 +274,7 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
     }
 
     function makeShellBody() {
-        const body: any = new (p2 as any).Body({ mass: 3, position: [0, 0.5] })
+        const body: any = new (p2 as any).Body({ mass: 3, position: [0, SPAWN_Y] })
         const top = new (p2 as any).Circle({ radius: SHELL_LOBE_R })
         const bot = new (p2 as any).Circle({ radius: SHELL_LOBE_R })
         body.addShape(top, [0, SHELL_OVERLAP / 2])
@@ -407,7 +410,6 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
         })
         leftLeg.__sw = LEG_SPRITE_W
         leftLeg.__sh = LEG_SPRITE_H
-        leftLeg.__spriteAngle = -Math.PI / 2
         const rightLeg: any = makeLimbSegment({
             position: [HIP_X, hipY - LEG_L / 2],
             width: LEG_W,
@@ -417,7 +419,7 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
         })
         rightLeg.__sw = LEG_SPRITE_W
         rightLeg.__sh = LEG_SPRITE_H
-        rightLeg.__spriteAngle = Math.PI / 2
+        rightLeg.__flipX = true
 
         const FOOT_DX = FOOT_R * 0.5
         const leftFoot: any = makeEndCap({
@@ -569,10 +571,6 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
         }
     }
 
-    function thaw() {
-        frozen = false
-    }
-
     function wake() {
         if (!sleeping && rafId !== 0) return
         sleeping = false
@@ -585,7 +583,7 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
         rafId = 0
         const dt = Math.min((t - lastT) / 1000, 1 / 30)
         lastT = t
-        if (!paused && !frozen) world.step(1 / 60, dt, 6)
+        if (!paused) world.step(1 / 60, dt, 6)
         updateFaceBobble(dt)
         updateRest(dt)
 
@@ -629,7 +627,6 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
         if (activePointerId !== null) return
         lastInteractionT = performance.now()
         if (sleeping) wake()
-        if (frozen) thaw()
         const w = pointerWorld(e)
         const hit = world.hitTest([w.x, w.y], world.bodies, 0.05).filter((b: any) => b.mass > 0)[0]
         if (!hit) return
