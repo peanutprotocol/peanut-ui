@@ -9,6 +9,7 @@ import { ClaimBankFlowContextProvider } from './ClaimBankFlowContext'
 import { RequestFulfilmentFlowContextProvider } from './RequestFulfillmentFlowContext'
 import { PasskeySupportProvider } from './passkeySupportContext'
 import { ModalsProvider } from './ModalsContext'
+import { RainCooldownProvider } from './RainCooldownContext'
 
 // note: push notifications are now handled by onesignal via useNotifications hook.
 // the legacy PushProvider (web-push based) has been removed.
@@ -25,7 +26,9 @@ export const ContextProvider = ({ children }: { children: React.ReactNode }) => 
                                     <WithdrawFlowContextProvider>
                                         <OnrampFlowContextProvider>
                                             <PasskeySupportProvider>
-                                                <ModalsProvider>{children}</ModalsProvider>
+                                                <ModalsProvider>
+                                                    <RainCooldownProvider>{children}</RainCooldownProvider>
+                                                </ModalsProvider>
                                             </PasskeySupportProvider>
                                         </OnrampFlowContextProvider>
                                     </WithdrawFlowContextProvider>
