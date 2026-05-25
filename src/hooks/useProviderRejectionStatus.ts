@@ -3,6 +3,9 @@
 import { useAuth } from '@/context/authContext'
 import { useMemo } from 'react'
 import type { IUserRail, IUserKycVerification } from '@/interfaces/interfaces'
+import { MANTECA_US_NATIONALITY_RESTRICTION_MESSAGE } from '@/constants/manteca.consts'
+import { MAX_SELF_HEAL_ATTEMPTS } from '@/constants/kyc.consts'
+import { hasMantecaUsNationalityRestrictionMetadata } from '@/utils/manteca-restriction.utils'
 
 export type ProviderRejectionState = 'happy' | 'processing' | 'fixable' | 'blocked'
 export type ProviderRemediationPayloadType =
@@ -50,8 +53,6 @@ export interface ProviderRejectionInfo {
     actionLabel: string | null
     actionHandler: ProviderRemediationHandler | null
 }
-
-const MAX_SELF_HEAL_ATTEMPTS = 3
 
 const DEFAULT_ACTION_LABEL = 'Upload document'
 
@@ -344,11 +345,16 @@ export function deriveProviderRejectionInfo(
     // has rejected rails
     if (rejectedRails.length > 0) {
         const firstRejectedMetadata = (rejectedRails[0].metadata ?? {}) as Record<string, unknown>
+        const rejectedRailsMetadata = rejectedRails.map((rail) => rail.metadata)
         const isSelfHealable = firstRejectedMetadata.selfHealable === true
         const rejectType = kycVerification?.rejectType
+        const isMantecaUsNationalityRestricted =
+            providerCode === 'MANTECA' &&
+            hasMantecaUsNationalityRestrictionMetadata([metadata, ...rejectedRailsMetadata])
 
         // check if fixable: selfHealable flag on rail + rejectType + attempt limit
         const isFixable =
+            !isMantecaUsNationalityRestricted &&
             isSelfHealable &&
             rejectType !== 'PROVIDER_FINAL' &&
             rejectType !== 'FINAL' &&
@@ -361,10 +367,11 @@ export function deriveProviderRejectionInfo(
 
         if (!isFixable) {
             // permanently rejected — generic message regardless of underlying reason
-            userMessage =
-                providerCode === 'BRIDGE'
-                    ? "We couldn't enable payments for your account. Please contact support for assistance."
-                    : "We couldn't verify your identity. Please contact support for assistance."
+            userMessage = isMantecaUsNationalityRestricted
+                ? MANTECA_US_NATIONALITY_RESTRICTION_MESSAGE
+                : providerCode === 'BRIDGE'
+                  ? "We couldn't enable payments for your account. Please contact support for assistance."
+                  : "We couldn't verify your identity. Please contact support for assistance."
         } else if (Array.isArray(reasons) && reasons.length > 0) {
             // bridge format: { reason: string, developer_reason: string }
             // manteca format: { task: string, reason: string }

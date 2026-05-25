@@ -1,11 +1,11 @@
+import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
-import { getAllPosts, getAllCategories } from '@/lib/blog'
-import { MarketingHero } from '@/components/Marketing/MarketingHero'
-import { MarketingShell } from '@/components/Marketing/MarketingShell'
-import { BlogCard } from '@/components/Marketing/BlogCard'
-import Link from 'next/link'
+import { listAllContent } from '@/lib/content'
+import { ContentPage } from '@/components/Marketing/ContentPage'
+import { Hero } from '@/components/Marketing/mdx/Hero'
+import ContentLanding from '@/components/Marketing/ContentLanding'
 import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
 import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
@@ -17,6 +17,7 @@ interface PageProps {
 export async function generateStaticParams() {
     return SUPPORTED_LOCALES.map((locale) => ({ locale }))
 }
+export const dynamicParams = false
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { locale } = await params
@@ -37,61 +38,55 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     }
 }
 
+function BlogSkeleton() {
+    return (
+        <div className="mx-auto mb-8 mt-10 max-w-[720px] px-6 md:mt-12 md:px-4">
+            <div className="h-12 w-full animate-pulse rounded-sm border border-n-1 bg-gray-200" />
+            <div className="mt-10 flex flex-col gap-px overflow-hidden rounded-sm border border-n-1">
+                {[1, 2, 3, 4].map((j) => (
+                    <div key={j} className="flex flex-col gap-1.5 bg-white px-5 py-4">
+                        <div className="h-4 w-3/4 animate-pulse rounded bg-gray-200" />
+                        <div className="h-3 w-1/2 animate-pulse rounded bg-gray-200" />
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
 export default async function BlogIndexPageLocalized({ params }: PageProps) {
     const { locale } = await params
     if (!isValidLocale(locale)) notFound()
 
     const typedLocale = locale as Locale
     const i18n = getTranslations(typedLocale)
-
-    // Try locale-specific posts first, fall back to English
-    let posts = getAllPosts(typedLocale)
-    if (posts.length === 0) posts = getAllPosts('en')
-
-    const categories = getAllCategories(typedLocale)
+    const items = listAllContent(typedLocale)
 
     return (
-        <>
-            <MarketingHero title={i18n.blog} subtitle={i18n.allArticles} ctaText="" />
-            <MarketingShell>
-                {categories.length > 0 && (
-                    <div className="mb-8 flex flex-wrap gap-2">
-                        <Link
-                            href={`/${locale}/blog`}
-                            className="rounded-sm border border-n-1 bg-primary-1/20 px-3 py-1 text-sm font-semibold"
-                        >
-                            {i18n.allArticles}
-                        </Link>
-                        {categories.map((cat) => (
-                            <Link
-                                key={cat}
-                                href={`/${locale}/blog/category/${cat}`}
-                                className="rounded-sm border border-n-1 px-3 py-1 text-sm hover:bg-primary-3/30"
-                            >
-                                {cat}
-                            </Link>
-                        ))}
-                    </div>
-                )}
-
-                {posts.length > 0 ? (
-                    <div className="grid gap-4 md:grid-cols-2">
-                        {posts.map((post) => (
-                            <BlogCard
-                                key={post.slug}
-                                slug={post.slug}
-                                title={post.frontmatter.title}
-                                excerpt={post.frontmatter.description}
-                                date={post.frontmatter.date}
-                                category={post.frontmatter.category}
-                                hrefPrefix={`/${locale}/blog`}
-                            />
-                        ))}
-                    </div>
-                ) : (
-                    <p className="py-12 text-center text-gray-500">Blog posts coming soon.</p>
-                )}
-            </MarketingShell>
-        </>
+        <ContentPage
+            locale={locale}
+            breadcrumbs={[
+                { name: i18n.home, href: `/${locale}` },
+                { name: i18n.blog, href: `/${locale}/blog` },
+            ]}
+        >
+            <Hero title={i18n.blog} subtitle={i18n.allArticles} />
+            <Suspense fallback={<BlogSkeleton />}>
+                <ContentLanding
+                    items={items}
+                    locale={typedLocale}
+                    fixedType="blog"
+                    strings={{
+                        searchPlaceholder: i18n.contentSearchPlaceholder,
+                        noResults: i18n.noContentResults,
+                        filterAll: i18n.filterAll,
+                        filterBlog: i18n.filterBlog,
+                        filterStories: i18n.filterStories,
+                        filterUseCases: i18n.filterUseCases,
+                        filterCompare: i18n.filterCompare,
+                    }}
+                />
+            </Suspense>
+        </ContentPage>
     )
 }

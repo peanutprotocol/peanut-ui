@@ -58,3 +58,19 @@ export const getBankAccountLabel = (type: string) => {
     if (t.endsWith('clabe')) return 'CLABE'
     return 'Account Number'
 }
+
+/**
+ * Recover a 2-letter ISO country code from a Rain merchant-country value.
+ * Rain populates the field as ISO-2 in nominal data, but legacy intents and
+ * edge merchants sometimes ship it joined with the city ("San Francisco, US")
+ * or in whitespace-padded form. Returns the lowercased 2-letter tail when one
+ * is recoverable, null otherwise. Shared by CardPaymentRows (location flag)
+ * and LocalRailNudge (country → local-rail nudge).
+ */
+export function extractMerchantIso2(value: string | null | undefined): string | null {
+    if (!value) return null
+    const trimmed = value.trim()
+    if (trimmed.length === 0) return null
+    const tail = trimmed.split(/[\s,]+/).pop() ?? ''
+    return /^[a-z]{2}$/i.test(tail) ? tail.toLowerCase() : null
+}

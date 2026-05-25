@@ -83,6 +83,8 @@ jest.mock('@/hooks/useQrKycGate', () => ({
         PROCEED_TO_PAY: 'proceed_to_pay',
         REQUIRES_IDENTITY_VERIFICATION: 'requires_identity_verification',
         IDENTITY_VERIFICATION_IN_PROGRESS: 'identity_verification_in_progress',
+        PROVIDER_REJECTION_FIXABLE: 'provider_rejection_fixable',
+        PROVIDER_REJECTION_BLOCKED: 'provider_rejection_blocked',
     },
     useQrKycGate: (...args: any[]) => mockUseQrKycGate(...args),
 }))
@@ -308,6 +310,11 @@ jest.mock('@/components/Global/PeanutLoading', () => ({
     default: (props: any) => <div data-testid="peanut-loading">{props.message && <span>{props.message}</span>}</div>,
 }))
 
+jest.mock('@/components/Global/PeanutLoading/CyclingLoading', () => ({
+    __esModule: true,
+    default: () => <div data-testid="cycling-loading" />,
+}))
+
 jest.mock('@/components/Global/NavHeader', () => ({
     __esModule: true,
     default: (props: any) => <div data-testid="nav-header">{props.title}</div>,
@@ -474,6 +481,7 @@ function applyDefaults() {
     mockUseQrKycGate.mockReturnValue({
         kycGateState: 'proceed_to_pay',
         shouldBlockPay: false,
+        userMessage: null,
     })
 
     mockUseAuth.mockReturnValue({
@@ -596,6 +604,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         mockUseQrKycGate.mockReturnValue({
             kycGateState: 'loading',
             shouldBlockPay: true,
+            userMessage: null,
         })
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
@@ -606,6 +615,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         mockUseQrKycGate.mockReturnValue({
             kycGateState: 'requires_identity_verification',
             shouldBlockPay: true,
+            userMessage: null,
         })
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
@@ -620,6 +630,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         mockUseQrKycGate.mockReturnValue({
             kycGateState: 'identity_verification_in_progress',
             shouldBlockPay: true,
+            userMessage: null,
         })
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
@@ -834,11 +845,11 @@ describe('GROUP 3: Processing States', () => {
             fireEvent.click(payButton)
         })
 
-        // After clicking pay, loading state should trigger PeanutLoading
+        // After clicking pay, loading state should trigger PeanutLoading or CyclingLoading
         // (signSpend resolves, then completeQrPayment hangs)
         await waitFor(() => {
-            // Component is in loading state - either shows PeanutLoading or loading button text
-            const loadingEl = screen.queryByTestId('peanut-loading')
+            // Component is in loading state - either shows a loading variant or loading button text
+            const loadingEl = screen.queryByTestId('peanut-loading') ?? screen.queryByTestId('cycling-loading')
             const loadingButton = screen.queryByText('Loading...')
             expect(loadingEl || loadingButton).toBeTruthy()
         })

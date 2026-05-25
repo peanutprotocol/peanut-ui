@@ -56,17 +56,25 @@ const Manteca = () => {
                 <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
 
                 <div className="flex gap-8">
-                    <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={100} height={100} />
-                    <Image src={PIX_BRZ_LOGO} alt="Pix Brz" width={100} height={100} />
+                    <a href="/en/pay-with/mercadopago" aria-label="How MercadoPago QR works">
+                        <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={100} height={100} />
+                    </a>
+                    <a href="/en/pay-with/pix" aria-label="How PIX works without a CPF">
+                        <Image src={PIX_BRZ_LOGO} alt="Pix Brz" width={100} height={100} />
+                    </a>
                 </div>
             </div>
 
             {/* Desktop layout */}
             <div className="mx-auto mt-12 hidden flex-col items-center justify-center gap-8 md:flex">
                 <div className="flex items-center justify-center gap-20 lg:gap-36">
-                    <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={170} height={170} />
+                    <a href="/en/pay-with/mercadopago" aria-label="How MercadoPago QR works">
+                        <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={170} height={170} />
+                    </a>
                     <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
-                    <Image src={PIX_BRZ_LOGO} alt="Pix Brazil" width={170} height={170} />
+                    <a href="/en/pay-with/pix" aria-label="How PIX works without a CPF">
+                        <Image src={PIX_BRZ_LOGO} alt="Pix Brazil" width={170} height={170} />
+                    </a>
                 </div>
 
                 <p className="font-roboto-flex text-center text-sm opacity-70">

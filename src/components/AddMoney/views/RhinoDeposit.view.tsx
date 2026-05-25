@@ -9,6 +9,7 @@ import ChainChip from '../components/ChainChip'
 import InfoCard from '@/components/Global/InfoCard'
 import { Root, List, Trigger } from '@radix-ui/react-tabs'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
 import { useRef } from 'react'
 import { useCryptoDepositPolling } from '../hooks/useCryptoDepositPolling'
 import type { CreateDepositAddressResponse, RhinoChainType } from '@/services/services.types'
@@ -128,9 +129,7 @@ const RhinoDepositView = ({
 
                 {(isDepositAddressDataLoading || depositAddressStatus === 'loading') && (
                     <div className="flex h-[60vh] items-center justify-center">
-                        <PeanutLoading
-                            message={depositAddressStatus === 'loading' ? 'Almost there! Processing...' : undefined}
-                        />
+                        {depositAddressStatus === 'loading' ? <CyclingLoading /> : <PeanutLoading />}
                     </div>
                 )}
 

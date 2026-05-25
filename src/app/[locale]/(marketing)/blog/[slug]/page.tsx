@@ -5,6 +5,7 @@ import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { getAllPosts, getPostBySlug } from '@/lib/blog'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import { JsonLd } from '@/components/Marketing/JsonLd'
+import { ArticleBackNav } from '@/components/Marketing/ArticleBackNav'
 import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
 import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
@@ -88,6 +89,11 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
         { name: post.frontmatter.title, href: `/${locale}/blog/${slug}` },
     ]
 
+    const localizedHrefs = Object.fromEntries(SUPPORTED_LOCALES.map((l) => [l, `/${l}/blog/${slug}`])) as Record<
+        Locale,
+        string
+    >
+
     const breadcrumbSchema = {
         '@context': 'https://schema.org',
         '@type': 'BreadcrumbList',
@@ -105,6 +111,13 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
             <JsonLd data={breadcrumbSchema} />
             {faqSchema && <JsonLd data={faqSchema} />}
             <MarketingShell className="max-w-2xl">
+                <ArticleBackNav
+                    parentLabel={i18n.blog}
+                    parentHref={`/${locale}/blog`}
+                    backToTemplate={i18n.backTo}
+                    currentLocale={locale as Locale}
+                    localizedHrefs={localizedHrefs}
+                />
                 <nav aria-label="Breadcrumb" className="-mt-2 mb-4">
                     <ol className="flex flex-wrap items-center gap-1 text-xs text-grey-1">
                         {breadcrumbs.map((crumb, i) => (
@@ -125,11 +138,6 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
                     </ol>
                 </nav>
                 <header className="mb-8 border-b border-n-1 pb-6">
-                    {post.frontmatter.category && (
-                        <span className="mb-2 inline-block rounded-sm bg-primary-1/20 px-2 py-0.5 text-xs font-semibold">
-                            {post.frontmatter.category}
-                        </span>
-                    )}
                     <h1 className="text-3xl font-bold md:text-4xl">{post.frontmatter.title}</h1>
                     <p className="mt-2 text-gray-600">{post.frontmatter.description}</p>
                     <time className="mt-3 block text-sm text-gray-400">{post.frontmatter.date}</time>
