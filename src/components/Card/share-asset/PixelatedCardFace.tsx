@@ -97,14 +97,21 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
             )}
         </div>
 
-        {/* Bottom block: card number + Virtual pill */}
-        <div className="absolute" style={{ bottom: 24, left: 28, zIndex: 2 }}>
+        {/* Bottom: card number. The share asset deliberately obscures the
+            real PAN so it can't be screen-grabbed and posted — render
+            four groups of four `?` instead of the user's actual last4.
+            (The `last4` prop is still in the type for the in-app card
+            preview surface that uses the real number; share-asset
+            callers don't need to pass it.) Lowered toward the card
+            edge now that the Virtual pill is gone — gives the layout
+            room to breathe. */}
+        <div className="absolute" style={{ bottom: 32, left: 28, zIndex: 2 }}>
             {blurAll ? (
                 <PixelatedText
-                    text={`•••• ${last4}`}
-                    displayW={260}
-                    displayH={38}
-                    font="1000 38px Roboto, sans-serif"
+                    text="???? ???? ???? ????"
+                    displayW={420}
+                    displayH={42}
+                    font="1000 42px Roboto, sans-serif"
                     color="#000"
                 />
             ) : (
@@ -113,32 +120,12 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
                         fontFamily: 'var(--font-roboto), sans-serif',
                         fontWeight: 1000,
                         letterSpacing: '0.06em',
-                        fontSize: 38,
+                        fontSize: 42,
                         lineHeight: 1,
                     }}
                 >
-                    •••• {last4}
+                    ???? ???? ???? ????
                 </div>
-            )}
-            {blurAll ? (
-                <div style={{ marginTop: 8 }}>
-                    <PixelatedText
-                        text="Virtual"
-                        displayW={80}
-                        displayH={22}
-                        font="600 15px Roboto, sans-serif"
-                        color="#000"
-                        bg="#FFF"
-                        borderColor="#000"
-                    />
-                </div>
-            ) : (
-                <span
-                    className="inline-block rounded-full border-[1.5px] border-black bg-white font-semibold"
-                    style={{ fontSize: 15, padding: '2px 14px', marginTop: 8 }}
-                >
-                    Virtual
-                </span>
             )}
         </div>
     </div>

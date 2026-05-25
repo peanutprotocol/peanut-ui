@@ -196,20 +196,30 @@ const DECORATION_POOL: readonly DecorationCandidate[] = [
     { kind: 'thumbsUp', top: 56, left: 232, size: 92, rotation: -10, safe: true },
     { kind: 'eyes', top: 28, left: 580, size: 48, rotation: 6, safe: true },
     { kind: 'cloud', top: 16, left: 880, size: 64, rotation: -4, safe: true },
+    // Additional top sprinkles in the negative-space band above the card.
+    { kind: 'star', top: 100, left: 100, size: 36, rotation: -22, safe: true },
+    { kind: 'sparkle', top: 130, left: 980, size: 40, rotation: 18, safe: true },
     // Mid-right gap between slot 3 (y≤396) and slot 5 (y≥470)
     { kind: 'star', top: 410, right: 30, size: 44, rotation: 45, safe: true },
     { kind: 'sparkle', top: 420, right: 140, size: 42, rotation: -10, safe: true },
-    // Mid-left gap between slot 4 (y≤612) and slot 2 (y≥710). Small
-    // peanut character + a star. peanutWaving is the full-body asset
-    // — peanut-pfp.svg's viewBox crops the lower body so it can't be
-    // used as a small floater here (the SVG itself renders truncated).
-    { kind: 'peanutWaving', top: 640, left: 220, size: 64, rotation: -6, safe: true },
+    // Mid-left gap (between tier block bottom and stamps) + mid-right
+    // accents in the canvas margin outside the card's left/right edges.
+    { kind: 'cloud', top: 380, left: 26, size: 48, rotation: 10, safe: true },
+    { kind: 'eyes', top: 540, right: 220, size: 38, rotation: 22, safe: true },
     { kind: 'star', top: 650, left: 340, size: 40, rotation: 18, safe: true },
-    // Bottom-center between card-bottom (y=645) and username pill (y≥770).
-    // Pill x range ~[400..800] worst case; keep these in the gutters.
+    // Mid-left peanut character — anchored to BOTTOM so its feet stay
+    // clear of the canvas edge even if the SVG aspect ratio renders
+    // taller than nominal (Hugo flagged this getting clipped at the
+    // bottom). bottom:148 + size:96 leaves a comfortable gutter to the
+    // pill region (y≥770).
+    { kind: 'peanutWaving', bottom: 220, left: 200, size: 96, rotation: -6, safe: true },
+    // Bottom strip — between card-bottom (y=645) and username pill
+    // (y≥770). Pill x range ~[400..800] worst case; keep decorations
+    // in the gutters left of x=380 and right of x=820.
     { kind: 'sparkle', bottom: 220, right: 280, size: 52, rotation: -8, safe: true },
-    { kind: 'star', bottom: 110, left: 350, size: 40, rotation: 22, safe: true },
-    { kind: 'eyes', bottom: 150, right: 260, size: 48, rotation: -14, safe: true },
+    { kind: 'star', bottom: 110, left: 60, size: 40, rotation: 22, safe: true },
+    { kind: 'star', bottom: 60, right: 360, size: 34, rotation: -12, safe: true },
+    { kind: 'cloud', bottom: 80, right: 60, size: 56, rotation: 8, safe: true },
 ] as const
 
 export interface DecorationPlacement {
@@ -224,9 +234,10 @@ export interface DecorationPlacement {
 
 /** Pick a handful of decorations from the pool. Pool is curated (stars,
  *  thumbsUp, eyes, sparkle, cloud, mini peanut) and stamp-safe, so we
- *  just shuffle and take 6-8 to fill the canvas margins. */
+ *  just shuffle and take 8-11 to fill the canvas margins (bumped from
+ *  6-8 now that the pool grew). */
 export function placeDecorations(rng: SeededRandom): DecorationPlacement[] {
-    const picked = rng.shuffle([...DECORATION_POOL]).slice(0, rng.int(6, 8))
+    const picked = rng.shuffle([...DECORATION_POOL]).slice(0, rng.int(8, 11))
     return picked.map((d) => ({
         kind: d.kind,
         top: d.top,
