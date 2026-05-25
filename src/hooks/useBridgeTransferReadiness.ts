@@ -10,6 +10,7 @@ export type BridgeGateAction =
     | { type: 'accept_tos' }
     | { type: 'fixable_rejection'; userMessage: string | null }
     | { type: 'blocked_rejection'; userMessage: string | null }
+    | { type: 'needs_kyc' }
     | { type: 'needs_enrollment' }
     | { type: 'ready' }
 
@@ -20,8 +21,9 @@ export type BridgeGateAction =
  *   1. hard rejection (contact support — tos is moot)
  *   2. tos acceptance
  *   3. fixable rejection (user can submit additional details)
- *   4. needs enrollment (sumsub approved, no functional bridge rail yet)
- *   5. ready
+ *   4. needs standard kyc (fresh user)
+ *   5. needs enrollment (sumsub approved, no functional bridge rail yet)
+ *   6. ready
  *
  * Phase 6 of rail-gating: the bridge-state checks are derived from the
  * user's Bridge rails (via useBridgeTosStatus / useProviderRejectionStatus).
@@ -47,13 +49,18 @@ export function useBridgeTransferReadiness() {
             return { type: 'fixable_rejection', userMessage: bridgeRejection.userMessage }
         }
 
-        // 4. needs enrollment — sumsub approved but no Bridge rail in a
+        // 4. fresh user needs standard kyc before creating a transfer
+        if (!isUserSumsubKycApproved && !hasFunctionalRail(bridgeRails, 'BRIDGE')) {
+            return { type: 'needs_kyc' }
+        }
+
+        // 5. needs enrollment — sumsub approved but no Bridge rail in a
         // functional or in-progress state (the user has not started Bridge)
         if (isUserSumsubKycApproved && !hasFunctionalRail(bridgeRails, 'BRIDGE')) {
             return { type: 'needs_enrollment' }
         }
 
-        // 5. ready
+        // 6. ready
         return { type: 'ready' }
     }, [needsBridgeTos, bridgeRejection, isUserSumsubKycApproved, bridgeRails])
 
