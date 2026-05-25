@@ -55,11 +55,7 @@ const LimitsPageView = () => {
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-6">
-            <NavHeader
-                title="Payment limits"
-                onPrev={goBack}
-                titleClassName="text-xl md:text-2xl"
-            />
+            <NavHeader title="Payment limits" onPrev={goBack} titleClassName="text-xl md:text-2xl" />
 
             {/* page description */}
             <InfoCard

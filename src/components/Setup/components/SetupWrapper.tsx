@@ -60,51 +60,50 @@ const STAR_POSITIONS = [
  * rendered at the top of the layout when any button is enabled
  */
 const Navigation = memo(function Navigation({
-        showBackButton,
-        showSkipButton,
-        showLogoutButton,
-        onBack,
-        onSkip,
-        onLogout,
-        isLoggingOut,
-    }: Pick<
-        SetupWrapperProps,
-        'showBackButton' | 'showSkipButton' | 'showLogoutButton' | 'onBack' | 'onSkip' | 'onLogout' | 'isLoggingOut'
-    >) {
-        if (!showBackButton && !showSkipButton && !showLogoutButton) return null
+    showBackButton,
+    showSkipButton,
+    showLogoutButton,
+    onBack,
+    onSkip,
+    onLogout,
+    isLoggingOut,
+}: Pick<
+    SetupWrapperProps,
+    'showBackButton' | 'showSkipButton' | 'showLogoutButton' | 'onBack' | 'onSkip' | 'onLogout' | 'isLoggingOut'
+>) {
+    if (!showBackButton && !showSkipButton && !showLogoutButton) return null
 
-        return (
-            <div className="absolute top-8 z-20 flex w-full items-center justify-between px-6">
-                <div>
-                    {showBackButton && (
-                        <Button variant="stroke" onClick={onBack} className="h-8 w-8 p-0" aria-label="Go back">
-                            <Icon name="chevron-up" fill="black" size={20} className="-rotate-90" />
-                        </Button>
-                    )}
-                </div>
-                <div className="flex items-center gap-3">
-                    {showSkipButton && (
-                        <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
-                            <span className="text-grey-1">Skip</span>
-                        </Button>
-                    )}
-                    {showLogoutButton && (
-                        <Button
-                            onClick={onLogout}
-                            loading={isLoggingOut}
-                            variant="stroke"
-                            className={twMerge('h-7 w-7 p-0', isLoggingOut && 'pl-3')}
-                            aria-label="Logout"
-                            disabled={isLoggingOut}
-                        >
-                            <Icon name="logout" fill="black" size={24} />
-                        </Button>
-                    )}
-                </div>
+    return (
+        <div className="absolute top-8 z-20 flex w-full items-center justify-between px-6">
+            <div>
+                {showBackButton && (
+                    <Button variant="stroke" onClick={onBack} className="h-8 w-8 p-0" aria-label="Go back">
+                        <Icon name="chevron-up" fill="black" size={20} className="-rotate-90" />
+                    </Button>
+                )}
             </div>
-        )
-    }
-)
+            <div className="flex items-center gap-3">
+                {showSkipButton && (
+                    <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
+                        <span className="text-grey-1">Skip</span>
+                    </Button>
+                )}
+                {showLogoutButton && (
+                    <Button
+                        onClick={onLogout}
+                        loading={isLoggingOut}
+                        variant="stroke"
+                        className={twMerge('h-7 w-7 p-0', isLoggingOut && 'pl-3')}
+                        aria-label="Logout"
+                        disabled={isLoggingOut}
+                    >
+                        <Icon name="logout" fill="black" size={24} />
+                    </Button>
+                )}
+            </div>
+        </div>
+    )
+})
 
 /**
  * ImageSection component handles the illustrations and animations
@@ -187,111 +186,106 @@ const ImageSection = ({
  * uses dynamic viewport height (dvh) for better mobile browser compatibility
  */
 export const SetupWrapper = memo(function SetupWrapper({
-        layoutType,
-        children,
-        image,
-        title,
-        description,
-        contentClassName,
-        showBackButton,
-        showSkipButton,
-        showLogoutButton,
-        onBack,
-        onSkip,
-        onLogout,
-        isLoggingOut,
-        screenId,
-        imageClassName,
-        deferredPrompt,
-        canInstall,
-        deviceType,
-        titleClassName,
-    }: SetupWrapperProps) {
-        const { isBrave } = useBravePWAInstallState()
-        const [showBraveSuccessMessage, setShowBraveSuccessMessage] = useState(false)
+    layoutType,
+    children,
+    image,
+    title,
+    description,
+    contentClassName,
+    showBackButton,
+    showSkipButton,
+    showLogoutButton,
+    onBack,
+    onSkip,
+    onLogout,
+    isLoggingOut,
+    screenId,
+    imageClassName,
+    deferredPrompt,
+    canInstall,
+    deviceType,
+    titleClassName,
+}: SetupWrapperProps) {
+    const { isBrave } = useBravePWAInstallState()
+    const [showBraveSuccessMessage, setShowBraveSuccessMessage] = useState(false)
 
-        const shouldShowBraveInstalledHeaderOnly =
-            (screenId === 'pwa-install' || screenId === 'android-initial-pwa-install') &&
-            isBrave &&
-            showBraveSuccessMessage
+    const shouldShowBraveInstalledHeaderOnly =
+        (screenId === 'pwa-install' || screenId === 'android-initial-pwa-install') && isBrave && showBraveSuccessMessage
 
-        const headingTitle = shouldShowBraveInstalledHeaderOnly ? 'Success!' : title
-        const headingDescription = shouldShowBraveInstalledHeaderOnly
-            ? 'Please open the Peanut app from your home screen to continue setup.'
-            : description
+    const headingTitle = shouldShowBraveInstalledHeaderOnly ? 'Success!' : title
+    const headingDescription = shouldShowBraveInstalledHeaderOnly
+        ? 'Please open the Peanut app from your home screen to continue setup.'
+        : description
 
-        return (
-            <div className="flex min-h-[100dvh] flex-col">
-                {/* navigation buttons */}
-                <Navigation
-                    showBackButton={showBackButton}
-                    showSkipButton={
-                        showSkipButton || (screenId === 'pwa-install' && (!canInstall || deviceType === DeviceType.WEB))
-                    }
-                    showLogoutButton={showLogoutButton}
-                    onBack={onBack}
-                    onSkip={onSkip}
-                    onLogout={onLogout}
-                    isLoggingOut={isLoggingOut}
+    return (
+        <div className="flex min-h-[100dvh] flex-col">
+            {/* navigation buttons */}
+            <Navigation
+                showBackButton={showBackButton}
+                showSkipButton={
+                    showSkipButton || (screenId === 'pwa-install' && (!canInstall || deviceType === DeviceType.WEB))
+                }
+                showLogoutButton={showLogoutButton}
+                onBack={onBack}
+                onSkip={onSkip}
+                onLogout={onLogout}
+                isLoggingOut={isLoggingOut}
+            />
+
+            {/* content container */}
+            <div className="mx-auto flex w-full flex-grow flex-col md:flex-row">
+                {/* illustration section */}
+                <ImageSection
+                    imageClassName={imageClassName}
+                    screenId={screenId}
+                    layoutType={layoutType}
+                    image={image}
                 />
 
-                {/* content container */}
-                <div className="mx-auto flex w-full flex-grow flex-col md:flex-row">
-                    {/* illustration section */}
-                    <ImageSection
-                        imageClassName={imageClassName}
-                        screenId={screenId}
-                        layoutType={layoutType}
-                        image={image}
-                    />
-
-                    {/* content section */}
+                {/* content section */}
+                <div
+                    className={twMerge(
+                        'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',
+                        contentClassName
+                    )}
+                >
+                    {/* todo: add transition animation */}
+                    {/* title and description container */}
                     <div
                         className={twMerge(
-                            'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',
-                            contentClassName
+                            'mx-auto h-full w-full space-y-4 md:max-h-48 md:max-w-xs',
+                            (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12'
                         )}
                     >
-                        {/* todo: add transition animation */}
-                        {/* title and description container */}
-                        <div
-                            className={twMerge(
-                                'mx-auto h-full w-full space-y-4 md:max-h-48 md:max-w-xs',
-                                (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12'
-                            )}
-                        >
-                            {headingTitle && (
-                                <h1
-                                    className={twMerge(
-                                        'w-full text-left text-xl font-extrabold leading-tight',
-                                        titleClassName
-                                    )}
-                                >
-                                    {headingTitle}
-                                </h1>
-                            )}
-                            {headingDescription && (
-                                <p className="text-base font-medium text-black">{headingDescription}</p>
-                            )}
-                        </div>
-                        {/* main content area */}
-                        <div className="mx-auto w-full md:max-w-xs">
-                            {Children.map(children, (child) => {
-                                if ((child as ReactElement).type === InstallPWA) {
-                                    return cloneElement(child as ReactElement, {
-                                        deferredPrompt,
-                                        canInstall,
-                                        deviceType,
-                                        screenId,
-                                        setShowBraveSuccessMessage,
-                                    })
-                                }
-                                return child
-                            })}
-                        </div>
+                        {headingTitle && (
+                            <h1
+                                className={twMerge(
+                                    'w-full text-left text-xl font-extrabold leading-tight',
+                                    titleClassName
+                                )}
+                            >
+                                {headingTitle}
+                            </h1>
+                        )}
+                        {headingDescription && <p className="text-base font-medium text-black">{headingDescription}</p>}
+                    </div>
+                    {/* main content area */}
+                    <div className="mx-auto w-full md:max-w-xs">
+                        {Children.map(children, (child) => {
+                            if ((child as ReactElement).type === InstallPWA) {
+                                return cloneElement(child as ReactElement, {
+                                    deferredPrompt,
+                                    canInstall,
+                                    deviceType,
+                                    screenId,
+                                    setShowBraveSuccessMessage,
+                                })
+                            }
+                            return child
+                        })}
                     </div>
                 </div>
             </div>
-        )
-    }
-)
+        </div>
+    )
+})
