@@ -28,8 +28,14 @@ export function hasFullMantecaRail(rails: IUserRail[] | undefined, country?: str
     return railsForProvider(rails, 'MANTECA').some((r) => {
         if (r.status !== 'ENABLED') return false
         if (c && r.rail.method.country.toUpperCase() !== c) return false
+        // metadata.mantecaUserId comes from a Prisma Json column — it may
+        // arrive as a string (current backend) or a number (older rows or
+        // any path that stores the raw provider id). Coerce both to a
+        // non-empty string before deciding the rail is gateable, so a number
+        // doesn't silently fail this check and lock the user out of QR/withdraw.
         const id = r.metadata?.mantecaUserId
-        return typeof id === 'string' && id.length > 0
+        const idStr = id == null ? '' : String(id)
+        return idStr.length > 0
     })
 }
 
