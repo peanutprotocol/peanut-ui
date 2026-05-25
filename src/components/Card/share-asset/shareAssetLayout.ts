@@ -168,7 +168,7 @@ export function placeStamps(badges: ShareAssetBadge[], rng: SeededRandom): Stamp
 // `kind` selects which SVG. PRNG picks which subset to actually render.
 
 interface DecorationCandidate {
-    kind: 'star' | 'thumbsUp' | 'peanutChar' | 'eyes' | 'sparkle' | 'cloud'
+    kind: 'star' | 'starAlt' | 'thumbsUp' | 'thumbsUpV2' | 'eyes' | 'sparkle' | 'cloud'
     top?: number
     bottom?: number
     left?: number
@@ -180,46 +180,65 @@ interface DecorationCandidate {
     safe: boolean
 }
 
-// Decoration pool. `peanutChar` is now backed by the raising-hands
-// asset (peanut-raising-hands.svg) — peanutman-waving.svg has a viewBox
-// that crops the feet, which Hugo flagged twice; raising-hands renders
-// the full body. Bottom-anchored via `bottom:` to keep feet clear of
-// the canvas edge regardless of natural aspect ratio.
+// Decoration pool. No peanut characters — both peanut-raising-hands.svg
+// and peanutman-waving.svg crop the lower body at the SVG source (it's
+// the art style, not a bug we can fix). The pool sticks to stars,
+// sparkles, eyes, clouds, and thumbs-up so every decoration renders
+// fully formed.
+//
+// Layout-zone map on the 1200×900 canvas:
+//   - EARNED stamp:          x[920..1200], y[20..200]    (top-right)
+//   - EDITION + tier block:  x[20..360],   y[20..460]    (left band)
+//   - @username pill:        x[400..1144], y[770..900]   (bottom-right)
+//   - Card bbox:             x[264..884],  y[254..645]   (centre)
+//   - Stamp slots:           see STAMP_SLOTS above
+// All slots below sit OUTSIDE the chrome zones AND outside stamp slots.
 const DECORATION_POOL: readonly DecorationCandidate[] = [
-    // Top strip — between EDITION block (left) and EARNED stamp (right)
+    // ── Top strip (y=16..160) — above the card, between EDITION left and
+    //    EARNED right. Two natural columns left/right of the centre stamp.
+    { kind: 'cloud', top: 16, left: 880, size: 64, rotation: -4, safe: true },
     { kind: 'star', top: 36, left: 380, size: 72, rotation: 8, safe: true },
     { kind: 'sparkle', top: 52, left: 720, size: 56, rotation: -12, safe: true },
     { kind: 'thumbsUp', top: 56, left: 232, size: 92, rotation: -10, safe: true },
+    { kind: 'thumbsUpV2', top: 80, left: 700, size: 76, rotation: 12, safe: true },
     { kind: 'eyes', top: 28, left: 580, size: 48, rotation: 6, safe: true },
-    { kind: 'cloud', top: 16, left: 880, size: 64, rotation: -4, safe: true },
-    // Additional top sprinkles in the negative-space band above the card.
-    { kind: 'star', top: 100, left: 100, size: 36, rotation: -22, safe: true },
     { kind: 'sparkle', top: 130, left: 980, size: 40, rotation: 18, safe: true },
-    // Mid-right gap between slot 3 (y≤396) and slot 5 (y≥470)
+    { kind: 'starAlt', top: 110, left: 320, size: 52, rotation: -20, safe: true },
+
+    // ── Top-LEFT quadrant (Hugo flagged this as empty) — fits between
+    //    the EDITION header (y<120) and the tier block (y>158, x<360).
+    //    Tight space; small accents only.
+    { kind: 'star', top: 14, left: 56, size: 32, rotation: 22, safe: true },
+    { kind: 'sparkle', top: 8, left: 460, size: 36, rotation: -16, safe: true },
+    { kind: 'eyes', top: 130, left: 180, size: 36, rotation: 14, safe: true },
+
+    // ── Mid-right gap between stamp slot 3 (y≤396) and slot 5 (y≥470).
     { kind: 'star', top: 410, right: 30, size: 44, rotation: 45, safe: true },
     { kind: 'sparkle', top: 420, right: 140, size: 42, rotation: -10, safe: true },
-    // Mid-left gap (between tier block bottom and stamps) + mid-right
-    // accents in the canvas margin outside the card's left/right edges.
+
+    // ── Mid-left / mid-right margins outside the card.
     { kind: 'cloud', top: 380, left: 26, size: 48, rotation: 10, safe: true },
     { kind: 'eyes', top: 540, right: 220, size: 38, rotation: 22, safe: true },
-    { kind: 'star', top: 650, left: 340, size: 40, rotation: 18, safe: true },
-    // Mid-left peanut character — anchored to BOTTOM so its feet stay
-    // clear of the canvas edge even if the SVG aspect ratio renders
-    // taller than nominal (Hugo flagged this getting clipped at the
-    // bottom). bottom:148 + size:96 leaves a comfortable gutter to the
-    // pill region (y≥770).
-    { kind: 'peanutChar', bottom: 220, left: 200, size: 96, rotation: -6, safe: true },
-    // Bottom strip — between card-bottom (y=645) and username pill
-    // (y≥770). Pill x range ~[400..800] worst case; keep decorations
-    // in the gutters left of x=380 and right of x=820.
+    { kind: 'starAlt', top: 480, right: 200, size: 44, rotation: -8, safe: true },
+
+    // ── Bottom-CENTRE (Hugo flagged this as empty) — between card-bottom
+    //    (y=645) and the username pill top (y≥770). The pill ends at
+    //    x≈400 worst case, so anything in x[120..380] is safely in the
+    //    gutter to the LEFT of the pill.
+    { kind: 'star', top: 660, left: 200, size: 44, rotation: -14, safe: true },
+    { kind: 'sparkle', top: 700, left: 320, size: 48, rotation: 18, safe: true },
+    { kind: 'eyes', top: 670, left: 60, size: 40, rotation: -6, safe: true },
+    { kind: 'thumbsUpV2', top: 690, left: 130, size: 64, rotation: 8, safe: true },
+
+    // ── Lower-right (small sprinkles between EARNED-zone clear point and
+    //    the pill's top edge at y≈770).
     { kind: 'sparkle', bottom: 220, right: 280, size: 52, rotation: -8, safe: true },
-    { kind: 'star', bottom: 110, left: 60, size: 40, rotation: 22, safe: true },
     { kind: 'star', bottom: 60, right: 360, size: 34, rotation: -12, safe: true },
     { kind: 'cloud', bottom: 80, right: 60, size: 56, rotation: 8, safe: true },
 ] as const
 
 export interface DecorationPlacement {
-    kind: 'star' | 'thumbsUp' | 'peanutChar' | 'eyes' | 'sparkle' | 'cloud'
+    kind: 'star' | 'starAlt' | 'thumbsUp' | 'thumbsUpV2' | 'eyes' | 'sparkle' | 'cloud'
     top?: number
     bottom?: number
     left?: number
@@ -229,11 +248,11 @@ export interface DecorationPlacement {
 }
 
 /** Pick a handful of decorations from the pool. Pool is curated (stars,
- *  thumbsUp, eyes, sparkle, cloud, mini peanut) and stamp-safe, so we
- *  just shuffle and take 8-11 to fill the canvas margins (bumped from
- *  6-8 now that the pool grew). */
+ *  starAlt, thumbsUp, thumbsUpV2, eyes, sparkle, cloud) and stamp-safe.
+ *  Pick 12-15 per render so the bigger pool actually fills the canvas;
+ *  shuffle order = per-seed variety. */
 export function placeDecorations(rng: SeededRandom): DecorationPlacement[] {
-    const picked = rng.shuffle([...DECORATION_POOL]).slice(0, rng.int(8, 11))
+    const picked = rng.shuffle([...DECORATION_POOL]).slice(0, rng.int(12, 15))
     return picked.map((d) => ({
         kind: d.kind,
         top: d.top,

@@ -34,21 +34,23 @@ import {
 } from './shareAssetLayout'
 import type { ShareAssetD3Props, TierLevel } from './shareAsset.types'
 import { TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets/badges'
-import { PEANUTMAN_RAISING_HANDS } from '@/assets/peanut'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
-import { HandThumbsUp, Eyes, Sparkle, Cloud } from '@/assets/illustrations'
+import { HandThumbsUp, HandThumbsUpV2, Eyes, Sparkle, Cloud, Star } from '@/assets/illustrations'
 import { PixelatedCardFace } from './PixelatedCardFace'
 
 const ASSET_STAR = STAR_STRAIGHT_ICON.src
+const ASSET_STAR_ALT = Star.src
 const ASSET_HAND_THUMBS = HandThumbsUp.src
-// peanut-raising-hands.svg renders the full-body peanut. The
-// peanutman-waving.svg viewBox crops the feet (Hugo flagged it twice;
-// re-anchoring via `bottom:` didn't help because the SVG itself is
-// cropped) — swap to raising-hands so the whole character shows.
-const ASSET_PEANUT_CHAR = PEANUTMAN_RAISING_HANDS.src
+const ASSET_HAND_THUMBS_V2 = HandThumbsUpV2.src
 const ASSET_EYES = Eyes.src
 const ASSET_SPARKLE = Sparkle.src
 const ASSET_CLOUD = Cloud.src
+// Note: peanut character SVGs (peanut-raising-hands, peanutman-waving)
+// both crop the lower body at the source — the art style draws peanuts
+// without feet. Hugo flagged this twice (waving + raising-hands); we
+// dropped the character from the decoration pool rather than ship a
+// "missing feet" rendering. The PEANUTMAN_LOGO icon on the card itself
+// remains the only peanut-character surface on this asset.
 
 const TIER_SVG: Record<TierLevel, string> = {
     0: TIER_0_BADGE,
@@ -66,8 +68,9 @@ const TIER_LABEL: Record<TierLevel, string> = {
 
 const DECO_ASSET: Record<DecorationPlacement['kind'], string> = {
     star: ASSET_STAR,
+    starAlt: ASSET_STAR_ALT,
     thumbsUp: ASSET_HAND_THUMBS,
-    peanutChar: ASSET_PEANUT_CHAR,
+    thumbsUpV2: ASSET_HAND_THUMBS_V2,
     eyes: ASSET_EYES,
     sparkle: ASSET_SPARKLE,
     cloud: ASSET_CLOUD,
@@ -443,39 +446,24 @@ const StampEl: FC<StampElProps> = ({ stamp, animate, delay }) => {
                 />
             )}
             <span className="stamp-issuer">PEANUT</span>
+            {/* Year denomination — dynamic, derived from badge.earnedAt at
+                layout time (see placeStamps in shareAssetLayout.ts). */}
             {stamp.badge.year && <span className="stamp-denom">{stamp.badge.year}</span>}
+            {/* Badge icon fills the stamp. Caption row was dropped (Hugo:
+                "remove the colored subtitle from the stamps, just the
+                badge svg, a bit larger") — icon now uses the full
+                stamp interior below the issuer/year row. */}
             <div
                 className="absolute inset-0 flex items-center justify-center"
-                style={{ paddingTop: '5%', paddingBottom: '15%' }}
+                style={{ paddingTop: '14%', paddingBottom: '6%' }}
             >
                 <img
                     src={stamp.badge.iconUrl}
                     alt=""
                     aria-hidden
-                    style={{ maxWidth: '88%', maxHeight: '70%', objectFit: 'contain' }}
+                    style={{ maxWidth: '94%', maxHeight: '94%', objectFit: 'contain' }}
                 />
             </div>
-            <figcaption
-                className="absolute"
-                style={{
-                    left: 8,
-                    right: 8,
-                    bottom: 10,
-                    textAlign: 'center',
-                    border: '2px solid #000',
-                    background: stamp.badge.captionBg,
-                    fontFamily: 'var(--font-roboto), sans-serif',
-                    fontWeight: 1000,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                    fontSize: stamp.width >= 170 ? 22 : 18,
-                    padding: '4px 0',
-                    color: '#000',
-                    lineHeight: 1.05,
-                }}
-            >
-                {stamp.badge.caption}
-            </figcaption>
         </figure>
     )
 }
