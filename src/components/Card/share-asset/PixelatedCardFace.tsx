@@ -56,11 +56,7 @@ export interface PixelatedCardFaceProps {
     blurAll?: boolean
 }
 
-export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
-    className,
-    style,
-    blurAll = false,
-}) => (
+export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({ className, style, blurAll = false }) => (
     <div
         className={`relative overflow-hidden rounded-3xl border-[4px] border-black ${className ?? ''}`}
         style={{
