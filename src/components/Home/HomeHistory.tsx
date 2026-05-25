@@ -147,9 +147,7 @@ const HomeHistory = ({
             // Process entries asynchronously to handle completeHistoryEntry
             const processEntries = async () => {
                 // Start with the fetched entries
-                const entries: Array<HistoryEntry | KycHistoryEntry | CardUnlockHistoryEntry> = [
-                    ...historyData.entries,
-                ]
+                const entries: Array<HistoryEntry | KycHistoryEntry | CardUnlockHistoryEntry> = [...historyData.entries]
 
                 // inject badge entries using user's badges (newest first) and earnedAt chronology
                 // filter out beta tester badge — it creates confusing first impressions for new users

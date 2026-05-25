@@ -44,13 +44,7 @@ const VIA_COPY: Record<CardUnlockHistoryEntry['via'], { title: string; subtitle:
     },
 }
 
-const CardUnlockHistoryItem: FC<Props> = ({
-    entry,
-    position = 'single',
-    className,
-    username,
-    skipBadges,
-}) => {
+const CardUnlockHistoryItem: FC<Props> = ({ entry, position = 'single', className, username, skipBadges }) => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const copy = VIA_COPY[entry.via]
 

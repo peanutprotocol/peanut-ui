@@ -126,18 +126,18 @@ describe('placeStamps', () => {
     })
 
     // Strict non-overlap invariant for the "unique-slot" range (1..6
-     // unique slots in the table). For every count 1..6 and across many
-     // seeds, no two placed stamps' rotation-aware bboxes may touch.
-     //
-     // We use the diagonal sqrt(w² + h²) as a worst-case radius from the
-     // stamp's center. Two stamps "overlap" if the distance between their
-     // centers is less than the sum of their radii. This is conservative
-     // (treats the rotated rect as a circumscribing circle) — if it
-     // passes, the actual rotated rects definitely don't overlap.
-     //
-     // For counts > 6 we deliberately stack (Hugo: "just stack them") so
-     // the invariant does not apply; the layout still stays within canvas
-     // (separate test below).
+    // unique slots in the table). For every count 1..6 and across many
+    // seeds, no two placed stamps' rotation-aware bboxes may touch.
+    //
+    // We use the diagonal sqrt(w² + h²) as a worst-case radius from the
+    // stamp's center. Two stamps "overlap" if the distance between their
+    // centers is less than the sum of their radii. This is conservative
+    // (treats the rotated rect as a circumscribing circle) — if it
+    // passes, the actual rotated rects definitely don't overlap.
+    //
+    // For counts > 6 we deliberately stack (Hugo: "just stack them") so
+    // the invariant does not apply; the layout still stays within canvas
+    // (separate test below).
     it('stamps never overlap for counts 1..6 (any seed)', () => {
         const seeds = ['kkonrad', 'hugo', 'asfsfsf', 'a', 'longusername', '0', 'seed-42', '🥜']
         for (let n = 1; n <= 6; n++) {

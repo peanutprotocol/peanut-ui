@@ -87,9 +87,7 @@ const CardPage: FC = () => {
     // Track whether the user has acknowledged the skip-badge celebration.
     // localStorage for M2; Phase 5 will read this from BE's
     // cardWaitlistSkipCelebrationSeenAt column.
-    const [skipCelebrationSeen, setSkipCelebrationSeen] = useState<boolean>(() =>
-        getSkipCelebrationSeen()
-    )
+    const [skipCelebrationSeen, setSkipCelebrationSeen] = useState<boolean>(() => getSkipCelebrationSeen())
 
     // Press-and-hold "see if you qualify" gate. Resets per mount: as long
     // as the user has not been issued a card, every fresh /card visit
@@ -483,13 +481,7 @@ const CardPage: FC = () => {
                 if (cardInfo!.waitlistJoinedAt) {
                     return <CardWaitlistJoinedScreen onPrev={onBack} />
                 }
-                return (
-                    <CardWaitlistScreen
-                        cardInfo={cardInfo!}
-                        onPrev={onBack}
-                        onJoined={refetchCardInfo}
-                    />
-                )
+                return <CardWaitlistScreen cardInfo={cardInfo!} onPrev={onBack} onJoined={refetchCardInfo} />
             }
             case 'waitlist-skip-celebration': {
                 // Pick the freshest skip badge for the celebration headline.
@@ -498,10 +490,11 @@ const CardPage: FC = () => {
                 // `user.user.badges` is the full collection from /get-user
                 // (with earnedAt) — fall back to cardInfo.skipBadges if it
                 // hasn't loaded yet so we still render something.
-                const allBadges = user?.user?.badges?.map((b) => ({
-                    code: b.code,
-                    earnedAt: b.earnedAt,
-                })) ?? cardInfo!.skipBadges.map((code) => ({ code }))
+                const allBadges =
+                    user?.user?.badges?.map((b) => ({
+                        code: b.code,
+                        earnedAt: b.earnedAt,
+                    })) ?? cardInfo!.skipBadges.map((code) => ({ code }))
                 return (
                     <BadgeSkipCelebration
                         badgeCode={skipCode}

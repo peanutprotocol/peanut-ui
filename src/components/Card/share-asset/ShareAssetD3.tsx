@@ -34,6 +34,7 @@ import {
 } from './shareAssetLayout'
 import type { ShareAssetD3Props, TierLevel } from './shareAsset.types'
 import { TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets/badges'
+import { PEANUTMAN_HOLDING_BEER } from '@/assets/peanut'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import { HandThumbsUp, HandThumbsUpV2, Eyes, Sparkle, Cloud, Star } from '@/assets/illustrations'
 import { PixelatedCardFace } from './PixelatedCardFace'
@@ -45,12 +46,13 @@ const ASSET_HAND_THUMBS_V2 = HandThumbsUpV2.src
 const ASSET_EYES = Eyes.src
 const ASSET_SPARKLE = Sparkle.src
 const ASSET_CLOUD = Cloud.src
-// Note: peanut character SVGs (peanut-raising-hands, peanutman-waving)
-// both crop the lower body at the source — the art style draws peanuts
-// without feet. Hugo flagged this twice (waving + raising-hands); we
-// dropped the character from the decoration pool rather than ship a
-// "missing feet" rendering. The PEANUTMAN_LOGO icon on the card itself
-// remains the only peanut-character surface on this asset.
+// The peanut character art style is intentionally legless — the body
+// tapers to a rounded point. Rather than dropping the character, we
+// place him BEHIND the card with his bottom inside the card's bbox so
+// only his head + arms peek out above the card edge. Of the available
+// poses, peanut-holding-beer is the most expressive (both arms visible,
+// holding a beer, peace sign) and reads cleanly at small sizes.
+const ASSET_PEANUT_CHAR = PEANUTMAN_HOLDING_BEER.src
 
 const TIER_SVG: Record<TierLevel, string> = {
     0: TIER_0_BADGE,
@@ -74,6 +76,7 @@ const DECO_ASSET: Record<DecorationPlacement['kind'], string> = {
     eyes: ASSET_EYES,
     sparkle: ASSET_SPARKLE,
     cloud: ASSET_CLOUD,
+    peanutChar: ASSET_PEANUT_CHAR,
 }
 
 const ANIM_CARD_DELAY = 100

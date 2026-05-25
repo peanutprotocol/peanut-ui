@@ -168,7 +168,7 @@ export function placeStamps(badges: ShareAssetBadge[], rng: SeededRandom): Stamp
 // `kind` selects which SVG. PRNG picks which subset to actually render.
 
 interface DecorationCandidate {
-    kind: 'star' | 'starAlt' | 'thumbsUp' | 'thumbsUpV2' | 'eyes' | 'sparkle' | 'cloud'
+    kind: 'star' | 'starAlt' | 'thumbsUp' | 'thumbsUpV2' | 'eyes' | 'sparkle' | 'cloud' | 'peanutChar'
     top?: number
     bottom?: number
     left?: number
@@ -235,10 +235,21 @@ const DECORATION_POOL: readonly DecorationCandidate[] = [
     { kind: 'sparkle', bottom: 220, right: 280, size: 52, rotation: -8, safe: true },
     { kind: 'star', bottom: 60, right: 360, size: 34, rotation: -12, safe: true },
     { kind: 'cloud', bottom: 80, right: 60, size: 56, rotation: 8, safe: true },
+
+    // ── Peanut character — peeks up from BEHIND the card. The peanut
+    //    art style is legless (body tapers to a rounded point), so we
+    //    place him with his bottom inside the card's bbox (y≥254) and
+    //    only the head/arms visible above the card edge. Decorations
+    //    render at z-index 1; the card at z-index 3, with overflow:
+    //    hidden — so the body inside the card region is naturally
+    //    clipped without any extra masking. Two candidate positions
+    //    flanking the centre HERO stamp slot (top:140, left:504).
+    { kind: 'peanutChar', top: 120, left: 320, size: 180, rotation: -6, safe: true },
+    { kind: 'peanutChar', top: 130, left: 760, size: 170, rotation: 8, safe: true },
 ] as const
 
 export interface DecorationPlacement {
-    kind: 'star' | 'starAlt' | 'thumbsUp' | 'thumbsUpV2' | 'eyes' | 'sparkle' | 'cloud'
+    kind: 'star' | 'starAlt' | 'thumbsUp' | 'thumbsUpV2' | 'eyes' | 'sparkle' | 'cloud' | 'peanutChar'
     top?: number
     bottom?: number
     left?: number
@@ -247,21 +258,60 @@ export interface DecorationPlacement {
     rotation: number
 }
 
-/** Pick a handful of decorations from the pool. Pool is curated (stars,
- *  starAlt, thumbsUp, thumbsUpV2, eyes, sparkle, cloud) and stamp-safe.
- *  Pick 12-15 per render so the bigger pool actually fills the canvas;
- *  shuffle order = per-seed variety. */
+/** Axis-aligned bounding-box of a placed decoration in canvas coords.
+ *  Used by the non-overlap check below — treats every decoration as a
+ *  size × size square (conservative; tall assets won't be over-tight). */
+function decorationBbox(d: { top?: number; bottom?: number; left?: number; right?: number; size: number }): {
+    x0: number
+    y0: number
+    x1: number
+    y1: number
+} {
+    const left = d.left ?? CANVAS_W - (d.right ?? 0) - d.size
+    const top = d.top ?? CANVAS_H - (d.bottom ?? 0) - d.size
+    return { x0: left, y0: top, x1: left + d.size, y1: top + d.size }
+}
+
+/** AABB intersection with a small padding so decorations aren't just-not-touching. */
+function bboxesOverlap(
+    a: { x0: number; y0: number; x1: number; y1: number },
+    b: { x0: number; y0: number; x1: number; y1: number },
+    pad = 8
+): boolean {
+    return !(a.x1 + pad < b.x0 || a.x0 - pad > b.x1 || a.y1 + pad < b.y0 || a.y0 - pad > b.y1)
+}
+
+/** Greedy non-overlap placement. Walks the shuffled pool and accepts a
+ *  candidate only if its bbox doesn't intersect any already-placed
+ *  decoration. Target count 12-15; if the pool can't satisfy that
+ *  (collisions), returns whatever fit — never compromises the no-overlap
+ *  invariant. */
 export function placeDecorations(rng: SeededRandom): DecorationPlacement[] {
-    const picked = rng.shuffle([...DECORATION_POOL]).slice(0, rng.int(12, 15))
-    return picked.map((d) => ({
-        kind: d.kind,
-        top: d.top,
-        bottom: d.bottom,
-        left: d.left,
-        right: d.right,
-        size: d.size + rng.float(-4, 4),
-        rotation: d.rotation + rng.float(-6, 6),
-    }))
+    const target = rng.int(12, 15)
+    const shuffled = rng.shuffle([...DECORATION_POOL])
+    const accepted: DecorationPlacement[] = []
+    const acceptedBboxes: ReturnType<typeof decorationBbox>[] = []
+
+    for (const d of shuffled) {
+        if (accepted.length >= target) break
+        const sizeJitter = rng.float(-4, 4)
+        const rotJitter = rng.float(-6, 6)
+        const placement: DecorationPlacement = {
+            kind: d.kind,
+            top: d.top,
+            bottom: d.bottom,
+            left: d.left,
+            right: d.right,
+            size: d.size + sizeJitter,
+            rotation: d.rotation + rotJitter,
+        }
+        const bbox = decorationBbox(placement)
+        const collides = acceptedBboxes.some((other) => bboxesOverlap(bbox, other))
+        if (collides) continue
+        accepted.push(placement)
+        acceptedBboxes.push(bbox)
+    }
+    return accepted
 }
 
 // ─── Stats inline block ─────────────────────────────────────────────────

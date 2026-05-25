@@ -36,12 +36,7 @@ interface Props {
     shareText: string
 }
 
-export const ShareAssetActions: FC<Props> = ({
-    captureRef,
-    source,
-    filename = 'peanut-card.png',
-    shareText,
-}) => {
+export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'peanut-card.png', shareText }) => {
     const [isSharing, setIsSharing] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
 

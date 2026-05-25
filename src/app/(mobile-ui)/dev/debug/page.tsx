@@ -294,7 +294,7 @@ export default function DebugPage() {
                     key: 'grantFlowEarlyAccess',
                     label: 'Stamp /shhhhh early-access',
                     description:
-                        "Stamps users.card_flow_early_access_at so the outer gate opens without going through /shhhhh. Idempotent. Use to skip the LP when testing the inner flow directly.",
+                        'Stamps users.card_flow_early_access_at so the outer gate opens without going through /shhhhh. Idempotent. Use to skip the LP when testing the inner flow directly.',
                     run: async () => {
                         await call('grantFlowEarlyAccess', '/dev/cheats/grant-flow-early-access', { userId })
                         await refreshWhoami()
@@ -357,8 +357,7 @@ export default function DebugPage() {
                 {
                     key: 'revokeAllSkipBadges',
                     label: 'Revoke all waitlist-skip badges',
-                    description:
-                        'Clears every waitlist-skip badge so the user falls back to the waitlist queue path.',
+                    description: 'Clears every waitlist-skip badge so the user falls back to the waitlist queue path.',
                     run: async () => {
                         for (const { code } of WAITLIST_SKIP_BADGES) {
                             await call(`revoke_${code}`, '/dev/cheats/grant-badge', { userId, code, revoke: true })

@@ -72,22 +72,14 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
         <PixelatedHand />
 
         {/* Top row: peanut logo (left) + visa logo (right) */}
-        <div
-            className="absolute flex items-start justify-between"
-            style={{ top: 24, left: 28, right: 28, zIndex: 2 }}
-        >
+        <div className="absolute flex items-start justify-between" style={{ top: 24, left: 28, right: 28, zIndex: 2 }}>
             {blurAll ? (
                 <PixelatedImg src={ASSET_PEANUTMAN_LOGO} displayW={52} displayH={52} />
             ) : (
                 <img src={ASSET_PEANUTMAN_LOGO} alt="" aria-hidden style={{ height: 52, width: 'auto' }} />
             )}
             {blurAll ? (
-                <PixelatedImg
-                    src={ASSET_VISA_BRAND}
-                    displayW={80}
-                    displayH={32}
-                    invert
-                />
+                <PixelatedImg src={ASSET_VISA_BRAND} displayW={80} displayH={32} invert />
             ) : (
                 <img
                     src={ASSET_VISA_BRAND}
@@ -149,12 +141,7 @@ function cloneCanvas(source: HTMLCanvasElement): HTMLCanvasElement {
     return out
 }
 
-function rasterImg(
-    src: string,
-    rasterW: number,
-    rasterH: number,
-    onReady: (canvas: HTMLCanvasElement) => void,
-): void {
+function rasterImg(src: string, rasterW: number, rasterH: number, onReady: (canvas: HTMLCanvasElement) => void): void {
     const key = `${src}|${rasterW}x${rasterH}`
     const cached = rasterCache.get(key)
     if (cached) {
@@ -219,15 +206,7 @@ interface PixelatedTextProps {
     borderColor?: string
 }
 
-const PixelatedText: FC<PixelatedTextProps> = ({
-    text,
-    displayW,
-    displayH,
-    font,
-    color,
-    bg,
-    borderColor,
-}) => {
+const PixelatedText: FC<PixelatedTextProps> = ({ text, displayW, displayH, font, color, bg, borderColor }) => {
     // Use a slightly finer cell for text so glyphs remain just-readable as
     // blocky shapes; pure CELL_PX/14 produces unreadable mush at this size.
     const textCellPx = 6
@@ -258,8 +237,9 @@ const PixelatedText: FC<PixelatedTextProps> = ({
                 // Replace the px size inside the canvas-font shorthand with the
                 // raster-scaled px size. The original string drives styling
                 // (weight, family); we only adjust the numeric size.
-                ctx.font = font.replace(/(\d+(?:\.\d+)?)px/, (_, n) =>
-                    `${Math.max(1, Math.round(Number(n) * fontScale))}px`
+                ctx.font = font.replace(
+                    /(\d+(?:\.\d+)?)px/,
+                    (_, n) => `${Math.max(1, Math.round(Number(n) * fontScale))}px`
                 )
                 ctx.textBaseline = 'middle'
                 ctx.textAlign = 'left'
@@ -285,10 +265,8 @@ const PixelatedHand: FC = () => (
         ref={(node) => {
             if (!node || node.firstChild) return
             const handRatio = 560 / 471 // hand display w/h
-            const rasterW =
-                handRatio > 1 ? HAND_RASTER_PX : Math.max(1, Math.round(HAND_RASTER_PX * handRatio))
-            const rasterH =
-                handRatio > 1 ? Math.max(1, Math.round(HAND_RASTER_PX / handRatio)) : HAND_RASTER_PX
+            const rasterW = handRatio > 1 ? HAND_RASTER_PX : Math.max(1, Math.round(HAND_RASTER_PX * handRatio))
+            const rasterH = handRatio > 1 ? Math.max(1, Math.round(HAND_RASTER_PX / handRatio)) : HAND_RASTER_PX
             rasterImg(ASSET_CARD_HAND, rasterW, rasterH, (canvas) => {
                 canvas.style.width = '100%'
                 canvas.style.height = '100%'
