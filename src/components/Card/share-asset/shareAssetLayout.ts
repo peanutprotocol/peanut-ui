@@ -54,37 +54,36 @@ export interface StampSlot {
     withTape?: boolean
 }
 
-// Priority-ordered stamp slots. The order matters: when a user has 1
-// stamp it must look intentional (hero placement, no collision with the
-// username pill / EARNED / tier block). 2-3 stamps should balance. 6
-// stamps fill the canvas.
+// Slots are positioned to never overlap each other AND never overlap
+// fixed chrome on the 1200×900 canvas:
+//   - EARNED rubber stamp:        x[920..1200], y[20..200]
+//   - EDITION + tier block:       x[20..360],   y[20..460]
+//   - @username pill + tagline:   x[400..800],  y[770..900]
+//   - Card bbox (axis-aligned):   x[264..884],  y[254..645]
 //
-// Excluded zones (do NOT place stamps here — they collide with fixed
-// editorial chrome on the 1200×900 canvas):
-//   - EARNED rubber stamp: top:0-180, right:0-300
-//   - EDITION + tier block: top:0-460, left:0-360
-//   - @username pill + tagline: bottom:0-220, right:0-720
+// Stamps with `behind:true` may sit ON TOP of the card bbox — they're
+// rendered z-index BELOW the card and peek out from behind. Their visible
+// portion must still land mostly OUTSIDE the card so the icon reads.
 //
-// Slot 1 is the HERO slot for single-stamp users: behind the card,
-// peeking out the top-center. Visually centered, no chrome collision.
+// Non-overlap is enforced by shareAssetLayout.test.ts (`stamps never
+// overlap`) — DO NOT edit positions without re-running that test.
+//
+// The catalogue is intentionally larger than 6 (the prior cap). For
+// N ≥ 7 we wrap with a per-cycle offset so stacked stamps look like a
+// pile rather than perfectly aligned duplicates.
 const STAMP_SLOTS: readonly StampSlot[] = [
-    // 1. HERO (behind, top-center) — peeks out from above the card.
-    { top: 160, left: 504, jitterXY: 14, rotation: -12, jitterRot: 5, behind: true, withTape: true },
-    // 2. Front lower-left of card — balances the @username (bottom-right).
-    { top: 620, left: 132, jitterXY: 12, rotation: 12, jitterRot: 4, behind: false },
-    // 3. Behind upper-right of card — fills the right side without
-    //    touching EARNED.
-    { top: 220, left: 820, jitterXY: 12, rotation: 16, jitterRot: 5, behind: true },
-    // 4. Front mid-left — peeks at left card edge below the tier block.
-    { top: 478, left: 60, jitterXY: 10, rotation: -18, jitterRot: 4, behind: false },
-    // 5. Behind mid-right card — peeks from card's right side.
-    { top: 470, left: 900, jitterXY: 12, rotation: 18, jitterRot: 5, behind: true },
-    // 6. Front bottom — pinned LEFT (not centered) because the
-    //    @username pill anchors bottom-right and its hit-box extends as
-    //    far left as x≈424 for the longest 16-char usernames. Keeping
-    //    slot #6 at left:140 leaves an 80px gap to the pill's worst-case
-    //    left edge.
-    { top: 720, left: 140, jitterXY: 10, rotation: -8, jitterRot: 4, behind: false },
+    // 1. HERO behind, top-center — peeks down from above the card.
+    { top: 140, left: 504, jitterXY: 12, rotation: -12, jitterRot: 5, behind: true, withTape: true },
+    // 2. Front bottom-left.
+    { top: 720, left: 80, jitterXY: 10, rotation: -10, jitterRot: 4, behind: false },
+    // 3. Behind upper-right of card (clear of EARNED).
+    { top: 220, left: 940, jitterXY: 10, rotation: 14, jitterRot: 5, behind: true },
+    // 4. Front mid-left — peeks at card's left edge.
+    { top: 440, left: 60, jitterXY: 10, rotation: -16, jitterRot: 4, behind: false },
+    // 5. Behind right-of-card, lower half.
+    { top: 480, left: 940, jitterXY: 10, rotation: 18, jitterRot: 5, behind: true },
+    // 6. Front bottom-right (opposite slot 2 across the pill).
+    { top: 720, left: 900, jitterXY: 10, rotation: 8, jitterRot: 4, behind: false },
 ] as const
 
 export interface StampPlacement {
@@ -99,36 +98,50 @@ export interface StampPlacement {
     height: number
 }
 
+// Inversely scale stamp size with count: 1 stamp gets a hero treatment,
+// 10+ stamps shrink to fit. Beyond the table, clamp to the smallest size.
+//
+// Heights are bounded so bottom slots (top≈720) + max-jitter (10) + height
+// stay within the canvas + a 20px overhang tolerance (900 + 20 - 730 = 190).
+const STAMP_SIZE_BY_COUNT: ReadonlyArray<readonly [number, number]> = [
+    [200, 236], // 1 — only slot 1 (hero, top=140) used; canvas-safe.
+    [168, 188], // 2 — slot 2 (top=720) activates here; height capped at 188.
+    [162, 180], // 3
+    [156, 172], // 4
+    [150, 164], // 5
+    [140, 156], // 6
+    [130, 144], // 7
+    [122, 136], // 8
+    [116, 130], // 9
+    [110, 124], // 10
+] as const
+
 export function placeStamps(badges: ShareAssetBadge[], rng: SeededRandom): StampPlacement[] {
     const sorted = [...badges].sort((a, b) => {
         const aT = a.earnedAt ? new Date(a.earnedAt).getTime() : 0
         const bT = b.earnedAt ? new Date(b.earnedAt).getTime() : 0
         return bT - aT
     })
-    const picked = sorted.slice(0, 6)
-    const count = picked.length
+    const count = sorted.length
     if (count === 0) return []
 
-    // Inversely scale stamp size with count so 1-badge users see a
-    // prominent stamp and 6-badge users see a balanced grid (no crowding).
-    const sizeByCount: Record<number, [number, number]> = {
-        1: [200, 236],
-        2: [180, 212],
-        3: [170, 200],
-        4: [160, 188],
-        5: [150, 176],
-        6: [138, 162],
-    }
-    const [width, height] = sizeByCount[Math.min(count, 6) as 1 | 2 | 3 | 4 | 5 | 6]
+    // Size table is indexed 1..10; clamp anything above to the smallest tier.
+    const [width, height] = STAMP_SIZE_BY_COUNT[Math.min(count, STAMP_SIZE_BY_COUNT.length) - 1]
 
-    const slots = STAMP_SLOTS.slice(0, count)
+    // Shuffle once so two users with identical badge sets but different
+    // seeds get visually distinct layouts.
+    const shuffled = rng.shuffle(sorted)
 
-    // Shuffle badge→slot mapping per seed so two users with identical
-    // badge sets but different usernames get visually distinct layouts.
-    const shuffledBadges = rng.shuffle(picked)
-
-    return slots.map((slot, i): StampPlacement => {
-        const badge = shuffledBadges[i]
+    return shuffled.map((badge, i): StampPlacement => {
+        // For i < STAMP_SLOTS.length, use a unique base slot. For overflow
+        // (i ≥ slot count), wrap with a per-cycle offset so the extras
+        // stack on existing slots as a natural pile (Hugo: "just stack
+        // them"). Per-cycle x/y shift + rotation tweak avoid pixel-
+        // identical duplicates.
+        const slotIdx = i % STAMP_SLOTS.length
+        const cycle = Math.floor(i / STAMP_SLOTS.length)
+        const base = STAMP_SLOTS[slotIdx]
+        const stackOffset = cycle * 22
         const meta = getBadgeMeta(badge.code)
         const year = badge.earnedAt ? `'${String(new Date(badge.earnedAt).getFullYear()).slice(-2)}` : undefined
         return {
@@ -139,11 +152,11 @@ export function placeStamps(badges: ShareAssetBadge[], rng: SeededRandom): Stamp
                 iconUrl: getBadgeIcon(badge.code),
                 year,
             },
-            top: slot.top + rng.float(-slot.jitterXY, slot.jitterXY),
-            left: slot.left + rng.float(-slot.jitterXY, slot.jitterXY),
-            rotation: slot.rotation + rng.float(-slot.jitterRot, slot.jitterRot),
-            behind: slot.behind,
-            withTape: !!slot.withTape,
+            top: base.top + stackOffset + rng.float(-base.jitterXY, base.jitterXY),
+            left: base.left + stackOffset + rng.float(-base.jitterXY, base.jitterXY),
+            rotation: base.rotation + cycle * 6 + rng.float(-base.jitterRot, base.jitterRot),
+            behind: base.behind,
+            withTape: !!base.withTape,
             width,
             height,
         }
@@ -167,21 +180,25 @@ interface DecorationCandidate {
     safe: boolean
 }
 
-// Peanut characters get a much bigger native size than stars — the
-// SVGs have fine line detail that goes blurry below ~100px native, and
-// stars are simple geometric shapes that downscale cleanly even at 50px.
+// Decoration pool. Peanut characters (peanutWaving / peanutHands) were
+// dropped from the default set — their large native size (140px) made
+// them collide with stamp slots at the right and bottom-left, which
+// then hid stamps underneath. Stars and thumbsUp are small enough to
+// tuck into gaps without competing with stamp positions.
+//
+// `peanutWaving` + `peanutHands` are still in the type union so we can
+// re-introduce them in low-stamp-count layouts later if design wants
+// the character vibe back.
 const DECORATION_POOL: readonly DecorationCandidate[] = [
-    // Top margin
+    // Top margin (between EDITION block and EARNED stamp)
     { kind: 'star', top: 36, left: 380, size: 72, rotation: 8, safe: true },
     { kind: 'star', top: 52, left: 720, size: 60, rotation: -12, safe: true },
-    { kind: 'thumbsUp', top: 56, left: 232, size: 132, rotation: -10, safe: true },
-    // Mid-right margin
-    { kind: 'star', top: 286, right: 22, size: 64, rotation: 45, safe: true },
-    { kind: 'peanutWaving', top: 316, right: 24, size: 140, rotation: 12, safe: true },
-    // Bottom margin
-    { kind: 'star', bottom: 96, right: 320, size: 56, rotation: -8, safe: true },
-    { kind: 'star', bottom: 282, right: 64, size: 52, rotation: 22, safe: true },
-    { kind: 'peanutHands', bottom: 124, left: 26, size: 140, rotation: -8, safe: true },
+    { kind: 'thumbsUp', top: 56, left: 232, size: 100, rotation: -10, safe: true },
+    // Mid margins (small stars only — characters would clash with slots 3/5)
+    { kind: 'star', top: 286, right: 22, size: 56, rotation: 45, safe: true },
+    // Bottom margin (between card-bottom and username pill; away from slots 2/6)
+    { kind: 'star', bottom: 220, right: 280, size: 52, rotation: -8, safe: true },
+    { kind: 'star', bottom: 320, left: 320, size: 48, rotation: 22, safe: true },
 ] as const
 
 export interface DecorationPlacement {
@@ -194,17 +211,11 @@ export interface DecorationPlacement {
     rotation: number
 }
 
-/** Pick 4-6 decorations from the pool, ensuring variety (at least 1 star
- *  + 1 character). */
+/** Pick a handful of decorations from the pool. Pool is small (stars +
+ *  thumbsUp) and stamp-safe, so we just shuffle and take 3-4. */
 export function placeDecorations(rng: SeededRandom): DecorationPlacement[] {
-    const stars = DECORATION_POOL.filter((d) => d.kind === 'star')
-    const characters = DECORATION_POOL.filter((d) => d.kind !== 'star')
-    // 3-4 stars + 2-3 characters, scattered.
-    const numStars = rng.int(3, 4)
-    const numChars = rng.int(2, 3)
-    const pickedStars = rng.shuffle(stars).slice(0, numStars)
-    const pickedChars = rng.shuffle(characters).slice(0, numChars)
-    return [...pickedStars, ...pickedChars].map((d) => ({
+    const picked = rng.shuffle([...DECORATION_POOL]).slice(0, rng.int(3, 4))
+    return picked.map((d) => ({
         kind: d.kind,
         top: d.top,
         bottom: d.bottom,

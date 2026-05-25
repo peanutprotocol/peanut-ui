@@ -153,21 +153,34 @@ export default function ShhhhhLandingPage() {
             return
         }
         // Stamp the early-access flag so the user can pass the /card outer
-        // gate. Idempotent: subsequent presses no-op. We MUST invalidate the
-        // 'card-info' query before navigating — without it, /card mounts with
-        // a cached `flowEarlyAccess=false` (staleTime 60s), the outer-gate
-        // useEffect fires, and the user gets bounced back here in a loop.
-        // Failure to stamp is non-fatal: we still navigate to /card; the gate
-        // will redirect back gracefully if the API call really failed.
+        // gate. Idempotent: subsequent presses no-op.
         try {
             await cardApi.grantFlowEarlyAccess()
             posthog.capture(ANALYTICS_EVENTS.CARD_FLOW_EARLY_ACCESS_GRANTED)
         } catch (err) {
             console.error('[shhhhh] grantFlowEarlyAccess failed:', err)
         }
-        // Invalidate AND wait for the refetch so the next /card mount reads
-        // the fresh shape (with flowEarlyAccess=true).
-        await queryClient.invalidateQueries({ queryKey: ['card-info'] })
+        // PREFETCH fresh card-info into cache before navigating. We can't
+        // rely on `invalidateQueries` here — it only awaits an in-flight
+        // refetch when there's already an observer, and /card hasn't
+        // mounted yet, so invalidate just marks stale and returns. If we
+        // navigated immediately, /card's outer-gate effect would read the
+        // pre-stamp `flowEarlyAccess: false` from cache and bounce back
+        // (sometimes ending the user at /home via the safe-back fallback).
+        //
+        // fetchQuery actively populates the cache with the fresh shape
+        // (flowEarlyAccess: true) BEFORE we route, so /card mounts with
+        // the right state on first paint. Failure is non-fatal — /card
+        // will refetch on its own; the user might briefly see the gate
+        // bounce, but won't get stuck.
+        try {
+            await queryClient.fetchQuery({
+                queryKey: ['card-info', user.user?.userId],
+                queryFn: () => cardApi.getInfo(),
+            })
+        } catch (err) {
+            console.error('[shhhhh] card-info prefetch failed:', err)
+        }
         router.push('/card')
     }
 

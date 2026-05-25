@@ -334,18 +334,18 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                 </div>
             </div>
 
-            {/* ─── @username attribution (bottom-right) ─── */}
+            {/* ─── @username pill — the sharer's own handle, displayed for
+                pride. No "who invited you?" caption: this is the asset's
+                "this is ME" anchor, not a referral nudge to the viewer. ─── */}
             <div
                 className="absolute flex flex-col items-end"
                 style={{
                     bottom: 48,
                     right: 56,
-                    gap: 12,
                     zIndex: 6,
                     animation: animate ? `fadeUp 600ms ease-out ${ANIM_ATTRIBUTION_DELAY}ms both` : 'none',
                 }}
             >
-                <HeroCaps style={{ fontSize: 22, letterSpacing: '0.18em', opacity: 0.6 }}>Who invited you? ↓</HeroCaps>
                 <span
                     className="inline-block rounded-full border-[5px] border-black bg-secondary-1"
                     style={{
@@ -403,8 +403,9 @@ const StampEl: FC<StampElProps> = ({ stamp, animate, delay }) => {
     const restTransform = `rotate(${stamp.rotation}deg)`
     return (
         <figure
-            className="stamp absolute"
+            className="stamp"
             style={{
+                position: 'absolute', // inline beats `.stamp { position: relative }` from globals.css
                 width: stamp.width,
                 height: stamp.height,
                 top: stamp.top,

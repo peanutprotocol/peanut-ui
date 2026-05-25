@@ -52,7 +52,7 @@ function markSkipCelebrationSeen(): void {
 const CardPage: FC = () => {
     const router = useRouter()
     const queryClient = useQueryClient()
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
     const userId = user?.user?.userId
 
     const {
@@ -197,6 +197,39 @@ const CardPage: FC = () => {
         url.searchParams.set('card_state', state)
         window.history.replaceState(window.history.state, '', url.toString())
     }, [state])
+
+    // Re-doing the funnel = re-celebrating. Every time the user lands on
+    // the eligibility-check screen (a fresh /card visit, no card yet
+    // issued, hold not yet completed), clear any stale celebration-seen
+    // flag so the post-hold transition reliably surfaces the celebration.
+    // The flag is set again when the user dismisses celebration via
+    // "Continue to your card", so it still suppresses a re-trigger on
+    // refresh after dismissal — only a fresh hold re-celebrates.
+    useEffect(() => {
+        if (state !== 'eligibility-check') return
+        if (!skipCelebrationSeen) return
+        if (typeof window !== 'undefined') {
+            window.localStorage.removeItem(SKIP_CELEBRATION_SEEN_KEY)
+        }
+        setSkipCelebrationSeen(false)
+    }, [state, skipCelebrationSeen])
+
+    // Refetch the user profile when entering the celebration so the share
+    // asset reflects the user's CURRENT badge collection. Without this,
+    // badges granted (e.g. via auto-award webhooks or admin cheats) after
+    // the auth context's initial /get-user don't appear on the asset —
+    // user.user.badges stays cached as the login-time snapshot. Fires
+    // once per state entry (ref-guarded) so we don't spam the BE.
+    const celebrationFetchedUserRef = useRef(false)
+    useEffect(() => {
+        if (state !== 'waitlist-skip-celebration') {
+            celebrationFetchedUserRef.current = false
+            return
+        }
+        if (celebrationFetchedUserRef.current) return
+        celebrationFetchedUserRef.current = true
+        void fetchUser()
+    }, [state, fetchUser])
 
     const invalidateOverview = useCallback(() => {
         void queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
@@ -456,15 +489,19 @@ const CardPage: FC = () => {
             case 'waitlist-skip-celebration': {
                 // Pick the freshest skip badge for the celebration headline.
                 const skipCode = cardInfo!.skipBadges[0]
+                // Share asset shows ALL earned badges, not just skip-badges.
+                // `user.user.badges` is the full collection from /get-user
+                // (with earnedAt) — fall back to cardInfo.skipBadges if it
+                // hasn't loaded yet so we still render something.
+                const allBadges = user?.user?.badges?.map((b) => ({
+                    code: b.code,
+                    earnedAt: b.earnedAt,
+                })) ?? cardInfo!.skipBadges.map((code) => ({ code }))
                 return (
                     <BadgeSkipCelebration
                         badgeCode={skipCode}
                         username={user?.user?.username ?? undefined}
-                        // Pass the skip badges through to the share asset so the
-                        // stamps reflect the user's actual collection. Earned-at
-                        // dates aren't on /card's response — share asset will
-                        // sort by code order, which is fine for the celebration.
-                        badges={cardInfo!.skipBadges.map((code) => ({ code }))}
+                        badges={allBadges}
                         onContinue={() => {
                             markSkipCelebrationSeen()
                             setSkipCelebrationSeen(true)

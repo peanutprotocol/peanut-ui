@@ -69,14 +69,13 @@ describe('placeStamps', () => {
         }
     })
 
-    it('caps at 6 stamps for 6+ badges (picks most-recent)', () => {
+    it('renders every badge for 6+ badges (no cap, most-recent first)', () => {
         const badges = Array.from({ length: 9 }, (_, i) => badge(`B${i}`, 2025 - i))
         const placed = placeStamps(badges, rng())
-        expect(placed.length).toBe(6)
-        // most-recent earnedAt should appear; oldest 3 (B6, B7, B8) should not.
-        const codes = placed.map((s) => s.badge.code)
-        expect(codes).toContain('B0')
-        expect(codes).not.toContain('B8')
+        expect(placed.length).toBe(9)
+        // Every code shows up — no silent drops at the cap boundary.
+        const codes = new Set(placed.map((s) => s.badge.code))
+        for (let i = 0; i < 9; i++) expect(codes.has(`B${i}`)).toBe(true)
     })
 
     it('stamp size scales inversely with badge count', () => {
@@ -124,6 +123,78 @@ describe('placeStamps', () => {
         const placed = placeStamps([badge('NOT_A_REAL_BADGE_CODE')], rng())
         expect(placed.length).toBe(1)
         expect(placed[0].badge.caption).toBeTruthy()
+    })
+
+    // Strict non-overlap invariant for the "unique-slot" range (1..6
+     // unique slots in the table). For every count 1..6 and across many
+     // seeds, no two placed stamps' rotation-aware bboxes may touch.
+     //
+     // We use the diagonal sqrt(w² + h²) as a worst-case radius from the
+     // stamp's center. Two stamps "overlap" if the distance between their
+     // centers is less than the sum of their radii. This is conservative
+     // (treats the rotated rect as a circumscribing circle) — if it
+     // passes, the actual rotated rects definitely don't overlap.
+     //
+     // For counts > 6 we deliberately stack (Hugo: "just stack them") so
+     // the invariant does not apply; the layout still stays within canvas
+     // (separate test below).
+    it('stamps never overlap for counts 1..6 (any seed)', () => {
+        const seeds = ['kkonrad', 'hugo', 'asfsfsf', 'a', 'longusername', '0', 'seed-42', '🥜']
+        for (let n = 1; n <= 6; n++) {
+            const badges = Array.from({ length: n }, (_, i) => badge(`B${i}`))
+            for (const seed of seeds) {
+                const placed = placeStamps(badges, new SeededRandom(seed))
+                for (let i = 0; i < placed.length; i++) {
+                    for (let j = i + 1; j < placed.length; j++) {
+                        const a = placed[i]
+                        const b = placed[j]
+                        const cxA = a.left + a.width / 2
+                        const cyA = a.top + a.height / 2
+                        const cxB = b.left + b.width / 2
+                        const cyB = b.top + b.height / 2
+                        const dist = Math.hypot(cxA - cxB, cyA - cyB)
+                        const radA = Math.hypot(a.width, a.height) / 2
+                        const radB = Math.hypot(b.width, b.height) / 2
+                        const required = radA + radB
+                        if (dist < required) {
+                            throw new Error(
+                                `Stamp overlap at count=${n} seed="${seed}": ` +
+                                    `slots ${i} (${a.badge.code} @ ${a.left.toFixed(0)},${a.top.toFixed(0)}) ` +
+                                    `and ${j} (${b.badge.code} @ ${b.left.toFixed(0)},${b.top.toFixed(0)}) ` +
+                                    `— distance ${dist.toFixed(0)} < required ${required.toFixed(0)}`
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    })
+
+    // For any count (including 15+, which stacks), every stamp's axis-
+    // aligned bbox must fit within the canvas with at most a small
+    // overhang tolerance — half-outside-the-canvas was the regression
+    // Hugo flagged in QA.
+    it('every stamp stays within canvas at any count', () => {
+        const seeds = ['kkonrad', 'hugo', 'asfsfsf', 'longusername', 'seed-42']
+        const overhang = 20 // peeking off-edge is part of the design, but only this much
+        for (let n = 1; n <= 15; n++) {
+            const badges = Array.from({ length: n }, (_, i) => badge(`B${i}`))
+            for (const seed of seeds) {
+                const placed = placeStamps(badges, new SeededRandom(seed))
+                for (const s of placed) {
+                    expect(s.left).toBeGreaterThanOrEqual(-overhang)
+                    expect(s.top).toBeGreaterThanOrEqual(-overhang)
+                    expect(s.left + s.width).toBeLessThanOrEqual(CANVAS_W + overhang)
+                    expect(s.top + s.height).toBeLessThanOrEqual(CANVAS_H + overhang)
+                }
+            }
+        }
+    })
+
+    it('renders every badge (no silent cap)', () => {
+        const badges = Array.from({ length: 13 }, (_, i) => badge(`B${i}`))
+        const placed = placeStamps(badges, new SeededRandom('kkonrad'))
+        expect(placed.length).toBe(13)
     })
 })
 

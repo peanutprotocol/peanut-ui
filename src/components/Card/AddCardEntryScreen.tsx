@@ -3,7 +3,7 @@ import { type FC, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
-import CardFace from '@/components/Card/CardFace'
+import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
 import { Icon } from '@/components/Global/Icons/Icon'
 
 interface Props {
@@ -29,7 +29,11 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
         <div className="flex min-h-[inherit] flex-col gap-6">
             <NavHeader title="Add Card" onPrev={onPrev} />
 
-            <CardFace last4="0420" locked />
+            {/* Pixelated card — keeps the anticipation/tease intact through
+                the "Get your card" CTA, matching the /shhhhh + eligibility
+                screens. The card's real details are still hidden until
+                issuance, so the same chunky-pixel treatment applies. */}
+            <ScaledPixelatedCardFace last4="????" blurAll />
 
             <div className="flex flex-col gap-2">
                 <h1 className="text-2xl font-extrabold text-n-1">Spend anywhere Visa is accepted</h1>
