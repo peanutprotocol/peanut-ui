@@ -75,7 +75,11 @@ export const Badges = () => {
                                 <Image
                                     src={badge.logo}
                                     alt={badge.title}
-                                    className="size-10 min-w-10"
+                                    // object-contain so non-square badge SVGs
+                                    // (e.g. bug_whisperer.svg is ~1.41:1) keep
+                                    // their aspect inside the 40×40 slot
+                                    // instead of getting squished to 1:1.
+                                    className="size-10 min-w-10 object-contain"
                                     height={100}
                                     width={100}
                                     unoptimized

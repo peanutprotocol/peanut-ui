@@ -26,7 +26,9 @@ interface Props {
     /** Pulled from the auth store by the parent so we can render the asset
      *  in the drawer without re-fetching. */
     username?: string
-    skipBadges?: string[]
+    /** Full user-badges payload (with `earnedAt`) — drawer stamps every
+     *  badge the user holds, not just the skip-the-line subset. */
+    badges?: Array<{ code: string; earnedAt?: string | Date | null }>
 }
 
 const VIA_COPY: Record<CardUnlockHistoryEntry['via'], { title: string; subtitle: string }> = {
@@ -44,7 +46,7 @@ const VIA_COPY: Record<CardUnlockHistoryEntry['via'], { title: string; subtitle:
     },
 }
 
-const CardUnlockHistoryItem: FC<Props> = ({ entry, position = 'single', className, username, skipBadges }) => {
+const CardUnlockHistoryItem: FC<Props> = ({ entry, position = 'single', className, username, badges }) => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const copy = VIA_COPY[entry.via]
 
@@ -81,7 +83,7 @@ const CardUnlockHistoryItem: FC<Props> = ({ entry, position = 'single', classNam
                     onClose={() => setIsDrawerOpen(false)}
                     entry={entry}
                     username={username}
-                    skipBadges={skipBadges ?? []}
+                    badges={badges}
                 />
             )}
         </>

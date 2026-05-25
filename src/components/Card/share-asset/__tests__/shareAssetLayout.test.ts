@@ -119,10 +119,12 @@ describe('placeStamps', () => {
         expect(aSig).not.toEqual(bSig)
     })
 
-    it('handles unknown badge codes by falling back to a default caption', () => {
+    it('handles unknown badge codes by falling back to the peanut logo icon', () => {
         const placed = placeStamps([badge('NOT_A_REAL_BADGE_CODE')], rng())
         expect(placed.length).toBe(1)
-        expect(placed[0].badge.caption).toBeTruthy()
+        // No caption/captionBg anymore — stamps don't render text. Just
+        // verify the placement carries an icon URL fallback.
+        expect(placed[0].badge.iconUrl).toBeTruthy()
     })
 
     // Strict non-overlap invariant for the "unique-slot" range (1..6

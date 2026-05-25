@@ -17,11 +17,11 @@ import { useMemo, useState } from 'react'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import ShareAssetD3 from '@/components/Card/share-asset/ShareAssetD3'
-import { BADGE_CODES, getBadgeMeta } from '@/components/Card/share-asset/badgeCatalog'
+import { BADGE_CODES, getBadgeDisplayName } from '@/components/Badges/badge.utils'
 import { CANVAS_W, CANVAS_H } from '@/components/Card/share-asset/shareAssetLayout'
 import type { TierLevel } from '@/components/Card/share-asset/shareAsset.types'
 
-const ALL_CODES = BADGE_CODES as readonly string[]
+const ALL_CODES = BADGE_CODES
 
 export default function ShareBuilderPage() {
     // ─── User inputs ─────────────────────────────────────────────────────
@@ -123,7 +123,7 @@ export default function ShareBuilderPage() {
                                     }`}
                                     title={code}
                                 >
-                                    {getBadgeMeta(code).caption}
+                                    {getBadgeDisplayName(code, code)}
                                 </button>
                             ))}
                         </div>
