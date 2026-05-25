@@ -199,16 +199,12 @@ const DECORATION_POOL: readonly DecorationCandidate[] = [
     // Mid-right gap between slot 3 (y≤396) and slot 5 (y≥470)
     { kind: 'star', top: 410, right: 30, size: 44, rotation: 45, safe: true },
     { kind: 'sparkle', top: 420, right: 140, size: 42, rotation: -10, safe: true },
-    // Mid-left gap between slot 4 (y≤612) and slot 2 (y≥710).
-    // Keep decorations LEFT of x≈210 — the card's rotated body extends to
-    // roughly (294, 686) at its bottom-left corner (−8° rotation), so any
-    // decoration creeping past x=210 in this y range gets sliced by the
-    // card edge from above (decorations sit at zIndex 1, card at 3).
-    { kind: 'star', top: 650, left: 160, size: 40, rotation: 18, safe: true },
-    // Bottom-right gutter between username pill (x≤800) and slot 6 (x≥890).
-    // Small mascot here balances the bottom-left mid-character without
-    // clashing with the pill or the bottom-right stamp.
-    { kind: 'peanutPfp', bottom: 36, right: 28, size: 52, rotation: 6, safe: true },
+    // Mid-left gap between slot 4 (y≤612) and slot 2 (y≥710). Small
+    // peanut character + a star. peanutWaving is the full-body asset
+    // — peanut-pfp.svg's viewBox crops the lower body so it can't be
+    // used as a small floater here (the SVG itself renders truncated).
+    { kind: 'peanutWaving', top: 640, left: 220, size: 64, rotation: -6, safe: true },
+    { kind: 'star', top: 650, left: 340, size: 40, rotation: 18, safe: true },
     // Bottom-center between card-bottom (y=645) and username pill (y≥770).
     // Pill x range ~[400..800] worst case; keep these in the gutters.
     { kind: 'sparkle', bottom: 220, right: 280, size: 52, rotation: -8, safe: true },
