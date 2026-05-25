@@ -126,7 +126,7 @@ export default function QRPayPage() {
         return paymentProcessor ? maintenanceConfig.disabledPaymentProviders.includes(paymentProcessor) : false
     }, [paymentProcessor])
 
-    const { shouldBlockPay, kycGateState } = useQrKycGate(paymentProcessor)
+    const { shouldBlockPay, kycGateState, userMessage: qrKycUserMessage } = useQrKycGate(paymentProcessor)
     const { isUserSumsubKycApproved } = useKycStatus()
     const sumsubFlow = useMultiPhaseKycFlow({})
     const queryClient = useQueryClient()
@@ -864,7 +864,8 @@ export default function QRPayPage() {
                     description={
                         isFixable
                             ? 'We need an updated document to enable QR payments. Please upload a clearer photo of your ID.'
-                            : 'QR payments are not available for your account. Contact support for help.'
+                            : (qrKycUserMessage ??
+                              'QR payments are not available for your account. Contact support for help.')
                     }
                     icon={
                         methodIcon ? (

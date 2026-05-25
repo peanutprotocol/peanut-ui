@@ -9,6 +9,8 @@ export type KycVerificationStatus = MantecaKycStatus | SumsubKycStatus | string
 
 export type KycStatusCategory = 'completed' | 'processing' | 'failed' | 'action_required'
 
+export const MAX_SELF_HEAL_ATTEMPTS = 3
+
 // sets of status values by category — single source of truth
 // REVERIFYING = user is approved but re-verifying for a new region (cross-region KYC).
 // treated as approved for access checks — user retains existing provider access.

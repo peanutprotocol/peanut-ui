@@ -83,6 +83,8 @@ jest.mock('@/hooks/useQrKycGate', () => ({
         PROCEED_TO_PAY: 'proceed_to_pay',
         REQUIRES_IDENTITY_VERIFICATION: 'requires_identity_verification',
         IDENTITY_VERIFICATION_IN_PROGRESS: 'identity_verification_in_progress',
+        PROVIDER_REJECTION_FIXABLE: 'provider_rejection_fixable',
+        PROVIDER_REJECTION_BLOCKED: 'provider_rejection_blocked',
     },
     useQrKycGate: (...args: any[]) => mockUseQrKycGate(...args),
 }))
@@ -479,6 +481,7 @@ function applyDefaults() {
     mockUseQrKycGate.mockReturnValue({
         kycGateState: 'proceed_to_pay',
         shouldBlockPay: false,
+        userMessage: null,
     })
 
     mockUseAuth.mockReturnValue({
@@ -601,6 +604,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         mockUseQrKycGate.mockReturnValue({
             kycGateState: 'loading',
             shouldBlockPay: true,
+            userMessage: null,
         })
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
@@ -611,6 +615,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         mockUseQrKycGate.mockReturnValue({
             kycGateState: 'requires_identity_verification',
             shouldBlockPay: true,
+            userMessage: null,
         })
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
@@ -625,6 +630,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         mockUseQrKycGate.mockReturnValue({
             kycGateState: 'identity_verification_in_progress',
             shouldBlockPay: true,
+            userMessage: null,
         })
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
