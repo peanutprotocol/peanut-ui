@@ -17,6 +17,7 @@ export enum QrKycState {
 export interface QrKycGateResult {
     kycGateState: QrKycState
     shouldBlockPay: boolean
+    userMessage: string | null
 }
 
 /**
@@ -38,12 +39,18 @@ export function useQrKycGate(_paymentProcessor?: 'MANTECA' | null): QrKycGateRes
     const { user, isFetchingUser, fetchUser } = useAuth()
     const { manteca: mantecaRejection } = useProviderRejectionStatus()
     const [kycGateState, setKycGateState] = useState<QrKycState>(QrKycState.LOADING)
+    const [userMessage, setUserMessage] = useState<string | null>(null)
     const hasRequestedUserFetchRef = useRef(false)
+
+    const setGateState = useCallback((state: QrKycState, message: string | null = null) => {
+        setKycGateState(state)
+        setUserMessage(message)
+    }, [])
 
     const determineKycGateState = useCallback(async () => {
         // while auth is fetching, keep loading to avoid flashing the verify modal
         if (isFetchingUser) {
-            setKycGateState(QrKycState.LOADING)
+            setGateState(QrKycState.LOADING)
             return
         }
 
@@ -51,7 +58,7 @@ export function useQrKycGate(_paymentProcessor?: 'MANTECA' | null): QrKycGateRes
             // on public routes (like qr pay) auth may not auto-fetch; trigger it once and wait
             if (!hasRequestedUserFetchRef.current) {
                 hasRequestedUserFetchRef.current = true
-                setKycGateState(QrKycState.LOADING)
+                setGateState(QrKycState.LOADING)
                 try {
                     await fetchUser()
                 } catch {
@@ -59,32 +66,34 @@ export function useQrKycGate(_paymentProcessor?: 'MANTECA' | null): QrKycGateRes
                 }
                 return
             }
-            setKycGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
+            setGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
             return
         }
 
-        // a provider rejection takes precedence over rail presence
+        // a provider rejection takes precedence over rail presence. propagate the
+        // hook's userMessage (carries US-nationality restriction copy etc.) so
+        // the consumer surfaces the same wording dev's legacy gate produced.
         if (mantecaRejection.state === 'blocked') {
-            setKycGateState(QrKycState.PROVIDER_REJECTION_BLOCKED)
+            setGateState(QrKycState.PROVIDER_REJECTION_BLOCKED, mantecaRejection.userMessage)
             return
         }
         if (mantecaRejection.state === 'fixable') {
-            setKycGateState(QrKycState.PROVIDER_REJECTION_FIXABLE)
+            setGateState(QrKycState.PROVIDER_REJECTION_FIXABLE, mantecaRejection.userMessage)
             return
         }
 
         const rails = user.rails
         if (hasEnabledRail(rails, 'MANTECA')) {
-            setKycGateState(QrKycState.PROCEED_TO_PAY)
+            setGateState(QrKycState.PROCEED_TO_PAY)
             return
         }
         if (hasRailInProgress(rails, 'MANTECA')) {
-            setKycGateState(QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS)
+            setGateState(QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS)
             return
         }
 
-        setKycGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
-    }, [user, isFetchingUser, fetchUser, mantecaRejection.state])
+        setGateState(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
+    }, [user, isFetchingUser, fetchUser, mantecaRejection.state, mantecaRejection.userMessage, setGateState])
 
     useEffect(() => {
         determineKycGateState()
@@ -92,6 +101,7 @@ export function useQrKycGate(_paymentProcessor?: 'MANTECA' | null): QrKycGateRes
 
     const result: QrKycGateResult = {
         kycGateState,
+        userMessage,
         shouldBlockPay:
             kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION ||
             kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS ||

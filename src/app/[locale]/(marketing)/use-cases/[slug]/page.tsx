@@ -4,7 +4,9 @@ import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
+import { ArticleBackNav } from '@/components/Marketing/ArticleBackNav'
 import { readPageContentLocalized, listPublishedSlugs, type ContentFrontmatter } from '@/lib/content'
+import type { Locale } from '@/i18n/types'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -49,12 +51,19 @@ export default async function UseCasePage({ params }: PageProps) {
     const { content } = await renderContent(mdxSource.body)
     const i18n = getTranslations(locale)
     const url = `/${locale}/use-cases/${slug}`
+    const hubHref = `/${locale}/content?type=use-cases`
+
+    const localizedHrefs = Object.fromEntries(SUPPORTED_LOCALES.map((l) => [l, `/${l}/use-cases/${slug}`])) as Record<
+        Locale,
+        string
+    >
 
     return (
         <ContentPage
             locale={locale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
+                { name: i18n.filterUseCases, href: hubHref },
                 { name: mdxSource.frontmatter.title, href: url },
             ]}
             article={
@@ -68,6 +77,15 @@ export default async function UseCasePage({ params }: PageProps) {
                     : undefined
             }
         >
+            <div className="mx-auto max-w-[640px] px-6 pt-4 md:px-4">
+                <ArticleBackNav
+                    parentLabel={i18n.filterUseCases}
+                    parentHref={hubHref}
+                    backToTemplate={i18n.backTo}
+                    currentLocale={locale as Locale}
+                    localizedHrefs={localizedHrefs}
+                />
+            </div>
             {content}
         </ContentPage>
     )

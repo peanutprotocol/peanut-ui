@@ -141,7 +141,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
     return (
         <section
             id="hero"
-            className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-primary-1 px-4 py-4 xl:h-fit xl:justify-center"
+            className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-primary-1 px-4 pb-12 pt-4 md:pb-16 xl:h-fit xl:justify-center xl:pb-4"
         >
             <CloudsCss />
             <div className="relative mt-10 w-full md:mt-0">
@@ -170,7 +170,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
             </div>
             <PeanutMascot />
 
-            <div className="relative z-20 mb-4 flex w-full flex-col items-center justify-center md:mb-0">
+            <div className="relative z-20 flex w-full flex-col items-center justify-center">
                 <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:text-heading">
                     TAP. SCAN. ANYWHERE.
                 </h2>
@@ -178,7 +178,18 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
                     className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    Buenos Aires. São Paulo. Floripa.
+                    <a href="/en/argentina" className="hover:underline">
+                        Buenos Aires
+                    </a>
+                    .{' '}
+                    <a href="/en/brazil" className="hover:underline">
+                        São Paulo
+                    </a>
+                    .{' '}
+                    <a href="/en/brazil" className="hover:underline">
+                        Floripa
+                    </a>
+                    .
                 </span>
                 <span className="mt-2 block text-center text-sm text-n-1/70 md:text-base" style={{ fontWeight: 400 }}>
                     No local ID or bank required.

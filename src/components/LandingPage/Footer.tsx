@@ -63,6 +63,9 @@ const Footer = ({ showSiteDirectory = true }: { showSiteDirectory?: boolean }) =
                         <a className="text-xl font-bold text-white" href="/support">
                             Support
                         </a>
+                        <a className="text-xl font-bold text-white" href="/en/content">
+                            Content
+                        </a>
                         <a className="text-xl font-bold text-white" href="/en/help">
                             Docs
                         </a>

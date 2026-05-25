@@ -1,68 +1,27 @@
-// Typed wrappers for corridor/country SEO data.
-// Reads from peanut-content: input/data/countries/ + content/countries/ + content/send-to/
-// Public API unchanged from previous version.
+// Country + corridor data for marketing routes, read from generated content.
+//
+// Sources (all in the public mirror):
+//   content/countries/{slug}/{lang}.md      — country hub article + frontmatter
+//   content/send-to/{dst}/from/{src}/{lang}.md — corridor article + frontmatter
+//
+// Country display names come from the `name:` field denormalized at
+// generation time (see mono/content/_system/templates/country-hub.md); absent
+// values fall through to title-casing. Locale-specific names are resolved via
+// the standard locale fallback chain.
+//
+// The structured CountrySEO fields (currency, region, payment methods, FAQs,
+// etc.) used to live here; they were retired in March 2026 when the rendering
+// layer moved to MDX-as-prose (commits bd0e575, 1d04ee1). All four marketing
+// routes — /{country}, /send-money-to, /receive-money-from, /send-money-from
+// — now render the MDX body directly. We keep only the slug list and the
+// display-name resolver.
 
-import {
-    readEntityData,
-    readPageContent,
-    listEntitySlugs,
-    listContentSlugs,
-    listCorridorOrigins,
-    isPublished,
-} from '@/lib/content'
+import { listContentSlugs, listCorridorOrigins, readPageContent, readPageContentLocalized } from '@/lib/content'
 import type { Locale } from '@/i18n/types'
-import { extractFaqs } from './utils'
-
-// --- Entity frontmatter schema (input/data/countries/{slug}.md) ---
-
-interface CountryEntityFrontmatter {
-    slug: string
-    name: string
-    currency: string
-    local_id: string
-    local_payment_methods: string[]
-    corridors: Array<{
-        origin: string
-        priority: 'high' | 'medium' | 'low'
-        common_use_cases: string[]
-    }>
-}
-
-// --- Content frontmatter schema (content/countries/{slug}/{lang}.md) ---
-
-interface CountryContentFrontmatter {
-    title: string
-    description: string
-    slug: string
-    lang: string
-    published: boolean
-    schema_types: string[]
-    alternates?: Record<string, string>
-}
-
-// --- Spending method entity frontmatter ---
-
-interface SpendingMethodFrontmatter {
-    slug: string
-    name: string
-    type: string
-}
-
-// --- Public types (matches fields consumed by page components) ---
+import { displayNameFromContent } from './utils'
 
 export interface CountrySEO {
     name: string
-    region: string
-    currency: string
-    localPaymentMethods: string[]
-    context: string
-    instantPayment?: string
-    payMerchants: boolean
-    faqs: Array<{ q: string; a: string }>
-    corridors: Array<{
-        origin: string
-        priority: 'high' | 'medium' | 'low'
-    }>
 }
 
 export interface Corridor {
@@ -70,148 +29,39 @@ export interface Corridor {
     to: string
 }
 
-// --- Loader ---
+function loadCountries(): Record<string, CountrySEO> {
+    const result: Record<string, CountrySEO> = {}
+    for (const slug of listContentSlugs('countries')) {
+        const content = readPageContent<{ name?: unknown; published?: boolean }>('countries', slug, 'en')
+        if (content && content.frontmatter.published === false) continue
+        result[slug] = { name: displayNameFromContent(slug, content?.frontmatter) }
+    }
+    return result
+}
 
-function loadAll() {
-    const countrySlugs = listEntitySlugs('countries')
-    const countries: Record<string, CountrySEO> = {}
+function loadCorridors(): Corridor[] {
+    const seen = new Set<string>()
     const corridors: Corridor[] = []
-    const publishedCountries = new Set<string>()
-
-    // First pass: determine which countries have published content pages
-    const contentSlugs = listContentSlugs('countries')
-    for (const slug of contentSlugs) {
-        const content = readPageContent<CountryContentFrontmatter>('countries', slug, 'en')
-        if (content && isPublished(content)) {
-            publishedCountries.add(slug)
-        }
-    }
-
-    // If no published content yet, treat all countries with entity data + content as available
-    // This allows the site to work during the transition period when published: false
-    if (publishedCountries.size === 0) {
-        for (const slug of contentSlugs) {
-            const content = readPageContent<CountryContentFrontmatter>('countries', slug, 'en')
-            if (content) publishedCountries.add(slug)
-        }
-    }
-
-    for (const slug of countrySlugs) {
-        if (!publishedCountries.has(slug)) continue
-
-        const entity = readEntityData<CountryEntityFrontmatter>('countries', slug)
-        if (!entity) continue
-
-        const content = readPageContent<CountryContentFrontmatter>('countries', slug, 'en')
-        const fm = entity.frontmatter
-
-        // Resolve the first local payment method name for instantPayment display
-        const paymentMethods = fm.local_payment_methods ?? []
-        let instantPayment: string | undefined
-        let payMerchants = false
-
-        if (paymentMethods.length > 0) {
-            const methodEntity = readEntityData<SpendingMethodFrontmatter>('spending-methods', paymentMethods[0])
-            instantPayment = methodEntity?.frontmatter.name ?? paymentMethods[0]
-            // QR-type methods support merchant payments
-            payMerchants = methodEntity?.frontmatter.type === 'qr'
-        }
-
-        // Extract FAQs from the content body
-        const faqs = content ? extractFaqs(content.body) : []
-
-        countries[slug] = {
-            name: fm.name,
-            region: inferRegion(slug),
-            currency: fm.currency,
-            localPaymentMethods: paymentMethods,
-            context: content?.body ?? '',
-            instantPayment,
-            payMerchants,
-            faqs,
-            corridors: fm.corridors?.map((c) => ({ origin: c.origin, priority: c.priority })) ?? [],
-        }
-
-        // Build corridors from entity data (some entities use destination: instead of origin:, skip those)
-        if (fm.corridors) {
-            for (const corridor of fm.corridors) {
-                if (corridor.origin) {
-                    corridors.push({ from: corridor.origin, to: slug })
-                }
-            }
-        }
-    }
-
-    // Also add corridors discovered from content/send-to/{dest}/from/{origin}/
     for (const dest of listContentSlugs('send-to')) {
         for (const origin of listCorridorOrigins(dest)) {
-            if (!corridors.some((c) => c.from === origin && c.to === dest)) {
-                corridors.push({ from: origin, to: dest })
-            }
+            const key = `${origin}→${dest}`
+            if (seen.has(key)) continue
+            seen.add(key)
+            corridors.push({ from: origin, to: dest })
         }
     }
-
-    // Deduplicate corridors
-    const seen = new Set<string>()
-    const uniqueCorridors = corridors.filter((c) => {
-        const key = `${c.from}→${c.to}`
-        if (seen.has(key)) return false
-        seen.add(key)
-        return true
-    })
-
-    return { countries, corridors: uniqueCorridors }
+    return corridors
 }
 
-/** Infer region from slug — simple heuristic based on known country lists */
-function inferRegion(slug: string): string {
-    const latam = [
-        'argentina',
-        'brazil',
-        'mexico',
-        'colombia',
-        'chile',
-        'peru',
-        'costa-rica',
-        'panama',
-        'bolivia',
-        'guatemala',
-    ]
-    const northAmerica = ['united-states', 'canada']
-    const asiaOceania = [
-        'australia',
-        'philippines',
-        'japan',
-        'india',
-        'indonesia',
-        'malaysia',
-        'singapore',
-        'thailand',
-        'vietnam',
-        'pakistan',
-        'saudi-arabia',
-        'united-arab-emirates',
-    ]
-    const africa = ['kenya', 'nigeria', 'south-africa', 'tanzania']
+export const COUNTRIES_SEO: Record<string, CountrySEO> = loadCountries()
+export const CORRIDORS: Corridor[] = loadCorridors()
 
-    if (latam.includes(slug)) return 'latam'
-    if (northAmerica.includes(slug)) return 'north-america'
-    if (asiaOceania.includes(slug)) return 'asia-oceania'
-    if (africa.includes(slug)) return 'africa'
-    return 'europe'
-}
-
-const _loaded = loadAll()
-
-export const COUNTRIES_SEO: Record<string, CountrySEO> = _loaded.countries
-export const CORRIDORS: Corridor[] = _loaded.corridors
-
-/** Get localized country display name */
-export function getCountryName(slug: string, _locale: Locale): string {
-    // Read name from entity data
-    const entity = readEntityData<CountryEntityFrontmatter>('countries', slug)
-    if (entity) return entity.frontmatter.name
-
-    // Fallback: title-case the slug
-    return slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+/**
+ * Get the country display name for a slug at the given locale. Reads
+ * `frontmatter.name` from content/countries/{slug}/{locale}.md via the
+ * standard locale fallback chain; falls back to title-casing the slug.
+ */
+export function getCountryName(slug: string, locale: Locale): string {
+    const content = readPageContentLocalized<{ name?: unknown }>('countries', slug, locale)
+    return displayNameFromContent(slug, content?.frontmatter)
 }

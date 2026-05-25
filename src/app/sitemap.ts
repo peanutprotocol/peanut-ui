@@ -168,7 +168,27 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
             changeFrequency: 'monthly',
         })
 
-        // Blog and team pages excluded from production sitemap (not yet launched)
+        // Content hub + blog
+        pages.push({
+            path: `/${locale}/content`,
+            priority: 0.7 * basePriority,
+            changeFrequency: 'weekly',
+        })
+        pages.push({
+            path: `/${locale}/blog`,
+            priority: 0.7 * basePriority,
+            changeFrequency: 'weekly',
+        })
+        for (const slug of listContentSlugs('blog')) {
+            if (slug === 'index') continue
+            pages.push({
+                path: `/${locale}/blog/${slug}`,
+                priority: 0.6 * basePriority,
+                changeFrequency: 'monthly',
+            })
+        }
+
+        // Team pages excluded from production sitemap (not yet launched)
     }
 
     return pages.map((page) => ({

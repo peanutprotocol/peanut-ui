@@ -7,7 +7,7 @@ import { Tooltip } from '../Tooltip'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '../Global/Icons/Icon'
-import { getBadgeIcon, getPublicBadgeDescription } from './badge.utils'
+import { getBadgeDisplayName, getBadgeIcon, getPublicBadgeDescription } from './badge.utils'
 
 type UIBadge = {
     code: string
@@ -102,20 +102,21 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
                         const displayDescription = isSelfProfile
                             ? badge.description
                             : getPublicBadgeDescription(badge.code) || badge.description
+                        const displayName = getBadgeDisplayName(badge.code, badge.name)
 
                         return (
                             <Tooltip
                                 key={badge.code}
                                 content={
                                     <div className="flex flex-col items-center justify-center gap-1">
-                                        <div className="relative text-sm font-bold">{badge.name}</div>
+                                        <div className="relative text-sm font-bold">{displayName}</div>
                                         <p className="text-center font-normal">{displayDescription}</p>
                                     </div>
                                 }
                             >
                                 <Image
                                     src={getBadgeIcon(badge.code)}
-                                    alt={badge.name}
+                                    alt={displayName}
                                     className="min-h-10 min-w-10 object-contain"
                                     height={48}
                                     width={48}
