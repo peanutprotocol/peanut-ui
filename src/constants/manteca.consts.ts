@@ -4,7 +4,7 @@ export const MANTECA_ARG_DEPOSIT_NAME = 'Sixalime Sas'
 export const MANTECA_ARG_DEPOSIT_CUIT = '30-71678845-3'
 export const MANTECA_US_NATIONALITY_RESTRICTION_CODE = 'MANTECA_US_NATIONALITY_RESTRICTED'
 export const MANTECA_US_NATIONALITY_RESTRICTION_MESSAGE =
-    'Manteca services are not available to US citizens at this time.'
+    'Payments from this country are not available for US citizens at this time.'
 
 // ui mirror of peanut-api-ts/src/manteca/consts.ts MANTECA_SUPPORTED_COUNTRIES.
 // first-party manteca bank/kyc rails are currently active only in argentina and brazil.
