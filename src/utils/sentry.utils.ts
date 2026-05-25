@@ -17,6 +17,10 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = 
     // 429 here is an expected outcome surfaced to the user, not a server bug.
     { pattern: /\/rain\/cards\/[^/]+\/details/, statuses: [429] },
     { pattern: /\/rain\/cards\/[^/]+\/pin/, statuses: [429] },
+    // /withdraw/prepare 425 is Rain's withdrawal-signature cooldown — surfaced
+    // to the user via the cooldown modal + floating timer. Normal UX state,
+    // not an error; would otherwise flood Sentry on every retry.
+    { pattern: /\/rain\/cards\/withdraw\/prepare/, statuses: [425] },
 ]
 
 /**
