@@ -24,7 +24,7 @@ export const KycActionRequired = ({
                 icon={'retry' as IconName}
                 className="w-full"
                 shadowSize="4"
-                onClick={onResume}
+                onClick={() => onResume()}
                 disabled={isLoading}
             >
                 {isLoading ? 'Loading...' : 'Re-submit verification'}

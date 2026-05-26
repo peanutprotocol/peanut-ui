@@ -1109,12 +1109,12 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         expect(screen.getByText('Country not found')).toBeInTheDocument()
     })
 
-    test('user not KYC approved shows InitiateKycModal on Continue', async () => {
+    test('fresh user needs KYC before Bridge deposit confirmation', async () => {
         mockUseKycStatus.mockReturnValue({
             isUserKycApproved: false,
             isUserMantecaKycApproved: false,
         })
-        mockGate.mockReturnValue({ type: 'needs_enrollment' })
+        mockGate.mockReturnValue({ type: 'needs_kyc' })
         resetQueryState({ step: 'inputAmount', amount: '100' })
 
         renderWithProviders(<OnrampBankPage />)
