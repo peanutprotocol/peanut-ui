@@ -9,6 +9,7 @@ export type BridgeGateAction =
     | { type: 'accept_tos' }
     | { type: 'fixable_rejection'; userMessage: string | null }
     | { type: 'blocked_rejection'; userMessage: string | null }
+    | { type: 'needs_kyc' }
     | { type: 'needs_enrollment' }
     | { type: 'ready' }
 
@@ -19,8 +20,9 @@ export type BridgeGateAction =
  *   1. hard rejection (contact support — tos is moot)
  *   2. tos acceptance
  *   3. fixable rejection (user can submit additional details)
- *   4. needs enrollment (sumsub approved, bridge not started)
- *   5. ready
+ *   4. needs standard kyc (fresh user)
+ *   5. needs enrollment (sumsub approved, bridge not started)
+ *   6. ready
  */
 export function useBridgeTransferReadiness() {
     const { needsBridgeTos } = useBridgeTosStatus()
@@ -42,7 +44,13 @@ export function useBridgeTransferReadiness() {
             return { type: 'fixable_rejection', userMessage: bridgeRejection.userMessage }
         }
 
-        // 4. needs enrollment (sumsub approved but bridge not started/approved/in-progress)
+        // 4. fresh user needs standard kyc before creating a transfer.
+        // an approved bridge rail still passes for legacy/out-of-band approvals.
+        if (!isUserSumsubKycApproved && !isUserBridgeKycApproved) {
+            return { type: 'needs_kyc' }
+        }
+
+        // 5. needs enrollment (sumsub approved but bridge not started/approved/in-progress)
         if (
             isUserSumsubKycApproved &&
             !isUserBridgeKycApproved &&
@@ -52,7 +60,7 @@ export function useBridgeTransferReadiness() {
             return { type: 'needs_enrollment' }
         }
 
-        // 5. ready
+        // 6. ready
         return { type: 'ready' }
     }, [
         needsBridgeTos,
@@ -70,6 +78,7 @@ export function useBridgeTransferReadiness() {
 export function getKycModalVariant(gateType: BridgeGateAction['type']) {
     if (gateType === 'blocked_rejection') return 'blocked' as const
     if (gateType === 'fixable_rejection') return 'provider_rejection' as const
+    if (gateType === 'needs_kyc') return 'default' as const
     if (gateType === 'needs_enrollment') return 'cross_region' as const
     return 'default' as const
 }
