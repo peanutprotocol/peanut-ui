@@ -93,9 +93,15 @@ export const KycStatusItem = ({
     const isInitiatedButNotStarted = !!verification && isKycStatusNotStarted(kycStatus)
 
     const subtitle = useMemo(() => {
-        // provider rejection takes priority when sumsub is approved
+        // priority: identity-level signals first, then per-rail signals.
+        // identity-level: rejection (action vs. blocked), action-required, pending, verified.
+        // per-rail: bridge bank rails needing extra docs (e.g. proof of address) is rail-scoped,
+        // NOT identity-scoped — surface a rail-specific label so verified users don't read
+        // "Action needed" as "your identity is still pending" (the conflation we fixed BE-side
+        // on 2026-05-17 by stopping `under_review` flips from per-rail endorsement state).
         if (isApproved && hasFixableRejection) return 'Action needed'
         if (isApproved && hasBlockedRejection) return 'Verification issue'
+        if (isApproved && hasBridgeDocsNeeded) return 'Verified · bank docs needed'
         if (hasBridgeDocsNeeded) return 'Action needed'
         if (isInitiatedButNotStarted) return 'Not completed'
         if (isActionRequired) return 'Action needed'
