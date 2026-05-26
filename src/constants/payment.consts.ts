@@ -29,6 +29,28 @@ export const MIN_PIX_AMOUNT_BRL = 1
 export const BRIDGE_DEVELOPER_FEE_RATE = 0
 
 /**
+ * Static fallback for the card-vs-local-rail markup. The live source of truth
+ * is `getCardMarkupRate` in `app/actions/card-comparison.ts` — for ARS that
+ * fetches BCRA official live (the spread fluctuates daily), for BRL it just
+ * returns the value here (IOF is statutory, slow-moving). These constants
+ * cover the static cases AND the eligibility gate (`hasCardMarkupComparison`)
+ * — only currencies in this map render the "vs card" surfaces at all.
+ *
+ * - ARS: 9.13% — historical empirical figure for the BCRA-vs-MEP rate spread
+ *        + issuer markup. Used only when the live BCRA fetch fails.
+ * - BRL: 7% — IOF on foreign card purchases (3.5% as of 2025, phasing to 0
+ *        by 2028) + typical issuer FX markup ~3%. No live source today.
+ *
+ * Only currencies with a real card-vs-local-rail gap belong here. USD / EUR /
+ * GBP / MXN spend doesn't show a meaningful enough delta to be a marketing
+ * point and should NOT be added.
+ */
+export const CARD_FX_MARKUP_BY_CURRENCY: Record<string, number> = {
+    ARS: 0.0913,
+    BRL: 0.07,
+}
+
+/**
  * validate if amount meets minimum requirement for a payment method
  * @param amount - amount in USD
  * @param methodId - payment method identifier
