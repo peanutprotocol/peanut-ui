@@ -4,7 +4,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { applyBridgeCrossCurrencyFee, reverseBridgeCrossCurrencyFee } from '@/utils/bridge.utils'
 import Image from 'next/image'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { parseAsFloat, parseAsString, useQueryStates } from 'nuqs'
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon, type IconName } from '../Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -16,15 +16,21 @@ interface IExchangeRateWidgetProps {
 }
 
 const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, ctaAction }) => {
-    const searchParams = useSearchParams()
-    const router = useRouter()
+    // shallow + history:'replace' uses window.history.replaceState — bypasses
+    // Next.js navigation so URL updates don't (occasionally) scroll the page
+    // to the top through the parent Suspense boundary.
+    const [query, setQuery] = useQueryStates(
+        {
+            from: parseAsString.withDefault('USD'),
+            to: parseAsString.withDefault('EUR'),
+            amount: parseAsFloat.withDefault(10),
+        },
+        { shallow: true, history: 'replace', scroll: false }
+    )
 
-    // Get values from URL or use defaults
-    const sourceCurrency = searchParams.get('from') || 'USD'
-    const destinationCurrency = searchParams.get('to') || 'EUR'
-    const rawAmount = searchParams.get('amount')
-    const parsedAmount = rawAmount !== null ? Number(rawAmount) : 10
-    const urlSourceAmount = Number.isFinite(parsedAmount) && parsedAmount > 0 ? parsedAmount : 10
+    const sourceCurrency = query.from
+    const destinationCurrency = query.to
+    const urlSourceAmount = query.amount > 0 ? query.amount : 10
 
     // Exchange rate hook handles all the conversion logic
     const {
@@ -62,18 +68,11 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
         return netDestinationAmount.toFixed(2)
     }, [isEditingDestination, getDestinationDisplayValue, netDestinationAmount])
 
-    // Function to update URL parameters
     const updateUrlParams = useCallback(
         (params: { from?: string; to?: string; amount?: number }) => {
-            const newSearchParams = new URLSearchParams(searchParams.toString())
-
-            if (params.from) newSearchParams.set('from', params.from)
-            if (params.to) newSearchParams.set('to', params.to)
-            if (params.amount !== undefined) newSearchParams.set('amount', params.amount.toString())
-
-            router.replace(`?${newSearchParams.toString()}`, { scroll: false })
+            setQuery(params)
         },
-        [searchParams, router]
+        [setQuery]
     )
 
     // Setter functions that update URL
