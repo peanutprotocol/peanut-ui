@@ -1399,8 +1399,8 @@ export default function QRPayPage() {
                                     value={`~$${savingsUsd}`}
                                     moreInfoText={
                                         currency.code.toUpperCase() === 'BRL'
-                                            ? 'Foreign cards pay IOF (~3.5%) plus an issuer FX markup (~3%). Peanut routes via PIX at the actual market rate.'
-                                            : 'Foreign cards apply the BCRA official rate plus an issuer FX markup. Peanut routes via MercadoPago at the market (MEP) rate.'
+                                            ? 'Foreign cards pay IOF (~3.5%) plus a typical ~3% issuer FX fee. Peanut routes via PIX at the current market rate.'
+                                            : 'Foreign cards apply the official rate plus a typical ~3% issuer FX fee. Peanut routes via MercadoPago at the current market rate.'
                                     }
                                 />
                             )
