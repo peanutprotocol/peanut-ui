@@ -1,15 +1,31 @@
 import { formatNumberForDisplay } from './general.utils'
 import { EQrType } from '@/components/Global/DirectSendQR/utils'
+import { CARD_FX_MARKUP_BY_CURRENCY } from '@/constants/payment.consts'
 
 /**
- * Calculate savings amount (9.13% of transaction value) in cents
- * @param usdAmount Transaction amount in USD
- * @returns Savings amount in cents, or 0 if invalid
+ * Calculate savings in cents vs paying with a foreign card, given a markup
+ * rate (the fraction of the USD transaction value that a card user would
+ * lose). Caller is responsible for sourcing the markup — typically from
+ * `useCardMarkupRate`, which fetches live for ARS and falls back to a static
+ * constant for BRL.
  */
-export function calculateSavingsInCents(usdAmount: string | null | undefined): number {
-    if (!usdAmount) return 0
-    const savingsAmount = parseFloat(usdAmount) * 0.0913
+export function calculateSavingsInCents(
+    usdAmount: string | null | undefined,
+    markupRate: number | null | undefined
+): number {
+    if (!usdAmount || !markupRate || markupRate <= 0) return 0
+    const savingsAmount = parseFloat(usdAmount) * markupRate
     return Math.round(savingsAmount * 100)
+}
+
+/**
+ * Whether a "vs card" comparison is meaningful for this currency. Only true
+ * for currencies with a real card-vs-local-rail gap (ARS, BRL today). Gates
+ * rendering of the comparison row before the live markup has resolved.
+ */
+export function hasCardMarkupComparison(currencyCode: string | null | undefined): boolean {
+    if (!currencyCode) return false
+    return CARD_FX_MARKUP_BY_CURRENCY[currencyCode.toUpperCase()] !== undefined
 }
 
 /**

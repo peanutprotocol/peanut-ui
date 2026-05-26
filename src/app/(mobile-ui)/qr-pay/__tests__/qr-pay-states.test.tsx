@@ -153,6 +153,10 @@ jest.mock('@/app/actions/currency', () => ({
     getCurrencyPrice: jest.fn(() => Promise.resolve({ sell: 1200, buy: 1250 })),
 }))
 
+jest.mock('@/hooks/useCardMarkupRate', () => ({
+    useCardMarkupRate: jest.fn(() => ({ data: null })),
+}))
+
 jest.mock('@/app/actions/increase-limits', () => ({
     initiateIncreaseLimits: jest.fn(),
 }))
@@ -271,6 +275,7 @@ jest.mock('@/utils/perk.utils', () => ({
 
 jest.mock('@/utils/qr-payment.utils', () => ({
     calculateSavingsInCents: jest.fn(() => 0),
+    hasCardMarkupComparison: jest.fn(() => false),
     isArgentinaMantecaQrPayment: jest.fn(() => false),
     getSavingsMessage: jest.fn(() => ''),
 }))
@@ -1073,12 +1078,12 @@ describe('GROUP 4: Success States', () => {
 
     test('Argentina QR3 success shows savings message', async () => {
         const {
-            isArgentinaMantecaQrPayment,
+            hasCardMarkupComparison,
             calculateSavingsInCents,
             getSavingsMessage,
         } = require('@/utils/qr-payment.utils')
 
-        isArgentinaMantecaQrPayment.mockReturnValue(true)
+        hasCardMarkupComparison.mockReturnValue(true)
         calculateSavingsInCents.mockReturnValue(150)
         getSavingsMessage.mockReturnValue('You saved $1.50 vs card!')
 
