@@ -21,6 +21,7 @@ export const DEDICATED_ROUTES = [
     'rewards',
     'claim',
     'pay',
+    'pay-request',
     'request',
     'invite',
     'support',
@@ -32,18 +33,25 @@ export const DEDICATED_ROUTES = [
     'quests',
     'receipt',
     'crisp-proxy',
+    'card',
     'card-payment',
     'add-money',
     'withdraw',
     'sdk',
     'qr-pay',
+    'badges',
+    'limits',
+    'notifications',
+    'recover-funds',
 
     // Public pages (existing)
     'careers',
+    'jobs',
     'privacy',
     'terms',
     'lp',
     'exchange',
+    'shhhhh',
 
     // Future SEO routes (pre-register so catch-all doesn't intercept)
     'send-money-to',

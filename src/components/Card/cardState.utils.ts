@@ -11,26 +11,74 @@ export function findActiveCard(overview: RainCardOverview | undefined): RainCard
     return overview?.cards.find((c) => c.status !== 'CANCELED') ?? null
 }
 
-export type CardTopLevelState = 'loading' | 'pioneer' | 'add-card' | 'pending' | 'manual-review' | 'rejected' | 'active'
+/**
+ * Top-level state for the /card flow.
+ *
+ * Precedence (top wins) in `computeCardState`:
+ *   loading → active → no-flow-access → rejected → pending/manual-review →
+ *   eligibility-check (first arrival, not yet held) → skip-celebration →
+ *   add-card → waitlist
+ *
+ * Removed in Phase 2 of the M2 Card Waitlist Launch:
+ *   - 'pioneer'  — replaced by 'waitlist' (free queue) + 'waitlist-skip-celebration'
+ */
+export type CardTopLevelState =
+    | 'loading'
+    /** Outer-gate fail — user hasn't passed /shhhhh AND public launch isn't here yet. */
+    | 'no-flow-access'
+    /** First arrival from /shhhhh: press-and-hold "see if you qualify" gate.
+     *  Once held, the user lands on celebration or waitlist depending on
+     *  whether they hold a skip badge. */
+    | 'eligibility-check'
+    /** Queued — has flow access but no card access yet, no skip badge to celebrate. */
+    | 'waitlist'
+    /** One-time celebration: user has a skip badge AND hasn't acknowledged it yet.
+     *  Reveals the share asset, then transitions to add-card. */
+    | 'waitlist-skip-celebration'
+    | 'add-card'
+    | 'pending'
+    | 'manual-review'
+    | 'rejected'
+    | 'active'
 
 interface ComputeArgs {
     overview?: RainCardOverview
-    pioneerInfo?: CardInfoResponse
+    cardInfo?: CardInfoResponse
     overviewLoading: boolean
-    pioneerLoading: boolean
+    cardInfoLoading: boolean
+    /** Has the user already seen the badge-skip celebration in this app session
+     *  OR in a prior session (`cardWaitlistSkipCelebrationSeenAt` set)? */
+    skipCelebrationSeen: boolean
+    /** Has the user pressed-and-held through the eligibility-check screen
+     *  yet? Per-mount React state (NOT persisted) — every fresh /card visit
+     *  shows the gate again until a card is issued. Within the same mount,
+     *  this stays true after the hold so the user isn't pulled back from
+     *  celebration / add-card. */
+    eligibilityCheckDone: boolean
 }
 
 export function computeCardState({
     overview,
-    pioneerInfo,
+    cardInfo,
     overviewLoading,
-    pioneerLoading,
+    cardInfoLoading,
+    skipCelebrationSeen,
+    eligibilityCheckDone,
 }: ComputeArgs): CardTopLevelState {
-    if (overviewLoading || pioneerLoading) return 'loading'
-    if (!overview || !pioneerInfo) return 'loading'
+    if (overviewLoading || cardInfoLoading) return 'loading'
+    if (!overview || !cardInfo) return 'loading'
 
+    // Active-card check FIRST, before the outer gate. Existing card holders
+    // (legacy Pioneers, admin-granted users issued cards before /shhhhh
+    // existed) may not have a flowEarlyAccess stamp — we must NOT bounce
+    // them to the LP. Their card already lives, so always reach YourCardScreen.
     const hasIssuedCard = overview.cards.some((c) => c.status !== 'CANCELED')
     if (hasIssuedCard) return 'active'
+
+    // Outer gate: pre-public-launch, only users who passed /shhhhh can enter
+    // the funnel. BE's `flowEarlyAccess` field factors in the public-launch
+    // date. Applied AFTER the active-card check above by design.
+    if (!cardInfo.flowEarlyAccess) return 'no-flow-access'
 
     const rail = overview.status.railStatus
     const app = overview.status.applicationStatus
@@ -46,11 +94,26 @@ export function computeCardState({
         return 'pending'
     }
 
-    // Rail ENABLED (or no application) without any non-canceled card means
-    // the user either hasn't applied yet OR previously had a card and
-    // canceled it. Either way, the correct next step is the Add-Card entry
-    // (gated by hasCardAccess) rather than the "Setting up your card…" loader.
-    if (pioneerInfo.hasCardAccess) return 'add-card'
+    // First arrival from /shhhhh: gate everything else behind the press-and-hold
+    // "see if you qualify" moment. Applies whether the user ultimately lands on
+    // celebration or waitlist — the user explicitly engages the door before
+    // the verdict is revealed.
+    if (!eligibilityCheckDone) return 'eligibility-check'
 
-    return 'pioneer'
+    // Rail ENABLED (or no application) without any non-canceled card. From
+    // here, BE's hasCardAccess + skipBadges drive the new state machine.
+    if (cardInfo.hasCardAccess) {
+        // Everyone who just passed the eligibility hold + has card access
+        // gets the celebration moment, not just skip-badge holders. The
+        // headline copy inside the celebration branches on whether a skip
+        // badge is present. Once seen (localStorage stamp), straight to
+        // add-card on subsequent visits.
+        if (!skipCelebrationSeen) {
+            return 'waitlist-skip-celebration'
+        }
+        return 'add-card'
+    }
+
+    // No card access yet → queue.
+    return 'waitlist'
 }

@@ -139,7 +139,9 @@ export function NoFees({ className }: { className?: string }) {
                     transition={{ type: 'spring', damping: 5, delay: 1.0 }}
                 />
 
-                <h1 className="font-roboto-flex-extrabold text-heading text-black md:text-headingMedium">ZERO FEES</h1>
+                <h1 className="font-roboto-flex-extrabold text-heading text-black md:text-headingMedium">
+                    ZERO TRANSFER FEES
+                </h1>
 
                 {/* No hidden fees SVG */}
                 <div className="mb-1">

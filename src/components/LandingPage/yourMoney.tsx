@@ -13,7 +13,7 @@ export function YourMoney() {
                     </h1>
 
                     <h2 className="font-roboto-flex text-lg md:text-4xl md:font-medium">
-                        140+ countries · 50+ currencies · 0% fees
+                        140+ countries · 50+ currencies · 0% transfer fees
                     </h2>
 
                     <p className="font-roboto-flex text-left text-xl font-light md:text-4xl md:font-normal">

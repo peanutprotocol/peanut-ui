@@ -7,6 +7,7 @@ import {
     getGateActionLabel,
 } from '../useBridgeTransferReadiness'
 import type { BridgeGateAction } from '../useBridgeTransferReadiness'
+import { type IUserRail, type UserRailStatus } from '@/interfaces'
 
 // mock the three dependency hooks
 jest.mock('../useBridgeTosStatus', () => ({
@@ -46,6 +47,20 @@ const defaultRejection = {
     actionHandler: null,
 }
 
+function bridgeRail(status: UserRailStatus): IUserRail {
+    return {
+        id: `ur-bridge-${status}`,
+        railId: 'r-bridge',
+        status,
+        metadata: null,
+        rail: {
+            id: 'r-bridge',
+            provider: { code: 'BRIDGE', name: 'Bridge' },
+            method: { code: 'ACH_US', name: 'ACH', country: 'US', currency: 'USD' },
+        },
+    }
+}
+
 function setup({
     needsBridgeTos = false,
     bridgeState = 'happy' as ProviderRejectionState,
@@ -54,14 +69,14 @@ function setup({
     bridgeActionLabel = null as string | null,
     bridgeRejectedRailCount = 0,
     isSumsubApproved = false,
-    isBridgeApproved = false,
-    isBridgeUnderReview = false,
-    isBridgeIncomplete = false,
+    // null → no Bridge rails (not enrolled); otherwise the user's single Bridge rail status
+    bridgeRailStatus = null as UserRailStatus | null,
 } = {}) {
+    const bridgeRails = bridgeRailStatus ? [bridgeRail(bridgeRailStatus)] : []
     mockTosStatus.mockReturnValue({
         needsBridgeTos,
-        isBridgeFullyEnabled: false,
-        bridgeRails: [],
+        isBridgeFullyEnabled: bridgeRailStatus === 'ENABLED',
+        bridgeRails,
     })
     mockRejectionStatus.mockReturnValue({
         bridge: {
@@ -83,19 +98,19 @@ function setup({
     })
     mockKycStatus.mockReturnValue({
         isUserSumsubKycApproved: isSumsubApproved,
-        isUserBridgeKycApproved: isBridgeApproved,
-        isUserBridgeKycUnderReview: isBridgeUnderReview,
-        isUserBridgeKycIncomplete: isBridgeIncomplete,
+        isUserBridgeKycApproved: false,
+        isUserBridgeKycUnderReview: false,
+        isUserBridgeKycIncomplete: false,
         isUserMantecaKycApproved: false,
-        isUserKycApproved: isBridgeApproved,
+        isUserKycApproved: false,
     })
 }
 
 describe('useBridgeTransferReadiness', () => {
     afterEach(() => jest.resetAllMocks())
 
-    it('returns ready when no issues', () => {
-        setup({ isSumsubApproved: true, isBridgeApproved: true })
+    it('returns ready when bridge rail is ENABLED', () => {
+        setup({ isSumsubApproved: true, bridgeRailStatus: 'ENABLED' })
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('ready')
     })
@@ -104,7 +119,7 @@ describe('useBridgeTransferReadiness', () => {
         setup({ needsBridgeTos: true, bridgeState: 'blocked', bridgeUserMessage: 'permanently rejected' })
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('blocked_rejection')
-        expect((result.current.gate as any).userMessage).toBe('permanently rejected')
+        expect((result.current.gate as { userMessage?: string }).userMessage).toBe('permanently rejected')
     })
 
     it('accept_tos fires when tos needed and no hard rejection', () => {
@@ -127,8 +142,8 @@ describe('useBridgeTransferReadiness', () => {
         expect((result.current.gate as any).actionLabel).toBe('Upload ID')
     })
 
-    it('needs_enrollment when sumsub approved but bridge not started', () => {
-        setup({ isSumsubApproved: true })
+    it('needs_enrollment when sumsub approved but no bridge rail exists', () => {
+        setup({ isSumsubApproved: true, bridgeRailStatus: null })
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('needs_enrollment')
     })
@@ -139,26 +154,39 @@ describe('useBridgeTransferReadiness', () => {
             bridgeUserMessage: "We're reviewing your documents.",
             bridgeRejectedRailCount: 1,
             isSumsubApproved: true,
+            bridgeRailStatus: 'REQUIRES_EXTRA_INFORMATION',
         })
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('provider_processing')
         expect((result.current.gate as any).userMessage).toBe("We're reviewing your documents.")
     })
 
-    it('ready when sumsub approved and bridge under review (enrollment not needed)', () => {
-        setup({ isSumsubApproved: true, isBridgeUnderReview: true })
+    it('ready when sumsub approved and bridge rail is PENDING (enrollment already started)', () => {
+        setup({ isSumsubApproved: true, bridgeRailStatus: 'PENDING' })
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('ready')
     })
 
-    it('ready when sumsub approved and bridge incomplete (enrollment not needed)', () => {
-        setup({ isSumsubApproved: true, isBridgeIncomplete: true })
+    it('ready when sumsub approved and bridge rail is REQUIRES_INFORMATION', () => {
+        setup({ isSumsubApproved: true, bridgeRailStatus: 'REQUIRES_INFORMATION' })
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('ready')
     })
 
-    it('ready when sumsub approved and bridge approved', () => {
-        setup({ isSumsubApproved: true, isBridgeApproved: true })
+    it('needs_kyc when user has not started standard verification', () => {
+        setup({ isSumsubApproved: false, bridgeRailStatus: null })
+        const { result } = renderHook(() => useBridgeTransferReadiness())
+        expect(result.current.gate.type).toBe('needs_kyc')
+    })
+
+    it('needs_kyc when standard verification is not approved and bridge rail is pending', () => {
+        setup({ isSumsubApproved: false, bridgeRailStatus: 'PENDING' })
+        const { result } = renderHook(() => useBridgeTransferReadiness())
+        expect(result.current.gate.type).toBe('needs_kyc')
+    })
+
+    it('ready when standard verification is not approved but bridge rail is enabled', () => {
+        setup({ isSumsubApproved: false, bridgeRailStatus: 'ENABLED' })
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('ready')
     })
@@ -174,12 +202,6 @@ describe('useBridgeTransferReadiness', () => {
         const { result } = renderHook(() => useBridgeTransferReadiness())
         expect(result.current.gate.type).toBe('accept_tos')
     })
-
-    it('accept_tos when bridge incomplete and tos needed (main bug scenario)', () => {
-        setup({ needsBridgeTos: true, isBridgeIncomplete: true, isSumsubApproved: true })
-        const { result } = renderHook(() => useBridgeTransferReadiness())
-        expect(result.current.gate.type).toBe('accept_tos')
-    })
 })
 
 describe('getKycModalVariant', () => {
@@ -188,6 +210,7 @@ describe('getKycModalVariant', () => {
         expect(getKycModalVariant('fixable_rejection')).toBe('provider_rejection')
         expect(getKycModalVariant('provider_processing')).toBe('processing')
         expect(getKycModalVariant('needs_enrollment')).toBe('cross_region')
+        expect(getKycModalVariant('needs_kyc')).toBe('default')
         expect(getKycModalVariant('accept_tos')).toBe('default')
         expect(getKycModalVariant('ready')).toBe('default')
     })
@@ -215,6 +238,7 @@ describe('getGateProviderMessage', () => {
 
     it('returns undefined for non-rejection gates', () => {
         expect(getGateProviderMessage({ type: 'accept_tos' })).toBeUndefined()
+        expect(getGateProviderMessage({ type: 'needs_kyc' })).toBeUndefined()
         expect(getGateProviderMessage({ type: 'needs_enrollment' })).toBeUndefined()
         expect(getGateProviderMessage({ type: 'ready' })).toBeUndefined()
     })

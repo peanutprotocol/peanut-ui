@@ -1,15 +1,19 @@
 // per-badge metadata: asset path under public/badges, public-facing description,
 // and optional front-end display-name override. Backend codes/names stay the same;
 // overrides only affect what the user sees.
+//
+// This is the SINGLE SOURCE OF TRUTH for badge codes + metadata on the FE.
+// Don't add a parallel catalog elsewhere — consumers (share-asset stamps,
+// /dev/share-builder, debug pages) read `BADGES` and helpers below directly.
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 
-type BadgeMeta = {
+export type BadgeMeta = {
     path: string
     description?: string
     displayName?: string
 }
 
-const BADGES: Record<string, BadgeMeta> = {
+export const BADGES: Record<string, BadgeMeta> = {
     BETA_TESTER: {
         path: '/badges/beta_tester.svg',
         description: `They're in the lab with us. Early enough to be part of the experiment.`,
@@ -91,6 +95,10 @@ const BADGES: Record<string, BadgeMeta> = {
         // TODO(card-launch): award on cumulative card spend ≥ $1K
     },
 }
+
+/** All known badge codes — derived from BADGES so we never duplicate the
+ *  list. Used by /dev/share-builder + /dev/debug for iteration. */
+export const BADGE_CODES: readonly string[] = Object.keys(BADGES)
 
 export function getBadgeIcon(code?: string) {
     return (code && BADGES[code]?.path) || PEANUTMAN_LOGO

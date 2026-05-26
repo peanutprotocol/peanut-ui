@@ -6,7 +6,16 @@ export const heroConfig = {
     },
 }
 
-export const marqueeMessages = ['No fees', 'Instant', '24/7', 'USD', 'EUR', 'USDT/USDC', 'GLOBAL', 'SELF-CUSTODIAL']
+export const marqueeMessages = [
+    'No transfer fees',
+    'Instant',
+    '24/7',
+    'USD',
+    'EUR',
+    'USDT/USDC',
+    'GLOBAL',
+    'SELF-CUSTODIAL',
+]
 
 export const faqData = {
     heading: 'FAQ.',
@@ -24,7 +33,7 @@ export const faqData = {
         {
             id: '2',
             question: 'Do I have to KYC?',
-            answer: `No! You can use core functionalities (like sending and receiving money) without KYC. Bank connections, however, trigger a one\u2011time check handled by Persona, a SOC2 Type 2 certified and GDPR compliant ISO 27001\u2013certified provider used by brands like Square and Robinhood. Your documents remain locked away with Persona, not Peanut, and Peanut only gets a yes/no response, keeping your privacy intact.`,
+            answer: `No! You can use core functionalities (like sending and receiving money) without KYC. Bank connections, however, trigger a one\u2011time check handled by Persona, a SOC2 Type 2 certified and GDPR compliant ISO 27001\u2013certified provider used by brands like Square and Robinhood. Your documents remain locked away with Persona, not Peanut, and Peanut only gets a yes/no response, keeping your privacy intact. The Peanut Card is a separate program and requires identity verification for all cardholders.`,
         },
         {
             id: '3',

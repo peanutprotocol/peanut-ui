@@ -15,6 +15,7 @@ import '../../styles/globals.css'
 import QRScannerOverlay from '@/components/Global/QRScannerOverlay'
 import SecurityVerificationOverlay from '@/components/Global/SecurityVerificationOverlay'
 import SupportDrawer from '@/components/Global/SupportDrawer'
+import RainCooldownIntroModal from '@/components/Global/RainCooldown/IntroModal'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
 import { Banner } from '@/components/Global/Banner'
@@ -224,6 +225,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <GuestLoginModal />
 
             <SupportDrawer />
+
+            <RainCooldownIntroModal />
 
             <QRScannerOverlay />
 

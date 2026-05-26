@@ -17,7 +17,7 @@ export interface IPeanutUnsignedTransaction {
     from?: string
     to?: string
     data?: string
-    value?: BigInt
+    value?: bigint
 }
 
 export enum EPeanutLinkType {

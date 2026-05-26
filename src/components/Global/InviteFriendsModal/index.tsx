@@ -1,8 +1,6 @@
 'use client'
 
 import ActionModal from '@/components/Global/ActionModal'
-import Card from '@/components/Global/Card'
-import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import ShareButton from '@/components/Global/ShareButton'
 import { generateInviteCodeLink } from '@/utils/general.utils'
 import { ANALYTICS_EVENTS, MODAL_TYPES, REFERRAL_SOURCES } from '@/constants/analytics.consts'
@@ -18,13 +16,14 @@ interface InviteFriendsModalProps {
 }
 
 /**
- * Shared modal for inviting friends to Peanut.
- * Shows QR code, invite code, and share button.
+ * Shared modal for inviting friends to Peanut. Reframed to "your username
+ * IS your invite" — no more raw-code copy line. Friends just need to enter
+ * the username on the /setup waitlist gate.
  *
  * Used in: CardSuccessScreen, Profile, PointsPage
  */
 export default function InviteFriendsModal({ visible, onClose, username, source }: InviteFriendsModalProps) {
-    const { inviteCode, inviteLink } = generateInviteCodeLink(username)
+    const { inviteLink } = generateInviteCodeLink(username)
 
     const hasTrackedShow = useRef(false)
 
@@ -46,7 +45,7 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
             visible={visible}
             onClose={handleClose}
             title="Invite friends!"
-            description="Invite friends to Peanut. Every time they make a payment, you earn rewards."
+            description="Share your link. Every time a friend you brought makes a payment, you earn rewards."
             icon="user-plus"
             content={
                 <>
@@ -61,18 +60,6 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
                             />
                         </div>
                     )}
-                    <div className="flex w-full items-center justify-between gap-3">
-                        <Card className="flex items-center justify-between py-2">
-                            <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold">
-                                {inviteCode}
-                            </p>
-                            <CopyToClipboard
-                                textToCopy={inviteCode}
-                                iconSize="4"
-                                onCopy={() => posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_COPIED, { source })}
-                            />
-                        </Card>
-                    </div>
                     <ShareButton
                         url={inviteLink}
                         title="Share your invite link"

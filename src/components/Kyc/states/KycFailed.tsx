@@ -97,7 +97,7 @@ export const KycFailed = ({
                     variant="purple"
                     className="w-full"
                     shadowSize="4"
-                    onClick={onRetry}
+                    onClick={() => onRetry()}
                     disabled={isLoading}
                 >
                     {isLoading ? 'Loading...' : 'Retry verification'}

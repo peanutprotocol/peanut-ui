@@ -15,7 +15,7 @@ export const KycNotStarted = ({ onResume, isLoading }: { onResume: () => void; i
                 payments."
             />
 
-            <Button className="w-full" shadowSize="4" onClick={onResume} disabled={isLoading}>
+            <Button className="w-full" shadowSize="4" onClick={() => onResume()} disabled={isLoading}>
                 {isLoading ? 'Loading...' : 'Continue verification'}
             </Button>
         </div>

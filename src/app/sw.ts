@@ -12,7 +12,7 @@ declare global {
     }
 }
 
-// @ts-ignore
+// @ts-expect-error — service-worker global redeclaration intentional
 declare const self: ServiceWorkerGlobalScope
 
 const serwist = new Serwist({

@@ -14,7 +14,14 @@ import GOOGLE_STEP_2 from './wallet-steps/google-step-2.png'
 import GOOGLE_STEP_3 from './wallet-steps/google-step-3.png'
 import GOOGLE_STEP_4 from './wallet-steps/google-step-4.png'
 
-export { CARD_GRADIENT_4, CARD_GRADIENT_5, CARD_GRADIENT_9, CARD_GRADIENT_10, VISA_BRAND_MARK, PEANUT_CARD_HAND }
+export {
+    CARD_GRADIENT_4,
+    CARD_GRADIENT_5,
+    CARD_GRADIENT_9,
+    CARD_GRADIENT_10,
+    VISA_BRAND_MARK,
+    PEANUT_CARD_HAND,
+}
 
 export const APPLE_WALLET_STEPS = [APPLE_STEP_1, APPLE_STEP_2, APPLE_STEP_3, APPLE_STEP_4] as const
 export const GOOGLE_WALLET_STEPS = [GOOGLE_STEP_1, GOOGLE_STEP_2, GOOGLE_STEP_3, GOOGLE_STEP_4] as const

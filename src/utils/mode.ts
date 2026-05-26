@@ -99,7 +99,6 @@ export function logRunMode(prefix: string = ''): RunMode {
     const detailStyle = 'font-size: 13px; font-weight: 600; line-height: 1.6em;'
     const tag = realMoney ? '⚠ REAL MONEY MODE' : '🟢 SANDBOX MODE'
 
-    // eslint-disable-next-line no-console
     console.log(
         `${prefix ? prefix + ' ' : ''}%c${tag} · ${m.preset}%c\n` +
             `  api      = ${m.api}  (${m.apiUrl})\n` +
