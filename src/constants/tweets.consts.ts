@@ -61,8 +61,9 @@ interface TweetsData {
     tweets: Tweet[]
 }
 
-// Load tweets from tweets.json (same folder)
-import tweetsJson from './tweets.json'
+// Tweets manifest is authored in mono at content/_system/generated/testimonials.json
+// and ships to peanut-ui through the peanut-content mirror. Same shape as before.
+import tweetsJson from '@/content/generated/testimonials.json'
 
 const MAX_TWEETS = 100
 const MAX_PER_AUTHOR = 3
