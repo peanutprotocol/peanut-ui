@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
-import { TEAM_MEMBERS } from '@/data/team'
 import { MarketingHero } from '@/components/Marketing/MarketingHero'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import { JsonLd } from '@/components/Marketing/JsonLd'
@@ -9,6 +8,26 @@ import { Card } from '@/components/0_Bruddle/Card'
 import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
 import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
+import { readSingletonContentLocalized } from '@/lib/content'
+
+// Team data lives in mono at content/team/{lang}.md frontmatter — singleton
+// content authored by marketing/leadership, shipped via the mirror.
+interface TeamMember {
+    slug: string
+    name: string
+    role: string
+    bio: string
+    image?: string
+    social?: {
+        linkedin?: string
+        twitter?: string
+        github?: string
+    }
+}
+
+interface TeamFrontmatter {
+    members?: TeamMember[]
+}
 
 interface PageProps {
     params: Promise<{ locale: string }>
@@ -43,13 +62,15 @@ export default async function TeamPage({ params }: PageProps) {
     if (!isValidLocale(locale)) notFound()
 
     const i18n = getTranslations(locale as Locale)
+    const team = readSingletonContentLocalized<TeamFrontmatter>('team', locale)
+    const members = team?.frontmatter.members ?? []
 
     const orgSchema = {
         '@context': 'https://schema.org',
         '@type': 'Organization',
         name: 'Peanut',
         url: 'https://peanut.me',
-        member: TEAM_MEMBERS.map((m) => ({
+        member: members.map((m) => ({
             '@type': 'Person',
             name: m.name,
             jobTitle: m.role,
@@ -65,7 +86,7 @@ export default async function TeamPage({ params }: PageProps) {
 
             <MarketingShell>
                 <div className="grid gap-6 md:grid-cols-2">
-                    {TEAM_MEMBERS.map((member) => (
+                    {members.map((member) => (
                         <Card key={member.slug} className="gap-3 p-6">
                             {member.image ? (
                                 <img
