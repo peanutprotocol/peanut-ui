@@ -1,81 +1,29 @@
-// Typed wrapper for payment method data.
-// Reads from peanut-content: input/data/spending-methods/ + content/pay-with/
-// Note: "payment-methods" → "spending-methods" in new repo.
-// Public API unchanged from previous version.
+// Pay-with method data, read from generated content only.
+//
+// Source: content/pay-with/{slug}/en.md frontmatter (mirror of mono/content/).
+// Display names come from the `name:` field denormalized at generation time
+// (see mono/content/_system/templates/intents/pay-with-method.md); absent
+// values fall through to title-casing the slug.
+//
+// The structured fields (countries, description, steps, faqs) that used to
+// live here are no longer consumed by any route — pay-with/[method] renders
+// the MDX body directly. Kept only the slug list + display name.
 
-import { readEntityData, readPageContent, listEntitySlugs, listContentSlugs } from '@/lib/content'
-import { extractFaqs, extractSteps } from './utils'
-
-// --- Entity frontmatter (input/data/spending-methods/{slug}.md) ---
-
-interface SpendingMethodEntityFrontmatter {
-    slug: string
-    name: string
-    type: string
-    countries: string[]
-    user_base?: string
-    transaction_types?: string[]
-    availability?: string
-    speed?: string
-}
-
-// --- Content frontmatter (content/pay-with/{slug}/{lang}.md) ---
-
-interface PayWithContentFrontmatter {
-    title: string
-    description: string
-    slug: string
-    lang: string
-    published: boolean
-    schema_types: string[]
-    alternates?: Record<string, string>
-}
-
-// --- Public types (unchanged) ---
+import { listContentSlugs, readPageContent } from '@/lib/content'
+import { displayNameFromContent } from './utils'
 
 export interface PaymentMethod {
     slug: string
     name: string
-    countries: string[]
-    description: string
-    steps: string[]
-    faqs: Array<{ q: string; a: string }>
 }
-
-// --- Loader ---
 
 function loadPaymentMethods(): Record<string, PaymentMethod> {
     const result: Record<string, PaymentMethod> = {}
-
-    // Get methods that have both entity data and content pages
-    const contentSlugs = new Set(listContentSlugs('pay-with'))
-    const entitySlugs = listEntitySlugs('spending-methods')
-
-    for (const slug of entitySlugs) {
-        // Only include methods that have a pay-with content page
-        if (!contentSlugs.has(slug)) continue
-
-        const entity = readEntityData<SpendingMethodEntityFrontmatter>('spending-methods', slug)
-        if (!entity) continue
-
-        const content = readPageContent<PayWithContentFrontmatter>('pay-with', slug, 'en')
-        if (!content) continue
-
-        const fm = entity.frontmatter
-
-        result[slug] = {
-            slug,
-            name: fm.name,
-            countries: fm.countries ?? [],
-            description: content.body,
-            steps: extractSteps(content.body, /Merchant QR Payments|How to Pay|Steps|How It Works/, (line) => {
-                const match = line.match(/^\d+\.\s+\*\*(.+?)\*\*/)
-                return match ? match[1].trim() : null
-            }),
-            faqs: extractFaqs(content.body),
-        }
+    for (const slug of listContentSlugs('pay-with')) {
+        const content = readPageContent<{ name?: unknown; published?: boolean }>('pay-with', slug, 'en')
+        if (content && content.frontmatter.published === false) continue
+        result[slug] = { slug, name: displayNameFromContent(slug, content?.frontmatter) }
     }
-
     return result
 }
 
