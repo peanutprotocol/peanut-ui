@@ -43,7 +43,7 @@ import { ActionListCard } from '../../ActionListCard'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import SupportCTA from '../../Global/SupportCTA'
 import { DEVCONNECT_LOGO } from '@/assets'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import {
     MIN_BANK_TRANSFER_AMOUNT,
     MIN_MERCADOPAGO_AMOUNT,
@@ -97,7 +97,10 @@ export default function SendLinkActionList({
         devconnectRecipientAddress,
         devconnectTokenAddress,
     } = useContext(tokenSelectorContext)
-    const { isUserMantecaKycApproved } = useKycStatus()
+    // MIGRATION-REVIEW: mercadopago/pix are QR `pay` methods over Manteca. Old gate was
+    // `isUserMantecaKycApproved`; mapped to canDo('pay', { provider: 'manteca' }) so a Sumsub-
+    // approved user with only the pool-tier pay rail correctly sees these methods as available.
+    const isMantecaPayEnabled = useCapabilities().canDo('pay', { provider: 'manteca' })
     const dispatch = useAppDispatch()
 
     const requiresVerification = useMemo(() => {
@@ -110,7 +113,7 @@ export default function SendLinkActionList({
         isMethodUnavailable: (method) =>
             method.soon ||
             (method.id === 'bank' && requiresVerification) ||
-            (['mercadopago', 'pix'].includes(method.id) && !isUserMantecaKycApproved),
+            (['mercadopago', 'pix'].includes(method.id) && !isMantecaPayEnabled),
         methods: showDevconnectMethod
             ? DEVCONNECT_CLAIM_METHODS.filter((method) => method.id !== 'devconnect')
             : undefined,
@@ -250,7 +253,7 @@ export default function SendLinkActionList({
             <div className="space-y-2">
                 {sortedActionMethods.map((method) => {
                     let methodRequiresVerification = method.id === 'bank' && requiresVerification
-                    if (!isUserMantecaKycApproved && ['mercadopago', 'pix'].includes(method.id)) {
+                    if (!isMantecaPayEnabled && ['mercadopago', 'pix'].includes(method.id)) {
                         methodRequiresVerification = true
                     }
 

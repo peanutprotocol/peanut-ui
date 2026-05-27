@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useNotifications } from './useNotifications'
 import { useRouter } from 'next/navigation'
-import useKycStatus from './useKycStatus'
+import { useCapabilities } from './useCapabilities'
 import type { StaticImageData } from 'next/image'
 import { useModalsContext } from '@/context/ModalsContext'
 import { DeviceType, useDeviceType } from './useGetDeviceType'
@@ -83,8 +83,15 @@ export const useHomeCarouselCTAs = () => {
     } = useNotifications()
     const toast = useToast()
     const router = useRouter()
-    const { isUserKycApproved, isUserBridgeKycUnderReview, isUserBridgeKycIncomplete, isUserMantecaKycApproved } =
-        useKycStatus()
+    const { isKycApproved, railsForProvider } = useCapabilities()
+    // MIGRATION-REVIEW: old gate used bridge-specific `isUserBridgeKycUnderReview` ('under_review')
+    // + `isUserBridgeKycIncomplete` ('incomplete') to suppress the "verify your account" CTA from
+    // users already mid-flow on Bridge. Capability equivalent: a Bridge rail that's `pending`
+    // (submitted/provisioning ≈ under_review) or `requires-info` (must finish tos/proof ≈
+    // incomplete). Kept bridge-scoped to match the original (not broadened to all providers).
+    const isBridgeInFlight = railsForProvider('bridge').some(
+        (rail) => rail.status === 'pending' || rail.status === 'requires-info'
+    )
     const { deviceType } = useDeviceType()
     const isPwa = usePWAStatus()
     const { setIsIosPwaInstallModalOpen, openSupportWithMessage } = useModalsContext()
@@ -128,8 +135,9 @@ export const useHomeCarouselCTAs = () => {
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
 
-        // DRY: Check KYC approval status once
-        const hasKycApproval = isUserKycApproved || isUserMantecaKycApproved
+        // DRY: Check KYC approval status once. isKycApproved === any enabled rail (bridge,
+        // manteca pool/full, or rain), which subsumes the old isUserKycApproved || isUserMantecaKycApproved.
+        const hasKycApproval = isKycApproved
         const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
 
         // Card CTA — Pioneers replaced by free badge-gated waitlist (M2).
@@ -290,7 +298,7 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        if (!hasKycApproval && !isUserBridgeKycUnderReview && !isUserBridgeKycIncomplete) {
+        if (!hasKycApproval && !isBridgeInFlight) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
                 title: (
@@ -318,10 +326,8 @@ export const useHomeCarouselCTAs = () => {
         isPermissionGranted,
         isPermissionDenied,
         isPushOptedIn,
-        isUserKycApproved,
-        isUserBridgeKycUnderReview,
-        isUserBridgeKycIncomplete,
-        isUserMantecaKycApproved,
+        isKycApproved,
+        isBridgeInFlight,
         router,
         requestPermission,
         afterPermissionAttempt,

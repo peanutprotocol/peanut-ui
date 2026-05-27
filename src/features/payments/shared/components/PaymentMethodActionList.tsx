@@ -19,7 +19,7 @@ import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import Loading from '@/components/Global/Loading'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { saveRedirectUrl } from '@/utils/general.utils'
 
 interface PaymentMethodActionListProps {
@@ -43,7 +43,12 @@ export function PaymentMethodActionList({
     onPayWithExternalWallet,
 }: PaymentMethodActionListProps) {
     const router = useRouter()
-    const { isUserMantecaKycApproved, isUserBridgeKycApproved } = useKycStatus()
+    // MIGRATION-REVIEW: display-only "REQUIRES VERIFICATION" badges. mercadopago/pix are QR `pay`
+    // over Manteca → canDo('pay', { provider: 'manteca' }); bank is Bridge → hasEnabledRail('bridge')
+    // (matches old bridgeKycStatus === 'approved'). The real gate happens later in the add-money flow.
+    const { canDo, hasEnabledRail } = useCapabilities()
+    const isMantecaPayEnabled = canDo('pay', { provider: 'manteca' })
+    const isUserBridgeKycApproved = hasEnabledRail('bridge')
 
     // use geo filtering hook to sort methods based on user location
     // note: we don't mark verification-required methods as unavailable - they're still clickable
@@ -84,7 +89,7 @@ export function PaymentMethodActionList({
                 {sortedMethods.map((method) => {
                     // check if method requires verification (for badge display only)
                     const methodRequiresMantecaVerification =
-                        ['mercadopago', 'pix'].includes(method.id) && !isUserMantecaKycApproved
+                        ['mercadopago', 'pix'].includes(method.id) && !isMantecaPayEnabled
                     const methodRequiresBridgeVerification = method.id === 'bank' && !isUserBridgeKycApproved
                     const methodRequiresVerification =
                         methodRequiresMantecaVerification || methodRequiresBridgeVerification

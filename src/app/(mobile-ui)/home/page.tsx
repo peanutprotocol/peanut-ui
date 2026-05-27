@@ -23,7 +23,7 @@ import { PostSignupActionManager } from '@/components/Global/PostSignupActionMan
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useNotifications } from '@/hooks/useNotifications'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
 import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
 import EnableAutoBalanceBanner from '@/components/Home/EnableAutoBalanceBanner'
@@ -66,7 +66,7 @@ export default function Home() {
     const { triggerHaptic } = useHaptic()
 
     const { isFetchingUser, fetchUser } = useAuth()
-    const { isUserKycApproved } = useKycStatus()
+    const { isKycApproved } = useCapabilities()
     const { isActivated, activationStep, dismissCardStep } = useActivationStatus()
     // Fire-and-forget: warms the card-info cache so /card mounts fast.
     // Return values intentionally unused — only the fetch side effect matters.
@@ -167,7 +167,7 @@ export default function Home() {
         <PageContainer>
             <div className="h-full w-full space-y-6 p-5">
                 <div className="flex items-center justify-between gap-2">
-                    <UserHeader username={username!} fullName={userFullName} isVerified={isUserKycApproved} />
+                    <UserHeader username={username!} fullName={userFullName} isVerified={isKycApproved} />
                     {isActivated && (
                         <Link onClick={() => triggerHaptic()} href="/rewards" className="flex items-center gap-0">
                             <InvitesIcon />

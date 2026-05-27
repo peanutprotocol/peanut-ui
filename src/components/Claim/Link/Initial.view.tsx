@@ -44,7 +44,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Image from 'next/image'
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import MantecaFlowManager from './MantecaFlowManager'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { invitesApi } from '@/services/invites'
@@ -130,7 +130,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const searchParams = useSearchParams()
     const prevRecipientType = useRef<string | null>(null)
     const prevUser = useRef(user)
-    const { isUserBridgeKycApproved } = useKycStatus()
+    // MIGRATION-REVIEW: bank claim routing gated on `isUserBridgeKycApproved` (bridgeKycStatus
+    // === 'approved'). This is a Bridge-specific gate (bank/IBAN claim runs over Bridge), so
+    // mapped to hasEnabledRail('bridge'), NOT the any-rail isKycApproved — a manteca-only user
+    // must still go through the Bridge KYC steps for a bank claim.
+    const isUserBridgeKycApproved = useCapabilities().hasEnabledRail('bridge')
 
     const [isDevconnectClaimFlow, setisDevconnectClaimFlow] = useState(false)
 

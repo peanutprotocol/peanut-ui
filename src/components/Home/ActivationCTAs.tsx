@@ -9,7 +9,7 @@ import Card from '../Global/Card'
 import { useEffect, useMemo, useRef } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
 
 interface ActivationCTAsProps {
     activationStep: ActivationStep
@@ -72,7 +72,28 @@ const STEPS: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = {
 export default function ActivationCTAs({ activationStep, onDismissCard }: ActivationCTAsProps) {
     const router = useRouter()
     const { setIsQRScannerOpen, setIsSupportModalOpen } = useModalsContext()
-    const { hasFixableRejection, hasBlockedRejection, primaryRejection } = useProviderRejectionStatus()
+    const { railsForProvider } = useCapabilities()
+
+    // MIGRATION-REVIEW: old `useProviderRejectionStatus` derived fixable/blocked from raw rail
+    // status + self-heal metadata + reject-type + attempt caps. That eligibility decision now
+    // lives backend-side and is expressed directly as the rail capability status:
+    //   fixable (user can submit more) → top-level status 'requires-info'
+    //   blocked  (contact support)     → top-level status 'blocked'
+    // We scope to bridge+manteca rails (the activation funnel only gates deposit/outbound on
+    // those providers). Using TOP-LEVEL status deliberately excludes the Manteca pool rail's
+    // per-operation 'requires-info' (deposit/withdraw need a full account) — that rail is
+    // top-level 'enabled' and is NOT a rejection. primaryRejection.userMessage → the prioritized
+    // rail's reason.userMessage (fixable first, then blocked), matching the old priority order.
+    const { hasFixableRejection, hasBlockedRejection, primaryRejectionMessage } = useMemo(() => {
+        const rejectableRails = [...railsForProvider('bridge'), ...railsForProvider('manteca')]
+        const fixableRail = rejectableRails.find((rail) => rail.status === 'requires-info')
+        const blockedRail = rejectableRails.find((rail) => rail.status === 'blocked')
+        return {
+            hasFixableRejection: !!fixableRail,
+            hasBlockedRejection: !!blockedRail,
+            primaryRejectionMessage: (fixableRail ?? blockedRail)?.reason?.userMessage ?? null,
+        }
+    }, [railsForProvider])
 
     const lastTrackedStep = useRef<ActivationStep | null>(null)
     useEffect(() => {
@@ -98,8 +119,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     icon: 'globe-lock',
                     iconBg: 'bg-primary-1',
                     title: 'Complete your setup',
-                    description:
-                        primaryRejection?.userMessage || 'We need an updated document before you can add money.',
+                    description: primaryRejectionMessage || 'We need an updated document before you can add money.',
                     ctaLabel: 'Upload document',
                     href: '/profile/identity-verification',
                 }
@@ -116,7 +136,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         }
 
         return STEPS[activationStep as Exclude<ActivationStep, 'completed'>]
-    }, [activationStep, hasProviderRejection, hasFixableRejection, primaryRejection])
+    }, [activationStep, hasProviderRejection, hasFixableRejection, primaryRejectionMessage])
 
     if (!step) return null
 

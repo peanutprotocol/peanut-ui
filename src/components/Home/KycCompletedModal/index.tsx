@@ -6,7 +6,7 @@ import InfoCard from '@/components/Global/InfoCard'
 import { useAuth } from '@/context/authContext'
 import { countryData, type CountryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
-import useUnifiedKycStatus from '@/hooks/useUnifiedKycStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
@@ -16,8 +16,9 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     const { user } = useAuth()
     const [approvedCountryData, setApprovedCountryData] = useState<CountryData | null>(null)
 
-    const { isBridgeApproved, isMantecaApproved, isSumsubApproved, sumsubVerificationRegionIntent } =
-        useUnifiedKycStatus()
+    const { hasEnabledRail } = useCapabilities()
+    const isBridgeApproved = hasEnabledRail('bridge')
+    const isMantecaApproved = hasEnabledRail('manteca')
 
     const hasTrackedShow = useRef(false)
     useEffect(() => {
@@ -28,16 +29,19 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     }, [isOpen])
     const { getVerificationUnlockItems } = useIdentityVerification()
 
+    // MIGRATION-REVIEW: old logic had a Sumsub branch — `isSumsubApproved &&
+    // regionIntent==='LATAM' → 'manteca'`, else 'bridge' — to pick feature bullets while
+    // the downstream provider rail hadn't enabled yet. Sumsub has no rail in the capability
+    // model, and an approved user now always surfaces as an enabled bridge/manteca rail, so
+    // the pre-rail window is gone. Mapped to "enabled rail by provider", preserving the
+    // bridge+manteca → 'all', manteca → 'manteca', bridge → 'bridge' priority. The only
+    // behavioral drop is the LATAM-region-intent hint; the rail itself now drives the type.
     const kycApprovalType = useMemo(() => {
         if (isBridgeApproved && isMantecaApproved) return 'all'
         if (isMantecaApproved) return 'manteca'
-        if (isSumsubApproved) {
-            if (sumsubVerificationRegionIntent === 'LATAM') return 'manteca'
-            return 'bridge'
-        }
         if (isBridgeApproved) return 'bridge'
         return 'none'
-    }, [isBridgeApproved, isMantecaApproved, isSumsubApproved, sumsubVerificationRegionIntent])
+    }, [isBridgeApproved, isMantecaApproved])
 
     const items = useMemo(() => {
         return getVerificationUnlockItems(approvedCountryData?.title)
