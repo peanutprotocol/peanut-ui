@@ -1,4 +1,5 @@
 import { type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
+import { type UserCapabilities } from '@/types/capabilities'
 
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'
 
@@ -288,6 +289,11 @@ export interface IUserProfile {
     invitesSent: userInvites[]
     showEarlyUserModal: boolean
     invitedBy: string | null // Username of the person who invited this user
+    // Backend-computed capability model — TOP-LEVEL sibling of `user` on the
+    // /get-user response (NOT user.capabilities). Read via useCapabilities().
+    // Optional during the add→migrate→delete sequence (D11): present once the
+    // API PR ships, raw KYC fields above removed last. See kyc-2.0 plan.
+    capabilities?: UserCapabilities
 }
 
 export type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue }
