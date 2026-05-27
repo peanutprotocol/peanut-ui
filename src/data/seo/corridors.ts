@@ -16,7 +16,13 @@
 // — now render the MDX body directly. We keep only the slug list and the
 // display-name resolver.
 
-import { listContentSlugs, listCorridorOrigins, readPageContent, readPageContentLocalized } from '@/lib/content'
+import {
+    listContentSlugs,
+    listCorridorOrigins,
+    readCorridorContent,
+    readPageContent,
+    readPageContentLocalized,
+} from '@/lib/content'
 import type { Locale } from '@/i18n/types'
 import { displayNameFromContent } from './utils'
 
@@ -32,9 +38,11 @@ export interface Corridor {
 function loadCountries(): Record<string, CountrySEO> {
     const result: Record<string, CountrySEO> = {}
     for (const slug of listContentSlugs('countries')) {
+        // A slug directory with no en.md has no render target — the route
+        // would 404. Gate on content presence, not just directory existence.
         const content = readPageContent<{ name?: unknown; published?: boolean }>('countries', slug, 'en')
-        if (content && content.frontmatter.published === false) continue
-        result[slug] = { name: displayNameFromContent(slug, content?.frontmatter) }
+        if (!content || content.frontmatter.published === false) continue
+        result[slug] = { name: displayNameFromContent(slug, content.frontmatter) }
     }
     return result
 }
@@ -44,6 +52,9 @@ function loadCorridors(): Corridor[] {
     const corridors: Corridor[] = []
     for (const dest of listContentSlugs('send-to')) {
         for (const origin of listCorridorOrigins(dest)) {
+            // Skip corridor dirs with no en.md — send-money-from would 404.
+            const content = readCorridorContent<{ published?: boolean }>(dest, origin, 'en')
+            if (!content || content.frontmatter.published === false) continue
             const key = `${origin}→${dest}`
             if (seen.has(key)) continue
             seen.add(key)
@@ -53,8 +64,25 @@ function loadCorridors(): Corridor[] {
     return corridors
 }
 
+/**
+ * Origins for the receive-money-from pages. The set is the corridor origins,
+ * but only those that actually have a receive-from article — an origin present
+ * in CORRIDORS.from but missing content/receive-from/{slug}/en.md would 404
+ * (this is how colombia & mexico shipped as live 404s in May 2026). The
+ * receive-from content tree is authored independently of corridors, so the two
+ * sets don't line up automatically.
+ */
+function loadReceiveSources(corridors: Corridor[]): string[] {
+    const origins = [...new Set(corridors.map((c) => c.from))]
+    return origins.filter((slug) => {
+        const content = readPageContent<{ published?: boolean }>('receive-from', slug, 'en')
+        return content !== null && content.frontmatter.published !== false
+    })
+}
+
 export const COUNTRIES_SEO: Record<string, CountrySEO> = loadCountries()
 export const CORRIDORS: Corridor[] = loadCorridors()
+export const RECEIVE_SOURCES: string[] = loadReceiveSources(CORRIDORS)
 
 /**
  * Get the country display name for a slug at the given locale. Reads
