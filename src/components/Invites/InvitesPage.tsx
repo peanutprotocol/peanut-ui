@@ -29,6 +29,10 @@ const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
     survivor: 'SUPPORT_SURVIVOR',
 }
 
+// Campaign that bypasses the waitlist with no invite code: /invite?campaign=skip.
+// Awarding the Skip Pass badge (backend /badge/award) also flips hasAppAccess.
+const SKIP_CAMPAIGN = 'skip'
+
 function InvitePageContent() {
     const searchParams = useSearchParams()
     // trim trailing '?' from invite code to handle qr codes with ? at the end
@@ -41,11 +45,15 @@ function InvitePageContent() {
     // determine campaign tag: use query param if provided (takes precedence), otherwise check invite code mapping
     const campaign = campaignParam || (inviteCode ? INVITE_CODE_TO_CAMPAIGN_MAP[inviteCode] : undefined)
 
+    // skip-the-waitlist link: no invite code required, handled by its own flow below
+    const isSkipCampaign = !inviteCode && campaign?.toLowerCase() === SKIP_CAMPAIGN
+
     const dispatch = useAppDispatch()
     const router = useRouter()
     const { handleLoginClick, isLoggingIn } = useLogin()
     const [isAwardingBadge, setIsAwardingBadge] = useState(false)
     const hasStartedAwardingRef = useRef(false)
+    const hasStartedSkipRef = useRef(false)
 
     // Track if we should show content (prevents flash)
     const [shouldShowContent, setShouldShowContent] = useState(false)
@@ -138,6 +146,30 @@ function InvitePageContent() {
         }
     }, [user, inviteCodeData, isLoading, isFetchingUser, router, campaign, redirectUri, fetchUser])
 
+    // skip-the-waitlist: a logged-in visitor (even one still in jail) claims immediately —
+    // awardBadge('skip') grants app access + the Skip Pass badge on the backend.
+    useEffect(() => {
+        if (!isSkipCampaign || isFetchingUser || hasStartedSkipRef.current) return
+        if (!user?.user) return // not logged in — handled by the claim CTA below
+
+        hasStartedSkipRef.current = true
+        setIsAwardingBadge(true)
+        invitesApi
+            .awardBadge(SKIP_CAMPAIGN)
+            .catch((e) => console.error('Error claiming skip pass', e))
+            .finally(async () => {
+                await fetchUser()
+                router.push('/home')
+            })
+    }, [isSkipCampaign, user, isFetchingUser, fetchUser, router])
+
+    const handleClaimSkip = () => {
+        posthog.capture(ANALYTICS_EVENTS.INVITE_CLAIM_CLICKED, { invite_code: SKIP_CAMPAIGN })
+        // carry the campaign through signup; useZeroDev awards it once the account exists
+        saveToCookie('campaignTag', SKIP_CAMPAIGN)
+        router.push('/setup?step=signup')
+    }
+
     const handleClaimInvite = async () => {
         if (inviteCode) {
             posthog.capture(ANALYTICS_EVENTS.INVITE_CLAIM_CLICKED, {
@@ -156,6 +188,48 @@ function InvitePageContent() {
                 router.push('/setup?step=signup')
             }
         }
+    }
+
+    // skip-the-waitlist link (?campaign=skip, no invite code) — its own flow
+    if (isSkipCampaign) {
+        // logged-in visitors are auto-claimed by the effect above; show loading while it runs
+        if (user?.user || isAwardingBadge || isFetchingUser) {
+            return <PeanutLoading coverFullScreen />
+        }
+        // not logged in — create an account, then useZeroDev awards the skip on signup
+        return (
+            <InvitesPageLayout image={peanutAnim.src}>
+                <div
+                    className={twMerge(
+                        'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',
+                        'flex flex-col items-end justify-center gap-5 pt-8 '
+                    )}
+                >
+                    <div className="mx-auto w-full md:max-w-xs">
+                        <div className="flex h-full flex-col justify-between gap-4 md:gap-6 md:pt-5">
+                            <h1 className="text-xl font-extrabold">You&apos;re skipping the waitlist</h1>
+                            <p className="text-base font-medium">
+                                Someone at Peanut wants you in. Create your wallet and walk straight past the line — no
+                                invite code, no queue.
+                            </p>
+                            <Button onClick={handleClaimSkip} shadowSize="4">
+                                Claim your Skip Pass
+                            </Button>
+                            <Button
+                                disabled={isLoggingIn}
+                                loading={isLoggingIn}
+                                variant="primary-soft"
+                                onClick={handleLoginClick}
+                                shadowSize="4"
+                            >
+                                Already have an account? Log in!
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+                <UnsupportedBrowserModal allowClose={false} />
+            </InvitesPageLayout>
+        )
     }
 
     // show loading if:

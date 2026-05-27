@@ -91,6 +91,12 @@ const BADGES: Record<string, BadgeMeta> = {
         description: '$1K swiped. They put their money where their card is.',
         // TODO(card-launch): award on cumulative card spend ≥ $1K
     },
+    // Skip Pass — friends-of-Peanut who bypassed the waitlist via /invite?campaign=skip.
+    // Awarded by the backend /badge/award endpoint, which also flips hasAppAccess.
+    WAITLIST_SKIP: {
+        path: '/badges/skip_pass.svg',
+        description: 'They skipped the waitlist. A friend handed them the key and they walked right in.',
+    },
 }
 
 export function getBadgeIcon(code?: string) {
