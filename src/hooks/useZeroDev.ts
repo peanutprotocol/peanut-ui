@@ -120,6 +120,16 @@ export const useZeroDev = () => {
                     })
                     console.error('Error accepting invite', e)
                 }
+            } else if (campaignTag?.toLowerCase() === 'skip') {
+                // skip-the-waitlist campaign (no invite code): awarding grants app access + the Skip Pass badge
+                try {
+                    await invitesApi.awardBadge(campaignTag)
+                    posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, { campaign_tag: campaignTag })
+                } catch (e) {
+                    console.error('Error claiming skip pass', e)
+                } finally {
+                    removeFromCookie('campaignTag')
+                }
             }
 
             setWebAuthnKey(webAuthnKey)
