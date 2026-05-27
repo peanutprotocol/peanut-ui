@@ -156,14 +156,6 @@ function ProposedRegionsPage({ userState }: { userState: 'new' | 'verified-rfi' 
         <div className="flex flex-col space-y-6">
             <NavHeader title="Where you can pay" />
 
-            {/* id confirmed — subtle inline, not a banner */}
-            {userState !== 'new' && (
-                <div className="flex items-center gap-2">
-                    <Icon name="check" size={14} className="text-green-600" />
-                    <span className="text-sm text-grey-1">ID confirmed</span>
-                </div>
-            )}
-
             {/* new user: onboarding */}
             {userState === 'new' && (
                 <Card position="single">
