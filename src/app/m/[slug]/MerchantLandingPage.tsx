@@ -23,11 +23,7 @@ export default function MerchantLandingPage({ merchant }: { merchant: Merchant }
         <>
             <Hero merchant={merchant} />
             <Marquee {...marqueeProps} />
-            {merchant.fold2.type === 'menu' ? (
-                <MenuFold merchant={merchant} fold={merchant.fold2} />
-            ) : (
-                <FaqFold fold={merchant.fold2} />
-            )}
+            {merchant.fold2.type === 'menu' ? <MenuFold fold={merchant.fold2} /> : <FaqFold fold={merchant.fold2} />}
             <Marquee {...marqueeProps} />
             <EndFold merchant={merchant} />
             {merchant.footerDisclosure && (
@@ -253,7 +249,7 @@ function Polaroids({ items }: { items: NonNullable<Merchant['polaroids']> }) {
  * uppercase centered h2, body tagline, then a grid of white cards with the
  * same border / 4px shadow primitive used by stats.
  * ------------------------------------------------------------------------- */
-function MenuFold({ merchant, fold }: { merchant: Merchant; fold: Extract<Merchant['fold2'], { type: 'menu' }> }) {
+function MenuFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'menu' }> }) {
     const [currency, setCurrency] = useState<Currency>('USD')
 
     // Live ARS rates from the same source as the currency widget (/api/exchange-rate
