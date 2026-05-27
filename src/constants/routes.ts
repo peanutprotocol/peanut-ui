@@ -143,7 +143,13 @@ const USERNAME_PATTERN = /^[a-z][a-z0-9]{3,11}$/
  */
 export function couldBeRecipient(segment: string): boolean {
     if (!segment) return false
-    const decoded = decodeURIComponent(segment).toLowerCase()
+    let decoded: string
+    try {
+        decoded = decodeURIComponent(segment).toLowerCase()
+    } catch {
+        // malformed percent-encoding (e.g. lone '%') → not a recipient
+        return false
+    }
     // EVM address
     if (/^0x[0-9a-f]{40}$/.test(decoded)) return true
     // ENS name

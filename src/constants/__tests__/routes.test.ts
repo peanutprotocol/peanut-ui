@@ -46,6 +46,12 @@ describe('couldBeRecipient — catch-all guard', () => {
     test('rejects empty / undefined-shaped input', () => {
         expect(couldBeRecipient('')).toBe(false)
     })
+
+    test('rejects malformed percent-encoding without throwing', () => {
+        expect(() => couldBeRecipient('%')).not.toThrow()
+        expect(couldBeRecipient('%')).toBe(false)
+        expect(couldBeRecipient('%E0%A4%A')).toBe(false)
+    })
 })
 
 describe('isLocaleSegment', () => {
