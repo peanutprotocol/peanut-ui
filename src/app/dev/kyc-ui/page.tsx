@@ -350,33 +350,25 @@ export default function KycUiAuditPage() {
                     <div>
                         <h2 className="mb-2 font-bold">Brand new user</h2>
                         <p className="mb-3 text-xs text-grey-1">hasn&apos;t confirmed ID yet</p>
-                        <Card position="single">
-                            <ProposedRegionsPage userState="new" />
-                        </Card>
+                        <ProposedRegionsPage userState="new" />
                     </div>
 
                     <div>
                         <h2 className="mb-2 font-bold">One payment method needs a document</h2>
                         <p className="mb-3 text-xs text-grey-1">everything works except US bank transfers — needs proof of address</p>
-                        <Card position="single">
-                            <ProposedRegionsPage userState="verified-rfi" />
-                        </Card>
+                        <ProposedRegionsPage userState="verified-rfi" />
                     </div>
 
                     <div>
                         <h2 className="mb-2 font-bold">European user with deadline</h2>
                         <p className="mb-3 text-xs text-grey-1">SEPA needs a small update by June 29 to stay active</p>
-                        <Card position="single">
-                            <ProposedRegionsPage userState="eea" />
-                        </Card>
+                        <ProposedRegionsPage userState="eea" />
                     </div>
 
                     <div>
                         <h2 className="mb-2 font-bold">Everything working</h2>
                         <p className="mb-3 text-xs text-grey-1">all set up, no actions needed</p>
-                        <Card position="single">
-                            <ProposedRegionsPage userState="happy" />
-                        </Card>
+                        <ProposedRegionsPage userState="happy" />
                     </div>
                 </div>
             )}
