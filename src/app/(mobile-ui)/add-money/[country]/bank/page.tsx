@@ -10,11 +10,8 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatAmount } from '@/utils/general.utils'
 import { countryData } from '@/components/AddMoney/consts'
 import { useAuth } from '@/context/authContext'
-import {
-    useBridgeTransferReadiness,
-    getKycModalVariant,
-    getGateProviderMessage,
-} from '@/hooks/useBridgeTransferReadiness'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { deriveBridgeGate, getKycModalVariant, getGateProviderMessage } from '@/utils/bridge-gate.utils'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
 import { useParams, useSearchParams } from 'next/navigation'
@@ -103,7 +100,13 @@ export default function OnrampBankPage() {
     // uk-specific check
     const isUK = isUKCountry(selectedCountryPath)
 
-    const { gate } = useBridgeTransferReadiness()
+    // MIGRATION-REVIEW: replaces `useBridgeTransferReadiness`. The gate is derived
+    // inline from the backend capability model (Bridge rails + nextActions) — same
+    // BridgeGateAction shape, so the `gate.type` branching + InitiateKycModal wiring
+    // below are unchanged. See deriveBridgeGate for the full state mapping + the
+    // Sumsub-has-no-rail contract gap (isKycApproved is the faithful proxy).
+    const { rails, nextActions, isKycApproved } = useCapabilities()
+    const gate = useMemo(() => deriveBridgeGate(rails, nextActions, isKycApproved), [rails, nextActions, isKycApproved])
     const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
     const { setIsSupportModalOpen } = useModalsContext()
 

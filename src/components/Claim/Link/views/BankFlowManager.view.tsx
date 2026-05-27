@@ -3,7 +3,7 @@
 import { type IClaimScreenProps } from '../../Claim.consts'
 import { DynamicBankAccountForm, type IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { useCallback, useContext, useState, useRef } from 'react'
+import { useCallback, useContext, useMemo, useState, useRef } from 'react'
 import { loadingStateContext } from '@/context'
 import { createBridgeExternalAccountForGuest } from '@/app/actions/external-accounts'
 import { confirmOfframp, createOfframp, createOfframpForGuest } from '@/app/actions/offramp'
@@ -33,11 +33,8 @@ import { sendLinksApi } from '@/services/sendLinks'
 import { useSearchParams } from 'next/navigation'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
-import {
-    useBridgeTransferReadiness,
-    getKycModalVariant,
-    getGateProviderMessage,
-} from '@/hooks/useBridgeTransferReadiness'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { deriveBridgeGate, getKycModalVariant, getGateProviderMessage } from '@/utils/bridge-gate.utils'
 import { useBridgeTosGuard } from '@/hooks/useBridgeTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -84,7 +81,13 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const { isLoading, setLoadingState } = useContext(loadingStateContext)
     const { claimLink } = useClaimLink()
     const dispatch = useAppDispatch()
-    const { gate } = useBridgeTransferReadiness()
+    // MIGRATION-REVIEW: replaces `useBridgeTransferReadiness` — gate derived inline
+    // from the capability model (same BridgeGateAction shape). The bank-claim gate
+    // only fires for logged-in users (guest claims leverage the sender's KYC and
+    // bypass `gate` entirely below), so this reads the *claimer's* own capabilities,
+    // exactly as the old hook did. See deriveBridgeGate for the state mapping.
+    const { rails, nextActions, isKycApproved } = useCapabilities()
+    const gate = useMemo(() => deriveBridgeGate(rails, nextActions, isKycApproved), [rails, nextActions, isKycApproved])
     const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
     const [showKycModal, setShowKycModal] = useState(false)
     const { setIsSupportModalOpen } = useModalsContext()

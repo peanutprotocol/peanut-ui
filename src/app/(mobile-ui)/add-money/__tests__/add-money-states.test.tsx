@@ -118,11 +118,14 @@ jest.mock('@/hooks/useKycStatus', () => ({
     default: () => mockUseKycStatus(),
 }))
 
-const mockGate = jest.fn().mockReturnValue({ type: 'ready' })
-jest.mock('@/hooks/useBridgeTransferReadiness', () => ({
-    useBridgeTransferReadiness: () => ({ gate: mockGate() }),
-    getKycModalVariant: () => 'default',
-    getGateProviderMessage: () => undefined,
+// Bridge gate is now derived inline from useCapabilities() via the real
+// deriveBridgeGate util (bridge-gate.utils is intentionally NOT mocked, so the
+// gate state mapping is exercised end-to-end). Per-test we set fixture rails +
+// nextActions on useCapabilities; `setGate(type)` builds the minimal capability
+// shape that the real deriveBridgeGate resolves to that gate type.
+const mockUseCapabilities = jest.fn()
+jest.mock('@/hooks/useCapabilities', () => ({
+    useCapabilities: () => mockUseCapabilities(),
 }))
 
 jest.mock('@/context/ModalsContext', () => ({
@@ -727,6 +730,73 @@ function setParams(params: Record<string, string>) {
     })
 }
 
+// Build the minimal capability fixture that the real deriveBridgeGate resolves
+// to `type`, then push it onto the useCapabilities mock. Mirrors the BE resolver
+// output: enabled rail → ready; requires-info + bridge-tos action → accept_tos;
+// requires-info + sumsub action → fixable_rejection; blocked rail →
+// blocked_rejection; no rails + identity → needs_enrollment; no rails + no
+// identity → needs_kyc.
+type Gate = 'ready' | 'accept_tos' | 'fixable_rejection' | 'blocked_rejection' | 'needs_kyc' | 'needs_enrollment'
+function setGate(type: Gate) {
+    let rails: any[] = []
+    let nextActions: any[] = []
+    let isKycApproved = false
+
+    switch (type) {
+        case 'ready':
+            rails = [{ id: 'bridge.ach_us', provider: 'bridge', method: 'ACH_US', status: 'enabled' }]
+            isKycApproved = true
+            break
+        case 'accept_tos':
+            rails = [
+                {
+                    id: 'bridge.ach_us',
+                    provider: 'bridge',
+                    method: 'ACH_US',
+                    status: 'requires-info',
+                    blockingActions: ['bridge-tos'],
+                },
+            ]
+            nextActions = [{ key: 'bridge-tos', kind: 'bridge-tos', purpose: 'unlock-bridge' }]
+            break
+        case 'fixable_rejection':
+            rails = [
+                {
+                    id: 'bridge.ach_us',
+                    provider: 'bridge',
+                    method: 'ACH_US',
+                    status: 'requires-info',
+                    blockingActions: ['bridge-rfi'],
+                    reason: { code: 'document_rejected', userMessage: 'upload a clearer photo' },
+                },
+            ]
+            nextActions = [{ key: 'bridge-rfi', kind: 'sumsub', purpose: 'unlock-bridge', levelKey: 'rfi' }]
+            break
+        case 'blocked_rejection':
+            rails = [
+                {
+                    id: 'bridge.ach_us',
+                    provider: 'bridge',
+                    method: 'ACH_US',
+                    status: 'blocked',
+                    reason: { code: 'final', userMessage: 'contact support' },
+                },
+            ]
+            break
+        case 'needs_enrollment':
+            // identity verified elsewhere (any enabled rail), no Bridge rail yet
+            rails = [{ id: 'manteca.pix_br', provider: 'manteca', method: 'PIX_BR', status: 'enabled' }]
+            isKycApproved = true
+            break
+        case 'needs_kyc':
+            rails = []
+            isKycApproved = false
+            break
+    }
+
+    mockUseCapabilities.mockReturnValue({ rails, nextActions, isKycApproved })
+}
+
 function createQueryClient() {
     return new QueryClient({
         defaultOptions: {
@@ -758,6 +828,9 @@ function applyDefaults() {
         isUserKycApproved: true,
         isUserMantecaKycApproved: true,
     })
+
+    // default: Bridge gate ready (enabled rail). Per-test override via setGate().
+    setGate('ready')
 
     mockUseCurrency.mockReturnValue({
         isLoading: false,
@@ -1087,7 +1160,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
     beforeEach(() => {
         setParams({ country: 'germany' })
         resetQueryState({ step: 'inputAmount', amount: '' })
-        mockGate.mockReturnValue({ type: 'ready' })
+        setGate('ready')
     })
 
     test('inputAmount step shows amount input and Continue button', () => {
@@ -1118,7 +1191,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             isUserKycApproved: false,
             isUserMantecaKycApproved: false,
         })
-        mockGate.mockReturnValue({ type: 'needs_kyc' })
+        setGate('needs_kyc')
         resetQueryState({ step: 'inputAmount', amount: '100' })
 
         renderWithProviders(<OnrampBankPage />)
@@ -1252,7 +1325,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
     })
 
     test('Bridge TOS guard shows TOS step', async () => {
-        mockGate.mockReturnValue({ type: 'accept_tos' })
+        setGate('accept_tos')
         mockUseBridgeTosGuard.mockReturnValue({
             guardWithTos: jest.fn(() => true),
             showBridgeTos: true,
