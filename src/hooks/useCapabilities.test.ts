@@ -33,17 +33,20 @@ const FIXTURE: UserCapabilities = {
             blockingActions: ['accept-bridge-tos', 'sumsub-eea-uplift'],
             reason: { code: 'tos_required', userMessage: 'Accept the Bridge terms to continue.' },
         },
-        // Manteca pool-tier BR rail: pay enabled, deposit/withdraw need full account
+        // Manteca pool-tier BR rail — matches the BE resolver exactly: the rail is
+        // ENABLED (usable, for `pay` via the corporate pool), and `operations`
+        // refines deposit/withdraw to requires-info (need the full account). The
+        // upgrade action lives in blockingActions. No top-level `reason` — the BE
+        // only sets reason on requires-info/blocked rails, never an enabled one.
         {
             id: 'manteca.pix_br',
             provider: 'manteca',
             method: 'PIX_BR',
             country: 'BR',
             currency: 'BRL',
-            status: 'requires-info',
+            status: 'enabled',
             operations: { pay: 'enabled', deposit: 'requires-info', withdraw: 'requires-info' },
             blockingActions: ['manteca-full-account'],
-            reason: { code: 'manteca_full_account', userMessage: 'Finish your Manteca account to withdraw.' },
         },
         // Rain card provisioning — drives isKycInProgress + polling
         {
@@ -184,11 +187,18 @@ describe('useCapabilities', () => {
             expect(result.current.hasEnabledRail('bridge')).toBe(true)
         })
 
-        it('is false for a provider with no enabled rail (manteca: requires-info + blocked only)', () => {
+        it('is true for manteca whose pool rail is enabled (pay-capable, even though deposit/withdraw are gated)', () => {
             mockAuth(FIXTURE)
             const { result } = renderHook(() => useCapabilities())
-            // manteca.pix_br is requires-info at the top level (operations enable only `pay`)
-            expect(result.current.hasEnabledRail('manteca')).toBe(false)
+            // manteca.pix_br is ENABLED (usable for pay via the pool). hasEnabledRail
+            // is rail-level: an enabled rail counts even if some operations are gated.
+            // Consumers needing a specific op must use canDo(op) — see the canDo tests.
+            expect(result.current.hasEnabledRail('manteca')).toBe(true)
+        })
+
+        it('is false for a provider with no rails at all (rain)', () => {
+            mockAuth(FIXTURE)
+            const { result } = renderHook(() => useCapabilities())
             expect(result.current.hasEnabledRail('rain')).toBe(false)
         })
     })
