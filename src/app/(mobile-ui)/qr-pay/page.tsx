@@ -42,7 +42,7 @@ import { captureException } from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isPaymentProcessorQR, EQrType, NAME_BY_QR_TYPE, type QrType } from '@/components/Global/DirectSendQR/utils'
-import { QrKycState, useQrKycGate } from '@/hooks/useQrKycGate'
+import { QrKycState } from '@/constants/kyc.consts'
 import ActionModal from '@/components/Global/ActionModal'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
@@ -59,7 +59,8 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps, isBrUserEligibleForLimitIncrease } from '@/features/limits/utils'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { MANTECA_US_NATIONALITY_CAPABILITY_CODE } from '@/types/capabilities'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
@@ -126,8 +127,77 @@ export default function QRPayPage() {
         return paymentProcessor ? maintenanceConfig.disabledPaymentProviders.includes(paymentProcessor) : false
     }, [paymentProcessor])
 
-    const { shouldBlockPay, kycGateState, userMessage: qrKycUserMessage } = useQrKycGate(paymentProcessor)
-    const { isUserSumsubKycApproved } = useKycStatus()
+    // MIGRATION-REVIEW: QR-pay KYC gate, formerly useQrKycGate + useKycStatus.
+    // Derived inline from the backend capability model. Mapping:
+    //   canDo('pay',{manteca}) → PROCEED_TO_PAY. This is the pool-tier fallback-to-ready fix:
+    //     the Sumsub-pool rail is top-level status:'enabled' with operations.pay='enabled',
+    //     so canDo('pay') is true for pool users and the rejection branches never fire for them
+    //     (the old hook special-cased "US-restricted full-tier rejected + Sumsub-approved" to
+    //     reach PROCEED; the backend now expresses that directly as an enabled pay op).
+    //   manteca top-level 'blocked' → PROVIDER_REJECTION_BLOCKED, EXCEPT when a US-nationality
+    //     restriction (restrictionForRail) covers the rail — then PROCEED (BE pool fallback).
+    //   manteca top-level 'requires-info' → PROVIDER_REJECTION_FIXABLE.
+    //   manteca 'pending' → IDENTITY_VERIFICATION_IN_PROGRESS.
+    //   otherwise → REQUIRES_IDENTITY_VERIFICATION. While loading → LOADING.
+    // userMessage ← the rejecting rail's reason.userMessage (was useProviderRejectionStatus).
+    const {
+        canDo,
+        railsForProvider,
+        restrictionForRail,
+        isKycApproved,
+        isLoading: isLoadingCapabilities,
+    } = useCapabilities()
+    const { user, fetchUser } = useAuth()
+
+    // On public routes (qr-pay) auth still auto-fetches via React Query, but trigger a one-shot
+    // fetch if we landed with no user and nothing in flight, mirroring the old hook's fallback.
+    const hasRequestedUserFetchRef = useRef(false)
+    useEffect(() => {
+        if (!user && !isLoadingCapabilities && !hasRequestedUserFetchRef.current) {
+            hasRequestedUserFetchRef.current = true
+            void fetchUser()
+        }
+    }, [user, isLoadingCapabilities, fetchUser])
+
+    const { kycGateState, qrKycUserMessage } = useMemo(() => {
+        if (isLoadingCapabilities) {
+            return { kycGateState: QrKycState.LOADING, qrKycUserMessage: null as string | null }
+        }
+        if (canDo('pay', { provider: 'manteca' })) {
+            return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: null as string | null }
+        }
+        const mantecaRails = railsForProvider('manteca')
+        const blockedRail = mantecaRails.find((rail) => rail.status === 'blocked')
+        if (blockedRail) {
+            // US-nationality restriction on the rail → BE permits QR via the Sumsub pool; proceed.
+            // NOTE: compares the capability-contract code emitted by the resolver
+            // ('manteca_us_nationality'), NOT the legacy provider-metadata code in manteca.consts.
+            if (restrictionForRail(blockedRail.id)?.code === MANTECA_US_NATIONALITY_CAPABILITY_CODE) {
+                return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: null as string | null }
+            }
+            return {
+                kycGateState: QrKycState.PROVIDER_REJECTION_BLOCKED,
+                qrKycUserMessage: blockedRail.reason?.userMessage ?? null,
+            }
+        }
+        const fixableRail = mantecaRails.find((rail) => rail.status === 'requires-info')
+        if (fixableRail) {
+            return {
+                kycGateState: QrKycState.PROVIDER_REJECTION_FIXABLE,
+                qrKycUserMessage: fixableRail.reason?.userMessage ?? null,
+            }
+        }
+        if (mantecaRails.some((rail) => rail.status === 'pending')) {
+            return {
+                kycGateState: QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS,
+                qrKycUserMessage: null as string | null,
+            }
+        }
+        return { kycGateState: QrKycState.REQUIRES_IDENTITY_VERIFICATION, qrKycUserMessage: null as string | null }
+    }, [isLoadingCapabilities, canDo, railsForProvider, restrictionForRail])
+
+    const shouldBlockPay = kycGateState !== QrKycState.PROCEED_TO_PAY
+
     const sumsubFlow = useMultiPhaseKycFlow({})
     const queryClient = useQueryClient()
     const [isShaking, setIsShaking] = useState(false)
@@ -139,7 +209,6 @@ export default function QRPayPage() {
     const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const holdStartTimeRef = useRef<number | null>(null)
     const payingStateTimerRef = useRef<NodeJS.Timeout | null>(null)
-    const { user } = useAuth()
     const { setIsSupportModalOpen, openSupportWithMessage: openSupportForLimits } = useModalsContext()
     const [waitingForMerchantAmount, setWaitingForMerchantAmount] = useState(false)
     const retryCount = useRef(0)
@@ -894,6 +963,10 @@ export default function QRPayPage() {
     }
 
     // show KYC screens before any error screens - user needs to verify first
+    // MIGRATION-REVIEW: the `crossRegion` flag passed to handleInitiateKyc was `isUserSumsubKycApproved`
+    // (Sumsub identity cleared, only the regional Manteca uplift remains). Sumsub has no rail in the
+    // capability model, so — matching the MantecaFlowManager precedent (commit 8c98a3e81) — isKycApproved
+    // (any enabled rail ⇒ identity verified at least once) is the closest faithful proxy.
     if (needsKycVerification) {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
@@ -915,7 +988,7 @@ export default function QRPayPage() {
                                 sumsubFlow.handleInitiateKyc(
                                     'LATAM',
                                     undefined,
-                                    isUserSumsubKycApproved || undefined,
+                                    isKycApproved || undefined,
                                     targetMantecaCountry
                                 ),
                             variant: 'purple',
@@ -938,7 +1011,7 @@ export default function QRPayPage() {
                                 sumsubFlow.handleInitiateKyc(
                                     'LATAM',
                                     undefined,
-                                    isUserSumsubKycApproved || undefined,
+                                    isKycApproved || undefined,
                                     targetMantecaCountry
                                 ),
                             variant: 'purple',

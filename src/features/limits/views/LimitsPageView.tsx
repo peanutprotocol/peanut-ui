@@ -7,7 +7,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { useIdentityVerification, type Region } from '@/hooks/useIdentityVerification'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { useLimits } from '@/hooks/useLimits'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import Image from 'next/image'
@@ -23,14 +23,26 @@ import { getProviderRoute } from '../utils'
 const LimitsPageView = () => {
     const router = useRouter()
     const goBack = useSafeBack('/profile', { replace: true })
+    // useIdentityVerification is the Sumsub-region orchestrator — intentionally LEFT UNTOUCHED here
+    // (separate dedicated migration pass). Only the status-hook reads are swapped to useCapabilities().
     const { unlockedRegions, lockedRegions } = useIdentityVerification()
-    const { isUserKycApproved, isUserBridgeKycUnderReview, isUserBridgeKycIncomplete } = useKycStatus()
+    const { isKycApproved, railsForProvider } = useCapabilities()
     const { hasMantecaLimits } = useLimits()
     const { overview: rainCardOverview } = useRainCardOverview()
     const activeCard = findActiveCard(rainCardOverview)
 
-    // check if user has any kyc at all
-    const hasAnyKyc = isUserKycApproved
+    // check if user has any kyc at all → any enabled rail unlocks the fiat-limits section.
+    // MIGRATION-REVIEW: old `isUserKycApproved` (any provider approved) → `isKycApproved` (any enabled
+    // rail). Equivalent for the limits-unlock gate.
+    const hasAnyKyc = isKycApproved
+
+    // MIGRATION-REVIEW: old gate was `isUserBridgeKycUnderReview || isUserBridgeKycIncomplete`
+    // (bridgeKycStatus 'under_review' | 'incomplete'). In the capability model a Bridge rail that is
+    // mid-flight is `pending` (provisioning, no user action — was under_review) or `requires-info`
+    // (user must finish TOS/proof — was incomplete). Either ⇒ show the EU/NA "pending" badge.
+    const isBridgeKycPending = railsForProvider('bridge').some(
+        (rail) => rail.status === 'pending' || rail.status === 'requires-info'
+    )
 
     // rest of world region config (static)
     const restOfWorldRegion: Region = {
@@ -73,10 +85,7 @@ const LimitsPageView = () => {
 
             {/* locked regions - only render if there are actual locked regions */}
             {filteredLockedRegions.length > 0 && (
-                <LockedRegionsList
-                    regions={filteredLockedRegions}
-                    isBridgeKycPending={isUserBridgeKycUnderReview || isUserBridgeKycIncomplete}
-                />
+                <LockedRegionsList regions={filteredLockedRegions} isBridgeKycPending={isBridgeKycPending} />
             )}
 
             {/* rest of world - always shown with coming soon */}

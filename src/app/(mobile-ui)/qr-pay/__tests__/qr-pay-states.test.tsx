@@ -76,17 +76,12 @@ jest.mock('@/assets', () => ({
 
 // ---------- hooks & services ----------
 
-const mockUseQrKycGate = jest.fn()
-jest.mock('@/hooks/useQrKycGate', () => ({
-    QrKycState: {
-        LOADING: 'loading',
-        PROCEED_TO_PAY: 'proceed_to_pay',
-        REQUIRES_IDENTITY_VERIFICATION: 'requires_identity_verification',
-        IDENTITY_VERIFICATION_IN_PROGRESS: 'identity_verification_in_progress',
-        PROVIDER_REJECTION_FIXABLE: 'provider_rejection_fixable',
-        PROVIDER_REJECTION_BLOCKED: 'provider_rejection_blocked',
-    },
-    useQrKycGate: (...args: any[]) => mockUseQrKycGate(...args),
+// The page derives the QR gate inline from useCapabilities() (QrKycState lives in
+// @/constants/kyc.consts — used as the real module here). Each gate-state test configures
+// the capability fixture via setCapabilitiesGate() below.
+const mockUseCapabilities = jest.fn()
+jest.mock('@/hooks/useCapabilities', () => ({
+    useCapabilities: () => mockUseCapabilities(),
 }))
 
 const mockUseAuth = jest.fn()
@@ -217,12 +212,6 @@ jest.mock('@/features/limits/components/LimitsWarningCard', () => ({
 jest.mock('@/features/limits/utils', () => ({
     getLimitsWarningCardProps: jest.fn(() => null),
     isBrUserEligibleForLimitIncrease: jest.fn(() => false),
-}))
-
-const mockUseKycStatus = jest.fn()
-jest.mock('@/hooks/useKycStatus', () => ({
-    __esModule: true,
-    default: () => mockUseKycStatus(),
 }))
 
 jest.mock('@/hooks/useSumsubActionFlow', () => ({
@@ -429,6 +418,66 @@ function createQueryClient() {
     })
 }
 
+// Build a useCapabilities() return value that drives the page's inline QR gate to a
+// target state. Mirrors the real hook's helper surface (only the bits the page reads).
+type GateState =
+    | 'loading'
+    | 'proceed_to_pay'
+    | 'requires_identity_verification'
+    | 'identity_verification_in_progress'
+    | 'provider_rejection_fixable'
+    | 'provider_rejection_blocked'
+
+const MANTECA_RAIL_ID = 'manteca.pix_br'
+// The capability-contract restriction code emitted by the backend resolver — NOT the legacy
+// provider-metadata constant. The page's pool-fallback branch must match THIS value.
+const US_RESTRICTION_CODE = 'manteca_us_nationality'
+
+function capabilitiesForGate(state: GateState, opts: { userMessage?: string | null; usRestricted?: boolean } = {}) {
+    const { userMessage = null, usRestricted = false } = opts
+    // Map the target gate state to a single Manteca rail + (optional) restriction.
+    let rails: any[] = []
+    let restrictions: any[] = []
+    let payEnabled = false
+    switch (state) {
+        case 'proceed_to_pay':
+            payEnabled = true
+            rails = [{ id: MANTECA_RAIL_ID, provider: 'manteca', status: 'enabled', operations: { pay: 'enabled' } }]
+            break
+        case 'provider_rejection_blocked':
+            rails = [{ id: MANTECA_RAIL_ID, provider: 'manteca', status: 'blocked', reason: { userMessage } }]
+            if (usRestricted) {
+                restrictions = [{ code: US_RESTRICTION_CODE, affectedRailIds: [MANTECA_RAIL_ID], userMessage }]
+            }
+            break
+        case 'provider_rejection_fixable':
+            rails = [{ id: MANTECA_RAIL_ID, provider: 'manteca', status: 'requires-info', reason: { userMessage } }]
+            break
+        case 'identity_verification_in_progress':
+            rails = [{ id: MANTECA_RAIL_ID, provider: 'manteca', status: 'pending' }]
+            break
+        case 'requires_identity_verification':
+        case 'loading':
+        default:
+            rails = []
+            break
+    }
+    return {
+        rails,
+        restrictions,
+        isLoading: state === 'loading',
+        isKycApproved: payEnabled,
+        canDo: (_op: string, o?: { provider?: string }) =>
+            payEnabled && (o?.provider === undefined || o.provider === 'manteca'),
+        railsForProvider: (provider: string) => rails.filter((r) => r.provider === provider),
+        restrictionForRail: (railId: string) => restrictions.find((r) => r.affectedRailIds.includes(railId)),
+    }
+}
+
+function setCapabilitiesGate(state: GateState, opts: { userMessage?: string | null; usRestricted?: boolean } = {}) {
+    mockUseCapabilities.mockReturnValue(capabilitiesForGate(state, opts))
+}
+
 // Loading state context provider
 const LoadingStateProvider = ({ children }: { children: React.ReactNode }) => {
     const loadingStateContext = require('@/context').loadingStateContext
@@ -478,11 +527,7 @@ function renderQrPay(params: Record<string, string> = {}) {
 // ---------- default mock values ----------
 
 function applyDefaults() {
-    mockUseQrKycGate.mockReturnValue({
-        kycGateState: 'proceed_to_pay',
-        shouldBlockPay: false,
-        userMessage: null,
-    })
+    setCapabilitiesGate('proceed_to_pay')
 
     mockUseAuth.mockReturnValue({
         user: { user: { username: 'test-user' } },
@@ -506,10 +551,6 @@ function applyDefaults() {
         isBlocking: false,
         isWarning: false,
         currency: 'USD',
-    })
-
-    mockUseKycStatus.mockReturnValue({
-        isUserMantecaKycApproved: true,
     })
 
     mockIsPaymentProcessorQR.mockReturnValue(true)
@@ -601,22 +642,14 @@ beforeEach(() => {
 // ============================================================
 describe('GROUP 1: Loading & KYC Gate', () => {
     test('KYC loading shows PeanutLoading', () => {
-        mockUseQrKycGate.mockReturnValue({
-            kycGateState: 'loading',
-            shouldBlockPay: true,
-            userMessage: null,
-        })
+        setCapabilitiesGate('loading')
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
         expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
     })
 
     test('KYC requires verification shows ActionModal with verify button', () => {
-        mockUseQrKycGate.mockReturnValue({
-            kycGateState: 'requires_identity_verification',
-            shouldBlockPay: true,
-            userMessage: null,
-        })
+        setCapabilitiesGate('requires_identity_verification')
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
@@ -627,11 +660,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
     })
 
     test('KYC verification in progress shows ActionModal with continue button', () => {
-        mockUseQrKycGate.mockReturnValue({
-            kycGateState: 'identity_verification_in_progress',
-            shouldBlockPay: true,
-            userMessage: null,
-        })
+        setCapabilitiesGate('identity_verification_in_progress')
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
@@ -639,6 +668,41 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         expect(modal).toBeInTheDocument()
         expect(screen.getByText('Complete your verification')).toBeInTheDocument()
         expect(screen.getByText('Continue verification')).toBeInTheDocument()
+    })
+
+    test('Manteca blocked rejection shows unavailable modal with rail reason message', () => {
+        setCapabilitiesGate('provider_rejection_blocked', { userMessage: 'Contact support to continue.' })
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        expect(screen.getByText('QR payments are not available')).toBeInTheDocument()
+        expect(screen.getByText('Contact support to continue.')).toBeInTheDocument()
+    })
+
+    test('Manteca fixable rejection shows updated-document modal', () => {
+        setCapabilitiesGate('provider_rejection_fixable', { userMessage: 'Upload a clearer ID.' })
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        expect(screen.getByText('We need an updated document')).toBeInTheDocument()
+        expect(screen.getByText('Upload document')).toBeInTheDocument()
+    })
+
+    test('US-nationality restriction on blocked rail falls through to pay (Sumsub pool fallback)', async () => {
+        // Blocked full-tier Manteca rail, but a US-nationality restriction covers it → the backend
+        // permits QR via the Sumsub pool, so the page must PROCEED (no blocked modal).
+        setCapabilitiesGate('provider_rejection_blocked', {
+            userMessage: 'US restriction',
+            usRestricted: true,
+        })
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        // Should not render the blocked modal — instead loads the payment flow.
+        expect(screen.queryByText('QR payments are not available')).not.toBeInTheDocument()
+        await waitFor(() => {
+            expect(screen.getByText('Test Merchant')).toBeInTheDocument()
+        })
     })
 
     test('KYC passed but payment data still loading shows PeanutLoading', async () => {

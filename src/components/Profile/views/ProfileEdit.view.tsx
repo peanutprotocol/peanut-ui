@@ -9,14 +9,20 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import ProfileEditField from '../components/ProfileEditField'
 import ProfileHeader from '../components/ProfileHeader'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
 export const ProfileEditView = () => {
     const router = useRouter()
     const onBack = useSafeBack('/profile')
     const { user, fetchUser } = useAuth()
-    const { isUserKycApproved } = useKycStatus()
+    // MIGRATION-REVIEW: old `isUserKycApproved` (any provider approved) → `isKycApproved` (any enabled
+    // rail). Drives the verified-badge + locks the name/surname fields once KYC'd (provider has the
+    // legal name on file). Behavior nuance: a Sumsub-only-approved user with no enabled payment rail
+    // would no longer have name fields locked under the new flag. Closest faithful 1:1. NOTE: the
+    // migration-map entry for this file mentioned bridge under-review/incomplete, but the file only
+    // ever read isUserKycApproved — migrated the actual usage.
+    const { isKycApproved } = useCapabilities()
 
     const [isLoading, setIsLoading] = useState(false)
     const [errorMessage, setErrorMessage] = useState('')
@@ -117,7 +123,7 @@ export const ProfileEditView = () => {
         <div className="space-y-8">
             <NavHeader title="Edit Profile" onPrev={onBack} />
 
-            <ProfileHeader name={fullName} username={username} isVerified={isUserKycApproved} />
+            <ProfileHeader name={fullName} username={username} isVerified={isKycApproved} />
 
             <div className="space-y-4">
                 <ProfileEditField
@@ -125,7 +131,7 @@ export const ProfileEditView = () => {
                     value={formData.name}
                     onChange={(value) => handleChange('name', value)}
                     placeholder="Add your name"
-                    disabled={isUserKycApproved}
+                    disabled={isKycApproved}
                 />
 
                 <ProfileEditField
@@ -133,7 +139,7 @@ export const ProfileEditView = () => {
                     value={formData.surname}
                     onChange={(value) => handleChange('surname', value)}
                     placeholder="Add your surname"
-                    disabled={isUserKycApproved}
+                    disabled={isKycApproved}
                 />
 
                 <ProfileEditField

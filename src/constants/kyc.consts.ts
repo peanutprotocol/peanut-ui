@@ -11,6 +11,20 @@ export type KycStatusCategory = 'completed' | 'processing' | 'failed' | 'action_
 
 export const MAX_SELF_HEAL_ATTEMPTS = 3
 
+/**
+ * QR-pay KYC gate states. Relocated here from the (now capability-derived)
+ * useQrKycGate hook so the qr-pay page keeps a stable import after that hook is
+ * deleted. The gate is now computed inline on the page from useCapabilities().
+ */
+export enum QrKycState {
+    LOADING = 'loading',
+    PROCEED_TO_PAY = 'proceed_to_pay',
+    REQUIRES_IDENTITY_VERIFICATION = 'requires_identity_verification',
+    IDENTITY_VERIFICATION_IN_PROGRESS = 'identity_verification_in_progress',
+    PROVIDER_REJECTION_FIXABLE = 'provider_rejection_fixable',
+    PROVIDER_REJECTION_BLOCKED = 'provider_rejection_blocked',
+}
+
 // sets of status values by category — single source of truth
 // REVERIFYING = user is approved but re-verifying for a new region (cross-region KYC).
 // treated as approved for access checks — user retains existing provider access.

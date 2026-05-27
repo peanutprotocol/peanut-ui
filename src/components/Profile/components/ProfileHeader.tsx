@@ -6,7 +6,7 @@ import { twMerge } from 'tailwind-merge'
 import AvatarWithBadge from '../AvatarWithBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 
 interface ProfileHeaderProps {
@@ -27,8 +27,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     haveSentMoneyToUser = false,
 }) => {
     const { user: authenticatedUser } = useAuth()
-    const { isUserKycApproved } = useKycStatus()
-    const isAuthenticatedUserVerified = isUserKycApproved && authenticatedUser?.user.username === username
+    // MIGRATION-REVIEW: old `isUserKycApproved` = any provider approved (bridge OR manteca OR sumsub).
+    // New `isKycApproved` = any rail enabled. These differ at the edges: a Sumsub-only approved user
+    // (no enabled payment rail yet) would have shown the self-profile verified badge before but not now;
+    // conversely the set is otherwise equivalent. The caller already gates this on self-profile, and the
+    // badge here is cosmetic — kept as the closest 1:1. Note the task suggested hasEnabledRail('bridge')/
+    // ('manteca'), but this file only ever read the any-provider flag, so isKycApproved is the faithful swap.
+    const { isKycApproved } = useCapabilities()
+    const isAuthenticatedUserVerified = isKycApproved && authenticatedUser?.user.username === username
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const isSelfProfile = authenticatedUser?.user.username?.toLowerCase() === username.toLowerCase()
 

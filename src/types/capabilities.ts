@@ -42,6 +42,15 @@ export interface CapabilityReason {
     userMessage: string // friendly, display-ready
 }
 
+/**
+ * Normalized capability restriction code for the Manteca US-nationality block, as emitted by the
+ * backend resolver (`restriction.code` / `reason.code`). NOTE: this is the *capability-contract*
+ * code and is distinct from the legacy provider-metadata constant
+ * `MANTECA_US_NATIONALITY_RESTRICTION_CODE` ('MANTECA_US_NATIONALITY_RESTRICTED') in
+ * @/constants/manteca.consts — do not conflate them.
+ */
+export const MANTECA_US_NATIONALITY_CAPABILITY_CODE = 'manteca_us_nationality'
+
 export interface RailCapability {
     id: RailId
     provider: ProviderCode

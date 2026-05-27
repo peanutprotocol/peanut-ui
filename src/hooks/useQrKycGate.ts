@@ -5,15 +5,11 @@ import { useAuth } from '@/context/authContext'
 import useProviderRejectionStatus from './useProviderRejectionStatus'
 import { hasEnabledRail, hasRailInProgress } from '@/utils/railGate.utils'
 import { hasMantecaUsNationalityRestrictionMetadata } from '@/utils/manteca-restriction.utils'
+// QrKycState moved to constants so the qr-pay page (now capability-derived) keeps a
+// stable import after this legacy hook is deleted in the compiler-gated cleanup pass.
+import { QrKycState } from '@/constants/kyc.consts'
 
-export enum QrKycState {
-    LOADING = 'loading',
-    PROCEED_TO_PAY = 'proceed_to_pay',
-    REQUIRES_IDENTITY_VERIFICATION = 'requires_identity_verification',
-    IDENTITY_VERIFICATION_IN_PROGRESS = 'identity_verification_in_progress',
-    PROVIDER_REJECTION_FIXABLE = 'provider_rejection_fixable',
-    PROVIDER_REJECTION_BLOCKED = 'provider_rejection_blocked',
-}
+export { QrKycState }
 
 export interface QrKycGateResult {
     kycGateState: QrKycState
