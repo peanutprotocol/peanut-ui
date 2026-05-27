@@ -6,11 +6,22 @@
  * Run: pnpm verify-content
  *
  * Checks:
- * 1. Internal link validation (published content → valid routes)
- * 2. Published content has matching route (no catch-all fallback)
- * 3. Footer manifest URL validation
- * 4. Frontmatter consistency (title, description, published field)
- * 5. Cross-locale coverage warnings
+ *  1. Internal link validation — every /...link in published markdown (blogs,
+ *     country pages, etc.) resolves to a static route in the app.
+ *  2. Published content has matching route (no catch-all fallback)
+ *  3. Footer manifest URL validation — every href in the homepage footer
+ *     resolves to a static route.
+ *  4. Frontmatter consistency (title, description, published field)
+ *  5. Cross-locale coverage warnings
+ *  6. Content polish (MDX component usage on SEO pages)
+ *  7. Drafts (informational)
+ *  8. isPublished default consistency
+ *  9. Submodule freshness
+ * 10. Published page-count regression guard
+ * 11. Sitemap URL coverage — every URL sitemap.ts would emit has a static
+ *     route AND its data source isn't empty (catches the May 2026 SEO
+ *     regression where empty entity-data made `generateStaticParams` return []
+ *     and 404ed ~625 pages).
  */
 
 import fs from 'fs'
@@ -23,8 +34,24 @@ const APP_DIR = path.join(process.cwd(), 'src/app/[locale]/(marketing)')
 const SUPPORTED_LOCALES = ['en', 'es-419', 'es-ar', 'es-es', 'pt-br']
 const PRIMARY_LOCALES = ['en', 'es-419', 'pt-br']
 
-// Exchange entity slugs (from input/data/exchanges/) — used to distinguish from- vs via- deposit URLs
-const exchangeSlugs = listEntitySlugs('exchanges')
+// `content/deposit/` mixes two URL families on the same dynamic route:
+//   exchanges → /{locale}/deposit/from-{slug}
+//   rails     → /{locale}/deposit/via-{slug}
+// The rail list lives in src/data/seo/exchanges.ts (DEPOSIT_RAILS). Keep in sync.
+// Anything in content/deposit/ that isn't a rail is an exchange.
+const RAIL_SLUGS = new Set([
+    'ach',
+    'arbitrum',
+    'avalanche',
+    'base',
+    'ethereum',
+    'polygon',
+    'sepa',
+    'solana',
+    'tron',
+    'wire',
+])
+const exchangeSlugs = listDirs(path.join(ROOT, 'content/deposit')).filter((s) => !RAIL_SLUGS.has(s))
 
 // --- Diagnostics ---
 
@@ -56,15 +83,6 @@ function listDirs(dir: string): string[] {
         .map((d) => d.name)
 }
 
-function listEntitySlugs(category: string): string[] {
-    const dir = path.join(ROOT, 'input/data', category)
-    if (!fs.existsSync(dir)) return []
-    return fs
-        .readdirSync(dir)
-        .filter((f) => f.endsWith('.md'))
-        .map((f) => f.replace('.md', ''))
-}
-
 function getAllMdFiles(dir: string): string[] {
     const results: string[] = []
     if (!fs.existsSync(dir)) return results
@@ -82,6 +100,19 @@ function getAllMdFiles(dir: string): string[] {
 
 function rel(filePath: string): string {
     return path.relative(process.cwd(), filePath)
+}
+
+/**
+ * README.md and *-index.md files in content/ are team-facing meta docs (owners,
+ * change logs, manual sitemaps), not published pages. They don't carry
+ * title/description, don't map to a Next.js route, and shouldn't be linted
+ * as content pages. The actual content lives in {slug}/{locale}.md siblings.
+ */
+function isContentPage(filePath: string): boolean {
+    const basename = path.basename(filePath)
+    if (basename === 'README.md') return false
+    if (basename.endsWith('-index.md')) return false
+    return true
 }
 
 // --- Frontmatter parsing ---
@@ -151,6 +182,7 @@ function discoverRoutes(): Set<string> {
     const useCaseSlugs = listDirs(path.join(CONTENT_DIR, 'use-cases'))
     const storySlugs = listDirs(path.join(CONTENT_DIR, 'stories')).filter((s) => s !== 'index')
     const withdrawSlugs = listDirs(path.join(CONTENT_DIR, 'withdraw'))
+    const blogSlugs = listDirs(path.join(CONTENT_DIR, 'blog')).filter((s) => s !== 'index')
 
     // Corridors
     const corridors: Array<{ to: string; from: string }> = []
@@ -248,6 +280,15 @@ function discoverRoutes(): Set<string> {
         if (hasRoute('supported-networks')) {
             routes.add(`/${locale}/supported-networks`)
         }
+
+        // Blog (index + post slugs)
+        if (hasRoute('blog')) routes.add(`/${locale}/blog`)
+        if (hasRoute('blog/[slug]')) {
+            for (const slug of blogSlugs) routes.add(`/${locale}/blog/${slug}`)
+        }
+
+        // Content hub (cross-type landing)
+        if (hasRoute('content')) routes.add(`/${locale}/content`)
     }
 
     return routes
@@ -300,6 +341,7 @@ function checkLinks(validPaths: Set<string>) {
     let skippedUnpublished = 0
 
     for (const file of files) {
+        if (!isContentPage(file)) continue
         const content = fs.readFileSync(file, 'utf-8')
         if (!isPublished(content)) {
             skippedUnpublished++
@@ -424,6 +466,7 @@ function checkFrontmatter() {
     let issues = 0
 
     for (const file of files) {
+        if (!isContentPage(file)) continue
         const content = fs.readFileSync(file, 'utf-8')
         const fm = parseFrontmatter(content)
 
@@ -493,6 +536,7 @@ function checkContentPolish() {
     let warnings = 0
 
     for (const file of files) {
+        if (!isContentPage(file)) continue
         const content = fs.readFileSync(file, 'utf-8')
         if (!isPublished(content)) continue
 
@@ -500,6 +544,10 @@ function checkContentPolish() {
 
         // Frontmatter override: skip_polish_check: true bypasses this check
         if (fm.skip_polish_check === true) continue
+
+        // Legal pages are verbatim prose by intent (compliance, plain-language
+        // terms/privacy). Don't lint them for SEO-style MDX components.
+        if (rel(file).startsWith('src/content/content/legal/')) continue
 
         const mdxCount = MDX_COMPONENT_PATTERNS.filter((pattern) => pattern.test(content)).length
 
@@ -628,6 +676,104 @@ function checkPageCountRegression() {
     )
 }
 
+// --- Pass 11: Sitemap URL coverage ---
+// Mirrors the URL families emitted by src/app/sitemap.ts and asserts each
+// expected URL resolves to a generated static page. Catches the failure mode
+// where a parametric route's data source is empty at build time — so
+// `generateStaticParams` returns [] and Next 404s every URL in that family
+// (the bug behind the May 2026 SEO-loader regression). Also catches drift
+// between sitemap.ts patterns and actual route paths (e.g. renamed segments).
+//
+// When sitemap.ts changes which URL families it emits, mirror the change here.
+
+function expectedSitemapUrls(): string[] {
+    const urls: string[] = []
+
+    const countrySlugs = listDirs(path.join(CONTENT_DIR, 'countries'))
+    const competitorSlugs = listDirs(path.join(CONTENT_DIR, 'compare'))
+    const payWithSlugs = listDirs(path.join(CONTENT_DIR, 'pay-with'))
+    const helpSlugs = listDirs(path.join(CONTENT_DIR, 'help'))
+    const blogSlugs = listDirs(path.join(CONTENT_DIR, 'blog')).filter((s) => s !== 'index')
+    const storySlugs = listDirs(path.join(CONTENT_DIR, 'stories')).filter((s) => s !== 'index')
+    const useCaseSlugs = listDirs(path.join(CONTENT_DIR, 'use-cases'))
+    const withdrawSlugs = listDirs(path.join(CONTENT_DIR, 'withdraw'))
+
+    // Corridors (send-to/{dst}/from/{origin}/{lang}.md)
+    const corridors: Array<{ from: string; to: string }> = []
+    for (const dest of listDirs(path.join(CONTENT_DIR, 'send-to'))) {
+        const fromDir = path.join(CONTENT_DIR, 'send-to', dest, 'from')
+        for (const origin of listDirs(fromDir)) corridors.push({ from: origin, to: dest })
+    }
+    const receiveSources = [...new Set(corridors.map((c) => c.from))]
+
+    for (const locale of SUPPORTED_LOCALES) {
+        for (const slug of countrySlugs) {
+            urls.push(`/${locale}/${slug}`)
+            urls.push(`/${locale}/send-money-to/${slug}`)
+        }
+        for (const c of corridors) urls.push(`/${locale}/send-money-from/${c.from}/to/${c.to}`)
+        for (const source of receiveSources) urls.push(`/${locale}/receive-money-from/${source}`)
+        for (const slug of competitorSlugs) urls.push(`/${locale}/compare/peanut-vs-${slug}`)
+        for (const slug of exchangeSlugs) urls.push(`/${locale}/deposit/from-${slug}`)
+        for (const slug of RAIL_SLUGS) urls.push(`/${locale}/deposit/via-${slug}`)
+        for (const slug of payWithSlugs) urls.push(`/${locale}/pay-with/${slug}`)
+        urls.push(`/${locale}/help`)
+        for (const slug of helpSlugs) urls.push(`/${locale}/help/${slug}`)
+        for (const slug of useCaseSlugs) urls.push(`/${locale}/use-cases/${slug}`)
+        urls.push(`/${locale}/stories`)
+        for (const slug of storySlugs) urls.push(`/${locale}/stories/${slug}`)
+        for (const slug of withdrawSlugs) urls.push(`/${locale}/withdraw/${slug}`)
+        urls.push(`/${locale}/supported-networks`)
+        urls.push(`/${locale}/pricing`)
+        urls.push(`/${locale}/content`)
+        urls.push(`/${locale}/blog`)
+        for (const slug of blogSlugs) urls.push(`/${locale}/blog/${slug}`)
+    }
+
+    // Asymmetry guard: if a whole family has zero slugs, the sitemap will emit
+    // nothing for it and every product link to those pages 404s in prod. We
+    // can't rely on the per-URL check below to catch this because there's
+    // nothing to iterate. Fail loudly per family.
+    const families: Array<{ name: string; count: number }> = [
+        { name: 'countries', count: countrySlugs.length },
+        { name: 'compare', count: competitorSlugs.length },
+        { name: 'exchanges (deposit/from-)', count: exchangeSlugs.length },
+        { name: 'pay-with', count: payWithSlugs.length },
+    ]
+    for (const f of families) {
+        if (f.count === 0) {
+            error(
+                'sitemap-empty-family',
+                `No slugs found for ${f.name} — every /{locale}/...${f.name}... URL would 404. Check the content directory + the SEO loader that reads it.`
+            )
+        }
+    }
+
+    return urls
+}
+
+function checkSitemapCoverage(validPaths: Set<string>) {
+    const urls = expectedSitemapUrls()
+    let missing = 0
+    const reported = new Set<string>()
+    for (const url of urls) {
+        if (validPaths.has(url)) continue
+        // Collapse identical messages across locales — one entry per pattern
+        // is enough to fix; the full count is in the summary line.
+        const key = url.replace(/^\/(en|es-419|es-ar|es-es|pt-br)\//, '/{locale}/')
+        if (reported.has(key)) {
+            missing++
+            continue
+        }
+        reported.add(key)
+        error('sitemap-route', `Sitemap would emit URL with no matching static route: ${url}`)
+        missing++
+    }
+    console.log(
+        `  Pass 11 — Sitemap coverage: ${missing === 0 ? `all ${urls.length} expected URLs have routes` : `${missing} URLs would 404 (${reported.size} unique patterns)`}`
+    )
+}
+
 // --- Main ---
 
 function main() {
@@ -648,6 +794,7 @@ function main() {
     checkPublishedConsistency()
     checkSubmoduleFreshness()
     checkPageCountRegression()
+    checkSitemapCoverage(validPaths)
 
     // Report
     const errors = diagnostics.filter((d) => d.level === 'error')
