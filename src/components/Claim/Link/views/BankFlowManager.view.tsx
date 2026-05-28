@@ -175,15 +175,18 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             }
 
             setLoadingState('Executing transaction')
-            // Guest flow off-ramps on the link SENDER's behalf — fetch that counterparty
-            // and verify ITS KYC. Logged-in flow uses the current user, whose KYC
-            // readiness is already enforced above via `gate.type !== 'ready'` (capability model).
+            // Guest flow off-ramps on the link SENDER's behalf — fetch the counterparty
+            // and check the provider-agnostic capability the BE exposes for them
+            // (`canReceiveBankOfframp`, i.e. an enabled Bridge bank rail). Replaces the
+            // raw `bridgeKycStatus === 'approved'` read; the FE never sees provider KYC.
+            // Logged-in flow uses the current user, whose readiness is already enforced
+            // above via `gate.type !== 'ready'` (capability model).
             const guestSender = isGuestFlow
                 ? await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
                 : null
             if (isGuestFlow) {
                 if (!guestSender) throw new Error('Failed to get user info')
-                if (guestSender.bridgeKycStatus !== 'approved') throw new Error('User not KYC approved')
+                if (!guestSender.canReceiveBankOfframp) throw new Error('Sender cannot receive a bank off-ramp')
             }
 
             const userForOfframp = isGuestFlow ? guestSender : user?.user

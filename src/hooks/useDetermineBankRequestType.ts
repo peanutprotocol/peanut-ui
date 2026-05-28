@@ -3,7 +3,6 @@ import { useAuth } from '@/context/authContext'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { useEffect, useState } from 'react'
 import { useCapabilities } from './useCapabilities'
-import { isUserKycVerified } from '@/constants/kyc.consts'
 
 export enum BankRequestType {
     GuestBankRequest = 'guest-bank-request',
@@ -48,7 +47,10 @@ export function useDetermineBankRequestType(requesterUserId: string): {
 
             try {
                 const requesterDetails = await getUserById(requesterUserId)
-                const requesterKycApproved = isUserKycVerified(requesterDetails)
+                // BE-computed counterparty capability — gates the GuestBankRequest flow,
+                // mirroring useDetermineBankClaimType. True iff the requester has an
+                // enabled Bridge bank rail.
+                const requesterKycApproved = requesterDetails?.canReceiveBankOfframp ?? false
 
                 if (requesterKycApproved) {
                     setRequesterDetails(requesterDetails)

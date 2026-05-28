@@ -215,15 +215,18 @@ export interface User {
 
 /**
  * A user fetched by id (getUserById) — i.e. a COUNTERPARTY (the link sender, the
- * request requester), not the current user. Counterparty KYC verification status
- * is a kept concern, parallel to {@link Contact.bridgeKycStatus}: it answers "is
- * this OTHER person verified enough for me to off-ramp on their behalf / show a
- * verified badge?". It is NOT the current user's own KYC — that is provider-blind
- * and read via useCapabilities() / useIdentityVerification().
+ * request requester), not the current user. Provider-blind, like the current-user
+ * read-models: the only cross-user signal the FE actually needs is whether a
+ * guest claim-to-bank can off-ramp through this counterparty (BankFlowManager
+ * uses their bridgeCustomerId), which the BE exposes as a derived boolean.
+ *
+ * (The wider "is this person verified" badge — used by send/request/contacts —
+ * is a separate concern, still reading `Contact.bridgeKycStatus` / shapes from
+ * other endpoints. Cleaning those up is a follow-up.)
  */
 export type CounterpartyUser = User & {
-    bridgeKycStatus?: string | null
-    kycVerifications?: IUserKycVerification[]
+    /** Has an enabled Bridge bank rail; a guest can off-ramp through them. */
+    canReceiveBankOfframp: boolean
 }
 
 // based on the API's AccountType

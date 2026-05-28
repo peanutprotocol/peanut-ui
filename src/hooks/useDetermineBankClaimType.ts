@@ -3,7 +3,6 @@ import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useEffect, useState } from 'react'
 import { useCapabilities } from './useCapabilities'
-import { isUserKycVerified } from '@/constants/kyc.consts'
 
 export enum BankClaimType {
     GuestBankClaim = 'guest-bank-claim',
@@ -52,7 +51,9 @@ export function useDetermineBankClaimType(senderUserId: string): {
 
             try {
                 const senderDetails = await getUserById(senderUserId)
-                const senderKycApproved = isUserKycVerified(senderDetails)
+                // BE-computed counterparty capability — true iff the sender has an enabled
+                // Bridge bank rail, which is exactly the gate for routing to GuestBankClaim.
+                const senderKycApproved = senderDetails?.canReceiveBankOfframp ?? false
 
                 if (senderKycApproved) {
                     // condition 3: Receiver not KYC approved BUT sender is → GuestBankClaim

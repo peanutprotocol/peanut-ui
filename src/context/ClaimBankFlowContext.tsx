@@ -5,7 +5,6 @@ import { type CountryData } from '../components/AddMoney/consts'
 import { type TCreateOfframpResponse } from '@/services/services.types'
 import { type Account, type CounterpartyUser } from '@/interfaces'
 import { type IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
-import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 
 export enum ClaimBankFlowStep {
     SavedAccountsList = 'saved-accounts-list',
@@ -38,8 +37,6 @@ interface ClaimBankFlowContextType {
     setSavedAccounts: (accounts: Account[]) => void
     selectedBankAccount: Account | null
     setSelectedBankAccount: (account: Account | null) => void
-    senderKycStatus?: BridgeKycStatus
-    setSenderKycStatus: (status?: BridgeKycStatus) => void
     justCompletedKyc: boolean
     setJustCompletedKyc: (status: boolean) => void
     claimToMercadoPago: boolean
@@ -64,7 +61,6 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
     const [bankDetails, setBankDetails] = useState<IBankAccountDetails | null>(null)
     const [savedAccounts, setSavedAccounts] = useState<Account[]>([])
     const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
-    const [senderKycStatus, setSenderKycStatus] = useState<BridgeKycStatus | undefined>()
     const [justCompletedKyc, setJustCompletedKyc] = useState(false)
     const [claimToMercadoPago, setClaimToMercadoPago] = useState(false)
     const [regionalMethodType, setRegionalMethodType] = useState<'mercadopago' | 'pix'>('mercadopago')
@@ -82,7 +78,6 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
         setBankDetails(null)
         setSavedAccounts([])
         setSelectedBankAccount(null)
-        setSenderKycStatus(undefined)
         setJustCompletedKyc(false)
         setClaimToMercadoPago(false)
         setRegionalMethodType('mercadopago')
@@ -114,8 +109,6 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
             setSavedAccounts,
             selectedBankAccount,
             setSelectedBankAccount,
-            senderKycStatus,
-            setSenderKycStatus,
             justCompletedKyc,
             setJustCompletedKyc,
             claimToMercadoPago,
@@ -138,7 +131,6 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
             bankDetails,
             savedAccounts,
             selectedBankAccount,
-            senderKycStatus,
             justCompletedKyc,
             claimToMercadoPago,
             setClaimToMercadoPago,
