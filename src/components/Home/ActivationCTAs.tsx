@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 
 interface ActivationCTAsProps {
     activationStep: ActivationStep
@@ -73,6 +74,11 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     const router = useRouter()
     const { setIsQRScannerOpen, setIsSupportModalOpen } = useModalsContext()
     const { rails, channelOf } = useCapabilities()
+    // Suppress the "Unlock payments" verify CTA while identity is mid-flight
+    // (Sumsub processing / action_required). The user already took the verify
+    // action; the identity-verification page surfaces the in-progress modal,
+    // and bouncing them through here again would imply they need to re-act.
+    const { isProcessing: isIdentityProcessing, needsAction: isIdentityActionRequired } = useIdentityVerification()
 
     // The activation funnel gates deposit/outbound, which routes through bank or
     // qr-only channels — never through card. Top-level status (not per-op
@@ -110,6 +116,11 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     const step: StepConfig | null = useMemo(() => {
         if (activationStep === 'completed' && !hasProviderRejection) return null
 
+        // Hide the verify CTA while identity is processing — user already
+        // submitted, the BE is reviewing, no further action from them.
+        // action_required is the exception: that means we DO need them back.
+        if (activationStep === 'verify' && isIdentityProcessing && !isIdentityActionRequired) return null
+
         if (hasProviderRejection) {
             if (hasFixableRejection) {
                 return {
@@ -133,7 +144,14 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         }
 
         return STEPS[activationStep as Exclude<ActivationStep, 'completed'>]
-    }, [activationStep, hasProviderRejection, hasFixableRejection, primaryRejectionMessage])
+    }, [
+        activationStep,
+        hasProviderRejection,
+        hasFixableRejection,
+        primaryRejectionMessage,
+        isIdentityProcessing,
+        isIdentityActionRequired,
+    ])
 
     if (!step) return null
 
