@@ -55,16 +55,6 @@ export type Merchant = {
     install: {
         sub: string
     }
-    /** BA Digital Nomads: ambassador call-to-action under the install button. */
-    ambassador?: {
-        kicker: string
-        heading: string
-        body: string
-        applyHref: string
-        applyLabel: string
-        fine: string
-    }
-
     /** Aleph only: footer disclosure about the $10-per-signup affiliate. */
     footerDisclosure?: string
 
@@ -214,15 +204,6 @@ export const MERCHANTS: Record<string, Merchant> = {
             ],
         },
         install: { sub: '60 seconds. Skip the waitlist. $10 on us.' },
-        ambassador: {
-            kicker: '↓ FOR COMMUNITY ORGANISERS',
-            heading: 'Bring peanut to your nomad community.',
-            body: "Run a WhatsApp, Telegram, or in-person nomad community? We're piloting an ambassador track — custom landing page for your group, a per-signup share, and a direct line to the team. Not an MLM; one level deep, transparent rev-share.",
-            applyHref:
-                'mailto:konrad@peanut.me?subject=Ambassador%20application%20%E2%80%94%20BA%20Digital%20Nomads&body=Who%20are%20you%3F%0A%0AWhy%20would%20you%20be%20a%20great%20ambassador%3F%0A%0ALink%20to%20your%20community%3A%0A%0A',
-            applyLabel: 'Apply as an ambassador →',
-            fine: 'Replies from konrad@peanut.me, usually within 24h. v1 is a manual review — no automated funnel yet.',
-        },
         polaroids: [
             {
                 src: '/merchants/badigitalnomads/meetup.avif',

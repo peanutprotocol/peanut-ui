@@ -484,33 +484,7 @@ function EndFold({ merchant }: { merchant: Merchant }) {
                 >
                     Already have peanut? Open it →
                 </Link>
-
-                {merchant.ambassador && <Ambassador box={merchant.ambassador} />}
             </div>
         </section>
-    )
-}
-
-function Ambassador({ box }: { box: NonNullable<Merchant['ambassador']> }) {
-    return (
-        <div className="mx-auto mt-20 max-w-xl rounded-sm border-2 border-primary-1 p-8 text-left">
-            <div
-                className="text-[10px] font-extraBlack uppercase tracking-wider text-secondary-1"
-                style={{ fontFamily: 'monospace' }}
-            >
-                {box.kicker}
-            </div>
-            <h3 className="mt-3 text-2xl font-extraBlack leading-tight text-white md:text-3xl">{box.heading}</h3>
-            <p className="font-roboto-flex mt-4 text-sm leading-relaxed opacity-85">{box.body}</p>
-            <Link
-                href={box.applyHref}
-                className="font-roboto-flex mt-5 inline-block text-sm font-extraBlack uppercase tracking-wider text-primary-1 underline underline-offset-4"
-            >
-                {box.applyLabel}
-            </Link>
-            <span className="font-roboto-flex mt-4 block text-[11px] font-bold leading-snug opacity-50">
-                {box.fine}
-            </span>
-        </div>
     )
 }
