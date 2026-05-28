@@ -72,20 +72,17 @@ const STEPS: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = {
 export default function ActivationCTAs({ activationStep, onDismissCard }: ActivationCTAsProps) {
     const router = useRouter()
     const { setIsQRScannerOpen, setIsSupportModalOpen } = useModalsContext()
-    const { railsForProvider } = useCapabilities()
+    const { rails, channelOf } = useCapabilities()
 
-    // MIGRATION-REVIEW: old `useProviderRejectionStatus` derived fixable/blocked from raw rail
-    // status + self-heal metadata + reject-type + attempt caps. That eligibility decision now
-    // lives backend-side and is expressed directly as the rail capability status:
-    //   fixable (user can submit more) → top-level status 'requires-info'
-    //   blocked  (contact support)     → top-level status 'blocked'
-    // We scope to bridge+manteca rails (the activation funnel only gates deposit/outbound on
-    // those providers). Using TOP-LEVEL status deliberately excludes the Manteca pool rail's
-    // per-operation 'requires-info' (deposit/withdraw need a full account) — that rail is
-    // top-level 'enabled' and is NOT a rejection. primaryRejection.userMessage → the prioritized
-    // rail's reason.userMessage (fixable first, then blocked), matching the old priority order.
+    // The activation funnel gates deposit/outbound, which routes through bank or
+    // qr-only channels — never through card. Top-level status (not per-op
+    // refinement): Manteca's pool tier reads `enabled` at the rail level even when
+    // deposit/withdraw individually need an upgrade — that's not a rejection.
     const { hasFixableRejection, hasBlockedRejection, primaryRejectionMessage } = useMemo(() => {
-        const rejectableRails = [...railsForProvider('bridge'), ...railsForProvider('manteca')]
+        const rejectableRails = rails.filter((rail) => {
+            const channel = channelOf(rail)
+            return channel === 'bank' || channel === 'qr-only'
+        })
         const fixableRail = rejectableRails.find((rail) => rail.status === 'requires-info')
         const blockedRail = rejectableRails.find((rail) => rail.status === 'blocked')
         return {
@@ -93,7 +90,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             hasBlockedRejection: !!blockedRail,
             primaryRejectionMessage: (fixableRail ?? blockedRail)?.reason?.userMessage ?? null,
         }
-    }, [railsForProvider])
+    }, [rails, channelOf])
 
     const lastTrackedStep = useRef<ActivationStep | null>(null)
     useEffect(() => {

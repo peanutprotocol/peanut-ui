@@ -23,7 +23,7 @@ import { getProviderRoute } from '../utils'
 const LimitsPageView = () => {
     const router = useRouter()
     const goBack = useSafeBack('/profile', { replace: true })
-    const { isKycApproved, railsForProvider, rails } = useCapabilities()
+    const { isKycApproved, bankRails, rails } = useCapabilities()
     // MIGRATION-REVIEW: finishes the LimitsPageView migration the prior pass deferred
     // (f4eb9f70e left `useIdentityVerification` here for the region lists). unlockedRegions/
     // lockedRegions now derive from the capability rails via deriveRegionAccess — same Region
@@ -38,13 +38,10 @@ const LimitsPageView = () => {
     // rail). Equivalent for the limits-unlock gate.
     const hasAnyKyc = isKycApproved
 
-    // MIGRATION-REVIEW: old gate was `isUserBridgeKycUnderReview || isUserBridgeKycIncomplete`
-    // (bridgeKycStatus 'under_review' | 'incomplete'). In the capability model a Bridge rail that is
-    // mid-flight is `pending` (provisioning, no user action — was under_review) or `requires-info`
-    // (user must finish TOS/proof — was incomplete). Either ⇒ show the EU/NA "pending" badge.
-    const isBridgeKycPending = railsForProvider('bridge').some(
-        (rail) => rail.status === 'pending' || rail.status === 'requires-info'
-    )
+    // "pending" badge fires when any bank rail is mid-flight (`pending` = BE
+    // provisioning, `requires-info` = user must finish TOS/proof). Provider-blind
+    // via bankRails — picks up Manteca's PIX_BR bank rail in addition to Bridge's.
+    const isBankRailPending = bankRails().some((rail) => rail.status === 'pending' || rail.status === 'requires-info')
 
     // rest of world region config (static)
     const restOfWorldRegion: Region = {
@@ -87,7 +84,7 @@ const LimitsPageView = () => {
 
             {/* locked regions - only render if there are actual locked regions */}
             {filteredLockedRegions.length > 0 && (
-                <LockedRegionsList regions={filteredLockedRegions} isBridgeKycPending={isBridgeKycPending} />
+                <LockedRegionsList regions={filteredLockedRegions} isBankRailPending={isBankRailPending} />
             )}
 
             {/* rest of world - always shown with coming soon */}
@@ -174,16 +171,16 @@ const UnlockedRegionsList = ({ regions, hasMantecaKyc }: UnlockedRegionsListProp
 
 interface LockedRegionsListProps {
     regions: Region[]
-    isBridgeKycPending: boolean
+    isBankRailPending: boolean
 }
 
-const LockedRegionsList = ({ regions, isBridgeKycPending }: LockedRegionsListProps) => {
+const LockedRegionsList = ({ regions, isBankRailPending }: LockedRegionsListProps) => {
     const router = useRouter()
 
     // check if a region should show pending status
     // bridge kyc pending affects europe and north-america regions
     const isPendingRegion = (regionPath: string) => {
-        if (!isBridgeKycPending) return false
+        if (!isBankRailPending) return false
         return regionPath === 'europe' || regionPath === 'north-america'
     }
 

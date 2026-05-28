@@ -9,27 +9,27 @@ import { useCapabilities } from '@/hooks/useCapabilities'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 
-/** A feature unlocked by identity verification, tagged by the provider that unlocks it. */
-type VerificationUnlockItem = {
+/** A feature unlocked by identity verification, tagged by which channel unlocked it. */
+type UnlockItem = {
     title: React.ReactNode | string
-    type: 'bridge' | 'manteca'
+    /** `bank` = shown when bank rails are enabled (US/EU/MX users). `qr` = shown
+     * when QR-pay is enabled (LATAM users). Bullets in both groups display when
+     * both unlock — the duplicate QR bullet between groups is de-duped below. */
+    type: 'bank' | 'qr'
 }
 
 /**
- * MIGRATION-REVIEW: relocated verbatim from `useIdentityVerification.getVerificationUnlockItems`
- * (the legacy hook's only output this modal consumed). It is pure presentational content — a
- * static list of unlocked-feature bullets — with no KYC state, so it has no business living in a
- * hook. `countryTitle` personalizes the Manteca bank-transfer bullet (the user's verified ID
- * country). KycCompletedModal is the sole consumer, so it's inlined here.
+ * Static list of unlocked-feature bullets. `countryTitle` personalizes the
+ * LATAM bank-transfer bullet (the user's verified ID country).
  */
-const getVerificationUnlockItems = (countryTitle?: string): VerificationUnlockItem[] => [
+const getUnlockItems = (countryTitle?: string): UnlockItem[] => [
     {
         title: (
             <p>
                 QR Payments in <b>Argentina and Brazil</b>
             </p>
         ),
-        type: 'bridge',
+        type: 'bank',
     },
     {
         title: (
@@ -37,7 +37,7 @@ const getVerificationUnlockItems = (countryTitle?: string): VerificationUnlockIt
                 <b>United States</b> ACH and Wire transfers
             </p>
         ),
-        type: 'bridge',
+        type: 'bank',
     },
     {
         title: (
@@ -45,7 +45,7 @@ const getVerificationUnlockItems = (countryTitle?: string): VerificationUnlockIt
                 <b>Europe</b> SEPA transfers (+30 countries)
             </p>
         ),
-        type: 'bridge',
+        type: 'bank',
     },
     {
         title: (
@@ -53,27 +53,31 @@ const getVerificationUnlockItems = (countryTitle?: string): VerificationUnlockIt
                 <b>Mexico</b> SPEI transfers
             </p>
         ),
-        type: 'bridge',
+        type: 'bank',
     },
     {
-        // Important: This uses the user's verified ID country, not their selected country
-        // Example: User picks Argentina but has Brazil ID → they get QR in Argentina
-        // but bank transfers only work in Brazil (their verified country)
+        // Important: this uses the user's verified ID country, not their selected country.
+        // Example: user picks Argentina but has Brazil ID → they get QR in Argentina
+        // but bank transfers only work in Brazil (their verified country).
         title: `Bank transfers to your own accounts in ${countryTitle || 'your country'}`,
-        type: 'manteca',
+        type: 'qr',
     },
     {
         title: 'QR Payments in Brazil and Argentina',
-        type: 'manteca',
+        type: 'qr',
     },
 ]
 
 const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     const [approvedCountryData, setApprovedCountryData] = useState<CountryData | null>(null)
 
-    const { hasEnabledRail, railsForProvider } = useCapabilities()
-    const isBridgeApproved = hasEnabledRail('bridge')
-    const isMantecaApproved = hasEnabledRail('manteca')
+    // Provider-blind: the celebration modal splits its copy by what CHANNEL the
+    // user just unlocked, not which provider's rail enabled. Bank-channel = the
+    // "transfers" bullets; qr-only OR a Manteca rail's `pay` op = the "QR" bullets.
+    // (Manteca's pool tier shows up via canDo('pay') without naming the provider.)
+    const { canDo, rails, bankRails, channelOf } = useCapabilities()
+    const hasBankUnlock = bankRails().some((rail) => rail.status === 'enabled')
+    const hasQrUnlock = canDo('pay')
 
     const hasTrackedShow = useRef(false)
     useEffect(() => {
@@ -83,49 +87,45 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
         }
     }, [isOpen])
 
-    // MIGRATION-REVIEW: old logic had a Sumsub branch — `isSumsubApproved &&
-    // regionIntent==='LATAM' → 'manteca'`, else 'bridge' — to pick feature bullets while
-    // the downstream provider rail hadn't enabled yet. Sumsub has no rail in the capability
-    // model, and an approved user now always surfaces as an enabled bridge/manteca rail, so
-    // the pre-rail window is gone. Mapped to "enabled rail by provider", preserving the
-    // bridge+manteca → 'all', manteca → 'manteca', bridge → 'bridge' priority. The only
-    // behavioral drop is the LATAM-region-intent hint; the rail itself now drives the type.
-    const kycApprovalType = useMemo(() => {
-        if (isBridgeApproved && isMantecaApproved) return 'all'
-        if (isMantecaApproved) return 'manteca'
-        if (isBridgeApproved) return 'bridge'
+    // Pick which feature bullets to show based on the channels the user unlocked.
+    // 'all' = bank + qr; 'bank' = bank only (US/EU/MX user); 'qr' = qr-only
+    // (LATAM pool-tier user). Drives the bulletshown by `items` below.
+    const unlockedChannels: 'all' | 'bank' | 'qr' | 'none' = useMemo(() => {
+        if (hasBankUnlock && hasQrUnlock) return 'all'
+        if (hasQrUnlock) return 'qr'
+        if (hasBankUnlock) return 'bank'
         return 'none'
-    }, [isBridgeApproved, isMantecaApproved])
+    }, [hasBankUnlock, hasQrUnlock])
 
     const items = useMemo(() => {
-        return getVerificationUnlockItems(approvedCountryData?.title)
+        return getUnlockItems(approvedCountryData?.title)
     }, [approvedCountryData?.title])
 
-    // MIGRATION-REVIEW: re-sourced off the capability rails. The old effect scanned raw
-    // `user.kycVerifications` for an approved MANTECA/SUMSUB row and read its `mantecaGeo`
-    // to personalize the "Bank transfers to your own accounts in {country}" bullet. A
-    // full-tier Manteca rail now carries that jurisdiction as `rail.country`, so the
-    // approved country = an ENABLED Manteca rail's country. `isMantecaSupportedCountryCode`
-    // guard kept (matches the old country-gate). NOTE: if multiple enabled Manteca rails
-    // exist (AR + BR), this takes the last like the old forEach did — same arbitrary pick.
-    const mantecaRails = railsForProvider('manteca')
+    // Personalize the "Bank transfers to your own accounts in {country}" bullet
+    // off the user's first enabled qr-only-or-pay-capable LATAM rail. Provider-
+    // blind via the channel classifier — the qr-only channel today is exactly
+    // the set that drives this bullet ("approved in country X for QR + bank
+    // transfers"). NOTE: if multiple enabled qr-pay rails exist, this picks the
+    // last (matches the old forEach behavior).
+    const qrCapableRails = useMemo(
+        () => rails.filter((rail) => rail.status === 'enabled' && channelOf(rail) === 'qr-only'),
+        [rails, channelOf]
+    )
     useEffect(() => {
-        if (!isMantecaApproved) return
-
+        if (!hasQrUnlock) return
         let approvedCountry: string | undefined | null
-        mantecaRails.forEach((rail) => {
-            if (rail.status === 'enabled' && isMantecaSupportedCountryCode(rail.country)) {
+        qrCapableRails.forEach((rail) => {
+            if (isMantecaSupportedCountryCode(rail.country)) {
                 approvedCountry = rail.country
             }
         })
-
         if (approvedCountry) {
             const _approvedCountryData = countryData.find(
                 (c) => c.iso2?.toUpperCase() === approvedCountry?.toUpperCase()
             )
             setApprovedCountryData(_approvedCountryData || null)
         }
-    }, [isMantecaApproved, mantecaRails])
+    }, [hasQrUnlock, qrCapableRails])
 
     return (
         <ActionModal
@@ -159,13 +159,12 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         itemIconClassName="text-secondary-7"
                         items={items
                             .filter((item) => {
-                                if (kycApprovalType === 'all') {
-                                    // Show all items except the manteca QR Payments item because this already exists in brige items
-                                    return !(
-                                        item.type === 'manteca' && item.title === 'QR Payments in Brazil and Argentina'
-                                    )
+                                if (unlockedChannels === 'all') {
+                                    // Show all items except the duplicate QR bullet
+                                    // (the bank list already mentions QR in AR/BR).
+                                    return !(item.type === 'qr' && item.title === 'QR Payments in Brazil and Argentina')
                                 }
-                                return item.type === kycApprovalType
+                                return item.type === unlockedChannels
                             })
                             .map((item) => item.title)}
                     />

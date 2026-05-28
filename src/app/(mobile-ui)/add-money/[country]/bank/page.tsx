@@ -11,7 +11,7 @@ import { formatAmount } from '@/utils/general.utils'
 import { countryData } from '@/components/AddMoney/consts'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { deriveBridgeGate, getKycModalVariant, getGateProviderMessage } from '@/utils/bridge-gate.utils'
+import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCreateOnramp } from '@/hooks/useCreateOnramp'
 import { useParams, useSearchParams } from 'next/navigation'
@@ -30,7 +30,7 @@ import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { useBridgeTosGuard } from '@/hooks/useBridgeTosGuard'
+import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -100,17 +100,13 @@ export default function OnrampBankPage() {
     // uk-specific check
     const isUK = isUKCountry(selectedCountryPath)
 
-    // MIGRATION-REVIEW: replaces `useBridgeTransferReadiness`. The gate is derived
-    // inline from the backend capability model (Bridge rails + nextActions) — same
-    // BridgeGateAction shape, so the `gate.type` branching + InitiateKycModal wiring
-    // below are unchanged. See deriveBridgeGate for the full state mapping + the
-    // Sumsub-has-no-rail contract gap (isKycApproved is the faithful proxy).
-    const { rails, nextActions, isKycApproved, isLoading: isLoadingCapabilities } = useCapabilities()
-    const gate = useMemo(
-        () => deriveBridgeGate(rails, nextActions, isKycApproved, isLoadingCapabilities),
-        [rails, nextActions, isKycApproved, isLoadingCapabilities]
-    )
-    const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
+    // Provider-blind bank-channel readiness gate. Country-scoping would tighten
+    // this further (each page route is country-specific) — kept open for now to
+    // exactly preserve the old `deriveBridgeGate`'s behavior on rails of ANY
+    // country. Follow-up: scope to `{ channel: 'bank', country: selectedCountryPath.toUpperCase() }`.
+    const { gateFor } = useCapabilities()
+    const gate = useMemo(() => gateFor('deposit', { channel: 'bank' }), [gateFor])
+    const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const { setIsSupportModalOpen } = useModalsContext()
 
     // close kyc modal when sumsub sdk opens
@@ -216,11 +212,11 @@ export default function OnrampBankPage() {
     const handleAmountContinue = () => {
         if (!validateAmount(rawTokenAmount)) return
 
-        if (gate.type !== 'ready') {
+        if (gate.kind !== 'ready') {
             // capabilities still loading — silently no-op instead of flashing a
             // needs_kyc modal on top of state we don't know yet.
-            if (gate.type === 'loading') return
-            if (gate.type === 'accept_tos') {
+            if (gate.kind === 'loading') return
+            if (gate.kind === 'accept-tos') {
                 guardWithTos()
             } else {
                 setShowKycModal(true)
@@ -411,13 +407,13 @@ export default function OnrampBankPage() {
                     visible={showKycModal}
                     onClose={() => setShowKycModal(false)}
                     onVerify={async () => {
-                        if (gate.type === 'fixable_rejection') {
+                        if (gate.kind === 'fixable-rejection') {
                             await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                         } else {
                             await sumsubFlow.handleInitiateKyc(
                                 'STANDARD',
                                 undefined,
-                                gate.type === 'needs_enrollment' || undefined
+                                gate.kind === 'needs-enrollment' || undefined
                             )
                         }
                     }}
@@ -427,8 +423,8 @@ export default function OnrampBankPage() {
                     }}
                     isLoading={sumsubFlow.isLoading}
                     error={sumsubFlow.error}
-                    variant={getKycModalVariant(gate.type)}
-                    providerMessage={getGateProviderMessage(gate)}
+                    variant={getKycModalVariant(gate.kind)}
+                    providerMessage={getGateUserMessage(gate)}
                     regionName={selectedCountry?.title}
                 />
 

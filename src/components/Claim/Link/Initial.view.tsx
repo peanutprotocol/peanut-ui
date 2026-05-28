@@ -130,11 +130,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const searchParams = useSearchParams()
     const prevRecipientType = useRef<string | null>(null)
     const prevUser = useRef(user)
-    // MIGRATION-REVIEW: bank claim routing gated on `isUserBridgeKycApproved` (bridgeKycStatus
-    // === 'approved'). This is a Bridge-specific gate (bank/IBAN claim runs over Bridge), so
-    // mapped to hasEnabledRail('bridge'), NOT the any-rail isKycApproved — a manteca-only user
-    // must still go through the Bridge KYC steps for a bank claim.
-    const isUserBridgeKycApproved = useCapabilities().hasEnabledRail('bridge')
+    // Bank-claim routing checks "is there an enabled bank rail the claim could
+    // settle through?". Provider-blind — Manteca PIX_BR counts as a bank rail
+    // too, but a card-only user (Rain) is correctly excluded.
+    const hasEnabledBankRail = useCapabilities()
+        .bankRails()
+        .some((rail) => rail.status === 'enabled')
 
     const [isDevconnectClaimFlow, setisDevconnectClaimFlow] = useState(false)
 
@@ -530,7 +531,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     recipient: recipient.name ?? recipient.address,
                     password: '',
                 })
-                if (isUserBridgeKycApproved) {
+                if (hasEnabledBankRail) {
                     const account = user.accounts.find(
                         (account) =>
                             account.identifier.replaceAll(/\s/g, '').toLowerCase() ===

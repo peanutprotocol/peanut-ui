@@ -11,6 +11,8 @@ import {
     type RailOperation,
     type UserCapabilities,
 } from '@/types/capabilities'
+import { deriveGate, type GateScope, type GateState } from '@/utils/capability-gate'
+import { railChannel, railsOfChannel, type RailChannel } from '@/utils/rail-channel'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 
 /**
@@ -79,6 +81,26 @@ export interface UseCapabilitiesResult {
     isKycApproved: boolean
     /** Convenience: at least one rail is mid-flight (pending or requires-info), none yet enabled-only. */
     isKycInProgress: boolean
+
+    /**
+     * **The canonical primitive for "can the user do X (in this scope)? If
+     * not, what's blocking?".** Replaces `deriveBridgeGate` (provider-named,
+     * bank-only) with a provider-blind, scope-composable gate over the
+     * normalized state machine in {@link GateState}.
+     *
+     * Examples:
+     *   useCapabilities().gateFor('deposit', { channel: 'bank', country: 'AR' })
+     *   useCapabilities().gateFor('pay')                                  // any rail
+     *   useCapabilities().gateFor('withdraw', { railId: 'bridge.ach_us' }) // one rail
+     */
+    gateFor: (op: RailOperation, scope?: GateScope) => GateState
+
+    /** Bank-channel rails, provider-blind. Optionally country-scoped. */
+    bankRails: (opts?: { country?: string }) => RailCapability[]
+    /** Channel classifier for a single rail (delegates to {@link railChannel}). */
+    channelOf: (rail: RailCapability) => RailChannel | null
+    /** Countries the user can do `op` in (or any op, if undefined). */
+    enabledCountriesFor: (op?: RailOperation) => Set<string>
 }
 
 export function useCapabilities(): UseCapabilitiesResult {
@@ -86,6 +108,11 @@ export function useCapabilities(): UseCapabilitiesResult {
 
     const capabilities = user?.capabilities ?? EMPTY_CAPABILITIES
     const { rails, nextActions, restrictions } = capabilities
+    // The gate's "identity verified" precondition reads the second read-model
+    // directly (NOT the rail-level isKycApproved — that's any-rail-enabled
+    // which falsely flips for card-only or pool-tier users, the CodeRabbit
+    // semantic finding folded in alongside Profile/ProfileEdit).
+    const identityVerified = user?.identityVerification?.status === 'verified'
 
     // Index nextActions by key for O(1) lookup (blockingActions resolution).
     const nextActionByKey = useMemo(() => {
@@ -162,6 +189,39 @@ export function useCapabilities(): UseCapabilitiesResult {
         [rails]
     )
 
+    // ── Provider-blind primitive layer ─────────────────────────────────────
+    // Single source of truth for "can the user do X here?" + bank-channel
+    // summaries. Every UI site that used to filter by `provider === 'bridge'`
+    // / `provider === 'manteca'` reads through here instead.
+
+    const gateFor = useCallback(
+        (op: RailOperation, scope?: GateScope): GateState =>
+            deriveGate({ rails, nextActions, identityVerified, isLoading: isFetchingUser }, op, scope),
+        [rails, nextActions, identityVerified, isFetchingUser]
+    )
+
+    const bankRails = useCallback(
+        (opts?: { country?: string }): RailCapability[] => {
+            const all = railsOfChannel(rails, 'bank')
+            return opts?.country ? all.filter((rail) => rail.country === opts.country) : all
+        },
+        [rails]
+    )
+
+    const channelOf = useCallback((rail: RailCapability) => railChannel(rail), [])
+
+    const enabledCountriesFor = useCallback(
+        (op?: RailOperation): Set<string> => {
+            const out = new Set<string>()
+            for (const rail of rails) {
+                const enabled = op ? (rail.operations?.[op] ?? rail.status) === 'enabled' : rail.status === 'enabled'
+                if (enabled) out.add(rail.country)
+            }
+            return out
+        },
+        [rails]
+    )
+
     // D4 — poll the user query while any rail is `pending`; stop when settled.
     const hasPendingRail = useMemo(() => rails.some((rail) => rail.status === 'pending'), [rails])
 
@@ -224,5 +284,9 @@ export function useCapabilities(): UseCapabilitiesResult {
         restrictionForRail,
         isKycApproved,
         isKycInProgress,
+        gateFor,
+        bankRails,
+        channelOf,
+        enabledCountriesFor,
     }
 }

@@ -83,15 +83,11 @@ export const useHomeCarouselCTAs = () => {
     } = useNotifications()
     const toast = useToast()
     const router = useRouter()
-    const { canDo, hasEnabledRail, railsForProvider } = useCapabilities()
-    // MIGRATION-REVIEW: old gate used bridge-specific `isUserBridgeKycUnderReview` ('under_review')
-    // + `isUserBridgeKycIncomplete` ('incomplete') to suppress the "verify your account" CTA from
-    // users already mid-flow on Bridge. Capability equivalent: a Bridge rail that's `pending`
-    // (submitted/provisioning ≈ under_review) or `requires-info` (must finish tos/proof ≈
-    // incomplete). Kept bridge-scoped to match the original (not broadened to all providers).
-    const isBridgeInFlight = railsForProvider('bridge').some(
-        (rail) => rail.status === 'pending' || rail.status === 'requires-info'
-    )
+    const { canDo, bankRails } = useCapabilities()
+    // Suppress the "verify your account" CTA when the user is already mid-flow on
+    // a bank rail (`pending` = submitted/provisioning, `requires-info` = finish
+    // tos/proof). Provider-blind via the bank-channel summary.
+    const isBankFlowInFlight = bankRails().some((rail) => rail.status === 'pending' || rail.status === 'requires-info')
     const { deviceType } = useDeviceType()
     const isPwa = usePWAStatus()
     const { setIsIosPwaInstallModalOpen, openSupportWithMessage } = useModalsContext()
@@ -135,11 +131,9 @@ export const useHomeCarouselCTAs = () => {
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
 
-        // Home CTAs gate on Bridge/Manteca, NOT Rain — `isKycApproved` from useCapabilities means
-        // "any enabled rail" including Rain, which would mis-treat a card-only user as QR-ready
-        // (showing pay CTAs + hiding the verification CTA). Scope to the providers the QR-payment
-        // and bank flows actually run through.
-        const hasKycApproval = hasEnabledRail('bridge') || canDo('pay', { provider: 'manteca' })
+        // Home CTAs gate on "user can do a bank deposit or a pay" — provider-blind.
+        // Rain (card) does NOT count; a card-only user must still see the verify CTA.
+        const hasKycApproval = bankRails().some((r) => r.status === 'enabled') || canDo('pay')
         const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
 
         // Card CTA — Pioneers replaced by free badge-gated waitlist (M2).
@@ -300,7 +294,7 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        if (!hasKycApproval && !isBridgeInFlight) {
+        if (!hasKycApproval && !isBankFlowInFlight) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
                 title: (
@@ -329,8 +323,8 @@ export const useHomeCarouselCTAs = () => {
         isPermissionDenied,
         isPushOptedIn,
         canDo,
-        hasEnabledRail,
-        isBridgeInFlight,
+        bankRails,
+        isBankFlowInFlight,
         router,
         requestPermission,
         afterPermissionAttempt,

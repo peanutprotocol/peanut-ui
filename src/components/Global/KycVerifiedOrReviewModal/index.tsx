@@ -9,28 +9,27 @@ const KycVerifiedOrReviewModal = ({
     isKycApprovedModalOpen: boolean
     onClose: () => void
 }) => {
-    const { railsForProvider } = useCapabilities()
+    const { bankRails } = useCapabilities()
 
-    // MIGRATION-REVIEW: old `isUserBridgeKycUnderReview` === bridgeKycStatus 'under_review'
-    // ("Bridge is actively reviewing submitted docs"). The capability equivalent is a Bridge
-    // rail in `pending` (provisioning/submitted, no user action needed). Mapped to "any Bridge
-    // rail pending && none enabled" so an already-enabled user still gets the "already verified"
-    // copy rather than the "under review" copy.
-    const bridgeRails = railsForProvider('bridge')
-    const isBridgeUnderReview =
-        bridgeRails.some((rail) => rail.status === 'pending') && !bridgeRails.some((rail) => rail.status === 'enabled')
+    // "Under review" copy fires when bank rails are still provisioning (`pending`,
+    // BE submitted to provider, no user action) AND none are enabled yet. An
+    // already-enabled user gets the "already verified" copy instead.
+    const allBankRails = bankRails()
+    const isUnderReview =
+        allBankRails.some((rail) => rail.status === 'pending') &&
+        !allBankRails.some((rail) => rail.status === 'enabled')
 
     return (
         <ActionModal
             visible={isKycApprovedModalOpen}
             onClose={onClose}
-            title={isBridgeUnderReview ? 'Your verification is under review' : 'You’re already verified'}
+            title={isUnderReview ? 'Your verification is under review' : 'You’re already verified'}
             description={
-                isBridgeUnderReview
+                isUnderReview
                     ? 'Your verification is under review. You will be notified when it is completed.'
                     : 'Your identity has already been successfully verified. No further action is needed.'
             }
-            icon={isBridgeUnderReview ? 'clock' : 'shield'}
+            icon={isUnderReview ? 'clock' : 'shield'}
             ctas={[
                 {
                     text: 'Go back',

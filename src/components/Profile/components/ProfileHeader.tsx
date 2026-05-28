@@ -6,7 +6,7 @@ import { twMerge } from 'tailwind-merge'
 import AvatarWithBadge from '../AvatarWithBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
-import { useCapabilities } from '@/hooks/useCapabilities'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 
 interface ProfileHeaderProps {
@@ -27,14 +27,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     haveSentMoneyToUser = false,
 }) => {
     const { user: authenticatedUser } = useAuth()
-    // MIGRATION-REVIEW: old `isUserKycApproved` = any provider approved (bridge OR manteca OR sumsub).
-    // New `isKycApproved` = any rail enabled. These differ at the edges: a Sumsub-only approved user
-    // (no enabled payment rail yet) would have shown the self-profile verified badge before but not now;
-    // conversely the set is otherwise equivalent. The caller already gates this on self-profile, and the
-    // badge here is cosmetic — kept as the closest 1:1. Note the task suggested hasEnabledRail('bridge')/
-    // ('manteca'), but this file only ever read the any-provider flag, so isKycApproved is the faithful swap.
-    const { isKycApproved } = useCapabilities()
-    const isAuthenticatedUserVerified = isKycApproved && authenticatedUser?.user.username === username
+    // The self-profile verified badge means "this person's ID was confirmed" —
+    // NOT "this person has an enabled payment rail." It reads identityVerification
+    // (Sumsub-cleared), matching the counterparty badge logic (`isVerified` on
+    // /users/:userId). Rail-approval is unrelated.
+    const { isVerified: selfIsIdentityVerified } = useIdentityVerification()
+    const isAuthenticatedUserVerified = selfIsIdentityVerified && authenticatedUser?.user.username === username
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const isSelfProfile = authenticatedUser?.user.username?.toLowerCase() === username.toLowerCase()
 

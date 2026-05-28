@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useAuth } from '@/context/authContext'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { deriveBridgeGate } from '@/utils/bridge-gate.utils'
+import { deriveGate } from '@/utils/capability-gate'
 import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
 import { type KycModalPhase, type IUserProfile } from '@/interfaces/interfaces'
 import { type UserCapabilities } from '@/types/capabilities'
@@ -15,34 +15,26 @@ const PREPARING_TIMEOUT_MS = 30000
 const EMPTY_CAPABILITIES: UserCapabilities = { rails: [], nextActions: [], restrictions: [] }
 
 /**
- * Phase-transition signals derived from the backend capability block — the
- * capability-model equivalents of the three `useRailStatusTracking` reads this
- * orchestrator used to drive its preparing → bridge_tos → complete machine.
+ * Phase-transition signals derived from the backend capability block — drives
+ * the preparing → tos → complete orchestrator state machine.
  *
- * MIGRATION-REVIEW: replaces the raw `user.rails` (provider-code + uppercase
- * provider-status) reads. Mappings, each faithful to the old derivations:
- *   - needsBridgeTos ← old `useRailStatusTracking.needsBridgeTos` / the inline
- *     `BRIDGE rail status === 'REQUIRES_INFORMATION'` check. Reuses
- *     `deriveBridgeGate` so the "Bridge requires-info whose unlock is a
- *     bridge-tos action" detection is identical to the bank-flow gate (no
- *     duplicated provider logic). `isKycApproved` is unused by the accept_tos
- *     branch (it sits above the kyc check in deriveBridgeGate's priority order),
- *     so the local proxy below is safe here.
- *   - anyPending ← old inline `rails.some(status === 'PENDING')` ← rail
- *     `status === 'pending'` (provisioning, no user action).
- *   - allSettled ← old `useRailStatusTracking.allSettled` = at least one rail
- *     exists AND no provider group is still `setting_up` (PENDING) ← rails
- *     non-empty AND no rail `pending`.
+ *   - needsTos ← bank-channel rail in `requires-info` with a `bridge-tos`
+ *     action (today, the ONLY ToS-acceptance flow on the platform — sources
+ *     from the gate state's `accept-tos` kind, scoped to the bank channel).
+ *   - anyPending ← any rail provisioning, no user action needed.
+ *   - allSettled ← rails non-empty AND none pending.
  */
 function deriveCapabilityPhaseSignals(capabilities: UserCapabilities | undefined) {
     const { rails, nextActions } = capabilities ?? EMPTY_CAPABILITIES
     const anyPending = rails.some((rail) => rail.status === 'pending')
-    // any enabled rail ⇒ identity cleared at least once (established proxy — see
-    // bridge-gate.utils.ts header). Only feeds deriveBridgeGate's lower-priority
-    // branches; the accept_tos branch we read here doesn't depend on it.
-    const isKycApproved = rails.some((rail) => rail.status === 'enabled')
+    // The accept-tos branch sits above the identity check in deriveGate's
+    // priority order; identityVerified doesn't affect it. Passing `false` here
+    // is safe + avoids reading identityVerification.status to find a ToS state.
+    const gate = deriveGate({ rails, nextActions, identityVerified: false, isLoading: false }, 'deposit', {
+        channel: 'bank',
+    })
     return {
-        needsBridgeTos: deriveBridgeGate(rails, nextActions, isKycApproved).type === 'accept_tos',
+        needsTos: gate.kind === 'accept-tos',
         anyPending,
         // mirrors old allSettled: empty rails are NOT settled (still provisioning)
         allSettled: rails.length > 0 && !anyPending,
@@ -66,7 +58,7 @@ export async function confirmBridgeTosAndAwaitRails(fetchUser: () => Promise<IUs
         // MIGRATION-REVIEW: old check was `BRIDGE rail status === 'REQUIRES_INFORMATION'`
         // over raw `updatedUser.rails`. Now reads the fresh capability block from the
         // same fetch result via deriveBridgeGate (accept_tos == Bridge still needs ToS).
-        const stillNeedsTos = deriveCapabilityPhaseSignals(updatedUser?.capabilities).needsBridgeTos
+        const stillNeedsTos = deriveCapabilityPhaseSignals(updatedUser?.capabilities).needsTos
         if (!stillNeedsTos) break
         if (i < 2) await new Promise((resolve) => setTimeout(resolve, 2000))
     }
@@ -109,7 +101,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
     const closeVerificationModalRef = useRef<() => void>(() => {})
 
     // rail tracking — sourced from the backend capability model.
-    // MIGRATION-REVIEW: replaces useRailStatusTracking. `allSettled` / `needsBridgeTos`
+    // MIGRATION-REVIEW: replaces useRailStatusTracking. `allSettled` / `needsTos`
     // are now derived reactively from `useCapabilities()` (its rails update as the
     // user query is refetched). useCapabilities AUTO-POLLS the user query every ~4s
     // while any rail is `pending` (D4) and self-terminates when settled, so the old
@@ -118,7 +110,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
     // The old WebSocket-driven instant rail refresh is replaced by that 4s poll
     // (the old hook already had the same 4s poll as a fallback).
     const { capabilities } = useCapabilities()
-    const { allSettled, needsBridgeTos } = useMemo(() => deriveCapabilityPhaseSignals(capabilities), [capabilities])
+    const { allSettled, needsTos } = useMemo(() => deriveCapabilityPhaseSignals(capabilities), [capabilities])
     const startTracking = useCallback(() => {}, [])
     const stopTracking = useCallback(() => {}, [])
 
@@ -161,20 +153,12 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
         }
 
         const updatedUser = await fetchUser()
-        // MIGRATION-REVIEW: post-approval branching now reads the FRESH capability
-        // block from this fetchUser() result (not the reactive useCapabilities()
-        // snapshot, which would be stale within this synchronous call). Faithful to
-        // the old raw `updatedUser.rails` reads:
-        //   bridgeNeedsTos ← Bridge requires-info + bridge-tos action (was REQUIRES_INFORMATION)
-        //   anyPending     ← any rail `pending` (was PENDING)
-        //   railCount === 0 ← no rails provisioned yet
-        const {
-            needsBridgeTos: bridgeNeedsTos,
-            anyPending,
-            railCount,
-        } = deriveCapabilityPhaseSignals(updatedUser?.capabilities)
+        // post-approval branching reads the FRESH capability block from this
+        // fetchUser() result (not the reactive useCapabilities() snapshot,
+        // which would be stale within this synchronous call).
+        const { needsTos, anyPending, railCount } = deriveCapabilityPhaseSignals(updatedUser?.capabilities)
 
-        if (bridgeNeedsTos) {
+        if (needsTos) {
             setModalPhase('bridge_tos')
             setForceShowModal(true)
             clearPreparingTimer()
@@ -284,7 +268,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
     // phase transitions driven by rail tracking
     useEffect(() => {
         if (modalPhase === 'preparing') {
-            if (needsBridgeTos) {
+            if (needsTos) {
                 setModalPhase('bridge_tos')
                 clearPreparingTimer()
             } else if (allSettled) {
@@ -294,12 +278,12 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
             }
         } else if (modalPhase === 'bridge_tos') {
             // after ToS accepted, rails transition to ENABLED
-            if (allSettled && !needsBridgeTos) {
+            if (allSettled && !needsTos) {
                 setModalPhase('complete')
                 stopTracking()
             }
         }
-    }, [modalPhase, needsBridgeTos, allSettled, clearPreparingTimer, stopTracking])
+    }, [modalPhase, needsTos, allSettled, clearPreparingTimer, stopTracking])
 
     // handle "Accept Terms" click in bridge_tos phase
     const handleAcceptTerms = useCallback(async () => {
