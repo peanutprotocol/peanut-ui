@@ -17,7 +17,7 @@ import Card from '../Global/Card'
 import { type CardPosition, getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem, isKycStatusItem, type KycHistoryEntry } from '../Kyc/KycStatusItem'
-import { groupKycByRegion } from '@/utils/kyc-grouping.utils'
+import { buildKycHistoryEntry } from '@/utils/kyc-grouping.utils'
 import CardUnlockHistoryItem from '../Card/CardUnlockHistoryItem'
 import { deriveCardUnlockEntry, isCardUnlockHistoryItem, type CardUnlockHistoryEntry } from '../Card/cardUnlock.types'
 import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
@@ -221,10 +221,10 @@ const HomeHistory = ({
                     }
                 }
 
-                // add one kyc entry per region (STANDARD, LATAM)
-                if (isViewingOwnHistory && user?.user) {
-                    const regionEntries = groupKycByRegion(user.user)
-                    entries.push(...regionEntries)
+                // add the single identity-verification row (provider-agnostic)
+                if (isViewingOwnHistory && user) {
+                    const kycEntry = buildKycHistoryEntry(user)
+                    if (kycEntry) entries.push(kycEntry)
                 }
 
                 // Synthetic card-unlock entry — once the user has card
@@ -347,19 +347,12 @@ const HomeHistory = ({
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
                 <h2 className="text-base font-bold">Activity</h2>
                 {isViewingOwnHistory &&
-                    user?.user &&
+                    user &&
                     (() => {
-                        const regionEntries = groupKycByRegion(user.user)
-                        return regionEntries.length > 0 ? (
+                        const kycEntry = buildKycHistoryEntry(user)
+                        return kycEntry ? (
                             <div className="space-y-3">
-                                {regionEntries.map((entry) => (
-                                    <KycStatusItem
-                                        key={entry.uuid}
-                                        position="single"
-                                        verification={entry.verification}
-                                        region={entry.region}
-                                    />
-                                ))}
+                                <KycStatusItem position="single" />
                             </div>
                         ) : (
                             <EmptyState
@@ -435,28 +428,11 @@ const HomeHistory = ({
                         )
                         const position = getCardPosition(index, filteredEntries.length)
 
-                        // Render KYC status item if it's its turn in the sorted list
+                        // Render the identity-verification status row when it's its turn in the
+                        // sorted list. KycStatusItem self-sources its status from
+                        // useIdentityVerification() — the entry is just a timeline marker.
                         if (isKycStatusItem(item)) {
-                            // MIGRATION-REVIEW: this is the KYC-status activity row, NOT a per-transaction
-                            // provider badge (the migration map's "provider badges on history" framing was
-                            // imprecise). `bridgeKycStatus`/`bridgeKycStartedAt` were forwarded from
-                            // groupKycByRegion's synthetic entry, which sources them from raw
-                            // user.bridgeKycStatus. The capability model carries neither the bridgeKycStatus
-                            // enum nor a started-at timestamp, so these props are dropped here (the gate
-                            // requires this file stop reading .bridgeKycStatus). KycStatusItem self-sources
-                            // the status from the user store internally (its bridgeKycStatus prop is optional),
-                            // so the rendered status is unchanged; the only loss is the "KYC started at" date
-                            // in the drawer's processing sub-state, which falls back to "N/A". CONTRACT GAP +
-                            // OUT-OF-SCOPE: groupKycByRegion / KycStatusItem / history/page.tsx still read raw
-                            // KYC fields and are addressed in the compiler-gated deletion step, not here.
-                            return (
-                                <KycStatusItem
-                                    key={item.uuid}
-                                    position={position}
-                                    verification={item.verification}
-                                    region={item.region}
-                                />
-                            )
+                            return <KycStatusItem key={item.uuid} position={position} />
                         }
 
                         // render badge milestone entries

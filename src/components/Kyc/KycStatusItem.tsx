@@ -2,57 +2,37 @@ import { useState, useMemo, useCallback } from 'react'
 import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { KycStatusDrawer } from './KycStatusDrawer'
-import { useUserStore } from '@/redux/hooks'
-import { useWebSocket } from '@/hooks/useWebSocket'
-import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import { type HTMLAttributes } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { type IUserKycVerification } from '@/interfaces'
 import StatusPill from '../Global/StatusPill'
 import { KYCStatusIcon } from './KYCStatusIcon'
-import {
-    isKycStatusApproved,
-    isKycStatusPending,
-    isKycStatusFailed,
-    isKycStatusNotStarted,
-    isKycStatusActionRequired,
-} from '@/constants/kyc.consts'
-import { useCapabilities } from '@/hooks/useCapabilities'
-import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 
-// kyc history entry type + type guard — used by HomeHistory and history page
+// kyc history entry type + type guard — a marker the timeline injects so the
+// identity-verification row renders inline. Status is read from
+// useIdentityVerification() inside the component, so the entry carries no status.
 export interface KycHistoryEntry {
     isKyc: true
     uuid: string
     timestamp: string
-    verification?: IUserKycVerification
-    bridgeKycStatus?: BridgeKycStatus
-    region?: 'STANDARD' | 'LATAM'
 }
 
 export const isKycStatusItem = (entry: object): entry is KycHistoryEntry => {
     return 'isKyc' in entry && entry.isKyc === true
 }
 
-// this component shows the current kyc status and opens a drawer with more details on click
+// this component shows the current identity-verification status and opens a
+// drawer with more details on click. Status is sourced from the provider-agnostic
+// identityVerification read-model — no provider names, no props for status.
 export const KycStatusItem = ({
     position = 'first',
     className,
-    verification,
-    bridgeKycStatus,
-    bridgeKycStartedAt,
-    region,
 }: {
     position?: CardPosition
     className?: HTMLAttributes<HTMLDivElement>['className']
-    verification?: IUserKycVerification
-    bridgeKycStatus?: BridgeKycStatus
-    bridgeKycStartedAt?: string
-    region?: 'STANDARD' | 'LATAM'
 }) => {
-    const { user } = useUserStore()
+    const { status } = useIdentityVerification()
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-    const [wsBridgeKycStatus, setWsBridgeKycStatus] = useState<BridgeKycStatus | undefined>(undefined)
     // keep drawer component mounted when SDK flow is active (so SumsubKycModals persists
     // even after the drawer visually closes)
     const [keepDrawerMounted, setKeepDrawerMounted] = useState(false)
@@ -61,69 +41,27 @@ export const KycStatusItem = ({
         setIsDrawerOpen(false)
     }, [])
 
-    // connect to websockets for real-time updates
-    useWebSocket({
-        username: user?.user.username ?? undefined,
-        autoConnect: true,
-        onKycStatusUpdate: (newStatus) => {
-            setWsBridgeKycStatus(newStatus as BridgeKycStatus)
-        },
-    })
-
-    const finalBridgeKycStatus = wsBridgeKycStatus || bridgeKycStatus || user?.user?.bridgeKycStatus
-    const kycStatus = verification ? verification.status : finalBridgeKycStatus
-
-    // check if any bridge rail needs additional documents
-    const hasBridgeDocsNeeded = useMemo(
-        () =>
-            (user?.rails ?? []).some(
-                (r) => r.status === 'REQUIRES_EXTRA_INFORMATION' && r.rail.provider.code === 'BRIDGE'
-            ),
-        [user?.rails]
-    )
-
-    // provider rejection status (bridge/manteca) — derived from the capability model
-    const { rails } = useCapabilities()
-    const bridgeRej = deriveProviderRejection(rails, 'BRIDGE')
-    const mantecaRej = deriveProviderRejection(rails, 'MANTECA')
-    const hasFixableRejection = bridgeRej.state === 'fixable' || mantecaRej.state === 'fixable'
-    const hasBlockedRejection = bridgeRej.state === 'blocked' || mantecaRej.state === 'blocked'
-
-    const isApproved = isKycStatusApproved(kycStatus)
-    const isPending = isKycStatusPending(kycStatus)
-    const isRejected = isKycStatusFailed(kycStatus)
-    const isActionRequired = isKycStatusActionRequired(kycStatus)
-    // if a verification record exists with NOT_STARTED, the user has initiated KYC
-    // (backend creates the record on initiation). only hide for bridge's default state.
-    const isInitiatedButNotStarted = !!verification && isKycStatusNotStarted(kycStatus)
-
     const subtitle = useMemo(() => {
-        // provider rejection takes priority when sumsub is approved
-        if (isApproved && hasFixableRejection) return 'Action needed'
-        if (isApproved && hasBlockedRejection) return 'Verification issue'
-        if (hasBridgeDocsNeeded) return 'Action needed'
-        if (isInitiatedButNotStarted) return 'Not completed'
-        if (isActionRequired) return 'Action needed'
-        if (isPending) return 'Processing'
-        if (isApproved) return 'Verified'
-        if (isRejected) return 'Failed'
-        return 'Unknown'
-    }, [
-        hasBridgeDocsNeeded,
-        isInitiatedButNotStarted,
-        isActionRequired,
-        isPending,
-        isApproved,
-        isRejected,
-        hasFixableRejection,
-        hasBlockedRejection,
-    ])
+        switch (status) {
+            case 'processing':
+                return 'Processing'
+            case 'verified':
+                return 'Verified'
+            case 'action_required':
+                return 'Action needed'
+            case 'failed':
+                return 'Failed'
+            default:
+                return 'Unknown'
+        }
+    }, [status])
 
-    // only hide for bridge's default "not_started" state.
-    // if a verification record exists, the user has initiated KYC — show it.
-    if (!verification && !hasBridgeDocsNeeded && isKycStatusNotStarted(kycStatus)) {
+    // not_started ⇒ hide the card entirely.
+    if (status === 'not_started') {
         return null
     }
+
+    const pill = status === 'verified' ? 'completed' : status === 'failed' ? 'cancelled' : 'pending'
 
     return (
         <>
@@ -141,19 +79,7 @@ export const KycStatusItem = ({
                             <p className="font-semibold">Identity verification</p>
                             <div className="flex items-center gap-2">
                                 <p className="text-sm text-grey-1">{subtitle}</p>
-                                <StatusPill
-                                    status={
-                                        hasBridgeDocsNeeded ||
-                                        isInitiatedButNotStarted ||
-                                        isActionRequired ||
-                                        isPending ||
-                                        (isApproved && hasFixableRejection)
-                                            ? 'pending'
-                                            : isRejected || (isApproved && hasBlockedRejection)
-                                              ? 'cancelled'
-                                              : 'completed'
-                                    }
-                                />
+                                <StatusPill status={pill} />
                             </div>
                         </div>
                     </div>
@@ -164,9 +90,6 @@ export const KycStatusItem = ({
                 <KycStatusDrawer
                     isOpen={isDrawerOpen}
                     onClose={handleCloseDrawer}
-                    verification={verification}
-                    bridgeKycStatus={finalBridgeKycStatus}
-                    region={region}
                     onKeepMounted={setKeepDrawerMounted}
                 />
             )}

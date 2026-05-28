@@ -13,7 +13,7 @@ import { useUserStore } from '@/redux/hooks'
 import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
 import { isKycStatusItem } from '@/components/Kyc/KycStatusItem'
-import { groupKycByRegion } from '@/utils/kyc-grouping.utils'
+import { buildKycHistoryEntry } from '@/utils/kyc-grouping.utils'
 import { useAuth } from '@/context/authContext'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
 import { isBadgeHistoryItem } from '@/components/Badges/badge.types'
@@ -170,10 +170,10 @@ const HistoryPage = () => {
             })
         })
 
-        // add one kyc entry per region (STANDARD, LATAM)
-        if (user?.user) {
-            const regionEntries = groupKycByRegion(user.user)
-            entries.push(...regionEntries)
+        // add the single identity-verification row (provider-agnostic)
+        if (user) {
+            const kycEntry = buildKycHistoryEntry(user)
+            if (kycEntry) entries.push(kycEntry)
         }
 
         entries.sort((a, b) => {
@@ -262,15 +262,7 @@ const HistoryPage = () => {
                                 </div>
                             )}
                             {isKycStatusItem(item) ? (
-                                <KycStatusItem
-                                    position={position}
-                                    verification={item.verification}
-                                    bridgeKycStatus={item.bridgeKycStatus}
-                                    bridgeKycStartedAt={
-                                        item.bridgeKycStatus ? user?.user.bridgeKycStartedAt : undefined
-                                    }
-                                    region={item.region}
-                                />
+                                <KycStatusItem position={position} />
                             ) : isBadgeHistoryItem(item) ? (
                                 <BadgeStatusItem position={position} entry={item} />
                             ) : (
