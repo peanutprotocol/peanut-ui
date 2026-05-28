@@ -1,6 +1,6 @@
 import { type ApiUser } from '@/services/users'
 import { type AddBankAccountPayload, BridgeEndorsementType, type InitiateKycResponse } from './types/users.types'
-import { type User } from '@/interfaces'
+import { type CounterpartyUser } from '@/interfaces'
 import { type ContactsResponse } from '@/interfaces'
 import { serverFetch } from '@/utils/api-fetch'
 
@@ -68,7 +68,7 @@ export const addBankAccount = async (payload: AddBankAccountPayload): Promise<{ 
     }
 }
 
-export async function getUserById(userId: string): Promise<User | null> {
+export async function getUserById(userId: string): Promise<CounterpartyUser | null> {
     // Strip CRLF before logging so a hostile userId can't forge new log entries
     // (CodeQL js/log-injection + js/tainted-format-string).
     const safeUserId = String(userId).replace(/[\r\n]/g, '')

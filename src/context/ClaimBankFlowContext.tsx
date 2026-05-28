@@ -3,7 +3,7 @@
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
 import { type CountryData } from '../components/AddMoney/consts'
 import { type TCreateOfframpResponse } from '@/services/services.types'
-import { type Account, type User } from '@/interfaces'
+import { type Account, type CounterpartyUser } from '@/interfaces'
 import { type IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 
@@ -28,8 +28,8 @@ interface ClaimBankFlowContextType {
     setClaimError: (error: string | null) => void
     claimType?: 'claim-bank' | 'claim' | 'claimxchain' | null
     setClaimType: (type: 'claim-bank' | 'claim' | 'claimxchain' | null) => void
-    senderDetails: User | null
-    setSenderDetails: (details: User | null) => void
+    senderDetails: CounterpartyUser | null
+    setSenderDetails: (details: CounterpartyUser | null) => void
     showVerificationModal: boolean
     setShowVerificationModal: (show: boolean) => void
     bankDetails: IBankAccountDetails | null
@@ -59,7 +59,7 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
     const [offrampDetails, setOfframpDetails] = useState<TCreateOfframpResponse | null>(null)
     const [claimError, setClaimError] = useState<string | null>(null)
     const [claimType, setClaimType] = useState<'claim-bank' | 'claim' | 'claimxchain' | null>(null)
-    const [senderDetails, setSenderDetails] = useState<User | null>(null)
+    const [senderDetails, setSenderDetails] = useState<CounterpartyUser | null>(null)
     const [showVerificationModal, setShowVerificationModal] = useState(false)
     const [bankDetails, setBankDetails] = useState<IBankAccountDetails | null>(null)
     const [savedAccounts, setSavedAccounts] = useState<Account[]>([])

@@ -175,21 +175,20 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             }
 
             setLoadingState('Executing transaction')
-            const userForOfframp = isGuestFlow
+            // Guest flow off-ramps on the link SENDER's behalf — fetch that counterparty
+            // and verify ITS KYC. Logged-in flow uses the current user, whose KYC
+            // readiness is already enforced above via `gate.type !== 'ready'` (capability model).
+            const guestSender = isGuestFlow
                 ? await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
-                : user?.user
-
-            // handle error if user for offramp is not found
-            if (!userForOfframp || ('error' in userForOfframp && userForOfframp.error)) {
-                throw new Error(
-                    (userForOfframp && typeof userForOfframp.error === 'string' && userForOfframp.error) ||
-                        'Failed to get user info'
-                )
+                : null
+            if (isGuestFlow) {
+                if (!guestSender) throw new Error('Failed to get user info')
+                if (guestSender.bridgeKycStatus !== 'approved') throw new Error('User not KYC approved')
             }
 
-            // handle error if user is not KYC approved
-            if (userForOfframp.bridgeKycStatus !== 'approved') throw new Error('User not KYC approved')
-            if (!userForOfframp?.bridgeCustomerId) throw new Error('User bridge customer ID not found')
+            const userForOfframp = isGuestFlow ? guestSender : user?.user
+            if (!userForOfframp) throw new Error('Failed to get user info')
+            if (!userForOfframp.bridgeCustomerId) throw new Error('User bridge customer ID not found')
 
             // get payment rail and currency for the offramp
             const paymentRail = getBridgeChainName(claimLinkData.chainId)

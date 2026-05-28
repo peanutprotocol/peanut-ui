@@ -188,12 +188,6 @@ export interface User {
     email: string
     profile_picture: string | null
     username: string | null
-    bridgeKycStatus: BridgeKycStatus
-    bridgeKycStartedAt?: string
-    bridgeKycApprovedAt?: string
-    bridgeKycRejectedAt?: string
-    kycVerifications?: IUserKycVerification[] // currently only used for Manteca, can be extended to other providers in the future, bridge is not migrated as it might affect existing users
-    bridgeKycRejectionReasonString?: string | null
     tosStatus?: string
     tosAcceptedAt?: string
     bridgeCustomerId: string | null
@@ -217,6 +211,19 @@ export interface User {
         earnedAt: string | Date
         isVisible?: boolean
     }>
+}
+
+/**
+ * A user fetched by id (getUserById) — i.e. a COUNTERPARTY (the link sender, the
+ * request requester), not the current user. Counterparty KYC verification status
+ * is a kept concern, parallel to {@link Contact.bridgeKycStatus}: it answers "is
+ * this OTHER person verified enough for me to off-ramp on their behalf / show a
+ * verified badge?". It is NOT the current user's own KYC — that is provider-blind
+ * and read via useCapabilities() / useIdentityVerification().
+ */
+export type CounterpartyUser = User & {
+    bridgeKycStatus?: string | null
+    kycVerifications?: IUserKycVerification[]
 }
 
 // based on the API's AccountType

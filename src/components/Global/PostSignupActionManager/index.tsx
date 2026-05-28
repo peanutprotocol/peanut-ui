@@ -6,8 +6,7 @@ import { useEffect, useState } from 'react'
 import ActionModal from '../ActionModal'
 import { POST_SIGNUP_ACTIONS } from './post-signup-action.consts'
 import { type IconName } from '../Icons/Icon'
-import { useAuth } from '@/context/authContext'
-import { isUserKycVerified } from '@/constants/kyc.consts'
+import { useCapabilities } from '@/hooks/useCapabilities'
 
 export const PostSignupActionManager = ({
     onActionModalVisibilityChange,
@@ -23,11 +22,12 @@ export const PostSignupActionManager = ({
         action: () => void
     } | null>(null)
     const router = useRouter()
-    const { user } = useAuth()
+    // current-user KYC gate — capability model (any enabled rail = identity cleared)
+    const { isKycApproved } = useCapabilities()
 
     const checkClaimModalAfterKYC = () => {
         const redirectUrl = getRedirectUrl()
-        if (isUserKycVerified(user?.user) && redirectUrl) {
+        if (isKycApproved && redirectUrl) {
             const matchedAction = POST_SIGNUP_ACTIONS.find((action) => action.pathPattern.test(redirectUrl))
             if (matchedAction) {
                 setActionConfig({
@@ -45,7 +45,7 @@ export const PostSignupActionManager = ({
 
     useEffect(() => {
         checkClaimModalAfterKYC()
-    }, [router, user])
+    }, [router, isKycApproved])
 
     useEffect(() => {
         onActionModalVisibilityChange(showModal)

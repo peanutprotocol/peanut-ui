@@ -24,6 +24,7 @@ import {
     getChainLogo,
 } from '@/utils/general.utils'
 import { isUserKycVerified } from '@/constants/kyc.consts'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import * as Sentry from '@sentry/nextjs'
 import { useQuery } from '@tanstack/react-query'
 import type { Hash } from 'viem'
@@ -77,6 +78,8 @@ export const Claim = ({}) => {
     const [userId, setUserId] = useState<string | undefined>(undefined)
     const { address } = useWallet()
     const { user, isFetchingUser } = useAuth()
+    // current-user KYC gate — capability model (any enabled rail = identity cleared)
+    const { isKycApproved } = useCapabilities()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
     const senderId = claimLinkData?.sender?.userId
     const { interactions } = useUserInteractions(senderId ? [senderId] : [])
@@ -399,10 +402,10 @@ export const Claim = ({}) => {
     // redirect to bank flow if user is KYC approved and step is bank
     useEffect(() => {
         const stepFromURL = searchParams.get('step')
-        if (isUserKycVerified(user?.user) && stepFromURL === 'bank') {
+        if (isKycApproved && stepFromURL === 'bank') {
             setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
         }
-    }, [user])
+    }, [isKycApproved])
 
     return (
         <PageContainer
