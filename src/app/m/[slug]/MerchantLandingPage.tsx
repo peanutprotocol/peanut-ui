@@ -361,7 +361,6 @@ function MenuItemCard({
         <div className="flex items-start justify-between gap-4 rounded-sm border-2 border-n-1 bg-white p-5 text-left shadow-[4px_4px_0_#000]">
             <div className="min-w-0 flex-1">
                 <div className="text-lg font-extraBlack md:text-xl">{item.name}</div>
-                <div className="mt-1 text-sm font-medium leading-snug opacity-70">{item.desc}</div>
             </div>
             <div className="flex flex-col items-end whitespace-nowrap pt-1">
                 {cardFmt !== null && (
