@@ -172,29 +172,21 @@ export const isBridgeSupportedCountry = (code: string): boolean => {
 }
 
 /**
- * True when the user is verified for transacting in `countryCode`, derived from
- * the capability rails.
+ * True when the user has an enabled bank rail in `countryCode` — provider-blind.
  *
- * MIGRATION-REVIEW: replaces `useIdentityVerification.isVerifiedForCountry`,
- * which (Phase 6) read raw `user.rails` via `hasFullMantecaRail` /
- * `hasEnabledRail`. Faithful mapping:
- *   - Manteca country (AR/BR/…): a FULL-tier ENABLED Manteca rail for that
- *     country. In the capability model a full-tier rail is one whose `deposit`
- *     (and `withdraw`) operation is enabled — QR-only pool rails enable `pay`
- *     only, so `operations.deposit === 'enabled'` is the capability equivalent
- *     of the old "rail carries a mantecaUserId" full-tier gate. Country match is
- *     on `rail.country` (the rail's jurisdiction).
- *   - Other countries: any ENABLED Bridge rail (unchanged semantics).
+ *   - LATAM country (AR/BR/…): bank rail for that country with `deposit` op
+ *     enabled (full-tier — pool-only rails enable `pay` only).
+ *   - Other countries: any enabled bank rail.
  */
 export function isVerifiedForCountry(rails: RailCapability[], countryCode: string): boolean {
     const upper = countryCode.toUpperCase()
     if (isMantecaSupportedCountryCode(upper)) {
         return rails.some(
             (rail) =>
-                rail.provider === 'manteca' &&
+                rail.channel === 'bank' &&
                 rail.country.toUpperCase() === upper &&
                 (rail.operations?.deposit ?? rail.status) === 'enabled'
         )
     }
-    return rails.some((rail) => rail.provider === 'bridge' && rail.status === 'enabled')
+    return rails.some((rail) => rail.channel === 'bank' && rail.status === 'enabled')
 }
