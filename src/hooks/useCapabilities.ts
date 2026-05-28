@@ -12,7 +12,7 @@ import {
     type UserCapabilities,
 } from '@/types/capabilities'
 import { deriveGate, type GateScope, type GateState } from '@/utils/capability-gate'
-import { railChannel, railsOfChannel, type RailChannel } from '@/utils/rail-channel'
+import type { RailChannel } from '@/types/capabilities'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 
 /**
@@ -98,7 +98,7 @@ export interface UseCapabilitiesResult {
     /** Bank-channel rails, provider-blind. Optionally country-scoped. */
     bankRails: (opts?: { country?: string }) => RailCapability[]
     /** Channel classifier for a single rail (delegates to {@link railChannel}). */
-    channelOf: (rail: RailCapability) => RailChannel | null
+    channelOf: (rail: RailCapability) => RailChannel
     /** Countries the user can do `op` in (or any op, if undefined). */
     enabledCountriesFor: (op?: RailOperation) => Set<string>
 }
@@ -202,13 +202,13 @@ export function useCapabilities(): UseCapabilitiesResult {
 
     const bankRails = useCallback(
         (opts?: { country?: string }): RailCapability[] => {
-            const all = railsOfChannel(rails, 'bank')
+            const all = rails.filter((rail) => rail.channel === 'bank')
             return opts?.country ? all.filter((rail) => rail.country === opts.country) : all
         },
         [rails]
     )
 
-    const channelOf = useCallback((rail: RailCapability) => railChannel(rail), [])
+    const channelOf = useCallback((rail: RailCapability) => rail.channel, [])
 
     const enabledCountriesFor = useCallback(
         (op?: RailOperation): Set<string> => {

@@ -42,10 +42,24 @@ export interface CapabilityReason {
     userMessage: string // friendly, display-ready
 }
 
+/**
+ * User-facing categorization of how a rail moves money — what the customer
+ * SEES, not which provider serves it.
+ *   - `bank`     bank account on either end (ACH, SEPA, SPEI, PIX, AR bank-transfer, faster-payments)
+ *   - `card`     spending via a Peanut card (Rain's product)
+ *   - `qr-only`  QR scan with no first-party bank account involvement (MercadoPago wallet)
+ *
+ * Computed BE-side from `method` — the FE never has to enumerate which
+ * methods are bank/card/qr.
+ */
+export type RailChannel = 'bank' | 'card' | 'qr-only'
+
 export interface RailCapability {
     id: RailId
     provider: ProviderCode
     method: string // 'ACH_US'
+    /** User-facing channel: bank / card / qr-only. Derived BE-side from `method`. */
+    channel: RailChannel
     country: string // jurisdiction, not strict ISO-2: 'US' | 'EU' | 'GLOBAL' | …
     currency: string
     status: RailCapabilityStatus

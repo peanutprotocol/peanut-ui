@@ -16,9 +16,7 @@
  * pool-tier users).
  */
 
-import type { NextAction, RailCapability, RailOperation, CapabilityReason } from '@/types/capabilities'
-import type { RailChannel } from './rail-channel'
-import { railChannel } from './rail-channel'
+import type { NextAction, RailCapability, RailOperation, CapabilityReason, RailChannel } from '@/types/capabilities'
 
 /**
  * Normalized gate state. Discriminated union — consumers branch on `kind`.
@@ -63,7 +61,7 @@ export interface GateScope {
 export function filterRailsByScope(rails: RailCapability[], scope: GateScope = {}): RailCapability[] {
     return rails.filter((rail) => {
         if (scope.railId && rail.id !== scope.railId) return false
-        if (scope.channel && railChannel(rail) !== scope.channel) return false
+        if (scope.channel && rail.channel !== scope.channel) return false
         if (scope.country && rail.country !== scope.country) return false
         if (scope.method && rail.method !== scope.method) return false
         return true

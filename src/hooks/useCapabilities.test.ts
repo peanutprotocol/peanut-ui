@@ -18,6 +18,8 @@ const FIXTURE: UserCapabilities = {
             id: 'bridge.ach_us',
             provider: 'bridge',
             method: 'ACH_US',
+
+            channel: 'bank',
             country: 'US',
             currency: 'USD',
             status: 'enabled',
@@ -27,6 +29,8 @@ const FIXTURE: UserCapabilities = {
             id: 'bridge.sepa_eu',
             provider: 'bridge',
             method: 'SEPA_EU',
+
+            channel: 'bank',
             country: 'EU',
             currency: 'EUR',
             status: 'requires-info',
@@ -42,6 +46,8 @@ const FIXTURE: UserCapabilities = {
             id: 'manteca.pix_br',
             provider: 'manteca',
             method: 'PIX_BR',
+
+            channel: 'bank',
             country: 'BR',
             currency: 'BRL',
             status: 'enabled',
@@ -53,6 +59,8 @@ const FIXTURE: UserCapabilities = {
             id: 'rain.card',
             provider: 'rain',
             method: 'CARD',
+
+            channel: 'card',
             country: 'GLOBAL',
             currency: 'USD',
             status: 'pending',
@@ -62,6 +70,8 @@ const FIXTURE: UserCapabilities = {
             id: 'manteca.mercadopago_qr_ar',
             provider: 'manteca',
             method: 'MERCADOPAGO_QR_AR',
+
+            channel: 'qr-only',
             country: 'AR',
             currency: 'ARS',
             status: 'blocked',
@@ -333,6 +343,8 @@ describe('useCapabilities', () => {
                         id: 'bridge.ach_us',
                         provider: 'bridge',
                         method: 'ACH_US',
+
+                        channel: 'bank',
                         country: 'US',
                         currency: 'USD',
                         status: 'enabled',
@@ -341,6 +353,8 @@ describe('useCapabilities', () => {
                         id: 'manteca.mercadopago_qr_ar',
                         provider: 'manteca',
                         method: 'MERCADOPAGO_QR_AR',
+
+                        channel: 'qr-only',
                         country: 'AR',
                         currency: 'ARS',
                         status: 'blocked',
@@ -361,6 +375,8 @@ describe('useCapabilities', () => {
                         id: 'rain.card',
                         provider: 'rain',
                         method: 'CARD',
+
+                        channel: 'card',
                         country: 'GLOBAL',
                         currency: 'USD',
                         status: 'pending',
@@ -459,6 +475,8 @@ describe('useCapabilities', () => {
                             id: 'bridge.ach_us',
                             provider: 'bridge',
                             method: 'ACH_US',
+
+                            channel: 'bank',
                             country: 'US',
                             currency: 'USD',
                             status: 'enabled',
