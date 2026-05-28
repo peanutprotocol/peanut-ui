@@ -83,11 +83,12 @@ export const useHomeCarouselCTAs = () => {
     } = useNotifications()
     const toast = useToast()
     const router = useRouter()
-    const { canDo, bankRails } = useCapabilities()
-    // Suppress the "verify your account" CTA when the user is already mid-flow on
-    // a bank rail (`pending` = submitted/provisioning, `requires-info` = finish
-    // tos/proof). Provider-blind via the bank-channel summary.
-    const isBankFlowInFlight = bankRails().some((rail) => rail.status === 'pending' || rail.status === 'requires-info')
+    const { canDo, rails, bankRails } = useCapabilities()
+    // Suppress the "verify your account" CTA when the user is already mid-flow
+    // on ANY rail (`pending` = submitted/provisioning, `requires-info` = finish
+    // tos/proof). Includes pool-tier Manteca + QR-only rails, not just bank —
+    // the user shouldn't be re-nudged regardless of channel.
+    const isInFlight = rails.some((rail) => rail.status === 'pending' || rail.status === 'requires-info')
     const { deviceType } = useDeviceType()
     const isPwa = usePWAStatus()
     const { setIsIosPwaInstallModalOpen, openSupportWithMessage } = useModalsContext()
@@ -294,7 +295,7 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        if (!hasKycApproval && !isBankFlowInFlight) {
+        if (!hasKycApproval && !isInFlight) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
                 title: (
@@ -324,7 +325,7 @@ export const useHomeCarouselCTAs = () => {
         isPushOptedIn,
         canDo,
         bankRails,
-        isBankFlowInFlight,
+        isInFlight,
         router,
         requestPermission,
         afterPermissionAttempt,

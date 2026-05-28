@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import ActionModal from '../ActionModal'
 import { POST_SIGNUP_ACTIONS } from './post-signup-action.consts'
 import { type IconName } from '../Icons/Icon'
-import { useCapabilities } from '@/hooks/useCapabilities'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 
 export const PostSignupActionManager = ({
     onActionModalVisibilityChange,
@@ -22,12 +22,15 @@ export const PostSignupActionManager = ({
         action: () => void
     } | null>(null)
     const router = useRouter()
-    // current-user KYC gate — capability model (any enabled rail = identity cleared)
-    const { isKycApproved } = useCapabilities()
+    // Post-signup re-engagement gate: did the user finish their ID check? Reads
+    // the identity signal directly (Sumsub-cleared) — `isKycApproved` (any rail
+    // enabled) over-fires for a card-only Rain user who can't actually act on
+    // a bank-claim redirect URL.
+    const { isVerified: isIdentityVerified } = useIdentityVerification()
 
     const checkClaimModalAfterKYC = () => {
         const redirectUrl = getRedirectUrl()
-        if (isKycApproved && redirectUrl) {
+        if (isIdentityVerified && redirectUrl) {
             const matchedAction = POST_SIGNUP_ACTIONS.find((action) => action.pathPattern.test(redirectUrl))
             if (matchedAction) {
                 setActionConfig({
@@ -45,7 +48,7 @@ export const PostSignupActionManager = ({
 
     useEffect(() => {
         checkClaimModalAfterKYC()
-    }, [router, isKycApproved])
+    }, [router, isIdentityVerified])
 
     useEffect(() => {
         onActionModalVisibilityChange(showModal)
