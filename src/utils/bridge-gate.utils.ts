@@ -14,6 +14,9 @@ export type BridgeGateAction =
     | { type: 'needs_kyc' }
     | { type: 'needs_enrollment' }
     | { type: 'ready' }
+    // capabilities not yet loaded — caller should hold (spinner) instead of
+    // showing a needs_kyc modal on top of the user's REAL (unknown) state.
+    | { type: 'loading' }
 
 const BRIDGE: ProviderCode = 'bridge'
 
@@ -67,8 +70,13 @@ const BRIDGE: ProviderCode = 'bridge'
 export function deriveBridgeGate(
     rails: RailCapability[],
     nextActions: NextAction[],
-    isKycApproved: boolean
+    isKycApproved: boolean,
+    isLoading: boolean = false
 ): BridgeGateAction {
+    // Until the user query settles, the empty capability shape is indistinguishable
+    // from "no Bridge state". Hold the gate in 'loading' so callers don't render a
+    // needs_kyc modal on top of an approved user whose data simply hasn't arrived.
+    if (isLoading) return { type: 'loading' }
     const bridgeRails = rails.filter((rail) => rail.provider === BRIDGE)
 
     const actionByKey = new Map(nextActions.map((action) => [action.key, action]))

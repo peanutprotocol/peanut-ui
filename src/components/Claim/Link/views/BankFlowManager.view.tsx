@@ -86,8 +86,11 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     // only fires for logged-in users (guest claims leverage the sender's KYC and
     // bypass `gate` entirely below), so this reads the *claimer's* own capabilities,
     // exactly as the old hook did. See deriveBridgeGate for the state mapping.
-    const { rails, nextActions, isKycApproved } = useCapabilities()
-    const gate = useMemo(() => deriveBridgeGate(rails, nextActions, isKycApproved), [rails, nextActions, isKycApproved])
+    const { rails, nextActions, isKycApproved, isLoading: isLoadingCapabilities } = useCapabilities()
+    const gate = useMemo(
+        () => deriveBridgeGate(rails, nextActions, isKycApproved, isLoadingCapabilities),
+        [rails, nextActions, isKycApproved, isLoadingCapabilities]
+    )
     const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
     const [showKycModal, setShowKycModal] = useState(false)
     const { setIsSupportModalOpen } = useModalsContext()
@@ -166,6 +169,9 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             // for logged-in users, check bridge readiness before proceeding
             const isGuestFlow = bankClaimType === BankClaimType.GuestBankClaim
             if (!isGuestFlow && gate.type !== 'ready') {
+                // capabilities still loading — silently return; the CTA that triggered
+                // this should be disabled too, but defend against double-click races.
+                if (gate.type === 'loading') return
                 if (gate.type === 'accept_tos') {
                     guardWithTos()
                 } else {

@@ -171,6 +171,12 @@ export function useCapabilities(): UseCapabilitiesResult {
     const hasPendingRef = useRef(hasPendingRail)
     hasPendingRef.current = hasPendingRail
 
+    // Guard against overlapping poll calls. If one fetchUser takes longer than
+    // POLL_INTERVAL_MS, the next tick would otherwise stack a second one on top.
+    // The guard also gives us a single place to handle rejections so they don't
+    // surface as unhandled promise rejections from the interval body.
+    const pollInFlightRef = useRef(false)
+
     useEffect(() => {
         if (!hasPendingRail) return
 
@@ -183,7 +189,17 @@ export function useCapabilities(): UseCapabilitiesResult {
                 clearInterval(timer)
                 return
             }
-            void fetchUser()
+            if (pollInFlightRef.current) return
+            pollInFlightRef.current = true
+            fetchUser()
+                .catch(() => {
+                    // auth/query layer surfaces errors via the user query itself —
+                    // swallow here purely to avoid unhandled promise rejections from
+                    // the interval body.
+                })
+                .finally(() => {
+                    pollInFlightRef.current = false
+                })
         }, POLL_INTERVAL_MS)
 
         return () => {

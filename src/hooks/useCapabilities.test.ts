@@ -382,20 +382,72 @@ describe('useCapabilities', () => {
             jest.useRealTimers()
         })
 
-        it('refetches the user every ~4s while a rail is pending', () => {
+        it('refetches the user every ~4s while a rail is pending', async () => {
             const fetchUser = jest.fn().mockResolvedValue(null)
             mockAuth(FIXTURE, { fetchUser }) // FIXTURE has rain.card pending
             renderHook(() => useCapabilities())
 
             expect(fetchUser).not.toHaveBeenCalled()
-            act(() => {
+
+            // Advance one tick at a time and flush the in-flight microtask between
+            // ticks. The hook keeps a `pollInFlightRef` lock until the awaited
+            // fetchUser's `.finally` runs — under fake timers, two ticks fired in
+            // a single advanceTimersByTime block would otherwise see the lock still
+            // held and skip the second call.
+            await act(async () => {
                 jest.advanceTimersByTime(4000)
+                await Promise.resolve()
+                await Promise.resolve()
             })
             expect(fetchUser).toHaveBeenCalledTimes(1)
-            act(() => {
-                jest.advanceTimersByTime(8000)
+            await act(async () => {
+                jest.advanceTimersByTime(4000)
+                await Promise.resolve()
+                await Promise.resolve()
+            })
+            expect(fetchUser).toHaveBeenCalledTimes(2)
+            await act(async () => {
+                jest.advanceTimersByTime(4000)
+                await Promise.resolve()
+                await Promise.resolve()
             })
             expect(fetchUser).toHaveBeenCalledTimes(3)
+        })
+
+        it('does not stack a second poll while the first is still in flight', async () => {
+            // Hold the fetch open across two ticks; the guard must block tick 2.
+            let resolveFetch: () => void = () => undefined
+            const fetchUser = jest.fn(
+                () =>
+                    new Promise<null>((resolve) => {
+                        resolveFetch = () => resolve(null)
+                    })
+            )
+            mockAuth(FIXTURE, { fetchUser })
+            renderHook(() => useCapabilities())
+
+            await act(async () => {
+                jest.advanceTimersByTime(4000)
+                await Promise.resolve()
+            })
+            expect(fetchUser).toHaveBeenCalledTimes(1)
+
+            // Second tick while the first is still pending → no new call.
+            await act(async () => {
+                jest.advanceTimersByTime(4000)
+                await Promise.resolve()
+            })
+            expect(fetchUser).toHaveBeenCalledTimes(1)
+
+            // Resolve the held fetch → lock releases → next tick fires another call.
+            await act(async () => {
+                resolveFetch()
+                await Promise.resolve()
+                await Promise.resolve()
+                jest.advanceTimersByTime(4000)
+                await Promise.resolve()
+            })
+            expect(fetchUser).toHaveBeenCalledTimes(2)
         })
 
         it('does not poll when no rail is pending', () => {

@@ -143,16 +143,23 @@ export default function QRPayPage() {
 
     // On public routes (qr-pay) auth still auto-fetches via React Query, but trigger a one-shot
     // fetch if we landed with no user and nothing in flight, mirroring the old hook's fallback.
+    // `userFetchSettled` flips to true once the fallback fetch resolves (success OR fail) so the
+    // memo below can keep the gate in LOADING until then — without it, the empty-capabilities
+    // shape on a cold load would flash REQUIRES_IDENTITY_VERIFICATION for one paint.
     const hasRequestedUserFetchRef = useRef(false)
+    const [userFetchSettled, setUserFetchSettled] = useState(false)
     useEffect(() => {
         if (!user && !isLoadingCapabilities && !hasRequestedUserFetchRef.current) {
             hasRequestedUserFetchRef.current = true
-            void fetchUser()
+            void fetchUser().finally(() => setUserFetchSettled(true))
         }
     }, [user, isLoadingCapabilities, fetchUser])
 
     const { kycGateState, qrKycUserMessage } = useMemo(() => {
-        if (isLoadingCapabilities) {
+        // Keep the gate in LOADING until either the user is hydrated OR the fallback
+        // fetch has resolved. Otherwise we briefly map an empty capability shape onto
+        // REQUIRES_IDENTITY_VERIFICATION for users whose auth state hasn't settled yet.
+        if (isLoadingCapabilities || (!user && !userFetchSettled)) {
             return { kycGateState: QrKycState.LOADING, qrKycUserMessage: null as string | null }
         }
         if (canDo('pay', { provider: 'manteca' })) {
@@ -184,7 +191,7 @@ export default function QRPayPage() {
             }
         }
         return { kycGateState: QrKycState.REQUIRES_IDENTITY_VERIFICATION, qrKycUserMessage: null as string | null }
-    }, [isLoadingCapabilities, canDo, railsForProvider])
+    }, [isLoadingCapabilities, canDo, railsForProvider, user, userFetchSettled])
 
     const shouldBlockPay = kycGateState !== QrKycState.PROCEED_TO_PAY
 

@@ -9,20 +9,18 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import ProfileEditField from '../components/ProfileEditField'
 import ProfileHeader from '../components/ProfileHeader'
-import { useCapabilities } from '@/hooks/useCapabilities'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
 export const ProfileEditView = () => {
     const router = useRouter()
     const onBack = useSafeBack('/profile')
     const { user, fetchUser } = useAuth()
-    // MIGRATION-REVIEW: old `isUserKycApproved` (any provider approved) → `isKycApproved` (any enabled
-    // rail). Drives the verified-badge + locks the name/surname fields once KYC'd (provider has the
-    // legal name on file). Behavior nuance: a Sumsub-only-approved user with no enabled payment rail
-    // would no longer have name fields locked under the new flag. Closest faithful 1:1. NOTE: the
-    // migration-map entry for this file mentioned bridge under-review/incomplete, but the file only
-    // ever read isUserKycApproved — migrated the actual usage.
-    const { isKycApproved } = useCapabilities()
+    // Verified badge + name/surname lock reflect *identity* verification (the human is ID-verified),
+    // not rail approval. Switched from `useCapabilities().isKycApproved` (any enabled rail, including
+    // Rain) to the provider-blind identityVerification projection — a rail-only approval must NOT
+    // lock the legal-name fields because the rail's KYC was external to our identity flow.
+    const { isVerified: isKycApproved } = useIdentityVerification()
 
     const [isLoading, setIsLoading] = useState(false)
     const [errorMessage, setErrorMessage] = useState('')

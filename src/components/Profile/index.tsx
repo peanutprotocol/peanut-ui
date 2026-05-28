@@ -8,7 +8,7 @@ import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
 import { useState, useMemo } from 'react'
-import { useCapabilities } from '@/hooks/useCapabilities'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -25,19 +25,11 @@ export const Profile = () => {
     const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
     const router = useRouter()
     const onBack = useSafeBack('/home')
-    // MIGRATION-REVIEW: ⚠️ NOT a clean 1:1 — old value was `isUserSumsubKycApproved` (Sumsub ID cleared),
-    // NOT `isUserKycApproved`. The pre-existing comment below is explicit: the verified badge + the
-    // "Regions & Verification" highlight mean the *human* was ID-verified, which only Sumsub clears —
-    // an enabled Bridge/Manteca rail alone must NOT flip them. But the capability model has no Sumsub
-    // rail (ProviderCode = bridge|manteca|rain), so there is no direct signal. `isKycApproved` (any
-    // enabled rail) is the closest available proxy but is BROADER: a pool-Manteca-only user would now
-    // read as verified here. Flagging for Hugo — may need a dedicated `identity-verified` capability
-    // signal rather than reusing isKycApproved. (Task said isUserKycApproved→isKycApproved, but the
-    // actual field read was the Sumsub-specific one.)
-    // Profile "verified" reflects identity verification only. Bridge/Manteca
-    // approval just means a payment rail is enabled, not that the human has
-    // been ID-verified — only Sumsub clears that bar.
-    const { isKycApproved: isUserSumsubKycApproved } = useCapabilities()
+    // Profile "verified" reflects identity verification only (the human was ID-verified) — NOT
+    // rail approval. Switched from `useCapabilities().isKycApproved` (any enabled rail, including
+    // Rain) to the provider-blind identityVerification projection, which today mirrors Sumsub
+    // applicant state. Bridge/Manteca rail approval does NOT flip this badge.
+    const { isVerified: isUserSumsubKycApproved } = useIdentityVerification()
     const { hasCardAccess } = useCardPioneerInfo()
 
     const logout = async () => {

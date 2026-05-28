@@ -83,9 +83,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     //     action). In the capability model that is exactly `pending` (requires-info = the old
     //     'incomplete', which is a different state). Used only to surface the "under review" status
     //     modal AFTER the gate already returned `ready` (a pending Bridge rail is functional ⇒ ready).
-    const { rails, nextActions, isKycApproved, railsForProvider } = useCapabilities()
+    const { rails, nextActions, isKycApproved, railsForProvider, isLoading: isLoadingCapabilities } = useCapabilities()
     const isUserKycApproved = isKycApproved
-    const gate = useMemo(() => deriveBridgeGate(rails, nextActions, isKycApproved), [rails, nextActions, isKycApproved])
+    const gate = useMemo(
+        () => deriveBridgeGate(rails, nextActions, isKycApproved, isLoadingCapabilities),
+        [rails, nextActions, isKycApproved, isLoadingCapabilities]
+    )
     const isUserBridgeKycUnderReview = useMemo(
         () => railsForProvider('bridge').some((rail) => rail.status === 'pending'),
         [railsForProvider]
@@ -119,6 +122,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const checkBridgeGate = useCallback(
         (onAfterTos?: () => void): boolean => {
             if (gate.type !== 'ready') {
+                // capabilities still loading — caller should wait, NOT open a KYC modal
+                // on top of state we don't yet know (would falsely "needs_kyc" an approved
+                // user mid-load). Returning true keeps the caller's early-return path.
+                if (gate.type === 'loading') return true
                 if (gate.type === 'accept_tos') {
                     pendingAfterTosRef.current = onAfterTos ?? null
                     guardWithTos()
@@ -147,6 +154,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // unified bridge gate: tos → fixable rejection → blocked → enrollment
         // return a non-visible error to prevent the form from treating this as success
         if (gate.type !== 'ready') {
+            // capabilities still loading — silently no-op (don't show a KYC modal on
+            // top of state we don't yet know).
+            if (gate.type === 'loading') return { error: 'gate_blocked', silent: true }
             if (gate.type === 'accept_tos') {
                 guardWithTos()
             } else {

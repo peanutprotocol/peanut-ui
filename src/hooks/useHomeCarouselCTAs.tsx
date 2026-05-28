@@ -83,7 +83,7 @@ export const useHomeCarouselCTAs = () => {
     } = useNotifications()
     const toast = useToast()
     const router = useRouter()
-    const { isKycApproved, railsForProvider } = useCapabilities()
+    const { canDo, hasEnabledRail, railsForProvider } = useCapabilities()
     // MIGRATION-REVIEW: old gate used bridge-specific `isUserBridgeKycUnderReview` ('under_review')
     // + `isUserBridgeKycIncomplete` ('incomplete') to suppress the "verify your account" CTA from
     // users already mid-flow on Bridge. Capability equivalent: a Bridge rail that's `pending`
@@ -135,9 +135,11 @@ export const useHomeCarouselCTAs = () => {
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
 
-        // DRY: Check KYC approval status once. isKycApproved === any enabled rail (bridge,
-        // manteca pool/full, or rain), which subsumes the old isUserKycApproved || isUserMantecaKycApproved.
-        const hasKycApproval = isKycApproved
+        // Home CTAs gate on Bridge/Manteca, NOT Rain — `isKycApproved` from useCapabilities means
+        // "any enabled rail" including Rain, which would mis-treat a card-only user as QR-ready
+        // (showing pay CTAs + hiding the verification CTA). Scope to the providers the QR-payment
+        // and bank flows actually run through.
+        const hasKycApproval = hasEnabledRail('bridge') || canDo('pay', { provider: 'manteca' })
         const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
 
         // Card CTA — Pioneers replaced by free badge-gated waitlist (M2).
@@ -326,7 +328,8 @@ export const useHomeCarouselCTAs = () => {
         isPermissionGranted,
         isPermissionDenied,
         isPushOptedIn,
-        isKycApproved,
+        canDo,
+        hasEnabledRail,
         isBridgeInFlight,
         router,
         requestPermission,

@@ -105,8 +105,11 @@ export default function OnrampBankPage() {
     // BridgeGateAction shape, so the `gate.type` branching + InitiateKycModal wiring
     // below are unchanged. See deriveBridgeGate for the full state mapping + the
     // Sumsub-has-no-rail contract gap (isKycApproved is the faithful proxy).
-    const { rails, nextActions, isKycApproved } = useCapabilities()
-    const gate = useMemo(() => deriveBridgeGate(rails, nextActions, isKycApproved), [rails, nextActions, isKycApproved])
+    const { rails, nextActions, isKycApproved, isLoading: isLoadingCapabilities } = useCapabilities()
+    const gate = useMemo(
+        () => deriveBridgeGate(rails, nextActions, isKycApproved, isLoadingCapabilities),
+        [rails, nextActions, isKycApproved, isLoadingCapabilities]
+    )
     const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
     const { setIsSupportModalOpen } = useModalsContext()
 
@@ -214,6 +217,9 @@ export default function OnrampBankPage() {
         if (!validateAmount(rawTokenAmount)) return
 
         if (gate.type !== 'ready') {
+            // capabilities still loading — silently no-op instead of flashing a
+            // needs_kyc modal on top of state we don't know yet.
+            if (gate.type === 'loading') return
             if (gate.type === 'accept_tos') {
                 guardWithTos()
             } else {
