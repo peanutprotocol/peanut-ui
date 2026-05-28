@@ -365,7 +365,7 @@ function LiveRateBanner({ usdArs }: { usdArs: number }) {
 
 /* ---------------------------------------------------------------------------
  * §2 (faq variant) — FAQsPanel is self-contained (own cream bg, own padding).
- * The blue-dollar answer is replaced at render time with live data when present.
+ * The liveRateQuestionId answer is replaced at render time with live data when present.
  * ------------------------------------------------------------------------- */
 function FaqFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'faq' }> }) {
     const { exchangeRate: usdArs } = useExchangeRate({ sourceCurrency: 'USD', destinationCurrency: 'ARS' })
@@ -377,7 +377,7 @@ function FaqFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'faq' }> }
             return {
                 id: q.id,
                 question: q.question,
-                answer: `Peanut uses the cripto-dólar rate — currently 1 USD ≈ ${arsRounded} ARS. That's meaningfully better than what your credit card delivers in Argentina. The exact rate locks the moment you confirm; no slippage after.`,
+                answer: `Currently 1 USD ≈ ${arsRounded} ARS in the app. You see the exact rate before you confirm, and it locks the moment you confirm. What's on the confirmation screen is what you pay.`,
             }
         })
     }, [fold, usdArs])
