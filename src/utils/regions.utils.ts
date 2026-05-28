@@ -2,6 +2,8 @@ import { EUROPE_GLOBE_ICON, LATAM_GLOBE_ICON, NORTH_AMERICA_GLOBE_ICON, REST_OF_
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { type RailCapability } from '@/types/capabilities'
+import { BRIDGE_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
+import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import type { StaticImageData } from 'next/image'
 
 /**
@@ -151,4 +153,48 @@ export function deriveRegionAccess(rails: RailCapability[]): { unlockedRegions: 
     }
 
     return { unlockedRegions: unlocked, lockedRegions: locked }
+}
+
+// precompute bridge alpha2 values for O(1) lookup
+const BRIDGE_ALPHA2_SET = new Set(Object.values(BRIDGE_ALPHA3_TO_ALPHA2))
+
+/**
+ * True when a country is served by Bridge (US, MX, or any EU/UK country in the
+ * Bridge alpha3 map). Pure static lookup — never reads KYC/capability state.
+ *
+ * MIGRATION-REVIEW: relocated verbatim from `useIdentityVerification` (the only
+ * remaining straggler consumer is withdraw/[country]/bank, which used it purely
+ * as a routing guard). Behavior is identical to the old hook method.
+ */
+export const isBridgeSupportedCountry = (code: string): boolean => {
+    const upper = code.toUpperCase()
+    return upper === 'US' || upper === 'MX' || upper in BRIDGE_ALPHA3_TO_ALPHA2 || BRIDGE_ALPHA2_SET.has(upper)
+}
+
+/**
+ * True when the user is verified for transacting in `countryCode`, derived from
+ * the capability rails.
+ *
+ * MIGRATION-REVIEW: replaces `useIdentityVerification.isVerifiedForCountry`,
+ * which (Phase 6) read raw `user.rails` via `hasFullMantecaRail` /
+ * `hasEnabledRail`. Faithful mapping:
+ *   - Manteca country (AR/BR/…): a FULL-tier ENABLED Manteca rail for that
+ *     country. In the capability model a full-tier rail is one whose `deposit`
+ *     (and `withdraw`) operation is enabled — QR-only pool rails enable `pay`
+ *     only, so `operations.deposit === 'enabled'` is the capability equivalent
+ *     of the old "rail carries a mantecaUserId" full-tier gate. Country match is
+ *     on `rail.country` (the rail's jurisdiction).
+ *   - Other countries: any ENABLED Bridge rail (unchanged semantics).
+ */
+export function isVerifiedForCountry(rails: RailCapability[], countryCode: string): boolean {
+    const upper = countryCode.toUpperCase()
+    if (isMantecaSupportedCountryCode(upper)) {
+        return rails.some(
+            (rail) =>
+                rail.provider === 'manteca' &&
+                rail.country.toUpperCase() === upper &&
+                (rail.operations?.deposit ?? rail.status) === 'enabled'
+        )
+    }
+    return rails.some((rail) => rail.provider === 'bridge' && rail.status === 'enabled')
 }

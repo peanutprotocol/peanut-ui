@@ -3,7 +3,7 @@
 import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
-import type { ProviderRejectionInfo } from '@/hooks/useProviderRejectionStatus'
+import type { ProviderRejectionInfo } from '@/utils/provider-rejection.utils'
 import { useModalsContext } from '@/context/ModalsContext'
 
 /**
@@ -49,11 +49,12 @@ export const KycProviderRejection = ({
                     </div>
                 </div>
 
-                {isFixable && rejection.selfHealAttempt > 0 && (
-                    <p className="mt-2 text-xs text-grey-1">
-                        Attempt {rejection.selfHealAttempt} of {rejection.maxAttempts}
-                    </p>
-                )}
+                {/* MIGRATION-REVIEW: the "Attempt N of M" self-heal counter was dropped —
+                    the capability model exposes no per-attempt counter (the old
+                    selfHealAttempt/maxAttempts came from raw kycVerification metadata).
+                    The backend still caps self-heal attempts and flips the rail to
+                    'blocked' when exhausted, so the user is still gated correctly; only
+                    the informational attempt count is gone. */}
             </div>
 
             {isFixable ? (

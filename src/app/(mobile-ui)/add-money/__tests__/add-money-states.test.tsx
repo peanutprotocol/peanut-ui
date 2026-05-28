@@ -112,11 +112,10 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => mockUseWallet(),
 }))
 
+// useKycStatus was deleted in the capability rip-out — its jest.mock is removed.
+// The jest.fn is retained only because two legacy setup calls below still call
+// .mockReturnValue on it; they're no-ops now (the component reads useCapabilities).
 const mockUseKycStatus = jest.fn()
-jest.mock('@/hooks/useKycStatus', () => ({
-    __esModule: true,
-    default: () => mockUseKycStatus(),
-}))
 
 // Bridge gate is now derived inline from useCapabilities() via the real
 // deriveBridgeGate util (bridge-gate.utils is intentionally NOT mocked, so the

@@ -17,7 +17,8 @@ import {
     isKycStatusNotStarted,
     isKycStatusActionRequired,
 } from '@/constants/kyc.consts'
-import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 
 // kyc history entry type + type guard — used by HomeHistory and history page
 export interface KycHistoryEntry {
@@ -81,8 +82,12 @@ export const KycStatusItem = ({
         [user?.rails]
     )
 
-    // provider rejection status (bridge/manteca)
-    const { hasFixableRejection, hasBlockedRejection } = useProviderRejectionStatus()
+    // provider rejection status (bridge/manteca) — derived from the capability model
+    const { rails } = useCapabilities()
+    const bridgeRej = deriveProviderRejection(rails, 'BRIDGE')
+    const mantecaRej = deriveProviderRejection(rails, 'MANTECA')
+    const hasFixableRejection = bridgeRej.state === 'fixable' || mantecaRej.state === 'fixable'
+    const hasBlockedRejection = bridgeRej.state === 'blocked' || mantecaRej.state === 'blocked'
 
     const isApproved = isKycStatusApproved(kycStatus)
     const isPending = isKycStatusPending(kycStatus)

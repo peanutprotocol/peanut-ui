@@ -38,7 +38,7 @@ import { deriveBridgeGate, getKycModalVariant, getGateProviderMessage } from '@/
 import { useModalsContext } from '@/context/ModalsContext'
 import ExchangeRate from '@/components/ExchangeRate'
 import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { isBridgeSupportedCountry } from '@/utils/regions.utils'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { parseUnits } from 'viem'
@@ -71,7 +71,8 @@ export default function WithdrawBankPage() {
     const country = (params.country as string) || searchParams.get('country') || ''
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const { hasPendingTransactions } = usePendingTransactions()
-    const { isBridgeSupportedCountry } = useIdentityVerification()
+    // MIGRATION-REVIEW: `isBridgeSupportedCountry` was a pure country lookup from
+    // `useIdentityVerification`; now imported directly from regions.utils (no hook).
     // MIGRATION-REVIEW: replaces `useBridgeTransferReadiness` — gate derived inline
     // from the capability model (same BridgeGateAction shape; downstream gate.type
     // branching + modal wiring unchanged). See deriveBridgeGate for the mapping.

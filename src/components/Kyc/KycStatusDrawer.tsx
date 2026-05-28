@@ -14,7 +14,8 @@ import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { getKycStatusCategory, isKycStatusNotStarted } from '@/constants/kyc.consts'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { useCallback } from 'react'
-import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 
 interface KycStatusDrawerProps {
     isOpen: boolean
@@ -103,8 +104,11 @@ export const KycStatusDrawer = ({
         [closeAndStartKyc]
     )
 
-    // provider rejection status
-    const { bridge: bridgeRejection, manteca: mantecaRejection, hasAnyRejection } = useProviderRejectionStatus()
+    // provider rejection status — derived from the capability model (replaces useProviderRejectionStatus)
+    const { rails } = useCapabilities()
+    const bridgeRejection = deriveProviderRejection(rails, 'BRIDGE')
+    const mantecaRejection = deriveProviderRejection(rails, 'MANTECA')
+    const hasAnyRejection = bridgeRejection.state !== 'happy' || mantecaRejection.state !== 'happy'
 
     const renderContent = () => {
         // user initiated kyc but abandoned before submitting — close drawer visually

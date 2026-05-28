@@ -11,8 +11,9 @@ import { useCurrency } from '@/hooks/useCurrency'
 import { mantecaApi } from '@/services/manteca'
 import { parseUnits } from 'viem'
 import { useQueryClient } from '@tanstack/react-query'
-import useKycStatus from '@/hooks/useKycStatus'
-import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { isVerifiedForCountry } from '@/utils/regions.utils'
+import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -23,7 +24,6 @@ import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails'
@@ -69,16 +69,22 @@ const MantecaAddMoney: FC = () => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
     const onBack = useSafeBack(addMoneyCountryUrl(selectedCountryPath))
-    const { isUserSumsubKycApproved } = useKycStatus()
-    const { isVerifiedForCountry } = useIdentityVerification()
-    const { manteca: mantecaRejection } = useProviderRejectionStatus()
+    // MIGRATION-REVIEW: replaces useKycStatus().isUserSumsubKycApproved (→ isKycApproved
+    // proxy: any enabled rail ⇒ identity cleared), useIdentityVerification().isVerifiedForCountry
+    // (→ regions.utils.isVerifiedForCountry over capability rails), and
+    // useProviderRejectionStatus().manteca (→ deriveProviderRejection over the Manteca rails).
+    const { rails, isKycApproved } = useCapabilities()
+    const isUserSumsubKycApproved = isKycApproved
+    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA'), [rails])
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
     // inline sumsub kyc flow for manteca users who need LATAM verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
     // intent is passed at call time: handleInitiateKyc('LATAM')
     const sumsubFlow = useMultiPhaseKycFlow({})
     const [showKycModal, setShowKycModal] = useState(false)
-    const isUserMantecaKycApprovedForCountry = selectedCountry ? isVerifiedForCountry(selectedCountry.id) : false
+    const isUserMantecaKycApprovedForCountry = selectedCountry
+        ? isVerifiedForCountry(rails, selectedCountry.id)
+        : false
 
     // validates deposit amount against user's limits
     // currency comes from country config - hook normalizes it internally
