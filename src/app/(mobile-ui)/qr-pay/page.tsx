@@ -24,7 +24,13 @@ import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { rainSpendingPowerToWei } from '@/utils/balance.utils'
 import { isTxReverted, saveRedirectUrl, formatNumberForDisplay } from '@/utils/general.utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
-import { calculateSavingsInCents, isArgentinaMantecaQrPayment, getSavingsMessage } from '@/utils/qr-payment.utils'
+import {
+    calculateSavingsInCents,
+    hasCardMarkupComparison,
+    isArgentinaMantecaQrPayment,
+    getSavingsMessage,
+} from '@/utils/qr-payment.utils'
+import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
@@ -307,6 +313,11 @@ export default function QRPayPage() {
             return paymentLock.paymentAgainstAmount
         }
     }, [paymentLock?.code, paymentLock?.paymentAgainstAmount, amount])
+
+    // Live card-vs-local-rail markup, driven by Manteca's rate + (for ARS)
+    // BCRA's official rate. Used by both the confirm-screen "Save vs card"
+    // row and the success-screen savings message — keeps them in sync.
+    const { data: cardMarkup } = useCardMarkupRate(currency?.code, currency?.price)
 
     // validate payment against user's limits
     // currency comes from payment lock — hook normalizes it internally
@@ -1057,9 +1068,11 @@ export default function QRPayPage() {
     if (isSuccess && paymentProcessor === 'MANTECA' && !qrPayment) {
         return null
     } else if (isSuccess && paymentProcessor === 'MANTECA') {
-        // Calculate savings for Argentina Manteca QR payments only
-        const savingsInCents = calculateSavingsInCents(usdAmount)
-        const showSavingsMessage = savingsInCents > 0 && isArgentinaMantecaQrPayment(qrType, paymentProcessor)
+        // Show "saved $X vs card" only for currencies with a meaningful
+        // card-vs-local-rail gap (ARS, BRL — see CARD_FX_MARKUP_BY_CURRENCY).
+        // Rate is live (BCRA for ARS) via useCardMarkupRate above.
+        const savingsInCents = calculateSavingsInCents(usdAmount, cardMarkup?.rate)
+        const showSavingsMessage = savingsInCents > 0 && hasCardMarkupComparison(currency?.code)
         const savingsMessage = showSavingsMessage ? getSavingsMessage(savingsInCents) : ''
 
         return (
@@ -1375,6 +1388,23 @@ export default function QRPayPage() {
                             value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
                             moreInfoText="Rate shown is current but may vary slightly (~$1-5 ARS) until payment is confirmed."
                         />
+                        {(() => {
+                            if (!hasCardMarkupComparison(currency.code)) return null
+                            const savingsInCents = calculateSavingsInCents(usdAmount, cardMarkup?.rate)
+                            if (savingsInCents <= 0) return null
+                            const savingsUsd = (savingsInCents / 100).toFixed(2)
+                            return (
+                                <PaymentInfoRow
+                                    label="Save vs card"
+                                    value={`~$${savingsUsd}`}
+                                    moreInfoText={
+                                        currency.code.toUpperCase() === 'BRL'
+                                            ? 'Foreign cards pay IOF (~3.5%) plus a typical ~3% issuer FX fee. Peanut routes via PIX at the current market rate.'
+                                            : 'Foreign cards apply the official rate plus a typical ~3% issuer FX fee. Peanut routes via MercadoPago at the current market rate.'
+                                    }
+                                />
+                            )
+                        })()}
                         <PaymentInfoRow label="Peanut fee" value="Sponsored by Peanut!" hideBottomBorder />
                     </Card>
 
