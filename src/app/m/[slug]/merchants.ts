@@ -26,6 +26,12 @@ export type Merchant = {
     name: string
     /** Meta description for SEO. */
     metaDescription: string
+    /** Merchant-specific invite code (e.g. `STAIN`, `BANOMADS`). Attached
+     *  to every CTA on the LP so a stain QR-sticker scan is attributable
+     *  separately from a BA Nomads share even when the URL is hand-typed
+     *  (and `utm_*` get stripped). Must be registered in
+     *  peanut-api-ts/src/utils/invite.ts → SPECIAL_INVITE_CODES_MAP. */
+    inviteCode: string
 
     // ===== Hero =====
     /** Big lowercase headline. Multi-line by default. */
@@ -95,6 +101,7 @@ const ARS = (n: number) => n
 export const MERCHANTS: Record<string, Merchant> = {
     stain: {
         slug: 'stain',
+        inviteCode: 'STAIN',
         name: 'Stain Coffee',
         metaDescription:
             'Your first $10 at Stain Coffee in Palermo Hollywood is on us. Pay with Peanut at the Mercado Pago QR.',
@@ -149,6 +156,7 @@ export const MERCHANTS: Record<string, Merchant> = {
 
     badigitalnomads: {
         slug: 'badigitalnomads',
+        inviteCode: 'BANOMADS',
         name: 'BA Digital Nomads',
         metaDescription:
             'Free $10 on your first Mercado Pago payment in Buenos Aires. No DNI, no Argentine bank account needed. For the BA Digital Nomads community.',
