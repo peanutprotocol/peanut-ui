@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrencyPrice } from '@/app/actions/currency'
+import { getCachedCurrencyPrice } from '@/app/actions/currency'
 
 interface ExchangeRateResponse {
     rate: number
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
         if (fromUc === 'USD' || toUc === 'USD') {
             const pairKey = `${fromUc}-${toUc}`
 
-            // Check if either currency uses getCurrencyPrice (Manteca or Bridge currencies)
+            // Check if either currency uses getCachedCurrencyPrice (Manteca or Bridge currencies)
             if (
                 MANTECA_CURRENCIES.has(fromUc) ||
                 MANTECA_CURRENCIES.has(toUc) ||
@@ -59,8 +59,8 @@ export async function GET(request: NextRequest) {
                         }
                     )
                 }
-                // Fall back to other providers if getCurrencyPrice fails
-                console.warn(`getCurrencyPrice failed for ${pairKey}, falling back to other providers`)
+                // Fall back to other providers if getCachedCurrencyPrice fails
+                console.warn(`getCachedCurrencyPrice failed for ${pairKey}, falling back to other providers`)
             }
 
             // Use Frankfurter for all other pairs or as fallback
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
 
 async function getExchangeRate(from: string, to: string): Promise<number | null> {
     try {
-        // Check if either currency uses getCurrencyPrice (Manteca or Bridge currencies)
+        // Check if either currency uses getCachedCurrencyPrice (Manteca or Bridge currencies)
         if (
             MANTECA_CURRENCIES.has(from) ||
             MANTECA_CURRENCIES.has(to) ||
@@ -123,21 +123,21 @@ async function getExchangeRate(from: string, to: string): Promise<number | null>
 }
 
 async function fetchFromCurrencyPrice(from: string, to: string): Promise<number | null> {
-    console.log('Fetching from getCurrencyPrice')
+    console.log('Fetching from getCachedCurrencyPrice')
     try {
         if (from === 'USD' && (MANTECA_CURRENCIES.has(to) || ['EUR', 'MXN', 'GBP'].includes(to))) {
             // USD → other currency: use sell rate (selling USD to get other currency)
-            const { sell } = await getCurrencyPrice(to)
+            const { sell } = await getCachedCurrencyPrice(to)
             if (!isFinite(sell) || sell <= 0) {
-                console.error(`Invalid sell rate from getCurrencyPrice for ${to}: ${sell}`)
+                console.error(`Invalid sell rate from getCachedCurrencyPrice for ${to}: ${sell}`)
                 return null
             }
             return sell
         } else if ((MANTECA_CURRENCIES.has(from) || ['EUR', 'MXN', 'GBP'].includes(from)) && to === 'USD') {
             // Other currency → USD: use buy rate (buying USD with other currency)
-            const { buy } = await getCurrencyPrice(from)
+            const { buy } = await getCachedCurrencyPrice(from)
             if (!isFinite(buy) || buy <= 0) {
-                console.error(`Invalid buy rate from getCurrencyPrice for ${from}: ${buy}`)
+                console.error(`Invalid buy rate from getCachedCurrencyPrice for ${from}: ${buy}`)
                 return null
             }
             return 1 / buy
@@ -146,8 +146,8 @@ async function fetchFromCurrencyPrice(from: string, to: string): Promise<number 
             (MANTECA_CURRENCIES.has(to) || ['EUR', 'MXN', 'GBP'].includes(to))
         ) {
             // Other currency → Other currency: convert through USD
-            const fromPrices = await getCurrencyPrice(from)
-            const toPrices = await getCurrencyPrice(to)
+            const fromPrices = await getCachedCurrencyPrice(from)
+            const toPrices = await getCachedCurrencyPrice(to)
 
             if (!isFinite(fromPrices.buy) || fromPrices.buy <= 0 || !isFinite(toPrices.sell) || toPrices.sell <= 0) {
                 console.error(`Invalid prices for ${from}-${to}: buy=${fromPrices.buy}, sell=${toPrices.sell}`)
@@ -160,11 +160,11 @@ async function fetchFromCurrencyPrice(from: string, to: string): Promise<number 
             return fromToUsd * usdToTo
         } else {
             // Unsupported conversion
-            console.warn(`Unsupported getCurrencyPrice conversion: ${from} → ${to}`)
+            console.warn(`Unsupported getCachedCurrencyPrice conversion: ${from} → ${to}`)
             return null
         }
     } catch (error) {
-        console.error(`getCurrencyPrice error for ${from}-${to}:`, error)
+        console.error(`getCachedCurrencyPrice error for ${from}-${to}:`, error)
         return null
     }
 }
