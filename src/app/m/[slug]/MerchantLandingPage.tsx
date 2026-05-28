@@ -10,8 +10,28 @@ import { Marquee } from '@/components/LandingPage'
 import { FAQsPanel } from '@/components/Global/FAQs'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { Sparkle, Star } from '@/assets/illustrations'
+import { UTM_MEDIUMS, UTM_SOURCES, withUtm } from '@/utils/utm.utils'
 import { getArsCardMarkup } from './card-comparison'
 import type { Merchant, MenuItem } from './merchants'
+
+/** Sticky invite code attached to every CTA on `/m/[slug]`. The UTM
+ *  taxonomy lives in `mono/strategy/utm-tracking.md` — `utm_campaign` is
+ *  the merchant slug, `utm_content` distinguishes the two CTAs so we can
+ *  split-test hero-vs-end-fold conversion. */
+const MERCHANT_INVITE_CODE = 'SQUIRRELINVITESYOU'
+
+function buildInviteHref(merchantSlug: string, content: 'hero' | 'end_fold'): string {
+    return withUtm(
+        '/invite',
+        {
+            source: UTM_SOURCES.MERCHANT_LANDING,
+            medium: UTM_MEDIUMS.MERCHANT,
+            campaign: merchantSlug,
+            content,
+        },
+        { code: MERCHANT_INVITE_CODE }
+    )
+}
 
 /** Documented empirical ARS card-vs-Peanut spread + issuer markup — used
  *  as the immediate render value and the fallback when the live fetch fails.
@@ -123,10 +143,7 @@ function Hero({ merchant }: { merchant: Merchant }) {
 
                     <div className="mt-8 flex flex-col items-center gap-5 md:flex-row md:items-center md:gap-6">
                         <div className="relative">
-                            <Link
-                                href={`/invite?code=SQUIRRELINVITESYOU&utm_medium=merchant&utm_source=m&utm_campaign=${merchant.slug}`}
-                                className="inline-block"
-                            >
+                            <Link href={buildInviteHref(merchant.slug, 'hero')} className="inline-block">
                                 <Button shadowSize="4" className={ctaButtonClassName}>
                                     {merchant.primaryCta}
                                 </Button>
@@ -469,10 +486,7 @@ function EndFold({ merchant }: { merchant: Merchant }) {
                     {merchant.install.sub}
                 </p>
                 <div className="mt-10 flex justify-center">
-                    <Link
-                        href={`/invite?code=SQUIRRELINVITESYOU&utm_medium=merchant&utm_source=m&utm_campaign=${merchant.slug}`}
-                        className="inline-block"
-                    >
+                    <Link href={buildInviteHref(merchant.slug, 'end_fold')} className="inline-block">
                         <Button shadowSize="4" className={ctaButtonClassName}>
                             INSTALL PEANUT
                         </Button>
