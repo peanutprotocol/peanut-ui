@@ -27,7 +27,7 @@ export const useUserQuery = (dependsOn: boolean = true) => {
     const { user: authUser } = useUserStore()
 
     const fetchUser = async (): Promise<IUserProfile | null> => {
-        const userResponse = await apiFetch('/get-user', { method: 'POST', body: '{}' })
+        const userResponse = await apiFetch('/users/me', { method: 'GET' })
         if (userResponse.ok) {
             const payload: (IUserProfile & { token?: string }) | null = await userResponse.json()
 

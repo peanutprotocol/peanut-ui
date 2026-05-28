@@ -343,16 +343,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/get-user": {
+    "/users/me": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        post: {
+        get: {
             parameters: {
                 query?: never;
                 header: {
@@ -369,10 +367,57 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            capabilities: {
+                                rails: {
+                                    /** @description `${provider}.${method}` e.g. "bridge.ach_us" */
+                                    id: string;
+                                    provider: "bridge" | "manteca" | "rain";
+                                    method: string;
+                                    country: string;
+                                    currency: string;
+                                    status: "enabled" | "pending" | "requires-info" | "blocked";
+                                    operations?: {
+                                        pay?: "enabled" | "pending" | "requires-info" | "blocked";
+                                        deposit?: "enabled" | "pending" | "requires-info" | "blocked";
+                                        withdraw?: "enabled" | "pending" | "requires-info" | "blocked";
+                                    };
+                                    blockingActions?: string[];
+                                    reason?: {
+                                        code: string;
+                                        userMessage: string;
+                                    };
+                                }[];
+                                nextActions: {
+                                    key: string;
+                                    kind: "sumsub" | "bridge-tos" | "wait" | "contact-support";
+                                    purpose: string;
+                                    levelKey?: string;
+                                    tosUrl?: string;
+                                }[];
+                                restrictions: {
+                                    code: string;
+                                    affectedRailIds: string[];
+                                    userMessage: string;
+                                }[];
+                            };
+                            identityVerification: {
+                                status: "not_started" | "processing" | "verified" | "action_required" | "failed";
+                                actionMessage?: string;
+                                rejectLabels?: string[];
+                                submittedAt?: string;
+                                reviewedAt?: string;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
                 };
             };
         };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -859,7 +904,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            userId: string;
+                            fullName: string | null;
+                            email: string;
+                            bridgeCustomerId: string | null;
+                            username: string | null;
+                            showFullName: boolean;
+                            canReceiveBankOfframp: boolean;
+                            isVerified: boolean;
+                        };
+                    };
                 };
             };
         };
@@ -1019,6 +1075,127 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                    "api-key"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            capabilities: {
+                                rails: {
+                                    /** @description `${provider}.${method}` e.g. "bridge.ach_us" */
+                                    id: string;
+                                    provider: "bridge" | "manteca" | "rain";
+                                    method: string;
+                                    country: string;
+                                    currency: string;
+                                    status: "enabled" | "pending" | "requires-info" | "blocked";
+                                    operations?: {
+                                        pay?: "enabled" | "pending" | "requires-info" | "blocked";
+                                        deposit?: "enabled" | "pending" | "requires-info" | "blocked";
+                                        withdraw?: "enabled" | "pending" | "requires-info" | "blocked";
+                                    };
+                                    blockingActions?: string[];
+                                    reason?: {
+                                        code: string;
+                                        userMessage: string;
+                                    };
+                                }[];
+                                nextActions: {
+                                    key: string;
+                                    kind: "sumsub" | "bridge-tos" | "wait" | "contact-support";
+                                    purpose: string;
+                                    levelKey?: string;
+                                    tosUrl?: string;
+                                }[];
+                                restrictions: {
+                                    code: string;
+                                    affectedRailIds: string[];
+                                    userMessage: string;
+                                }[];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/start-action": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                    "api-key"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description A capability nextAction key */
+                        key: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            sumsubAccessToken: string;
+                            levelName: string;
+                            externalActionId?: string;
+                        };
+                    };
                 };
             };
         };
@@ -3433,6 +3610,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            retryAfterSec?: number;
                         };
                     };
                 };
@@ -4805,6 +4983,8 @@ export interface paths {
                 content: {
                     "application/json": {
                         username: string;
+                        override?: boolean;
+                        amountUsd?: number;
                     };
                 };
             };
@@ -8516,7 +8696,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         userId: string;
-                        code: "BETA_TESTER" | "DEVCONNECT_BA_2025" | "PRODUCT_HUNT" | "OG_2025_10_12" | "SEEDLING_DEVCONNECT_BA_2025" | "ARBIVERSE_DEVCONNECT_BA_2025" | "CARD_PIONEER" | "FOUNDER_HOUSE" | "SUPPORT_SURVIVOR";
+                        code: "BETA_TESTER" | "DEVCONNECT_BA_2025" | "PRODUCT_HUNT" | "OG_2025_10_12" | "SEEDLING_DEVCONNECT_BA_2025" | "ARBIVERSE_DEVCONNECT_BA_2025" | "CARD_PIONEER" | "FOUNDER_HOUSE" | "BUG_WHISPERER" | "SHHHHH" | "CARD_FIRST_SWIPE" | "CARD_SPENT_1K";
                         revoke?: boolean;
                     };
                 };
