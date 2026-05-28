@@ -111,27 +111,34 @@ export const MERCHANTS: Record<string, Merchant> = {
             heading: 'THE MENU.',
             tagline: 'Pick your currency. The app handles the rest.',
             showLiveRate: true,
+            // Items + descriptions verified against Stain's authoritative menu
+            // (_temp/STAIN - Menu (EN).xlsx). All descriptions taken verbatim
+            // from that source — no fabricated copy.
             items: [
                 { name: 'Medialuna', desc: 'Classic Argentine croissant.', priceARS: ARS(4400) },
+                { name: 'Cookie by Laban', desc: 'Vanilla with chocolate chips.', priceARS: ARS(4800) },
                 {
                     name: 'Honey Butter Toast',
-                    desc: 'Honey, butter, muscovado sugar, sourdough.',
+                    desc: 'Honey, butter, muscovado sugar, sourdough sandwich bread.',
                     priceARS: ARS(6200),
                 },
-                { name: 'Flat White', desc: 'Double ristretto, micro-foamed milk.', priceARS: ARS(5900) },
-                { name: 'Cappuccino', desc: 'Espresso, steamed milk, foam.', priceARS: ARS(6000) },
-                { name: 'Cold Brew', desc: 'Slow-steeped, served over ice.', priceARS: ARS(6200) },
-                { name: 'Iced Matcha Latte', desc: 'Ceremonial matcha over ice.', priceARS: ARS(6500) },
-                { name: 'Salted Caramel Latte', desc: 'House salted caramel, espresso, milk.', priceARS: ARS(7000) },
-                { name: 'Cinnamon Roll', desc: 'Baked fresh daily.', priceARS: ARS(5500) },
+                { name: 'Magic', desc: 'Double ristretto with steamed milk.', priceARS: ARS(4500) },
+                { name: 'Lagrima', desc: 'Mostly milk with a touch of espresso.', priceARS: ARS(5600) },
+                { name: 'Espresso Doppio', desc: 'Double espresso shot.', priceARS: ARS(5000) },
+                { name: 'Pressed Chipa', desc: 'Smoked pork loin & cheese.', priceARS: ARS(9000) },
+                {
+                    name: 'Grilled Cheese',
+                    desc: 'Sourdough sandwich bread and selection of cheeses.',
+                    priceARS: ARS(10000),
+                },
                 {
                     name: 'Creamy Scrambled Eggs',
-                    desc: 'Eggs, mascarpone cheese, sourdough bread.',
+                    desc: 'Eggs, mascarpone cheese and sourdough bread.',
                     priceARS: ARS(10000),
                 },
                 {
                     name: 'Avocado Toast',
-                    desc: 'Pea spread, avocado, mixed greens, hazelnuts.',
+                    desc: 'Pea spread, avocado, mixed greens and hazelnuts.',
                     priceARS: ARS(11500),
                 },
             ],
