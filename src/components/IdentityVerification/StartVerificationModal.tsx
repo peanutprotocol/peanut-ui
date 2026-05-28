@@ -3,7 +3,7 @@
 import ActionModal from '../Global/ActionModal'
 import InfoCard from '../Global/InfoCard'
 import { Icon } from '../Global/Icons/Icon'
-import { type Region } from '@/hooks/useIdentityVerification'
+import { type Region } from '@/utils/regions.utils'
 import React from 'react'
 
 const QR_PAYMENTS = (

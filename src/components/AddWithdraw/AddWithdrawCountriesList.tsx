@@ -23,18 +23,14 @@ import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
-import useKycStatus from '@/hooks/useKycStatus'
 import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
 import { ActionListCard } from '@/components/ActionListCard'
 import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
-import {
-    useBridgeTransferReadiness,
-    getKycModalVariant,
-    getGateProviderMessage,
-} from '@/hooks/useBridgeTransferReadiness'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { deriveBridgeGate, getKycModalVariant, getGateProviderMessage } from '@/utils/bridge-gate.utils'
 import { useBridgeTosGuard } from '@/hooks/useBridgeTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -77,8 +73,23 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
 
-    const { isUserKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
-    const { gate } = useBridgeTransferReadiness()
+    // MIGRATION-REVIEW: replaces `useKycStatus` (isUserKycApproved / isUserBridgeKycUnderReview)
+    // + `useBridgeTransferReadiness` (gate) — all now derived from the single capability model.
+    //   - isUserKycApproved      → isKycApproved (any enabled rail; same proxy the bank pages use).
+    //   - gate                   → deriveBridgeGate(rails, nextActions, isKycApproved) (identical
+    //                              BridgeGateAction shape + downstream branching).
+    //   - isUserBridgeKycUnderReview → a Bridge rail with status 'pending'. The old field was
+    //     `bridgeKycStatus === 'under_review'` (Bridge actively reviewing submitted docs, no user
+    //     action). In the capability model that is exactly `pending` (requires-info = the old
+    //     'incomplete', which is a different state). Used only to surface the "under review" status
+    //     modal AFTER the gate already returned `ready` (a pending Bridge rail is functional ⇒ ready).
+    const { rails, nextActions, isKycApproved, railsForProvider } = useCapabilities()
+    const isUserKycApproved = isKycApproved
+    const gate = useMemo(() => deriveBridgeGate(rails, nextActions, isKycApproved), [rails, nextActions, isKycApproved])
+    const isUserBridgeKycUnderReview = useMemo(
+        () => railsForProvider('bridge').some((rail) => rail.status === 'pending'),
+        [railsForProvider]
+    )
     const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
     const { setIsSupportModalOpen } = useModalsContext()
     const [showKycStatusModal, setShowKycStatusModal] = useState(false)

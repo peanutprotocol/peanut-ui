@@ -3,20 +3,75 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import type { IconName } from '@/components/Global/Icons/Icon'
 import InfoCard from '@/components/Global/InfoCard'
-import { useAuth } from '@/context/authContext'
 import { countryData, type CountryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
-import { isKycStatusApproved } from '@/constants/kyc.consts'
+
+/** A feature unlocked by identity verification, tagged by the provider that unlocks it. */
+type VerificationUnlockItem = {
+    title: React.ReactNode | string
+    type: 'bridge' | 'manteca'
+}
+
+/**
+ * MIGRATION-REVIEW: relocated verbatim from `useIdentityVerification.getVerificationUnlockItems`
+ * (the legacy hook's only output this modal consumed). It is pure presentational content — a
+ * static list of unlocked-feature bullets — with no KYC state, so it has no business living in a
+ * hook. `countryTitle` personalizes the Manteca bank-transfer bullet (the user's verified ID
+ * country). KycCompletedModal is the sole consumer, so it's inlined here.
+ */
+const getVerificationUnlockItems = (countryTitle?: string): VerificationUnlockItem[] => [
+    {
+        title: (
+            <p>
+                QR Payments in <b>Argentina and Brazil</b>
+            </p>
+        ),
+        type: 'bridge',
+    },
+    {
+        title: (
+            <p>
+                <b>United States</b> ACH and Wire transfers
+            </p>
+        ),
+        type: 'bridge',
+    },
+    {
+        title: (
+            <p>
+                <b>Europe</b> SEPA transfers (+30 countries)
+            </p>
+        ),
+        type: 'bridge',
+    },
+    {
+        title: (
+            <p>
+                <b>Mexico</b> SPEI transfers
+            </p>
+        ),
+        type: 'bridge',
+    },
+    {
+        // Important: This uses the user's verified ID country, not their selected country
+        // Example: User picks Argentina but has Brazil ID → they get QR in Argentina
+        // but bank transfers only work in Brazil (their verified country)
+        title: `Bank transfers to your own accounts in ${countryTitle || 'your country'}`,
+        type: 'manteca',
+    },
+    {
+        title: 'QR Payments in Brazil and Argentina',
+        type: 'manteca',
+    },
+]
 
 const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
-    const { user } = useAuth()
     const [approvedCountryData, setApprovedCountryData] = useState<CountryData | null>(null)
 
-    const { hasEnabledRail } = useCapabilities()
+    const { hasEnabledRail, railsForProvider } = useCapabilities()
     const isBridgeApproved = hasEnabledRail('bridge')
     const isMantecaApproved = hasEnabledRail('manteca')
 
@@ -27,7 +82,6 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.KYC_COMPLETED })
         }
     }, [isOpen])
-    const { getVerificationUnlockItems } = useIdentityVerification()
 
     // MIGRATION-REVIEW: old logic had a Sumsub branch — `isSumsubApproved &&
     // regionIntent==='LATAM' → 'manteca'`, else 'bridge' — to pick feature bullets while
@@ -45,40 +99,33 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
     const items = useMemo(() => {
         return getVerificationUnlockItems(approvedCountryData?.title)
-    }, [getVerificationUnlockItems, approvedCountryData?.title])
+    }, [approvedCountryData?.title])
 
+    // MIGRATION-REVIEW: re-sourced off the capability rails. The old effect scanned raw
+    // `user.kycVerifications` for an approved MANTECA/SUMSUB row and read its `mantecaGeo`
+    // to personalize the "Bank transfers to your own accounts in {country}" bullet. A
+    // full-tier Manteca rail now carries that jurisdiction as `rail.country`, so the
+    // approved country = an ENABLED Manteca rail's country. `isMantecaSupportedCountryCode`
+    // guard kept (matches the old country-gate). NOTE: if multiple enabled Manteca rails
+    // exist (AR + BR), this takes the last like the old forEach did — same arbitrary pick.
+    const mantecaRails = railsForProvider('manteca')
     useEffect(() => {
-        // If manteca KYC is approved, then we need to get the approved country
-        if (isMantecaApproved) {
-            let approvedCountry: string | undefined | null
+        if (!isMantecaApproved) return
 
-            // get the manteca approved country
-            user?.user.kycVerifications?.forEach((v) => {
-                if (
-                    // dev: scoped to Manteca via `isMantecaSupportedCountryCode` helper.
-                    // main: broadened to include SUMSUB-provider rows AND switched the
-                    // status gate from `=== MantecaKycStatus.ACTIVE` to
-                    // `isKycStatusApproved` (handles the post-migration cohort whose
-                    // status enum is the unified Bridge/Manteca approved set, not the
-                    // legacy Manteca-only ACTIVE).
-                    // Merge: keep dev's helper for country-gate readability, take
-                    // main's broader provider + status logic (the actual bugfix).
-                    (v.provider === 'MANTECA' || v.provider === 'SUMSUB') &&
-                    isMantecaSupportedCountryCode(v.mantecaGeo) &&
-                    isKycStatusApproved(v.status)
-                ) {
-                    approvedCountry = v.mantecaGeo
-                }
-            })
-
-            if (approvedCountry) {
-                const _approvedCountryData = countryData.find(
-                    (c) => c.iso2?.toUpperCase() === approvedCountry?.toUpperCase()
-                )
-                setApprovedCountryData(_approvedCountryData || null)
+        let approvedCountry: string | undefined | null
+        mantecaRails.forEach((rail) => {
+            if (rail.status === 'enabled' && isMantecaSupportedCountryCode(rail.country)) {
+                approvedCountry = rail.country
             }
+        })
+
+        if (approvedCountry) {
+            const _approvedCountryData = countryData.find(
+                (c) => c.iso2?.toUpperCase() === approvedCountry?.toUpperCase()
+            )
+            setApprovedCountryData(_approvedCountryData || null)
         }
-    }, [isMantecaApproved, user])
+    }, [isMantecaApproved, mantecaRails])
 
     return (
         <ActionModal

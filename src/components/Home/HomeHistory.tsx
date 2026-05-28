@@ -357,7 +357,6 @@ const HomeHistory = ({
                                         key={entry.uuid}
                                         position="single"
                                         verification={entry.verification}
-                                        bridgeKycStatus={entry.bridgeKycStatus}
                                         region={entry.region}
                                     />
                                 ))}
@@ -438,15 +437,23 @@ const HomeHistory = ({
 
                         // Render KYC status item if it's its turn in the sorted list
                         if (isKycStatusItem(item)) {
+                            // MIGRATION-REVIEW: this is the KYC-status activity row, NOT a per-transaction
+                            // provider badge (the migration map's "provider badges on history" framing was
+                            // imprecise). `bridgeKycStatus`/`bridgeKycStartedAt` were forwarded from
+                            // groupKycByRegion's synthetic entry, which sources them from raw
+                            // user.bridgeKycStatus. The capability model carries neither the bridgeKycStatus
+                            // enum nor a started-at timestamp, so these props are dropped here (the gate
+                            // requires this file stop reading .bridgeKycStatus). KycStatusItem self-sources
+                            // the status from the user store internally (its bridgeKycStatus prop is optional),
+                            // so the rendered status is unchanged; the only loss is the "KYC started at" date
+                            // in the drawer's processing sub-state, which falls back to "N/A". CONTRACT GAP +
+                            // OUT-OF-SCOPE: groupKycByRegion / KycStatusItem / history/page.tsx still read raw
+                            // KYC fields and are addressed in the compiler-gated deletion step, not here.
                             return (
                                 <KycStatusItem
                                     key={item.uuid}
                                     position={position}
                                     verification={item.verification}
-                                    bridgeKycStatus={item.bridgeKycStatus}
-                                    bridgeKycStartedAt={
-                                        item.bridgeKycStatus ? user?.user.bridgeKycStartedAt : undefined
-                                    }
                                     region={item.region}
                                 />
                             )

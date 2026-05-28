@@ -6,7 +6,7 @@ import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
-import { useIdentityVerification, type Region } from '@/hooks/useIdentityVerification'
+import { deriveRegionAccess, type Region } from '@/utils/regions.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useLimits } from '@/hooks/useLimits'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -23,10 +23,12 @@ import { getProviderRoute } from '../utils'
 const LimitsPageView = () => {
     const router = useRouter()
     const goBack = useSafeBack('/profile', { replace: true })
-    // useIdentityVerification is the Sumsub-region orchestrator — intentionally LEFT UNTOUCHED here
-    // (separate dedicated migration pass). Only the status-hook reads are swapped to useCapabilities().
-    const { unlockedRegions, lockedRegions } = useIdentityVerification()
-    const { isKycApproved, railsForProvider } = useCapabilities()
+    const { isKycApproved, railsForProvider, rails } = useCapabilities()
+    // MIGRATION-REVIEW: finishes the LimitsPageView migration the prior pass deferred
+    // (f4eb9f70e left `useIdentityVerification` here for the region lists). unlockedRegions/
+    // lockedRegions now derive from the capability rails via deriveRegionAccess — same Region
+    // shape, faithful unlock mapping. See deriveRegionAccess for the flagged Sumsub-proxy gaps.
+    const { unlockedRegions, lockedRegions } = useMemo(() => deriveRegionAccess(rails), [rails])
     const { hasMantecaLimits } = useLimits()
     const { overview: rainCardOverview } = useRainCardOverview()
     const activeCard = findActiveCard(rainCardOverview)

@@ -12,11 +12,11 @@ import { KycActionRequiredModal } from '@/components/Kyc/modals/KycActionRequire
 import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
 import ActionModal from '@/components/Global/ActionModal'
 import { useModalsContext } from '@/context/ModalsContext'
-import { useIdentityVerification, getRegionIntent, type Region } from '@/hooks/useIdentityVerification'
+import { deriveRegionAccess, getRegionIntent, type Region } from '@/utils/regions.utils'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import useUnifiedKycStatus from '@/hooks/useUnifiedKycStatus'
 import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { useAuth } from '@/context/authContext'
 import Image from 'next/image'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useState, useCallback, useRef, useMemo } from 'react'
@@ -52,11 +52,15 @@ function getModalVariant(
 
 const RegionsVerification = () => {
     const onBack = useSafeBack('/profile', { replace: true })
-    const { user } = useAuth()
-    const { unlockedRegions, lockedRegions } = useIdentityVerification()
+    const { rails } = useCapabilities()
+    // MIGRATION-REVIEW: unlockedRegions/lockedRegions previously came from
+    // `useIdentityVerification` (raw rails + Sumsub flags). Now derived from the
+    // capability rails via deriveRegionAccess (same Region shape; faithful unlock
+    // mapping, see deriveRegionAccess for the flagged Sumsub-proxy gaps).
+    const { unlockedRegions, lockedRegions } = useMemo(() => deriveRegionAccess(rails), [rails])
     const { sumsubStatus, sumsubRejectLabels, sumsubRejectType, sumsubVerificationRegionIntent, isSumsubApproved } =
         useUnifiedKycStatus()
-    const { bridge: bridgeRejection, manteca: mantecaRejection, hasAnyRejection } = useProviderRejectionStatus()
+    const { bridge: bridgeRejection, manteca: mantecaRejection } = useProviderRejectionStatus()
     const { setIsSupportModalOpen } = useModalsContext()
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
     // keeps the region display stable during modal close animation
@@ -68,11 +72,14 @@ const RegionsVerification = () => {
     // skip StartVerificationView when re-submitting (user already consented)
     const [autoStartSdk, setAutoStartSdk] = useState(false)
 
-    const sumsubFailureCount = useMemo(
-        () =>
-            user?.user?.kycVerifications?.filter((v) => v.provider === 'SUMSUB' && v.status === 'REJECTED').length ?? 0,
-        [user]
-    )
+    // MIGRATION-REVIEW + CONTRACT GAP: this used to count rejected SUMSUB verification
+    // records off raw `user.kycVerifications` to feed KycFailedModal's terminal-rejection
+    // heuristic (>= MAX_RETRY_COUNT failures ⇒ terminal). The capability model carries NO
+    // per-verification Sumsub history, so the count cannot be re-sourced. Passing `undefined`:
+    // isTerminalRejection still works via `rejectType === 'FINAL'/'PROVIDER_FINAL'` and the
+    // terminal reject-label set (both still provided by useUnifiedKycStatus). The only loss is
+    // the "auto-terminal after N retries" path — flagged as a contract gap.
+    const sumsubFailureCount: number | undefined = undefined
 
     const clickedRegionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
     const baseModalVariant = selectedRegion
