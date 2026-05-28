@@ -95,3 +95,24 @@ export interface UserCapabilities {
     nextActions: NextAction[]
     restrictions: CapabilityRestriction[]
 }
+
+/**
+ * Provider-agnostic identity-verification status — the second FE-facing
+ * read-model (sibling to {@link UserCapabilities}), embedded top-level in
+ * /get-user. The user does ONE identity check (documents); this is its status.
+ * The FE NEVER learns a provider name — Bridge/Manteca approval lives in the
+ * rail capability statuses, not here.
+ */
+export type IdentityVerificationStatus = 'not_started' | 'processing' | 'verified' | 'action_required' | 'failed'
+
+export interface IdentityVerification {
+    status: IdentityVerificationStatus
+    /** present for action_required / failed — friendly, display-ready, provider-neutral. */
+    actionMessage?: string
+    /** normalized rejection labels for specific guidance (action_required / failed). */
+    rejectLabels?: string[]
+    /** ISO timestamp the user submitted their verification. */
+    submittedAt?: string
+    /** ISO timestamp the decision landed. */
+    reviewedAt?: string
+}

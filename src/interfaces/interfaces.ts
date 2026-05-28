@@ -1,5 +1,5 @@
 import { type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
-import { type UserCapabilities } from '@/types/capabilities'
+import { type UserCapabilities, type IdentityVerification } from '@/types/capabilities'
 
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'
 
@@ -294,6 +294,10 @@ export interface IUserProfile {
     // Optional during the add→migrate→delete sequence (D11): present once the
     // API PR ships, raw KYC fields above removed last. See kyc-2.0 plan.
     capabilities?: UserCapabilities
+    // Provider-agnostic identity-verification status — TOP-LEVEL sibling of
+    // `capabilities` on /get-user. Read via useIdentityVerification(). The status
+    // surfaces render this; no provider names. Optional during the migration.
+    identityVerification?: IdentityVerification
 }
 
 export type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue }
