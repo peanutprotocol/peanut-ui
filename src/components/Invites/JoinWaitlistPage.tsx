@@ -281,12 +281,11 @@ const JoinWaitlistPage = () => {
                     {step === 'jail' && isLoadingWaitlistPosition && <PeanutLoading coverFullScreen />}
                     {step === 'jail' && !isLoadingWaitlistPosition && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
-                            <h1 className="text-xl font-extrabold">You&apos;re still in Peanut jail</h1>
+                            <h1 className="text-xl font-extrabold">Peanut is invite-only</h1>
 
-                            <h2 className="text-xl font-bold">Prisoner #{data?.position}</h2>
+                            <h2 className="text-xl font-bold">You&apos;re #{data?.position} in line</h2>
                             <p className="text-base font-medium">
-                                Who invited you? Drop their Peanut username below to make bail. No friend on Peanut?
-                                Back to the waitlist — go beg one!
+                                Skip the line — drop the username of the member who invited you.
                             </p>
 
                             <div className="flex items-center gap-2">
@@ -324,7 +323,7 @@ const JoinWaitlistPage = () => {
                             </div>
 
                             {!isValid && !isChanging && !!inviteCode && (
-                                <ErrorAlert description="We couldn't find that user. Try another username!" />
+                                <ErrorAlert description="We couldn't find that member. Try another username." />
                             )}
 
                             {error && <ErrorAlert description={error} />}
