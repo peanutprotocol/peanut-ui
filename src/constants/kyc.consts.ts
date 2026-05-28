@@ -49,7 +49,6 @@ const SUMSUB_IN_PROGRESS_STATUSES: ReadonlySet<string> = new Set(['PENDING', 'IN
 export const isKycStatusApproved = (status: string | undefined | null): boolean =>
     !!status && APPROVED_STATUSES.has(status)
 
-
 /** check if a kyc status represents a failed/rejected state */
 export const isKycStatusFailed = (status: string | undefined | null): boolean => !!status && FAILED_STATUSES.has(status)
 

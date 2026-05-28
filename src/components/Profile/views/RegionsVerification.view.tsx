@@ -116,17 +116,14 @@ const RegionsVerification = () => {
     const clickedRegionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
     // the clicked region's downstream provider rail drives the modal state
     const clickedRegionRail = selectedRegion
-        ? railsForProvider(providerForRegionIntent(clickedRegionIntent)).find(
-              (rail) =>
-                  rail.status === 'pending' || rail.status === 'requires-info' || rail.status === 'blocked'
-          ) ?? railsForProvider(providerForRegionIntent(clickedRegionIntent))[0]
+        ? (railsForProvider(providerForRegionIntent(clickedRegionIntent)).find(
+              (rail) => rail.status === 'pending' || rail.status === 'requires-info' || rail.status === 'blocked'
+          ) ?? railsForProvider(providerForRegionIntent(clickedRegionIntent))[0])
         : undefined
     const clickedRailHasSumsubAction = clickedRegionRail
         ? nextActionsForRail(clickedRegionRail.id).some((action) => action.kind === 'sumsub')
         : false
-    const baseModalVariant = selectedRegion
-        ? getModalVariant(clickedRegionRail, clickedRailHasSumsubAction)
-        : null
+    const baseModalVariant = selectedRegion ? getModalVariant(clickedRegionRail, clickedRailHasSumsubAction) : null
 
     // override modal variant when sumsub is approved but a provider rejected the user
     // determines which provider is relevant based on the clicked region

@@ -138,12 +138,7 @@ export default function QRPayPage() {
     //   manteca 'pending' → IDENTITY_VERIFICATION_IN_PROGRESS.
     //   otherwise → REQUIRES_IDENTITY_VERIFICATION. While loading → LOADING.
     // userMessage ← the rejecting rail's reason.userMessage (was useProviderRejectionStatus).
-    const {
-        canDo,
-        railsForProvider,
-        isKycApproved,
-        isLoading: isLoadingCapabilities,
-    } = useCapabilities()
+    const { canDo, railsForProvider, isKycApproved, isLoading: isLoadingCapabilities } = useCapabilities()
     const { user, fetchUser } = useAuth()
 
     // On public routes (qr-pay) auth still auto-fetches via React Query, but trigger a one-shot

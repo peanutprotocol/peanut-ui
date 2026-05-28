@@ -82,9 +82,7 @@ const MantecaAddMoney: FC = () => {
     // intent is passed at call time: handleInitiateKyc('LATAM')
     const sumsubFlow = useMultiPhaseKycFlow({})
     const [showKycModal, setShowKycModal] = useState(false)
-    const isUserMantecaKycApprovedForCountry = selectedCountry
-        ? isVerifiedForCountry(rails, selectedCountry.id)
-        : false
+    const isUserMantecaKycApprovedForCountry = selectedCountry ? isVerifiedForCountry(rails, selectedCountry.id) : false
 
     // validates deposit amount against user's limits
     // currency comes from country config - hook normalizes it internally
