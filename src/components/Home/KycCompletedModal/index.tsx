@@ -133,7 +133,7 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             onClose={onClose}
             icon={'globe-lock' as IconName}
             iconContainerClassName="bg-primary-1 text-black"
-            title="Verification completed!"
+            title="🎉 You're unlocked"
             ctas={[
                 {
                     text: 'Start sending money',
@@ -151,7 +151,7 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             ]}
             content={
                 <div className="flex w-full flex-col items-start gap-2">
-                    <p>You now have access to:</p>
+                    <p>You can now:</p>
                     <InfoCard
                         variant="info"
                         itemIcon="check"

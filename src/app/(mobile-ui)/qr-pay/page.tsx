@@ -971,8 +971,8 @@ export default function QRPayPage() {
                 <ActionModal
                     visible={kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION}
                     onClose={onBack}
-                    title="Verify your identity to continue"
-                    description="You'll need to verify your identity before paying with a QR code. Don't worry it usually just takes a few minutes."
+                    title="Unlock QR payments"
+                    description="Confirm your ID to pay with a QR code. Takes about a minute."
                     icon={
                         methodIcon ? (
                             <Image src={methodIcon} alt="Payment method" width={48} height={48} priority />
@@ -980,7 +980,7 @@ export default function QRPayPage() {
                     }
                     ctas={[
                         {
-                            text: 'Verify now',
+                            text: 'Unlock now',
                             onClick: () =>
                                 sumsubFlow.handleInitiateKyc(
                                     'LATAM',
@@ -998,12 +998,12 @@ export default function QRPayPage() {
                 <ActionModal
                     visible={kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS}
                     onClose={onBack}
-                    title="Complete your verification"
-                    description="Your identity is being verified. If you did not finish the process, please continue to complete it."
+                    title="Almost there"
+                    description="We're confirming your ID. Pick up where you left off and you'll be paying in no time."
                     icon="shield"
                     ctas={[
                         {
-                            text: 'Continue verification',
+                            text: 'Continue',
                             onClick: () =>
                                 sumsubFlow.handleInitiateKyc(
                                     'LATAM',

@@ -69,10 +69,10 @@ const StartVerificationModal = ({
         <ActionModal
             visible={visible}
             onClose={onClose}
-            title={`Unlock ${selectedRegion?.name ?? 'Region'}`}
+            title={`Unlock ${selectedRegion?.name ?? 'this region'}`}
             description={
                 <p>
-                    To send and receive money in this region, verify your identity with a <b>government-issued ID.</b>
+                    To send and receive money here, confirm your ID with a <b>government-issued document.</b>
                 </p>
             }
             descriptionClassName="text-black"
@@ -83,7 +83,7 @@ const StartVerificationModal = ({
                 {
                     shadowSize: '4',
                     icon: 'check-circle',
-                    text: isLoading ? 'Loading...' : 'Verify now',
+                    text: isLoading ? 'Loading...' : 'Unlock now',
                     onClick: onStartVerification,
                     disabled: isLoading,
                 },

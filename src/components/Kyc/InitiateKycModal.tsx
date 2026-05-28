@@ -10,18 +10,18 @@ interface InitiateKycModalProps {
     isLoading?: boolean
     /** error message from a failed verify/resubmit attempt */
     error?: string | null
-    /** when set, shows provider-specific messaging instead of generic "verify your identity" */
+    /** when set, shows context-specific messaging instead of the generic "unlock" copy */
     variant?: 'default' | 'provider_rejection' | 'blocked' | 'cross_region'
     providerMessage?: string
     /** country name shown in cross_region variant (e.g. "Brazil", "Argentina") */
     regionName?: string
 }
 
-// confirmation modal shown before starting KYC or provider resubmission.
-// for fresh KYC: "Verify your identity"
-// for provider rejections: "We need extra documents"
-// for blocked: "Verification issue — contact support"
-// for cross-region: "Your identity is verified, submit a local ID"
+// confirmation modal shown before starting identity check or document resubmission.
+// default       → "Unlock your account" — verb is "unlock", ID check is the means
+// provider_rejection → "We need extra documents"
+// blocked       → "We couldn't unlock this — contact support"
+// cross_region  → "Unlock {region}"
 export const InitiateKycModal = ({
     visible,
     onClose,
@@ -39,22 +39,21 @@ export const InitiateKycModal = ({
 
     const getTitle = () => {
         if (error) return 'Something went wrong'
-        if (isBlocked) return 'Verification issue'
+        if (isBlocked) return 'We couldn’t unlock this'
         if (isProviderRejection) return 'We need extra documents'
-        if (isCrossRegion) return 'Submit local ID'
-        return 'Verify your identity'
+        if (isCrossRegion) return regionName ? `Unlock ${regionName}` : 'Unlock this region'
+        return 'Unlock your account'
     }
 
     const getDescription = () => {
         if (error) return `${error} Please contact support for assistance.`
-        if (isBlocked)
-            return providerMessage || "We couldn't verify your identity. Please contact support for assistance."
+        if (isBlocked) return providerMessage || "We couldn't confirm your ID. Please contact support for assistance."
         if (isProviderRejection) return providerMessage || 'Please upload a clearer photo of your ID to continue.'
         if (isCrossRegion) {
             const region = regionName ? ` from ${regionName}` : ''
-            return `Your identity is already verified. To enable payments in this region, we need a valid ID${region}.`
+            return `Your ID is already on file. To unlock payments here, we need a valid ID${region}.`
         }
-        return 'To continue, you need to complete identity verification. This usually takes just a few minutes.'
+        return 'Confirm your ID to unlock payments. Takes about a minute.'
     }
 
     const getCta = () => {
@@ -79,7 +78,7 @@ export const InitiateKycModal = ({
             }
         }
         return {
-            text: isLoading ? 'Loading...' : 'Start Verification',
+            text: isLoading ? 'Loading...' : 'Unlock now',
             onClick: onVerify,
             icon: 'check-circle' as IconName,
         }

@@ -31,9 +31,9 @@ const STEPS: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = {
     verify: {
         icon: 'globe-lock',
         iconBg: 'bg-primary-1',
-        title: 'Verify to get started',
-        description: 'Use bank accounts and other local payments methods',
-        ctaLabel: 'Verify now',
+        title: 'Unlock payments',
+        description: 'Bank deposits, QR codes, and local payment methods',
+        ctaLabel: 'Unlock now',
         href: '/profile/identity-verification',
     },
     deposit: {

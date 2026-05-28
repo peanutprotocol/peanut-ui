@@ -665,8 +665,8 @@ describe('GROUP 1: Loading & KYC Gate', () => {
 
         const modal = screen.getByTestId('action-modal')
         expect(modal).toBeInTheDocument()
-        expect(screen.getByText('Verify your identity to continue')).toBeInTheDocument()
-        expect(screen.getByText('Verify now')).toBeInTheDocument()
+        expect(screen.getByText('Unlock QR payments')).toBeInTheDocument()
+        expect(screen.getByText('Unlock now')).toBeInTheDocument()
     })
 
     test('KYC verification in progress shows ActionModal with continue button', () => {
@@ -676,8 +676,8 @@ describe('GROUP 1: Loading & KYC Gate', () => {
 
         const modal = screen.getByTestId('action-modal')
         expect(modal).toBeInTheDocument()
-        expect(screen.getByText('Complete your verification')).toBeInTheDocument()
-        expect(screen.getByText('Continue verification')).toBeInTheDocument()
+        expect(screen.getByText('Almost there')).toBeInTheDocument()
+        expect(screen.getByText('Continue')).toBeInTheDocument()
     })
 
     test('Manteca blocked rejection shows unavailable modal with rail reason message', () => {

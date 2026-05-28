@@ -304,7 +304,7 @@ export const useHomeCarouselCTAs = () => {
                 ),
                 description: (
                     <span>
-                        Verify your account to use <b>Mercado Pago</b> and <b>PIX</b> QR codes
+                        Confirm your ID to pay with <b>Mercado Pago</b> and <b>PIX</b> QR codes
                     </span>
                 ),
                 iconContainerClassName: 'bg-secondary-1',

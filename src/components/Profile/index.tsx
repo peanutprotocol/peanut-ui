@@ -77,7 +77,7 @@ export const Profile = () => {
 
                         <ProfileMenuItem
                             icon="globe-lock"
-                            label="Regions & Verification"
+                            label="Unlocked regions"
                             href="/profile/identity-verification"
                             position="middle"
                             highlight={!isUserSumsubKycApproved}

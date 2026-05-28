@@ -23,11 +23,11 @@ const KycVerifiedOrReviewModal = ({
         <ActionModal
             visible={isKycApprovedModalOpen}
             onClose={onClose}
-            title={isUnderReview ? 'Your verification is under review' : 'You’re already verified'}
+            title={isUnderReview ? 'Almost there' : 'You’re all set'}
             description={
                 isUnderReview
-                    ? 'Your verification is under review. You will be notified when it is completed.'
-                    : 'Your identity has already been successfully verified. No further action is needed.'
+                    ? 'Your bank deposits will be ready shortly — we’ll let you know the moment they’re live.'
+                    : 'Your account is ready to go.'
             }
             icon={isUnderReview ? 'clock' : 'shield'}
             ctas={[

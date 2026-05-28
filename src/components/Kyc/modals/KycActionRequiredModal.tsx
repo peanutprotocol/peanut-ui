@@ -23,8 +23,8 @@ export const KycActionRequiredModal = ({
             onClose={onClose}
             icon="alert"
             iconContainerClassName="bg-yellow-1"
-            title="Action needed"
-            description="We need more information to verify your identity."
+            title="One more step"
+            description="We need a bit more from you to confirm your ID."
             content={
                 <div className="w-full">
                     <RejectLabelsList rejectLabels={rejectLabels} />
@@ -32,7 +32,7 @@ export const KycActionRequiredModal = ({
             }
             ctas={[
                 {
-                    text: isLoading ? 'Loading...' : 'Re-submit verification',
+                    text: isLoading ? 'Loading...' : 'Continue',
                     icon: 'retry',
                     onClick: onResubmit,
                     disabled: isLoading,

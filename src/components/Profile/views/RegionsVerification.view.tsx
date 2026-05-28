@@ -176,7 +176,7 @@ const RegionsVerification = () => {
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-8">
-            <NavHeader title="Regions & Verification" onPrev={onBack} titleClassName="text-xl md:text-2xl" />
+            <NavHeader title="Unlocked regions" onPrev={onBack} titleClassName="text-xl md:text-2xl" />
             <div className="my-auto">
                 <h1 className="font-bold">Unlocked regions</h1>
                 <p className="mt-2 text-sm">
@@ -185,8 +185,8 @@ const RegionsVerification = () => {
 
                 {unlockedRegions.length === 0 && (
                     <EmptyState
-                        title="You haven't unlocked any countries yet."
-                        description="No countries unlocked yet. Complete verification to unlock countries and use supported payment methods."
+                        title="No regions unlocked yet"
+                        description="Tap a region below to confirm your ID and unlock payments there."
                         icon="globe-lock"
                         containerClassName="mt-3"
                     />
