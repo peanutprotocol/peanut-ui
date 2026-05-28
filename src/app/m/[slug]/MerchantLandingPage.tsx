@@ -4,12 +4,26 @@ import { Fragment, useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Marquee } from '@/components/LandingPage'
 import { FAQsPanel } from '@/components/Global/FAQs'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { Sparkle, Star } from '@/assets/illustrations'
 import type { Merchant, MenuItem } from './merchants'
+
+/**
+ * Static ARS card-vs-local-rail markup fallback. Mirrors the value in
+ * `CARD_FX_MARKUP_BY_CURRENCY.ARS` from `src/constants/payment.consts.ts`
+ * which lands with PR #2108 (qr-pay live card savings). Once that PR merges,
+ * swap `useCardMarkupArs` below for the shared `useCardMarkupRate` hook so the
+ * markup source-of-truth lives in one place.
+ *
+ * 9.13% — historical BCRA-vs-MEP spread + issuer markup.
+ */
+const ARS_CARD_MARKUP_FALLBACK = 0.0913
+/** Foreign-issuer FX fee on top of the network rate — Visa/MC ~mid-market, bank adds 2–3%. */
+const ISSUER_FX_FEE = 0.03
 
 const ctaButtonClassName =
     '!w-auto bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl'
@@ -244,6 +258,47 @@ function Polaroids({ items }: { items: NonNullable<Merchant['polaroids']> }) {
     )
 }
 
+/**
+ * Live card-vs-local-rail markup for ARS. Mirrors `getCardMarkupRate` in
+ * `src/app/actions/card-comparison.ts` (PR #2108 — DRY-reconcile to the
+ * shared `useCardMarkupRate` hook once that lands). Returns a fraction:
+ * card price = peanutPrice × (1 + rate). Falls back to the documented
+ * static spread when the BCRA fetch is unavailable, so the savings UI
+ * always has a defensible figure.
+ *
+ * BCRA-official is fetched from dolarapi.com — there's no internal source
+ * for the official rate; even the canonical Peanut implementation goes
+ * out for it.
+ */
+function useCardMarkupArs(usdToArs: number): number {
+    const { data } = useQuery<number>({
+        queryKey: ['merchantLpArsCardMarkup', usdToArs > 0 ? Math.round(usdToArs) : 0],
+        queryFn: async () => {
+            if (usdToArs <= 0) return ARS_CARD_MARKUP_FALLBACK
+            try {
+                const res = await fetch('https://dolarapi.com/v1/dolares/oficial')
+                if (res.ok) {
+                    const json = (await res.json()) as { venta?: number }
+                    const bcra = Number(json?.venta)
+                    if (Number.isFinite(bcra) && bcra > 0) {
+                        const effectiveCardRate = bcra * (1 - ISSUER_FX_FEE)
+                        const rate = usdToArs / effectiveCardRate - 1
+                        if (Number.isFinite(rate) && rate > 0) return rate
+                    }
+                }
+            } catch {
+                // swallow — never block the page on a third-party FX feed
+            }
+            return ARS_CARD_MARKUP_FALLBACK
+        },
+        staleTime: 5 * 60 * 1000,
+        gcTime: 10 * 60 * 1000,
+        refetchOnWindowFocus: true,
+        enabled: usdToArs > 0,
+    })
+    return data ?? ARS_CARD_MARKUP_FALLBACK
+}
+
 /* ---------------------------------------------------------------------------
  * §2 (menu variant) — Yellow. Mirrors /shhhhh §2 stat-card layout: yellow bg,
  * uppercase centered h2, body tagline, then a grid of white cards with the
@@ -266,6 +321,7 @@ function MenuFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'menu' }>
         enabled: fold.showLiveRate,
     })
     const arsPerUnit = currency === 'USD' ? usdArs : eurArs
+    const cardMarkup = useCardMarkupArs(usdArs)
 
     return (
         <section id="menu" className="relative overflow-hidden bg-secondary-1 px-4 py-24 text-center text-n-1 md:py-32">
@@ -293,11 +349,17 @@ function MenuFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'menu' }>
                     ))}
                 </div>
 
-                {fold.showLiveRate && <LiveRateBanner usdArs={usdArs} />}
+                {fold.showLiveRate && <LiveRateBanner usdArs={usdArs} cardMarkup={cardMarkup} />}
 
                 <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
                     {fold.items.map((item) => (
-                        <MenuItemCard key={item.name} item={item} currency={currency} arsPerUnit={arsPerUnit} />
+                        <MenuItemCard
+                            key={item.name}
+                            item={item}
+                            currency={currency}
+                            arsPerUnit={arsPerUnit}
+                            cardMarkup={cardMarkup}
+                        />
                     ))}
                 </div>
             </div>
@@ -309,14 +371,19 @@ function MenuItemCard({
     item,
     currency,
     arsPerUnit,
+    cardMarkup,
 }: {
     item: MenuItem
     currency: Currency
     /** ARS per 1 unit of the selected currency. 0 until the live rate loads. */
     arsPerUnit: number
+    /** Card-vs-Peanut markup (fraction). card price = peanut × (1 + cardMarkup). */
+    cardMarkup: number
 }) {
     const symbol = currency === 'USD' ? '$' : '€'
-    const price = arsPerUnit > 0 ? (item.priceARS / arsPerUnit).toFixed(2) : null
+    const peanutPrice = arsPerUnit > 0 ? item.priceARS / arsPerUnit : null
+    const peanutFmt = peanutPrice !== null ? peanutPrice.toFixed(2) : null
+    const cardFmt = peanutPrice !== null && cardMarkup > 0 ? (peanutPrice * (1 + cardMarkup)).toFixed(2) : null
 
     return (
         <div className="flex items-start justify-between gap-4 rounded-sm border-2 border-n-1 bg-white p-5 text-left shadow-[4px_4px_0_#000]">
@@ -325,13 +392,21 @@ function MenuItemCard({
                 <div className="mt-1 text-sm font-medium leading-snug opacity-70">{item.desc}</div>
             </div>
             <div className="flex flex-col items-end whitespace-nowrap pt-1">
-                <div className="font-roboto-flex-extrabold text-3xl font-extraBlack leading-none">
-                    {price === null ? (
+                {cardFmt !== null && (
+                    <div className="font-roboto-flex-extrabold text-base font-extraBlack leading-none line-through opacity-45">
+                        {symbol}
+                        {cardFmt}
+                    </div>
+                )}
+                <div
+                    className={`font-roboto-flex-extrabold text-3xl font-extraBlack leading-none ${cardFmt !== null ? 'mt-1' : ''}`}
+                >
+                    {peanutFmt === null ? (
                         <span className="opacity-30">{symbol}··</span>
                     ) : (
                         <>
                             {symbol}
-                            {price}
+                            {peanutFmt}
                             <span className="ml-1 text-[11px] font-extraBlack tracking-wider opacity-60">
                                 {currency}
                             </span>
@@ -343,10 +418,11 @@ function MenuItemCard({
     )
 }
 
-function LiveRateBanner({ usdArs }: { usdArs: number }) {
+function LiveRateBanner({ usdArs, cardMarkup }: { usdArs: number; cardMarkup: number }) {
     const isLive = usdArs > 0
+    const savingsPct = cardMarkup > 0 ? Math.round(cardMarkup * 100) : 0
     const copy = isLive
-        ? `Live · 1 USD = ${Math.round(usdArs).toLocaleString('en-US')} ARS`
+        ? `Live · 1 USD = ${Math.round(usdArs).toLocaleString('en-US')} ARS${savingsPct > 0 ? ` · save ~${savingsPct}% vs card` : ''}`
         : 'Loading live cripto-dólar rate…'
 
     return (
