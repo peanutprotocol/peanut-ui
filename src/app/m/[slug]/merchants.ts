@@ -155,6 +155,100 @@ export const MERCHANTS: Record<string, Merchant> = {
             },
         ],
     },
+
+    badigitalnomads: {
+        slug: 'badigitalnomads',
+        name: 'BA Digital Nomads',
+        metaDescription:
+            'Free $10 on your first Mercado Pago payment in Buenos Aires. Pay at the cripto-dólar rate — no DNI, no Argentine bank account. For the BA Digital Nomads community.',
+        heading: 'stop hunting\nfor cash.',
+        sub: 'Free $10 on your first payment. Skip the waitlist.',
+        body: 'Pay any Mercado Pago QR in Buenos Aires at the cripto-dólar rate — no Wise wait, no cash hunt, no DNI. Fund with USDC or a bank transfer. Built for nomads, by nomads.',
+        dealLabel: 'on us',
+        primaryCta: 'GET PEANUT',
+        secondaryLink: { label: 'how it works →', href: '#faq' },
+        marquee: [
+            'FOR NOMADS BY NOMADS',
+            'NO DNI',
+            'CRIPTO DÓLAR',
+            'MERCADO PAGO ANYWHERE',
+            'WISE-FREE',
+            '24/7 SUPPORT',
+        ],
+        fold2: {
+            type: 'faq',
+            heading: 'FAQ.',
+            liveRateQuestionId: 'blue-dollar',
+            questions: [
+                {
+                    id: 'transfer-or-card',
+                    question: 'Does it work like a transfer or a credit card?',
+                    answer: 'Neither — peanut is a wallet that lives on your phone. No bank account, no card swipe, no chargebacks. When you scan a Mercado Pago QR, peanut converts USD to ARS at the cripto-dólar rate and the merchant gets pesos instantly.',
+                },
+                {
+                    id: 'funding',
+                    question: 'How do I fund it?',
+                    answer: 'Two ways. Crypto: USDC or USDT on Solana, Arbitrum, Base, Tron, Avalanche, Polygon, or Ethereum — chain fees are on us. Bank: SEPA, ACH, or wire from any country. No Argentine bank account needed.',
+                },
+                {
+                    id: 'receiving',
+                    question: 'How do I receive money?',
+                    answer: 'Someone sends you a peanut link, or transfers directly to your peanut. Withdraw to a bank in EUR, USD, MXN, or GBP — or just hold it and spend it via Mercado Pago.',
+                },
+                {
+                    id: 'blue-dollar',
+                    question: 'What about the blue dollar?',
+                    answer: 'Peanut uses the cripto-dólar rate, which beats what your foreign credit card delivers in Argentina. The exact rate locks the moment you confirm — no slippage after.',
+                },
+                {
+                    id: 'fees',
+                    question: 'What are the fees?',
+                    answer: 'Free on deposit, withdrawal, links, and requests. Cross-currency conversion has a small spread baked into the rate you see on screen — no surprise add-ons. Chain fees are on us.',
+                },
+                {
+                    id: 'kyc',
+                    question: 'What about KYC?',
+                    answer: "Passport works — no DNI needed. Usually under 2 minutes. Accepted: passport (any country), national ID (any country), or a US driver's license.",
+                },
+                {
+                    id: 'limits',
+                    question: 'Is there a monthly limit?',
+                    answer: 'Argentina: $2,000/month combined fiat. Can be raised with a 90-day history or proof of remote income. Crypto deposits and withdrawals are uncapped.',
+                },
+                {
+                    id: 'support',
+                    question: 'What if something goes wrong?',
+                    answer: 'In-app chat, 24/7, under-1-hour average response. Failed payments auto-refund in under a minute.',
+                },
+            ],
+        },
+        install: { sub: '60 seconds. Skip the waitlist. $10 on us.' },
+        ambassador: {
+            kicker: '↓ FOR COMMUNITY ORGANISERS',
+            heading: 'Bring peanut to your nomad community.',
+            body: "Run a WhatsApp, Telegram, or in-person nomad community? We're piloting an ambassador track — custom landing page for your group, a per-signup share, and a direct line to the team. Not an MLM; one level deep, transparent rev-share.",
+            applyHref:
+                'mailto:konrad@peanut.me?subject=Ambassador%20application%20%E2%80%94%20BA%20Digital%20Nomads&body=Who%20are%20you%3F%0A%0AWhy%20would%20you%20be%20a%20great%20ambassador%3F%0A%0ALink%20to%20your%20community%3A%0A%0A',
+            applyLabel: 'Apply as an ambassador →',
+            fine: 'Replies from konrad@peanut.me, usually within 24h. v1 is a manual review — no automated funnel yet.',
+        },
+        polaroids: [
+            {
+                src: '/merchants/badigitalnomads/meetup.avif',
+                alt: 'BA Digital Nomads After Office crowd at a Palermo bar',
+                caption: 'after office, palermo',
+                rotation: -8,
+                position: 'tl',
+            },
+            {
+                src: '/merchants/badigitalnomads/coworking.jpg',
+                alt: 'Coworking space in Palermo',
+                caption: 'weekday cowork',
+                rotation: 6,
+                position: 'br',
+            },
+        ],
+    },
 }
 
 export const MERCHANT_SLUGS = Object.keys(MERCHANTS)
