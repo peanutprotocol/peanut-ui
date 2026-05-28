@@ -11,6 +11,16 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
+import type { RailCapability, CapabilityRestriction } from '@/types/capabilities'
+
+// Test-local subsets — only the fields the qr-pay page actually reads from each
+// fixture. Mirroring the full RailCapability/CapabilityRestriction types here
+// would force every fixture to supply method/country/currency + a non-nullable
+// reason message even when the page never touches them.
+type TestRail = Pick<RailCapability, 'id' | 'provider' | 'status' | 'operations'> & {
+    reason?: { userMessage: string | null }
+}
+type TestRestriction = { code: string; affectedRailIds: string[]; userMessage?: string | null }
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
 
@@ -436,8 +446,8 @@ const US_RESTRICTION_CODE = 'manteca_us_nationality'
 function capabilitiesForGate(state: GateState, opts: { userMessage?: string | null; usRestricted?: boolean } = {}) {
     const { userMessage = null, usRestricted = false } = opts
     // Map the target gate state to a single Manteca rail + (optional) restriction.
-    let rails: any[] = []
-    let restrictions: any[] = []
+    let rails: TestRail[] = []
+    let restrictions: TestRestriction[] = []
     let payEnabled = false
     switch (state) {
         case 'proceed_to_pay':
