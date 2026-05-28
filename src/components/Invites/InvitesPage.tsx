@@ -31,6 +31,11 @@ const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
 
 // Campaign that bypasses the waitlist with no invite code: /invite?campaign=skip.
 // Awarding the Skip Pass badge (backend /badge/award) also flips hasAppAccess.
+//
+// TODO(card-beta-open): collapse the skip flow (this constant, isSkipCampaign, the
+// auto-claim effect, handleClaimSkip, and the skip render branch) into the existing
+// invite-claim path. Kept WET on purpose — invite signup is a hot, untested code path;
+// duplication < refactor blast radius while Card Beta is live.
 const SKIP_CAMPAIGN = 'skip'
 
 function InvitePageContent() {

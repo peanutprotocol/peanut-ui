@@ -121,7 +121,9 @@ export const useZeroDev = () => {
                     console.error('Error accepting invite', e)
                 }
             } else if (campaignTag?.toLowerCase() === 'skip') {
-                // skip-the-waitlist campaign (no invite code): awarding grants app access + the Skip Pass badge
+                // skip-the-waitlist campaign (no invite code): awarding grants app access + the Skip Pass badge.
+                // TODO(card-beta-open): generalize to `else if (campaignTag)` once the skip path is folded
+                // into the invite-claim path (see InvitesPage SKIP_CAMPAIGN TODO).
                 try {
                     await invitesApi.awardBadge(campaignTag)
                     posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, { campaign_tag: campaignTag })
