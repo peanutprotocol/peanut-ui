@@ -1,20 +1,60 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useAuth } from '@/context/authContext'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
-import { useRailStatusTracking } from '@/hooks/useRailStatusTracking'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { deriveBridgeGate } from '@/utils/bridge-gate.utils'
 import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
-import { type KycModalPhase } from '@/interfaces'
+import { type KycModalPhase, type IUserProfile } from '@/interfaces'
+import { type UserCapabilities } from '@/types/capabilities'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const PREPARING_TIMEOUT_MS = 30000
 
+const EMPTY_CAPABILITIES: UserCapabilities = { rails: [], nextActions: [], restrictions: [] }
+
+/**
+ * Phase-transition signals derived from the backend capability block — the
+ * capability-model equivalents of the three `useRailStatusTracking` reads this
+ * orchestrator used to drive its preparing → bridge_tos → complete machine.
+ *
+ * MIGRATION-REVIEW: replaces the raw `user.rails` (provider-code + uppercase
+ * provider-status) reads. Mappings, each faithful to the old derivations:
+ *   - needsBridgeTos ← old `useRailStatusTracking.needsBridgeTos` / the inline
+ *     `BRIDGE rail status === 'REQUIRES_INFORMATION'` check. Reuses
+ *     `deriveBridgeGate` so the "Bridge requires-info whose unlock is a
+ *     bridge-tos action" detection is identical to the bank-flow gate (no
+ *     duplicated provider logic). `isKycApproved` is unused by the accept_tos
+ *     branch (it sits above the kyc check in deriveBridgeGate's priority order),
+ *     so the local proxy below is safe here.
+ *   - anyPending ← old inline `rails.some(status === 'PENDING')` ← rail
+ *     `status === 'pending'` (provisioning, no user action).
+ *   - allSettled ← old `useRailStatusTracking.allSettled` = at least one rail
+ *     exists AND no provider group is still `setting_up` (PENDING) ← rails
+ *     non-empty AND no rail `pending`.
+ */
+function deriveCapabilityPhaseSignals(capabilities: UserCapabilities | undefined) {
+    const { rails, nextActions } = capabilities ?? EMPTY_CAPABILITIES
+    const anyPending = rails.some((rail) => rail.status === 'pending')
+    // any enabled rail ⇒ identity cleared at least once (established proxy — see
+    // bridge-gate.utils.ts header). Only feeds deriveBridgeGate's lower-priority
+    // branches; the accept_tos branch we read here doesn't depend on it.
+    const isKycApproved = rails.some((rail) => rail.status === 'enabled')
+    return {
+        needsBridgeTos: deriveBridgeGate(rails, nextActions, isKycApproved).type === 'accept_tos',
+        anyPending,
+        // mirrors old allSettled: empty rails are NOT settled (still provisioning)
+        allSettled: rails.length > 0 && !anyPending,
+        railCount: rails.length,
+    }
+}
+
 /**
  * confirms bridge ToS acceptance (with one retry) then polls fetchUser
- * until bridge rails leave REQUIRES_INFORMATION. max 3 attempts × 2s.
+ * until bridge rails leave the TOS-required state. max 3 attempts × 2s.
  */
-export async function confirmBridgeTosAndAwaitRails(fetchUser: () => Promise<any>) {
+export async function confirmBridgeTosAndAwaitRails(fetchUser: () => Promise<IUserProfile | null>) {
     const result = await confirmBridgeTos()
     if (!result.data?.accepted) {
         await new Promise((resolve) => setTimeout(resolve, 2000))
@@ -23,9 +63,10 @@ export async function confirmBridgeTosAndAwaitRails(fetchUser: () => Promise<any
 
     for (let i = 0; i < 3; i++) {
         const updatedUser = await fetchUser()
-        const stillNeedsTos = (updatedUser?.rails ?? []).some(
-            (r: any) => r.rail.provider.code === 'BRIDGE' && r.status === 'REQUIRES_INFORMATION'
-        )
+        // MIGRATION-REVIEW: old check was `BRIDGE rail status === 'REQUIRES_INFORMATION'`
+        // over raw `updatedUser.rails`. Now reads the fresh capability block from the
+        // same fetch result via deriveBridgeGate (accept_tos == Bridge still needs ToS).
+        const stillNeedsTos = deriveCapabilityPhaseSignals(updatedUser?.capabilities).needsBridgeTos
         if (!stillNeedsTos) break
         if (i < 2) await new Promise((resolve) => setTimeout(resolve, 2000))
     }
@@ -38,8 +79,8 @@ interface UseMultiPhaseKycFlowOptions {
 }
 
 /**
- * reusable hook that wraps useSumsubKycFlow + useRailStatusTracking
- * to provide a complete multi-phase kyc flow:
+ * reusable hook that wraps useSumsubKycFlow (WebSDK lifecycle) + useCapabilities
+ * (backend rail/phase signals) to provide a complete multi-phase kyc flow:
  *   verifying → preparing → bridge_tos (if applicable) → complete
  *
  * use this hook anywhere kyc is initiated. pair with SumsubKycModals
@@ -67,8 +108,19 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
     // ref for closeVerificationProgressModal (avoids circular dep with completeFlow)
     const closeVerificationModalRef = useRef<() => void>(() => {})
 
-    // rail tracking
-    const { allSettled, needsBridgeTos, startTracking, stopTracking } = useRailStatusTracking()
+    // rail tracking — sourced from the backend capability model.
+    // MIGRATION-REVIEW: replaces useRailStatusTracking. `allSettled` / `needsBridgeTos`
+    // are now derived reactively from `useCapabilities()` (its rails update as the
+    // user query is refetched). useCapabilities AUTO-POLLS the user query every ~4s
+    // while any rail is `pending` (D4) and self-terminates when settled, so the old
+    // explicit startTracking/stopTracking poll-lifecycle is no longer needed — they
+    // are retained as no-ops to keep this hook's internal call sites untouched.
+    // The old WebSocket-driven instant rail refresh is replaced by that 4s poll
+    // (the old hook already had the same 4s poll as a fallback).
+    const { capabilities } = useCapabilities()
+    const { allSettled, needsBridgeTos } = useMemo(() => deriveCapabilityPhaseSignals(capabilities), [capabilities])
+    const startTracking = useCallback(() => {}, [])
+    const stopTracking = useCallback(() => {}, [])
 
     const clearPreparingTimer = useCallback(() => {
         if (preparingTimerRef.current) {
@@ -109,11 +161,18 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
         }
 
         const updatedUser = await fetchUser()
-        const rails = updatedUser?.rails ?? []
-
-        const bridgeNeedsTos = rails.some(
-            (r) => r.rail.provider.code === 'BRIDGE' && r.status === 'REQUIRES_INFORMATION'
-        )
+        // MIGRATION-REVIEW: post-approval branching now reads the FRESH capability
+        // block from this fetchUser() result (not the reactive useCapabilities()
+        // snapshot, which would be stale within this synchronous call). Faithful to
+        // the old raw `updatedUser.rails` reads:
+        //   bridgeNeedsTos ← Bridge requires-info + bridge-tos action (was REQUIRES_INFORMATION)
+        //   anyPending     ← any rail `pending` (was PENDING)
+        //   railCount === 0 ← no rails provisioned yet
+        const {
+            needsBridgeTos: bridgeNeedsTos,
+            anyPending,
+            railCount,
+        } = deriveCapabilityPhaseSignals(updatedUser?.capabilities)
 
         if (bridgeNeedsTos) {
             setModalPhase('bridge_tos')
@@ -122,9 +181,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
             return
         }
 
-        const anyPending = rails.some((r) => r.status === 'PENDING')
-
-        if (anyPending || (rails.length === 0 && isRealtimeFlowRef.current)) {
+        if (anyPending || (railCount === 0 && isRealtimeFlowRef.current)) {
             // rails still being set up — show preparing and start tracking
             setModalPhase('preparing')
             setForceShowModal(true)
