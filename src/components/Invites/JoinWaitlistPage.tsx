@@ -285,13 +285,13 @@ const JoinWaitlistPage = () => {
 
                             <h2 className="text-xl font-bold">Prisoner #{data?.position}</h2>
                             <p className="text-base font-medium">
-                                No bail without an invite. Got a code? Prove it below. No code? Back to the waitlist. Go
-                                beg your friend!
+                                Who invited you? Drop their Peanut username below to make bail. No friend on Peanut?
+                                Back to the waitlist — go beg one!
                             </p>
 
                             <div className="flex items-center gap-2">
                                 <ValidatedInput
-                                    placeholder="Enter an invite code"
+                                    placeholder="Their username"
                                     value={inviteCode}
                                     debounceTime={750}
                                     validate={validateInviteCode}
@@ -324,7 +324,7 @@ const JoinWaitlistPage = () => {
                             </div>
 
                             {!isValid && !isChanging && !!inviteCode && (
-                                <ErrorAlert description="This code won't take you out of jail. Try another one!" />
+                                <ErrorAlert description="We couldn't find that user. Try another username!" />
                             )}
 
                             {error && <ErrorAlert description={error} />}

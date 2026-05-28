@@ -871,25 +871,8 @@ export function slugify(text: string): string {
         .replace(/^-+|-+$/g, '') // Remove leading and trailing hyphens
 }
 
-/**
- * Generate a deterministic 3-digit suffix from username — pure hash.
- *
- * Duplicated on the backend (peanut-api-ts/src/utils/invite.ts). Parity is
- * enforced by shared test vectors in __tests__/invite-suffix.test.ts and
- * peanut-api-ts/src/utils/invite.test.ts. Don't edit one without the other.
- */
-export const generateInviteCodeSuffix = (username: string): string => {
-    const lowerUsername = username.toLowerCase()
-    // Create a simple hash from the username
-    const hash = lowerUsername.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-    // Generate 3 digits between 100-999
-    const threeDigits = 100 + (hash % 900)
-    return threeDigits.toString()
-}
-
 export const generateInviteCodeLink = (username: string) => {
-    const suffix = generateInviteCodeSuffix(username)
-    const inviteCode = `${username.toUpperCase()}INVITESYOU${suffix}`
+    const inviteCode = username.toLowerCase()
     const inviteLink = shareableUrl(`/invite?code=${inviteCode}`)
     return { inviteLink, inviteCode }
 }

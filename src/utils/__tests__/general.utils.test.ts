@@ -1,6 +1,7 @@
 import {
     formatAmount,
     formatExtendedNumber,
+    generateInviteCodeLink,
     getRequestLink,
     formatTokenAmount,
     isUuid,
@@ -466,6 +467,31 @@ describe('General Utilities', () => {
 
         it('returns empty string unchanged', () => {
             expect(printableUserHandle('')).toBe('')
+        })
+    })
+
+    describe('generateInviteCodeLink', () => {
+        const originalLocation = window.location
+        beforeAll(() => {
+            Object.defineProperty(window, 'location', {
+                value: new URL('https://peanut.example.org'),
+                writable: true,
+            })
+        })
+        afterAll(() => {
+            Object.defineProperty(window, 'location', { value: originalLocation, writable: true })
+        })
+
+        it('emits a username-only invite code (no INVITESYOU, no suffix)', () => {
+            const { inviteCode, inviteLink } = generateInviteCodeLink('alice')
+            expect(inviteCode).toBe('alice')
+            expect(inviteLink).toBe('https://peanut.example.org/invite?code=alice')
+        })
+
+        it('lowercases mixed-case usernames', () => {
+            const { inviteCode, inviteLink } = generateInviteCodeLink('Alice')
+            expect(inviteCode).toBe('alice')
+            expect(inviteLink).toBe('https://peanut.example.org/invite?code=alice')
         })
     })
 })
