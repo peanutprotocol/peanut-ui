@@ -4,7 +4,7 @@ import { getFromLocalStorage } from '@/utils/general.utils'
 import { formatUnits } from 'viem'
 import { type Hash } from 'viem'
 import { getTokenDetails } from '@/utils/general.utils'
-import { getCurrencyPrice } from '@/app/actions/currency'
+import { getCachedCurrencyPrice } from '@/app/actions/currency'
 import { type ChargeEntry } from '@/services/services.types'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { shareableUrl } from '@/utils/url.utils'
@@ -353,7 +353,7 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             }
             if (usdAmount === entry.currency?.amount && entry.currency?.code && entry.currency?.code !== 'USD') {
                 try {
-                    const price = await getCurrencyPrice(entry.currency.code)
+                    const price = await getCachedCurrencyPrice(entry.currency.code)
                     usdAmount = (Number(entry.currency.amount) / price.buy).toString()
                 } catch (error) {
                     console.error(
@@ -380,7 +380,7 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
 
                 if (!hasCurrencyAmount || !isFinite(currNum) || approximatelyEqual) {
                     try {
-                        const price = await getCurrencyPrice(entry.currency.code)
+                        const price = await getCachedCurrencyPrice(entry.currency.code)
                         const converted = Number.isFinite(usdNum) && price?.sell ? usdNum * price.sell : usdNum
                         entry.currency.amount = converted.toString()
                     } catch (error) {

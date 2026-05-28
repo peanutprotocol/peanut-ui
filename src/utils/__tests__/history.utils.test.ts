@@ -15,7 +15,7 @@
 import { completeHistoryEntry } from '../history.utils'
 import type { HistoryEntry } from '../history.utils'
 
-jest.mock('@/app/actions/currency', () => ({ getCurrencyPrice: jest.fn() }))
+jest.mock('@/app/actions/currency', () => ({ getCachedCurrencyPrice: jest.fn() }))
 jest.mock('@/utils/general.utils', () => ({
     getFromLocalStorage: jest.fn(() => null),
     getTokenDetails: jest.fn(() => ({ symbol: 'USDC', decimals: 6 })),

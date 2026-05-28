@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getCurrencyPrice } from '@/app/actions/currency'
+import { getCachedCurrencyPrice } from '@/app/actions/currency'
 
 export const SYMBOLS_BY_CURRENCY_CODE: Record<string, string> = {
     ARS: 'ARS',
@@ -44,7 +44,7 @@ export const useCurrency = (currencyCode: string | null) => {
         }
 
         setIsLoading(true)
-        getCurrencyPrice(code)
+        getCachedCurrencyPrice(code)
             .then((price) => {
                 setSymbol(SYMBOLS_BY_CURRENCY_CODE[code])
                 setPrice(price)
