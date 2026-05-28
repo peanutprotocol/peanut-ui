@@ -39,6 +39,7 @@ import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
 import { captureException } from '@sentry/nextjs'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
@@ -99,11 +100,10 @@ export default function MantecaWithdrawFlow() {
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
     const queryClient = useQueryClient()
-    // MIGRATION-REVIEW: replaces useKycStatus().isUserSumsubKycApproved (→ isKycApproved
-    // proxy), useIdentityVerification().isVerifiedForCountry (→ regions.utils over capability
-    // rails) and useProviderRejectionStatus().manteca (→ deriveProviderRejection over rails).
-    const { rails, isKycApproved } = useCapabilities()
-    const isUserSumsubKycApproved = isKycApproved
+    // The pool→full upgrade gate reads identityVerification (Sumsub-cleared
+    // the human), not rail-approval. Same fix-pattern as Profile/ProfileEdit.
+    const { rails } = useCapabilities()
+    const { isVerified: isUserIdentityVerified } = useIdentityVerification()
     const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA'), [rails])
     const { hasPendingTransactions } = usePendingTransactions()
 
@@ -602,7 +602,7 @@ export default function MantecaWithdrawFlow() {
                         ? 'blocked'
                         : mantecaRejection.state === 'fixable'
                           ? 'provider_rejection'
-                          : isUserSumsubKycApproved
+                          : isUserIdentityVerified
                             ? 'cross_region'
                             : 'default'
                 }

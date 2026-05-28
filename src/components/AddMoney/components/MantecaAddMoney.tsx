@@ -12,6 +12,7 @@ import { mantecaApi } from '@/services/manteca'
 import { parseUnits } from 'viem'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { isVerifiedForCountry } from '@/utils/regions.utils'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
@@ -69,12 +70,12 @@ const MantecaAddMoney: FC = () => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
     const onBack = useSafeBack(addMoneyCountryUrl(selectedCountryPath))
-    // MIGRATION-REVIEW: replaces useKycStatus().isUserSumsubKycApproved (→ isKycApproved
-    // proxy: any enabled rail ⇒ identity cleared), useIdentityVerification().isVerifiedForCountry
-    // (→ regions.utils.isVerifiedForCountry over capability rails), and
-    // useProviderRejectionStatus().manteca (→ deriveProviderRejection over the Manteca rails).
-    const { rails, isKycApproved } = useCapabilities()
-    const isUserSumsubKycApproved = isKycApproved
+    // The pool→full upgrade gate asks "did the user clear ID verification?",
+    // not "do they have an enabled rail elsewhere?" — read the identity
+    // signal directly (Sumsub-cleared the human) instead of the old
+    // rail-approval proxy. Same fix-pattern as Profile/ProfileEdit.
+    const { rails } = useCapabilities()
+    const { isVerified: isUserIdentityVerified } = useIdentityVerification()
     const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA'), [rails])
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
     // inline sumsub kyc flow for manteca users who need LATAM verification
@@ -254,7 +255,7 @@ const MantecaAddMoney: FC = () => {
                             ? 'blocked'
                             : mantecaRejection.state === 'fixable'
                               ? 'provider_rejection'
-                              : isUserSumsubKycApproved
+                              : isUserIdentityVerified
                                 ? 'cross_region'
                                 : 'default'
                     }
