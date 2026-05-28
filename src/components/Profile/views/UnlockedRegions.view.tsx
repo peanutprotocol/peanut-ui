@@ -5,7 +5,7 @@ import { getCardPosition } from '@/components/Global/Card/card.utils'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import StartVerificationModal from '@/components/IdentityVerification/StartVerificationModal'
+import UnlockRegionModal from '@/components/IdentityVerification/UnlockRegionModal'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
 import { KycActionRequiredModal } from '@/components/Kyc/modals/KycActionRequiredModal'
@@ -62,7 +62,7 @@ function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: bool
     }
 }
 
-const RegionsVerification = () => {
+const UnlockedRegions = () => {
     const onBack = useSafeBack('/profile', { replace: true })
     const { rails, isKycApproved, railsForProvider, nextActionsForRail } = useCapabilities()
     // MIGRATION-REVIEW: unlockedRegions/lockedRegions previously came from
@@ -204,7 +204,7 @@ const RegionsVerification = () => {
                 )}
             </div>
 
-            <StartVerificationModal
+            <UnlockRegionModal
                 visible={modalVariant === 'start'}
                 onClose={handleModalClose}
                 onStartVerification={handleStartKyc}
@@ -278,7 +278,7 @@ const RegionsVerification = () => {
     )
 }
 
-export default RegionsVerification
+export default UnlockedRegions
 
 interface RegionsListProps {
     regions: Region[]

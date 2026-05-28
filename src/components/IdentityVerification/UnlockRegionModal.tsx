@@ -54,7 +54,7 @@ interface StartVerificationModalProps {
     isLoading?: boolean
 }
 
-const StartVerificationModal = ({
+const UnlockRegionModal = ({
     visible,
     onClose,
     onStartVerification,
@@ -108,4 +108,4 @@ const StartVerificationModal = ({
     )
 }
 
-export default StartVerificationModal
+export default UnlockRegionModal

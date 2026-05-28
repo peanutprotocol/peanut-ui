@@ -68,7 +68,7 @@ const getUnlockItems = (countryTitle?: string): UnlockItem[] => [
     },
 ]
 
-const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     const [approvedCountryData, setApprovedCountryData] = useState<CountryData | null>(null)
 
     // Provider-blind: the celebration modal splits its copy by what CHANNEL the
@@ -174,4 +174,4 @@ const KycCompletedModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     )
 }
 
-export default KycCompletedModal
+export default WelcomeUnlockModal

@@ -45,7 +45,7 @@ const BalanceWarningModal = lazy(() => import('@/components/Global/BalanceWarnin
 const SetupNotificationsModal = lazy(() => import('@/components/Notifications/SetupNotificationsModal'))
 const NoMoreJailModal = lazy(() => import('@/components/Global/NoMoreJailModal'))
 const EarlyUserModal = lazy(() => import('@/components/Global/EarlyUserModal'))
-const KycCompletedModal = lazy(() => import('@/components/Home/KycCompletedModal'))
+const WelcomeUnlockModal = lazy(() => import('@/components/Home/WelcomeUnlockModal'))
 const IosPwaInstallModal = lazy(() => import('@/components/Global/IosPwaInstallModal'))
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
@@ -247,7 +247,7 @@ export default function Home() {
 
             <LazyLoadErrorBoundary>
                 <Suspense fallback={null}>
-                    <KycCompletedModal
+                    <WelcomeUnlockModal
                         isOpen={showKycModal && !showBalanceWarningModal}
                         onClose={async () => {
                             // close the modal immediately for better ux
