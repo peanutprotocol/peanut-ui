@@ -23,8 +23,8 @@ import {
     getTokenLogo,
     getChainLogo,
 } from '@/utils/general.utils'
-import { isUserKycVerified } from '@/constants/kyc.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { getUserById } from '@/app/actions/users'
 import * as Sentry from '@sentry/nextjs'
 import { useQuery } from '@tanstack/react-query'
 import type { Hash } from 'viem'
@@ -46,6 +46,10 @@ export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
     const [linkState, setLinkState] = useState<_consts.claimLinkStateType>(_consts.claimLinkStateType.LOADING)
     const [claimLinkData, setClaimLinkData] = useState<ClaimLinkData | undefined>(undefined)
+    // Provider-blind verified badge: enriched via getUserById once we have the
+    // sender's userId. The peanut-sdk doesn't carry isVerified (its sender shape
+    // predates the read-model rip-out), so we fetch the live signal from our BE.
+    const [senderIsVerified, setSenderIsVerified] = useState<boolean>(false)
     const [attachment, setAttachment] = useState<{ message: string | undefined; attachmentUrl: string | undefined }>({
         message: undefined,
         attachmentUrl: undefined,
@@ -195,14 +199,33 @@ export const Claim = ({}) => {
             peanutFeeDetails: {
                 amountDisplay: '$ 0.00',
             },
-            isVerified: isUserKycVerified(claimLinkData.sender),
+            isVerified: senderIsVerified,
             haveSentMoneyToUser: claimLinkData.sender?.userId
                 ? interactions[claimLinkData.sender?.userId] || false
                 : false,
         }
 
         return details as TransactionDetails
-    }, [claimLinkData, interactions])
+    }, [claimLinkData, interactions, senderIsVerified])
+
+    // Enrich the sender with a live verified-badge fetch once we have their userId.
+    // Falls back to false on error (the badge is a trust signal — not lying is the
+    // safest default).
+    useEffect(() => {
+        const senderUserId = claimLinkData?.sender?.userId
+        if (!senderUserId) return
+        let cancelled = false
+        getUserById(senderUserId)
+            .then((u) => {
+                if (!cancelled) setSenderIsVerified(u?.isVerified ?? false)
+            })
+            .catch(() => {
+                if (!cancelled) setSenderIsVerified(false)
+            })
+        return () => {
+            cancelled = true
+        }
+    }, [claimLinkData?.sender?.userId])
 
     const handleOnNext = () => {
         if (step.idx === _consts.CLAIM_SCREEN_FLOW.length - 1) return

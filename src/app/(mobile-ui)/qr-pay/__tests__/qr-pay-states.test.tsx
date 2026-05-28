@@ -688,22 +688,11 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         expect(screen.getByText('Upload document')).toBeInTheDocument()
     })
 
-    test('US-nationality restriction on blocked rail falls through to pay (Sumsub pool fallback)', async () => {
-        // Blocked full-tier Manteca rail, but a US-nationality restriction covers it → the backend
-        // permits QR via the Sumsub pool, so the page must PROCEED (no blocked modal).
-        setCapabilitiesGate('provider_rejection_blocked', {
-            userMessage: 'US restriction',
-            usRestricted: true,
-        })
-
-        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
-
-        // Should not render the blocked modal — instead loads the payment flow.
-        expect(screen.queryByText('QR payments are not available')).not.toBeInTheDocument()
-        await waitFor(() => {
-            expect(screen.getByText('Test Merchant')).toBeInTheDocument()
-        })
-    })
+    // The prior "US-nationality restriction falls through to pay" test was deleted
+    // 2026-05-28: the BE resolver now codifies the compliance ruling directly —
+    // Sumsub-approved US-restricted users get rail status:'enabled' with
+    // operations.pay='enabled', so `canDo('pay')` returns true and the existing
+    // PROCEED_TO_PAY tests cover this path. No FE special-case to test anymore.
 
     test('KYC passed but payment data still loading shows PeanutLoading', async () => {
         // KYC passed, but Manteca payment lock hasn't loaded yet

@@ -60,7 +60,6 @@ import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps, isBrUserEligibleForLimitIncrease } from '@/features/limits/utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { MANTECA_US_NATIONALITY_CAPABILITY_CODE } from '@/types/capabilities'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
@@ -129,13 +128,12 @@ export default function QRPayPage() {
 
     // MIGRATION-REVIEW: QR-pay KYC gate, formerly useQrKycGate + useKycStatus.
     // Derived inline from the backend capability model. Mapping:
-    //   canDo('pay',{manteca}) → PROCEED_TO_PAY. This is the pool-tier fallback-to-ready fix:
-    //     the Sumsub-pool rail is top-level status:'enabled' with operations.pay='enabled',
-    //     so canDo('pay') is true for pool users and the rejection branches never fire for them
-    //     (the old hook special-cased "US-restricted full-tier rejected + Sumsub-approved" to
-    //     reach PROCEED; the backend now expresses that directly as an enabled pay op).
-    //   manteca top-level 'blocked' → PROVIDER_REJECTION_BLOCKED, EXCEPT when a US-nationality
-    //     restriction (restrictionForRail) covers the rail — then PROCEED (BE pool fallback).
+    //   canDo('pay',{manteca}) → PROCEED_TO_PAY. The BE resolver expresses both
+    //     paths uniformly as an enabled pay op: Sumsub-approved pool users AND
+    //     Sumsub-approved US-nationality-restricted users alike (compliance
+    //     ratified 2026-05-28). No FE special-case needed.
+    //   manteca top-level 'blocked' → PROVIDER_REJECTION_BLOCKED (genuine block —
+    //     no Sumsub, or a non-restriction final rejection).
     //   manteca top-level 'requires-info' → PROVIDER_REJECTION_FIXABLE.
     //   manteca 'pending' → IDENTITY_VERIFICATION_IN_PROGRESS.
     //   otherwise → REQUIRES_IDENTITY_VERIFICATION. While loading → LOADING.
@@ -143,7 +141,6 @@ export default function QRPayPage() {
     const {
         canDo,
         railsForProvider,
-        restrictionForRail,
         isKycApproved,
         isLoading: isLoadingCapabilities,
     } = useCapabilities()
@@ -169,12 +166,10 @@ export default function QRPayPage() {
         const mantecaRails = railsForProvider('manteca')
         const blockedRail = mantecaRails.find((rail) => rail.status === 'blocked')
         if (blockedRail) {
-            // US-nationality restriction on the rail → BE permits QR via the Sumsub pool; proceed.
-            // NOTE: compares the capability-contract code emitted by the resolver
-            // ('manteca_us_nationality'), NOT the legacy provider-metadata code in manteca.consts.
-            if (restrictionForRail(blockedRail.id)?.code === MANTECA_US_NATIONALITY_CAPABILITY_CODE) {
-                return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: null as string | null }
-            }
+            // Blocked === blocked. The US-nationality refinement is now applied in
+            // the resolver itself (Sumsub-approved + US-restricted → status:enabled
+            // + operations.pay:enabled, caught by canDo above), so a `blocked`
+            // status here is a genuine block.
             return {
                 kycGateState: QrKycState.PROVIDER_REJECTION_BLOCKED,
                 qrKycUserMessage: blockedRail.reason?.userMessage ?? null,
@@ -194,7 +189,7 @@ export default function QRPayPage() {
             }
         }
         return { kycGateState: QrKycState.REQUIRES_IDENTITY_VERIFICATION, qrKycUserMessage: null as string | null }
-    }, [isLoadingCapabilities, canDo, railsForProvider, restrictionForRail])
+    }, [isLoadingCapabilities, canDo, railsForProvider])
 
     const shouldBlockPay = kycGateState !== QrKycState.PROCEED_TO_PAY
 

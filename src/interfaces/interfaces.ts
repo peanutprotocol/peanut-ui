@@ -227,6 +227,8 @@ export interface User {
 export type CounterpartyUser = User & {
     /** Has an enabled Bridge bank rail; a guest can off-ramp through them. */
     canReceiveBankOfframp: boolean
+    /** Provider-agnostic identity-verified signal (BE-computed). The "verified" badge. */
+    isVerified: boolean
 }
 
 // based on the API's AccountType
@@ -320,7 +322,8 @@ export interface Contact {
     userId: string
     username: string
     fullName: string | null
-    bridgeKycStatus: string | null
+    /** Provider-agnostic verified badge (BE-computed `computeIsVerified`). */
+    isVerified: boolean
     showFullName: boolean
     relationshipTypes: ('inviter' | 'invitee' | 'sent_money' | 'received_money')[]
     firstInteractionDate: string

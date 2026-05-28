@@ -49,7 +49,6 @@ export interface CapabilityReason {
  * `MANTECA_US_NATIONALITY_RESTRICTION_CODE` ('MANTECA_US_NATIONALITY_RESTRICTED') in
  * @/constants/manteca.consts — do not conflate them.
  */
-export const MANTECA_US_NATIONALITY_CAPABILITY_CODE = 'manteca_us_nationality'
 
 export interface RailCapability {
     id: RailId
