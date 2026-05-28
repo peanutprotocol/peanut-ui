@@ -10,20 +10,33 @@ import { Marquee } from '@/components/LandingPage'
 import { FAQsPanel } from '@/components/Global/FAQs'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { Sparkle, Star } from '@/assets/illustrations'
+import { getArsCardMarkup } from './card-comparison'
 import type { Merchant, MenuItem } from './merchants'
 
-/**
- * Static ARS card-vs-local-rail markup fallback. Mirrors the value in
- * `CARD_FX_MARKUP_BY_CURRENCY.ARS` from `src/constants/payment.consts.ts`
- * which lands with PR #2108 (qr-pay live card savings). Once that PR merges,
- * swap `useCardMarkupArs` below for the shared `useCardMarkupRate` hook so the
- * markup source-of-truth lives in one place.
- *
- * 9.13% — historical BCRA-vs-MEP spread + issuer markup.
- */
+/** Documented empirical ARS card-vs-Peanut spread + issuer markup — used
+ *  as the immediate render value and the fallback when the live fetch fails.
+ *  Mirrors `CARD_FX_MARKUP_BY_CURRENCY.ARS` from PR #2108. */
 const ARS_CARD_MARKUP_FALLBACK = 0.0913
-/** Foreign-issuer FX fee on top of the network rate — Visa/MC ~mid-market, bank adds 2–3%. */
-const ISSUER_FX_FEE = 0.03
+
+/**
+ * Client wrapper around the `getArsCardMarkup` server action — keeps the
+ * third-party dolarapi.com call off the client and lets Next edge-cache the
+ * response for 5min. React-query layers an additional 5min client cache and
+ * re-fetches on focus so the displayed savings stays fresh without us having
+ * to think about it. Returns the static fallback while loading so the menu
+ * cards and banner can render unconditionally.
+ */
+function useCardMarkupArs(criptoUsdToArs: number): number {
+    const { data } = useQuery({
+        queryKey: ['merchantLpArsCardMarkup', criptoUsdToArs > 0 ? Math.round(criptoUsdToArs) : 0],
+        queryFn: () => getArsCardMarkup(criptoUsdToArs),
+        staleTime: 5 * 60 * 1000,
+        gcTime: 10 * 60 * 1000,
+        refetchOnWindowFocus: true,
+        enabled: criptoUsdToArs > 0,
+    })
+    return data?.rate ?? ARS_CARD_MARKUP_FALLBACK
+}
 
 const ctaButtonClassName =
     '!w-auto bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl'
@@ -256,47 +269,6 @@ function Polaroids({ items }: { items: NonNullable<Merchant['polaroids']> }) {
             })}
         </>
     )
-}
-
-/**
- * Live card-vs-local-rail markup for ARS. Mirrors `getCardMarkupRate` in
- * `src/app/actions/card-comparison.ts` (PR #2108 — DRY-reconcile to the
- * shared `useCardMarkupRate` hook once that lands). Returns a fraction:
- * card price = peanutPrice × (1 + rate). Falls back to the documented
- * static spread when the BCRA fetch is unavailable, so the savings UI
- * always has a defensible figure.
- *
- * BCRA-official is fetched from dolarapi.com — there's no internal source
- * for the official rate; even the canonical Peanut implementation goes
- * out for it.
- */
-function useCardMarkupArs(usdToArs: number): number {
-    const { data } = useQuery<number>({
-        queryKey: ['merchantLpArsCardMarkup', usdToArs > 0 ? Math.round(usdToArs) : 0],
-        queryFn: async () => {
-            if (usdToArs <= 0) return ARS_CARD_MARKUP_FALLBACK
-            try {
-                const res = await fetch('https://dolarapi.com/v1/dolares/oficial')
-                if (res.ok) {
-                    const json = (await res.json()) as { venta?: number }
-                    const bcra = Number(json?.venta)
-                    if (Number.isFinite(bcra) && bcra > 0) {
-                        const effectiveCardRate = bcra * (1 - ISSUER_FX_FEE)
-                        const rate = usdToArs / effectiveCardRate - 1
-                        if (Number.isFinite(rate) && rate > 0) return rate
-                    }
-                }
-            } catch {
-                // swallow — never block the page on a third-party FX feed
-            }
-            return ARS_CARD_MARKUP_FALLBACK
-        },
-        staleTime: 5 * 60 * 1000,
-        gcTime: 10 * 60 * 1000,
-        refetchOnWindowFocus: true,
-        enabled: usdToArs > 0,
-    })
-    return data ?? ARS_CARD_MARKUP_FALLBACK
 }
 
 /* ---------------------------------------------------------------------------
