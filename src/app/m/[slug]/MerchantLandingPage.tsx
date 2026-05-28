@@ -438,7 +438,7 @@ function FaqFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'faq' }> }
 
 /* ---------------------------------------------------------------------------
  * §3 — Get peanut. Mirrors /shhhhh §7 "ready?": black bg, lowercase huge h2,
- * uppercase sub, white Button with shadowSize="4". Optional ambassador box for BA.
+ * uppercase sub, white Button with shadowSize="4".
  * ------------------------------------------------------------------------- */
 function EndFold({ merchant }: { merchant: Merchant }) {
     return (
