@@ -76,7 +76,7 @@ export interface RailCapability {
     reason?: CapabilityReason
 }
 
-export type NextActionKind = 'sumsub' | 'bridge-tos' | 'wait' | 'contact-support'
+export type NextActionKind = 'sumsub' | 'accept-tos' | 'wait' | 'contact-support'
 
 export interface NextAction {
     key: string // stable id, referenced by RailCapability.blockingActions
@@ -84,7 +84,7 @@ export interface NextAction {
     purpose: string // 'unlock-bridge-sepa' | 'rain-card' | 'raise-manteca-limit' | …
     /** for kind:'sumsub' — registry key, NOT a literal level name. FE passes it back to start-action. */
     levelKey?: string
-    /** for kind:'bridge-tos' */
+    /** for kind:'accept-tos' */
     tosUrl?: string
 }
 

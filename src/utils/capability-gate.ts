@@ -127,10 +127,10 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
 
     // 3. accept-tos
     const tosRail = requiresInfoRails.find((rail) =>
-        railActions(rail, actionByKey).some((action) => action.kind === 'bridge-tos')
+        railActions(rail, actionByKey).some((action) => action.kind === 'accept-tos')
     )
     if (tosRail) {
-        const tosAction = railActions(tosRail, actionByKey).find((a) => a.kind === 'bridge-tos')
+        const tosAction = railActions(tosRail, actionByKey).find((a) => a.kind === 'accept-tos')
         return {
             kind: 'accept-tos',
             tosUrl: tosAction?.tosUrl,

@@ -11,7 +11,7 @@ import { useCapabilities } from './useCapabilities'
  *
  * Provider-blind: reads the capability gate's `accept-tos` state — the BE
  * resolver decides which rails need a ToS (today only Bridge bank rails, via a
- * `kind: 'bridge-tos'` nextAction). The FE doesn't enumerate providers.
+ * `kind: 'accept-tos'` nextAction). The FE doesn't enumerate providers.
  *
  * Usage:
  *   const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()

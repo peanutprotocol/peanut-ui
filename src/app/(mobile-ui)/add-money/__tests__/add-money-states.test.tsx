@@ -765,10 +765,10 @@ function setGate(kind: Gate) {
                     country: 'US',
                     currency: 'USD',
                     status: 'requires-info',
-                    blockingActions: ['bridge-tos'],
+                    blockingActions: ['accept-tos'],
                 },
             ]
-            nextActions = [{ key: 'bridge-tos', kind: 'bridge-tos', purpose: 'unlock-bridge' }]
+            nextActions = [{ key: 'accept-tos', kind: 'accept-tos', purpose: 'unlock-bridge' }]
             gateState = { kind: 'accept-tos', userMessage: null }
             break
         case 'fixable-rejection':

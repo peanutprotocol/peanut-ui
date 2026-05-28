@@ -81,7 +81,7 @@ const FIXTURE: UserCapabilities = {
     nextActions: [
         {
             key: 'accept-bridge-tos',
-            kind: 'bridge-tos',
+            kind: 'accept-tos',
             purpose: 'unlock-bridge-sepa',
             tosUrl: 'https://bridge.test/tos',
         },
@@ -293,7 +293,7 @@ describe('useCapabilities', () => {
             const { result } = renderHook(() => useCapabilities())
             const actions = result.current.nextActionsForRail('bridge.sepa_eu')
             expect(actions.map((a) => a.key)).toEqual(['accept-bridge-tos', 'sumsub-eea-uplift'])
-            expect(actions[0].kind).toBe('bridge-tos')
+            expect(actions[0].kind).toBe('accept-tos')
         })
 
         it('returns [] for a rail with no blockingActions', () => {
