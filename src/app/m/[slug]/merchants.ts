@@ -10,7 +10,6 @@
 
 export type MenuItem = {
     name: string
-    desc: string
     /** Base price in ARS — the merchant's local currency. Converted to USD/EUR client-side. */
     priceARS: number
 }
@@ -111,29 +110,21 @@ export const MERCHANTS: Record<string, Merchant> = {
             heading: 'THE MENU.',
             tagline: 'Pick your currency. The app handles the rest.',
             showLiveRate: true,
+            // Items + prices verified against Stain's authoritative menu
+            // (EN translation). Name + price only — original descriptions were
+            // AI-fabricated for items the source had blank desc cells for, so
+            // dropped wholesale rather than carry invented marketing copy.
             items: [
-                { name: 'Medialuna', desc: 'Classic Argentine croissant.', priceARS: ARS(4400) },
-                {
-                    name: 'Honey Butter Toast',
-                    desc: 'Honey, butter, muscovado sugar, sourdough.',
-                    priceARS: ARS(6200),
-                },
-                { name: 'Flat White', desc: 'Double ristretto, micro-foamed milk.', priceARS: ARS(5900) },
-                { name: 'Cappuccino', desc: 'Espresso, steamed milk, foam.', priceARS: ARS(6000) },
-                { name: 'Cold Brew', desc: 'Slow-steeped, served over ice.', priceARS: ARS(6200) },
-                { name: 'Iced Matcha Latte', desc: 'Ceremonial matcha over ice.', priceARS: ARS(6500) },
-                { name: 'Salted Caramel Latte', desc: 'House salted caramel, espresso, milk.', priceARS: ARS(7000) },
-                { name: 'Cinnamon Roll', desc: 'Baked fresh daily.', priceARS: ARS(5500) },
-                {
-                    name: 'Creamy Scrambled Eggs',
-                    desc: 'Eggs, mascarpone cheese, sourdough bread.',
-                    priceARS: ARS(10000),
-                },
-                {
-                    name: 'Avocado Toast',
-                    desc: 'Pea spread, avocado, mixed greens, hazelnuts.',
-                    priceARS: ARS(11500),
-                },
+                { name: 'Medialuna', priceARS: ARS(4400) },
+                { name: 'Cinnamon Roll', priceARS: ARS(5500) },
+                { name: 'Honey Butter Toast', priceARS: ARS(6200) },
+                { name: 'Flat White', priceARS: ARS(5900) },
+                { name: 'Cappuccino', priceARS: ARS(6000) },
+                { name: 'Cold Brew', priceARS: ARS(6200) },
+                { name: 'Iced Matcha Latte', priceARS: ARS(6500) },
+                { name: 'Salted Caramel Latte', priceARS: ARS(7000) },
+                { name: 'Creamy Scrambled Eggs', priceARS: ARS(10000) },
+                { name: 'Avocado Toast', priceARS: ARS(11500) },
             ],
         },
         install: { sub: '60 seconds. Skip the waitlist. Free coffee.' },
