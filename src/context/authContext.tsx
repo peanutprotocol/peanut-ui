@@ -1,6 +1,7 @@
 'use client'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useUserQuery } from '@/hooks/query/user'
+import { useUserAutoRefresh } from '@/hooks/useUserAutoRefresh'
 import type { IUserProfile } from '@/interfaces/interfaces'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
@@ -66,6 +67,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
 
     const { data: user, isLoading: isFetchingUser, refetch: fetchUser, error: userFetchError } = useUserQuery()
+
+    // Singleton auto-refresh poller — keeps the user query fresh while any
+    // rail is provisioning OR a recent submission window is open. Mounted
+    // here (rather than in useCapabilities) so N consumers share ONE interval
+    // + one in-flight guard. See useUserAutoRefresh for the predicate.
+    useUserAutoRefresh({ user, fetchUser })
 
     // Pre-compute a Set of invited usernames for O(1) lookups
     const invitedUsernamesSet = useMemo(() => {

@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useAuth } from '@/context/authContext'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { deriveGate } from '@/utils/capability-gate'
 import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
 import { type KycModalPhase, type IUserProfile } from '@/interfaces/interfaces'
@@ -52,6 +53,14 @@ export async function confirmBridgeTosAndAwaitRails(fetchUser: () => Promise<IUs
         await new Promise((resolve) => setTimeout(resolve, 2000))
         await confirmBridgeTos()
     }
+
+    // Arm the post-submission window only after the ToS POST has actually
+    // completed (CodeRabbit feedback on #2131). Doing it before
+    // `confirmBridgeTos()` would burn part of the 30s grace period waiting
+    // for the BE write that hasn't happened yet. Now the full window covers
+    // post-write Bridge-webhook propagation only, which is the latency we
+    // actually want to cover.
+    markSubmitted()
 
     for (let i = 0; i < 3; i++) {
         const updatedUser = await fetchUser()
@@ -146,6 +155,14 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
 
     // called when sumsub status transitions to APPROVED
     const handleSumsubApproved = useCallback(async () => {
+        // Open the post-submission window BEFORE the first fetchUser() so the
+        // capability poller is already armed if the BE hasn't reflected the
+        // Sumsub→Bridge transition yet. Without this, fetchUser() reads the
+        // pre-submission snapshot once and `useCapabilities`'s `pending`-only
+        // poll predicate keeps it dormant — and the user sees stale state until
+        // the next route mount / window focus. See useSubmissionWindow.
+        markSubmitted()
+
         // for real-time flow, optimistically show "Identity verified!" while we check rails
         if (isRealtimeFlowRef.current) {
             setModalPhase('preparing')

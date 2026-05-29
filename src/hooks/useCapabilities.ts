@@ -13,7 +13,7 @@ import {
 } from '@/types/capabilities'
 import { deriveGate, type GateScope, type GateState } from '@/utils/capability-gate'
 import type { RailChannel } from '@/types/capabilities'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useMemo } from 'react'
 
 /**
  * Single selector over the backend-computed capability model. ALL KYC/rail
@@ -26,15 +26,14 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
  * Capabilities live at the TOP LEVEL of the /get-user response (`user.capabilities`,
  * sibling of the inner `user` object — NOT `user.user.capabilities`).
  *
- * D4 freshness: while any rail is `pending` (provisioning, no user action needed),
- * the React Query user object is refetched every ~4s; polling stops the moment no
- * rail is pending. Reuses authContext's `fetchUser` (the only user fetch path —
- * React Query `[USER]` refetch), never adds a second fetch.
+ * D4 freshness: the [USER] query is auto-refreshed every ~4s while any rail
+ * is `pending` (provisioning, no user action needed) OR a recent submission
+ * window is active. That loop is owned by a SINGLETON effect mounted from
+ * AuthProvider (see {@link useUserAutoRefresh}), not from this hook, so the
+ * N components reading capabilities share one interval — not N.
  *
  * See engineering/projects/kyc-2.0/capabilities-rehaul-plan.md (D3, D4).
  */
-
-const POLL_INTERVAL_MS = 4000
 
 const EMPTY_CAPABILITIES: UserCapabilities = {
     rails: [],
@@ -104,7 +103,7 @@ export interface UseCapabilitiesResult {
 }
 
 export function useCapabilities(): UseCapabilitiesResult {
-    const { user, isFetchingUser, fetchUser } = useAuth()
+    const { user, isFetchingUser } = useAuth()
 
     const capabilities = user?.capabilities ?? EMPTY_CAPABILITIES
     const { rails, nextActions, restrictions } = capabilities
@@ -222,51 +221,13 @@ export function useCapabilities(): UseCapabilitiesResult {
         [rails]
     )
 
-    // D4 — poll the user query while any rail is `pending`; stop when settled.
-    const hasPendingRail = useMemo(() => rails.some((rail) => rail.status === 'pending'), [rails])
-
-    // Keep the latest pending flag in a ref so the interval callback reads fresh
-    // state without forcing the effect (and thus the interval) to re-create each
-    // time the user object changes.
-    const hasPendingRef = useRef(hasPendingRail)
-    hasPendingRef.current = hasPendingRail
-
-    // Guard against overlapping poll calls. If one fetchUser takes longer than
-    // POLL_INTERVAL_MS, the next tick would otherwise stack a second one on top.
-    // The guard also gives us a single place to handle rejections so they don't
-    // surface as unhandled promise rejections from the interval body.
-    const pollInFlightRef = useRef(false)
-
-    useEffect(() => {
-        if (!hasPendingRail) return
-
-        let cancelled = false
-        const timer = setInterval(() => {
-            if (cancelled) return
-            // Self-terminate the moment nothing is pending — the next render's
-            // effect cleanup also clears it, this just avoids a stray refetch.
-            if (!hasPendingRef.current) {
-                clearInterval(timer)
-                return
-            }
-            if (pollInFlightRef.current) return
-            pollInFlightRef.current = true
-            fetchUser()
-                .catch(() => {
-                    // auth/query layer surfaces errors via the user query itself —
-                    // swallow here purely to avoid unhandled promise rejections from
-                    // the interval body.
-                })
-                .finally(() => {
-                    pollInFlightRef.current = false
-                })
-        }, POLL_INTERVAL_MS)
-
-        return () => {
-            cancelled = true
-            clearInterval(timer)
-        }
-    }, [hasPendingRail, fetchUser])
+    // Auto-refresh of the [USER] query is owned by a SINGLETON effect mounted
+    // once from AuthProvider via `useUserAutoRefresh` — not here. Hosting it
+    // in `useCapabilities` would spawn N concurrent intervals (one per
+    // component reading capabilities), with per-instance in-flight guards that
+    // React Query coalescing partially hides but doesn't fully neutralize.
+    // See {@link useUserAutoRefresh} for the (pending-rail OR submission-window)
+    // predicate.
 
     return {
         capabilities,
