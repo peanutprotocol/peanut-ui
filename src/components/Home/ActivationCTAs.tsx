@@ -11,6 +11,8 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { useAuth } from '@/context/authContext'
+import { buildContactSupportMessage } from '@/utils/contact-support.utils'
 
 interface ActivationCTAsProps {
     activationStep: ActivationStep
@@ -72,8 +74,9 @@ const STEPS: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = {
  */
 export default function ActivationCTAs({ activationStep, onDismissCard }: ActivationCTAsProps) {
     const router = useRouter()
-    const { setIsQRScannerOpen, setIsSupportModalOpen } = useModalsContext()
+    const { setIsQRScannerOpen, openSupportWithMessage } = useModalsContext()
     const { rails, channelOf } = useCapabilities()
+    const { user } = useAuth()
     // Suppress the "Unlock payments" verify CTA while identity is mid-flight
     // (Sumsub processing / action_required). The user already took the verify
     // action; the identity-verification page surfaces the in-progress modal,
@@ -84,17 +87,18 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // qr-only channels — never through card. Top-level status (not per-op
     // refinement): Manteca's pool tier reads `enabled` at the rail level even when
     // deposit/withdraw individually need an upgrade — that's not a rejection.
-    const { hasFixableRejection, hasBlockedRejection, primaryRejectionMessage } = useMemo(() => {
+    const { hasFixableRejection, hasBlockedRejection, primaryRejectionMessage, blockedRail } = useMemo(() => {
         const rejectableRails = rails.filter((rail) => {
             const channel = channelOf(rail)
             return channel === 'bank' || channel === 'qr-only'
         })
         const fixableRail = rejectableRails.find((rail) => rail.status === 'requires-info')
-        const blockedRail = rejectableRails.find((rail) => rail.status === 'blocked')
+        const blocked = rejectableRails.find((rail) => rail.status === 'blocked')
         return {
             hasFixableRejection: !!fixableRail,
-            hasBlockedRejection: !!blockedRail,
-            primaryRejectionMessage: (fixableRail ?? blockedRail)?.reason?.userMessage ?? null,
+            hasBlockedRejection: !!blocked,
+            primaryRejectionMessage: (fixableRail ?? blocked)?.reason?.userMessage ?? null,
+            blockedRail: blocked,
         }
     }, [rails, channelOf])
 
@@ -171,7 +175,16 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     className="mt-2 w-full"
                     onClick={() => {
                         if (hasProviderRejection && hasBlockedRejection && !hasFixableRejection) {
-                            setIsSupportModalOpen(true)
+                            // REQUIRES_SUPPORT class (or any blocked rail) — pre-fill Crisp
+                            // with the failure context so support can dispatch without
+                            // re-investigating the user's state.
+                            openSupportWithMessage(
+                                buildContactSupportMessage({
+                                    reason: blockedRail?.reason,
+                                    railId: blockedRail?.id,
+                                    userId: user?.user?.userId,
+                                })
+                            )
                         } else if (activationStep === 'outbound' && !hasProviderRejection) {
                             setIsQRScannerOpen(true)
                         } else {

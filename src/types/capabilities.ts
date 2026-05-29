@@ -40,6 +40,12 @@ export type RailId = `${ProviderCode}.${string}`
 export interface CapabilityReason {
     code: string // normalized: 'proof_of_address' | 'manteca_us_nationality' | 'document_rejected' | …
     userMessage: string // friendly, display-ready
+    /**
+     * Optional technical detail captured from a provider response or a
+     * pipeline-side failure (REQUIRES_SUPPORT). Not user-facing copy — the FE
+     * forwards it to the Crisp pre-fill so the support agent sees what broke.
+     */
+    details?: string
 }
 
 /**
