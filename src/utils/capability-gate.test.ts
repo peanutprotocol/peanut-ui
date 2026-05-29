@@ -111,7 +111,7 @@ describe('deriveGate — waiting-on-provider (kind: wait)', () => {
         expect(gate.kind).toBe('fixable-rejection')
     })
 
-    test('priority: ready beats waiting-on-provider (don\'t block the user from a usable rail)', () => {
+    test("priority: ready beats waiting-on-provider (don't block the user from a usable rail)", () => {
         // User has SEPA waiting AND ACH ready — let them use ACH instead of
         // showing wait copy that prevents the whole scope.
         const rails = [
