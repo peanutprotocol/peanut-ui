@@ -29,17 +29,30 @@ const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
     survivor: 'SUPPORT_SURVIVOR',
 }
 
+// map inbound `utm_campaign` values (friendly event slugs used in marketing
+// links) to the canonical badge codes the backend whitelists
+const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
+    'token-nation-2026': 'TOKEN_NATION_SP_2026',
+    ethfloripa: 'ETHFLORIPA_HUB',
+}
+
 function InvitePageContent() {
     const searchParams = useSearchParams()
     // trim trailing '?' from invite code to handle qr codes with ? at the end
     const inviteCode = searchParams.get('code')?.toLowerCase().replace(/\?+$/, '')
     const redirectUri = searchParams.get('redirect_uri')
-    // support both 'campaign' and 'campaignTag' query parameters
+    // support 'campaign', 'campaignTag', and 'utm_campaign' query parameters
     const campaignParam = searchParams.get('campaign') || searchParams.get('campaignTag')
+    const utmCampaignParam = searchParams.get('utm_campaign')?.toLowerCase()
     const { user, isFetchingUser, fetchUser } = useAuth()
 
-    // determine campaign tag: use query param if provided (takes precedence), otherwise check invite code mapping
-    const campaign = campaignParam || (inviteCode ? INVITE_CODE_TO_CAMPAIGN_MAP[inviteCode] : undefined)
+    // determine campaign tag — resolution order: explicit campaign / campaignTag
+    // query param wins, then mapped invite code, then mapped utm_campaign
+    // (utm_campaign last so an explicit tag can always override it)
+    const campaign =
+        campaignParam ||
+        (inviteCode ? INVITE_CODE_TO_CAMPAIGN_MAP[inviteCode] : undefined) ||
+        (utmCampaignParam ? UTM_CAMPAIGN_TO_BADGE_MAP[utmCampaignParam] : undefined)
 
     const dispatch = useAppDispatch()
     const router = useRouter()
