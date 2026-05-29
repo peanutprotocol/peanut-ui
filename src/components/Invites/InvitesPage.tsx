@@ -36,6 +36,7 @@ const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
 // in sync when adding a new entry here.
 const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
     'token-nation-2026': 'TOKEN_NATION_SP_2026',
+    ethfloripa: 'ETHFLORIPA_HUB',
 }
 
 function InvitePageContent() {
