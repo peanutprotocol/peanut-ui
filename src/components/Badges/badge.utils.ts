@@ -16,6 +16,8 @@ const CODE_TO_PATH: Record<string, string> = {
     CARD_PIONEER: '/badges/peanut-pioneer.png',
     FOUNDER_HOUSE: '/badges/founder_house.png',
     SUPPORT_SURVIVOR: '/badges/support_survivor.svg',
+    TOKEN_NATION_SP_2026: '/badges/token_nation_2026.svg',
+    ETHFLORIPA_HUB: '/badges/ethfloripa_hub.svg',
 }
 
 // public-facing descriptions for badges (third-person perspective)
@@ -34,6 +36,8 @@ const PUBLIC_DESCRIPTIONS: Record<string, string> = {
     CARD_PIONEER: 'A true Card Pioneer. Among the first to pay everywhere with Peanut.',
     FOUNDER_HOUSE: 'Checked in at the Founder House. Builds IRL, not just on-chain.',
     SUPPORT_SURVIVOR: 'Survived a real bug and helped us fix it. The brave kind of user.',
+    TOKEN_NATION_SP_2026: 'São Paulo, baby. They came, they claimed, they tagged the wall.',
+    ETHFLORIPA_HUB: 'Ilha da Magia, baby. Coconuts and consensus.',
 }
 
 export function getBadgeIcon(code?: string) {
