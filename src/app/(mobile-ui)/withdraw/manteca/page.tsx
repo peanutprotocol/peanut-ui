@@ -208,6 +208,19 @@ export default function MantecaWithdrawFlow() {
     /**
      * Detect Manteca onboarding-incomplete errors and redirect user to complete their profile.
      * Returns true if the error was handled (caller should return early).
+     *
+     * INTENTIONAL FALLBACK — NOT a primary code path. The KYC 2.0 architecture
+     * (engineering/projects/kyc-2.0/final-plan.md) centralizes all data
+     * collection in Sumsub and submits to Manteca via the API (`submitToManteca`
+     * in peanut-api-ts). The Manteca hosted onboarding widget is dead-by-design
+     * — but we keep this last-resort redirect for the long tail of users who
+     * land in an incomplete Manteca state (partial provisioning, undelivered
+     * initial-onboarding API call). Without this escape hatch they'd be stuck
+     * at withdraw time with no actionable error.
+     *
+     * Right fix: root-cause why `submitToManteca` sometimes leaves users
+     * half-onboarded, fix that, delete this fallback + `/manteca/initiate-onboarding`
+     * route + `mantecaApi.initiateOnboarding` client. Tracked separately.
      */
     const handleOnboardingError = useCallback(async (error: string): Promise<boolean> => {
         const onboardingErrorPatterns = ['fund origin', 'profile incomplete', 'onboarding required']
