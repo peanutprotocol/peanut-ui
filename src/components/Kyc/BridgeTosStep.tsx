@@ -24,6 +24,11 @@ interface BridgeTosStepProps {
     reasonCode?: string
 }
 
+// Capability reason codes emitted by the BE resolver for Bridge ToS rails.
+// Pinned as `const` so the comparison below catches typos at compile time —
+// the upstream `CapabilityReason.code` is a free-form string by contract.
+const BRIDGE_TOS_V2_REQUIRED = 'bridge_tos_v2_required' as const
+
 const TOS_COPY = {
     base: {
         title: 'Accept Terms of Service',
@@ -102,7 +107,7 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
 
     if (!visible) return null
 
-    const copy = reasonCode === 'bridge_tos_v2_required' ? TOS_COPY.sepa : TOS_COPY.base
+    const copy = reasonCode === BRIDGE_TOS_V2_REQUIRED ? TOS_COPY.sepa : TOS_COPY.base
 
     return (
         <>
