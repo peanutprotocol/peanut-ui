@@ -178,7 +178,9 @@ export default function WithdrawBankPage() {
 
     const handleCreateAndInitiateOfframp = async () => {
         if (gate.kind !== 'ready') {
-            if (gate.kind === 'loading') return
+            // Loading and waiting-on-provider both mean "user has no action to
+            // take" — silently no-op instead of bouncing them through Sumsub.
+            if (gate.kind === 'loading' || gate.kind === 'waiting-on-provider') return
             if (gate.kind === 'accept-tos') {
                 guardWithTos()
             } else {
@@ -469,6 +471,7 @@ export default function WithdrawBankPage() {
                     handleCreateAndInitiateOfframp()
                 }}
                 onSkip={hideTos}
+                reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
             />
 
             <InitiateKycModal

@@ -12,11 +12,33 @@ interface BridgeTosStepProps {
     visible: boolean
     onComplete: () => void
     onSkip: () => void
+    /**
+     * BE-emitted reason code from the rail capability (`reason.code`). Used
+     * solely to vary copy between Bridge's base ToS (`bridge_tos_required`,
+     * US/ACH/Wire) and the SEPA v2 ToS (`bridge_tos_v2_required`, EUR + GBP
+     * inherited). The Bridge `tos_acceptance_link` endpoint is opaque to
+     * endorsement — Bridge serves the correct ToS based on the customer's
+     * pending requirements — so this prop ONLY affects user-facing copy, not
+     * the endpoint we call. Defaults to base copy if absent.
+     */
+    reasonCode?: string
 }
+
+const TOS_COPY = {
+    base: {
+        title: 'Accept Terms of Service',
+        description: "To enable bank transfers, you need to accept our payment partner's Terms of Service.",
+    },
+    sepa: {
+        title: 'Accept SEPA Terms of Service',
+        description:
+            "To enable EUR (SEPA) and GBP (Faster Payments) bank transfers, you need to accept our payment partner's updated Terms of Service.",
+    },
+} as const
 
 // shown immediately after sumsub kyc approval when bridge rails need ToS acceptance.
 // displays a prompt, then opens the bridge ToS iframe.
-export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProps) => {
+export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: BridgeTosStepProps) => {
     const { fetchUser } = useAuth()
     const [showIframe, setShowIframe] = useState(false)
     const [tosLink, setTosLink] = useState<string | null>(null)
@@ -80,6 +102,8 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
 
     if (!visible) return null
 
+    const copy = reasonCode === 'bridge_tos_v2_required' ? TOS_COPY.sepa : TOS_COPY.base
+
     return (
         <>
             {/* confirmation modal — hidden when iframe is open or ToS is being confirmed */}
@@ -87,10 +111,8 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
                 visible={visible && !showIframe && !isConfirming}
                 onClose={onSkip}
                 icon={error ? ('alert' as IconName) : ('badge' as IconName)}
-                title={error ? 'Could not load terms' : 'Accept Terms of Service'}
-                description={
-                    error || "To enable bank transfers, you need to accept our payment partner's Terms of Service."
-                }
+                title={error ? 'Could not load terms' : copy.title}
+                description={error || copy.description}
                 ctas={[
                     {
                         text: isLoading ? 'Loading...' : error ? 'Try again' : 'Accept Terms',

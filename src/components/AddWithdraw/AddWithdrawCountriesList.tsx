@@ -110,10 +110,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const checkBridgeGate = useCallback(
         (onAfterTos?: () => void): boolean => {
             if (gate.kind !== 'ready') {
-                // capabilities still loading — caller should wait, NOT open a KYC modal
-                // on top of state we don't yet know (would falsely "needs_kyc" an approved
-                // user mid-load). Returning true keeps the caller's early-return path.
-                if (gate.kind === 'loading') return true
+                // capabilities still loading OR provider doing internal review —
+                // caller should wait, NOT open a KYC modal. For `loading` we
+                // don't yet know if the user is approved. For `waiting-on-provider`
+                // (Bridge KYC review, post_processing) there's no user action to
+                // take; opening the modal would imply otherwise.
+                if (gate.kind === 'loading' || gate.kind === 'waiting-on-provider') return true
                 if (gate.kind === 'accept-tos') {
                     pendingAfterTosRef.current = onAfterTos ?? null
                     guardWithTos()
@@ -142,9 +144,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // unified bridge gate: tos → fixable rejection → blocked → enrollment
         // return a non-visible error to prevent the form from treating this as success
         if (gate.kind !== 'ready') {
-            // capabilities still loading — silently no-op (don't show a KYC modal on
-            // top of state we don't yet know).
-            if (gate.kind === 'loading') return { error: 'gate_blocked', silent: true }
+            // capabilities still loading OR provider doing internal review —
+            // silently no-op (don't show a KYC modal). `waiting-on-provider`
+            // means no user action available.
+            if (gate.kind === 'loading' || gate.kind === 'waiting-on-provider') {
+                return { error: 'gate_blocked', silent: true }
+            }
             if (gate.kind === 'accept-tos') {
                 guardWithTos()
             } else {
@@ -338,6 +343,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     else formRef.current?.handleSubmit()
                 }}
                 onSkip={hideTos}
+                reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
             />
             <SumsubKycModals flow={sumsubFlow} />
         </>

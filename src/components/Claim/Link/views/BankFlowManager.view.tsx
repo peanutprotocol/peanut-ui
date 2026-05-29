@@ -165,9 +165,13 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             // for logged-in users, check bank-rail readiness before proceeding
             const isGuestFlow = bankClaimType === BankClaimType.GuestBankClaim
             if (!isGuestFlow && gate.kind !== 'ready') {
-                // capabilities still loading — silently return; the CTA that triggered
-                // this should be disabled too, but defend against double-click races.
-                if (gate.kind === 'loading') return
+                // capabilities still loading OR provider doing internal review —
+                // silently return; the CTA that triggered this should be disabled
+                // too, but defend against double-click races. `waiting-on-provider`
+                // means there's no user action to take (Bridge KYC review,
+                // post_processing), so opening the KYC modal would falsely imply
+                // the user has something to do.
+                if (gate.kind === 'loading' || gate.kind === 'waiting-on-provider') return
                 if (gate.kind === 'accept-tos') {
                     guardWithTos()
                 } else {
@@ -523,6 +527,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                                 handleCreateOfframpAndClaim(localBankDetails)
                             }}
                             onSkip={hideTos}
+                            reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
                         />
                         <InitiateKycModal
                             visible={showKycModal}

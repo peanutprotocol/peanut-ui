@@ -213,9 +213,11 @@ export default function OnrampBankPage() {
         if (!validateAmount(rawTokenAmount)) return
 
         if (gate.kind !== 'ready') {
-            // capabilities still loading — silently no-op instead of flashing a
-            // needs_kyc modal on top of state we don't know yet.
-            if (gate.kind === 'loading') return
+            // capabilities still loading OR provider doing internal review —
+            // silently no-op instead of flashing a misleading needs_kyc modal.
+            // `waiting-on-provider` means the user has nothing to do; opening
+            // a KYC modal would imply otherwise.
+            if (gate.kind === 'loading' || gate.kind === 'waiting-on-provider') return
             if (gate.kind === 'accept-tos') {
                 guardWithTos()
             } else {
@@ -437,6 +439,7 @@ export default function OnrampBankPage() {
                         handleWarningConfirm()
                     }}
                     onSkip={hideTos}
+                    reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
                 />
             </div>
         )

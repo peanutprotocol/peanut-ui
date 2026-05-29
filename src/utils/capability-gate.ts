@@ -29,13 +29,19 @@ import type { NextAction, RailCapability, RailOperation, CapabilityReason, RailC
  *   needs_enrollment  → needs-enrollment
  *   ready             → ready
  *   loading           → loading
- *   (new)             → pending           (BE working — surface explicitly)
+ *   (new)             → pending             (BE working — surface explicitly)
+ *   (new)             → waiting-on-provider (provider doing internal review,
+ *                                            no user action — distinct from
+ *                                            our `pending` which is in-flight
+ *                                            provisioning. Sourced from a rail
+ *                                            with a `kind: 'wait'` NextAction.)
  */
 export type GateState =
     | { kind: 'loading' }
     | { kind: 'ready' }
     | { kind: 'pending' }
-    | { kind: 'accept-tos'; tosUrl?: string; userMessage: string | null }
+    | { kind: 'waiting-on-provider'; userMessage: string | null; reason?: CapabilityReason }
+    | { kind: 'accept-tos'; tosUrl?: string; userMessage: string | null; reason?: CapabilityReason }
     | { kind: 'fixable-rejection'; userMessage: string | null; reason?: CapabilityReason }
     | { kind: 'blocked-rejection'; userMessage: string | null; reason?: CapabilityReason }
     | { kind: 'needs-identity' }
@@ -98,14 +104,26 @@ export interface CapabilityState {
  * generalized over scope + operation.
  *
  * Priority (highest first):
- *   1. loading           — capability state not yet settled
- *   2. blocked-rejection — any in-scope rail status: 'blocked'
- *   3. accept-tos        — requires-info + a `bridge-tos` action (carries tosUrl)
- *   4. fixable-rejection — requires-info + a `sumsub` action
- *   5. ready             — at least one in-scope rail has operationStatus(op) === 'enabled'
- *   6. pending           — at least one in-scope rail status === 'pending' (provisioning)
- *   7. needs-identity    — no functional rail in scope AND identity not verified
- *   8. needs-enrollment  — no functional rail in scope BUT identity verified
+ *   1. loading             — capability state not yet settled
+ *   2. blocked-rejection   — any in-scope rail status: 'blocked'
+ *   3. accept-tos          — requires-info + a `kind: 'accept-tos'` action
+ *                            (user-actionable, unblocks the scope)
+ *   4. fixable-rejection   — requires-info + a `kind: 'sumsub'` action
+ *                            (user-actionable, unblocks the scope)
+ *   5. ready               — at least one in-scope rail has operationStatus(op) === 'enabled'
+ *                            (user can transact NOW)
+ *   6. pending             — at least one in-scope rail status === 'pending' (we're provisioning)
+ *   7. waiting-on-provider — only requires-info rails AND every one has only
+ *                            `kind: 'wait'` actions (e.g. Bridge internal KYC
+ *                            review, post_processing, generic stripe lookup).
+ *                            Placed BELOW `ready` / `pending` so a ready rail
+ *                            wins — if the user has another rail they can use
+ *                            or is mid-provisioning, surface that instead.
+ *                            Placed ABOVE `needs-identity` / `needs-enrollment`
+ *                            so the user sees "we're checking" instead of a
+ *                            misleading "verify your identity" CTA.
+ *   8. needs-identity      — no functional rail in scope AND identity not verified
+ *   9. needs-enrollment    — no functional rail in scope BUT identity verified
  */
 export function deriveGate(state: CapabilityState, op: RailOperation, scope: GateScope = {}): GateState {
     if (state.isLoading) return { kind: 'loading' }
@@ -135,6 +153,7 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
             kind: 'accept-tos',
             tosUrl: tosAction?.tosUrl,
             userMessage: tosRail.reason?.userMessage ?? null,
+            reason: tosRail.reason,
         }
     }
 
@@ -158,7 +177,31 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
     const hasPending = candidates.some((rail) => rail.status === 'pending')
     if (hasPending) return { kind: 'pending' }
 
-    // 7/8. no functional rail in scope. Distinguish identity-not-cleared vs
+    // 7. waiting-on-provider — every in-scope requires-info rail has ONLY
+    // `wait` actions (no actionable alternative anywhere in scope). Placed
+    // after ready/pending so a usable rail wins; placed before needs-identity/
+    // enrollment so the user sees "we're checking" instead of a misleading
+    // "verify your identity" CTA. Without this branch the rail would fall
+    // through to needs-enrollment and bounce the user back into Sumsub for
+    // nothing.
+    const allWaiting =
+        requiresInfoRails.length > 0 &&
+        requiresInfoRails.every((rail) => {
+            const actions = railActions(rail, actionByKey)
+            return actions.length > 0 && actions.every((action) => action.kind === 'wait')
+        })
+    if (allWaiting) {
+        // Pick the first wait-only rail's reason for the message (consumers
+        // typically have one rail per scope anyway).
+        const waitRail = requiresInfoRails[0]
+        return {
+            kind: 'waiting-on-provider',
+            userMessage: waitRail.reason?.userMessage ?? null,
+            reason: waitRail.reason,
+        }
+    }
+
+    // 8/9. no functional rail in scope. Distinguish identity-not-cleared vs
     // identity-cleared-but-no-rail-for-this-scope (needs enrollment / cross-region).
     if (!state.identityVerified) return { kind: 'needs-identity' }
     return { kind: 'needs-enrollment' }
@@ -183,7 +226,12 @@ export function getKycModalVariant(
  * `reason.userMessage` from the BE which is already user-friendly + provider-blind).
  */
 export function getGateUserMessage(gate: GateState): string | undefined {
-    if (gate.kind === 'fixable-rejection' || gate.kind === 'blocked-rejection' || gate.kind === 'accept-tos') {
+    if (
+        gate.kind === 'fixable-rejection' ||
+        gate.kind === 'blocked-rejection' ||
+        gate.kind === 'accept-tos' ||
+        gate.kind === 'waiting-on-provider'
+    ) {
         return gate.userMessage ?? undefined
     }
     return undefined
