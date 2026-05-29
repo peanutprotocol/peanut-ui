@@ -74,6 +74,18 @@ export function useSubmissionWindow(): { isInWindow: boolean; markSubmitted: typ
 }
 
 /**
+ * Read the current window state imperatively, outside React render.
+ *
+ * Used by the singleton auto-refresh poller in `useUserAutoRefresh` so the
+ * interval body can re-evaluate "still in window?" on each tick without
+ * re-subscribing or re-rendering. React consumers should keep using the
+ * `useSubmissionWindow()` hook instead.
+ */
+export function isInSubmissionWindow(): boolean {
+    return submittedAt !== null
+}
+
+/**
  * Test-only: reset the global cell between cases. Not exported from any
  * production import path — only the test file pulls it via the direct module
  * import.

@@ -48,17 +48,19 @@ function deriveCapabilityPhaseSignals(capabilities: UserCapabilities | undefined
  * until bridge rails leave the TOS-required state. max 3 attempts × 2s.
  */
 export async function confirmBridgeTosAndAwaitRails(fetchUser: () => Promise<IUserProfile | null>) {
-    // Arm the post-submission window so the capability poller keeps fetching
-    // past the local 3×2s retry budget if the Bridge webhook is slower than
-    // ~6s — without it the user sees stale 'requires-info' state after the
-    // local loop exits. Same rationale as Sumsub success — see useSubmissionWindow.
-    markSubmitted()
-
     const result = await confirmBridgeTos()
     if (!result.data?.accepted) {
         await new Promise((resolve) => setTimeout(resolve, 2000))
         await confirmBridgeTos()
     }
+
+    // Arm the post-submission window only after the ToS POST has actually
+    // completed (CodeRabbit feedback on #2131). Doing it before
+    // `confirmBridgeTos()` would burn part of the 30s grace period waiting
+    // for the BE write that hasn't happened yet. Now the full window covers
+    // post-write Bridge-webhook propagation only, which is the latency we
+    // actually want to cover.
+    markSubmitted()
 
     for (let i = 0; i < 3; i++) {
         const updatedUser = await fetchUser()
