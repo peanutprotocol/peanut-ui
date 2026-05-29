@@ -11,6 +11,20 @@ export type KycStatusCategory = 'completed' | 'processing' | 'failed' | 'action_
 
 export const MAX_SELF_HEAL_ATTEMPTS = 3
 
+/**
+ * QR-pay KYC gate states. Relocated here from the (now capability-derived)
+ * useQrKycGate hook so the qr-pay page keeps a stable import after that hook is
+ * deleted. The gate is now computed inline on the page from useCapabilities().
+ */
+export enum QrKycState {
+    LOADING = 'loading',
+    PROCEED_TO_PAY = 'proceed_to_pay',
+    REQUIRES_IDENTITY_VERIFICATION = 'requires_identity_verification',
+    IDENTITY_VERIFICATION_IN_PROGRESS = 'identity_verification_in_progress',
+    PROVIDER_REJECTION_FIXABLE = 'provider_rejection_fixable',
+    PROVIDER_REJECTION_BLOCKED = 'provider_rejection_blocked',
+}
+
 // sets of status values by category — single source of truth
 // REVERIFYING = user is approved but re-verifying for a new region (cross-region KYC).
 // treated as approved for access checks — user retains existing provider access.
@@ -34,25 +48,6 @@ const SUMSUB_IN_PROGRESS_STATUSES: ReadonlySet<string> = new Set(['PENDING', 'IN
 /** check if a kyc status represents an approved/completed state */
 export const isKycStatusApproved = (status: string | undefined | null): boolean =>
     !!status && APPROVED_STATUSES.has(status)
-
-/**
- * check if a user (from API data) has completed kyc with any provider.
- * works with user objects from getUserById, contacts, senders, recipients, etc.
- * for current user, prefer useUnifiedKycStatus hook instead.
- */
-export function isUserKycVerified(
-    user:
-        | {
-              bridgeKycStatus?: string | null
-              kycVerifications?: Array<{ status: string }> | null
-          }
-        | null
-        | undefined
-): boolean {
-    if (!user) return false
-    if (user.bridgeKycStatus === 'approved') return true
-    return user.kycVerifications?.some((v) => isKycStatusApproved(v.status)) ?? false
-}
 
 /** check if a kyc status represents a failed/rejected state */
 export const isKycStatusFailed = (status: string | undefined | null): boolean => !!status && FAILED_STATUSES.has(status)

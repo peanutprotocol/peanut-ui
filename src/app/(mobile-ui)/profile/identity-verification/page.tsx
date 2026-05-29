@@ -1,5 +1,5 @@
-import RegionsVerification from '@/components/Profile/views/RegionsVerification.view'
+import UnlockedRegions from '@/components/Profile/views/UnlockedRegions.view'
 
 export default function IdentityVerificationPage() {
-    return <RegionsVerification />
+    return <UnlockedRegions />
 }

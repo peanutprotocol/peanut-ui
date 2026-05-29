@@ -3,7 +3,7 @@
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
 import { type CountryData } from '@/components/AddMoney/consts'
 import { type IOnrampData } from './OnrampFlowContext'
-import { type User } from '@/interfaces'
+import { type CounterpartyUser } from '@/interfaces'
 
 export enum RequestFulfillmentBankFlowStep {
     BankCountryList = 'bank-country-list',
@@ -21,8 +21,8 @@ interface RequestFulfillmentFlowContextType {
     setOnrampData: (data: IOnrampData | null) => void
     showVerificationModal: boolean
     setShowVerificationModal: (show: boolean) => void
-    requesterDetails: User | null
-    setRequesterDetails: (details: User | null) => void
+    requesterDetails: CounterpartyUser | null
+    setRequesterDetails: (details: CounterpartyUser | null) => void
     fulfillUsingManteca: boolean
     setFulfillUsingManteca: (fulfillUsingManteca: boolean) => void
     regionalMethodType: 'mercadopago' | 'pix'
@@ -39,7 +39,7 @@ export const RequestFulfilmentFlowContextProvider: React.FC<{ children: ReactNod
     const [selectedCountry, setSelectedCountry] = useState<CountryData | null>(null)
     const [onrampData, setOnrampData] = useState<IOnrampData | null>(null)
     const [showVerificationModal, setShowVerificationModal] = useState(false)
-    const [requesterDetails, setRequesterDetails] = useState<User | null>(null)
+    const [requesterDetails, setRequesterDetails] = useState<CounterpartyUser | null>(null)
     const [fulfillUsingManteca, setFulfillUsingManteca] = useState(false)
     const [regionalMethodType, setRegionalMethodType] = useState<'mercadopago' | 'pix'>('mercadopago')
     const [triggerPayWithPeanut, setTriggerPayWithPeanut] = useState(false) // To trigger the pay with peanut from Action List

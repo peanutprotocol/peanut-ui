@@ -1,4 +1,5 @@
 import { type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
+import { type UserCapabilities, type IdentityVerification } from '@/types/capabilities'
 
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'
 
@@ -187,12 +188,6 @@ export interface User {
     email: string
     profile_picture: string | null
     username: string | null
-    bridgeKycStatus: BridgeKycStatus
-    bridgeKycStartedAt?: string
-    bridgeKycApprovedAt?: string
-    bridgeKycRejectedAt?: string
-    kycVerifications?: IUserKycVerification[] // currently only used for Manteca, can be extended to other providers in the future, bridge is not migrated as it might affect existing users
-    bridgeKycRejectionReasonString?: string | null
     tosStatus?: string
     tosAcceptedAt?: string
     bridgeCustomerId: string | null
@@ -216,6 +211,24 @@ export interface User {
         earnedAt: string | Date
         isVisible?: boolean
     }>
+}
+
+/**
+ * A user fetched by id (getUserById) — i.e. a COUNTERPARTY (the link sender, the
+ * request requester), not the current user. Provider-blind, like the current-user
+ * read-models: the only cross-user signal the FE actually needs is whether a
+ * guest claim-to-bank can off-ramp through this counterparty (BankFlowManager
+ * uses their bridgeCustomerId), which the BE exposes as a derived boolean.
+ *
+ * (The wider "is this person verified" badge — used by send/request/contacts —
+ * is a separate concern, still reading `Contact.bridgeKycStatus` / shapes from
+ * other endpoints. Cleaning those up is a follow-up.)
+ */
+export type CounterpartyUser = User & {
+    /** Has an enabled Bridge bank rail; a guest can off-ramp through them. */
+    canReceiveBankOfframp: boolean
+    /** Provider-agnostic identity-verified signal (BE-computed). The "verified" badge. */
+    isVerified: boolean
 }
 
 // based on the API's AccountType
@@ -288,6 +301,15 @@ export interface IUserProfile {
     invitesSent: userInvites[]
     showEarlyUserModal: boolean
     invitedBy: string | null // Username of the person who invited this user
+    // Backend-computed capability model — TOP-LEVEL sibling of `user` on the
+    // /get-user response (NOT user.capabilities). Read via useCapabilities().
+    // Optional during the add→migrate→delete sequence (D11): present once the
+    // API PR ships, raw KYC fields above removed last. See kyc-2.0 plan.
+    capabilities?: UserCapabilities
+    // Provider-agnostic identity-verification status — TOP-LEVEL sibling of
+    // `capabilities` on /get-user. Read via useIdentityVerification(). The status
+    // surfaces render this; no provider names. Optional during the migration.
+    identityVerification?: IdentityVerification
 }
 
 export type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue }
@@ -300,7 +322,8 @@ export interface Contact {
     userId: string
     username: string
     fullName: string | null
-    bridgeKycStatus: string | null
+    /** Provider-agnostic verified badge (BE-computed `computeIsVerified`). */
+    isVerified: boolean
     showFullName: boolean
     relationshipTypes: ('inviter' | 'invitee' | 'sent_money' | 'received_money')[]
     firstInteractionDate: string

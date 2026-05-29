@@ -19,7 +19,7 @@ import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { AccountType, type Account } from '@/interfaces'
 import { formatIban, shortenStringLong, isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
@@ -28,20 +28,17 @@ import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
 import { getOfframpCurrencyConfig, getCountryFromPath } from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
-import { useBridgeTosGuard } from '@/hooks/useBridgeTosGuard'
+import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
-import {
-    useBridgeTransferReadiness,
-    getKycModalVariant,
-    getGateProviderMessage,
-} from '@/hooks/useBridgeTransferReadiness'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
 import ExchangeRate from '@/components/ExchangeRate'
 import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { isBridgeSupportedCountry } from '@/utils/regions.utils'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { parseUnits } from 'viem'
@@ -63,7 +60,7 @@ export default function WithdrawBankPage() {
     } = useWithdrawFlow()
     const { user, fetchUser } = useAuth()
     const { address, sendMoney, spendableBalance: balance } = useWallet()
-    const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
+    const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const queryClient = useQueryClient()
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -74,8 +71,9 @@ export default function WithdrawBankPage() {
     const country = (params.country as string) || searchParams.get('country') || ''
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const { hasPendingTransactions } = usePendingTransactions()
-    const { isBridgeSupportedCountry } = useIdentityVerification()
-    const { gate } = useBridgeTransferReadiness()
+    // Provider-blind bank-channel withdraw gate. See utils/capability-gate.ts.
+    const { gateFor } = useCapabilities()
+    const gate = useMemo(() => gateFor('withdraw', { channel: 'bank' }), [gateFor])
     const sumsubFlow = useMultiPhaseKycFlow({})
     const [showKycModal, setShowKycModal] = useState(false)
     const { setIsSupportModalOpen } = useModalsContext()
@@ -179,8 +177,9 @@ export default function WithdrawBankPage() {
     }
 
     const handleCreateAndInitiateOfframp = async () => {
-        if (gate.type !== 'ready') {
-            if (gate.type === 'accept_tos') {
+        if (gate.kind !== 'ready') {
+            if (gate.kind === 'loading') return
+            if (gate.kind === 'accept-tos') {
                 guardWithTos()
             } else {
                 setShowKycModal(true)
@@ -476,13 +475,13 @@ export default function WithdrawBankPage() {
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {
-                    if (gate.type === 'fixable_rejection') {
+                    if (gate.kind === 'fixable-rejection') {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
                         await sumsubFlow.handleInitiateKyc(
                             'STANDARD',
                             undefined,
-                            gate.type === 'needs_enrollment' || undefined
+                            gate.kind === 'needs-enrollment' || undefined
                         )
                     }
                 }}
@@ -492,8 +491,8 @@ export default function WithdrawBankPage() {
                 }}
                 isLoading={sumsubFlow.isLoading}
                 error={sumsubFlow.error}
-                variant={getKycModalVariant(gate.type)}
-                providerMessage={getGateProviderMessage(gate)}
+                variant={getKycModalVariant(gate.kind)}
+                providerMessage={getGateUserMessage(gate)}
                 regionName={getCountryFromPath(country)?.title}
             />
             <SumsubKycModals flow={sumsubFlow} />

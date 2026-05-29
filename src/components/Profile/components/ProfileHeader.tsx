@@ -6,7 +6,7 @@ import { twMerge } from 'tailwind-merge'
 import AvatarWithBadge from '../AvatarWithBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 
 interface ProfileHeaderProps {
@@ -27,8 +27,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     haveSentMoneyToUser = false,
 }) => {
     const { user: authenticatedUser } = useAuth()
-    const { isUserKycApproved } = useKycStatus()
-    const isAuthenticatedUserVerified = isUserKycApproved && authenticatedUser?.user.username === username
+    // The self-profile verified badge means "this person's ID was confirmed" —
+    // NOT "this person has an enabled payment rail." It reads identityVerification
+    // (Sumsub-cleared), matching the counterparty badge logic (`isVerified` on
+    // /users/:userId). Rail-approval is unrelated.
+    const { isVerified: selfIsIdentityVerified } = useIdentityVerification()
+    const isAuthenticatedUserVerified = selfIsIdentityVerified && authenticatedUser?.user.username === username
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const isSelfProfile = authenticatedUser?.user.username?.toLowerCase() === username.toLowerCase()
 

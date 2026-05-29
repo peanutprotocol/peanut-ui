@@ -37,8 +37,8 @@ export const KycFailedModal = ({
             onClose={onClose}
             icon={'alert'}
             iconContainerClassName="bg-yellow-1"
-            title={isTerminal ? 'Verification failed' : 'Verification unsuccessful'}
-            description={!isTerminal && 'Your verification was not successful. You can try again.'}
+            title={isTerminal ? 'We couldn’t verify your ID' : 'Let’s try that again'}
+            description={!isTerminal && 'We weren’t able to confirm your ID. You can have another go.'}
             content={
                 <div className="w-full">
                     <KycFailedContent rejectLabels={rejectLabels} isTerminal={isTerminal} />
@@ -55,7 +55,7 @@ export const KycFailedModal = ({
                           shadowSize: '4',
                       }
                     : {
-                          text: isLoading ? 'Loading...' : 'Retry verification',
+                          text: isLoading ? 'Loading...' : 'Try again',
                           icon: 'retry',
                           onClick: onRetry,
                           disabled: isLoading,

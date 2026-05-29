@@ -8,7 +8,7 @@ import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
 import { useState, useMemo } from 'react'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -25,10 +25,11 @@ export const Profile = () => {
     const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
     const router = useRouter()
     const onBack = useSafeBack('/home')
-    // Profile "verified" reflects identity verification only. Bridge/Manteca
-    // approval just means a payment rail is enabled, not that the human has
-    // been ID-verified — only Sumsub clears that bar.
-    const { isUserSumsubKycApproved } = useKycStatus()
+    // Profile "verified" reflects identity verification only (the human was ID-verified) — NOT
+    // rail approval. Switched from `useCapabilities().isKycApproved` (any enabled rail, including
+    // Rain) to the provider-blind identityVerification projection, which today mirrors Sumsub
+    // applicant state. Bridge/Manteca rail approval does NOT flip this badge.
+    const { isVerified: isUserSumsubKycApproved } = useIdentityVerification()
     const { hasCardAccess } = useCardPioneerInfo()
 
     const logout = async () => {
@@ -76,7 +77,7 @@ export const Profile = () => {
 
                         <ProfileMenuItem
                             icon="globe-lock"
-                            label="Regions & Verification"
+                            label="Unlocked regions"
                             href="/profile/identity-verification"
                             position="middle"
                             highlight={!isUserSumsubKycApproved}

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useNotifications } from './useNotifications'
 import { useRouter } from 'next/navigation'
-import useKycStatus from './useKycStatus'
+import { useCapabilities } from './useCapabilities'
 import type { StaticImageData } from 'next/image'
 import { useModalsContext } from '@/context/ModalsContext'
 import { DeviceType, useDeviceType } from './useGetDeviceType'
@@ -83,8 +83,12 @@ export const useHomeCarouselCTAs = () => {
     } = useNotifications()
     const toast = useToast()
     const router = useRouter()
-    const { isUserKycApproved, isUserBridgeKycUnderReview, isUserBridgeKycIncomplete, isUserMantecaKycApproved } =
-        useKycStatus()
+    const { canDo, rails, bankRails } = useCapabilities()
+    // Suppress the "verify your account" CTA when the user is already mid-flow
+    // on ANY rail (`pending` = submitted/provisioning, `requires-info` = finish
+    // tos/proof). Includes pool-tier Manteca + QR-only rails, not just bank —
+    // the user shouldn't be re-nudged regardless of channel.
+    const isInFlight = rails.some((rail) => rail.status === 'pending' || rail.status === 'requires-info')
     const { deviceType } = useDeviceType()
     const isPwa = usePWAStatus()
     const { setIsIosPwaInstallModalOpen, openSupportWithMessage } = useModalsContext()
@@ -128,8 +132,9 @@ export const useHomeCarouselCTAs = () => {
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
 
-        // DRY: Check KYC approval status once
-        const hasKycApproval = isUserKycApproved || isUserMantecaKycApproved
+        // Home CTAs gate on "user can do a bank deposit or a pay" — provider-blind.
+        // Rain (card) does NOT count; a card-only user must still see the verify CTA.
+        const hasKycApproval = bankRails().some((r) => r.status === 'enabled') || canDo('pay')
         const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
 
         // Card CTA — Pioneers replaced by free badge-gated waitlist (M2).
@@ -290,7 +295,7 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        if (!hasKycApproval && !isUserBridgeKycUnderReview && !isUserBridgeKycIncomplete) {
+        if (!hasKycApproval && !isInFlight) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
                 title: (
@@ -300,7 +305,7 @@ export const useHomeCarouselCTAs = () => {
                 ),
                 description: (
                     <span>
-                        Verify your account to use <b>Mercado Pago</b> and <b>PIX</b> QR codes
+                        Confirm your ID to pay with <b>Mercado Pago</b> and <b>PIX</b> QR codes
                     </span>
                 ),
                 iconContainerClassName: 'bg-secondary-1',
@@ -318,10 +323,9 @@ export const useHomeCarouselCTAs = () => {
         isPermissionGranted,
         isPermissionDenied,
         isPushOptedIn,
-        isUserKycApproved,
-        isUserBridgeKycUnderReview,
-        isUserBridgeKycIncomplete,
-        isUserMantecaKycApproved,
+        canDo,
+        bankRails,
+        isInFlight,
         router,
         requestPermission,
         afterPermissionAttempt,

@@ -17,7 +17,7 @@ import Card from '../Global/Card'
 import { type CardPosition, getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem, isKycStatusItem, type KycHistoryEntry } from '../Kyc/KycStatusItem'
-import { groupKycByRegion } from '@/utils/kyc-grouping.utils'
+import { buildKycHistoryEntry } from '@/utils/kyc-grouping.utils'
 import CardUnlockHistoryItem from '../Card/CardUnlockHistoryItem'
 import { deriveCardUnlockEntry, isCardUnlockHistoryItem, type CardUnlockHistoryEntry } from '../Card/cardUnlock.types'
 import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
@@ -221,10 +221,10 @@ const HomeHistory = ({
                     }
                 }
 
-                // add one kyc entry per region (STANDARD, LATAM)
-                if (isViewingOwnHistory && user?.user) {
-                    const regionEntries = groupKycByRegion(user.user)
-                    entries.push(...regionEntries)
+                // add the single identity-verification row (provider-agnostic)
+                if (isViewingOwnHistory && user) {
+                    const kycEntry = buildKycHistoryEntry(user)
+                    if (kycEntry) entries.push(kycEntry)
                 }
 
                 // Synthetic card-unlock entry — once the user has card
@@ -347,20 +347,12 @@ const HomeHistory = ({
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
                 <h2 className="text-base font-bold">Activity</h2>
                 {isViewingOwnHistory &&
-                    user?.user &&
+                    user &&
                     (() => {
-                        const regionEntries = groupKycByRegion(user.user)
-                        return regionEntries.length > 0 ? (
+                        const kycEntry = buildKycHistoryEntry(user)
+                        return kycEntry ? (
                             <div className="space-y-3">
-                                {regionEntries.map((entry) => (
-                                    <KycStatusItem
-                                        key={entry.uuid}
-                                        position="single"
-                                        verification={entry.verification}
-                                        bridgeKycStatus={entry.bridgeKycStatus}
-                                        region={entry.region}
-                                    />
-                                ))}
+                                <KycStatusItem position="single" />
                             </div>
                         ) : (
                             <EmptyState
@@ -436,20 +428,11 @@ const HomeHistory = ({
                         )
                         const position = getCardPosition(index, filteredEntries.length)
 
-                        // Render KYC status item if it's its turn in the sorted list
+                        // Render the identity-verification status row when it's its turn in the
+                        // sorted list. KycStatusItem self-sources its status from
+                        // useIdentityVerification() — the entry is just a timeline marker.
                         if (isKycStatusItem(item)) {
-                            return (
-                                <KycStatusItem
-                                    key={item.uuid}
-                                    position={position}
-                                    verification={item.verification}
-                                    bridgeKycStatus={item.bridgeKycStatus}
-                                    bridgeKycStartedAt={
-                                        item.bridgeKycStatus ? user?.user.bridgeKycStartedAt : undefined
-                                    }
-                                    region={item.region}
-                                />
-                            )
+                            return <KycStatusItem key={item.uuid} position={position} />
                         }
 
                         // render badge milestone entries

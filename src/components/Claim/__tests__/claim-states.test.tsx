@@ -131,8 +131,10 @@ jest.mock('@/utils/general.utils', () => ({
     getChainLogo: jest.fn(() => '/chain.png'),
 }))
 
-jest.mock('@/constants/kyc.consts', () => ({
-    isUserKycVerified: jest.fn(() => false),
+// Mock the counterparty fetch the sender-verified enrichment uses; default to
+// not-verified so existing assertions stay stable.
+jest.mock('@/app/actions/users', () => ({
+    getUserById: jest.fn(() => Promise.resolve({ isVerified: false })),
 }))
 
 jest.mock('@/app/actions/tokens', () => ({

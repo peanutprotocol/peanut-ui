@@ -45,11 +45,11 @@ export const KycVerificationInProgressModal = ({
                 onClose={onClose}
                 icon={'clock' as IconName}
                 iconContainerClassName="bg-yellow-1 text-black"
-                title="We're verifying your identity"
+                title="Almost there"
                 description={
                     <p>
-                        This usually takes less than a minute. You can stay here while we finish, or return to the home
-                        screen and we'll notify you when it's done.
+                        We&apos;re confirming your ID — usually less than a minute. You can wait here, or head home and
+                        we&apos;ll let you know when it&apos;s done.
                     </p>
                 }
                 ctas={[
@@ -132,7 +132,7 @@ export const KycVerificationInProgressModal = ({
 
     if (phase === 'bridge_tos') {
         const description =
-            tosError || 'One more step: accept terms of service to enable bank transfers in the US, Europe, and Mexico.'
+            tosError || 'Last step: accept terms of service to unlock bank transfers in the US, Europe, and Mexico.'
 
         return (
             <ActionModal
@@ -140,7 +140,7 @@ export const KycVerificationInProgressModal = ({
                 onClose={onClose}
                 icon={'check' as IconName}
                 iconContainerClassName="bg-success-1 text-white"
-                title="Identity verified!"
+                title="One more step"
                 description={description}
                 ctas={[
                     {
@@ -165,7 +165,7 @@ export const KycVerificationInProgressModal = ({
             onClose={onClose}
             icon={'check' as IconName}
             iconContainerClassName="bg-success-1 text-white"
-            title="All set!"
+            title="You're unlocked"
             description="Your account is ready to go."
             ctas={[
                 {

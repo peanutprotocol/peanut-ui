@@ -13,8 +13,8 @@ export const KycProcessingModal = ({ visible, onClose }: KycProcessingModalProps
             onClose={onClose}
             icon="clock"
             iconContainerClassName="bg-yellow-1"
-            title="Verification in progress"
-            description="We're reviewing your identity. This usually takes less than a minute."
+            title="Setting up your account…"
+            description="We're confirming your ID. This usually takes less than a minute."
             ctas={[
                 {
                     text: 'Got it',

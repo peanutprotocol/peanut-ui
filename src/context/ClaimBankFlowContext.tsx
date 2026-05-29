@@ -3,9 +3,8 @@
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
 import { type CountryData } from '../components/AddMoney/consts'
 import { type TCreateOfframpResponse } from '@/services/services.types'
-import { type Account, type User } from '@/interfaces'
+import { type Account, type CounterpartyUser } from '@/interfaces'
 import { type IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
-import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 
 export enum ClaimBankFlowStep {
     SavedAccountsList = 'saved-accounts-list',
@@ -28,8 +27,8 @@ interface ClaimBankFlowContextType {
     setClaimError: (error: string | null) => void
     claimType?: 'claim-bank' | 'claim' | 'claimxchain' | null
     setClaimType: (type: 'claim-bank' | 'claim' | 'claimxchain' | null) => void
-    senderDetails: User | null
-    setSenderDetails: (details: User | null) => void
+    senderDetails: CounterpartyUser | null
+    setSenderDetails: (details: CounterpartyUser | null) => void
     showVerificationModal: boolean
     setShowVerificationModal: (show: boolean) => void
     bankDetails: IBankAccountDetails | null
@@ -38,8 +37,6 @@ interface ClaimBankFlowContextType {
     setSavedAccounts: (accounts: Account[]) => void
     selectedBankAccount: Account | null
     setSelectedBankAccount: (account: Account | null) => void
-    senderKycStatus?: BridgeKycStatus
-    setSenderKycStatus: (status?: BridgeKycStatus) => void
     justCompletedKyc: boolean
     setJustCompletedKyc: (status: boolean) => void
     claimToMercadoPago: boolean
@@ -59,12 +56,11 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
     const [offrampDetails, setOfframpDetails] = useState<TCreateOfframpResponse | null>(null)
     const [claimError, setClaimError] = useState<string | null>(null)
     const [claimType, setClaimType] = useState<'claim-bank' | 'claim' | 'claimxchain' | null>(null)
-    const [senderDetails, setSenderDetails] = useState<User | null>(null)
+    const [senderDetails, setSenderDetails] = useState<CounterpartyUser | null>(null)
     const [showVerificationModal, setShowVerificationModal] = useState(false)
     const [bankDetails, setBankDetails] = useState<IBankAccountDetails | null>(null)
     const [savedAccounts, setSavedAccounts] = useState<Account[]>([])
     const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
-    const [senderKycStatus, setSenderKycStatus] = useState<BridgeKycStatus | undefined>()
     const [justCompletedKyc, setJustCompletedKyc] = useState(false)
     const [claimToMercadoPago, setClaimToMercadoPago] = useState(false)
     const [regionalMethodType, setRegionalMethodType] = useState<'mercadopago' | 'pix'>('mercadopago')
@@ -82,7 +78,6 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
         setBankDetails(null)
         setSavedAccounts([])
         setSelectedBankAccount(null)
-        setSenderKycStatus(undefined)
         setJustCompletedKyc(false)
         setClaimToMercadoPago(false)
         setRegionalMethodType('mercadopago')
@@ -114,8 +109,6 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
             setSavedAccounts,
             selectedBankAccount,
             setSelectedBankAccount,
-            senderKycStatus,
-            setSenderKycStatus,
             justCompletedKyc,
             setJustCompletedKyc,
             claimToMercadoPago,
@@ -138,7 +131,6 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
             bankDetails,
             savedAccounts,
             selectedBankAccount,
-            senderKycStatus,
             justCompletedKyc,
             claimToMercadoPago,
             setClaimToMercadoPago,

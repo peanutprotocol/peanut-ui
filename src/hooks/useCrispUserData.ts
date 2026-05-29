@@ -44,11 +44,13 @@ export function useCrispUserData(): CrispUserData {
 
         const bridgeCustomerId = user?.user?.bridgeCustomerId || undefined
         const bridgeCustomerLink = bridgeCustomerId ? `${BRIDGE_DASHBOARD_BASE_URL}/${bridgeCustomerId}` : undefined
-        // TODO: Manteca dashboard uses a numeric short ID (e.g. 2685955), but we only store
-        // the long UUID (providerUserId). Converting requires an extra API call to Manteca.
-        // When/if we add that, change this to a full link like bridgeCustomerLink.
-        const mantecaUserId =
-            user?.user?.kycVerifications?.find((kyc) => kyc.provider === 'MANTECA')?.providerUserId || undefined
+        // DATA GAP (flagged): the Manteca providerUserId used to come from the now-removed
+        // raw `user.kycVerifications` field. Neither read-model carries it — `capabilities`
+        // is provider-blind, `identityVerification` has no provider metadata. This was only
+        // an internal support-dashboard convenience link (not user-facing, not a gate), so
+        // it degrades to undefined until the backend exposes a provider-account id. Do NOT
+        // fabricate it from capabilities.
+        const mantecaUserId = undefined
 
         const posthogPersonLink = userId ? `${POSTHOG_PERSON_BASE_URL}/${userId}` : undefined
 

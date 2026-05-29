@@ -3,6 +3,7 @@ import {
     type CountryData,
     countryData,
     ALL_COUNTRIES_ALPHA3_TO_ALPHA2,
+    BRIDGE_ALPHA3_TO_ALPHA2,
     PREFERRED_COUNTRY_ISO2,
 } from '@/components/AddMoney/consts'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -19,8 +20,19 @@ import StatusBadge from '../Global/Badges/StatusBadge'
 import Loading from '../Global/Loading'
 import { useSearchParams } from 'next/navigation'
 import { ActionListCard } from '../ActionListCard'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
+
+// precompute bridge alpha2 values for O(1) lookup
+const BRIDGE_ALPHA2_SET = new Set(Object.values(BRIDGE_ALPHA3_TO_ALPHA2))
+
+// MIGRATION-REVIEW: `isBridgeSupportedCountry` was sourced from `useIdentityVerification`, but it
+// is a PURE static lookup over BRIDGE_ALPHA3_TO_ALPHA2 — it never read any KYC/Sumsub state (the
+// migration map's "selectedLevel" note for CountryList was stale; this file never used it).
+// Inlined verbatim so the file no longer depends on the legacy hook. Behavior is identical.
+const isBridgeSupportedCountry = (code: string): boolean => {
+    const upper = code.toUpperCase()
+    return upper === 'US' || upper === 'MX' || upper in BRIDGE_ALPHA3_TO_ALPHA2 || BRIDGE_ALPHA2_SET.has(upper)
+}
 
 interface CountryListViewProps {
     inputTitle: string
@@ -70,7 +82,6 @@ export const CountryList = ({
     const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocation()
     // track which country is being clicked to show loading state
     const [clickedCountryId, setClickedCountryId] = useState<string | null>(null)
-    const { isBridgeSupportedCountry: isBridgeSupportedCountryHook } = useIdentityVerification()
 
     // easter egg modal state
     const [easterEggCountry, setEasterEggCountry] = useState<string | null>(null)
@@ -158,7 +169,7 @@ export const CountryList = ({
                                 ALL_COUNTRIES_ALPHA3_TO_ALPHA2[country.id.toUpperCase()] ?? country.id.toLowerCase()
                             const position = getCardPosition(index, filteredCountries.length)
 
-                            const isBridgeSupportedCountry = isBridgeSupportedCountryHook(country.id)
+                            const isBridgeSupportedCountryResult = isBridgeSupportedCountry(country.id)
                             const isMantecaSupportedCountry = isMantecaSupportedCountryCode(country.id)
 
                             // determine if country is supported based on view mode
@@ -167,7 +178,7 @@ export const CountryList = ({
                             if (viewMode === 'add-withdraw') {
                                 // for send->bank flow, enforce only bridge or manteca supported countries
                                 if (enforceSupportedCountries) {
-                                    isSupported = isBridgeSupportedCountry
+                                    isSupported = isBridgeSupportedCountryResult
                                 } else {
                                     // otherwise allow all countries
                                     isSupported = true
@@ -179,7 +190,7 @@ export const CountryList = ({
                             } else if (viewMode === 'claim-request') {
                                 // support bridge or manteca supported countries, but temporarily disable sepa corridors
                                 // where local currency is not eur (show as soon)
-                                isSupported = isBridgeSupportedCountry || isMantecaSupportedCountry
+                                isSupported = isBridgeSupportedCountryResult || isMantecaSupportedCountry
                             } else {
                                 // support all countries
                                 isSupported = true

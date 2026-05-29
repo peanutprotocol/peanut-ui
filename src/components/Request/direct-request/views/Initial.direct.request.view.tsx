@@ -21,7 +21,6 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { isUserKycVerified } from '@/constants/kyc.consts'
 
 interface DirectRequestInitialViewProps {
     username: string
@@ -217,7 +216,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                     recipientType={'USERNAME'}
                     username={recipientUser?.username || username}
                     fullName={recipientUser?.fullName}
-                    isVerified={isUserKycVerified(recipientUser)}
+                    isVerified={recipientUser?.isVerified ?? false}
                     haveSentMoneyToUser={recipientUser?.userId ? interactions[recipientUser.userId] || false : false}
                 />
 

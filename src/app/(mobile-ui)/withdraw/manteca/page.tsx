@@ -38,8 +38,9 @@ import Select from '@/components/Global/Select'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
 import { captureException } from '@sentry/nextjs'
-import useKycStatus from '@/hooks/useKycStatus'
-import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -68,7 +69,7 @@ import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useLimits } from '@/hooks/useLimits'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { isVerifiedForCountry } from '@/utils/regions.utils'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -99,9 +100,11 @@ export default function MantecaWithdrawFlow() {
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
     const queryClient = useQueryClient()
-    const { isUserSumsubKycApproved } = useKycStatus()
-    const { isVerifiedForCountry } = useIdentityVerification()
-    const { manteca: mantecaRejection } = useProviderRejectionStatus()
+    // The pool→full upgrade gate reads identityVerification (Sumsub-cleared
+    // the human), not rail-approval. Same fix-pattern as Profile/ProfileEdit.
+    const { rails } = useCapabilities()
+    const { isVerified: isUserIdentityVerified } = useIdentityVerification()
+    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA'), [rails])
     const { hasPendingTransactions } = usePendingTransactions()
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
@@ -128,7 +131,7 @@ export default function MantecaWithdrawFlow() {
         if (!selectedCountry || !isMantecaSupportedCountryCode(selectedCountry.id)) return undefined
         return MANTECA_COUNTRIES_CONFIG[selectedCountry.id]
     }, [selectedCountry])
-    const isUserMantecaKycApprovedForCountry = selectedCountry ? isVerifiedForCountry(selectedCountry.id) : false
+    const isUserMantecaKycApprovedForCountry = selectedCountry ? isVerifiedForCountry(rails, selectedCountry.id) : false
 
     const {
         code: currencyCode,
@@ -599,7 +602,7 @@ export default function MantecaWithdrawFlow() {
                         ? 'blocked'
                         : mantecaRejection.state === 'fixable'
                           ? 'provider_rejection'
-                          : isUserSumsubKycApproved
+                          : isUserIdentityVerified
                             ? 'cross_region'
                             : 'default'
                 }

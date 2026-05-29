@@ -27,14 +27,14 @@ export const GuestVerificationModal = ({
         <ActionModal
             visible={isOpen}
             onClose={onClose}
-            title="This method requires verification"
+            title="Unlock this payment method"
             description={description}
             icon="alert"
             iconContainerClassName="bg-yellow-400"
             ctaClassName="md:flex-col gap-4"
             ctas={[
                 {
-                    text: 'Start verification',
+                    text: 'Get started',
                     shadowSize: '4',
                     className: 'md:py-2.5',
                     onClick: () => {

@@ -9,7 +9,8 @@ import Card from '../Global/Card'
 import { useEffect, useMemo, useRef } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 
 interface ActivationCTAsProps {
     activationStep: ActivationStep
@@ -31,9 +32,9 @@ const STEPS: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = {
     verify: {
         icon: 'globe-lock',
         iconBg: 'bg-primary-1',
-        title: 'Verify to get started',
-        description: 'Use bank accounts and other local payments methods',
-        ctaLabel: 'Verify now',
+        title: 'Unlock payments',
+        description: 'Bank deposits, QR codes, and local payment methods',
+        ctaLabel: 'Unlock now',
         href: '/profile/identity-verification',
     },
     deposit: {
@@ -72,7 +73,30 @@ const STEPS: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = {
 export default function ActivationCTAs({ activationStep, onDismissCard }: ActivationCTAsProps) {
     const router = useRouter()
     const { setIsQRScannerOpen, setIsSupportModalOpen } = useModalsContext()
-    const { hasFixableRejection, hasBlockedRejection, primaryRejection } = useProviderRejectionStatus()
+    const { rails, channelOf } = useCapabilities()
+    // Suppress the "Unlock payments" verify CTA while identity is mid-flight
+    // (Sumsub processing / action_required). The user already took the verify
+    // action; the identity-verification page surfaces the in-progress modal,
+    // and bouncing them through here again would imply they need to re-act.
+    const { isProcessing: isIdentityProcessing, needsAction: isIdentityActionRequired } = useIdentityVerification()
+
+    // The activation funnel gates deposit/outbound, which routes through bank or
+    // qr-only channels — never through card. Top-level status (not per-op
+    // refinement): Manteca's pool tier reads `enabled` at the rail level even when
+    // deposit/withdraw individually need an upgrade — that's not a rejection.
+    const { hasFixableRejection, hasBlockedRejection, primaryRejectionMessage } = useMemo(() => {
+        const rejectableRails = rails.filter((rail) => {
+            const channel = channelOf(rail)
+            return channel === 'bank' || channel === 'qr-only'
+        })
+        const fixableRail = rejectableRails.find((rail) => rail.status === 'requires-info')
+        const blockedRail = rejectableRails.find((rail) => rail.status === 'blocked')
+        return {
+            hasFixableRejection: !!fixableRail,
+            hasBlockedRejection: !!blockedRail,
+            primaryRejectionMessage: (fixableRail ?? blockedRail)?.reason?.userMessage ?? null,
+        }
+    }, [rails, channelOf])
 
     const lastTrackedStep = useRef<ActivationStep | null>(null)
     useEffect(() => {
@@ -92,14 +116,18 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     const step: StepConfig | null = useMemo(() => {
         if (activationStep === 'completed' && !hasProviderRejection) return null
 
+        // Hide the verify CTA while identity is processing — user already
+        // submitted, the BE is reviewing, no further action from them.
+        // action_required is the exception: that means we DO need them back.
+        if (activationStep === 'verify' && isIdentityProcessing && !isIdentityActionRequired) return null
+
         if (hasProviderRejection) {
             if (hasFixableRejection) {
                 return {
                     icon: 'globe-lock',
                     iconBg: 'bg-primary-1',
                     title: 'Complete your setup',
-                    description:
-                        primaryRejection?.userMessage || 'We need an updated document before you can add money.',
+                    description: primaryRejectionMessage || 'We need an updated document before you can add money.',
                     ctaLabel: 'Upload document',
                     href: '/profile/identity-verification',
                 }
@@ -116,7 +144,14 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         }
 
         return STEPS[activationStep as Exclude<ActivationStep, 'completed'>]
-    }, [activationStep, hasProviderRejection, hasFixableRejection, primaryRejection])
+    }, [
+        activationStep,
+        hasProviderRejection,
+        hasFixableRejection,
+        primaryRejectionMessage,
+        isIdentityProcessing,
+        isIdentityActionRequired,
+    ])
 
     if (!step) return null
 
