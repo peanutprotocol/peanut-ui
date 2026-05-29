@@ -14,6 +14,7 @@ import {
 import { deriveGate, type GateScope, type GateState } from '@/utils/capability-gate'
 import type { RailChannel } from '@/types/capabilities'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useSubmissionWindow } from '@/hooks/useSubmissionWindow'
 
 /**
  * Single selector over the backend-computed capability model. ALL KYC/rail
@@ -222,14 +223,20 @@ export function useCapabilities(): UseCapabilitiesResult {
         [rails]
     )
 
-    // D4 — poll the user query while any rail is `pending`; stop when settled.
-    const hasPendingRail = useMemo(() => rails.some((rail) => rail.status === 'pending'), [rails])
+    // D4 — poll the user query while any rail is `pending` OR a recent submission
+    // is in-window. `pending` covers provisioning rails the BE auto-settles;
+    // `isInWindow` covers post-write moments (Sumsub action complete, Bridge ToS
+    // confirm, …) where the rail status hasn't shifted yet because the provider
+    // webhook is in flight — without it, the FE reads the pre-submission snapshot
+    // once and misses the transition. See {@link useSubmissionWindow}.
+    const { isInWindow } = useSubmissionWindow()
+    const shouldPoll = useMemo(() => rails.some((rail) => rail.status === 'pending') || isInWindow, [rails, isInWindow])
 
     // Keep the latest pending flag in a ref so the interval callback reads fresh
     // state without forcing the effect (and thus the interval) to re-create each
     // time the user object changes.
-    const hasPendingRef = useRef(hasPendingRail)
-    hasPendingRef.current = hasPendingRail
+    const shouldPollRef = useRef(shouldPoll)
+    shouldPollRef.current = shouldPoll
 
     // Guard against overlapping poll calls. If one fetchUser takes longer than
     // POLL_INTERVAL_MS, the next tick would otherwise stack a second one on top.
@@ -238,14 +245,15 @@ export function useCapabilities(): UseCapabilitiesResult {
     const pollInFlightRef = useRef(false)
 
     useEffect(() => {
-        if (!hasPendingRail) return
+        if (!shouldPoll) return
 
         let cancelled = false
         const timer = setInterval(() => {
             if (cancelled) return
-            // Self-terminate the moment nothing is pending — the next render's
-            // effect cleanup also clears it, this just avoids a stray refetch.
-            if (!hasPendingRef.current) {
+            // Self-terminate the moment nothing is pending AND no submission
+            // window is active. The next render's effect cleanup also clears it,
+            // this just avoids a stray refetch when the window closes between ticks.
+            if (!shouldPollRef.current) {
                 clearInterval(timer)
                 return
             }
@@ -266,7 +274,7 @@ export function useCapabilities(): UseCapabilitiesResult {
             cancelled = true
             clearInterval(timer)
         }
-    }, [hasPendingRail, fetchUser])
+    }, [shouldPoll, fetchUser])
 
     return {
         capabilities,
