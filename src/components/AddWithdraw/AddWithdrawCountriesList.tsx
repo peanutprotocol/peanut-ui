@@ -62,6 +62,22 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const sumsubFlow = useMultiPhaseKycFlow({
         onKycSuccess: () => {
             setIsKycModalOpen(false)
+            // The `view: 'form'` branch below renders DynamicBankAccountForm —
+            // the offramp/withdraw bank-account input form. That's correct for
+            // `flow === 'withdraw'` (user enters THEIR bank account to receive
+            // funds) but completely wrong for `flow === 'add'`, which needs
+            // Bridge's deposit instructions (an account belonging to Bridge
+            // that the user wires TO). Pre-fix this unconditional setView
+            // surfaced the withdraw form under an "Add money" title — the
+            // EEA QA Bug #5 ("Submitted, but still asking for account holder
+            // details when I'm trying to add money"). Route add-money users
+            // to /add-money/[country]/bank instead, which mounts
+            // AddMoneyBankDetails (deposit-instructions display).
+            if (flow === 'add') {
+                const countrySlug = currentCountry?.path
+                router.push(countrySlug ? `/add-money/${countrySlug}/bank` : '/add-money')
+                return
+            }
             setView('form')
         },
         onManualClose: () => setIsKycModalOpen(false),
