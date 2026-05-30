@@ -137,6 +137,37 @@ export function isReservedRoute(path: string): boolean {
 }
 
 /**
+ * Username validation — mirror of the rule in src/components/Setup/Views/Signup.tsx
+ * (4-12 chars, lowercase letters + digits, must start with a letter). If we widen
+ * this server-side, update both call sites.
+ */
+const USERNAME_PATTERN = /^[a-z][a-z0-9]{3,11}$/
+
+/**
+ * Helper to check if a first segment could plausibly identify a payment recipient:
+ * a Peanut username, an EVM address, an ENS name, or a `username@chain` handle.
+ * Anything else (bare locale codes, random strings, things with dashes/dots) should
+ * 404 instead of falling through to the recipient catch-all and rendering a profile.
+ */
+export function couldBeRecipient(segment: string): boolean {
+    if (!segment) return false
+    let decoded: string
+    try {
+        decoded = decodeURIComponent(segment).toLowerCase()
+    } catch {
+        // malformed percent-encoding (e.g. lone '%') → not a recipient
+        return false
+    }
+    // EVM address
+    if (/^0x[0-9a-f]{40}$/.test(decoded)) return true
+    // ENS name
+    if (decoded.endsWith('.eth') && decoded.length > 4) return true
+    // username@chain handle (chain validation happens downstream)
+    const base = decoded.includes('@') ? decoded.split('@')[0] : decoded
+    return USERNAME_PATTERN.test(base)
+}
+
+/**
  * Helper to check if a path is public (no auth required)
  * Dev test pages (gift-test, shake-test) are only public in dev mode
  */
