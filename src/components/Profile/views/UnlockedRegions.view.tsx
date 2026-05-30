@@ -251,13 +251,18 @@ const UnlockedRegions = () => {
                 title={
                     providerRejectionForRegion.state === 'fixable'
                         ? 'We need an updated document'
-                        : 'Region unavailable'
+                        : providerRejectionForRegion.state === 'restart-identity'
+                          ? 'Verify with a different document'
+                          : 'Region unavailable'
                 }
                 description={
                     providerRejectionForRegion.state === 'fixable'
                         ? providerRejectionForRegion.userMessage ||
                           'Please upload a clearer photo of your ID to unlock this region.'
-                        : 'This region is not available for your account. Contact support for help.'
+                        : providerRejectionForRegion.state === 'restart-identity'
+                          ? providerRejectionForRegion.userMessage ||
+                            'This region needs a document from a supported country. You can verify with a different ID.'
+                          : 'This region is not available for your account. Contact support for help.'
                 }
                 icon="alert"
                 iconContainerClassName="bg-yellow-1"
@@ -272,15 +277,25 @@ const UnlockedRegions = () => {
                               variant: 'purple' as const,
                               shadowSize: '4' as const,
                           }
-                        : {
-                              text: 'Contact support',
-                              onClick: () => {
-                                  handleModalClose()
-                                  setIsSupportModalOpen(true)
-                              },
-                              variant: 'purple' as const,
-                              shadowSize: '4' as const,
-                          },
+                        : providerRejectionForRegion.state === 'restart-identity'
+                          ? {
+                                text: 'Verify with a different document',
+                                onClick: () => {
+                                    handleModalClose()
+                                    flow.handleRestartIdentity()
+                                },
+                                variant: 'purple' as const,
+                                shadowSize: '4' as const,
+                            }
+                          : {
+                                text: 'Contact support',
+                                onClick: () => {
+                                    handleModalClose()
+                                    setIsSupportModalOpen(true)
+                                },
+                                variant: 'purple' as const,
+                                shadowSize: '4' as const,
+                            },
                 ]}
             />
 

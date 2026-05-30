@@ -23,6 +23,12 @@ export enum QrKycState {
     IDENTITY_VERIFICATION_IN_PROGRESS = 'identity_verification_in_progress',
     PROVIDER_REJECTION_FIXABLE = 'provider_rejection_fixable',
     PROVIDER_REJECTION_BLOCKED = 'provider_rejection_blocked',
+    /**
+     * Blocked Manteca rail with a `restart-identity` action — user uploaded a
+     * non-AR/BR document on a Manteca-only flow. Self-fixable by verifying with
+     * a different ID.
+     */
+    PROVIDER_RESTART_IDENTITY = 'provider_restart_identity',
 }
 
 // sets of status values by category — single source of truth

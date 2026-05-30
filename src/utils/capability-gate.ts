@@ -44,6 +44,13 @@ export type GateState =
     | { kind: 'accept-tos'; tosUrl?: string; userMessage: string | null; reason?: CapabilityReason }
     | { kind: 'fixable-rejection'; userMessage: string | null; reason?: CapabilityReason }
     | { kind: 'blocked-rejection'; userMessage: string | null; reason?: CapabilityReason }
+    /**
+     * Blocked rail with a self-fix path: re-verify Sumsub IDENTITY with a
+     * different document. Triggered today for Manteca country-ineligibility
+     * (user uploaded a non-AR/BR doc on a flow that only supports those).
+     * CTA opens a fresh Sumsub WebSDK after POST /users/identity/restart.
+     */
+    | { kind: 'restart-identity'; userMessage: string | null; reason?: CapabilityReason }
     | { kind: 'needs-identity' }
     | { kind: 'needs-enrollment' }
 
@@ -131,9 +138,19 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
     const candidates = filterRailsByScope(state.rails, scope)
     const actionByKey = new Map(state.nextActions.map((action) => [action.key, action]))
 
-    // 2. blocked
+    // 2. blocked — split: if the rail carries a `restart-identity` action the
+    // user can self-fix by re-verifying with a different document; otherwise
+    // the only path is contact-support.
     const blocked = candidates.find((rail) => rail.status === 'blocked')
     if (blocked) {
+        const hasRestart = railActions(blocked, actionByKey).some((action) => action.kind === 'restart-identity')
+        if (hasRestart) {
+            return {
+                kind: 'restart-identity',
+                userMessage: blocked.reason?.userMessage ?? null,
+                reason: blocked.reason,
+            }
+        }
         return {
             kind: 'blocked-rejection',
             userMessage: blocked.reason?.userMessage ?? null,
@@ -213,8 +230,9 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
  */
 export function getKycModalVariant(
     kind: GateState['kind']
-): 'blocked' | 'provider_rejection' | 'cross_region' | 'default' {
+): 'blocked' | 'provider_rejection' | 'cross_region' | 'restart_identity' | 'default' {
     if (kind === 'blocked-rejection') return 'blocked'
+    if (kind === 'restart-identity') return 'restart_identity'
     if (kind === 'fixable-rejection') return 'provider_rejection'
     if (kind === 'needs-enrollment') return 'cross_region'
     return 'default'
@@ -229,6 +247,7 @@ export function getGateUserMessage(gate: GateState): string | undefined {
     if (
         gate.kind === 'fixable-rejection' ||
         gate.kind === 'blocked-rejection' ||
+        gate.kind === 'restart-identity' ||
         gate.kind === 'accept-tos' ||
         gate.kind === 'waiting-on-provider'
     ) {

@@ -27,7 +27,16 @@ import { type RailCapability } from '@/types/capabilities'
  * into 'happy' because no consumer branches on it (all only check
  * `state === 'fixable'` / `'blocked'`).
  */
-export type ProviderRejectionState = 'happy' | 'fixable' | 'blocked'
+/**
+ * Per-provider rejection state.
+ *   - happy           : nothing pending an action
+ *   - fixable         : user can re-submit docs via self-heal (`requires-info`)
+ *   - restart-identity: blocked + the rail carries a `restart-identity` action
+ *                       (today: Manteca country-not-supported). Self-fixable
+ *                       by re-verifying with a different document.
+ *   - blocked         : terminal — contact support
+ */
+export type ProviderRejectionState = 'happy' | 'fixable' | 'restart-identity' | 'blocked'
 
 export interface ProviderRejectionInfo {
     provider: 'BRIDGE' | 'MANTECA'
@@ -40,7 +49,14 @@ const PROVIDER_CODE: Record<'BRIDGE' | 'MANTECA', 'bridge' | 'manteca'> = {
     MANTECA: 'manteca',
 }
 
-/** Derive the rejection state for a single provider from the capability rails. */
+/**
+ * Derive the rejection state for a single provider from the capability rails.
+ *
+ * `restart-identity` is detected via the rail's `reason.code` — keeps the
+ * signature backwards-compatible (no nextActions param) and mirrors the
+ * backend resolver's split: country-not-supported on a Manteca rail emits a
+ * `restart-identity` action; on Bridge/Rain it stays `contact-support`.
+ */
 export function deriveProviderRejection(
     rails: RailCapability[],
     provider: 'BRIDGE' | 'MANTECA'
@@ -48,7 +64,14 @@ export function deriveProviderRejection(
     const providerRails = rails.filter((rail) => rail.provider === PROVIDER_CODE[provider])
     const fixableRail = providerRails.find((rail) => rail.status === 'requires-info')
     const blockedRail = providerRails.find((rail) => rail.status === 'blocked')
-    const state: ProviderRejectionState = fixableRail ? 'fixable' : blockedRail ? 'blocked' : 'happy'
+    const isRestartIdentity = provider === 'MANTECA' && blockedRail?.reason?.code === 'country_not_supported'
+    const state: ProviderRejectionState = fixableRail
+        ? 'fixable'
+        : isRestartIdentity
+          ? 'restart-identity'
+          : blockedRail
+            ? 'blocked'
+            : 'happy'
     return {
         provider,
         state,

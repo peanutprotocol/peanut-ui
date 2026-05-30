@@ -601,8 +601,9 @@ export default function MantecaWithdrawFlow() {
                         setShowKycModal(false)
                         return
                     }
-                    const hasRejection = mantecaRejection.state === 'fixable'
-                    if (hasRejection) {
+                    if (mantecaRejection.state === 'restart-identity') {
+                        await sumsubFlow.handleRestartIdentity()
+                    } else if (mantecaRejection.state === 'fixable') {
                         await sumsubFlow.handleSelfHealResubmit('MANTECA')
                     } else {
                         await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
@@ -613,11 +614,13 @@ export default function MantecaWithdrawFlow() {
                 variant={
                     mantecaRejection.state === 'blocked'
                         ? 'blocked'
-                        : mantecaRejection.state === 'fixable'
-                          ? 'provider_rejection'
-                          : isUserIdentityVerified
-                            ? 'cross_region'
-                            : 'default'
+                        : mantecaRejection.state === 'restart-identity'
+                          ? 'restart_identity'
+                          : mantecaRejection.state === 'fixable'
+                            ? 'provider_rejection'
+                            : isUserIdentityVerified
+                              ? 'cross_region'
+                              : 'default'
                 }
                 providerMessage={mantecaRejection.userMessage ?? undefined}
                 regionName={selectedCountry?.title}

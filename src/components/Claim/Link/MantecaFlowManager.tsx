@@ -16,6 +16,7 @@ import { useCapabilities } from '@/hooks/useCapabilities'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
+import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 
 interface MantecaFlowManagerProps {
     claimLinkData: ClaimLinkData
@@ -28,7 +29,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
     const [currentStep, setCurrentStep] = useState<MercadoPagoStep>(MercadoPagoStep.DETAILS)
     const router = useRouter()
     const [destinationAddress, setDestinationAddress] = useState('')
-    const { canDo, isKycApproved, railsForProvider } = useCapabilities()
+    const { canDo, isKycApproved, rails } = useCapabilities()
 
     // MIGRATION-REVIEW: MercadoPago/PIX claim is a `pay` operation over Manteca. Old gate was
     // `isUserMantecaKycApproved` (any MANTECA/SUMSUB-mantecaGeo verification approved). Mapped to
@@ -37,18 +38,9 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
     // mantecaGeo counted as approved).
     const isMantecaPayEnabled = canDo('pay', { provider: 'manteca' })
 
-    // MIGRATION-REVIEW: old `manteca` rejection state (fixable/blocked + userMessage) derived from
-    // raw rail status + self-heal metadata. That eligibility now lives backend-side as the rail
-    // status: requires-info → fixable (self-heal), blocked → blocked (support). userMessage ←
-    // reason.userMessage. Uses TOP-LEVEL status, so the pool pay-rail (top-level 'enabled') is
-    // not treated as a rejection.
-    const mantecaRejection = useMemo(() => {
-        const mantecaRails = railsForProvider('manteca')
-        const fixableRail = mantecaRails.find((rail) => rail.status === 'requires-info')
-        const blockedRail = mantecaRails.find((rail) => rail.status === 'blocked')
-        const state: 'fixable' | 'blocked' | 'happy' = fixableRail ? 'fixable' : blockedRail ? 'blocked' : 'happy'
-        return { state, userMessage: (fixableRail ?? blockedRail)?.reason?.userMessage ?? null }
-    }, [railsForProvider])
+    // Use the shared rejection util so the `restart-identity` branch (Manteca
+    // country-ineligibility — user uploaded a non-AR/BR doc) is honored here too.
+    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA'), [rails])
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -150,8 +142,9 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                         setShowKycModal(false)
                         return
                     }
-                    const hasRejection = mantecaRejection.state === 'fixable'
-                    if (hasRejection) {
+                    if (mantecaRejection.state === 'restart-identity') {
+                        await sumsubFlow.handleRestartIdentity()
+                    } else if (mantecaRejection.state === 'fixable') {
                         await sumsubFlow.handleSelfHealResubmit('MANTECA')
                     } else {
                         await sumsubFlow.handleInitiateKyc('LATAM', undefined, true)
@@ -162,15 +155,17 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 variant={
                     mantecaRejection.state === 'blocked'
                         ? 'blocked'
-                        : mantecaRejection.state === 'fixable'
-                          ? 'provider_rejection'
-                          : // MIGRATION-REVIEW: 'cross_region' copy = "you're already verified, just need
-                            // the regional Manteca uplift". Old gate was `isUserSumsubKycApproved`. Sumsub has
-                            // no rail in the capability model; any enabled rail implies identity verification
-                            // was completed at least once, so isKycApproved is the closest faithful proxy.
-                            isKycApproved
-                            ? 'cross_region'
-                            : 'default'
+                        : mantecaRejection.state === 'restart-identity'
+                          ? 'restart_identity'
+                          : mantecaRejection.state === 'fixable'
+                            ? 'provider_rejection'
+                            : // MIGRATION-REVIEW: 'cross_region' copy = "you're already verified, just need
+                              // the regional Manteca uplift". Old gate was `isUserSumsubKycApproved`. Sumsub has
+                              // no rail in the capability model; any enabled rail implies identity verification
+                              // was completed at least once, so isKycApproved is the closest faithful proxy.
+                              isKycApproved
+                              ? 'cross_region'
+                              : 'default'
                 }
                 providerMessage={mantecaRejection.userMessage ?? undefined}
                 regionName={selectedCountry?.title}
