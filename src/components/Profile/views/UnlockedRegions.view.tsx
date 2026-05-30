@@ -127,11 +127,10 @@ const UnlockedRegions = () => {
         : false
     const baseModalVariant = selectedRegion ? getModalVariant(clickedRegionRail, clickedRailHasSumsubAction) : null
 
-    // override modal variant when sumsub is approved but a provider rejected the user
-    // determines which provider is relevant based on the clicked region
-    // EU/NA → Bridge; LATAM/ROW/STANDARD → Manteca (general level).
+    // override modal variant when sumsub is approved but a provider rejected the user.
+    // Use the same provider→intent map as the cross-region check below for consistency.
     const providerRejectionForRegion =
-        clickedRegionIntent === 'EU' || clickedRegionIntent === 'NA' ? bridgeRejection : mantecaRejection
+        providerForRegionIntent(clickedRegionIntent) === 'bridge' ? bridgeRejection : mantecaRejection
     const hasProviderRejectionForRegion =
         !!selectedRegion &&
         isSumsubApproved &&
@@ -165,9 +164,19 @@ const UnlockedRegions = () => {
     const handleStartKyc = useCallback(async () => {
         const intent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
         if (intent) setActiveRegionIntent(intent)
-        // only signal cross-region when user is switching to a different region
+        // Cross-region means "user has an identity for one provider, clicked a
+        // region served by a DIFFERENT provider". Compare PROVIDERS not raw
+        // intent strings: in the 4-bucket model both 'EU' and 'NA' route to
+        // Bridge, and both 'LATAM' / 'ROW' route to Manteca (`general` level),
+        // so 'STANDARD' !== 'EU' alone would misclassify a Bridge→Bridge flow
+        // as cross-region.
         const crossRegion =
-            sumsubVerificationRegionIntent && intent && intent !== sumsubVerificationRegionIntent ? true : undefined
+            sumsubVerificationRegionIntent &&
+            intent &&
+            providerForRegionIntent(sumsubVerificationRegionIntent as KYCRegionIntent) !==
+                providerForRegionIntent(intent)
+                ? true
+                : undefined
         setSelectedRegion(null)
         await flow.handleInitiateKyc(intent, undefined, crossRegion)
     }, [flow.handleInitiateKyc, selectedRegion, sumsubVerificationRegionIntent])
