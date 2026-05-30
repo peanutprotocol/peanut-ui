@@ -82,7 +82,18 @@ export interface RailCapability {
     reason?: CapabilityReason
 }
 
-export type NextActionKind = 'sumsub' | 'accept-tos' | 'wait' | 'contact-support'
+/**
+ * Action kinds the FE dispatches on:
+ *   - `sumsub`            — mint a token for an RFI applicant action
+ *   - `accept-tos`        — open Bridge's hosted ToS link
+ *   - `wait`              — backend is processing; no user action needed
+ *   - `contact-support`   — terminal blocker; open the support drawer
+ *   - `restart-identity`  — reset the Sumsub IDENTITY step and re-open the
+ *                           WebSDK so the user can verify with a different
+ *                           document (used for the country-not-supported CTA
+ *                           on Manteca-only rails; user has a self-fix path).
+ */
+export type NextActionKind = 'sumsub' | 'accept-tos' | 'wait' | 'contact-support' | 'restart-identity'
 
 export interface NextAction {
     key: string // stable id, referenced by RailCapability.blockingActions

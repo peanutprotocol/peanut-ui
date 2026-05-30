@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
-import { initiateSumsubKyc, initiateSelfHealResubmission } from '@/app/actions/sumsub'
+import { initiateSumsubKyc, initiateSelfHealResubmission, restartIdentityVerification } from '@/app/actions/sumsub'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import { isCapacitor } from '@/utils/capacitor'
 
@@ -316,6 +316,35 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         setError(null)
     }, [])
 
+    // Reset Sumsub IDENTITY step + open the WebSDK with a fresh token. The
+    // user lands back on the document-upload screen so they can verify with a
+    // different ID. Used as the CTA for the `restart-identity` gate state
+    // (Manteca country-ineligibility — uploaded a non-AR/BR document).
+    const handleRestartIdentity = useCallback(async () => {
+        setIsLoading(true)
+        setError(null)
+        userInitiatedRef.current = true
+
+        try {
+            const response = await restartIdentityVerification()
+            if (response.error) {
+                setError(response.error)
+                return
+            }
+            if (response.data?.token) {
+                setAccessToken(response.data.token)
+                setShowWrapper(true)
+            } else {
+                setError('Could not restart identity verification. Please try again.')
+            }
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : 'An unexpected error occurred'
+            setError(message)
+        } finally {
+            setIsLoading(false)
+        }
+    }, [])
+
     // initiate self-heal document resubmission: calls the resubmit API
     // and opens the sumsub SDK with the action token
     const handleSelfHealResubmit = useCallback(async (provider: 'BRIDGE' | 'MANTECA') => {
@@ -357,6 +386,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         liveKycStatus,
         rejectLabels,
         handleInitiateKyc,
+        handleRestartIdentity,
         handleSelfHealResubmit,
         handleSdkComplete,
         handleClose,

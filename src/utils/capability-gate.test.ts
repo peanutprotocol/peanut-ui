@@ -264,3 +264,54 @@ describe('getKycModalVariant — waiting-on-provider', () => {
         expect(getKycModalVariant('waiting-on-provider')).toBe('default')
     })
 })
+
+describe('deriveGate — restart-identity vs contact-support split for blocked rails', () => {
+    const restartAction: NextAction = {
+        key: 'restart-identity',
+        kind: 'restart-identity',
+        purpose: 'verify-with-different-document',
+    }
+    const supportAction: NextAction = { key: 'contact-support', kind: 'contact-support', purpose: 'kyc-support' }
+
+    test('blocked rail carrying restart-identity action → restart-identity gate (self-fix path)', () => {
+        const rail = bankRail({
+            id: 'manteca.bank_transfer_ar',
+            provider: 'manteca',
+            method: 'BANK_TRANSFER_AR',
+            country: 'AR',
+            currency: 'ARS',
+            status: 'blocked',
+            blockingActions: ['restart-identity'],
+            reason: {
+                code: 'country_not_supported',
+                userMessage: 'This rail only supports documents issued in Argentina or Brazil.',
+            },
+        })
+
+        const gate = deriveGate(state([rail], [restartAction]), 'deposit', { channel: 'bank' })
+
+        expect(gate.kind).toBe('restart-identity')
+        if (gate.kind === 'restart-identity') {
+            expect(gate.userMessage).toMatch(/Argentina or Brazil/)
+            expect(gate.reason?.code).toBe('country_not_supported')
+        }
+        expect(getKycModalVariant(gate.kind)).toBe('restart_identity')
+        expect(getGateUserMessage(gate)).toMatch(/Argentina or Brazil/)
+    })
+
+    test('blocked rail with only contact-support → blocked-rejection (terminal)', () => {
+        const rail = bankRail({
+            status: 'blocked',
+            blockingActions: ['contact-support'],
+            reason: {
+                code: 'country_not_supported',
+                userMessage: 'This rail is not available in Cuba yet.',
+            },
+        })
+
+        const gate = deriveGate(state([rail], [supportAction]), 'deposit', { channel: 'bank' })
+
+        expect(gate.kind).toBe('blocked-rejection')
+        expect(getKycModalVariant(gate.kind)).toBe('blocked')
+    })
+})
