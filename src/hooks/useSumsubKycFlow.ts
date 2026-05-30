@@ -324,6 +324,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         setIsLoading(true)
         setError(null)
         userInitiatedRef.current = true
+        // Clear any prior self-heal context so refreshToken (below) doesn't
+        // mistakenly hit the self-heal endpoint after a restart-identity flow
+        // (CodeRabbit caught: stale selfHealProviderRef would route the next
+        // refresh through initiateSelfHealResubmission instead of the regular path).
+        selfHealProviderRef.current = null
 
         try {
             const response = await restartIdentityVerification()
