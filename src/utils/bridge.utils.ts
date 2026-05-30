@@ -10,6 +10,33 @@ export interface CurrencyConfig {
 export type BridgeOperationType = 'onramp' | 'offramp'
 
 /**
+ * Map a country selection to the rail-jurisdiction code its bank rail uses
+ * in the capability model. Bridge SEPA rails are stored with country='EU'
+ * (one rail spans all 27 EU member states); ACH/SPEI/Faster Payments use
+ * their own ISO2. Manteca rails are stored under the user's country
+ * (BR/AR). Used by deposit/withdraw bank pages to country-scope the
+ * capability gate so a stuck PENDING rail in country X doesn't block
+ * country Y's flow (e.g. a ghost BANK_TRANSFER_AR rail shouldn't keep the
+ * Portugal-SEPA page in a "Setting up your account…" wait loop).
+ *
+ * Returns undefined for missing/unknown — caller should omit the country
+ * field from the gate scope so the filter falls back to channel-only.
+ */
+export const railJurisdictionForBank = (countryId: string | null | undefined): string | undefined => {
+    if (!countryId) return undefined
+    const upper = countryId.toUpperCase()
+    if (upper === 'US' || upper === 'USA') return 'US'
+    if (upper === 'MX' || upper === 'MEX') return 'MX'
+    if (upper === 'GB' || upper === 'GBR') return 'GB'
+    if (upper === 'AR' || upper === 'ARG') return 'AR'
+    if (upper === 'BR' || upper === 'BRA') return 'BR'
+    // Every other country we serve via Bridge does so via SEPA, which is
+    // catalogued as a single EU-jurisdiction rail (matches getCurrencyConfig
+    // default below).
+    return 'EU'
+}
+
+/**
  * Get currency configuration for a specific country and operation type
  * USA -> USD/ACH, Mexico -> MXN/SPEI, everything else -> EUR/SEPA
  * Payment rails differ between onramp and offramp operations
