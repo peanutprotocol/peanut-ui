@@ -25,9 +25,11 @@ import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 type ModalVariant = 'start' | 'processing' | 'action_required' | 'rejected'
 
 // the provider whose rail backs identity verification for a clicked region.
-// LATAM is served by Manteca; everything else (NA/EU/RoW) by Bridge.
+//   LATAM / ROW / STANDARD(legacy) → Manteca (general level; pool-tier pay rails
+//                                   post-approval, Manteca submission only for AR/BR)
+//   EU / NA                        → Bridge  (bridge-requirements level)
 const providerForRegionIntent = (intent: KYCRegionIntent | undefined): ProviderCode =>
-    intent === 'LATAM' ? 'manteca' : 'bridge'
+    intent === 'EU' || intent === 'NA' ? 'bridge' : 'manteca'
 
 /**
  * Determine which verification modal to show for the clicked region, derived
@@ -125,9 +127,10 @@ const UnlockedRegions = () => {
         : false
     const baseModalVariant = selectedRegion ? getModalVariant(clickedRegionRail, clickedRailHasSumsubAction) : null
 
-    // override modal variant when sumsub is approved but a provider rejected the user
-    // determines which provider is relevant based on the clicked region
-    const providerRejectionForRegion = clickedRegionIntent === 'LATAM' ? mantecaRejection : bridgeRejection
+    // override modal variant when sumsub is approved but a provider rejected the user.
+    // Use the same provider→intent map as the cross-region check below for consistency.
+    const providerRejectionForRegion =
+        providerForRegionIntent(clickedRegionIntent) === 'bridge' ? bridgeRejection : mantecaRejection
     const hasProviderRejectionForRegion =
         !!selectedRegion &&
         isSumsubApproved &&
@@ -161,9 +164,19 @@ const UnlockedRegions = () => {
     const handleStartKyc = useCallback(async () => {
         const intent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
         if (intent) setActiveRegionIntent(intent)
-        // only signal cross-region when user is switching to a different region
+        // Cross-region means "user has an identity for one provider, clicked a
+        // region served by a DIFFERENT provider". Compare PROVIDERS not raw
+        // intent strings: in the 4-bucket model both 'EU' and 'NA' route to
+        // Bridge, and both 'LATAM' / 'ROW' route to Manteca (`general` level),
+        // so 'STANDARD' !== 'EU' alone would misclassify a Bridge→Bridge flow
+        // as cross-region.
         const crossRegion =
-            sumsubVerificationRegionIntent && intent && intent !== sumsubVerificationRegionIntent ? true : undefined
+            sumsubVerificationRegionIntent &&
+            intent &&
+            providerForRegionIntent(sumsubVerificationRegionIntent as KYCRegionIntent) !==
+                providerForRegionIntent(intent)
+                ? true
+                : undefined
         setSelectedRegion(null)
         await flow.handleInitiateKyc(intent, undefined, crossRegion)
     }, [flow.handleInitiateKyc, selectedRegion, sumsubVerificationRegionIntent])
