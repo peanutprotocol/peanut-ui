@@ -178,6 +178,15 @@ export default function QRPayPage() {
             // the resolver itself (Sumsub-approved + US-restricted → status:enabled
             // + operations.pay:enabled, caught by canDo above), so a `blocked`
             // status here is a genuine block.
+            //
+            // Country-not-supported is self-fixable: user uploaded a non-AR/BR doc
+            // and can verify again with a different one. Split out for the right CTA.
+            if (blockedRail.reason?.code === 'country_not_supported') {
+                return {
+                    kycGateState: QrKycState.PROVIDER_RESTART_IDENTITY,
+                    qrKycUserMessage: blockedRail.reason.userMessage ?? null,
+                }
+            }
             return {
                 kycGateState: QrKycState.PROVIDER_REJECTION_BLOCKED,
                 qrKycUserMessage: blockedRail.reason?.userMessage ?? null,
@@ -921,7 +930,9 @@ export default function QRPayPage() {
         kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION ||
         kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS
     const hasProviderRejection =
-        kycGateState === QrKycState.PROVIDER_REJECTION_FIXABLE || kycGateState === QrKycState.PROVIDER_REJECTION_BLOCKED
+        kycGateState === QrKycState.PROVIDER_REJECTION_FIXABLE ||
+        kycGateState === QrKycState.PROVIDER_REJECTION_BLOCKED ||
+        kycGateState === QrKycState.PROVIDER_RESTART_IDENTITY
 
     // show loading while KYC state is being determined
     if (isLoadingKycState) {
@@ -931,18 +942,28 @@ export default function QRPayPage() {
     // provider rejection: user is sumsub-approved but manteca rejected
     if (hasProviderRejection) {
         const isFixable = kycGateState === QrKycState.PROVIDER_REJECTION_FIXABLE
+        const isRestartIdentity = kycGateState === QrKycState.PROVIDER_RESTART_IDENTITY
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
                 <NavHeader title="Pay" />
                 <ActionModal
                     visible
                     onClose={onBack}
-                    title={isFixable ? 'We need an updated document' : 'QR payments are not available'}
+                    title={
+                        isFixable
+                            ? 'We need an updated document'
+                            : isRestartIdentity
+                              ? 'Verify with a different document'
+                              : 'QR payments are not available'
+                    }
                     description={
                         isFixable
                             ? 'We need an updated document to enable QR payments. Please upload a clearer photo of your ID.'
-                            : (qrKycUserMessage ??
-                              'QR payments are not available for your account. Contact support for help.')
+                            : isRestartIdentity
+                              ? (qrKycUserMessage ??
+                                'QR payments need a document from a supported country. You can verify with a different ID.')
+                              : (qrKycUserMessage ??
+                                'QR payments are not available for your account. Contact support for help.')
                     }
                     icon={
                         methodIcon ? (
@@ -958,11 +979,19 @@ export default function QRPayPage() {
                                   shadowSize: '4' as const,
                                   icon: 'upload',
                               }
-                            : {
-                                  text: 'Contact support',
-                                  onClick: () => setIsSupportModalOpen(true),
-                                  variant: 'stroke' as const,
-                              },
+                            : isRestartIdentity
+                              ? {
+                                    text: 'Verify with a different document',
+                                    onClick: () => sumsubFlow.handleRestartIdentity(),
+                                    variant: 'purple' as const,
+                                    shadowSize: '4' as const,
+                                    icon: 'upload',
+                                }
+                              : {
+                                    text: 'Contact support',
+                                    onClick: () => setIsSupportModalOpen(true),
+                                    variant: 'stroke' as const,
+                                },
                     ]}
                 />
                 <SumsubKycModals flow={sumsubFlow} />

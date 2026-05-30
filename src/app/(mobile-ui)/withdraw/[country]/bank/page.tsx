@@ -478,7 +478,9 @@ export default function WithdrawBankPage() {
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {
-                    if (gate.kind === 'fixable-rejection') {
+                    if (gate.kind === 'restart-identity') {
+                        await sumsubFlow.handleRestartIdentity()
+                    } else if (gate.kind === 'fixable-rejection') {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
                         await sumsubFlow.handleInitiateKyc(

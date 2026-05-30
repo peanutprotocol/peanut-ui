@@ -150,8 +150,9 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                         setShowKycModal(false)
                         return
                     }
-                    const hasRejection = mantecaRejection.state === 'fixable'
-                    if (hasRejection) {
+                    if (mantecaRejection.state === 'restart-identity') {
+                        await sumsubFlow.handleRestartIdentity()
+                    } else if (mantecaRejection.state === 'fixable') {
                         await sumsubFlow.handleSelfHealResubmit('MANTECA')
                     } else {
                         await sumsubFlow.handleInitiateKyc('LATAM', undefined, true)
@@ -162,15 +163,17 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 variant={
                     mantecaRejection.state === 'blocked'
                         ? 'blocked'
-                        : mantecaRejection.state === 'fixable'
-                          ? 'provider_rejection'
-                          : // MIGRATION-REVIEW: 'cross_region' copy = "you're already verified, just need
-                            // the regional Manteca uplift". Old gate was `isUserSumsubKycApproved`. Sumsub has
-                            // no rail in the capability model; any enabled rail implies identity verification
-                            // was completed at least once, so isKycApproved is the closest faithful proxy.
-                            isKycApproved
-                            ? 'cross_region'
-                            : 'default'
+                        : mantecaRejection.state === 'restart-identity'
+                          ? 'restart_identity'
+                          : mantecaRejection.state === 'fixable'
+                            ? 'provider_rejection'
+                            : // MIGRATION-REVIEW: 'cross_region' copy = "you're already verified, just need
+                              // the regional Manteca uplift". Old gate was `isUserSumsubKycApproved`. Sumsub has
+                              // no rail in the capability model; any enabled rail implies identity verification
+                              // was completed at least once, so isKycApproved is the closest faithful proxy.
+                              isKycApproved
+                              ? 'cross_region'
+                              : 'default'
                 }
                 providerMessage={mantecaRejection.userMessage ?? undefined}
                 regionName={selectedCountry?.title}
