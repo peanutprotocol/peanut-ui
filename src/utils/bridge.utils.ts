@@ -19,8 +19,15 @@ export type BridgeOperationType = 'onramp' | 'offramp'
  * country Y's flow (e.g. a ghost BANK_TRANSFER_AR rail shouldn't keep the
  * Portugal-SEPA page in a "Setting up your account…" wait loop).
  *
- * Returns undefined for missing/unknown — caller should omit the country
- * field from the gate scope so the filter falls back to channel-only.
+ * Contract:
+ * - missing input (null/undefined/empty) → undefined; the gate falls back
+ *   to a channel-only scope.
+ * - recognized US/MX/GB/AR/BR → the matching ISO2 code.
+ * - anything else → 'EU'. This intentionally mirrors `getCurrencyConfig`'s
+ *   "everything else → SEPA/EUR" default. Returning undefined here would
+ *   re-introduce the original bug (unscoped gate sees stuck pending rails
+ *   from unrelated jurisdictions); Bridge serves every other country we
+ *   support via SEPA, so 'EU' is the right scope for any unmapped entry.
  */
 export const railJurisdictionForBank = (countryId: string | null | undefined): string | undefined => {
     if (!countryId) return undefined
@@ -30,9 +37,6 @@ export const railJurisdictionForBank = (countryId: string | null | undefined): s
     if (upper === 'GB' || upper === 'GBR') return 'GB'
     if (upper === 'AR' || upper === 'ARG') return 'AR'
     if (upper === 'BR' || upper === 'BRA') return 'BR'
-    // Every other country we serve via Bridge does so via SEPA, which is
-    // catalogued as a single EU-jurisdiction rail (matches getCurrencyConfig
-    // default below).
     return 'EU'
 }
 

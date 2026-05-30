@@ -378,6 +378,16 @@ describe('bridge.utils', () => {
             expect(railJurisdictionForBank('')).toBeUndefined()
         })
 
+        it('maps unmapped countries to EU (SEPA default — mirrors getCurrencyConfig)', () => {
+            // Returning undefined here would re-introduce the original bug
+            // (unscoped gate sees stuck pending rails from unrelated
+            // jurisdictions). Every other country we serve via Bridge does
+            // so via SEPA, so 'EU' is the right scope.
+            expect(railJurisdictionForBank('JP')).toBe('EU')
+            expect(railJurisdictionForBank('IN')).toBe('EU')
+            expect(railJurisdictionForBank('XX')).toBe('EU')
+        })
+
         it('case-insensitive', () => {
             expect(railJurisdictionForBank('us')).toBe('US')
             expect(railJurisdictionForBank('pt')).toBe('EU')
