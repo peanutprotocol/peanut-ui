@@ -25,9 +25,11 @@ import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 type ModalVariant = 'start' | 'processing' | 'action_required' | 'rejected'
 
 // the provider whose rail backs identity verification for a clicked region.
-// LATAM is served by Manteca; everything else (NA/EU/RoW) by Bridge.
+//   LATAM / ROW / STANDARD(legacy) → Manteca (general level; pool-tier pay rails
+//                                   post-approval, Manteca submission only for AR/BR)
+//   EU / NA                        → Bridge  (bridge-requirements level)
 const providerForRegionIntent = (intent: KYCRegionIntent | undefined): ProviderCode =>
-    intent === 'LATAM' ? 'manteca' : 'bridge'
+    intent === 'EU' || intent === 'NA' ? 'bridge' : 'manteca'
 
 /**
  * Determine which verification modal to show for the clicked region, derived
@@ -127,7 +129,9 @@ const UnlockedRegions = () => {
 
     // override modal variant when sumsub is approved but a provider rejected the user
     // determines which provider is relevant based on the clicked region
-    const providerRejectionForRegion = clickedRegionIntent === 'LATAM' ? mantecaRejection : bridgeRejection
+    // EU/NA → Bridge; LATAM/ROW/STANDARD → Manteca (general level).
+    const providerRejectionForRegion =
+        clickedRegionIntent === 'EU' || clickedRegionIntent === 'NA' ? bridgeRejection : mantecaRejection
     const hasProviderRejectionForRegion =
         !!selectedRegion &&
         isSumsubApproved &&

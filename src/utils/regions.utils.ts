@@ -81,9 +81,29 @@ const BRIDGE_SUPPORTED_LATAM_COUNTRIES: Region[] = [
     },
 ]
 
-/** maps a region path to the sumsub kyc template intent */
+/**
+ * Maps a region path to the KYC region intent. Four picker buttons map 1:1 to
+ * four intents; the BE then resolves the Sumsub level
+ * (`verificationLevelForIntent`):
+ *   - latam               → LATAM → general
+ *   - rest-of-the-world   → ROW   → general
+ *   - europe              → EU    → bridge-requirements
+ *   - north-america       → NA    → bridge-requirements
+ *
+ * Unknown paths fall back to ROW (the most conservative target).
+ */
 export const getRegionIntent = (regionPath: string): KYCRegionIntent => {
-    return regionPath === 'latam' ? 'LATAM' : 'STANDARD'
+    switch (regionPath) {
+        case 'latam':
+            return 'LATAM'
+        case 'europe':
+            return 'EU'
+        case 'north-america':
+            return 'NA'
+        case 'rest-of-the-world':
+        default:
+            return 'ROW'
+    }
 }
 
 /**
