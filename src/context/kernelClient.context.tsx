@@ -1,6 +1,11 @@
 'use client'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
-import { PEANUT_WALLET_CHAIN, USER_OP_ENTRY_POINT, ZERODEV_KERNEL_VERSION } from '@/constants/zerodev.consts'
+import {
+    PEANUT_WALLET_CHAIN,
+    USER_OP_ENTRY_POINT,
+    ZERODEV_KERNEL_VERSION,
+    ZERODEV_RPC_TIMEOUT_MS,
+} from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
 import { createKernelMigrationAccount } from '@zerodev/sdk/accounts'
 import { useAppDispatch } from '@/redux/hooks'
@@ -197,7 +202,7 @@ export const createKernelClientForChain = async <C extends Chain>(
     const kernelClient = createKernelAccountClient({
         account: kernelAccount,
         chain: chain,
-        bundlerTransport: http(bundlerUrl),
+        bundlerTransport: http(bundlerUrl, { timeout: ZERODEV_RPC_TIMEOUT_MS }),
         pollingInterval: 500,
         userOperation: isMainnetPeanutChain
             ? {
@@ -215,7 +220,7 @@ export const createKernelClientForChain = async <C extends Chain>(
             getPaymasterData: async (userOperation) => {
                 const zerodevPaymaster = createZeroDevPaymasterClient({
                     chain: chain,
-                    transport: http(paymasterUrl),
+                    transport: http(paymasterUrl, { timeout: ZERODEV_RPC_TIMEOUT_MS }),
                 })
 
                 try {

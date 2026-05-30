@@ -93,5 +93,10 @@ export const ErrorHandler = (error: unknown): string => {
     if (text.includes('Send link already claimed')) return 'Send link already claimed'
     if (text.toLowerCase().includes('liquidity'))
         return message || 'Low liquidity. Please try a smaller amount or different route.'
+    // viem transport timeout — most often a slow ZeroDev paymaster/bundler RPC
+    // (`zd_sponsorUserOperation`) on a busy network. Transient + retryable, so
+    // tell the user to try again instead of the generic "contact support".
+    if (text.includes('took too long to respond') || text.includes('The request timed out'))
+        return 'The network is busy and your request timed out. Please try again in a moment.'
     return 'There was an issue with your request. Please contact support.'
 }
