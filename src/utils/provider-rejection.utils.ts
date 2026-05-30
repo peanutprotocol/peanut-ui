@@ -64,8 +64,7 @@ export function deriveProviderRejection(
     const providerRails = rails.filter((rail) => rail.provider === PROVIDER_CODE[provider])
     const fixableRail = providerRails.find((rail) => rail.status === 'requires-info')
     const blockedRail = providerRails.find((rail) => rail.status === 'blocked')
-    const isRestartIdentity =
-        provider === 'MANTECA' && blockedRail?.reason?.code === 'country_not_supported'
+    const isRestartIdentity = provider === 'MANTECA' && blockedRail?.reason?.code === 'country_not_supported'
     const state: ProviderRejectionState = fixableRail
         ? 'fixable'
         : isRestartIdentity

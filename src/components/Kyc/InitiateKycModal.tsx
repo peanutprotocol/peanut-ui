@@ -52,7 +52,10 @@ export const InitiateKycModal = ({
         if (error) return `${error} Please contact support for assistance.`
         if (isBlocked) return providerMessage || "We couldn't confirm your ID. Please contact support for assistance."
         if (isRestartIdentity)
-            return providerMessage || 'This rail needs a document from a supported country. You can verify with a different ID.'
+            return (
+                providerMessage ||
+                'This rail needs a document from a supported country. You can verify with a different ID.'
+            )
         if (isProviderRejection) return providerMessage || 'Please upload a clearer photo of your ID to continue.'
         if (isCrossRegion) {
             const region = regionName ? ` from ${regionName}` : ''
