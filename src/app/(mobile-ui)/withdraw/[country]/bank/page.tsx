@@ -25,7 +25,7 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
 import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
-import { getOfframpCurrencyConfig, getCountryFromPath } from '@/utils/bridge.utils'
+import { getOfframpCurrencyConfig, getCountryFromPath, railJurisdictionForBank } from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
 import { useTosGuard } from '@/hooks/useTosGuard'
@@ -71,9 +71,13 @@ export default function WithdrawBankPage() {
     const country = (params.country as string) || searchParams.get('country') || ''
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const { hasPendingTransactions } = usePendingTransactions()
-    // Provider-blind bank-channel withdraw gate. See utils/capability-gate.ts.
+    // Country-scoped bank-channel withdraw gate. Same rationale as the
+    // add-money/[country]/bank page: scope to the rail jurisdiction this page
+    // actually withdraws to (PT/DE/… → EU SEPA; US → ACH; etc.) so a stuck
+    // PENDING rail in an unrelated jurisdiction can't block this page.
     const { gateFor } = useCapabilities()
-    const gate = useMemo(() => gateFor('withdraw', { channel: 'bank' }), [gateFor])
+    const bankCountry = useMemo(() => railJurisdictionForBank(getCountryFromPath(country)?.id), [country])
+    const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     const sumsubFlow = useMultiPhaseKycFlow({})
     const [showKycModal, setShowKycModal] = useState(false)
     const { setIsSupportModalOpen } = useModalsContext()

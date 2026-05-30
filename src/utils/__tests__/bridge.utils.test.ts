@@ -5,6 +5,7 @@ import {
     getOfframpCurrencyConfig,
     getPaymentRailDisplayName,
     getMinimumAmount,
+    railJurisdictionForBank,
     reverseBridgeCrossCurrencyFee,
 } from '../bridge.utils'
 
@@ -337,6 +338,59 @@ describe('bridge.utils', () => {
             expect(onrampConfig.paymentRail).toBe('sepa')
             expect(offrampConfig.paymentRail).toBe('sepa')
             expect(onrampConfig.currency).toBe(offrampConfig.currency)
+        })
+    })
+
+    describe('railJurisdictionForBank', () => {
+        it.each([
+            // US (both ISO2 + ISO3)
+            ['US', 'US'],
+            ['USA', 'US'],
+            // Mexico
+            ['MX', 'MX'],
+            ['MEX', 'MX'],
+            // UK
+            ['GB', 'GB'],
+            ['GBR', 'GB'],
+            // LATAM (Manteca rails are catalogued under user country)
+            ['AR', 'AR'],
+            ['ARG', 'AR'],
+            ['BR', 'BR'],
+            ['BRA', 'BR'],
+        ])('maps %s → %s', (input, expected) => {
+            expect(railJurisdictionForBank(input)).toBe(expected)
+        })
+
+        it('defaults SEPA-EUR countries to EU (Bridge catalogues SEPA as a single EU rail)', () => {
+            // The exact case that motivated this helper: Portugal user clicks
+            // "add money from bank" — we need to scope to the SEPA jurisdiction,
+            // not the literal ISO2 of Portugal.
+            expect(railJurisdictionForBank('PT')).toBe('EU')
+            expect(railJurisdictionForBank('PRT')).toBe('EU')
+            expect(railJurisdictionForBank('DE')).toBe('EU')
+            expect(railJurisdictionForBank('FR')).toBe('EU')
+            expect(railJurisdictionForBank('ES')).toBe('EU')
+        })
+
+        it('returns undefined for missing / empty input (gate falls back to no country filter)', () => {
+            expect(railJurisdictionForBank(undefined)).toBeUndefined()
+            expect(railJurisdictionForBank(null)).toBeUndefined()
+            expect(railJurisdictionForBank('')).toBeUndefined()
+        })
+
+        it('maps unmapped countries to EU (SEPA default — mirrors getCurrencyConfig)', () => {
+            // Returning undefined here would re-introduce the original bug
+            // (unscoped gate sees stuck pending rails from unrelated
+            // jurisdictions). Every other country we serve via Bridge does
+            // so via SEPA, so 'EU' is the right scope.
+            expect(railJurisdictionForBank('JP')).toBe('EU')
+            expect(railJurisdictionForBank('IN')).toBe('EU')
+            expect(railJurisdictionForBank('XX')).toBe('EU')
+        })
+
+        it('case-insensitive', () => {
+            expect(railJurisdictionForBank('us')).toBe('US')
+            expect(railJurisdictionForBank('pt')).toBe('EU')
         })
     })
 })

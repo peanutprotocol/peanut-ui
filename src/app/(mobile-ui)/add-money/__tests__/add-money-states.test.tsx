@@ -244,6 +244,7 @@ jest.mock('@/utils/bridge.utils', () => ({
         return map[currency] ?? currency
     }),
     getMinimumAmount: jest.fn(() => 1),
+    railJurisdictionForBank: jest.fn(() => 'EU'),
 }))
 
 // Country currency mappings

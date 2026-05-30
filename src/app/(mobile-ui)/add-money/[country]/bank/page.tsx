@@ -21,7 +21,7 @@ import { formatUnits } from 'viem'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
-import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount } from '@/utils/bridge.utils'
+import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount, railJurisdictionForBank } from '@/utils/bridge.utils'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
 import InfoCard from '@/components/Global/InfoCard'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
@@ -100,12 +100,15 @@ export default function OnrampBankPage() {
     // uk-specific check
     const isUK = isUKCountry(selectedCountryPath)
 
-    // Provider-blind bank-channel readiness gate. Country-scoping would tighten
-    // this further (each page route is country-specific) — kept open for now to
-    // exactly preserve the old `deriveBridgeGate`'s behavior on rails of ANY
-    // country. Follow-up: scope to `{ channel: 'bank', country: selectedCountryPath.toUpperCase() }`.
+    // Country-scoped bank-channel readiness gate. The scope narrows to the
+    // rail jurisdiction this page actually deposits into (PT/DE/FR/… → EU
+    // SEPA; US → US ACH; MX → SPEI; etc.), so a stuck PENDING rail in an
+    // unrelated jurisdiction (e.g. a ghost BANK_TRANSFER_AR row) can't keep
+    // this page in a "Setting up your account…" wait loop. Unknown country
+    // → undefined → falls back to channel-only filter.
     const { gateFor } = useCapabilities()
-    const gate = useMemo(() => gateFor('deposit', { channel: 'bank' }), [gateFor])
+    const bankCountry = useMemo(() => railJurisdictionForBank(selectedCountry?.id), [selectedCountry?.id])
+    const gate = useMemo(() => gateFor('deposit', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const { setIsSupportModalOpen } = useModalsContext()
 
