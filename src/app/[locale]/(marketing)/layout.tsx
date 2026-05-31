@@ -4,7 +4,6 @@ import { SUPPORTED_LOCALES } from '@/i18n/types'
 import { isValidLocale } from '@/i18n/config'
 import { CRISP_WEBSITE_ID } from '@/constants/crisp'
 import Footer from '@/components/LandingPage/Footer'
-import { ContentSEOFooter } from '@/components/Marketing/ContentSEOFooter'
 
 interface LayoutProps {
     children: React.ReactNode
@@ -26,8 +25,7 @@ export default async function LocalizedMarketingLayout({ children, params }: Lay
     return (
         <main className="flex min-h-dvh flex-col bg-white" lang={locale}>
             <div className="flex-1">{children}</div>
-            <Footer showSiteDirectory={false} />
-            <ContentSEOFooter locale={locale} />
+            <Footer locale={locale} />
             {/* Crisp chat widget on all marketing/SEO pages */}
             <Script id="crisp-widget" strategy="lazyOnload">
                 {`window.$crisp=[];window.CRISP_WEBSITE_ID="${CRISP_WEBSITE_ID}";(function(){var d=document;var s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();`}

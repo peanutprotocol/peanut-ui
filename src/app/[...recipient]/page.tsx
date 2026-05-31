@@ -8,7 +8,7 @@ import { printableAddress, isStableCoin } from '@/utils/general.utils'
 import { chargesApi } from '@/services/charges'
 import { parseAmountAndToken } from '@/lib/url-parser/parser'
 import { notFound } from 'next/navigation'
-import { isReservedRoute } from '@/constants/routes'
+import { couldBeRecipient, isReservedRoute } from '@/constants/routes'
 
 type PageProps = {
     params: Promise<{ recipient?: string[] }>
@@ -26,6 +26,12 @@ export async function generateMetadata({ params, searchParams }: any) {
 
     // Guard: Ensure recipient exists
     if (!resolvedParams.recipient?.[0]) {
+        return {}
+    }
+
+    // Guard: Don't generate "X on Peanut" metadata for things that can't be recipients
+    // (bare locale codes, slugs with dashes, random strings). Lets the 404 page own the tab title.
+    if (!couldBeRecipient(firstSegment!)) {
         return {}
     }
 
@@ -193,6 +199,13 @@ export default function Page(props: PageProps) {
     // If we reach here, it means Next.js routing didn't catch it properly
     const firstSegment = recipient[0]
     if (firstSegment && isReservedRoute(`/${firstSegment}`)) {
+        notFound()
+    }
+
+    // Guard: anything that can't be a username/address/ENS/handle is a 404, not a profile.
+    // Pre-Feb-21 indexed URLs like /es/argentina previously fell through here and rendered
+    // a "es on Peanut" profile page — that's the regression this guards against.
+    if (firstSegment && !couldBeRecipient(firstSegment)) {
         notFound()
     }
 
