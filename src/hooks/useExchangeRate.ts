@@ -93,8 +93,18 @@ export function useExchangeRate({
                 const to = destinationCurrency.toUpperCase()
                 if (from === to) return { rate: 1 }
                 try {
-                    const price = await getCachedCurrencyPrice(from === 'USD' ? to : from)
-                    const rate = from === 'USD' ? price.sell : 1 / price.buy
+                    let rate: number
+                    if (from === 'USD' || to === 'USD') {
+                        const price = await getCachedCurrencyPrice(from === 'USD' ? to : from)
+                        rate = from === 'USD' ? price.sell : 1 / price.buy
+                    } else {
+                        // Neither side is USD — cross via USD: (USD per `from`) × (`to` per USD).
+                        const [fromPrice, toPrice] = await Promise.all([
+                            getCachedCurrencyPrice(from),
+                            getCachedCurrencyPrice(to),
+                        ])
+                        rate = (1 / fromPrice.buy) * toPrice.sell
+                    }
                     if (isFinite(rate) && rate > 0) return { rate }
                 } catch {}
                 // fallback to frankfurter (public api)
