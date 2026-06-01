@@ -21,6 +21,7 @@ import { buildKycHistoryEntry } from '@/utils/kyc-grouping.utils'
 import CardUnlockHistoryItem from '../Card/CardUnlockHistoryItem'
 import { deriveCardUnlockEntry, isCardUnlockHistoryItem, type CardUnlockHistoryEntry } from '../Card/cardUnlock.types'
 import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
+import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
 import { isBadgeHistoryItem } from '@/components/Badges/badge.types'
@@ -78,6 +79,11 @@ const HomeHistory = ({
     // entry. Mirrors how kyc derives from user state. Only meaningful when
     // viewing your own history.
     const { cardInfo } = useCardPioneerInfo()
+    // The card-unlock row gates on an ACTUALLY-issued card, not mere access.
+    // Same query key the wallet already loads on home → cache read, no extra
+    // fetch. Card *access* (skip badge / admin grant) is held by ~33% of
+    // users who never got a card; only an issued card means they got through.
+    const { overview: rainOverview } = useRainCardOverview()
 
     // WebSocket for real-time updates
     const { historyEntries: wsHistoryEntries } = useWebSocket({
@@ -236,6 +242,7 @@ const HomeHistory = ({
                 // badge.
                 if (isViewingOwnHistory && cardInfo) {
                     const unlock = deriveCardUnlockEntry({
+                        hasIssuedCard: (rainOverview?.cards.length ?? 0) > 0,
                         hasCardAccess: cardInfo.hasCardAccess,
                         cardAccessGrantedAt: cardInfo.waitlistReleasedAt,
                         skipBadges: cardInfo.skipBadges,
@@ -275,7 +282,7 @@ const HomeHistory = ({
             }
         }
         return undefined
-    }, [historyData, wsHistoryEntries, user, isLoading, isViewingOwnHistory, cardInfo])
+    }, [historyData, wsHistoryEntries, user, isLoading, isViewingOwnHistory, cardInfo, rainOverview])
 
     const pendingRequests = useMemo(() => {
         if (!combinedEntries.length) return []
