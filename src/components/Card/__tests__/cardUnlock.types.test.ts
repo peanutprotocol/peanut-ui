@@ -3,13 +3,13 @@ import { deriveCardUnlockEntry, isCardUnlockHistoryItem } from '../cardUnlock.ty
 describe('deriveCardUnlockEntry', () => {
     const earnedAt = '2025-10-12T00:00:00.000Z'
 
-    it('returns null for an access-only user with NO issued card (the gabby/dragon bug)', () => {
-        // Holds the OG skip badge → hasCardAccess, but never got a card.
-        // Pre-fix this surfaced a "You skipped the line" share asset to
-        // ~33% of users. Gating on hasIssuedCard kills it.
+    it('returns null for an access-only user who never went through the flow (the gabby/dragon bug)', () => {
+        // Holds the OG skip badge → hasCardAccess, but never entered the flow
+        // (no celebration seen, no card). Pre-fix this surfaced a "You skipped
+        // the line" share asset to ~33% of users. wentThroughFlow=false kills it.
         expect(
             deriveCardUnlockEntry({
-                hasIssuedCard: false,
+                wentThroughFlow: false,
                 hasCardAccess: true,
                 cardAccessGrantedAt: null,
                 skipBadges: ['OG_2025_10_12'],
@@ -18,10 +18,10 @@ describe('deriveCardUnlockEntry', () => {
         ).toBeNull()
     })
 
-    it('returns null for an admin-granted user with no issued card', () => {
+    it('returns null for an admin-granted user who never went through the flow', () => {
         expect(
             deriveCardUnlockEntry({
-                hasIssuedCard: false,
+                wentThroughFlow: false,
                 hasCardAccess: true,
                 cardAccessGrantedAt: '2026-06-01T00:00:00.000Z',
                 skipBadges: [],
@@ -29,9 +29,9 @@ describe('deriveCardUnlockEntry', () => {
         ).toBeNull()
     })
 
-    it('returns a badge entry once the user actually has a card', () => {
+    it('returns a badge entry once the user went through the flow (saw celebration or holds a card)', () => {
         const entry = deriveCardUnlockEntry({
-            hasIssuedCard: true,
+            wentThroughFlow: true,
             hasCardAccess: true,
             cardAccessGrantedAt: null,
             skipBadges: ['OG_2025_10_12'],
@@ -44,10 +44,10 @@ describe('deriveCardUnlockEntry', () => {
         expect(isCardUnlockHistoryItem(entry)).toBe(true)
     })
 
-    it('returns an admin entry (no badge) when granted + card issued', () => {
+    it('returns an admin entry (no badge) when granted + went through the flow', () => {
         const grantedAt = '2026-06-01T00:00:00.000Z'
         const entry = deriveCardUnlockEntry({
-            hasIssuedCard: true,
+            wentThroughFlow: true,
             hasCardAccess: true,
             cardAccessGrantedAt: grantedAt,
             skipBadges: [],
@@ -56,12 +56,12 @@ describe('deriveCardUnlockEntry', () => {
         expect(entry?.timestamp).toBe(grantedAt)
     })
 
-    it('returns null when a card exists but no derivable timestamp', () => {
-        // hasIssuedCard but no grant + no skip-badge earnedAt → nothing to
+    it('returns null when through the flow but no derivable timestamp', () => {
+        // wentThroughFlow but no grant + no skip-badge earnedAt → nothing to
         // anchor the row to; don't fabricate one.
         expect(
             deriveCardUnlockEntry({
-                hasIssuedCard: true,
+                wentThroughFlow: true,
                 hasCardAccess: true,
                 cardAccessGrantedAt: null,
                 skipBadges: [],

@@ -4,8 +4,9 @@
  * can re-open the share asset they earned on the celebration moment.
  *
  * No DB table needed — derived client-side. Only surfaces once the user
- * has an issued card (see deriveCardUnlockEntry); the timestamp comes from
- * their cardAccessGrantedAt or earliest skip-badge earnedAt.
+ * went through the flow — saw the celebration or holds a card (see
+ * deriveCardUnlockEntry); the timestamp comes from their cardAccessGrantedAt
+ * or earliest skip-badge earnedAt.
  */
 
 export type CardUnlockVia = 'badge' | 'admin' | 'public-launch'
@@ -31,29 +32,35 @@ export const isCardUnlockHistoryItem = (entry: unknown): entry is CardUnlockHist
     )
 }
 
-/** Returns null unless the user has ACTUALLY been issued a card. Card
+/** Returns null unless the user actually WENT THROUGH the card flow. Card
  *  *access* (a skip badge or an admin grant) is NOT enough — it only means
- *  the user is allowed a card, not that they ever entered the flow or got
- *  one. Gating on access alone surfaced this share-asset row + "I got my
- *  Peanut card" image to ~33% of users (every OG / Devconnect / Arbiverse /
- *  Pioneer badge holder), the vast majority of whom never received a card.
+ *  the user is allowed a card, not that they ever entered the flow. Gating
+ *  on access alone surfaced this share-asset row + "I got my Peanut card"
+ *  image to ~33% of users (every OG / Devconnect / Arbiverse / Pioneer
+ *  badge holder), the vast majority of whom never touched the card flow.
  *
- *  Once gated on `hasIssuedCard`, picks the best available timestamp:
+ *  `wentThroughFlow` is the caller's combination of the two server-truth
+ *  signals for "went through": saw the celebration
+ *  (`cardInfo.skipCelebrationSeen`) OR holds an issued card (a cardholder
+ *  definitionally went through, and this keeps pre-wiring cardholders).
+ *
+ *  Once gated, picks the best available timestamp:
  *    1. Explicit `cardAccessGrantedAt` (admin grant / waitlist release).
  *    2. Earliest skip-badge `earnedAt` (badge-driven access — user has
  *       been "in" since they earned the badge, even if the BE never
  *       stamped a separate grant timestamp).
  *  If neither is present, returns null rather than fabricating one. */
 export function deriveCardUnlockEntry(args: {
-    /** True once the user has at least one Rain card row (the only
-     *  server-verifiable signal that they got through the card flow). */
-    hasIssuedCard: boolean
+    /** True once the user went through the card flow — saw the celebration
+     *  OR holds an issued card. The only server-verifiable "they got in"
+     *  signals; mere card access (badge/grant) does NOT count. */
+    wentThroughFlow: boolean
     hasCardAccess: boolean
     cardAccessGrantedAt: string | null | undefined
     skipBadges: string[]
     userBadges?: Array<{ code: string; earnedAt?: string | Date | null }>
 }): CardUnlockHistoryEntry | null {
-    if (!args.hasIssuedCard) return null
+    if (!args.wentThroughFlow) return null
     if (!args.hasCardAccess) return null
 
     let timestamp = args.cardAccessGrantedAt ?? undefined

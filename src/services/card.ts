@@ -30,6 +30,11 @@ export interface CardInfoResponse {
     waitlistReleasedAt: string | null
     /** Skip-badge codes the user holds (subset of SKIP_BADGE_CODES on BE). */
     skipBadges: string[]
+    /** True once the user dismissed the skip-badge celebration (BE-persisted
+     *  cardWaitlistSkipCelebrationSeenAt). Optional: undefined until the BE
+     *  change ships, treated as "not seen". Gates the activity-feed
+     *  share-asset row. */
+    skipCelebrationSeen?: boolean
 }
 
 export interface WaitlistStateResponse {
@@ -105,5 +110,22 @@ export const cardApi = {
             throw new Error(err.message || err.error || 'Failed to grant early access')
         }
         return (await response.json()) as { grantedAt: string }
+    },
+
+    /** POST /card/celebration-seen — idempotent write-once stamp of the
+     *  skip-badge celebration. Called when the user dismisses the celebration
+     *  so the activity-feed share-asset row knows they went through the flow. */
+    markCelebrationSeen: async (): Promise<{ seenAt: string }> => {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/card/celebration-seen`, {
+            method: 'POST',
+            headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+            body: '{}',
+            cache: 'no-store',
+        })
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}))
+            throw new Error(err.message || err.error || 'Failed to mark celebration seen')
+        }
+        return (await response.json()) as { seenAt: string }
     },
 }

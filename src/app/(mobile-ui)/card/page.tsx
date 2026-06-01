@@ -500,9 +500,20 @@ const CardPage: FC = () => {
                         badgeCode={skipCode}
                         username={user?.user?.username ?? undefined}
                         badges={allBadges}
-                        onContinue={() => {
+                        onContinue={async () => {
+                            // localStorage drives the in-flow re-celebration gate;
+                            // setState transitions the screen immediately.
                             markSkipCelebrationSeen()
                             setSkipCelebrationSeen(true)
+                            // Persist the write-once server marker so the home
+                            // activity-feed share-asset row knows the user went
+                            // through the flow. Best-effort; await before refetch so
+                            // cardInfo.skipCelebrationSeen comes back true.
+                            try {
+                                await cardApi.markCelebrationSeen()
+                            } catch (err) {
+                                console.error('[card] markCelebrationSeen failed:', err)
+                            }
                             invalidateOverview()
                             void refetchCardInfo()
                         }}
