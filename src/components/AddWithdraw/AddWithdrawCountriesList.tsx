@@ -117,10 +117,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const { isKycApproved, gateFor, bankRails } = useCapabilities()
     const isUserKycApproved = isKycApproved
     const bankCountry = useMemo(() => railJurisdictionForBank(currentCountry?.id), [currentCountry?.id])
-    const gate = useMemo(
-        () => gateFor('deposit', { channel: 'bank', country: bankCountry }),
-        [gateFor, bankCountry]
-    )
+    const gate = useMemo(() => gateFor('deposit', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     const isBankRailUnderReview = useMemo(() => bankRails().some((rail) => rail.status === 'pending'), [bankRails])
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const { setIsSupportModalOpen } = useModalsContext()
