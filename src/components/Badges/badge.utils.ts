@@ -94,6 +94,18 @@ export const BADGES: Record<string, BadgeMeta> = {
         description: '$1K swiped. They put their money where their card is.',
         // TODO(card-launch): award on cumulative card spend ≥ $1K
     },
+    // Event badges — assets shipped to main via the May 29 hotfix but the catalog
+    // entries were dropped when the parallel maps collapsed into this single BADGES
+    // record, so the backend codes fell back to the Peanutman logo + raw backend name.
+    TOKEN_NATION_SP_2026: {
+        path: '/badges/token_nation_2026.svg',
+        description: 'São Paulo, baby. They came, they claimed, they tagged the wall.',
+    },
+    ETHFLORIPA_HUB: {
+        path: '/badges/ethfloripa_hub.svg',
+        description: 'Ilha da Magia, baby. Coconuts and consensus.',
+        displayName: 'Ethereum Hub Floripa',
+    },
 }
 
 /** All known badge codes — derived from BADGES so we never duplicate the
