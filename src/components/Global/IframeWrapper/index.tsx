@@ -34,10 +34,10 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage, skipStartVi
     const modalDetails = useMemo(() => {
         if (modalVariant === 'trouble') {
             return {
-                title: 'Having trouble verifying?',
+                title: 'Need a hand?',
                 description: (
                     <p>
-                        If the verification isn&apos;t loading here, you can finish it in your browser.
+                        If the ID check isn&apos;t loading here, finish it in your browser.
                         <br />
                         Just copy this link and open it there.
                     </p>
@@ -72,13 +72,13 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage, skipStartVi
         }
 
         return {
-            title: 'Stop verification?',
-            description: 'If you exit now, your verification won’t be completed and you’ll need to start again later.',
+            title: 'Exit and lose progress?',
+            description: 'If you exit now, you’ll need to start the ID check again from scratch.',
             icon: 'alert' as IconName,
             iconContainerClassName: 'bg-secondary-1',
             ctas: [
                 {
-                    text: 'Stop verification',
+                    text: 'Exit',
                     onClick: () => {
                         setIsHelpModalOpen(false)
                         onClose('manual')

@@ -47,7 +47,7 @@ const CardPioneers = () => {
                     <ul className="font-roboto-flex mt-6 space-y-3 text-base md:text-lg">
                         <li className="flex items-center justify-center gap-3 md:justify-start">
                             <Icon name="check-circle" className="h-6 w-6 flex-shrink-0 text-n-1" />
-                            Best rates - no hidden fees
+                            No monthly fees. No annual fees.
                         </li>
                         <li className="flex items-center justify-center gap-3 md:justify-start">
                             <Icon name="check-circle" className="h-6 w-6 flex-shrink-0 text-n-1" />
@@ -58,6 +58,9 @@ const CardPioneers = () => {
                             Non-custodial - your funds, your control
                         </li>
                     </ul>
+                    <p className="font-roboto-flex mt-3 text-xs leading-relaxed opacity-70 md:text-sm">
+                        Standard fees and limits apply per the cardholder terms.
+                    </p>
 
                     <div className="mt-8 flex flex-col items-center gap-4">
                         <Button

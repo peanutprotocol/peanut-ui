@@ -14,6 +14,7 @@ import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Image from 'next/image'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
 import AmountInput from '@/components/Global/AmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
@@ -23,7 +24,13 @@ import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { rainSpendingPowerToWei } from '@/utils/balance.utils'
 import { isTxReverted, saveRedirectUrl, formatNumberForDisplay } from '@/utils/general.utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
-import { calculateSavingsInCents, isArgentinaMantecaQrPayment, getSavingsMessage } from '@/utils/qr-payment.utils'
+import {
+    calculateSavingsInCents,
+    hasCardMarkupComparison,
+    isArgentinaMantecaQrPayment,
+    getSavingsMessage,
+} from '@/utils/qr-payment.utils'
+import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
@@ -41,7 +48,7 @@ import { captureException } from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isPaymentProcessorQR, EQrType, NAME_BY_QR_TYPE, type QrType } from '@/components/Global/DirectSendQR/utils'
-import { QrKycState, useQrKycGate } from '@/hooks/useQrKycGate'
+import { QrKycState } from '@/constants/kyc.consts'
 import ActionModal from '@/components/Global/ActionModal'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
@@ -58,7 +65,7 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps, isBrUserEligibleForLimitIncrease } from '@/features/limits/utils'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
@@ -125,8 +132,84 @@ export default function QRPayPage() {
         return paymentProcessor ? maintenanceConfig.disabledPaymentProviders.includes(paymentProcessor) : false
     }, [paymentProcessor])
 
-    const { shouldBlockPay, kycGateState } = useQrKycGate(paymentProcessor)
-    const { isUserSumsubKycApproved } = useKycStatus()
+    // MIGRATION-REVIEW: QR-pay KYC gate, formerly useQrKycGate + useKycStatus.
+    // Derived inline from the backend capability model. Mapping:
+    //   canDo('pay',{manteca}) → PROCEED_TO_PAY. The BE resolver expresses both
+    //     paths uniformly as an enabled pay op: Sumsub-approved pool users AND
+    //     Sumsub-approved US-nationality-restricted users alike (compliance
+    //     ratified 2026-05-28). No FE special-case needed.
+    //   manteca top-level 'blocked' → PROVIDER_REJECTION_BLOCKED (genuine block —
+    //     no Sumsub, or a non-restriction final rejection).
+    //   manteca top-level 'requires-info' → PROVIDER_REJECTION_FIXABLE.
+    //   manteca 'pending' → IDENTITY_VERIFICATION_IN_PROGRESS.
+    //   otherwise → REQUIRES_IDENTITY_VERIFICATION. While loading → LOADING.
+    // userMessage ← the rejecting rail's reason.userMessage (was useProviderRejectionStatus).
+    const { canDo, railsForProvider, isKycApproved, isLoading: isLoadingCapabilities } = useCapabilities()
+    const { user, fetchUser } = useAuth()
+
+    // On public routes (qr-pay) auth still auto-fetches via React Query, but trigger a one-shot
+    // fetch if we landed with no user and nothing in flight, mirroring the old hook's fallback.
+    // `userFetchSettled` flips to true once the fallback fetch resolves (success OR fail) so the
+    // memo below can keep the gate in LOADING until then — without it, the empty-capabilities
+    // shape on a cold load would flash REQUIRES_IDENTITY_VERIFICATION for one paint.
+    const hasRequestedUserFetchRef = useRef(false)
+    const [userFetchSettled, setUserFetchSettled] = useState(false)
+    useEffect(() => {
+        if (!user && !isLoadingCapabilities && !hasRequestedUserFetchRef.current) {
+            hasRequestedUserFetchRef.current = true
+            void fetchUser().finally(() => setUserFetchSettled(true))
+        }
+    }, [user, isLoadingCapabilities, fetchUser])
+
+    const { kycGateState, qrKycUserMessage } = useMemo(() => {
+        // Keep the gate in LOADING until either the user is hydrated OR the fallback
+        // fetch has resolved. Otherwise we briefly map an empty capability shape onto
+        // REQUIRES_IDENTITY_VERIFICATION for users whose auth state hasn't settled yet.
+        if (isLoadingCapabilities || (!user && !userFetchSettled)) {
+            return { kycGateState: QrKycState.LOADING, qrKycUserMessage: null as string | null }
+        }
+        if (canDo('pay', { provider: 'manteca' })) {
+            return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: null as string | null }
+        }
+        const mantecaRails = railsForProvider('manteca')
+        const blockedRail = mantecaRails.find((rail) => rail.status === 'blocked')
+        if (blockedRail) {
+            // Blocked === blocked. The US-nationality refinement is now applied in
+            // the resolver itself (Sumsub-approved + US-restricted → status:enabled
+            // + operations.pay:enabled, caught by canDo above), so a `blocked`
+            // status here is a genuine block.
+            //
+            // Country-not-supported is self-fixable: user uploaded a non-AR/BR doc
+            // and can verify again with a different one. Split out for the right CTA.
+            if (blockedRail.reason?.code === 'country_not_supported') {
+                return {
+                    kycGateState: QrKycState.PROVIDER_RESTART_IDENTITY,
+                    qrKycUserMessage: blockedRail.reason.userMessage ?? null,
+                }
+            }
+            return {
+                kycGateState: QrKycState.PROVIDER_REJECTION_BLOCKED,
+                qrKycUserMessage: blockedRail.reason?.userMessage ?? null,
+            }
+        }
+        const fixableRail = mantecaRails.find((rail) => rail.status === 'requires-info')
+        if (fixableRail) {
+            return {
+                kycGateState: QrKycState.PROVIDER_REJECTION_FIXABLE,
+                qrKycUserMessage: fixableRail.reason?.userMessage ?? null,
+            }
+        }
+        if (mantecaRails.some((rail) => rail.status === 'pending')) {
+            return {
+                kycGateState: QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS,
+                qrKycUserMessage: null as string | null,
+            }
+        }
+        return { kycGateState: QrKycState.REQUIRES_IDENTITY_VERIFICATION, qrKycUserMessage: null as string | null }
+    }, [isLoadingCapabilities, canDo, railsForProvider, user, userFetchSettled])
+
+    const shouldBlockPay = kycGateState !== QrKycState.PROCEED_TO_PAY
+
     const sumsubFlow = useMultiPhaseKycFlow({})
     const queryClient = useQueryClient()
     const [isShaking, setIsShaking] = useState(false)
@@ -138,7 +221,6 @@ export default function QRPayPage() {
     const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const holdStartTimeRef = useRef<number | null>(null)
     const payingStateTimerRef = useRef<NodeJS.Timeout | null>(null)
-    const { user } = useAuth()
     const { setIsSupportModalOpen, openSupportWithMessage: openSupportForLimits } = useModalsContext()
     const [waitingForMerchantAmount, setWaitingForMerchantAmount] = useState(false)
     const retryCount = useRef(0)
@@ -306,6 +388,11 @@ export default function QRPayPage() {
             return paymentLock.paymentAgainstAmount
         }
     }, [paymentLock?.code, paymentLock?.paymentAgainstAmount, amount])
+
+    // Live card-vs-local-rail markup, driven by Manteca's rate + (for ARS)
+    // BCRA's official rate. Used by both the confirm-screen "Save vs card"
+    // row and the success-screen savings message — keeps them in sync.
+    const { data: cardMarkup } = useCardMarkupRate(currency?.code, currency?.price)
 
     // validate payment against user's limits
     // currency comes from payment lock — hook normalizes it internally
@@ -843,7 +930,9 @@ export default function QRPayPage() {
         kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION ||
         kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS
     const hasProviderRejection =
-        kycGateState === QrKycState.PROVIDER_REJECTION_FIXABLE || kycGateState === QrKycState.PROVIDER_REJECTION_BLOCKED
+        kycGateState === QrKycState.PROVIDER_REJECTION_FIXABLE ||
+        kycGateState === QrKycState.PROVIDER_REJECTION_BLOCKED ||
+        kycGateState === QrKycState.PROVIDER_RESTART_IDENTITY
 
     // show loading while KYC state is being determined
     if (isLoadingKycState) {
@@ -853,17 +942,28 @@ export default function QRPayPage() {
     // provider rejection: user is sumsub-approved but manteca rejected
     if (hasProviderRejection) {
         const isFixable = kycGateState === QrKycState.PROVIDER_REJECTION_FIXABLE
+        const isRestartIdentity = kycGateState === QrKycState.PROVIDER_RESTART_IDENTITY
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
                 <NavHeader title="Pay" />
                 <ActionModal
                     visible
                     onClose={onBack}
-                    title={isFixable ? 'We need an updated document' : 'QR payments are not available'}
+                    title={
+                        isFixable
+                            ? 'We need an updated document'
+                            : isRestartIdentity
+                              ? 'Verify with a different document'
+                              : 'QR payments are not available'
+                    }
                     description={
                         isFixable
                             ? 'We need an updated document to enable QR payments. Please upload a clearer photo of your ID.'
-                            : 'QR payments are not available for your account. Contact support for help.'
+                            : isRestartIdentity
+                              ? (qrKycUserMessage ??
+                                'QR payments need a document from a supported country. You can verify with a different ID.')
+                              : (qrKycUserMessage ??
+                                'QR payments are not available for your account. Contact support for help.')
                     }
                     icon={
                         methodIcon ? (
@@ -879,11 +979,19 @@ export default function QRPayPage() {
                                   shadowSize: '4' as const,
                                   icon: 'upload',
                               }
-                            : {
-                                  text: 'Contact support',
-                                  onClick: () => setIsSupportModalOpen(true),
-                                  variant: 'stroke' as const,
-                              },
+                            : isRestartIdentity
+                              ? {
+                                    text: 'Verify with a different document',
+                                    onClick: () => sumsubFlow.handleRestartIdentity(),
+                                    variant: 'purple' as const,
+                                    shadowSize: '4' as const,
+                                    icon: 'upload',
+                                }
+                              : {
+                                    text: 'Contact support',
+                                    onClick: () => setIsSupportModalOpen(true),
+                                    variant: 'stroke' as const,
+                                },
                     ]}
                 />
                 <SumsubKycModals flow={sumsubFlow} />
@@ -892,6 +1000,10 @@ export default function QRPayPage() {
     }
 
     // show KYC screens before any error screens - user needs to verify first
+    // MIGRATION-REVIEW: the `crossRegion` flag passed to handleInitiateKyc was `isUserSumsubKycApproved`
+    // (Sumsub identity cleared, only the regional Manteca uplift remains). Sumsub has no rail in the
+    // capability model, so — matching the MantecaFlowManager precedent (commit 8c98a3e81) — isKycApproved
+    // (any enabled rail ⇒ identity verified at least once) is the closest faithful proxy.
     if (needsKycVerification) {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
@@ -899,8 +1011,8 @@ export default function QRPayPage() {
                 <ActionModal
                     visible={kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION}
                     onClose={onBack}
-                    title="Verify your identity to continue"
-                    description="You'll need to verify your identity before paying with a QR code. Don't worry it usually just takes a few minutes."
+                    title="Unlock QR payments"
+                    description="Confirm your ID to pay with a QR code. Takes about a minute."
                     icon={
                         methodIcon ? (
                             <Image src={methodIcon} alt="Payment method" width={48} height={48} priority />
@@ -908,12 +1020,12 @@ export default function QRPayPage() {
                     }
                     ctas={[
                         {
-                            text: 'Verify now',
+                            text: 'Unlock now',
                             onClick: () =>
                                 sumsubFlow.handleInitiateKyc(
                                     'LATAM',
                                     undefined,
-                                    isUserSumsubKycApproved || undefined,
+                                    isKycApproved || undefined,
                                     targetMantecaCountry
                                 ),
                             variant: 'purple',
@@ -926,17 +1038,17 @@ export default function QRPayPage() {
                 <ActionModal
                     visible={kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS}
                     onClose={onBack}
-                    title="Complete your verification"
-                    description="Your identity is being verified. If you did not finish the process, please continue to complete it."
+                    title="Almost there"
+                    description="We're confirming your ID. Pick up where you left off and you'll be paying in no time."
                     icon="shield"
                     ctas={[
                         {
-                            text: 'Continue verification',
+                            text: 'Continue',
                             onClick: () =>
                                 sumsubFlow.handleInitiateKyc(
                                     'LATAM',
                                     undefined,
-                                    isUserSumsubKycApproved || undefined,
+                                    isKycApproved || undefined,
                                     targetMantecaCountry
                                 ),
                             variant: 'purple',
@@ -1047,21 +1159,19 @@ export default function QRPayPage() {
     }
 
     // show loading spinner if we're still loading payment data
-    if (isLoadingPaymentData || loadingState.toLowerCase() === 'paying') {
-        return (
-            <PeanutLoading
-                message={loadingState.toLowerCase() === 'paying' ? 'Almost there! Processing payment...' : undefined}
-            />
-        )
+    if (isLoadingPaymentData || loadingState === 'Paying') {
+        return loadingState === 'Paying' ? <CyclingLoading /> : <PeanutLoading />
     }
 
     //Success
     if (isSuccess && paymentProcessor === 'MANTECA' && !qrPayment) {
         return null
     } else if (isSuccess && paymentProcessor === 'MANTECA') {
-        // Calculate savings for Argentina Manteca QR payments only
-        const savingsInCents = calculateSavingsInCents(usdAmount)
-        const showSavingsMessage = savingsInCents > 0 && isArgentinaMantecaQrPayment(qrType, paymentProcessor)
+        // Show "saved $X vs card" only for currencies with a meaningful
+        // card-vs-local-rail gap (ARS, BRL — see CARD_FX_MARKUP_BY_CURRENCY).
+        // Rate is live (BCRA for ARS) via useCardMarkupRate above.
+        const savingsInCents = calculateSavingsInCents(usdAmount, cardMarkup?.rate)
+        const showSavingsMessage = savingsInCents > 0 && hasCardMarkupComparison(currency?.code)
         const savingsMessage = showSavingsMessage ? getSavingsMessage(savingsInCents) : ''
 
         return (
@@ -1377,6 +1487,23 @@ export default function QRPayPage() {
                             value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
                             moreInfoText="Rate shown is current but may vary slightly (~$1-5 ARS) until payment is confirmed."
                         />
+                        {(() => {
+                            if (!hasCardMarkupComparison(currency.code)) return null
+                            const savingsInCents = calculateSavingsInCents(usdAmount, cardMarkup?.rate)
+                            if (savingsInCents <= 0) return null
+                            const savingsUsd = (savingsInCents / 100).toFixed(2)
+                            return (
+                                <PaymentInfoRow
+                                    label="Save vs card"
+                                    value={`~$${savingsUsd}`}
+                                    moreInfoText={
+                                        currency.code.toUpperCase() === 'BRL'
+                                            ? 'Foreign cards pay IOF (~3.5%) plus a typical ~3% issuer FX fee. Peanut routes via PIX at the current market rate.'
+                                            : 'Foreign cards apply the official rate plus a typical ~3% issuer FX fee. Peanut routes via MercadoPago at the current market rate.'
+                                    }
+                                />
+                            )
+                        })()}
                         <PaymentInfoRow label="Peanut fee" value="Sponsored by Peanut!" hideBottomBorder />
                     </Card>
 

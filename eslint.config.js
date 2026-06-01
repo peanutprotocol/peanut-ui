@@ -64,6 +64,18 @@ module.exports = [
             ...nextPlugin.configs.recommended.rules,
             ...nextPlugin.configs['core-web-vitals'].rules,
 
+            // Prefix with `_` to mark an intentionally-unused binding.
+            '@typescript-eslint/no-unused-vars': [
+                'error',
+                {
+                    argsIgnorePattern: '^_',
+                    varsIgnorePattern: '^_',
+                    caughtErrorsIgnorePattern: '^_',
+                    destructuredArrayIgnorePattern: '^_',
+                    ignoreRestSiblings: true,
+                },
+            ],
+
             // React 17+ — no need to import React for JSX
             'react/react-in-jsx-scope': 'off',
             'react/jsx-uses-react': 'off',

@@ -27,6 +27,8 @@
 const ARS_STATIC_MARKUP = 0.0913
 /** Foreign-issuer FX fee on top of the network rate — Visa/MC ~mid-market, bank adds 2–3%. */
 const ISSUER_FX_FEE = 0.03
+/** Abort the live FX fetch if dolarapi hangs, so SSR falls back to the static markup fast. */
+const FX_FETCH_TIMEOUT_MS = 2500
 
 export interface CardMarkup {
     /** Markup as a fraction: card_price = peanut_price × (1 + rate). */
@@ -52,6 +54,7 @@ export async function getArsCardMarkup(criptoUsdToArs: number): Promise<CardMark
     try {
         const res = await fetch('https://dolarapi.com/v1/dolares/oficial', {
             next: { revalidate: 300 }, // 5min edge cache so we don't hit dolarapi per visitor
+            signal: AbortSignal.timeout(FX_FETCH_TIMEOUT_MS),
         })
         if (res.ok) {
             const data = (await res.json()) as { venta?: number }

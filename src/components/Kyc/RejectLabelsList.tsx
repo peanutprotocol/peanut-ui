@@ -17,7 +17,7 @@ export const RejectLabelsList = ({ rejectLabels }: { rejectLabels?: string[] | n
             <InfoCard
                 variant="info"
                 icon="alert"
-                description="We need more information to complete your verification. Please provide the requested details to continue."
+                description="We need a bit more from you to confirm your ID. Please provide the requested details to continue."
             />
         )
     }

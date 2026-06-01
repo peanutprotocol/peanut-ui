@@ -3,7 +3,7 @@
 
 import { keccak256, type Hex, type SignableMessage, encodeAbiParameters } from 'viem'
 import { bytesToBigInt, hexToBytes } from 'viem'
-// @ts-ignore -- @noble/curves/p256 requires pinning to v1.9.7 (v2 removed this export)
+// @noble/curves/p256 was the public path in v1.9.7; v2 removed it. Pin documented in package.json.
 import { p256 } from '@noble/curves/p256'
 
 // credential request options shape used by the signing callback

@@ -4,7 +4,7 @@ import {
     PEANUT_WALLET_TOKEN_DECIMALS,
     PEANUT_WALLET_TOKEN_SYMBOL,
 } from '@/constants/zerodev.consts'
-import { AccountType, type IUserKycVerification } from '@/interfaces'
+import { AccountType } from '@/interfaces'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { serverFetch } from '@/utils/api-fetch'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
@@ -27,8 +27,12 @@ export type ApiUser = {
     showFullName?: boolean
     totalUsdSentToCurrentUser: string
     totalUsdReceivedFromCurrentUser: string
-    bridgeKycStatus: string
-    kycVerifications?: IUserKycVerification[]
+    /**
+     * Provider-agnostic identity-verified signal (BE-computed via
+     * `computeIsVerified`). Replaces the raw `bridgeKycStatus`/`kycVerifications`
+     * fields — the FE renders this directly as the "verified" badge.
+     */
+    isVerified: boolean
     badges?: Array<{
         code: string
         name: string

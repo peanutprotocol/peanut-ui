@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { RecipientType } from '@/interfaces/interfaces'
 import { type IOfframpSuccessScreenProps, type IOfframpConfirmScreenProps } from '../Offramp/Offramp.consts'
 import { type ClaimLinkData } from '@/services/sendLinks'
@@ -34,9 +35,9 @@ export const INIT_VIEW_STATE: IClaimScreenState = {
 export const CLAIM_SCREEN_FLOW: ClaimScreens[] = ['INITIAL', 'CONFIRM', 'SUCCESS']
 
 export interface IFlowManagerClaimComponents {
-    INITIAL: ({}: IClaimScreenProps) => {}
-    CONFIRM: (({}: IClaimScreenProps) => {}) | (({}: IOfframpConfirmScreenProps) => {})
-    SUCCESS: (({}: IClaimScreenProps) => {}) | (({}: IOfframpSuccessScreenProps) => {})
+    INITIAL: (props: IClaimScreenProps) => ReactNode
+    CONFIRM: ((props: IClaimScreenProps) => ReactNode) | ((props: IOfframpConfirmScreenProps) => ReactNode)
+    SUCCESS: ((props: IClaimScreenProps) => ReactNode) | ((props: IOfframpSuccessScreenProps) => ReactNode)
 }
 
 export interface IClaimScreenProps {

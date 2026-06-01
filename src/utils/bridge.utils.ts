@@ -10,6 +10,37 @@ export interface CurrencyConfig {
 export type BridgeOperationType = 'onramp' | 'offramp'
 
 /**
+ * Map a country selection to the rail-jurisdiction code its bank rail uses
+ * in the capability model. Bridge SEPA rails are stored with country='EU'
+ * (one rail spans all 27 EU member states); ACH/SPEI/Faster Payments use
+ * their own ISO2. Manteca rails are stored under the user's country
+ * (BR/AR). Used by deposit/withdraw bank pages to country-scope the
+ * capability gate so a stuck PENDING rail in country X doesn't block
+ * country Y's flow (e.g. a ghost BANK_TRANSFER_AR rail shouldn't keep the
+ * Portugal-SEPA page in a "Setting up your account…" wait loop).
+ *
+ * Contract:
+ * - missing input (null/undefined/empty) → undefined; the gate falls back
+ *   to a channel-only scope.
+ * - recognized US/MX/GB/AR/BR → the matching ISO2 code.
+ * - anything else → 'EU'. This intentionally mirrors `getCurrencyConfig`'s
+ *   "everything else → SEPA/EUR" default. Returning undefined here would
+ *   re-introduce the original bug (unscoped gate sees stuck pending rails
+ *   from unrelated jurisdictions); Bridge serves every other country we
+ *   support via SEPA, so 'EU' is the right scope for any unmapped entry.
+ */
+export const railJurisdictionForBank = (countryId: string | null | undefined): string | undefined => {
+    if (!countryId) return undefined
+    const upper = countryId.toUpperCase()
+    if (upper === 'US' || upper === 'USA') return 'US'
+    if (upper === 'MX' || upper === 'MEX') return 'MX'
+    if (upper === 'GB' || upper === 'GBR') return 'GB'
+    if (upper === 'AR' || upper === 'ARG') return 'AR'
+    if (upper === 'BR' || upper === 'BRA') return 'BR'
+    return 'EU'
+}
+
+/**
  * Get currency configuration for a specific country and operation type
  * USA -> USD/ACH, Mexico -> MXN/SPEI, everything else -> EUR/SEPA
  * Payment rails differ between onramp and offramp operations

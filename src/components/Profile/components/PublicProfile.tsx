@@ -16,7 +16,6 @@ import { checkIfInternalNavigation } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
 import ShareButton from '@/components/Global/ShareButton'
 import ActionModal from '@/components/Global/ActionModal'
-import { isUserKycVerified } from '@/constants/kyc.consts'
 import BadgesRow from '@/components/Badges/BadgesRow'
 
 interface PublicProfileProps {
@@ -55,7 +54,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             if (apiUser?.fullName) setFullName(apiUser.fullName)
             // get the profile owner's showFullName preference
             setShowFullName(apiUser?.showFullName ?? false)
-            setIsKycVerified(isUserKycVerified(apiUser))
+            setIsKycVerified(apiUser?.isVerified ?? false)
             // to check if the logged in user has sent money to the profile user,
             // we check the amount that the profile user has received from the logged in user.
             if (apiUser?.totalUsdReceivedFromCurrentUser) {

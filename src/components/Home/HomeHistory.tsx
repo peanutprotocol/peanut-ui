@@ -17,7 +17,10 @@ import Card from '../Global/Card'
 import { type CardPosition, getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem, isKycStatusItem, type KycHistoryEntry } from '../Kyc/KycStatusItem'
-import { groupKycByRegion } from '@/utils/kyc-grouping.utils'
+import { buildKycHistoryEntry } from '@/utils/kyc-grouping.utils'
+import CardUnlockHistoryItem from '../Card/CardUnlockHistoryItem'
+import { deriveCardUnlockEntry, isCardUnlockHistoryItem, type CardUnlockHistoryEntry } from '../Card/cardUnlock.types'
+import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
 import { isBadgeHistoryItem } from '@/components/Badges/badge.types'
@@ -71,6 +74,10 @@ const HomeHistory = ({
         () => (isLoggedIn && !username) || (isLoggedIn && username === user?.user.username),
         [isLoggedIn, username, user?.user.username]
     )
+    // Pull /card response to derive the synthetic "card unlocked" history
+    // entry. Mirrors how kyc derives from user state. Only meaningful when
+    // viewing your own history.
+    const { cardInfo } = useCardPioneerInfo()
 
     // WebSocket for real-time updates
     const { historyEntries: wsHistoryEntries } = useWebSocket({
@@ -140,7 +147,7 @@ const HomeHistory = ({
             // Process entries asynchronously to handle completeHistoryEntry
             const processEntries = async () => {
                 // Start with the fetched entries
-                const entries: Array<HistoryEntry | KycHistoryEntry> = [...historyData.entries]
+                const entries: Array<HistoryEntry | KycHistoryEntry | CardUnlockHistoryEntry> = [...historyData.entries]
 
                 // inject badge entries using user's badges (newest first) and earnedAt chronology
                 // filter out beta tester badge — it creates confusing first impressions for new users
@@ -214,10 +221,27 @@ const HomeHistory = ({
                     }
                 }
 
-                // add one kyc entry per region (STANDARD, LATAM)
-                if (isViewingOwnHistory && user?.user) {
-                    const regionEntries = groupKycByRegion(user.user)
-                    entries.push(...regionEntries)
+                // add the single identity-verification row (provider-agnostic)
+                if (isViewingOwnHistory && user) {
+                    const kycEntry = buildKycHistoryEntry(user)
+                    if (kycEntry) entries.push(kycEntry)
+                }
+
+                // Synthetic card-unlock entry — once the user has card
+                // access (hasCardAccess=true), regardless of WHY (waitlist
+                // released, admin grant, OR skip-badge held). Falls back to
+                // the earliest skip-badge earnedAt when BE didn't stamp an
+                // explicit cardAccessGrantedAt — common for badge-only
+                // access where the user has been "in" since they earned the
+                // badge.
+                if (isViewingOwnHistory && cardInfo) {
+                    const unlock = deriveCardUnlockEntry({
+                        hasCardAccess: cardInfo.hasCardAccess,
+                        cardAccessGrantedAt: cardInfo.waitlistReleasedAt,
+                        skipBadges: cardInfo.skipBadges,
+                        userBadges: user?.user?.badges,
+                    })
+                    if (unlock) entries.push(unlock)
                 }
 
                 // Check cancellation before setting state
@@ -230,8 +254,17 @@ const HomeHistory = ({
                     return dateB - dateA
                 })
 
-                // Limit to the most recent entries
-                setCombinedEntries(entries.slice(0, 5))
+                // Cap at 5 fresh entries — but ALWAYS keep the synthetic
+                // card-unlock row if it exists (it's an evergreen
+                // shoulder-tap to re-share the asset, not a transient
+                // event that should age out behind 5 fresh badge unlocks).
+                const RECENT_LIMIT = 5
+                const recent = entries.slice(0, RECENT_LIMIT)
+                const unlock = entries.find(isCardUnlockHistoryItem)
+                if (unlock && !recent.some(isCardUnlockHistoryItem)) {
+                    recent.push(unlock)
+                }
+                setCombinedEntries(recent)
             }
 
             processEntries()
@@ -242,7 +275,7 @@ const HomeHistory = ({
             }
         }
         return undefined
-    }, [historyData, wsHistoryEntries, user, isLoading, isViewingOwnHistory])
+    }, [historyData, wsHistoryEntries, user, isLoading, isViewingOwnHistory, cardInfo])
 
     const pendingRequests = useMemo(() => {
         if (!combinedEntries.length) return []
@@ -262,7 +295,7 @@ const HomeHistory = ({
     const drawerByUuid = useMemo(() => {
         const m = new Map<string, ReturnType<typeof mapTransactionDataForDrawer>>()
         for (const item of combinedEntries) {
-            if (isKycStatusItem(item) || isBadgeHistoryItem(item)) continue
+            if (isKycStatusItem(item) || isBadgeHistoryItem(item) || isCardUnlockHistoryItem(item)) continue
             if (!m.has(item.uuid)) m.set(item.uuid, mapTransactionDataForDrawer(item))
         }
         return m
@@ -297,8 +330,14 @@ const HomeHistory = ({
     // check source data directly — combinedEntries lags behind due to async processing
     const hasSourceEntries = (historyData?.entries?.length ?? 0) > 0 || wsHistoryEntries.length > 0
 
+    // Synthetic entries (KYC region rows, card-unlock) live in
+    // combinedEntries but NOT in source-side historyData/wsHistoryEntries.
+    // Without this, a user whose only activity is "card unlocked" sees
+    // their unlock row suppressed by the hide-empty guard on /home.
+    const hasSyntheticEntries = combinedEntries.length > 0
+
     // hide empty activity for pre-activation users when there's genuinely nothing
-    if (!isLoading && !hasSourceEntries && hideEmptyState && isViewingOwnHistory) {
+    if (!isLoading && !hasSourceEntries && !hasSyntheticEntries && hideEmptyState && isViewingOwnHistory) {
         return null
     }
 
@@ -308,20 +347,12 @@ const HomeHistory = ({
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
                 <h2 className="text-base font-bold">Activity</h2>
                 {isViewingOwnHistory &&
-                    user?.user &&
+                    user &&
                     (() => {
-                        const regionEntries = groupKycByRegion(user.user)
-                        return regionEntries.length > 0 ? (
+                        const kycEntry = buildKycHistoryEntry(user)
+                        return kycEntry ? (
                             <div className="space-y-3">
-                                {regionEntries.map((entry) => (
-                                    <KycStatusItem
-                                        key={entry.uuid}
-                                        position="single"
-                                        verification={entry.verification}
-                                        bridgeKycStatus={entry.bridgeKycStatus}
-                                        region={entry.region}
-                                    />
-                                ))}
+                                <KycStatusItem position="single" />
                             </div>
                         ) : (
                             <EmptyState
@@ -397,25 +428,29 @@ const HomeHistory = ({
                         )
                         const position = getCardPosition(index, filteredEntries.length)
 
-                        // Render KYC status item if it's its turn in the sorted list
+                        // Render the identity-verification status row when it's its turn in the
+                        // sorted list. KycStatusItem self-sources its status from
+                        // useIdentityVerification() — the entry is just a timeline marker.
                         if (isKycStatusItem(item)) {
-                            return (
-                                <KycStatusItem
-                                    key={item.uuid}
-                                    position={position}
-                                    verification={item.verification}
-                                    bridgeKycStatus={item.bridgeKycStatus}
-                                    bridgeKycStartedAt={
-                                        item.bridgeKycStatus ? user?.user.bridgeKycStartedAt : undefined
-                                    }
-                                    region={item.region}
-                                />
-                            )
+                            return <KycStatusItem key={item.uuid} position={position} />
                         }
 
                         // render badge milestone entries
                         if (isBadgeHistoryItem(item)) {
                             return <BadgeStatusItem key={item.uuid} position={position} entry={item} />
+                        }
+
+                        // render the card-unlock milestone entry
+                        if (isCardUnlockHistoryItem(item)) {
+                            return (
+                                <CardUnlockHistoryItem
+                                    key={item.uuid}
+                                    entry={item}
+                                    position={position}
+                                    username={user?.user?.username ?? undefined}
+                                    badges={user?.user?.badges}
+                                />
+                            )
                         }
 
                         const { transactionDetails, transactionCardType } =

@@ -2,8 +2,7 @@ import { getUserById } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useEffect, useState } from 'react'
-import useKycStatus from './useKycStatus'
-import { isUserKycVerified } from '@/constants/kyc.consts'
+import { useCapabilities } from './useCapabilities'
 
 export enum BankClaimType {
     GuestBankClaim = 'guest-bank-claim',
@@ -24,12 +23,15 @@ export function useDetermineBankClaimType(senderUserId: string): {
     const { user } = useAuth()
     const [claimType, setClaimType] = useState<BankClaimType>(BankClaimType.ReceiverKycNeeded)
     const { setSenderDetails } = useClaimBankFlow()
-    const { isUserKycApproved } = useKycStatus()
+    // MIGRATION-REVIEW: was useKycStatus().isUserKycApproved (any provider approved).
+    // The receiver is the CURRENT user, so this reads the capability model directly:
+    // isKycApproved = any enabled rail — the established proxy for "identity cleared".
+    const { isKycApproved } = useCapabilities()
 
     useEffect(() => {
         const determineBankClaimType = async () => {
             // check if receiver (logged in user) exists and is KYC approved
-            const receiverKycApproved = isUserKycApproved
+            const receiverKycApproved = isKycApproved
 
             if (receiverKycApproved) {
                 // condition 1: Receiver is KYC approved → UserBankClaim
@@ -49,7 +51,9 @@ export function useDetermineBankClaimType(senderUserId: string): {
 
             try {
                 const senderDetails = await getUserById(senderUserId)
-                const senderKycApproved = isUserKycVerified(senderDetails)
+                // BE-computed counterparty capability — true iff the sender has an enabled
+                // Bridge bank rail, which is exactly the gate for routing to GuestBankClaim.
+                const senderKycApproved = senderDetails?.canReceiveBankOfframp ?? false
 
                 if (senderKycApproved) {
                     // condition 3: Receiver not KYC approved BUT sender is → GuestBankClaim
@@ -73,7 +77,7 @@ export function useDetermineBankClaimType(senderUserId: string): {
         }
 
         determineBankClaimType()
-    }, [user, senderUserId, setSenderDetails])
+    }, [user, senderUserId, setSenderDetails, isKycApproved])
 
     return { claimType, setClaimType }
 }

@@ -13,6 +13,5 @@ const BANNER_STYLE = `background:${PINK};color:#000;padding:2px 6px;border-radiu
 const TEXT_STYLE = `color:${PINK};font-weight:bold`
 
 export function debugLog(label: string, ...args: unknown[]): void {
-    // eslint-disable-next-line no-console
     console.log(`%c[debug]%c ${label}`, BANNER_STYLE, TEXT_STYLE, ...args)
 }

@@ -39,12 +39,12 @@ const JoinWaitlist = () => {
             const isValid = res.success
             posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, { valid: isValid, source: 'setup' })
             if (!isValid) {
-                setError('Invalid invite code')
+                setError("We couldn't find that user")
             }
             return isValid
-        } catch (e) {
+        } catch {
             posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, { valid: false, source: 'setup' })
-            setError('Invalid invite code')
+            setError("We couldn't find that user")
             return false
         } finally {
             setisLoading(false)
@@ -74,7 +74,7 @@ const JoinWaitlist = () => {
         <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
                 <ValidatedInput
-                    placeholder="Enter invite code"
+                    placeholder="Their username"
                     value={inviteCode}
                     debounceTime={750}
                     validate={validateInviteCode}

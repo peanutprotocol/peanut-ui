@@ -90,6 +90,11 @@ export function withUtm(path: string, utm: UtmParams, extra?: Record<string, str
     params.set('utm_campaign', utm.campaign)
     if (utm.content) params.set('utm_content', utm.content)
     if (utm.term) params.set('utm_term', utm.term)
-    const sep = path.includes('?') ? '&' : '?'
-    return `${path}${sep}${params.toString()}`
+    // Keep any #fragment trailing the query string — otherwise the UTM params
+    // land after the hash and get dropped. Fragment = everything past first '#'.
+    const hashIdx = path.indexOf('#')
+    const base = hashIdx === -1 ? path : path.slice(0, hashIdx)
+    const hash = hashIdx === -1 ? '' : path.slice(hashIdx)
+    const sep = base.includes('?') ? '&' : '?'
+    return `${base}${sep}${params.toString()}${hash}`
 }

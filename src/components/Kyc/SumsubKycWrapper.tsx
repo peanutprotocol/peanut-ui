@@ -248,9 +248,8 @@ export const SumsubKycWrapper = ({
     const modalDetails = useMemo(() => {
         if (modalVariant === 'trouble') {
             return {
-                title: 'Having trouble verifying?',
-                description:
-                    "If the verification isn't loading or working properly, please contact our support team for help.",
+                title: 'Need a hand?',
+                description: "If the ID check isn't loading or working properly, our support team will help.",
                 icon: 'question-mark' as IconName,
                 iconContainerClassName: 'bg-primary-1',
                 ctas: [
@@ -272,9 +271,8 @@ export const SumsubKycWrapper = ({
 
         return autoStart
             ? {
-                  title: 'Are you sure you want to exit?',
-                  description:
-                      "You are about to exit verification, you can come back to finish this later. Your progress won't be lost.",
+                  title: 'Exit for now?',
+                  description: 'You can pick up where you left off later — your progress is saved.',
                   icon: 'alert' as IconName,
                   iconContainerClassName: 'bg-secondary-1',
                   ctas: [
@@ -296,14 +294,13 @@ export const SumsubKycWrapper = ({
                   ],
               }
             : {
-                  title: 'Stop verification?',
-                  description:
-                      "If you exit now, your verification won't be completed and you'll need to start again later.",
+                  title: 'Exit and lose progress?',
+                  description: "If you exit now, you'll need to start the ID check again from scratch.",
                   icon: 'alert' as IconName,
                   iconContainerClassName: 'bg-secondary-1',
                   ctas: [
                       {
-                          text: 'Stop verification',
+                          text: 'Exit',
                           onClick: () => {
                               setIsHelpModalOpen(false)
                               onClose()
@@ -312,7 +309,7 @@ export const SumsubKycWrapper = ({
                           shadowSize: '4' as const,
                       },
                       {
-                          text: 'Continue verifying',
+                          text: 'Keep going',
                           onClick: () => setIsHelpModalOpen(false),
                           variant: 'transparent' as ButtonVariant,
                           className: 'underline text-sm font-medium w-full h-fit mt-3',

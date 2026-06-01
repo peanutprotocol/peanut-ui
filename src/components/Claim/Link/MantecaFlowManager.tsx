@@ -5,18 +5,18 @@ import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { type ClaimLinkData } from '@/services/sendLinks'
-import { type FC, useEffect, useState } from 'react'
+import { type FC, useEffect, useMemo, useState } from 'react'
 import MantecaDetailsStep from './views/MantecaDetailsStep.view'
 import { MercadoPagoStep } from '@/types/manteca.types'
 import MantecaReviewStep from './views/MantecaReviewStep'
 import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { useRouter } from 'next/navigation'
-import useKycStatus from '@/hooks/useKycStatus'
-import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
+import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 
 interface MantecaFlowManagerProps {
     claimLinkData: ClaimLinkData
@@ -29,8 +29,18 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
     const [currentStep, setCurrentStep] = useState<MercadoPagoStep>(MercadoPagoStep.DETAILS)
     const router = useRouter()
     const [destinationAddress, setDestinationAddress] = useState('')
-    const { isUserMantecaKycApproved, isUserSumsubKycApproved } = useKycStatus()
-    const { manteca: mantecaRejection } = useProviderRejectionStatus()
+    const { canDo, isKycApproved, rails } = useCapabilities()
+
+    // MIGRATION-REVIEW: MercadoPago/PIX claim is a `pay` operation over Manteca. Old gate was
+    // `isUserMantecaKycApproved` (any MANTECA/SUMSUB-mantecaGeo verification approved). Mapped to
+    // canDo('pay', { provider: 'manteca' }) — operation-specific, so a Sumsub-approved user with
+    // only the pool-tier pay rail correctly passes (matching the old behavior where Sumsub-with-
+    // mantecaGeo counted as approved).
+    const isMantecaPayEnabled = canDo('pay', { provider: 'manteca' })
+
+    // Use the shared rejection util so the `restart-identity` branch (Manteca
+    // country-ineligibility — user uploaded a non-AR/BR doc) is honored here too.
+    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA'), [rails])
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -45,10 +55,10 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
 
     // show confirmation modal if user hasn't completed manteca verification
     useEffect(() => {
-        if (!isUserMantecaKycApproved) {
+        if (!isMantecaPayEnabled) {
             setShowKycModal(true)
         }
-    }, [isUserMantecaKycApproved])
+    }, [isMantecaPayEnabled])
 
     const renderStepDetails = () => {
         if (currentStep === MercadoPagoStep.DETAILS) {
@@ -132,8 +142,9 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                         setShowKycModal(false)
                         return
                     }
-                    const hasRejection = mantecaRejection.state === 'fixable'
-                    if (hasRejection) {
+                    if (mantecaRejection.state === 'restart-identity') {
+                        await sumsubFlow.handleRestartIdentity()
+                    } else if (mantecaRejection.state === 'fixable') {
                         await sumsubFlow.handleSelfHealResubmit('MANTECA')
                     } else {
                         await sumsubFlow.handleInitiateKyc('LATAM', undefined, true)
@@ -142,11 +153,19 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 }}
                 isLoading={sumsubFlow.isLoading}
                 variant={
-                    mantecaRejection.state === 'fixable' || mantecaRejection.state === 'blocked'
-                        ? 'provider_rejection'
-                        : isUserSumsubKycApproved
-                          ? 'cross_region'
-                          : 'default'
+                    mantecaRejection.state === 'blocked'
+                        ? 'blocked'
+                        : mantecaRejection.state === 'restart-identity'
+                          ? 'restart_identity'
+                          : mantecaRejection.state === 'fixable'
+                            ? 'provider_rejection'
+                            : // MIGRATION-REVIEW: 'cross_region' copy = "you're already verified, just need
+                              // the regional Manteca uplift". Old gate was `isUserSumsubKycApproved`. Sumsub has
+                              // no rail in the capability model; any enabled rail implies identity verification
+                              // was completed at least once, so isKycApproved is the closest faithful proxy.
+                              isKycApproved
+                              ? 'cross_region'
+                              : 'default'
                 }
                 providerMessage={mantecaRejection.userMessage ?? undefined}
                 regionName={selectedCountry?.title}

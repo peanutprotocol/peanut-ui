@@ -1,7 +1,8 @@
 'use client'
 
 import { Suspense, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import { parseAsString, useQueryStates } from 'nuqs'
 import ExchangeRateWidget from '@/components/Global/ExchangeRateWidget'
 import { Star } from '@/assets'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
@@ -20,17 +21,17 @@ interface ExchangeWidgetProps {
 
 function ExchangeWidgetInner({ destinationCurrency, sourceCurrency = 'USD' }: ExchangeWidgetProps) {
     const router = useRouter()
-    const searchParams = useSearchParams()
+    const [{ from, to }, setQuery] = useQueryStates(
+        { from: parseAsString, to: parseAsString },
+        { shallow: true, history: 'replace', scroll: false }
+    )
 
-    // Set initial currencies in URL if not already set
+    // Seed the URL with the page's default destination currency on first mount.
     useEffect(() => {
-        if (destinationCurrency && !searchParams.get('to')) {
-            const params = new URLSearchParams(searchParams.toString())
-            params.set('to', destinationCurrency)
-            if (!params.get('from')) params.set('from', sourceCurrency)
-            router.replace(`?${params.toString()}`, { scroll: false })
+        if (destinationCurrency && !to) {
+            setQuery({ to: destinationCurrency, from: from ?? sourceCurrency })
         }
-    }, [destinationCurrency, sourceCurrency, searchParams, router])
+    }, [destinationCurrency, sourceCurrency, to, from, setQuery])
 
     return (
         <section className="relative my-8 w-full pb-14 pt-10 md:pb-18 md:pt-14" style={{ backgroundColor: '#90A8ED' }}>

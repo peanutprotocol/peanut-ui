@@ -8,7 +8,7 @@ import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
 import { useState, useMemo } from 'react'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -25,7 +25,11 @@ export const Profile = () => {
     const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
     const router = useRouter()
     const onBack = useSafeBack('/home')
-    const { isUserKycApproved } = useKycStatus()
+    // Profile "verified" reflects identity verification only (the human was ID-verified) — NOT
+    // rail approval. Switched from `useCapabilities().isKycApproved` (any enabled rail, including
+    // Rain) to the provider-blind identityVerification projection, which today mirrors Sumsub
+    // applicant state. Bridge/Manteca rail approval does NOT flip this badge.
+    const { isVerified: isUserSumsubKycApproved } = useIdentityVerification()
     const { hasCardAccess } = useCardPioneerInfo()
 
     const logout = async () => {
@@ -41,7 +45,7 @@ export const Profile = () => {
         <div className="h-full w-full bg-background">
             <NavHeader hideLabel showLogoutBtn onPrev={onBack} />
             <div className="space-y-8">
-                <ProfileHeader name={displayName} username={username} isVerified={isUserKycApproved} />
+                <ProfileHeader name={displayName} username={username} isVerified={isUserSumsubKycApproved} />
                 <div className="space-y-4">
                     <ProfileMenuItem
                         icon="smile"
@@ -73,10 +77,10 @@ export const Profile = () => {
 
                         <ProfileMenuItem
                             icon="globe-lock"
-                            label="Regions & Verification"
+                            label="Unlocked regions"
                             href="/profile/identity-verification"
                             position="middle"
-                            highlight={!isUserKycApproved}
+                            highlight={!isUserSumsubKycApproved}
                         />
 
                         <ProfileMenuItem icon="meter" label="Payment limits" href="/limits" position="middle" />

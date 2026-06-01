@@ -4,7 +4,7 @@ import Image from 'next/image'
 import type { StaticImageData } from 'next/image'
 import NavHeader from '../Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { getBadgeIcon } from './badge.utils'
+import { getBadgeDisplayName, getBadgeIcon } from './badge.utils'
 import { getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { Icon } from '../Global/Icons/Icon'
@@ -33,7 +33,7 @@ export const Badges = () => {
         // get badges from user object and map to card fields
         const raw = authUser?.user?.badges || []
         return raw.map((b) => ({
-            title: b.name,
+            title: getBadgeDisplayName(b.code, b.name),
             description: b.description || '',
             logo: getBadgeIcon(b.code),
         }))
@@ -75,7 +75,11 @@ export const Badges = () => {
                                 <Image
                                     src={badge.logo}
                                     alt={badge.title}
-                                    className="size-10 min-w-10"
+                                    // object-contain so non-square badge SVGs
+                                    // (e.g. bug_whisperer.svg is ~1.41:1) keep
+                                    // their aspect inside the 40×40 slot
+                                    // instead of getting squished to 1:1.
+                                    className="size-10 min-w-10 object-contain"
                                     height={100}
                                     width={100}
                                     unoptimized

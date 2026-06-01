@@ -17,7 +17,29 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = 
     // 429 here is an expected outcome surfaced to the user, not a server bug.
     { pattern: /\/rain\/cards\/[^/]+\/details/, statuses: [429] },
     { pattern: /\/rain\/cards\/[^/]+\/pin/, statuses: [429] },
+    // /withdraw/prepare 425 is Rain's withdrawal-signature cooldown — surfaced
+    // to the user via the cooldown modal + floating timer. Normal UX state,
+    // not an error; would otherwise flood Sentry on every retry.
+    { pattern: /\/rain\/cards\/withdraw\/prepare/, statuses: [425] },
 ]
+
+/**
+ * URLs whose request body carries a card secret (PIN, etc). For these, the
+ * raw body is replaced with '[REDACTED]' before being attached to Sentry —
+ * any non-2xx, timeout, or network failure on /rain/cards/{id}/pin would
+ * otherwise ship the user's 4-digit PIN to Sentry as {"pin":"1234"}.
+ * (SKIP_REPORTING above filters the 429 rate-limit case; this catches the
+ * 400/401/403/409/500/502/504/timeout/network branches that still report.)
+ */
+const BODY_SENSITIVE_URLS: RegExp[] = [/\/rain\/cards\/[^/]+\/pin(?:[/?]|$)/]
+
+export const sanitizeRequestBody = (url: string, body: BodyInit | null | undefined): BodyInit | string | null => {
+    if (body == null) return null
+    for (const pattern of BODY_SENSITIVE_URLS) {
+        if (pattern.test(url)) return '[REDACTED]'
+    }
+    return body
+}
 
 /**
  * Map URL → feature tag so Sentry issues can be filtered by product surface
@@ -133,7 +155,7 @@ export const fetchWithSentry = async (
                             url,
                             method,
                             requestHeaders: sanitizeHeaders(options.headers || {}),
-                            requestBody: options.body || null,
+                            requestBody: sanitizeRequestBody(url, options.body),
                             status: response.status,
                             response: errorContent,
                         },
@@ -162,7 +184,7 @@ export const fetchWithSentry = async (
                         method: options.method || 'GET',
                         timeoutMs,
                         requestHeaders: sanitizeHeaders(options.headers || {}),
-                        requestBody: options.body || null,
+                        requestBody: sanitizeRequestBody(url, options.body),
                     },
                 })
             })
@@ -197,7 +219,7 @@ export const fetchWithSentry = async (
                     url,
                     method: options.method || 'GET',
                     requestHeaders: sanitizeHeaders(options.headers || {}),
-                    requestBody: options.body || null,
+                    requestBody: sanitizeRequestBody(url, options.body),
                     errorMessage,
                     errorName,
                     errorStack,

@@ -160,6 +160,38 @@ export class RainCardRateLimitError extends Error {
 }
 
 /**
+ * Thrown on 425 from `/rain/cards/withdraw/prepare`. Rain enforces a per-user
+ * lock on withdrawal signatures: one active sig per user at a time, 5min
+ * expiry + ~2min cooldown afterwards. Backend forwards Rain's `retryAfterSec`
+ * when it can extract it from the upstream message; absent that, this is
+ * thrown with `retryAfterSec === null` and the caller surfaces an inline
+ * error string only (no cooldown UI), since we'd be making the number up.
+ *
+ * Side-effect-free: the global cooldown UI is engaged by `rainRequest` when
+ * it constructs this error, NOT by the constructor itself — so logging,
+ * Sentry serialization, and tests can build instances without popping UI.
+ */
+export class RainCooldownError extends Error {
+    readonly retryAfterSec: number | null
+    constructor(message: string, retryAfterSec: number | null) {
+        super(message)
+        this.name = 'RainCooldownError'
+        this.retryAfterSec = retryAfterSec
+    }
+}
+
+export interface RainCooldownEventDetail {
+    retryAfterSec: number
+    message: string
+}
+
+/** Path that legitimately produces the cooldown 425. Any other 425 from a
+ *  Rain endpoint is treated as a generic upstream error — without this gate,
+ *  an unrelated 425 (e.g. proxy "Too Early") would pop the cooldown modal on
+ *  a totally unrelated screen. */
+const RAIN_COOLDOWN_PATH = '/rain/cards/withdraw/prepare'
+
+/**
  * Response shapes for `POST /rain/cards` — apply for a Rain card.
  * - `incomplete`: card-application action is missing data; returned token
  *   opens the card-application Applicant Action.
@@ -236,6 +268,27 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
     if (response.status === 429 && opts.rateLimitSensitive) {
         const err = await response.json().catch(() => ({}))
         throw new RainCardRateLimitError(err.error || err.message || 'Too many requests')
+    }
+
+    if (response.status === 425 && opts.path === RAIN_COOLDOWN_PATH) {
+        const err = await response.json().catch(() => ({}))
+        // Only engage the cooldown UI when the backend gave us a real
+        // retryAfterSec. Absent that we surface the error inline but don't
+        // invent a countdown the upstream didn't authorize.
+        const retryAfterSec =
+            typeof err.retryAfterSec === 'number' && Number.isFinite(err.retryAfterSec) && err.retryAfterSec > 0
+                ? err.retryAfterSec
+                : null
+        const message =
+            err.error || err.message || 'A previous withdrawal is still active for this card. Try again shortly.'
+        if (retryAfterSec !== null && typeof window !== 'undefined') {
+            window.dispatchEvent(
+                new CustomEvent<RainCooldownEventDetail>('rain:cooldown', {
+                    detail: { retryAfterSec, message },
+                })
+            )
+        }
+        throw new RainCooldownError(message, retryAfterSec)
     }
 
     if (!response.ok) {

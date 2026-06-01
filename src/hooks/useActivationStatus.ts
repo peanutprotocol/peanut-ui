@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useQuery } from '@tanstack/react-query'
 import { cardApi, type CardInfoResponse } from '@/services/card'
@@ -42,7 +42,7 @@ const CARD_DISMISSED_STORAGE_KEY = 'peanut_card_activation_dismissed'
 export function useActivationStatus(): ActivationStatus {
     const { user } = useAuth()
     const { balance, isFetchingBalance } = useWallet()
-    const { isUserKycApproved } = useKycStatus()
+    const { isKycApproved } = useCapabilities()
     const { overview } = useRainCardOverview()
     const userId = user?.user?.userId
 
@@ -92,7 +92,7 @@ export function useActivationStatus(): ActivationStatus {
                 }
                 activationStep = milestoneToStep[beMilestone] ?? 'verify'
             } else {
-                if (!isUserKycApproved) {
+                if (!isKycApproved) {
                     activationStep = 'verify'
                 } else {
                     activationStep = hasBalance ? 'outbound' : 'deposit'
@@ -112,7 +112,7 @@ export function useActivationStatus(): ActivationStatus {
         }
 
         return { isActivated, activatedAt, activationStep }
-    }, [user?.user, isUserKycApproved, balance, cardInfo?.hasCardAccess, overview, cardDismissed])
+    }, [user?.user, isKycApproved, balance, cardInfo?.hasCardAccess, overview, cardDismissed])
 
     return { ...derived, isLoading, dismissCardStep }
 }

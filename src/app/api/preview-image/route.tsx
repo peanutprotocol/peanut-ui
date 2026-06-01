@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import { LinkPreviewImg, PreviewType } from '@/components/Global/ImageGeneration/LinkPreview'
 import { ImageResponse } from 'next/og'
 import { isAddress } from 'viem'

@@ -23,7 +23,7 @@ import { PostSignupActionManager } from '@/components/Global/PostSignupActionMan
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useNotifications } from '@/hooks/useNotifications'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
 import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
 import EnableAutoBalanceBanner from '@/components/Home/EnableAutoBalanceBanner'
@@ -45,9 +45,8 @@ const BalanceWarningModal = lazy(() => import('@/components/Global/BalanceWarnin
 const SetupNotificationsModal = lazy(() => import('@/components/Notifications/SetupNotificationsModal'))
 const NoMoreJailModal = lazy(() => import('@/components/Global/NoMoreJailModal'))
 const EarlyUserModal = lazy(() => import('@/components/Global/EarlyUserModal'))
-const KycCompletedModal = lazy(() => import('@/components/Home/KycCompletedModal'))
+const WelcomeUnlockModal = lazy(() => import('@/components/Home/WelcomeUnlockModal'))
 const IosPwaInstallModal = lazy(() => import('@/components/Global/IosPwaInstallModal'))
-const CardPioneerModal = lazy(() => import('@/components/Card/CardPioneerModal'))
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -67,13 +66,11 @@ export default function Home() {
     const { triggerHaptic } = useHaptic()
 
     const { isFetchingUser, fetchUser } = useAuth()
-    const { isUserKycApproved } = useKycStatus()
+    const { isKycApproved } = useCapabilities()
     const { isActivated, activationStep, dismissCardStep } = useActivationStatus()
-    const {
-        hasPurchased: hasCardPioneerPurchased,
-        isLoading: isCardInfoLoading,
-        error: cardInfoError,
-    } = useCardPioneerInfo()
+    // Fire-and-forget: warms the card-info cache so /card mounts fast.
+    // Return values intentionally unused — only the fetch side effect matters.
+    useCardPioneerInfo()
     const username = user?.user.username
 
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
@@ -170,7 +167,7 @@ export default function Home() {
         <PageContainer>
             <div className="h-full w-full space-y-6 p-5">
                 <div className="flex items-center justify-between gap-2">
-                    <UserHeader username={username!} fullName={userFullName} isVerified={isUserKycApproved} />
+                    <UserHeader username={username!} fullName={userFullName} isVerified={isKycApproved} />
                     {isActivated && (
                         <Link onClick={() => triggerHaptic()} href="/rewards" className="flex items-center gap-0">
                             <InvitesIcon />
@@ -250,7 +247,7 @@ export default function Home() {
 
             <LazyLoadErrorBoundary>
                 <Suspense fallback={null}>
-                    <KycCompletedModal
+                    <WelcomeUnlockModal
                         isOpen={showKycModal && !showBalanceWarningModal}
                         onClose={async () => {
                             // close the modal immediately for better ux
@@ -295,23 +292,6 @@ export default function Home() {
 
             {/* Card Pioneer Modal - Show to all users who haven't purchased */}
             {/* Eligibility check happens during the flow (geo screen), not here */}
-            {/* Only shows if no higher-priority modals are active and card info loaded successfully */}
-            {!underMaintenanceConfig.disableCardPioneers &&
-                !isCardInfoLoading &&
-                !cardInfoError &&
-                !showBalanceWarningModal &&
-                !showPermissionModal &&
-                !showKycModal &&
-                !isPostSignupActionModalVisible &&
-                !user?.showEarlyUserModal &&
-                !isPostSignupSession && (
-                    <LazyLoadErrorBoundary>
-                        <Suspense fallback={null}>
-                            <CardPioneerModal hasPurchased={hasCardPioneerPurchased ?? false} />
-                        </Suspense>
-                    </LazyLoadErrorBoundary>
-                )}
-
             <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
         </PageContainer>
     )

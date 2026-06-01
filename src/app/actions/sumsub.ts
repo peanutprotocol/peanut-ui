@@ -54,6 +54,36 @@ export interface SelfHealResubmissionResponse {
     maxAttempts: number
 }
 
+export interface RestartIdentityResponse {
+    token: string
+    levelName: string
+    applicantId: string
+}
+
+/**
+ * Reset the user's Sumsub IDENTITY step and mint a fresh token. Used as the
+ * "Verify with a different document" CTA on a Manteca rail that's blocked
+ * because the user verified with a non-AR/BR document.
+ */
+export const restartIdentityVerification = async (): Promise<{
+    data?: RestartIdentityResponse
+    error?: string
+}> => {
+    try {
+        const response = await serverFetch('/users/identity/restart', { method: 'POST' })
+        const responseJson = await response.json()
+        if (!response.ok) {
+            return {
+                error: responseJson.userMessage || responseJson.error || 'Failed to restart identity verification',
+            }
+        }
+        return { data: responseJson }
+    } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'An unexpected error occurred'
+        return { error: message }
+    }
+}
+
 // initiate self-heal document resubmission for a provider-rejected user
 export const initiateSelfHealResubmission = async (
     provider: 'BRIDGE' | 'MANTECA'

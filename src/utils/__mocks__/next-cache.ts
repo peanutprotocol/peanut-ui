@@ -1,1 +1,1 @@
-export const unstable_cache = (fn: Function) => fn
+export const unstable_cache = <Fn extends (...args: unknown[]) => unknown>(fn: Fn) => fn

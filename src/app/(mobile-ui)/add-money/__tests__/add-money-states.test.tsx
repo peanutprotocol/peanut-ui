@@ -112,17 +112,19 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => mockUseWallet(),
 }))
 
+// useKycStatus was deleted in the capability rip-out — its jest.mock is removed.
+// The jest.fn is retained only because two legacy setup calls below still call
+// .mockReturnValue on it; they're no-ops now (the component reads useCapabilities).
 const mockUseKycStatus = jest.fn()
-jest.mock('@/hooks/useKycStatus', () => ({
-    __esModule: true,
-    default: () => mockUseKycStatus(),
-}))
 
-const mockGate = jest.fn().mockReturnValue({ type: 'ready' })
-jest.mock('@/hooks/useBridgeTransferReadiness', () => ({
-    useBridgeTransferReadiness: () => ({ gate: mockGate() }),
-    getKycModalVariant: () => 'default',
-    getGateProviderMessage: () => undefined,
+// Bridge gate is now derived inline from useCapabilities() via the real
+// deriveBridgeGate util (bridge-gate.utils is intentionally NOT mocked, so the
+// gate state mapping is exercised end-to-end). Per-test we set fixture rails +
+// nextActions on useCapabilities; `setGate(type)` builds the minimal capability
+// shape that the real deriveBridgeGate resolves to that gate type.
+const mockUseCapabilities = jest.fn()
+jest.mock('@/hooks/useCapabilities', () => ({
+    useCapabilities: () => mockUseCapabilities(),
 }))
 
 jest.mock('@/context/ModalsContext', () => ({
@@ -178,9 +180,9 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: (...args: any[]) => mockUseMultiPhaseKycFlow(...args),
 }))
 
-const mockUseBridgeTosGuard = jest.fn()
-jest.mock('@/hooks/useBridgeTosGuard', () => ({
-    useBridgeTosGuard: () => mockUseBridgeTosGuard(),
+const mockUseTosGuard = jest.fn()
+jest.mock('@/hooks/useTosGuard', () => ({
+    useTosGuard: () => mockUseTosGuard(),
 }))
 
 // OnrampFlowContext
@@ -242,6 +244,7 @@ jest.mock('@/utils/bridge.utils', () => ({
         return map[currency] ?? currency
     }),
     getMinimumAmount: jest.fn(() => 1),
+    railJurisdictionForBank: jest.fn(() => 'EU'),
 }))
 
 // Country currency mappings
@@ -353,6 +356,11 @@ jest.mock('@/components/Global/AmountInput', () => ({
 jest.mock('@/components/Global/PeanutLoading', () => ({
     __esModule: true,
     default: (props: any) => <div data-testid="peanut-loading">{props.message && <span>{props.message}</span>}</div>,
+}))
+
+jest.mock('@/components/Global/PeanutLoading/CyclingLoading', () => ({
+    __esModule: true,
+    default: () => <div data-testid="cycling-loading" />,
 }))
 
 jest.mock('@/components/Global/NavHeader', () => ({
@@ -722,6 +730,113 @@ function setParams(params: Record<string, string>) {
     })
 }
 
+// Build the minimal capability fixture that maps to a specific GateState kind,
+// then push it onto the useCapabilities mock. The page reads `gateFor(...)`,
+// so the mock returns a stub gateFor closing over the desired state; it also
+// exposes `bankRails()` for the few sites that read it directly.
+type Gate = 'ready' | 'accept-tos' | 'fixable-rejection' | 'blocked-rejection' | 'needs-identity' | 'needs-enrollment'
+
+function setGate(kind: Gate) {
+    let rails: any[] = []
+    let nextActions: any[] = []
+    let isKycApproved = false
+    let gateState: any = { kind: 'loading' }
+
+    switch (kind) {
+        case 'ready':
+            rails = [
+                {
+                    id: 'bridge.ach_us',
+                    provider: 'bridge',
+                    method: 'ACH_US',
+                    country: 'US',
+                    currency: 'USD',
+                    status: 'enabled',
+                },
+            ]
+            isKycApproved = true
+            gateState = { kind: 'ready' }
+            break
+        case 'accept-tos':
+            rails = [
+                {
+                    id: 'bridge.ach_us',
+                    provider: 'bridge',
+                    method: 'ACH_US',
+                    country: 'US',
+                    currency: 'USD',
+                    status: 'requires-info',
+                    blockingActions: ['accept-tos'],
+                },
+            ]
+            nextActions = [{ key: 'accept-tos', kind: 'accept-tos', purpose: 'unlock-bridge' }]
+            gateState = { kind: 'accept-tos', userMessage: null }
+            break
+        case 'fixable-rejection':
+            rails = [
+                {
+                    id: 'bridge.ach_us',
+                    provider: 'bridge',
+                    method: 'ACH_US',
+                    country: 'US',
+                    currency: 'USD',
+                    status: 'requires-info',
+                    blockingActions: ['bridge-rfi'],
+                    reason: { code: 'document_rejected', userMessage: 'upload a clearer photo' },
+                },
+            ]
+            nextActions = [{ key: 'bridge-rfi', kind: 'sumsub', purpose: 'unlock-bridge', levelKey: 'rfi' }]
+            gateState = { kind: 'fixable-rejection', userMessage: 'upload a clearer photo' }
+            break
+        case 'blocked-rejection':
+            rails = [
+                {
+                    id: 'bridge.ach_us',
+                    provider: 'bridge',
+                    method: 'ACH_US',
+                    country: 'US',
+                    currency: 'USD',
+                    status: 'blocked',
+                    reason: { code: 'final', userMessage: 'contact support' },
+                },
+            ]
+            gateState = { kind: 'blocked-rejection', userMessage: 'contact support' }
+            break
+        case 'needs-enrollment':
+            // identity verified, no bank rail in scope yet (card-only / pool-tier example)
+            rails = [
+                {
+                    id: 'rain.card',
+                    provider: 'rain',
+                    method: 'CARD',
+                    country: 'GLOBAL',
+                    currency: 'USD',
+                    status: 'enabled',
+                },
+            ]
+            isKycApproved = true
+            gateState = { kind: 'needs-enrollment' }
+            break
+        case 'needs-identity':
+            rails = []
+            gateState = { kind: 'needs-identity' }
+            break
+    }
+
+    mockUseCapabilities.mockReturnValue({
+        rails,
+        nextActions,
+        isKycApproved,
+        gateFor: () => gateState,
+        bankRails: () =>
+            rails.filter((r) =>
+                ['ACH_US', 'SEPA_EU', 'PIX_BR', 'BANK_TRANSFER_AR', 'SPEI_MX', 'FASTER_PAYMENTS_GB'].includes(r.method)
+            ),
+        canDo: () => false,
+        channelOf: () => null,
+    })
+}
+
 function createQueryClient() {
     return new QueryClient({
         defaultOptions: {
@@ -753,6 +868,9 @@ function applyDefaults() {
         isUserKycApproved: true,
         isUserMantecaKycApproved: true,
     })
+
+    // default: Bridge gate ready (enabled rail). Per-test override via setGate().
+    setGate('ready')
 
     mockUseCurrency.mockReturnValue({
         isLoading: false,
@@ -787,7 +905,7 @@ function applyDefaults() {
         isLoading: false,
     })
 
-    mockUseBridgeTosGuard.mockReturnValue({
+    mockUseTosGuard.mockReturnValue({
         guardWithTos: jest.fn(() => false),
         showBridgeTos: false,
         hideTos: jest.fn(),
@@ -946,7 +1064,7 @@ describe('GROUP 3: Crypto Deposit', () => {
         expect(screen.getByText('10,000 USD')).toBeInTheDocument()
     })
 
-    test('deposit processing shows PeanutLoading with message', () => {
+    test('deposit processing shows CyclingLoading', () => {
         mockUseCryptoDepositPolling.mockReturnValue({
             status: 'loading',
             resetStatus: jest.fn(),
@@ -968,8 +1086,7 @@ describe('GROUP 3: Crypto Deposit', () => {
             />
         )
 
-        expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
-        expect(screen.getByText('Almost there! Processing...')).toBeInTheDocument()
+        expect(screen.getByTestId('cycling-loading')).toBeInTheDocument()
     })
 
     test('deposit failed shows error card with retry button', () => {
@@ -1083,7 +1200,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
     beforeEach(() => {
         setParams({ country: 'germany' })
         resetQueryState({ step: 'inputAmount', amount: '' })
-        mockGate.mockReturnValue({ type: 'ready' })
+        setGate('ready')
     })
 
     test('inputAmount step shows amount input and Continue button', () => {
@@ -1114,7 +1231,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             isUserKycApproved: false,
             isUserMantecaKycApproved: false,
         })
-        mockGate.mockReturnValue({ type: 'needs_kyc' })
+        setGate('needs-identity')
         resetQueryState({ step: 'inputAmount', amount: '100' })
 
         renderWithProviders(<OnrampBankPage />)
@@ -1248,8 +1365,8 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
     })
 
     test('Bridge TOS guard shows TOS step', async () => {
-        mockGate.mockReturnValue({ type: 'accept_tos' })
-        mockUseBridgeTosGuard.mockReturnValue({
+        setGate('accept-tos')
+        mockUseTosGuard.mockReturnValue({
             guardWithTos: jest.fn(() => true),
             showBridgeTos: true,
             hideTos: jest.fn(),

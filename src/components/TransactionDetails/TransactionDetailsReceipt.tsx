@@ -53,6 +53,7 @@ import {
 } from './transaction-predicates'
 import { useReceiptViewModel } from './useReceiptViewModel'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
+import { LocalRailNudge } from './provider-rows/LocalRailNudge'
 import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
 import { BridgeDepositInstructions } from './provider-rows/BridgeDepositInstructions'
 import { CancelDepositActions } from './provider-actions/CancelDepositActions'
@@ -634,6 +635,12 @@ export const TransactionDetailsReceipt = ({
                     )}
                 </div>
             </Card>
+
+            {/* Local-rail nudge — card spends in a country with a cheaper
+                first-party rail (AR → QR, BR → Pix). Self-gates: renders
+                nothing for other countries / non-card-spend transactions.
+                Hidden on public receipts (same rule as the referral nudge). */}
+            {!isPublic && <LocalRailNudge transaction={transaction} />}
 
             {/* share and cancel buttons section (only if qr is shown) */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (

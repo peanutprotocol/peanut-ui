@@ -1,6 +1,6 @@
 import React from 'react'
 import ActionModal from '../ActionModal'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
 
 const KycVerifiedOrReviewModal = ({
     isKycApprovedModalOpen,
@@ -9,19 +9,27 @@ const KycVerifiedOrReviewModal = ({
     isKycApprovedModalOpen: boolean
     onClose: () => void
 }) => {
-    const { isUserBridgeKycUnderReview } = useKycStatus()
+    const { bankRails } = useCapabilities()
+
+    // "Under review" copy fires when bank rails are still provisioning (`pending`,
+    // BE submitted to provider, no user action) AND none are enabled yet. An
+    // already-enabled user gets the "already verified" copy instead.
+    const allBankRails = bankRails()
+    const isUnderReview =
+        allBankRails.some((rail) => rail.status === 'pending') &&
+        !allBankRails.some((rail) => rail.status === 'enabled')
 
     return (
         <ActionModal
             visible={isKycApprovedModalOpen}
             onClose={onClose}
-            title={isUserBridgeKycUnderReview ? 'Your verification is under review' : 'You’re already verified'}
+            title={isUnderReview ? 'Almost there' : 'You’re all set'}
             description={
-                isUserBridgeKycUnderReview
-                    ? 'Your verification is under review. You will be notified when it is completed.'
-                    : 'Your identity has already been successfully verified. No further action is needed.'
+                isUnderReview
+                    ? 'Your bank deposits will be ready shortly — we’ll let you know the moment they’re live.'
+                    : 'Your account is ready to go.'
             }
-            icon={isUserBridgeKycUnderReview ? 'clock' : 'shield'}
+            icon={isUnderReview ? 'clock' : 'shield'}
             ctas={[
                 {
                     text: 'Go back',

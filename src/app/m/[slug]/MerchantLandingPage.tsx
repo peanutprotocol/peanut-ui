@@ -11,7 +11,7 @@ import { FAQsPanel } from '@/components/Global/FAQs'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { Sparkle, Star } from '@/assets/illustrations'
 import { UTM_MEDIUMS, UTM_SOURCES, withUtm } from '@/utils/utm.utils'
-import { getArsCardMarkup } from './card-comparison'
+import { getArsCardMarkup, type CardMarkup } from './card-comparison'
 import type { Merchant, MenuItem } from './merchants'
 
 /** Build a `/invite` URL with the merchant's vanity code + the UTM
@@ -46,7 +46,7 @@ const ARS_CARD_MARKUP_FALLBACK = 0.0913
  * to think about it. Returns the static fallback while loading so the menu
  * cards and banner can render unconditionally.
  */
-function useCardMarkupArs(criptoUsdToArs: number): number {
+function useCardMarkupArs(criptoUsdToArs: number): CardMarkup {
     const { data } = useQuery({
         queryKey: ['merchantLpArsCardMarkup', criptoUsdToArs > 0 ? Math.round(criptoUsdToArs) : 0],
         queryFn: () => getArsCardMarkup(criptoUsdToArs),
@@ -55,7 +55,7 @@ function useCardMarkupArs(criptoUsdToArs: number): number {
         refetchOnWindowFocus: true,
         enabled: criptoUsdToArs > 0,
     })
-    return data?.rate ?? ARS_CARD_MARKUP_FALLBACK
+    return data ?? { rate: ARS_CARD_MARKUP_FALLBACK, source: 'static' }
 }
 
 const ctaButtonClassName =
@@ -338,7 +338,9 @@ function MenuFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'menu' }>
                     ))}
                 </div>
 
-                {fold.showLiveRate && <LiveRateBanner usdArs={usdArs} cardMarkup={cardMarkup} />}
+                {fold.showLiveRate && (
+                    <LiveRateBanner usdArs={usdArs} cardMarkup={cardMarkup.rate} markupSource={cardMarkup.source} />
+                )}
 
                 <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
                     {fold.items.map((item) => (
@@ -347,7 +349,7 @@ function MenuFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'menu' }>
                             item={item}
                             currency={currency}
                             arsPerUnit={arsPerUnit}
-                            cardMarkup={cardMarkup}
+                            cardMarkup={cardMarkup.rate}
                         />
                     ))}
                 </div>
@@ -406,9 +408,19 @@ function MenuItemCard({
     )
 }
 
-function LiveRateBanner({ usdArs, cardMarkup }: { usdArs: number; cardMarkup: number }) {
+function LiveRateBanner({
+    usdArs,
+    cardMarkup,
+    markupSource,
+}: {
+    usdArs: number
+    cardMarkup: number
+    markupSource: CardMarkup['source']
+}) {
     const isLive = usdArs > 0
-    const savingsPct = cardMarkup > 0 ? Math.round(cardMarkup * 100) : 0
+    // Only present the savings figure when the markup came from the live BCRA feed —
+    // the static fallback is an estimate, so don't badge it as a "Live" measurement.
+    const savingsPct = markupSource === 'live' && cardMarkup > 0 ? Math.round(cardMarkup * 100) : 0
     const copy = isLive
         ? `Live · 1 USD = ${Math.round(usdArs).toLocaleString('en-US')} ARS${savingsPct > 0 ? ` · save ~${savingsPct}% vs card` : ''}`
         : 'Loading live cripto-dólar rate…'

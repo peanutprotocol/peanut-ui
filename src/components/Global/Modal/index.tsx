@@ -1,4 +1,4 @@
-import { Dialog, Transition } from '@headlessui/react'
+import { Dialog, DialogBackdrop, DialogPanel, Transition } from '@headlessui/react'
 import { Fragment, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '../Icons/Icon'
@@ -57,9 +57,17 @@ const Modal = ({
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    <div
+                    {/* In @headlessui/react v2, `DialogBackdrop` is purely
+                     * visual — clicks on it do NOT call the Dialog's onClose,
+                     * which is the v1→v2 regression Konrad flagged (M1-M2
+                     * readiness: badge modal click-outside does nothing).
+                     * Wire it explicitly here, gated by `preventClose` so
+                     * destructive-confirmation modals still keep the gate. */}
+                    <DialogBackdrop
                         className={`fixed inset-0 bottom-0  bg-n-1/85 sm:self-auto ${classOverlay}`}
-                        aria-hidden="true"
+                        onClick={() => {
+                            if (!preventClose) onClose()
+                        }}
                     />
                 </Transition.Child>
                 <Transition.Child
@@ -71,7 +79,7 @@ const Modal = ({
                     leaveFrom={`opacity-100 ${!video && 'scale-100'}`}
                     leaveTo={`opacity-0 ${!video && 'scale-95'}`}
                 >
-                    <Dialog.Panel
+                    <DialogPanel
                         className={twMerge(
                             `relative bottom-0 z-10 mx-0 max-h-[] w-full max-w-[26rem] self-end rounded-md border-0 bg-white outline-none dark:bg-n-1 sm:m-auto sm:self-auto ${
                                 video
@@ -111,7 +119,7 @@ const Modal = ({
                         ) : (
                             <> {children}</>
                         )}
-                    </Dialog.Panel>
+                    </DialogPanel>
                 </Transition.Child>
             </Dialog>
         </Transition>
