@@ -18,12 +18,48 @@
  */
 
 import { type FC, type RefObject, useState } from 'react'
+import * as Sentry from '@sentry/nextjs'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { captureShareAsset, canShareImageFiles, downloadBlob } from './captureShareAsset'
+import { captureShareAsset, canShareImageFiles, downloadBlob, ShareAssetCaptureError } from './captureShareAsset'
 import { shareCardOnTwitter } from './share.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+
+/**
+ * Serialise whatever the share/save path threw into something Sentry +
+ * PostHog can act on. html-to-image rejects with the raw DOM ErrorEvent
+ * from `<img>.onerror` — that has no `.message` and stringifies to
+ * `[object Event]`, which is why PEANUT-UI-QHB / QHC gave us no signal.
+ */
+function describeShareError(err: unknown): {
+    name: string
+    message: string
+    failedImages?: string[]
+    eventType?: string
+    failedSrc?: string
+} {
+    if (err instanceof ShareAssetCaptureError) {
+        return { name: err.name, message: err.message, failedImages: err.failedImages }
+    }
+    if (err instanceof Error) {
+        return { name: err.name, message: err.message }
+    }
+    // DOM Event / ErrorEvent path (defence-in-depth — captureShareAsset
+    // already wraps this, but a future caller that bypasses it shouldn't
+    // regress observability).
+    if (err && typeof err === 'object' && 'type' in err) {
+        const evt = err as Event
+        const failedSrc = (evt.target as HTMLImageElement | null)?.src
+        return {
+            name: evt.constructor?.name ?? 'Event',
+            message: `share-asset rejected with ${evt.type}${failedSrc ? ` on ${failedSrc}` : ''}`,
+            eventType: evt.type,
+            failedSrc,
+        }
+    }
+    return { name: 'unknown', message: String(err) }
+}
 
 interface Props {
     /** Ref to the native-size inner element of <ScaledShareAsset />. */
@@ -70,17 +106,20 @@ export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'p
                 method: 'native-share-with-file',
             })
         } catch (err) {
-            // AbortError = user cancelled the share sheet. Don't show an
-            // error in that case; do log other failures.
-            if ((err as Error).name !== 'AbortError') {
-                console.error('[share-asset] share failed', err)
-                setError((err as Error).message ?? 'Share failed')
-                posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_FAILED, {
-                    source,
-                    action: 'share',
-                    error: (err as Error).message ?? 'unknown',
-                })
-            }
+            // AbortError = user cancelled the share sheet. Quiet path.
+            if (err instanceof Error && err.name === 'AbortError') return
+            const detail = describeShareError(err)
+            console.error('[share-asset] share failed', detail)
+            Sentry.captureException(err, {
+                tags: { feature: 'share-asset', action: 'share', source },
+                extra: detail,
+            })
+            setError(detail.message || 'Share failed')
+            posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_FAILED, {
+                source,
+                action: 'share',
+                ...detail,
+            })
         } finally {
             setIsSharing(false)
         }
@@ -96,12 +135,17 @@ export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'p
             downloadBlob(blob, filename)
             posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SAVED, { source })
         } catch (err) {
-            console.error('[share-asset] save failed', err)
-            setError((err as Error).message ?? 'Save failed')
+            const detail = describeShareError(err)
+            console.error('[share-asset] save failed', detail)
+            Sentry.captureException(err, {
+                tags: { feature: 'share-asset', action: 'save', source },
+                extra: detail,
+            })
+            setError(detail.message || 'Save failed')
             posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_FAILED, {
                 source,
                 action: 'save',
-                error: (err as Error).message ?? 'unknown',
+                ...detail,
             })
         } finally {
             setIsSaving(false)
