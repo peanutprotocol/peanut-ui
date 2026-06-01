@@ -80,6 +80,15 @@ export async function createOfframpForGuest(
  * this calls the `/bridge/transfers/:transferId/confirm` API endpoint, providing
  * the on-chain transaction hash. This makes the transfer visible in the user's history.
  *
+ * NOTE: this is called AFTER the on-chain deposit has already succeeded — the
+ * user's money is already at the Bridge deposit address. A timeout here is
+ * NOT safe to blindly retry from the wallet side (that would re-send funds).
+ * We bump the timeout well above the 10s default so the BE has time to write
+ * the transfer row + send confirmation, matching the long-running confirm
+ * pattern used by manteca.ts / rain.ts. Callers must additionally distinguish
+ * "on-chain succeeded, confirm failed" from "on-chain never happened" before
+ * surfacing a Retry action.
+ *
  * @param transferId - The ID of the transfer to confirm.
  * @param txHash - The on-chain transaction hash from the user's deposit.
  * @returns An object containing either the successful response data or an error.
@@ -92,6 +101,7 @@ export async function confirmOfframp(
         const response = await serverFetch(`/bridge/transfers/${transferId}/confirm`, {
             method: 'POST',
             body: JSON.stringify({ txHash }),
+            timeoutMs: 60_000,
         })
 
         if (!response.ok) {

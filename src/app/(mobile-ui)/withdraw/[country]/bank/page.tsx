@@ -49,6 +49,15 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 
 type View = 'INITIAL' | 'SUCCESS'
 
+// Copy shown when the on-chain deposit to the Bridge address succeeded but the
+// subsequent `/bridge/transfers/:id/confirm` call failed (most often a
+// fetchWithSentry timeout). The Bridge transfer row exists on the BE; the
+// poller / Bridge webhook will eventually complete it. We MUST NOT show a
+// Retry button in this state — retrying re-runs sendMoney() and would send
+// funds to the deposit address a second time (Sentry PEANUT-UI-QH9, 2026-06-01).
+const CONFIRM_PENDING_COPY =
+    'Your transfer is processing. Funds were sent on-chain successfully — this can take a few minutes to confirm. If you don’t see the withdrawal in your activity within 30 minutes, please contact support.'
+
 export default function WithdrawBankPage() {
     const {
         amountToWithdraw,
@@ -66,6 +75,10 @@ export default function WithdrawBankPage() {
     const searchParams = useSearchParams()
     const [isLoading, setIsLoading] = useState(false)
     const [view, setView] = useState<View>('INITIAL')
+    // Set as soon as the on-chain wallet→Bridge tx confirms. If a subsequent
+    // confirmOfframp() call fails, this gates the UI into a "processing" state
+    // instead of showing a Retry button that would re-fire sendMoney().
+    const [submittedTxHash, setSubmittedTxHash] = useState<string | null>(null)
     const params = useParams()
     // read country from path params (web) or query params (native/capacitor)
     const country = (params.country as string) || searchParams.get('country') || ''
@@ -267,15 +280,22 @@ export default function WithdrawBankPage() {
             // chain tx hash, and the BE rejects it.
             const txIdentifier = receipt?.transactionHash ?? txHash ?? userOpHash
             if (!txIdentifier) throw new Error('No transaction identifier returned from sendMoney')
+
+            // Mark the on-chain leg done BEFORE confirmOfframp. From this point on
+            // any error path (including a confirm timeout) must NOT offer Retry —
+            // re-running this handler would call sendMoney() again and double-pay.
+            setSubmittedTxHash(txIdentifier)
+
             const confirmResult = await confirmOfframp(data.transferId, txIdentifier)
 
             if (confirmResult.error) {
-                // This is a tricky state. The on-chain tx succeeded, but the backend failed to record it.
-                // For now, we'll show a detailed error. A more robust solution could involve a retry mechanism
-                // or flagging this for support.
+                // On-chain tx succeeded, backend confirm failed. Bridge will still
+                // process the deposit (the funds are at the deposit address and the
+                // BE has the transfer row). Show a processing state, NOT an error
+                // with a Retry button — see CONFIRM_PENDING_COPY + the gate below.
                 setError({
                     showError: true,
-                    errorMessage: `Your funds were sent, but there was an issue confirming the transfer. Please contact support.`,
+                    errorMessage: CONFIRM_PENDING_COPY,
                 })
                 throw new Error(confirmResult.error)
             }
@@ -425,7 +445,23 @@ export default function WithdrawBankPage() {
                         <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
                     </Card>
 
-                    {error.showError ? (
+                    {submittedTxHash ? (
+                        // On-chain leg already fired. Even if confirmOfframp failed
+                        // we must NOT offer Retry — it would re-run sendMoney() and
+                        // double-pay (Sentry PEANUT-UI-QH9). Surface the in-progress
+                        // state and a Done button that takes the user home.
+                        <Button
+                            shadowSize="4"
+                            className="w-full"
+                            onClick={() => {
+                                router.push('/home')
+                                setAmountToWithdraw('')
+                                setSelectedMethod(null)
+                            }}
+                        >
+                            Done
+                        </Button>
+                    ) : error.showError ? (
                         <Button
                             disabled={isLoading}
                             onClick={handleCreateAndInitiateOfframp}
@@ -450,7 +486,16 @@ export default function WithdrawBankPage() {
                             Withdraw
                         </Button>
                     )}
-                    {error.showError && <ErrorAlert description={error.errorMessage} />}
+                    {submittedTxHash ? (
+                        <InfoCard
+                            variant="info"
+                            icon="info"
+                            title="Transfer processing"
+                            description={CONFIRM_PENDING_COPY}
+                        />
+                    ) : (
+                        error.showError && <ErrorAlert description={error.errorMessage} />
+                    )}
                     {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
                 </div>
             )}
