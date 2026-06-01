@@ -24,7 +24,7 @@ import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
-import { isBadgeHistoryItem } from '@/components/Badges/badge.types'
+import { isBadgeHistoryItem, type BadgeHistoryEntry } from '@/components/Badges/badge.types'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { formatUnits } from 'viem'
@@ -123,7 +123,10 @@ const HomeHistory = ({
         ),
     })
 
-    // Combine fetched history with real-time updates
+    // Combine fetched history with real-time updates. Heterogeneous feed
+    // (txns + synthetic kyc/badge/card-unlock rows); downstream type guards
+    // narrow per-row, so the state container stays loosely typed.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [combinedEntries, setCombinedEntries] = useState<Array<any>>([])
 
     // get all the user ids from the combined entries to check for interactions
@@ -153,14 +156,17 @@ const HomeHistory = ({
             // Process entries asynchronously to handle completeHistoryEntry
             const processEntries = async () => {
                 // Start with the fetched entries
-                const entries: Array<HistoryEntry | KycHistoryEntry | CardUnlockHistoryEntry> = [...historyData.entries]
+                const entries: Array<HistoryEntry | KycHistoryEntry | CardUnlockHistoryEntry | BadgeHistoryEntry> = [
+                    ...historyData.entries,
+                ]
 
                 // inject badge entries using user's badges (newest first) and earnedAt chronology
                 // filter out beta tester badge — it creates confusing first impressions for new users
                 if (isViewingOwnHistory) {
                     const badges = (user?.user?.badges ?? []).filter((b) => b.code !== 'BETA_TESTER')
                     badges.forEach((b) => {
-                        if (!b.earnedAt) return
+                        // Need both earnedAt (sort key) and id (React key + dedup uuid).
+                        if (!b.earnedAt || !b.id) return
                         entries.push({
                             isBadge: true,
                             uuid: b.id,
@@ -169,7 +175,7 @@ const HomeHistory = ({
                             name: b.name,
                             description: b.description ?? undefined,
                             iconUrl: b.iconUrl ?? undefined,
-                        } as any)
+                        })
                     })
                 }
 
