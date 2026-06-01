@@ -31,6 +31,7 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
+import { railJurisdictionForBank } from '@/utils/bridge.utils'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -89,26 +90,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
 
-    // Provider-blind bank-channel deposit gate + "any bank rail pending"
-    // signal (used to open the under-review status modal AFTER the gate
-    // already returned `ready`). Reads through useCapabilities's role-aware
-    // primitives — see utils/capability-gate.ts + utils/rail-channel.ts.
-    const { isKycApproved, gateFor, bankRails } = useCapabilities()
-    const isUserKycApproved = isKycApproved
-    const gate = useMemo(() => gateFor('deposit', { channel: 'bank' }), [gateFor])
-    const isBankRailUnderReview = useMemo(() => bankRails().some((rail) => rail.status === 'pending'), [bankRails])
-    const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
-    const { setIsSupportModalOpen } = useModalsContext()
-    const [showKycStatusModal, setShowKycStatusModal] = useState(false)
-
-    // stores the callback to replay after tos acceptance in the list view
-    const pendingAfterTosRef = useRef<(() => void) | null>(null)
-
-    // close kyc modal when sumsub sdk opens
-    useEffect(() => {
-        if (sumsubFlow.showWrapper) setIsKycModalOpen(false)
-    }, [sumsubFlow.showWrapper])
-
     // read country from path params (web: /add-money/india) or query params (native: /add-money?country=india)
     const countryFromQuery = searchParams.get('country')
     const viewFromQuery = searchParams.get('view')
@@ -121,6 +102,34 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const currentCountry = countryData.find(
         (country) => country.type === 'country' && country.path === countrySlugFromUrl
     )
+
+    // Provider-blind bank-channel deposit gate + "any bank rail pending"
+    // signal (used to open the under-review status modal AFTER the gate
+    // already returned `ready`). Reads through useCapabilities's role-aware
+    // primitives — see utils/capability-gate.ts + utils/rail-channel.ts.
+    //
+    // SCOPE: when the user is on /add-money/<country>, narrow the gate to
+    // that country's rail jurisdiction. Without this, a rejected rail in an
+    // unrelated jurisdiction (e.g. a Bridge BANK_TRANSFER_MX REJECTED row
+    // from the 2026-06-01 sync) trips `blocked-rejection` here and the user
+    // sees "We couldn't unlock this" on a country whose own rail is fine.
+    // Matches the scoping already in /add-money/[country]/bank/page.tsx.
+    const { isKycApproved, gateFor, bankRails } = useCapabilities()
+    const isUserKycApproved = isKycApproved
+    const bankCountry = useMemo(() => railJurisdictionForBank(currentCountry?.id), [currentCountry?.id])
+    const gate = useMemo(() => gateFor('deposit', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
+    const isBankRailUnderReview = useMemo(() => bankRails().some((rail) => rail.status === 'pending'), [bankRails])
+    const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
+    const { setIsSupportModalOpen } = useModalsContext()
+    const [showKycStatusModal, setShowKycStatusModal] = useState(false)
+
+    // stores the callback to replay after tos acceptance in the list view
+    const pendingAfterTosRef = useRef<(() => void) | null>(null)
+
+    // close kyc modal when sumsub sdk opens
+    useEffect(() => {
+        if (sumsubFlow.showWrapper) setIsKycModalOpen(false)
+    }, [sumsubFlow.showWrapper])
 
     /** returns true if the user is gated (caller should return early) */
     const checkBridgeGate = useCallback(
