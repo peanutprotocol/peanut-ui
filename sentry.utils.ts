@@ -253,8 +253,12 @@ function scrubObject(value: unknown, depth = 0): unknown {
     if (value === null || value === undefined) return value
     if (typeof value !== 'object') return value
     if (Array.isArray(value)) return value.map((item) => scrubObject(item, depth + 1))
-    const out: Record<string, unknown> = {}
+    // Prototype-pollution defense: see src/utils/sentry.utils.ts for the same
+    // pattern. Null-proto accumulator + explicit skip of __proto__ /
+    // constructor / prototype keys.
+    const out: Record<string, unknown> = Object.create(null)
     for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue
         out[key] = isSensitiveKey(key) ? '[REDACTED]' : scrubObject(val, depth + 1)
     }
     return out
