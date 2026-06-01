@@ -101,6 +101,7 @@ export const BADGES: Record<string, BadgeMeta> = {
     ETHFLORIPA_HUB: {
         path: '/badges/ethfloripa_hub.svg',
         description: 'Ilha da Magia, baby. Coconuts and consensus.',
+        displayName: 'Ethereum Hub Floripa',
     },
 }
 
