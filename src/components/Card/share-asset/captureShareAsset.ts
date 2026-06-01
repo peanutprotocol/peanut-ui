@@ -19,24 +19,65 @@
 import { toBlob } from 'html-to-image'
 import { CANVAS_W, CANVAS_H } from './shareAssetLayout'
 
+/**
+ * Real Error class so Sentry has a serialisable shape when an inlined
+ * image fails. Without this, html-to-image rejects with the raw DOM
+ * ErrorEvent from `<img>.onerror`, which has no `.message` and
+ * stringifies to `[object Event]` — see issues PEANUT-UI-QHB / QHC.
+ *
+ * `failedImages` is populated by the `onImageErrorHandler` callback;
+ * `originalReject` keeps whatever html-to-image actually rejected with
+ * so we don't lose its breadcrumb.
+ */
+export class ShareAssetCaptureError extends Error {
+    readonly failedImages: string[]
+    readonly originalReject: unknown
+    constructor(message: string, opts: { failedImages: string[]; originalReject: unknown }) {
+        super(message)
+        this.name = 'ShareAssetCaptureError'
+        this.failedImages = opts.failedImages
+        this.originalReject = opts.originalReject
+    }
+}
+
 export async function captureShareAsset(node: HTMLElement): Promise<Blob> {
-    const blob = await toBlob(node, {
-        width: CANVAS_W,
-        height: CANVAS_H,
-        canvasWidth: CANVAS_W,
-        canvasHeight: CANVAS_H,
-        pixelRatio: 2, // 2× retina for crisp output on Twitter previews
-        cacheBust: true,
-        style: {
-            // Defeat the parent's visual scaling so we render at native size.
-            transform: 'none',
-            transformOrigin: 'top left',
-            width: `${CANVAS_W}px`,
-            height: `${CANVAS_H}px`,
-        },
-    })
-    if (!blob) throw new Error('captureShareAsset: html-to-image returned null')
-    return blob
+    try {
+        const blob = await toBlob(node, {
+            width: CANVAS_W,
+            height: CANVAS_H,
+            canvasWidth: CANVAS_W,
+            canvasHeight: CANVAS_H,
+            pixelRatio: 2, // 2× retina for crisp output on Twitter previews
+            cacheBust: true,
+            style: {
+                // Defeat the parent's visual scaling so we render at native size.
+                transform: 'none',
+                transformOrigin: 'top left',
+                width: `${CANVAS_W}px`,
+                height: `${CANVAS_H}px`,
+            },
+        })
+        if (!blob) throw new Error('captureShareAsset: html-to-image returned null')
+        return blob
+    } catch (err) {
+        // Real Error → pass through; the message is already useful.
+        if (err instanceof Error) throw err
+        // html-to-image rejected with a raw DOM ErrorEvent (per
+        // node_modules/html-to-image/lib/util.js:209 — `img.onerror = reject`).
+        // Pull the failing src off `.target` so Sentry sees the actual URL
+        // instead of `[object Event]`.
+        const failedImages: string[] = []
+        if (err && typeof err === 'object' && 'target' in err) {
+            const target = (err as Event).target as HTMLImageElement | null
+            if (target?.src) failedImages.push(target.src)
+        }
+        throw new ShareAssetCaptureError(
+            failedImages.length > 0
+                ? `html-to-image failed to inline image: ${failedImages.join(', ')}`
+                : 'html-to-image rejected without an identifiable failed image',
+            { failedImages, originalReject: err }
+        )
+    }
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {

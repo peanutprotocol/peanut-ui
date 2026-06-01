@@ -119,6 +119,11 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
      */
     const handleConfirmClaim = useCallback(
         async (details: TCreateOfframpResponse) => {
+            // Track whether the on-chain claim already succeeded. Once true, a
+            // failure of the subsequent confirmOfframp() must NOT bubble back to
+            // ConfirmBankClaimView as a retryable error — `onConfirm` would call
+            // claimLink() again and try to send funds twice (Sentry PEANUT-UI-QH9).
+            let claimTxSubmitted = false
             try {
                 const claimTx = await claimLink({
                     address: details.depositInstructions.toAddress,
@@ -129,6 +134,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 if (!claimTx) {
                     throw new Error('Failed to claim link - no transaction hash returned')
                 }
+                claimTxSubmitted = true
 
                 // if a user is logged in, associate the claim with their account.
                 // this helps track their activity correctly.
@@ -141,10 +147,29 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     }
                 }
                 setTransactionHash(claimTx)
-                await confirmOfframp(details.transferId, claimTx)
+
+                try {
+                    await confirmOfframp(details.transferId, claimTx)
+                } catch (confirmErr: any) {
+                    // On-chain claim already executed; the BE has the transfer row
+                    // and Bridge will process the deposit. Log + fall through to the
+                    // SUCCESS view rather than throwing — re-confirming retries are
+                    // safe to drop since the BE poller/webhook will reconcile.
+                    Sentry.captureException(confirmErr)
+                    console.error('confirmOfframp failed after on-chain claim succeeded', confirmErr)
+                }
+
                 if (setClaimType) setClaimType('claim-bank')
                 onCustom('SUCCESS')
             } catch (e: any) {
+                if (claimTxSubmitted) {
+                    // Defensive: even if a post-claim step throws (e.g.
+                    // setClaimType), do not surface a retryable error — the funds
+                    // are already on-chain. Log + show SUCCESS.
+                    Sentry.captureException(e)
+                    onCustom('SUCCESS')
+                    return
+                }
                 const errorString = ErrorHandler(e)
                 setError(errorString)
                 Sentry.captureException(e)
