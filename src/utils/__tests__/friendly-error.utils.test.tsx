@@ -25,6 +25,20 @@ describe('ErrorHandler', () => {
             )
         })
 
+        test('maps fetchWithSentry AbortError copy ("timed out after <ms>ms")', () => {
+            // Verbatim shape from sentry.utils.ts AbortError path. The Bridge
+            // offramp `/confirm` 10s timeout (Konrad, 2026-06-01, PEANUT-UI-QH9)
+            // would otherwise fall through to the generic "contact support"
+            // copy and surface a Retry button next to an on-chain leg that
+            // already fired — risking a double-pay.
+            const fetchTimeoutError = new Error(
+                'Request to https://api.peanut.me/bridge/transfers/01e7a858-a849-4daa-9df7-e680d47bcfc1/confirm timed out after 10000ms'
+            )
+            expect(ErrorHandler(fetchTimeoutError)).toBe(
+                'The network is busy and your request timed out. Please try again in a moment.'
+            )
+        })
+
         test('does NOT hijack the WebAuthn "operation either timed out" message', () => {
             // Ordering guard: the passkey-prompt timeout has its own copy and is
             // matched earlier; the generic timeout matcher must not swallow it.
