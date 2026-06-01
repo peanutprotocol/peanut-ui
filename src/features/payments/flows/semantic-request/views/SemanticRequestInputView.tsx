@@ -202,7 +202,11 @@ export function SemanticRequestInputView() {
                     <SendWithPeanutCta
                         onClick={handleSubmit}
                         disabled={isButtonDisabled}
-                        loading={isLoading}
+                        // OR in `isPostOnChain` so the button keeps its
+                        // spinner after sendMoney fired — without it the
+                        // user sees a disabled button + error toast with
+                        // no signal that funds are processing BE-side.
+                        loading={isLoading || isPostOnChain}
                         insufficientBalance={isInsufficientBalance}
                     />
                     {isInsufficientBalance && (

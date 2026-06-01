@@ -107,7 +107,11 @@ export function SendInputView() {
                     <SendWithPeanutCta
                         onClick={handleSubmit}
                         disabled={isButtonDisabled}
-                        loading={isLoading}
+                        // OR in `!!txHash` so the button keeps its spinner
+                        // after the on-chain leg fired — without it the user
+                        // sees a disabled button + error toast with no
+                        // signal that funds are processing BE-side.
+                        loading={isLoading || !!txHash}
                         insufficientBalance={isInsufficientBalance}
                     />
                     {isInsufficientBalance && (
