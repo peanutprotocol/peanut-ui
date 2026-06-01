@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useQueryClient } from '@tanstack/react-query'
 import posthog from 'posthog-js'
@@ -12,9 +12,18 @@ import { useAuth } from '@/context/authContext'
 import { PixelatedCardFace } from '@/components/Card/share-asset/PixelatedCardFace'
 import { Sparkle, Star } from '@/assets/illustrations'
 import { cardApi } from '@/services/card'
+import { invitesApi } from '@/services/invites'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { saveToCookie } from '@/utils/general.utils'
 
 const marqueeMessages = ['IYKYK', 'WORD TRAVELS', 'CLOSED BETA', 'SHHHH', 'PEANUT CLUB']
+
+// /shhhhh?campaign=skip — friends-of-Peanut land on the marketing page but get
+// the full Skip Pass bypass (badge + hasAppAccess + flowEarlyAccess) when they
+// press the door, instead of only the flowEarlyAccess flip the bare press grants.
+// Mirrors the /invite?campaign=skip path's contract — same BE call, same cookie
+// shape for post-signup pickup by useZeroDev.
+const SKIP_CAMPAIGN = 'skip'
 
 const stats: Array<{ value: string; label: string }> = [
     { value: '150M+', label: 'Visa-accepting merchants' },
@@ -135,12 +144,47 @@ function StickyShhhhhCTA({ onClick }: { onClick: () => void }) {
 }
 
 export default function ShhhhhLandingPage() {
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
     const router = useRouter()
     const queryClient = useQueryClient()
+    const searchParams = useSearchParams()
+    const isSkipCampaign = searchParams.get('campaign')?.toLowerCase() === SKIP_CAMPAIGN
 
     const handleCTA = async () => {
-        posthog.capture(ANALYTICS_EVENTS.DOOR_TRY, { signed_in: !!user })
+        posthog.capture(ANALYTICS_EVENTS.DOOR_TRY, {
+            signed_in: !!user,
+            campaign: isSkipCampaign ? SKIP_CAMPAIGN : null,
+        })
+
+        // /shhhhh?campaign=skip — Skip Pass bypass instead of the bare door
+        // press. Awards the badge (which flips hasAppAccess + flowEarlyAccess
+        // on the BE in one call), then routes to /home with full access.
+        if (isSkipCampaign) {
+            if (!user) {
+                // Carry the campaign through signup. useZeroDev's
+                // else-if(campaignTag) branch awards the skip badge once the
+                // account exists, same path as /invite?campaign=skip uses.
+                saveToCookie('campaignTag', SKIP_CAMPAIGN)
+                router.push('/setup?step=signup')
+                return
+            }
+            try {
+                await invitesApi.awardBadge(SKIP_CAMPAIGN)
+                posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, { campaign_tag: SKIP_CAMPAIGN })
+            } catch (err) {
+                console.error('[shhhhh] awardBadge(skip) failed:', err)
+            }
+            // Refresh the user so the local cache reflects the new hasAppAccess
+            // + badge — keeps /home from flashing the jail screen on arrival.
+            try {
+                await fetchUser()
+            } catch (err) {
+                console.error('[shhhhh] fetchUser after skip failed:', err)
+            }
+            router.push('/home')
+            return
+        }
+
         if (!user) {
             // After signup, drop the user STRAIGHT into the card flow — not
             // back here. The `press_door=1` flag tells /card to call
