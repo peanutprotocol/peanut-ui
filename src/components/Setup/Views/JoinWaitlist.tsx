@@ -37,13 +37,21 @@ const JoinWaitlist = () => {
             setisLoading(true)
             const res = await invitesApi.validateInviteCode(inviteCode)
             const isValid = res.success
-            posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, { valid: isValid, source: 'setup' })
+            posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, {
+                valid: isValid,
+                source: 'setup',
+                invite_code: inviteCode,
+            })
             if (!isValid) {
                 setError("We couldn't find that user")
             }
             return isValid
         } catch {
-            posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, { valid: false, source: 'setup' })
+            posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, {
+                valid: false,
+                source: 'setup',
+                invite_code: inviteCode,
+            })
             setError("We couldn't find that user")
             return false
         } finally {
