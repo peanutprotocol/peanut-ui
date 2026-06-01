@@ -112,13 +112,18 @@ export interface CapabilityState {
  *
  * Priority (highest first):
  *   1. loading             — capability state not yet settled
- *   2. blocked-rejection   — any in-scope rail status: 'blocked'
- *   3. accept-tos          — requires-info + a `kind: 'accept-tos'` action
+ *   2. ready               — at least one in-scope rail has operationStatus(op) === 'enabled'.
+ *                            Hoisted to position 2 so a working rail (e.g. Manteca PIX_BR
+ *                            ENABLED) wins over stuck sibling rails (e.g. Bridge ACH_US
+ *                            terms_of_service_v2). The 2026-06-01 Alexandre incident
+ *                            (BR user blocked by Bridge ToS modal while their Manteca
+ *                            PIX_BR was ENABLED) was the latest customer-visible failure
+ *                            of the prior 'gate any sibling blocker first' order.
+ *   3. blocked-rejection   — any in-scope rail status: 'blocked', and no ready rail
+ *   4. accept-tos          — requires-info + a `kind: 'accept-tos'` action
  *                            (user-actionable, unblocks the scope)
- *   4. fixable-rejection   — requires-info + a `kind: 'sumsub'` action
+ *   5. fixable-rejection   — requires-info + a `kind: 'sumsub'` action
  *                            (user-actionable, unblocks the scope)
- *   5. ready               — at least one in-scope rail has operationStatus(op) === 'enabled'
- *                            (user can transact NOW)
  *   6. pending             — at least one in-scope rail status === 'pending' (we're provisioning)
  *   7. waiting-on-provider — only requires-info rails AND every one has only
  *                            `kind: 'wait'` actions (e.g. Bridge internal KYC
@@ -138,7 +143,14 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
     const candidates = filterRailsByScope(state.rails, scope)
     const actionByKey = new Map(state.nextActions.map((action) => [action.key, action]))
 
-    // 2. blocked — split: if the rail carries a `restart-identity` action the
+    // 2. ready — per-op refinement wins over rail-level status. Hoisted
+    // above blocked / accept-tos / fixable-rejection because the user has
+    // a working path; a blocked sibling rail (different currency, KYC
+    // remediation pending) is not the user's problem right now.
+    const hasReady = candidates.some((rail) => operationStatus(rail, op) === 'enabled')
+    if (hasReady) return { kind: 'ready' }
+
+    // 3. blocked — split: if the rail carries a `restart-identity` action the
     // user can self-fix by re-verifying with a different document; otherwise
     // the only path is contact-support.
     const blocked = candidates.find((rail) => rail.status === 'blocked')
@@ -160,7 +172,7 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
 
     const requiresInfoRails = candidates.filter((rail) => rail.status === 'requires-info')
 
-    // 3. accept-tos
+    // 4. accept-tos
     const tosRail = requiresInfoRails.find((rail) =>
         railActions(rail, actionByKey).some((action) => action.kind === 'accept-tos')
     )
@@ -174,7 +186,7 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
         }
     }
 
-    // 4. fixable-rejection (Sumsub RFI / self-heal)
+    // 5. fixable-rejection (Sumsub RFI / self-heal)
     const fixableRail = requiresInfoRails.find((rail) =>
         railActions(rail, actionByKey).some((action) => action.kind === 'sumsub')
     )
@@ -185,10 +197,6 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
             reason: fixableRail.reason,
         }
     }
-
-    // 5. ready — per-op refinement wins over rail-level status
-    const hasReady = candidates.some((rail) => operationStatus(rail, op) === 'enabled')
-    if (hasReady) return { kind: 'ready' }
 
     // 6. pending — BE is provisioning, no user action needed
     const hasPending = candidates.some((rail) => rail.status === 'pending')
