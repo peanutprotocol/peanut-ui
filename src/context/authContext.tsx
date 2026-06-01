@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setSentryUser({
                 id: user.user.userId,
                 username: user.user.username ?? undefined,
-                email: user.user.email,
+                email: user.user.email ?? undefined,
             })
         } else {
             // Logout / unauthenticated: clear Sentry user so subsequent
