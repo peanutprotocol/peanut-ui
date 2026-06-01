@@ -19,25 +19,7 @@ import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { profileUrl } from '@/utils/native-routes'
-
-// mapping of special invite codes to their campaign tags
-// when these invite codes are used, the corresponding campaign tag is automatically applied
-const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
-    arbiverseinvitesyou: 'ARBIVERSE_DEVCONNECT_BA_2025',
-    squirrelinvitesyou: 'ARBIVERSE_DEVCONNECT_BA_2025', // temporary: maps to arbiverse until 12pm noon tomorrow
-    founderhaus: 'FOUNDER_HOUSE',
-    survivor: 'SUPPORT_SURVIVOR',
-}
-
-// Map inbound `utm_campaign` values to the badge codes the backend whitelists.
-// Lets marketing/event links use a single UTM-shaped URL — PostHog auto-captures
-// utm_* on $pageview so the same string also flows into the analytics funnel.
-// Backend whitelist lives in peanut-api-ts/src/routes/badge.ts + invite.ts; keep
-// in sync when adding a new entry here.
-const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
-    'token-nation-2026': 'TOKEN_NATION_SP_2026',
-    ethfloripa: 'ETHFLORIPA_HUB',
-}
+import { INVITE_CODE_TO_CAMPAIGN_MAP, UTM_CAMPAIGN_TO_BADGE_MAP } from './campaign-maps'
 
 function InvitePageContent() {
     const searchParams = useSearchParams()
