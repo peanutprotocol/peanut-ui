@@ -78,7 +78,14 @@ export default function WithdrawCryptoPage() {
         reset: resetRouteCalculation,
     } = useCrossChainTransfer()
 
-    const { isRecording, error: recordError, recordPayment, reset: resetPaymentRecorder } = usePaymentRecorder()
+    const {
+        isRecording,
+        error: recordError,
+        recordPayment,
+        reset: resetPaymentRecorder,
+        submittedTxHash,
+        markSubmitted,
+    } = usePaymentRecorder()
 
     const { triggerHaptic } = useHaptic()
 
@@ -271,6 +278,15 @@ export default function WithdrawCryptoPage() {
     }, [withdrawData, chargeDetails, isXChain, isDiffToken])
 
     const handleConfirmWithdrawal = useCallback(async () => {
+        // Post-on-chain safety gate. Once sendMoney/sendTransactions has
+        // returned a tx hash, re-running this handler would re-fire the
+        // wallet → external-address transfer. Sentry PEANUT-UI-QH9 / 2026-
+        // 06-01 first surfaced this for the Bridge offramp; the audit
+        // flagged crypto withdraw as having the same shape. `submittedTxHash`
+        // is set inside recordPayment (or via the explicit `markSubmitted`
+        // below for the Rain-collateral same-chain skip path).
+        if (submittedTxHash) return
+
         if (!chargeDetails || !withdrawData || !amountToWithdraw || !address) {
             console.error('Withdraw data, active charge details, or amount missing for final confirmation')
             setError('Essential withdrawal information is missing.')
@@ -374,6 +390,13 @@ export default function WithdrawCryptoPage() {
                     tokenAddress: PEANUT_WALLET_TOKEN as Address,
                     payerAddress: address as Address,
                 })
+            } else {
+                // skipRecordPayment = Rain-collateral same-chain path; the
+                // Rain webhook + TransactionIntent reconciliation handle
+                // settlement. We still need to fire the post-on-chain gate
+                // manually because we never call recordPayment, but the
+                // on-chain leg DID fire and a retry would re-spend.
+                markSubmitted(finalTxHash)
             }
 
             setTransactionHash(finalTxHash)
@@ -407,6 +430,8 @@ export default function WithdrawCryptoPage() {
         sendMoney,
         isCrossChainWithdrawal,
         recordPayment,
+        submittedTxHash,
+        markSubmitted,
         setCurrentView,
         setTransactionHash,
         setPaymentDetails,

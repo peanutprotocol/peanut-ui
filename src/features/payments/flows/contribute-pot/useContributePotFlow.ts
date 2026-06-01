@@ -57,7 +57,7 @@ export function useContributePotFlow() {
 
     const { user } = useAuth()
     const { createCharge, isCreating: isCreatingCharge } = useChargeManager()
-    const { recordPayment, isRecording } = usePaymentRecorder()
+    const { recordPayment, isRecording, submittedTxHash } = usePaymentRecorder()
     const {
         isConnected,
         address: walletAddress,
@@ -165,6 +165,13 @@ export function useContributePotFlow() {
                 return { success: false }
             }
 
+            // Post-on-chain safety gate: once sendMoney has produced a tx hash
+            // (set inside recordPayment), do NOT re-run this handler —
+            // re-firing sendMoney would produce a second on-chain tx
+            // attributed to the same charge (Sentry PEANUT-UI-QH9, 2026-06-01).
+            // BE settles via the charge validator regardless.
+            if (submittedTxHash) return { success: true }
+
             setIsLoading(true)
             clearError()
 
@@ -241,6 +248,7 @@ export function useContributePotFlow() {
             createCharge,
             sendMoney,
             recordPayment,
+            submittedTxHash,
             setCharge,
             setTxHash,
             setPayment,
@@ -263,6 +271,10 @@ export function useContributePotFlow() {
         charge,
         payment,
         txHash,
+        // submittedTxHash gates the UI from offering a Retry button after
+        // sendMoney has fired — see the post-on-chain safety gate in
+        // executeContribution + the JSDoc on usePaymentRecorder.
+        submittedTxHash,
         error,
         isLoading: isLoading || isCreatingCharge || isRecording,
         isSuccess,

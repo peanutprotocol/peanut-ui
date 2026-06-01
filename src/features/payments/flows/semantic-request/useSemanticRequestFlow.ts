@@ -66,7 +66,7 @@ export function useSemanticRequestFlow() {
     const { user } = useAuth()
     const queryClient = useQueryClient()
     const { createCharge, fetchCharge, isCreating: isCreatingCharge, isFetching: isFetchingCharge } = useChargeManager()
-    const { recordPayment, isRecording } = usePaymentRecorder()
+    const { recordPayment, isRecording, submittedTxHash } = usePaymentRecorder()
     const {
         transactions: routeTransactions,
         estimatedGasCostUsd: calculatedGasCost,
@@ -260,6 +260,13 @@ export function useSemanticRequestFlow() {
                 return { success: false }
             }
 
+            // Post-on-chain safety gate: once sendMoney has produced a tx
+            // hash (set inside recordPayment), do NOT re-run this handler —
+            // re-firing sendMoney would produce a second on-chain tx
+            // attributed to the same charge (Sentry PEANUT-UI-QH9, 2026-06-01).
+            // BE settles the charge via the validator / Rain webhook.
+            if (submittedTxHash) return { success: true }
+
             setIsLoading(true)
             clearError()
 
@@ -362,6 +369,7 @@ export function useSemanticRequestFlow() {
             createCharge,
             sendMoney,
             recordPayment,
+            submittedTxHash,
             queryClient,
             updateUrlWithChargeId,
             setCharge,
@@ -476,6 +484,9 @@ export function useSemanticRequestFlow() {
             return
         }
 
+        // Post-on-chain safety gate — see handlePayment above for full reasoning.
+        if (submittedTxHash) return
+
         setIsLoading(true)
         clearError()
 
@@ -581,6 +592,7 @@ export function useSemanticRequestFlow() {
         sendMoney,
         sendTransactions,
         recordPayment,
+        submittedTxHash,
         queryClient,
         setTxHash,
         setPayment,
@@ -616,6 +628,10 @@ export function useSemanticRequestFlow() {
         charge,
         payment,
         txHash,
+        // submittedTxHash gates the UI from offering a Retry button after
+        // sendMoney has fired — see the post-on-chain safety gate in
+        // handlePayment + executePayment + the JSDoc on usePaymentRecorder.
+        submittedTxHash,
         error,
         isLoading: isLoading || isCreatingCharge || isFetchingCharge || isRecording || isCalculatingRoute,
         isSuccess,

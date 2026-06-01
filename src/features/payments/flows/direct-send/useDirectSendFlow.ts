@@ -50,7 +50,7 @@ export function useDirectSendFlow() {
 
     const { user } = useAuth()
     const { createCharge, isCreating: isCreatingCharge } = useChargeManager()
-    const { recordPayment, isRecording } = usePaymentRecorder()
+    const { recordPayment, isRecording, submittedTxHash } = usePaymentRecorder()
     const {
         isConnected,
         address: walletAddress,
@@ -112,6 +112,14 @@ export function useDirectSendFlow() {
             setError({ showError: true, errorMessage: 'missing required data' })
             return
         }
+
+        // Post-on-chain safety gate: once sendMoney has produced a tx hash
+        // (set inside recordPayment), do NOT re-run this handler — re-firing
+        // sendMoney would produce a second on-chain tx attributed to the
+        // same charge (Sentry PEANUT-UI-QH9 / 2026-06-01 — Konrad's offramp
+        // shape; the audit found the same risk in this flow). The BE
+        // settles via charge poller / Rain webhook regardless.
+        if (submittedTxHash) return
 
         setIsLoading(true)
         clearError()
@@ -178,6 +186,7 @@ export function useDirectSendFlow() {
         createCharge,
         sendMoney,
         recordPayment,
+        submittedTxHash,
         setCharge,
         setTxHash,
         setPayment,
@@ -199,6 +208,10 @@ export function useDirectSendFlow() {
         payment,
         txHash,
         error,
+        // submittedTxHash gates the UI from offering a Retry button after
+        // sendMoney has fired — see the post-on-chain safety gate in
+        // executePayment + the JSDoc on usePaymentRecorder.
+        submittedTxHash,
         isLoading: isLoading || isCreatingCharge || isRecording,
         isSuccess,
 
