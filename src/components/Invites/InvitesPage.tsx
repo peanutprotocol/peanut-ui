@@ -1,5 +1,5 @@
 'use client'
-import { Suspense, useEffect, useRef, useState, useCallback } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import PeanutLoading from '../Global/PeanutLoading'
 import ValidationErrorView from '../Payment/Views/Error.validation.view'
 import InvitesPageLayout from './InvitesPageLayout'
