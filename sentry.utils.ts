@@ -107,6 +107,14 @@ const SENSITIVE_HEADERS = [
     'x-app-access-ts',
 ]
 
+/**
+ * IMPORTANT: EXACT-MATCH set. We deliberately do NOT substring-match
+ * because Peanut has first-class onchain addresses everywhere (walletAddress,
+ * recipientAddress, tokenAddress, sdaAddress, depositAddress, …) and those
+ * are public chain data that must stay visible. Substring on `address`
+ * would clobber every one. Same for `pin` / `token` / `seed` — share names
+ * with non-sensitive concepts.
+ */
 const SENSITIVE_KEYS = new Set([
     // Secrets
     'password',
@@ -143,10 +151,12 @@ const SENSITIVE_KEYS = new Set([
     'expiryyear',
     'expmonth',
     'expyear',
-    // Government IDs
+    // Government IDs (English + Bridge long-form)
     'ssn',
     'socialsecurity',
+    'socialsecuritynumber',
     'taxid',
+    'taxidentificationnumber',
     'tin',
     'dni',
     'cuit',
@@ -155,6 +165,7 @@ const SENSITIVE_KEYS = new Set([
     'curp',
     'nif',
     'governmentid',
+    'governmentidnumber',
     'documentnumber',
     'passport',
     'passportnumber',
@@ -162,6 +173,11 @@ const SENSITIVE_KEYS = new Set([
     'licensenumber',
     'idnumber',
     'nationalid',
+    'nationalidnumber',
+    // Manteca (Spanish)
+    'documento',
+    'numerodocumento',
+    'numerodedocumento',
     // Bank accounts
     'iban',
     'swift',
@@ -173,7 +189,7 @@ const SENSITIVE_KEYS = new Set([
     'cbu',
     'cvu',
     'clabe',
-    // PII — names
+    // PII — names (English + Manteca Spanish)
     'firstname',
     'lastname',
     'fullname',
@@ -184,12 +200,30 @@ const SENSITIVE_KEYS = new Set([
     'mothername',
     'mothersmaidenname',
     'maidenname',
-    // PII — address / DOB / contact
+    'customerfirstname',
+    'customerlastname',
+    'nombre',
+    'apellido',
+    // PII — address. NOTE: `address` alone is NOT here — onchain addresses
+    // (walletAddress, recipientAddress, etc.) must stay visible for
+    // debugging onchain flows.
     'streetaddress',
     'street1',
     'street2',
+    'street3',
+    'streetline1',
+    'streetline2',
+    'streetline3',
     'addressline1',
     'addressline2',
+    'addressline3',
+    'billingaddress',
+    'homeaddress',
+    'mailingaddress',
+    'residentialaddress',
+    'permanentaddress',
+    'direccion',
+    'domicilio',
     'postalcode',
     'zipcode',
     'zip',
@@ -201,6 +235,7 @@ const SENSITIVE_KEYS = new Set([
     'phonenumber',
     'mobilenumber',
     'telephone',
+    'telefono',
     // 2FA
     'otp',
     'verificationcode',
