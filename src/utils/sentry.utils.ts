@@ -214,16 +214,24 @@ export function scrubObject(value: unknown, depth = 0): unknown {
     if (value === null || value === undefined) return value
     if (typeof value !== 'object') return value
     if (Array.isArray(value)) return value.map((item) => scrubObject(item, depth + 1))
-    // `Object.create(null)` produces a prototype-less object so `out[key] = …`
-    // with a user-controlled `key` like `__proto__` / `constructor` /
-    // `prototype` can't pollute the prototype chain. Without this, a JSON
-    // body shaped `{"__proto__": {...}}` (own property after JSON.parse)
-    // would walk into prototype pollution. CodeQL flagged the original
-    // accumulator (`{}`); switching to a null-proto record closes it.
+    // Prototype-pollution defense — two layers, both required:
+    //   1. `Object.create(null)` so `out` has no prototype to pollute.
+    //   2. `Object.defineProperty` with explicit descriptor instead of
+    //      `out[key] = …`. The former is recognised by CodeQL's taint
+    //      analysis as a sanitizer; the latter triggers
+    //      js/prototype-polluting-assignment even when keys are validated
+    //      because CodeQL can't prove the runtime check is complete.
+    //   3. Explicit skip of __proto__ / constructor / prototype — belt
+    //      and braces; redundant with (1) but documents intent.
     const out: Record<string, unknown> = Object.create(null)
     for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
         if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue
-        out[key] = isSensitiveKey(key) ? '[REDACTED]' : scrubObject(val, depth + 1)
+        Object.defineProperty(out, key, {
+            value: isSensitiveKey(key) ? '[REDACTED]' : scrubObject(val, depth + 1),
+            writable: true,
+            enumerable: true,
+            configurable: true,
+        })
     }
     return out
 }

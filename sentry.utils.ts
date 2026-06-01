@@ -253,13 +253,20 @@ function scrubObject(value: unknown, depth = 0): unknown {
     if (value === null || value === undefined) return value
     if (typeof value !== 'object') return value
     if (Array.isArray(value)) return value.map((item) => scrubObject(item, depth + 1))
-    // Prototype-pollution defense: see src/utils/sentry.utils.ts for the same
-    // pattern. Null-proto accumulator + explicit skip of __proto__ /
-    // constructor / prototype keys.
+    // Prototype-pollution defense — see src/utils/sentry.utils.ts for the
+    // full rationale. Object.create(null) + Object.defineProperty + explicit
+    // dangerous-key skip. The defineProperty form is what CodeQL recognises
+    // as a sanitizer; direct `out[key] = …` triggers the alert even when
+    // keys are validated at runtime.
     const out: Record<string, unknown> = Object.create(null)
     for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
         if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue
-        out[key] = isSensitiveKey(key) ? '[REDACTED]' : scrubObject(val, depth + 1)
+        Object.defineProperty(out, key, {
+            value: isSensitiveKey(key) ? '[REDACTED]' : scrubObject(val, depth + 1),
+            writable: true,
+            enumerable: true,
+            configurable: true,
+        })
     }
     return out
 }
