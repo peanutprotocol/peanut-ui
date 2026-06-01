@@ -93,6 +93,45 @@ export async function createOfframpForGuest(
  * @param txHash - The on-chain transaction hash from the user's deposit.
  * @returns An object containing either the successful response data or an error.
  */
+/**
+ * Look up an off-ramp intent by the on-chain tx hash the user submitted to
+ * confirm it. Backed by `GET /bridge/transfers/by-tx-hash/:txHash` — added in
+ * peanut-api-ts #929 as the recovery counterpart to /confirm's new idempotency.
+ *
+ * Use case: user reloaded the page (or app was killed) mid-flow after the
+ * on-chain leg fired. React state is gone, but the wallet still has the tx
+ * hash. We ask the BE "do you know this hash?" to surface the in-progress
+ * state instead of letting the user re-trigger a fresh withdraw and double-pay.
+ * Returns null on any 4xx (no match / not yours) — only logs unexpected errors.
+ */
+export type OfframpByTxHash = {
+    intentId: string
+    transferId: string
+    status: string
+    bridgeState: string | null
+    userSubmittedTxHash: string | null
+    updatedAt: string
+}
+
+export async function getOfframpByTxHash(txHash: string): Promise<OfframpByTxHash | null> {
+    try {
+        const response = await serverFetch(`/bridge/transfers/by-tx-hash/${encodeURIComponent(txHash)}`, {
+            method: 'GET',
+        })
+        if (response.status === 404) return null
+        if (!response.ok) {
+            console.warn(`getOfframpByTxHash: unexpected status ${response.status} for ${txHash}`)
+            return null
+        }
+        return (await response.json()) as OfframpByTxHash
+    } catch (error) {
+        // Network error / timeout — treat as "unknown" so callers can render
+        // the form normally instead of getting stuck on a recovery query.
+        console.error('Error calling getOfframpByTxHash:', error)
+        return null
+    }
+}
+
 export async function confirmOfframp(
     transferId: string,
     txHash: string

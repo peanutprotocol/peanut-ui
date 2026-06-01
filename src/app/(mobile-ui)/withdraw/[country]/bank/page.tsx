@@ -46,6 +46,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawCountryUrl } from '@/utils/native-routes'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useInflightOfframpRecovery } from '@/hooks/useInflightOfframpRecovery'
 
 type View = 'INITIAL' | 'SUCCESS'
 
@@ -75,10 +76,15 @@ export default function WithdrawBankPage() {
     const searchParams = useSearchParams()
     const [isLoading, setIsLoading] = useState(false)
     const [view, setView] = useState<View>('INITIAL')
-    // Set as soon as the on-chain wallet→Bridge tx confirms. If a subsequent
-    // confirmOfframp() call fails, this gates the UI into a "processing" state
-    // instead of showing a Retry button that would re-fire sendMoney().
-    const [submittedTxHash, setSubmittedTxHash] = useState<string | null>(null)
+    // In-flight off-ramp gate — replaces the previous local useState so the
+    // "Transfer processing" state survives page reload / app kill. Backed by
+    // localStorage + a BE recovery query (GET /bridge/transfers/by-tx-hash).
+    // See useInflightOfframpRecovery for the recovery contract.
+    const {
+        inflightTxHash: submittedTxHash,
+        markSubmitted: markOfframpSubmitted,
+        clearInflight: clearInflightOfframp,
+    } = useInflightOfframpRecovery()
     const params = useParams()
     // read country from path params (web) or query params (native/capacitor)
     const country = (params.country as string) || searchParams.get('country') || ''
@@ -284,7 +290,8 @@ export default function WithdrawBankPage() {
             // Mark the on-chain leg done BEFORE confirmOfframp. From this point on
             // any error path (including a confirm timeout) must NOT offer Retry —
             // re-running this handler would call sendMoney() again and double-pay.
-            setSubmittedTxHash(txIdentifier)
+            // Persisted to localStorage so reload doesn't surface a fresh form.
+            markOfframpSubmitted(data.transferId, txIdentifier)
 
             const confirmResult = await confirmOfframp(data.transferId, txIdentifier)
 
@@ -305,6 +312,9 @@ export default function WithdrawBankPage() {
             // 30s tanstack staleTime + Bridge polling cadence.
             queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
 
+            // Confirm landed cleanly — drop the inflight entry so a future
+            // reload renders the fresh form, not the "processing" gate.
+            clearInflightOfframp(data.transferId)
             setView('SUCCESS')
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
                 amount_usd: amountToWithdraw,
