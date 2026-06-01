@@ -88,8 +88,9 @@ export const chargesApi = {
         // well above the 10s default so the BE has time to write the payment
         // row + run notifications. Matches the offramp `confirmOfframp`
         // pattern (peanut-ui #2147). Callers MUST additionally render a
-        // post-on-chain "processing" state instead of a Retry button — see
-        // `useSubmittedPaymentGate`.
+        // post-on-chain "processing" state instead of a Retry button —
+        // realised via the flow-context `txHash` (set BEFORE this call by
+        // each flow's `setTxHash`), consumed by every input/confirm view.
         const response = await apiFetch(`/charges/${chargeId}/payments`, {
             method: 'POST',
             body: JSON.stringify({

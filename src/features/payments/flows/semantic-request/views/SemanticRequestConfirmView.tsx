@@ -57,10 +57,19 @@ export function SemanticRequestConfirmView() {
         selectedTokenData,
         urlToken,
         isTokenDenominated,
+        txHash,
         goBackToInitial,
         executePayment,
         prepareRoute,
     } = useSemanticRequestFlow()
+
+    // `txHash` is the post-on-chain gate (see useSemanticRequestFlow). On
+    // cross-chain confirm, this is the most-likely-to-fire path because the
+    // BE ack involves Rhino routing — Sentry PEANUT-UI-QH9-shape failures
+    // are most plausible here. Disable Confirm + Retry once sendMoney has
+    // returned a hash; the executePayment handler also early-returns
+    // defensively.
+    const isPostOnChain = !!txHash
 
     // get the display symbol for the requested amount
     const displayTokenSymbol = useMemo(() => {
@@ -144,13 +153,14 @@ export function SemanticRequestConfirmView() {
 
     // handle confirm
     const handleConfirm = () => {
-        if (!isLoading && !isCalculatingRoute) {
+        if (!isLoading && !isCalculatingRoute && !isPostOnChain) {
             executePayment()
         }
     }
 
     // handle retry
     const handleRetry = async () => {
+        if (isPostOnChain) return
         if (errorMessage) {
             // retry route calculation
             await prepareRoute()
@@ -254,9 +264,9 @@ export function SemanticRequestConfirmView() {
                 <div className="flex flex-col gap-4">
                     {errorMessage ? (
                         <Button
-                            disabled={isLoading || isCalculatingRoute}
+                            disabled={isLoading || isCalculatingRoute || isPostOnChain}
                             onClick={handleRetry}
-                            loading={isLoading || isCalculatingRoute}
+                            loading={isLoading || isCalculatingRoute || isPostOnChain}
                             shadowSize="4"
                             className="w-full"
                             icon="retry"
@@ -266,15 +276,15 @@ export function SemanticRequestConfirmView() {
                         </Button>
                     ) : isCardPioneer ? (
                         <SendWithPeanutCta
-                            disabled={isLoading || isCalculatingRoute || isFeeEstimationError}
+                            disabled={isLoading || isCalculatingRoute || isFeeEstimationError || isPostOnChain}
                             onClick={handleConfirm}
-                            loading={isLoading || isCalculatingRoute}
+                            loading={isLoading || isCalculatingRoute || isPostOnChain}
                         />
                     ) : (
                         <Button
-                            disabled={isLoading || isCalculatingRoute || isFeeEstimationError}
+                            disabled={isLoading || isCalculatingRoute || isFeeEstimationError || isPostOnChain}
                             onClick={handleConfirm}
-                            loading={isLoading || isCalculatingRoute}
+                            loading={isLoading || isCalculatingRoute || isPostOnChain}
                             shadowSize="4"
                             className="w-full"
                             icon="arrow-up-right"

@@ -50,7 +50,7 @@ export function useDirectSendFlow() {
 
     const { user } = useAuth()
     const { createCharge, isCreating: isCreatingCharge } = useChargeManager()
-    const { recordPayment, isRecording, submittedTxHash } = usePaymentRecorder()
+    const { recordPayment, isRecording } = usePaymentRecorder()
     const {
         isConnected,
         address: walletAddress,
@@ -113,13 +113,14 @@ export function useDirectSendFlow() {
             return
         }
 
-        // Post-on-chain safety gate: once sendMoney has produced a tx hash
-        // (set inside recordPayment), do NOT re-run this handler — re-firing
-        // sendMoney would produce a second on-chain tx attributed to the
-        // same charge (Sentry PEANUT-UI-QH9 / 2026-06-01 — Konrad's offramp
-        // shape; the audit found the same risk in this flow). The BE
-        // settles via charge poller / Rain webhook regardless.
-        if (submittedTxHash) return
+        // Post-on-chain safety gate: once sendMoney has set txHash on the
+        // flow context, do NOT re-run this handler — re-firing sendMoney
+        // would produce a second on-chain tx attributed to the same charge
+        // (Sentry PEANUT-UI-QH9 / 2026-06-01 — Konrad's offramp shape; same
+        // shape exists in this flow). Using context state (not local hook
+        // state) is what makes the gate survive view-transitions; see
+        // the gate-altitude rationale in DirectSendFlowContext.
+        if (txHash) return
 
         setIsLoading(true)
         clearError()
@@ -183,10 +184,10 @@ export function useDirectSendFlow() {
         usdAmount,
         attachment,
         walletAddress,
+        txHash,
         createCharge,
         sendMoney,
         recordPayment,
-        submittedTxHash,
         setCharge,
         setTxHash,
         setPayment,
@@ -206,12 +207,12 @@ export function useDirectSendFlow() {
         attachment,
         charge,
         payment,
+        // txHash is the post-on-chain gate — truthy iff sendMoney already
+        // fired. Consumers MUST disable pay buttons (and not offer a
+        // retryable error UX) when this is set; re-running would call
+        // sendMoney again and double-pay.
         txHash,
         error,
-        // submittedTxHash gates the UI from offering a Retry button after
-        // sendMoney has fired — see the post-on-chain safety gate in
-        // executePayment + the JSDoc on usePaymentRecorder.
-        submittedTxHash,
         isLoading: isLoading || isCreatingCharge || isRecording,
         isSuccess,
 

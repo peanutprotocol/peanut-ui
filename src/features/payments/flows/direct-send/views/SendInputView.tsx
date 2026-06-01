@@ -38,7 +38,7 @@ export function SendInputView() {
         isInsufficientBalance,
         isLoggedIn,
         isLoading,
-        submittedTxHash,
+        txHash,
         setAmount,
         setAttachment,
         executePayment,
@@ -46,16 +46,16 @@ export function SendInputView() {
 
     // handle submit - directly execute payment
     const handleSubmit = () => {
-        if (canProceed && hasSufficientBalance && !isLoading && !submittedTxHash) {
+        if (canProceed && hasSufficientBalance && !isLoading && !txHash) {
             executePayment()
         }
     }
 
-    // determine button text and state. `submittedTxHash` keeps the button
+    // determine button text and state. `txHash` keeps the button
     // disabled after sendMoney has fired so a confirm timeout (or any
     // post-on-chain error) can't lead to a second click → second on-chain
     // tx. Sentry PEANUT-UI-QH9 / 2026-06-01.
-    const isButtonDisabled = !canProceed || (isLoggedIn && !hasSufficientBalance) || isLoading || !!submittedTxHash
+    const isButtonDisabled = !canProceed || (isLoggedIn && !hasSufficientBalance) || isLoading || !!txHash
     const isAmountEntered = !!amount && parseFloat(amount) > 0
 
     return (

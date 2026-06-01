@@ -57,7 +57,7 @@ export function useContributePotFlow() {
 
     const { user } = useAuth()
     const { createCharge, isCreating: isCreatingCharge } = useChargeManager()
-    const { recordPayment, isRecording, submittedTxHash } = usePaymentRecorder()
+    const { recordPayment, isRecording } = usePaymentRecorder()
     const {
         isConnected,
         address: walletAddress,
@@ -165,12 +165,16 @@ export function useContributePotFlow() {
                 return { success: false }
             }
 
-            // Post-on-chain safety gate: once sendMoney has produced a tx hash
-            // (set inside recordPayment), do NOT re-run this handler —
-            // re-firing sendMoney would produce a second on-chain tx
-            // attributed to the same charge (Sentry PEANUT-UI-QH9, 2026-06-01).
-            // BE settles via the charge validator regardless.
-            if (submittedTxHash) return { success: true }
+            // Post-on-chain safety gate: once sendMoney has set txHash on
+            // the flow context, do NOT re-run this handler — re-firing
+            // sendMoney would produce a second on-chain tx attributed to
+            // the same charge (Sentry PEANUT-UI-QH9, 2026-06-01). Returning
+            // success=false is critical: the external-wallet branch in the
+            // input view conditions setCurrentView('EXTERNAL_WALLET') on
+            // res.success, so a fake-success short-circuit would mis-route
+            // a user who already paid via Peanut wallet into the external-
+            // wallet flow for the same pot contribution.
+            if (txHash) return { success: false }
 
             setIsLoading(true)
             clearError()
@@ -248,7 +252,7 @@ export function useContributePotFlow() {
             createCharge,
             sendMoney,
             recordPayment,
-            submittedTxHash,
+            txHash,
             setCharge,
             setTxHash,
             setPayment,
@@ -270,11 +274,11 @@ export function useContributePotFlow() {
         attachment,
         charge,
         payment,
+        // txHash is the post-on-chain gate — truthy iff sendMoney already
+        // fired. Consumers MUST disable pay buttons (Peanut wallet AND
+        // external wallet) when set; re-running would double-pay. Lives on
+        // flow context so the gate survives view transitions.
         txHash,
-        // submittedTxHash gates the UI from offering a Retry button after
-        // sendMoney has fired — see the post-on-chain safety gate in
-        // executeContribution + the JSDoc on usePaymentRecorder.
-        submittedTxHash,
         error,
         isLoading: isLoading || isCreatingCharge || isRecording,
         isSuccess,

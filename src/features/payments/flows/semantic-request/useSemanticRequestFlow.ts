@@ -66,7 +66,7 @@ export function useSemanticRequestFlow() {
     const { user } = useAuth()
     const queryClient = useQueryClient()
     const { createCharge, fetchCharge, isCreating: isCreatingCharge, isFetching: isFetchingCharge } = useChargeManager()
-    const { recordPayment, isRecording, submittedTxHash } = usePaymentRecorder()
+    const { recordPayment, isRecording } = usePaymentRecorder()
     const {
         transactions: routeTransactions,
         estimatedGasCostUsd: calculatedGasCost,
@@ -260,12 +260,16 @@ export function useSemanticRequestFlow() {
                 return { success: false }
             }
 
-            // Post-on-chain safety gate: once sendMoney has produced a tx
-            // hash (set inside recordPayment), do NOT re-run this handler —
-            // re-firing sendMoney would produce a second on-chain tx
-            // attributed to the same charge (Sentry PEANUT-UI-QH9, 2026-06-01).
-            // BE settles the charge via the validator / Rain webhook.
-            if (submittedTxHash) return { success: true }
+            // Post-on-chain safety gate: once sendMoney has set txHash on
+            // the flow context, do NOT re-run this handler — re-firing
+            // sendMoney would produce a second on-chain tx attributed to
+            // the same charge (Sentry PEANUT-UI-QH9, 2026-06-01). Returning
+            // success=false is critical: the external-wallet branch in the
+            // input view conditions `setCurrentView('EXTERNAL_WALLET')` on
+            // res.success, so a fake-success short-circuit would mis-route
+            // a user who already paid via Peanut wallet into the external-
+            // wallet flow for the same charge.
+            if (txHash) return { success: false }
 
             setIsLoading(true)
             clearError()
@@ -369,7 +373,7 @@ export function useSemanticRequestFlow() {
             createCharge,
             sendMoney,
             recordPayment,
-            submittedTxHash,
+            txHash,
             queryClient,
             updateUrlWithChargeId,
             setCharge,
@@ -485,7 +489,7 @@ export function useSemanticRequestFlow() {
         }
 
         // Post-on-chain safety gate — see handlePayment above for full reasoning.
-        if (submittedTxHash) return
+        if (txHash) return
 
         setIsLoading(true)
         clearError()
@@ -592,7 +596,7 @@ export function useSemanticRequestFlow() {
         sendMoney,
         sendTransactions,
         recordPayment,
-        submittedTxHash,
+        txHash,
         queryClient,
         setTxHash,
         setPayment,
@@ -627,11 +631,12 @@ export function useSemanticRequestFlow() {
         attachment,
         charge,
         payment,
+        // txHash is the post-on-chain gate — truthy iff sendMoney already
+        // fired. Consumers (input + confirm views) MUST disable pay buttons
+        // (Peanut wallet AND external wallet) when this is set; re-running
+        // would call sendMoney again and double-pay. Lives on flow context
+        // (not in usePaymentRecorder) so the gate survives view transitions.
         txHash,
-        // submittedTxHash gates the UI from offering a Retry button after
-        // sendMoney has fired — see the post-on-chain safety gate in
-        // handlePayment + executePayment + the JSDoc on usePaymentRecorder.
-        submittedTxHash,
         error,
         isLoading: isLoading || isCreatingCharge || isFetchingCharge || isRecording || isCalculatingRoute,
         isSuccess,
