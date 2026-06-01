@@ -190,9 +190,7 @@ describe('scrubObject — exact-match contract', () => {
         // JSON.parse creates __proto__ as an OWN property. Without the
         // defense, scrubObject's `out[key] = …` walks into prototype
         // pollution. Pinned because CodeQL flagged the equivalent shape.
-        const malicious = JSON.parse(
-            '{"__proto__":{"polluted":true},"constructor":"x","prototype":"y","clean":"z"}'
-        )
+        const malicious = JSON.parse('{"__proto__":{"polluted":true},"constructor":"x","prototype":"y","clean":"z"}')
         const out = scrubObject(malicious) as Record<string, unknown>
         expect(Object.prototype.hasOwnProperty.call(out, '__proto__')).toBe(false)
         expect(Object.prototype.hasOwnProperty.call(out, 'constructor')).toBe(false)
