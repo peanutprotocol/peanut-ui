@@ -78,6 +78,36 @@ const MIN_QR_PAYMENT_AMOUNT = '0.1'
 
 type PaymentProcessor = 'MANTECA'
 
+/**
+ * Has the user's account been transitioned to a state where they can ALREADY
+ * do QR payments via the Manteca corporate pool account (`tier:qr-pool`)?
+ *
+ * Used by the gate-modal CTAs to avoid (re-)triggering Sumsub identity
+ * verification on top of a user whose QR access has already been unlocked
+ * server-side (backfill / handleKycApproval / the LATAM-reentry hotfix that
+ * calls enableQrPoolRails up front) since the last poll. Reads from a fresh
+ * fetchUser() result rather than the reactive `canDo()` snapshot so the
+ * onClick callback isn't trapped in a stale closure.
+ */
+function mantecaQrPoolPaymentEnabled(
+    user:
+        | {
+              capabilities?: {
+                  rails?: Array<{ provider: string; method: string; status: string; operations?: { pay?: string } }>
+              }
+          }
+        | null
+        | undefined
+): boolean {
+    const rails = user?.capabilities?.rails ?? []
+    return rails.some(
+        (rail) =>
+            rail.provider === 'manteca' &&
+            (rail.method === 'PIX_BR' || rail.method === 'MERCADOPAGO_QR_AR') &&
+            (rail.operations?.pay ?? rail.status) === 'enabled'
+    )
+}
+
 export default function QRPayPage() {
     const searchParams = useSearchParams()
     const router = useRouter()
@@ -1021,13 +1051,25 @@ export default function QRPayPage() {
                     ctas={[
                         {
                             text: 'Unlock now',
-                            onClick: () =>
+                            onClick: async () => {
+                                // Defensive: refetch user before triggering the KYC flow.
+                                // A sibling flow (e.g. a backfill / handleKycApproval re-run / the
+                                // /users/identity LATAM hotfix that calls enableQrPoolRails up front)
+                                // may have enabled the Manteca×PIX_BR + Manteca×MERCADOPAGO_QR_AR
+                                // rails since the last poll. If so, the gate transitions to
+                                // PROCEED_TO_PAY on the next render and this modal auto-closes —
+                                // we should NOT pop the Sumsub SDK on top of an already-unlocked
+                                // user. Reads from the fresh fetch result to avoid the stale
+                                // closure trap (canDo() from useCapabilities updates async).
+                                const refreshed = await fetchUser()
+                                if (mantecaQrPoolPaymentEnabled(refreshed)) return
                                 sumsubFlow.handleInitiateKyc(
                                     'LATAM',
                                     undefined,
                                     isKycApproved || undefined,
                                     targetMantecaCountry
-                                ),
+                                )
+                            },
                             variant: 'purple',
                             shadowSize: '4',
                             icon: 'check-circle',
@@ -1044,13 +1086,19 @@ export default function QRPayPage() {
                     ctas={[
                         {
                             text: 'Continue',
-                            onClick: () =>
+                            onClick: async () => {
+                                // Same defensive refetch as the REQUIRES_IDENTITY_VERIFICATION
+                                // CTA above — if a backfill / hotfix transitioned the rails
+                                // since the last poll, skip re-initiating Sumsub.
+                                const refreshed = await fetchUser()
+                                if (mantecaQrPoolPaymentEnabled(refreshed)) return
                                 sumsubFlow.handleInitiateKyc(
                                     'LATAM',
                                     undefined,
                                     isKycApproved || undefined,
                                     targetMantecaCountry
-                                ),
+                                )
+                            },
                             variant: 'purple',
                             shadowSize: '4',
                             icon: 'check-circle',
