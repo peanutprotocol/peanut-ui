@@ -1,6 +1,6 @@
 'use client'
 
-import { PeanutThinking } from '@/assets'
+import { PeanutThinking } from '@/assets/mascot'
 import { Button } from '@/components/0_Bruddle/Button'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import Image from 'next/image'
@@ -19,6 +19,7 @@ const StartVerificationView = ({
                 <CloudsBackground minimal />
                 <Image
                     src={PeanutThinking.src}
+                    unoptimized
                     alt="verification"
                     className="relative w-full max-w-72 object-contain md:max-w-80"
                     height={100}

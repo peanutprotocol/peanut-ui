@@ -1,4 +1,4 @@
-import { PeanutPeace } from '@/assets'
+import { PeanutPeace } from '@/assets/mascot'
 
 export function Careers() {
     return (

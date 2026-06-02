@@ -1,6 +1,7 @@
 'use client'
 
-import { GlobalCashLocalFeel, PeanutPeace, Star } from '@/assets'
+import { PeanutPeace } from '@/assets/mascot'
+import { GlobalCashLocalFeel, Star } from '@/assets/illustrations'
 import { motion } from 'framer-motion'
 import { useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'

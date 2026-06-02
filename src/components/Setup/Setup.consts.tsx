@@ -1,5 +1,4 @@
-import { PeanutCheering, PeanutPeace } from '@/assets/mascot'
-import { PEANUTMAN_MOBILE, PeanutThinking } from '@/assets'
+import { PEANUTMAN_MOBILE, PeanutCheering, PeanutPeace, PeanutThinking } from '@/assets/mascot'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
 import { InstallPWA, SetupPasskey, SignupStep, LandingStep, SignTestTransaction } from '@/components/Setup/Views'
 import JoinWaitlist from './Views/JoinWaitlist'

@@ -65,7 +65,7 @@ const NoMoreJailModal = () => {
             {/* Peanutman animation */}
             <div className="absolute left-0 top-7 flex w-full justify-center" style={{ transform: 'translateY(-80%)' }}>
                 <div className="relative h-42 w-[90%] md:h-52">
-                    <Image src={PeanutPeace.src} alt="Peanut Man" className="object-contain" fill />
+                    <Image src={PeanutPeace.src} unoptimized alt="Peanut Man" className="object-contain" fill />
                 </div>
             </div>
         </Modal>

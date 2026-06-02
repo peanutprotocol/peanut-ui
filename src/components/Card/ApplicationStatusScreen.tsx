@@ -38,6 +38,7 @@ const ApplicationStatusScreen: FC<Props> = ({ variant, onContactSupport, onPrev 
                 {variant === 'rejected' && (
                     <Image
                         src={PeanutCrying.src}
+                        unoptimized
                         alt="Peanutman crying 😭"
                         width={128}
                         height={128}

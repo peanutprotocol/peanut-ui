@@ -41,7 +41,7 @@ function ValidationErrorView({
 
     return (
         <div className="flex flex-col items-center justify-center space-y-4 rounded-lg text-center">
-            <Image src={PeanutCrying.src} alt="Sad peanut 😢" width={96} height={96} />
+            <Image src={PeanutCrying.src} unoptimized alt="Sad peanut 😢" width={96} height={96} />
             <div className="space-y-2">
                 <h1 className="text-lg font-semibold">{title}</h1>
                 <p className="text-sm font-normal md:max-w-xs">{message}</p>

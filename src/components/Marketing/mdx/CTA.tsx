@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
-import { PeanutPeace } from '@/assets'
+import { PeanutPeace } from '@/assets/mascot'
 import { PROSE_WIDTH } from './constants'
 
 interface CTAProps {

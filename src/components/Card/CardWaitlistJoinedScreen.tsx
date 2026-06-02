@@ -40,6 +40,7 @@ const CardWaitlistJoinedScreen: FC<Props> = ({ onPrev }) => {
             <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
                 <Image
                     src={PeanutPeace.src}
+                    unoptimized
                     alt="Peanut Mascot"
                     width={20}
                     height={20}
