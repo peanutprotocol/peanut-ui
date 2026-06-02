@@ -15,7 +15,7 @@ import useClaimLink from '../../useClaimLink'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useAuth } from '@/context/authContext'
 import { type TCreateOfframpRequest, type TCreateOfframpResponse } from '@/services/services.types'
-import { getOfframpCurrencyConfig } from '@/utils/bridge.utils'
+import { getOfframpConfigFromAccount } from '@/utils/bridge.utils'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import { getContractAddress } from '@/utils/peanut-claim.utils'
@@ -239,7 +239,13 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
 
             const externalAccountId = (account.bridgeAccountId ?? account.id) as string
 
-            const destination = getOfframpCurrencyConfig(account.country ?? selectedCountry!.id)
+            // Derive destination currency + rail from the SELECTED ACCOUNT's
+            // type, not from `selectedCountry`. Pairing a GB/GBP account with
+            // a SEPA destination is semantically impossible — Bridge rejects
+            // with "country is not supported for SEPA" (PEANUT-API-5P/5M/5N
+            // on 2026-06-02). The account's `type` already carries the right
+            // answer for every Bridge destination we support.
+            const destination = getOfframpConfigFromAccount(account)
 
             // handle offramp request creation
             const offrampRequestParams: TCreateOfframpRequest = {
