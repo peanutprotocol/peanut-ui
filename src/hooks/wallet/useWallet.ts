@@ -14,7 +14,7 @@ import { useBalance } from './useBalance'
 import { useSendMoney as useSendMoneyMutation } from './useSendMoney'
 import { formatCurrency } from '@/utils/general.utils'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '../useRainCardOverview'
-import { computeAvailableSpendable, computeDisplaySpendable, rainSpendingPowerToWei } from '@/utils/balance.utils'
+import { computeAvailableSpendable, computeDisplaySpendable, rainCentsToUsdcUnits } from '@/utils/balance.utils'
 import { useSpendBundle, type SpendStrategy } from './useSpendBundle'
 import type { RainCollateralKind } from '@/services/rain'
 
@@ -147,7 +147,7 @@ export const useWallet = () => {
             // calls, route through useSpendBundle so Rain collateral can top up
             // the smart account within the same UserOp when the balance is short.
             if (options.requiredUsdcAmount !== undefined) {
-                const rainSpendingPower = rainSpendingPowerToWei(rainOverview?.balance?.spendingPower)
+                const rainSpendingPower = rainCentsToUsdcUnits(rainOverview?.balance?.spendingPower)
                 const smartNow = balanceFromQuery ?? 0n
                 const result = await spendBundle({
                     requiredUsdcAmount: options.requiredUsdcAmount,

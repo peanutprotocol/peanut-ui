@@ -21,7 +21,7 @@ import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
 import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
-import { rainSpendingPowerToWei } from '@/utils/balance.utils'
+import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
 import { isTxReverted, saveRedirectUrl, formatNumberForDisplay } from '@/utils/general.utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
 import {
@@ -580,7 +580,7 @@ export default function QRPayPage() {
                 requiredUsdcAmount,
                 recipient: MANTECA_DEPOSIT_ADDRESS,
                 smartBalance: balance ?? 0n,
-                rainSpendingPower: rainSpendingPowerToWei(rainCardOverview?.balance?.spendingPower),
+                rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                 kind: 'QR_PAY',
             })
         } catch (error) {

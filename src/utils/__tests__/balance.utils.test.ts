@@ -2,7 +2,7 @@ import {
     computeAvailableSpendable,
     computeDisplaySpendable,
     printableUsdc,
-    rainSpendingPowerToWei,
+    rainCentsToUsdcUnits,
 } from '../balance.utils'
 
 describe('balance utils', () => {
@@ -32,34 +32,34 @@ describe('balance utils', () => {
         })
     })
 
-    describe('rainSpendingPowerToWei', () => {
+    describe('rainCentsToUsdcUnits', () => {
         it.each([
-            // [cents input, expected USDC wei (6dp)]
+            // [cents input, expected USDC base units (6dp)]
             [0, 0n],
-            [1, 10_000n], // $0.01 → 10_000 wei
-            [100, 1_000_000n], // $1.00 → 1_000_000 wei
-            [4950, 49_500_000n], // $49.50 → 49_500_000 wei
-            [50_000, 500_000_000n], // $500.00 → 500_000_000 wei
-        ])('widens %i cents to %s wei', (cents, expected) => {
-            expect(rainSpendingPowerToWei(cents)).toBe(expected)
+            [1, 10_000n], // $0.01 → 10_000 base units
+            [100, 1_000_000n], // $1.00 → 1_000_000 base units
+            [4950, 49_500_000n], // $49.50 → 49_500_000 base units
+            [50_000, 500_000_000n], // $500.00 → 500_000_000 base units
+        ])('widens %i cents to %s base units', (cents, expected) => {
+            expect(rainCentsToUsdcUnits(cents)).toBe(expected)
         })
 
         it.each([[null], [undefined], [-100], [Number.NaN], [Number.POSITIVE_INFINITY], [Number.NEGATIVE_INFINITY]])(
             'returns 0n for invalid input (%s)',
             (input) => {
-                expect(rainSpendingPowerToWei(input)).toBe(0n)
+                expect(rainCentsToUsdcUnits(input)).toBe(0n)
             }
         )
 
-        it('sums cleanly with a smart-account balance in wei', () => {
+        it('sums cleanly with a smart-account balance in base units', () => {
             const smartAccount = 150_000_000n // $150.00 USDC (6dp)
             const rainCents = 4950 // $49.50
-            const total = smartAccount + rainSpendingPowerToWei(rainCents)
+            const total = smartAccount + rainCentsToUsdcUnits(rainCents)
             expect(printableUsdc(total)).toBe('199.50')
         })
 
         it("floors fractional cents (shouldn't happen but is defensive)", () => {
-            expect(rainSpendingPowerToWei(99.9)).toBe(990_000n) // floors to 99 cents
+            expect(rainCentsToUsdcUnits(99.9)).toBe(990_000n) // floors to 99 cents
         })
     })
 

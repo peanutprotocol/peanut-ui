@@ -82,7 +82,7 @@ export type RainCollateralKind =
 
 export interface PrepareRainWithdrawalInput {
     /** Rain cents (2dp), as a decimal string. e.g. `"500"` for $5.00.
-     *  Convert from USDC wei via `usdcWeiToRainCents` at the boundary. */
+     *  Convert from USDC wei via `usdcUnitsToRainCents` at the boundary. */
     amount: string
     recipientAddress: string
     directTransfer: boolean
