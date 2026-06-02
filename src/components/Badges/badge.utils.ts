@@ -128,22 +128,14 @@ export const BADGES: Record<string, BadgeMeta> = {
         path: '/badges/dunbar.svg',
         description: `150 — more people than you can remember. They hit Dunbar's number.`,
     },
-    // ── growth · invite-streak ladder (awarded by consecutive-day count) ────
-    STREAK_SPARK: {
-        path: '/badges/streak_spark.svg',
-        description: `Seven days running. The streak's lit.`,
-        displayName: 'Spark',
-    },
-    STREAK_BLAZE: {
-        path: '/badges/streak_blaze.svg',
-        description: `Thirty days, no gaps. They're blazing.`,
-        displayName: 'Blaze',
-    },
-    STREAK_WILDFIRE: {
-        path: '/badges/streak_wildfire.svg',
-        description: 'A hundred days straight. This is a wildfire now.',
-        displayName: 'Wildfire',
-    },
+    // ── growth · invite-streak ladder — DEFERRED ────────────────────────────
+    // A streak is ephemeral live state that resets on a miss, not a permanent
+    // binary badge. Deferred to a dedicated streak feature; assets stay in
+    // public/badges/. Backend defs are commented out in peanut-api-ts
+    // seed-definitions.ts — keep these parked too so codes stay aligned.
+    // STREAK_SPARK:    { path: '/badges/streak_spark.svg',    description: `Seven days running. The streak's lit.`,       displayName: 'Spark' },
+    // STREAK_BLAZE:    { path: '/badges/streak_blaze.svg',    description: `Thirty days, no gaps. They're blazing.`,       displayName: 'Blaze' },
+    // STREAK_WILDFIRE: { path: '/badges/streak_wildfire.svg', description: 'A hundred days straight. This is a wildfire now.', displayName: 'Wildfire' },
     // ── mentions · yaps ─────────────────────────────────────────────────────
     CERTIFIED_YAPPER: {
         path: '/badges/certified_yapper.svg',
