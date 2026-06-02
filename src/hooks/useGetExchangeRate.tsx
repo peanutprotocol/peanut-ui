@@ -11,12 +11,24 @@ export interface IExchangeRate {
  * Used to get exchange rate for a given account type using TanStack Query
  * @returns {string, boolean} The exchange rate for the given account type and a boolean indicating if the rate is being fetched
  */
+// `/bridge/exchange-rate` only serves Bridge bank-account types with a
+// non-trivial FX rate: IBAN (EUR), CLABE (MXN), GB (GBP). US is USD↔USD = 1
+// by definition. Other AccountType values (MANTECA, EVM_ADDRESS, PEANUT_WALLET)
+// aren't on the Bridge enum and 400 the endpoint (PEANUT-UI-QHR, 2026-06-02).
+// Treat those like US — '1' is a safe display fallback; consumers already
+// degrade gracefully on '1' (and the only consumer that needs a real Manteca
+// FX rate routes through `getCachedCurrencyPrice` in actions/currency.ts).
+// TODO: Manteca-currency display rates should route through that helper too
+// instead of returning '1'; separate PR.
+const BRIDGE_FX_ACCOUNT_TYPES: ReadonlySet<AccountType> = new Set([AccountType.IBAN, AccountType.CLABE, AccountType.GB])
+
 export default function useGetExchangeRate({ accountType, enabled = true }: IExchangeRate) {
     const { data: exchangeRate, isFetching: isFetchingRate } = useQuery({
         queryKey: ['exchangeRate', accountType],
         queryFn: async () => {
-            // US accounts have 1:1 exchange rate
-            if (accountType === AccountType.US) {
+            // Anything not on the Bridge FX set returns the passthrough rate.
+            // Includes AccountType.US (USD↔USD = 1).
+            if (!BRIDGE_FX_ACCOUNT_TYPES.has(accountType)) {
                 return '1'
             }
 
