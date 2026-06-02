@@ -38,6 +38,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { getRegionIntent } from '@/utils/regions.utils'
 
 // Step type for URL state
 type BridgeBankStep = 'inputAmount' | 'showDetails'
@@ -71,7 +72,8 @@ export default function OnrampBankPage() {
 
     // inline sumsub kyc flow for bridge bank onramp
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
-    // intent is passed at call time: handleInitiateKyc('STANDARD')
+    // intent is passed at call time, derived from the destination country
+    // (e.g. /add-money/usa → NA → bridge-requirements).
     const sumsubFlow = useMultiPhaseKycFlow({
         onKycSuccess: () => {
             setUrlState({ step: 'inputAmount' })
@@ -418,7 +420,7 @@ export default function OnrampBankPage() {
                             await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                         } else {
                             await sumsubFlow.handleInitiateKyc(
-                                'STANDARD',
+                                getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
                                 undefined,
                                 gate.kind === 'needs-enrollment' || undefined
                             )

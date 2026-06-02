@@ -32,6 +32,7 @@ import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { sendLinksApi } from '@/services/sendLinks'
 import { useSearchParams } from 'next/navigation'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { getRegionIntent } from '@/utils/regions.utils'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
@@ -93,7 +94,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
 
     // inline sumsub kyc flow for users who need verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
-    // intent is passed at call time: handleInitiateKyc('STANDARD')
+    // intent is passed at call time, derived from the destination country.
     const sumsubFlow = useMultiPhaseKycFlow({
         onKycSuccess: async () => {
             if (justCompletedKyc) return
@@ -296,7 +297,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         // scenario 1: receiver needs KYC
         // name and email are now collected by sumsub sdk — no need to save them beforehand
         if (bankClaimType === BankClaimType.ReceiverKycNeeded && !justCompletedKyc) {
-            await sumsubFlow.handleInitiateKyc('STANDARD')
+            await sumsubFlow.handleInitiateKyc(getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'))
             return {}
         }
 
@@ -564,7 +565,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                                     await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                                 } else {
                                     await sumsubFlow.handleInitiateKyc(
-                                        'STANDARD',
+                                        getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
                                         undefined,
                                         gate.kind === 'needs-enrollment' || undefined
                                     )
