@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom'
 import { Button } from '@/components/0_Bruddle/Button'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
-import { PEANUTMAN_LOGO } from '@/assets/peanut'
+import { PEANUTMAN_LOGO } from '@/assets/mascot'
 import { ETHEREUM_ICON } from '@/assets/icons'
 import Image from 'next/image'
 import { Icon } from '../Icons/Icon'

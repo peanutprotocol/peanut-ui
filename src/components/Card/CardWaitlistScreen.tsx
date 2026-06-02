@@ -5,7 +5,7 @@
  * check but don't hold a skip badge AND haven't joined the waitlist yet.
  *
  * Tone: gentle let-down, not a wall. Uses the canonical crying-peanut
- * GIF (PEANUTMAN_CRY — also used in NoDataEmptyState + Error views),
+ * GIF (PeanutCrying — also used in NoDataEmptyState + Error views),
  * one-line "you don't have the required badge" headline, soft "but you
  * can join the waitlist" pitch, single CTA. No skip-the-line gallery
  * here — the goal is conversion to waitlist, not badge-hunting.
@@ -18,7 +18,7 @@ import Image from 'next/image'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import ErrorAlert from '@/components/Global/ErrorAlert'
-import PEANUTMAN_CRY from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_05.gif'
+import { PeanutCrying } from '@/assets/mascot'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { cardApi, type CardInfoResponse } from '@/services/card'
@@ -65,7 +65,7 @@ const CardWaitlistScreen: FC<Props> = ({ onPrev, onJoined }) => {
 
             <div className="my-auto flex flex-col items-center gap-6 text-center">
                 <Image
-                    src={PEANUTMAN_CRY.src}
+                    src={PeanutCrying.src}
                     alt="Sad peanut"
                     width={180}
                     height={180}

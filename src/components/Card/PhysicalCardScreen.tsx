@@ -9,7 +9,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
 import CardFace from '@/components/Card/CardFace'
 import { rainApi } from '@/services/rain'
-import { PEANUTMAN_RAISING_HANDS } from '@/assets/peanut'
+import { PeanutCheering } from '@/assets/mascot'
 
 export const PHYSICAL_WAITLIST_QUERY_KEY = 'rain-physical-waitlist'
 
@@ -73,7 +73,7 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
                 </div>
             ) : data?.joinedAt ? (
                 <div className="flex flex-col items-center gap-3 text-center">
-                    <Image src={PEANUTMAN_RAISING_HANDS} alt="" aria-hidden className="h-32 w-auto" />
+                    <Image src={PeanutCheering} alt="" aria-hidden className="h-32 w-auto" />
                     <h1 className="text-xl font-extrabold">You are on the list!</h1>
                     <p className="text-sm text-grey-1">
                         You are #{data.position} on the list. We&apos;ll let you know when cards are ready to be

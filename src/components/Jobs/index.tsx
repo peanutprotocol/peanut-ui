@@ -1,10 +1,10 @@
-import { PeanutGuyGIF } from '@/assets'
+import { PeanutPeace } from '@/assets'
 
 export function Careers() {
     return (
         <div className="flex h-full flex-col-reverse items-center justify-center lg:flex-row">
             <div className="w-4/5 md:w-1/2">
-                <img src={PeanutGuyGIF.src} className="h-full w-auto md:h-fit md:w-fit" />
+                <img src={PeanutPeace.src} className="h-full w-auto md:h-fit md:w-fit" />
             </div>
             <div>
                 <div className="font-display text-xl lg:text-3xl">{'<'} Hey there! Want to work at Peanut?</div>

@@ -4,7 +4,7 @@ import { Suspense } from 'react'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import SignTestTransaction from '@/components/Setup/Views/SignTestTransaction'
-import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
+import { PeanutPeace } from '@/assets/mascot'
 import { useAuth } from '@/context/authContext'
 
 /**
@@ -18,7 +18,7 @@ function FinishSetupPageContent() {
         <SetupWrapper
             layoutType="signup"
             screenId="sign-test-transaction"
-            image={chillPeanutAnim.src}
+            image={PeanutPeace.src}
             showLogoutButton={true}
             onLogout={logoutUser}
             isLoggingOut={isLoggingOut}

@@ -1,4 +1,4 @@
-import PEANUTMAN_CRY from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_05.gif'
+import { PeanutCrying } from '@/assets/mascot'
 import Image from 'next/image'
 import { useMemo } from 'react'
 
@@ -27,7 +27,7 @@ const NoDataEmptyState = ({ message, cta, animSize }: NoDataEmptyStateProps) => 
     return (
         <div className="flex flex-col items-center justify-center gap-3">
             <Image
-                src={PEANUTMAN_CRY.src}
+                src={PeanutCrying.src}
                 alt="Peanutman crying 😭"
                 width={getAnimSize}
                 height={getAnimSize}

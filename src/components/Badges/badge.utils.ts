@@ -5,7 +5,7 @@
 // This is the SINGLE SOURCE OF TRUTH for badge codes + metadata on the FE.
 // Don't add a parallel catalog elsewhere — consumers (share-asset stamps,
 // /dev/share-builder, debug pages) read `BADGES` and helpers below directly.
-import { PEANUTMAN_LOGO } from '@/assets/peanut'
+import { PEANUTMAN_LOGO } from '@/assets/mascot'
 
 export type BadgeMeta = {
     path: string

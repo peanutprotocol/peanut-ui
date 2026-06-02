@@ -53,7 +53,7 @@ import ActionModal from '@/components/Global/ActionModal'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
-import { PeanutGuyGIF, STAR_STRAIGHT_ICON } from '@/assets'
+import { PeanutPeace, STAR_STRAIGHT_ICON } from '@/assets'
 import { useAuth } from '@/context/authContext'
 import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
@@ -1560,7 +1560,7 @@ const QrPayPageLoading = ({ message }: { message: string }) => {
         <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
             <div className="relative">
                 <Image
-                    src={PeanutGuyGIF}
+                    src={PeanutPeace}
                     alt="Peanut Man"
                     layout="fill"
                     objectFit="contain"

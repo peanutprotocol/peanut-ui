@@ -1,7 +1,7 @@
 'use client'
 import type { FC } from 'react'
 import Image from 'next/image'
-import PEANUTMAN_CRY from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_05.gif'
+import { PeanutCrying } from '@/assets/mascot'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
 
@@ -37,7 +37,7 @@ const ApplicationStatusScreen: FC<Props> = ({ variant, onContactSupport, onPrev 
                 {variant === 'pending' && <Loading />}
                 {variant === 'rejected' && (
                     <Image
-                        src={PEANUTMAN_CRY.src}
+                        src={PeanutCrying.src}
                         alt="Peanutman crying 😭"
                         width={128}
                         height={128}

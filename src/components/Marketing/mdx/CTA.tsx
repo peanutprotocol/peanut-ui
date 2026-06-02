@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
-import { PeanutGuyGIF } from '@/assets'
+import { PeanutPeace } from '@/assets'
 import { PROSE_WIDTH } from './constants'
 
 interface CTAProps {
@@ -46,7 +46,7 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
             <div className={`mx-auto ${PROSE_WIDTH} px-6 py-10 md:px-4 md:py-14`}>
                 <div className="relative">
                     <Image
-                        src={PeanutGuyGIF}
+                        src={PeanutPeace}
                         alt="Peanut mascot"
                         width={200}
                         height={200}

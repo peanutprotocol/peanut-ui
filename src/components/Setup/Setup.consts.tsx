@@ -1,6 +1,5 @@
-import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
-import happyPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_03.gif'
-import { PEANUTMAN_MOBILE, ThinkingPeanut } from '@/assets'
+import { PeanutCheering, PeanutPeace } from '@/assets/mascot'
+import { PEANUTMAN_MOBILE, PeanutThinking } from '@/assets'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
 import { InstallPWA, SetupPasskey, SignupStep, LandingStep, SignTestTransaction } from '@/components/Setup/Views'
 import JoinWaitlist from './Views/JoinWaitlist'
@@ -47,7 +46,7 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         title: 'Peanut makes dollars easy.',
         description: 'Create your wallet in seconds to save, send, or cash out dollars fast.',
-        image: chillPeanutAnim.src,
+        image: PeanutPeace.src,
         component: LandingStep,
         showBackButton: false,
         showSkipButton: false,
@@ -58,7 +57,7 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         title: 'Peanut is invite-only',
         description: `Who invited you? Enter their username to continue, or join the waitlist and we'll reach out when you're eligible.`,
-        image: chillPeanutAnim.src,
+        image: PeanutPeace.src,
         component: JoinWaitlist,
         showBackButton: true,
         showSkipButton: false,
@@ -69,7 +68,7 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         title: 'How should we call you?',
         description: "Choose your username. It'll be your ID to send and receive money.",
-        image: ThinkingPeanut.src,
+        image: PeanutThinking.src,
         component: SignupStep,
         showBackButton: true,
         showSkipButton: false,
@@ -80,7 +79,7 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         title: `Let's set up your passkey`,
         description: `Use your face or fingerprint to log in. No passwords, no hassle. Just you.`,
-        image: happyPeanutAnim.src,
+        image: PeanutCheering.src,
         component: SetupPasskey,
         showBackButton: true,
         showSkipButton: false,
@@ -91,7 +90,7 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         title: 'Your wallet is ready',
         description: "Just confirm it's you — one tap and you're in.",
-        image: chillPeanutAnim.src,
+        image: PeanutPeace.src,
         component: SignTestTransaction,
         showBackButton: false,
         showSkipButton: false,

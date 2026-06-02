@@ -23,7 +23,7 @@
 
 import { type FC, type CSSProperties } from 'react'
 import { CARD_W, CARD_H } from './shareAssetLayout'
-import { PEANUTMAN_LOGO } from '@/assets/peanut'
+import { PEANUTMAN_LOGO } from '@/assets/mascot'
 import PEANUT_CARD_HAND_ASSET from '@/assets/cards/peanut-card-hand.svg'
 import VISA_BRAND_MARK_ASSET from '@/assets/cards/visa-brand-mark.png'
 

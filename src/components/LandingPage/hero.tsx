@@ -1,6 +1,6 @@
 'use client'
 
-import { GlobalCashLocalFeel, PeanutGuyGIF, Star } from '@/assets'
+import { GlobalCashLocalFeel, PeanutPeace, Star } from '@/assets'
 import { motion } from 'framer-motion'
 import { useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -61,7 +61,7 @@ function PeanutMascot() {
     return (
         <img
             ref={imgRef}
-            src={PeanutGuyGIF.src}
+            src={PeanutPeace.src}
             alt="Peanut Guy"
             className="absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain"
         />
