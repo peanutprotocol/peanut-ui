@@ -45,9 +45,11 @@ const RAIL_SLUGS = new Set([
     'avalanche',
     'base',
     'ethereum',
+    'faster-payments',
     'polygon',
     'sepa',
     'solana',
+    'spei',
     'tron',
     'wire',
 ])
