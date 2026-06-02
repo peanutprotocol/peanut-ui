@@ -1,7 +1,7 @@
 'use client'
 
 import { useAuth } from '@/context/authContext'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import { useMemo } from 'react'
 
 /**

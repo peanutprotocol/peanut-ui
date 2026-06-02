@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 
 const mockUseAuth = jest.fn()
 jest.mock('@/context/authContext', () => ({
