@@ -256,6 +256,7 @@ jest.mock('@/constants/countryCurrencyMapping', () => ({
     ],
     isNonEuroSepaCountry: jest.fn(() => false),
     isUKCountry: jest.fn(() => false),
+    getFlagUrl: jest.fn((iso2: string) => `/flags/${iso2}.svg`),
 }))
 
 // Rhino consts
@@ -681,6 +682,7 @@ jest.mock('@/components/AddMoney/consts', () => ({
         { type: 'country', id: 'XX', path: 'unknown', currency: 'USD', iso3: 'XXX' },
     ],
     ALL_COUNTRIES_ALPHA3_TO_ALPHA2: { ARG: 'AR', BRA: 'BR', USA: 'US', DEU: 'DE', MEX: 'MX', GBR: 'GB' },
+    BRIDGE_ALPHA3_TO_ALPHA2: { USA: 'US', DEU: 'DE', MEX: 'MX', GBR: 'GB' },
 }))
 
 jest.mock('@/components/TransactionDetails/transactionTransformer', () => ({}))
