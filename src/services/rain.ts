@@ -31,6 +31,13 @@ export interface RainCardBalance {
     pendingCharges: number
     postedCharges: number
     balanceDue: number
+    /**
+     * Card collateral top-up funds debited from the smart account on-chain but
+     * not yet credited to Rain collateral (the ~10–45s smart→collateral
+     * handoff). Folded into the displayed balance so it doesn't crater to 0
+     * mid-top-up. Optional for backward-compat with a pre-deploy backend.
+     */
+    inTransitToCollateralCents?: number
 }
 
 export interface RainCardSummary {

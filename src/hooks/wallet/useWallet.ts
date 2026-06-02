@@ -14,7 +14,7 @@ import { useBalance } from './useBalance'
 import { useSendMoney as useSendMoneyMutation } from './useSendMoney'
 import { formatCurrency } from '@/utils/general.utils'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '../useRainCardOverview'
-import { rainSpendingPowerToWei } from '@/utils/balance.utils'
+import { computeAvailableSpendable, computeDisplaySpendable, rainSpendingPowerToWei } from '@/utils/balance.utils'
 import { useSpendBundle, type SpendStrategy } from './useSpendBundle'
 import type { RainCollateralKind } from '@/services/rain'
 
@@ -202,18 +202,27 @@ export const useWallet = () => {
     // consider balance as fetching until: address is validated and query has resolved
     const isBalanceLoading = !isAddressReady || isFetchingBalance
 
-    // Rain collateral (spendingPower) — added to the smart-account balance to produce
-    // the single "spendable" number the user sees on home. See docs §4.5 and §6 in
-    // peanut-api-ts/docs/rain-card-test-summary.md and the card design spec.
-    // `rainOverview` is declared above so `sendTransactions` can consult it too.
-    const rainSpendingPowerWei = useMemo(
-        () => rainSpendingPowerToWei(rainOverview?.balance?.spendingPower),
-        [rainOverview?.balance?.spendingPower]
-    )
+    // Two flavours of "spendable", both summing the smart-account balance with
+    // Rain collateral. See docs §4.5 and §6 in peanut-api-ts/docs/rain-card-test-summary.md
+    // and the card design spec. `rainOverview` is declared above so `sendTransactions`
+    // can consult it too.
+    //   • availableSpendableBalance — smart + LANDED collateral. What can actually
+    //     be spent right now; backs the affordability gate + spend routing.
+    //   • rawSpendableBalance (display) — also adds collateral top-ups still in
+    //     transit, so the unified balance doesn't crater to 0 during the ~10–45s
+    //     smart→collateral auto-balance handoff.
+    const availableSpendableBalance = useMemo(() => {
+        if (balance === undefined) return undefined
+        return computeAvailableSpendable(balance, rainOverview?.balance?.spendingPower)
+    }, [balance, rainOverview?.balance?.spendingPower])
     const rawSpendableBalance = useMemo(() => {
         if (balance === undefined) return undefined
-        return balance + rainSpendingPowerWei
-    }, [balance, rainSpendingPowerWei])
+        return computeDisplaySpendable(
+            balance,
+            rainOverview?.balance?.spendingPower,
+            rainOverview?.balance?.inTransitToCollateralCents
+        )
+    }, [balance, rainOverview?.balance?.spendingPower, rainOverview?.balance?.inTransitToCollateralCents])
 
     // The two inputs (smart-account + rain overview) refresh independently.
     // When both change at once (e.g. auto-balancer deposit: smart goes down,
@@ -257,18 +266,20 @@ export const useWallet = () => {
         return formatCurrency(formatUnits(spendableBalance, PEANUT_WALLET_TOKEN_DECIMALS))
     }, [spendableBalance])
 
-    // Check if the user has enough spendable to cover a USD amount.
-    // Spendable = smart account + Rain collateral `spendingPower`. Use this
-    // anywhere a user-facing "can you afford X?" gate is needed.
+    // Check if the user has enough spendable to cover a USD amount. Gates on
+    // available-now (smart + LANDED collateral) — NOT the displayed total, which
+    // includes in-transit top-ups that can't be routed until they land. Using the
+    // real figure avoids green-lighting a send that would fail at execution during
+    // the brief top-up window.
     const hasSufficientSpendableBalance = useCallback(
         (amountUsd: string | number): boolean => {
-            if (spendableBalance === undefined) return false
+            if (availableSpendableBalance === undefined) return false
             const amount = typeof amountUsd === 'string' ? parseFloat(amountUsd) : amountUsd
             if (isNaN(amount) || amount < 0) return false
-            const amountInWei = BigInt(Math.floor(amount * 10 ** PEANUT_WALLET_TOKEN_DECIMALS))
-            return spendableBalance >= amountInWei
+            const amountInBaseUnits = BigInt(Math.floor(amount * 10 ** PEANUT_WALLET_TOKEN_DECIMALS))
+            return availableSpendableBalance >= amountInBaseUnits
         },
-        [spendableBalance]
+        [availableSpendableBalance]
     )
 
     return {

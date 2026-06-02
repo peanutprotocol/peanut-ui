@@ -1,4 +1,9 @@
-import { printableUsdc, rainSpendingPowerToWei } from '../balance.utils'
+import {
+    computeAvailableSpendable,
+    computeDisplaySpendable,
+    printableUsdc,
+    rainSpendingPowerToWei,
+} from '../balance.utils'
 
 describe('balance utils', () => {
     describe('printableUsdc', () => {
@@ -56,5 +61,48 @@ describe('balance utils', () => {
         it("floors fractional cents (shouldn't happen but is defensive)", () => {
             expect(rainSpendingPowerToWei(99.9)).toBe(990_000n) // floors to 99 cents
         })
+    })
+
+    describe('computeAvailableSpendable', () => {
+        it('sums smart-account balance with landed collateral', () => {
+            // $150 smart + $49.50 collateral = $199.50
+            expect(printableUsdc(computeAvailableSpendable(150_000_000n, 4950))).toBe('199.50')
+        })
+
+        it.each([[null], [undefined], [0]])('returns smart-only when spendingPower is %s', (cents) => {
+            expect(computeAvailableSpendable(1_000_000n, cents)).toBe(1_000_000n)
+        })
+    })
+
+    describe('computeDisplaySpendable', () => {
+        it('holds the displayed balance steady mid-top-up (funds left smart, collateral not yet landed)', () => {
+            // Auto-balancer moved the user's $500 from smart → collateral. The
+            // on-chain debit landed (smart now 0) but Rain hasn't credited the
+            // collateral yet, so spendingPower is still 0.
+            const smart = 0n
+            const spendingPowerCents = 0
+            const inTransitCents = 50_000 // $500 mid-flight
+            // available-now craters to $0 ...
+            expect(computeAvailableSpendable(smart, spendingPowerCents)).toBe(0n)
+            // ... but the displayed total stays at $500 (no scary $0 flash).
+            expect(printableUsdc(computeDisplaySpendable(smart, spendingPowerCents, inTransitCents))).toBe('500.00')
+        })
+
+        it('keeps the displayed total conserved as the collateral lands', () => {
+            const preLanding = computeDisplaySpendable(0n, 0, 50_000) // smart 0, sp 0, in-transit $500
+            const postLanding = computeDisplaySpendable(0n, 50_000, 0) // smart 0, sp $500, in-transit 0
+            expect(preLanding).toBe(postLanding)
+            expect(printableUsdc(preLanding)).toBe('500.00')
+        })
+
+        it.each([[0], [null], [undefined]])(
+            'equals available-now when nothing is in transit (%s)',
+            (inTransitCents) => {
+                const smart = 150_000_000n
+                expect(computeDisplaySpendable(smart, 4950, inTransitCents)).toBe(
+                    computeAvailableSpendable(smart, 4950)
+                )
+            }
+        )
     })
 })

@@ -28,6 +28,40 @@ export const rainSpendingPowerToWei = (spendingPowerCents: number | null | undef
 }
 
 /**
+ * Available-now spendable balance, as a USDC base-unit bigint (6dp) — the
+ * smart-account balance plus landed Rain collateral `spendingPower`. This is
+ * what the user can actually spend right now (`useSpendBundle` routes through
+ * the smart account and landed collateral), so it backs the affordability gate
+ * and spend routing.
+ */
+export const computeAvailableSpendable = (
+    smartBalance: bigint,
+    spendingPowerCents: number | null | undefined
+): bigint => smartBalance + rainSpendingPowerToWei(spendingPowerCents)
+
+/**
+ * Total spendable balance for DISPLAY, as a USDC base-unit bigint (6dp) —
+ * available-now plus card collateral top-ups still in transit.
+ *
+ * The auto-balancer debits the smart account on-chain ~10–45s before Rain
+ * credits the collateral; in that gap the funds are in neither bucket and the
+ * raw `smart + spendingPower` sum craters to 0. Adding the in-transit amount
+ * (from the backend's `inTransitToCollateralCents`) keeps the unified balance
+ * steady through the handoff.
+ *
+ * In-transit funds aren't spendable until they land, so they are deliberately
+ * EXCLUDED from `computeAvailableSpendable` (gate + routing). During the window
+ * the displayed total therefore exceeds spendable-now by the in-flight amount —
+ * by design — and reconciles within seconds once collateral lands.
+ */
+export const computeDisplaySpendable = (
+    smartBalance: bigint,
+    spendingPowerCents: number | null | undefined,
+    inTransitToCollateralCents: number | null | undefined
+): bigint =>
+    computeAvailableSpendable(smartBalance, spendingPowerCents) + rainSpendingPowerToWei(inTransitToCollateralCents)
+
+/**
  * Convert a USDC wei amount (PEANUT_WALLET_TOKEN_DECIMALS, typically 6dp) to
  * cents (2dp), the unit Rain's `/signatures/withdrawals` API takes on its
  * INPUT side. Rounds up so a sub-cent shortfall still withdraws at least one
