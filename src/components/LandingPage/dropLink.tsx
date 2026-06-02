@@ -2,8 +2,8 @@
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/0_Bruddle/Button'
-import iphoneDropALink from '@/assets/iphone-ss/iphone-drop-a-link.png'
-import iphoneDropALinkMobile from '@/assets/iphone-ss/iphone-drop-a-link-mobile.png'
+import iphoneDropALink from '@/assets/iphone-ss/iphone-drop-a-link.webp'
+import iphoneDropALinkMobile from '@/assets/iphone-ss/iphone-drop-a-link-mobile.webp'
 import { WHATSAPP_ICON, IMESSAGE_ICON, FBMessenger_ICON, TELEGRAM_ICON } from '@/assets/icons'
 
 // Define the background color as a constant
