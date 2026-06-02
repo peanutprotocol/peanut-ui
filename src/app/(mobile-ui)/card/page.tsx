@@ -384,6 +384,11 @@ const CardPage: FC = () => {
                     // The user just finished MAIN; BE now wants the
                     // rain-card-application questionnaire. Open the WebSDK
                     // again at the new level instead of polling-to-timeout.
+                    // Reset the completion flag — handleSumsubClose uses it
+                    // to gate the CARD_SUMSUB_CLOSED abandonment metric, and
+                    // closing the REOPENED level without finishing should
+                    // count as abandonment of the questionnaire.
+                    sumsubCompletedRef.current = false
                     setSumsubToken(action.sumsubAccessToken)
                     lastSumsubLevelRef.current = action.level
                     posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
@@ -399,6 +404,15 @@ const CardPage: FC = () => {
                     return
                 case 'aborted':
                     return
+                default: {
+                    // Compile-time exhaustiveness guard: adding a new
+                    // PostSumsubAction variant without a matching case
+                    // becomes a type error here instead of a silent
+                    // fall-through at runtime.
+                    const _exhaustive: never = action
+                    void _exhaustive
+                    return
+                }
             }
         } catch (e) {
             if (controller.signal.aborted) return
