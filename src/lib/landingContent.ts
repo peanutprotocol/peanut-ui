@@ -55,9 +55,20 @@ export function getLandingContent(locale: Locale = 'en'): LandingContent {
         },
         faqData: {
             heading: fm.faqs?.heading ?? DEFAULTS.faqData.heading,
-            questions: fm.faqs?.questions ?? [],
-            marquee: fm.faqs?.marquee ?? DEFAULTS.faqData.marquee,
+            // Authored frontmatter — drop malformed entries so a null/partial
+            // item can't crash the .map() in the landing page.
+            questions: (fm.faqs?.questions ?? []).filter(
+                (q): q is { id: string; question: string; answer: string } =>
+                    q != null &&
+                    typeof q.id === 'string' &&
+                    typeof q.question === 'string' &&
+                    typeof q.answer === 'string'
+            ),
+            marquee:
+                fm.faqs?.marquee && typeof fm.faqs.marquee.message === 'string'
+                    ? fm.faqs.marquee
+                    : DEFAULTS.faqData.marquee,
         },
-        marqueeMessages: fm.marquee ?? DEFAULTS.marqueeMessages,
+        marqueeMessages: (fm.marquee ?? DEFAULTS.marqueeMessages).filter((m): m is string => typeof m === 'string'),
     }
 }
