@@ -261,6 +261,10 @@ export const useWallet = () => {
     // they actually have and the "insufficient balance" gate trips even
     // though useSpendBundle would route through collateral just fine
     // (2026-05-08 jotest097 report TASK-19573).
+    // NOTE: derived from `spendableBalance`, which includes in-transit collateral
+    // top-ups, so during the ~10–45s smart→collateral handoff this can read
+    // higher than `hasSufficientSpendableBalance` allows (gate is on available-now,
+    // by design — those funds aren't routable until they land). Self-heals in seconds.
     const formattedSpendableBalance = useMemo(() => {
         if (spendableBalance === undefined) return '0.00'
         return formatCurrency(formatUnits(spendableBalance, PEANUT_WALLET_TOKEN_DECIMALS))
