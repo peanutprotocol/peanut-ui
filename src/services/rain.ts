@@ -406,6 +406,27 @@ export const rainApi = {
         })
     },
 
+    /**
+     * Cheap polling endpoint for the post-Sumsub WebSDK-close window.
+     *
+     * `applyForCard` is a heavy call — each invocation does `moveToLevel` +
+     * `getApplicant` + `getQuestionnaireAnswers` against Sumsub's API. Polling
+     * it every second for 15s during the async-review race adds up to ~75
+     * Sumsub round-trips per stuck user. This endpoint reads a single
+     * webhook-stamped flag from our DB instead, so it's safe to poll at high
+     * frequency without burning Sumsub rate budget.
+     */
+    getCardApplyReadiness: async (): Promise<{
+        ready: boolean
+        hasApplication: boolean
+        readyAt?: string
+    }> => {
+        return rainRequest<{ ready: boolean; hasApplication: boolean; readyAt?: string }>({
+            method: 'GET',
+            path: '/rain/cards/readiness',
+        })
+    },
+
     /** Activate a card (from locked or not-activated). Returns the new Rain status. */
     activateCard: async (cardId: string): Promise<string> => {
         const { status } = await rainRequest<{ status: string }>({

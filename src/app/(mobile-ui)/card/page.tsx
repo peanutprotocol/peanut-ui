@@ -8,7 +8,7 @@ import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { computeCardState, findActiveCard, type CardTopLevelState } from '@/components/Card/cardState.utils'
-import { pollUntilApplyAdvances } from '@/components/Card/cardApply.utils'
+import { pollUntilApplyAdvances, pollUntilReady } from '@/components/Card/cardApply.utils'
 import AddCardEntryScreen from '@/components/Card/AddCardEntryScreen'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 import CardTermsScreen from '@/components/Card/CardTermsScreen'
@@ -360,10 +360,36 @@ const CardPage: FC = () => {
         pollAbortRef.current = controller
 
         try {
+            // Two-stage poll. First wait for the webhook-stamped readiness flag
+            // (cheap, DB-only, safe at 1s cadence). Once Sumsub has reviewed
+            // rain-requirements GREEN, fall through to the existing apply poll.
+            //
+            // Previous behaviour: single-stage `pollUntilApplyAdvances` against
+            // POST /rain/cards — every iteration hit Sumsub for `moveToLevel` +
+            // `getApplicant` + `getQuestionnaireAnswers`. ~75 Sumsub round-trips
+            // per stuck user, AND the WebSDK got re-opened on every `incomplete`
+            // in the race window, showing the user "verification is taking
+            // longer than expected" (Barbara F-M's 2026-06-02 Crisp escalation).
+            const readyResult = await pollUntilReady({
+                fetchReadiness: () => rainApi.getCardApplyReadiness(),
+                intervalMs: 1000,
+                timeoutMs: 30000,
+                signal: controller.signal,
+            })
+            if (controller.signal.aborted) return
+            if (readyResult === false) {
+                setApplyError('Verification is taking longer than expected. Please try again.')
+                return
+            }
+
+            // Sumsub is GREEN — single apply call should now advance past
+            // `incomplete`. Keep `pollUntilApplyAdvances` as a thin safety net
+            // for the rare case where the webhook flag landed but the
+            // applicant state hasn't fully propagated (e.g. read-replica lag).
             const res = await pollUntilApplyAdvances({
                 fetchApply: () => rainApi.applyForCard({ termsAccepted: false }),
                 intervalMs: 1000,
-                timeoutMs: 15000,
+                timeoutMs: 5000,
                 signal: controller.signal,
             })
             if (controller.signal.aborted) return
