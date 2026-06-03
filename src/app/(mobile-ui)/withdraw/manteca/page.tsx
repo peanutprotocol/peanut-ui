@@ -4,7 +4,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
 import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
-import { rainSpendingPowerToWei } from '@/utils/balance.utils'
+import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -341,7 +341,7 @@ export default function MantecaWithdrawFlow() {
                     requiredUsdcAmount,
                     recipient: MANTECA_DEPOSIT_ADDRESS,
                     smartBalance: smartBalance ?? 0n,
-                    rainSpendingPower: rainSpendingPowerToWei(rainCardOverview?.balance?.spendingPower),
+                    rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                     kind: 'FIAT_OFFRAMP',
                 })
             } catch (error) {

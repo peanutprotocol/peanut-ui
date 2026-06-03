@@ -31,6 +31,13 @@ export interface RainCardBalance {
     pendingCharges: number
     postedCharges: number
     balanceDue: number
+    /**
+     * Card collateral top-up funds debited from the smart account on-chain but
+     * not yet credited to Rain collateral (the ~10–45s smart→collateral
+     * handoff). Folded into the displayed balance so it doesn't crater to 0
+     * mid-top-up. Optional for backward-compat with a pre-deploy backend.
+     */
+    inTransitToCollateralCents?: number
 }
 
 export interface RainCardSummary {
@@ -75,7 +82,7 @@ export type RainCollateralKind =
 
 export interface PrepareRainWithdrawalInput {
     /** Rain cents (2dp), as a decimal string. e.g. `"500"` for $5.00.
-     *  Convert from USDC wei via `usdcWeiToRainCents` at the boundary. */
+     *  Convert from USDC wei via `usdcUnitsToRainCents` at the boundary. */
     amount: string
     recipientAddress: string
     directTransfer: boolean

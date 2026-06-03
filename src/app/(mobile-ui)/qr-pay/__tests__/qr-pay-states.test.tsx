@@ -129,7 +129,7 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
 }))
 
 jest.mock('@/utils/balance.utils', () => ({
-    rainSpendingPowerToWei: jest.fn(() => 0n),
+    rainCentsToUsdcUnits: jest.fn(() => 0n),
 }))
 
 const mockUseTransactionDetailsDrawer = jest.fn()
