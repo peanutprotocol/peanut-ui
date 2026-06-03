@@ -80,7 +80,7 @@ jest.mock('@/assets/payment-apps', () => ({
 }))
 
 jest.mock('@/assets', () => ({
-    PeanutPeace: '/peanut-guy.gif',
+    PeanutThinking: '/peanut-guy.gif',
     STAR_STRAIGHT_ICON: '/star.png',
 }))
 

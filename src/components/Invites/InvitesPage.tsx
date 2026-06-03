@@ -5,7 +5,7 @@ import ValidationErrorView from '../Payment/Views/Error.validation.view'
 import InvitesPageLayout from './InvitesPageLayout'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '@/components/0_Bruddle/Button'
-import { PeanutPeace } from '@/assets/mascot'
+import { PeanutWavingHello } from '@/assets/mascot'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { invitesApi } from '@/services/invites'
 import { useQuery } from '@tanstack/react-query'
@@ -195,7 +195,7 @@ function InvitePageContent() {
     }
 
     return (
-        <InvitesPageLayout image={PeanutPeace.src}>
+        <InvitesPageLayout image={PeanutWavingHello.src}>
             <div
                 className={twMerge(
                     'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',

@@ -1,4 +1,11 @@
-import { PEANUTMAN_MOBILE, PeanutCheering, PeanutPeace, PeanutThinking } from '@/assets/mascot'
+import {
+    PEANUTMAN_MOBILE,
+    PeanutCheering,
+    PeanutPointing,
+    PeanutThinking,
+    PeanutTooCool,
+    PeanutWavingHello,
+} from '@/assets/mascot'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
 import { InstallPWA, SetupPasskey, SignupStep, LandingStep, SignTestTransaction } from '@/components/Setup/Views'
 import JoinWaitlist from './Views/JoinWaitlist'
@@ -45,7 +52,7 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         title: 'Peanut makes dollars easy.',
         description: 'Create your wallet in seconds to save, send, or cash out dollars fast.',
-        image: PeanutPeace.src,
+        image: PeanutWavingHello.src,
         component: LandingStep,
         showBackButton: false,
         showSkipButton: false,
@@ -56,7 +63,7 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         title: 'Peanut is invite-only',
         description: `Who invited you? Enter their username to continue, or join the waitlist and we'll reach out when you're eligible.`,
-        image: PeanutPeace.src,
+        image: PeanutPointing.src,
         component: JoinWaitlist,
         showBackButton: true,
         showSkipButton: false,
@@ -78,7 +85,7 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         title: `Let's set up your passkey`,
         description: `Use your face or fingerprint to log in. No passwords, no hassle. Just you.`,
-        image: PeanutCheering.src,
+        image: PeanutTooCool.src,
         component: SetupPasskey,
         showBackButton: true,
         showSkipButton: false,
@@ -89,7 +96,7 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         title: 'Your wallet is ready',
         description: "Just confirm it's you — one tap and you're in.",
-        image: PeanutPeace.src,
+        image: PeanutCheering.src,
         component: SignTestTransaction,
         showBackButton: false,
         showSkipButton: false,

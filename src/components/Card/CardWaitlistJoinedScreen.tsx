@@ -17,7 +17,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { PeanutPeace } from '@/assets/mascot'
+import { PeanutCheering } from '@/assets/mascot'
 import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -39,7 +39,7 @@ const CardWaitlistJoinedScreen: FC<Props> = ({ onPrev }) => {
 
             <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
                 <Image
-                    src={PeanutPeace.src}
+                    src={PeanutCheering.src}
                     unoptimized
                     alt="Peanut Mascot"
                     width={20}

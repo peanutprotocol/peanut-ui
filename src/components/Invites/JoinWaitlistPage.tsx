@@ -8,7 +8,7 @@ import { twMerge } from 'tailwind-merge'
 import ValidatedInput from '../Global/ValidatedInput'
 import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '../Global/ErrorAlert'
-import { PeanutPeace, PeanutPointing } from '@/assets/mascot'
+import { PeanutWavingHello, PeanutPointing } from '@/assets/mascot'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import PeanutLoading from '../Global/PeanutLoading'
@@ -206,7 +206,7 @@ const JoinWaitlistPage = () => {
         }
     }, [isFetchingUser, user, router])
 
-    const stepImage = step === 'jail' ? PeanutPointing.src : PeanutPeace.src
+    const stepImage = step === 'jail' ? PeanutPointing.src : PeanutWavingHello.src
 
     return (
         <InvitesPageLayout image={stepImage}>

@@ -17,7 +17,7 @@ import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
-import { PeanutPeace } from '@/assets/mascot'
+import { PeanutCheering } from '@/assets/mascot'
 import Image from 'next/image'
 import { useHaptic } from 'use-haptic'
 
@@ -187,7 +187,7 @@ export const SuccessClaimLinkView = ({
             </div>
             <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
                 <Image
-                    src={PeanutPeace.src}
+                    src={PeanutCheering.src}
                     unoptimized
                     alt="Peanut Mascot"
                     width={240}

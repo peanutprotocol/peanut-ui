@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import Modal from '../Modal'
 import { Button } from '@/components/0_Bruddle/Button'
-import { PeanutPeace } from '@/assets/mascot'
+import { PeanutCheering } from '@/assets/mascot'
 
 const NoMoreJailModal = () => {
     const [isOpen, setisOpen] = useState(false)
@@ -65,7 +65,7 @@ const NoMoreJailModal = () => {
             {/* Peanutman animation */}
             <div className="absolute left-0 top-7 flex w-full justify-center" style={{ transform: 'translateY(-80%)' }}>
                 <div className="relative h-42 w-[90%] md:h-52">
-                    <Image src={PeanutPeace.src} unoptimized alt="Peanut Man" className="object-contain" fill />
+                    <Image src={PeanutCheering.src} unoptimized alt="Peanut Man" className="object-contain" fill />
                 </div>
             </div>
         </Modal>

@@ -3,12 +3,12 @@
 // Import from '@/assets/mascot' only; do not reach for raw file paths.
 
 // Animated mascots (animated WebP, alpha background — downscaled 512→320px, gif2webp -q 70)
-export { default as PeanutPeace } from './peanut-peace.webp' // double peace-sign, mid-stride — the all-purpose "peanut guy"
+export { default as PeanutWhistling } from './peanut-whistling.webp' // whistling, peace-sign, mid-stride — casual greeting / idle
 export { default as PeanutPointing } from './peanut-pointing.webp' // grinning, pointing off-screen
 export { default as PeanutCheering } from './peanut-cheering.webp' // both fists up, celebrating — success / "you're in"
-export { default as PeanutAngry } from './peanut-angry.webp' // scowling, fists clenched — not yet wired to a screen
+export { default as PeanutSad } from './peanut-sad.webp' // slumped, frowning, hands on hips — sad / dejected (errors)
 export { default as PeanutCrying } from './peanut-crying.webp' // teary, hands to face — errors / empty states
-export { default as PeanutCool } from './peanut-cool.webp' // deal-with-it shades, confident grin — not yet wired to a screen
+export { default as PeanutTooCool } from './peanut-too-cool.webp' // pixel shades, hand on hip, big grin — confident "too cool" flex
 export { default as PeanutThinking } from './peanut-thinking.webp' // pondering — loading / verification waits
 export { default as PeanutWavingHello } from './peanut-waving-hello.webp' // one arm up, waving — not yet wired to a screen
 export { default as PeanutWalking } from './peanut-walking.webp' // mid-stride, arms swinging — not yet wired to a screen

@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
 import Modal from '../Modal'
 import { Button } from '@/components/0_Bruddle/Button'
-import { PeanutPeace } from '@/assets/mascot'
+import { PeanutWavingHello } from '@/assets/mascot'
 
 interface ConfirmInviteModalProps {
     isOpen: boolean
@@ -72,7 +72,13 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
                     style={{ transform: 'translateY(-80%)' }}
                 >
                     <div className="relative h-42 w-[90%] md:h-52">
-                        <Image src={PeanutPeace.src} unoptimized alt="Peanut Man" className="object-contain" fill />
+                        <Image
+                            src={PeanutWavingHello.src}
+                            unoptimized
+                            alt="Peanut Man"
+                            className="object-contain"
+                            fill
+                        />
                     </div>
                 </div>
             </Modal>
