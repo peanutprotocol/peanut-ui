@@ -1,5 +1,3 @@
-'use client'
-
 /**
  * /lp route - Landing page that is ALWAYS accessible regardless of auth state.
  * This allows logged-in users to view the marketing landing page.
@@ -14,9 +12,11 @@ import { YourMoney } from '@/components/LandingPage/yourMoney'
 import { SecurityBuiltIn } from '@/components/LandingPage/securityBuiltIn'
 import { SendInSeconds } from '@/components/LandingPage/sendInSeconds'
 import Footer from '@/components/LandingPage/Footer'
-import { heroConfig, faqData, marqueeMessages } from '@/components/LandingPage/landingPageData'
+import { getLandingContent } from '@/lib/landingContent'
 
 export default function LPPage() {
+    const { heroConfig, faqData, marqueeMessages } = getLandingContent('en')
+
     return (
         <Layout className="enable-select !m-0 w-full !p-0">
             <LandingPageClient
