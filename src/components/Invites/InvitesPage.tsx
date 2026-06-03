@@ -26,6 +26,7 @@ const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
     arbiverseinvitesyou: 'ARBIVERSE_DEVCONNECT_BA_2025',
     squirrelinvitesyou: 'ARBIVERSE_DEVCONNECT_BA_2025', // temporary: maps to arbiverse until 12pm noon tomorrow
     founderhaus: 'FOUNDER_HOUSE',
+    alumni: 'EVENT_ALUMNI',
     touched_grass: 'TOUCHED_GRASS',
     survivor: 'SUPPORT_SURVIVOR',
 }
@@ -38,6 +39,7 @@ const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
 const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
     'token-nation-2026': 'TOKEN_NATION_SP_2026',
     ethfloripa: 'ETHFLORIPA_HUB',
+    alumni: 'EVENT_ALUMNI',
     'touched-grass': 'TOUCHED_GRASS',
 }
 

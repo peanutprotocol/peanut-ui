@@ -182,6 +182,10 @@ export const BADGES: Record<string, BadgeMeta> = {
         path: '/badges/touched_grass.svg',
         description: 'You logged off and touched real grass with Peanut.',
     },
+    EVENT_ALUMNI: {
+        path: '/badges/event_alumni.svg',
+        description: 'Old school. You were in the room before most.',
+    },
     ETHFLORIPA_HUB: {
         path: '/badges/ethfloripa_hub.svg',
         description: 'Ilha da Magia, baby. Coconuts and consensus.',
