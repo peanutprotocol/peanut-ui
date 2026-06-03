@@ -16,7 +16,7 @@ interface Named {
  */
 export function displayNameFromContent(slug: string, frontmatter: Named | null | undefined): string {
     const name = frontmatter?.name
-    if (typeof name === 'string' && name.trim().length > 0) return name
+    if (typeof name === 'string' && name.trim().length > 0) return name.trim()
     return titleCaseSlug(slug)
 }
 

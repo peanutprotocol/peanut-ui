@@ -63,18 +63,18 @@ const Footer = ({ showSiteDirectory = true, locale = 'en' }: { showSiteDirectory
                         <a className="text-xl font-bold text-white" href="/support">
                             Support
                         </a>
-                        <a className="text-xl font-bold text-white" href="/en/content">
+                        <Link className="text-xl font-bold text-white" href={`/${locale}/content`}>
                             Content
-                        </a>
-                        <a className="text-xl font-bold text-white" href="/en/help">
+                        </Link>
+                        <Link className="text-xl font-bold text-white" href={`/${locale}/help`}>
                             Docs
-                        </a>
-                        <a className="text-xl font-bold text-white" href="/en/terms">
+                        </Link>
+                        <Link className="text-xl font-bold text-white" href={`/${locale}/terms`}>
                             Terms
-                        </a>
-                        <a className="text-xl font-bold text-white" href="/en/privacy">
+                        </Link>
+                        <Link className="text-xl font-bold text-white" href={`/${locale}/privacy`}>
                             Privacy
-                        </a>
+                        </Link>
                         <a
                             className="text-xl font-bold text-white"
                             href="https://peanutprotocol.notion.site/Career-b351de56d92e405e962f0027b3a60f52"

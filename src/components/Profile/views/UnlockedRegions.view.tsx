@@ -79,17 +79,20 @@ const UnlockedRegions = () => {
     const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA'), [rails])
     const isSumsubApproved = isKycApproved
     // MIGRATION-REVIEW: the existing verification's region intent (was
-    // useUnifiedKycStatus.sumsubVerificationRegionIntent, read off raw kycVerifications
-    // metadata) is proxied from which provider the user already holds a functional rail
-    // for: a Manteca rail ⇒ they verified for LATAM, a Bridge rail ⇒ STANDARD. Used only
+    // Which provider the user already holds a functional rail for, used only
     // to detect a cross-region switch when starting a new verification.
-    const sumsubVerificationRegionIntent: string | null = useMemo(() => {
+    // We deliberately capture the PROVIDER directly rather than round-tripping
+    // through KYCRegionIntent: the legacy 'STANDARD' value used to stand in
+    // for "Bridge rail" here, but providerForRegionIntent maps STANDARD →
+    // manteca (it's in the general-bucket fallback), so a Bridge-→Bridge
+    // re-verification would have misclassified as cross-region.
+    const existingVerificationProvider: ProviderCode | null = useMemo(() => {
         const hasFunctional = (provider: ProviderCode) =>
             railsForProvider(provider).some(
                 (rail) => rail.status === 'enabled' || rail.status === 'pending' || rail.status === 'requires-info'
             )
-        if (hasFunctional('manteca')) return 'LATAM'
-        if (hasFunctional('bridge')) return 'STANDARD'
+        if (hasFunctional('manteca')) return 'manteca'
+        if (hasFunctional('bridge')) return 'bridge'
         return null
     }, [railsForProvider])
     const { setIsSupportModalOpen } = useModalsContext()
@@ -165,21 +168,17 @@ const UnlockedRegions = () => {
         const intent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
         if (intent) setActiveRegionIntent(intent)
         // Cross-region means "user has an identity for one provider, clicked a
-        // region served by a DIFFERENT provider". Compare PROVIDERS not raw
-        // intent strings: in the 4-bucket model both 'EU' and 'NA' route to
-        // Bridge, and both 'LATAM' / 'ROW' route to Manteca (`general` level),
-        // so 'STANDARD' !== 'EU' alone would misclassify a Bridge→Bridge flow
-        // as cross-region.
+        // region served by a DIFFERENT provider". Compare PROVIDERS directly:
+        // in the 4-bucket model both 'EU' and 'NA' route to Bridge and both
+        // 'LATAM' / 'ROW' route to Manteca, so an intent-string compare would
+        // miss Bridge-EU → Bridge-NA same-provider flows.
         const crossRegion =
-            sumsubVerificationRegionIntent &&
-            intent &&
-            providerForRegionIntent(sumsubVerificationRegionIntent as KYCRegionIntent) !==
-                providerForRegionIntent(intent)
+            existingVerificationProvider && intent && existingVerificationProvider !== providerForRegionIntent(intent)
                 ? true
                 : undefined
         setSelectedRegion(null)
         await flow.handleInitiateKyc(intent, undefined, crossRegion)
-    }, [flow.handleInitiateKyc, selectedRegion, sumsubVerificationRegionIntent])
+    }, [flow.handleInitiateKyc, selectedRegion, existingVerificationProvider])
 
     // re-submission: skip StartVerificationView since user already consented
     const handleResubmitKyc = useCallback(async () => {

@@ -315,3 +315,97 @@ describe('deriveGate — restart-identity vs contact-support split for blocked r
         expect(getKycModalVariant(gate.kind)).toBe('blocked')
     })
 })
+
+describe('deriveGate — ready-first ordering (Alexandre fix)', () => {
+    const tosAction: NextAction = { key: 'bridge.tos', kind: 'accept-tos', purpose: 'bridge-tos' }
+    const sumsubAction: NextAction = { key: 'bridge.rfi', kind: 'sumsub', purpose: 'bridge-rfi' }
+
+    test('Alexandre case: PIX_BR ENABLED + Bridge × US/GB/EU/MX stuck on ToS → ready (no modal)', () => {
+        const pixBr = bankRail({
+            id: 'manteca.pix_br',
+            provider: 'manteca',
+            method: 'PIX_BR',
+            country: 'BR',
+            currency: 'BRL',
+            status: 'enabled',
+        })
+        const stuck = (id: `bridge.${string}`, country: string, currency: string, method: string): RailCapability =>
+            bankRail({
+                id,
+                provider: 'bridge',
+                method,
+                country,
+                currency,
+                status: 'requires-info',
+                blockingActions: ['bridge.tos'],
+                reason: { code: 'bridge_tos_v2_required', userMessage: 'Accept terms' },
+            })
+        const rails = [
+            pixBr,
+            stuck('bridge.ach_us', 'US', 'USD', 'ACH_US'),
+            stuck('bridge.faster_payments_gb', 'GB', 'GBP', 'FASTER_PAYMENTS_GB'),
+            stuck('bridge.sepa_eu', 'EU', 'EUR', 'SEPA_EU'),
+            stuck('bridge.spei_mx', 'MX', 'MXN', 'SPEI_MX'),
+        ]
+
+        const gate = deriveGate(state(rails, [tosAction]), 'deposit', { channel: 'bank' })
+        expect(gate.kind).toBe('ready')
+    })
+
+    test('ready beats blocked-rejection — working rail trumps unrelated blocked one', () => {
+        const ready = bankRail({ id: 'manteca.pix_br', provider: 'manteca', country: 'BR', status: 'enabled' })
+        const blockedTerminal = bankRail({
+            id: 'bridge.ach_us',
+            status: 'blocked',
+            reason: { code: 'kyc_rejected_terminal', userMessage: 'Verification failed' },
+        })
+
+        const gate = deriveGate(state([ready, blockedTerminal]), 'deposit', { channel: 'bank' })
+        expect(gate.kind).toBe('ready')
+    })
+
+    test('ready beats fixable-rejection — RFI on another rail does not gate', () => {
+        const ready = bankRail({ id: 'manteca.pix_br', provider: 'manteca', country: 'BR', status: 'enabled' })
+        const rfi = bankRail({ id: 'bridge.ach_us', status: 'requires-info', blockingActions: ['bridge.rfi'] })
+
+        const gate = deriveGate(state([ready, rfi], [sumsubAction]), 'deposit', { channel: 'bank' })
+        expect(gate.kind).toBe('ready')
+    })
+
+    test('ready beats restart-identity — self-fixable blocked rail does not gate', () => {
+        const ready = bankRail({ id: 'manteca.pix_br', provider: 'manteca', country: 'BR', status: 'enabled' })
+        const restartable = bankRail({
+            id: 'bridge.ach_us',
+            status: 'blocked',
+            blockingActions: ['bridge.restart'],
+        })
+        const restartAction: NextAction = { key: 'bridge.restart', kind: 'restart-identity', purpose: 'restart' }
+
+        const gate = deriveGate(state([ready, restartable], [restartAction]), 'deposit', { channel: 'bank' })
+        expect(gate.kind).toBe('ready')
+    })
+
+    test('no ready rail → falls through to existing blocked / accept-tos / fixable order', () => {
+        const tosRail = bankRail({
+            id: 'bridge.ach_us',
+            status: 'requires-info',
+            blockingActions: ['bridge.tos'],
+            reason: { code: 'bridge_tos_required', userMessage: 'Accept terms' },
+        })
+
+        const gate = deriveGate(state([tosRail], [tosAction]), 'deposit', { channel: 'bank' })
+        expect(gate.kind).toBe('accept-tos')
+    })
+
+    test('per-op enabled status (not rail-level) is what matters', () => {
+        const railWithEnabledOp = bankRail({
+            id: 'bridge.ach_us',
+            status: 'requires-info',
+            operations: { deposit: 'enabled', withdraw: 'requires-info' },
+            blockingActions: ['bridge.rfi'],
+        })
+
+        const gate = deriveGate(state([railWithEnabledOp], [sumsubAction]), 'deposit', { channel: 'bank' })
+        expect(gate.kind).toBe('ready')
+    })
+})

@@ -17,12 +17,13 @@ interface Props {
 // stands in for Peanut. Swap if the partnership agreement renames the card.
 const CARD_PARTNER_NAME = 'Peanut'
 
+// US and international cardholders accept different card-terms documents.
 const LINKS = {
     eSign: 'https://legal.raincards.xyz/legal/electronic-communications-notice',
     issuerPrivacy: 'https://www.third-national.com/privacypolicy',
-    // TODO: swap placeholders with the real links when Rain/partner share them.
-    cardTerms: '#',
-    accountOpeningPrivacy: '#',
+    cardTermsUs: 'https://peanut.me/en/card-terms-us',
+    cardTermsInternational: 'https://peanut.me/en/card-terms-international',
+    accountOpeningPrivacy: 'https://peanut.me/en/card-privacy',
 }
 
 interface Term {
@@ -36,49 +37,53 @@ const ExternalLink: FC<{ href: string; children: ReactNode }> = ({ href, childre
     </a>
 )
 
-const INT_TERMS: Term[] = [
-    {
-        id: 'esign',
-        label: (
-            <>
-                I accept the <ExternalLink href={LINKS.eSign}>E-Sign Consent</ExternalLink>
-            </>
-        ),
-    },
-    {
-        id: 'cardTermsIssuer',
-        label: (
-            <>
-                I accept the <ExternalLink href={LINKS.cardTerms}>{CARD_PARTNER_NAME} Card Terms</ExternalLink>
-                {', and the '}
-                <ExternalLink href={LINKS.issuerPrivacy}>Issuer Privacy Policy</ExternalLink>
-            </>
-        ),
-    },
-    {
-        id: 'accuracy',
-        label: `I certify that the information I have provided is accurate and that I will abide by all the rules and requirements related to my ${CARD_PARTNER_NAME} Spend Card.`,
-    },
-    {
-        id: 'solicitation',
-        label: `I acknowledge that applying for the ${CARD_PARTNER_NAME} Spend Card does not constitute unauthorized solicitation.`,
-    },
-]
+const esignTerm: Term = {
+    id: 'esign',
+    label: (
+        <>
+            I accept the <ExternalLink href={LINKS.eSign}>E-Sign Consent</ExternalLink>
+        </>
+    ),
+}
+
+const cardTermsIssuerTerm = (cardTermsHref: string): Term => ({
+    id: 'cardTermsIssuer',
+    label: (
+        <>
+            I accept the <ExternalLink href={cardTermsHref}>{CARD_PARTNER_NAME} Card Terms</ExternalLink>
+            {', and the '}
+            <ExternalLink href={LINKS.issuerPrivacy}>Issuer Privacy Policy</ExternalLink>
+        </>
+    ),
+})
+
+const accuracyTerm: Term = {
+    id: 'accuracy',
+    label: `I certify that the information I have provided is accurate and that I will abide by all the rules and requirements related to my ${CARD_PARTNER_NAME} Spend Card.`,
+}
+
+const solicitationTerm: Term = {
+    id: 'solicitation',
+    label: `I acknowledge that applying for the ${CARD_PARTNER_NAME} Spend Card does not constitute unauthorized solicitation.`,
+}
+
+const accountOpeningPrivacyTerm: Term = {
+    id: 'accountOpeningPrivacy',
+    label: (
+        <>
+            I accept the <ExternalLink href={LINKS.accountOpeningPrivacy}>Account Opening Privacy Notice</ExternalLink>
+        </>
+    ),
+}
+
+const INT_TERMS: Term[] = [esignTerm, cardTermsIssuerTerm(LINKS.cardTermsInternational), accuracyTerm, solicitationTerm]
 
 const US_TERMS: Term[] = [
-    INT_TERMS[0],
-    {
-        id: 'accountOpeningPrivacy',
-        label: (
-            <>
-                I accept the{' '}
-                <ExternalLink href={LINKS.accountOpeningPrivacy}>Account Opening Privacy Notice</ExternalLink>
-            </>
-        ),
-    },
-    INT_TERMS[1],
-    INT_TERMS[2],
-    INT_TERMS[3],
+    esignTerm,
+    accountOpeningPrivacyTerm,
+    cardTermsIssuerTerm(LINKS.cardTermsUs),
+    accuracyTerm,
+    solicitationTerm,
 ]
 
 const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitError }) => {

@@ -19,9 +19,10 @@ export interface Competitor {
 function loadCompetitors(): Record<string, Competitor> {
     const result: Record<string, Competitor> = {}
     for (const slug of listContentSlugs('compare')) {
+        // Skip slug dirs with no en.md — /compare/peanut-vs-{slug} would 404.
         const content = readPageContent<{ name?: unknown; published?: boolean }>('compare', slug, 'en')
-        if (content && content.frontmatter.published === false) continue
-        result[slug] = { name: displayNameFromContent(slug, content?.frontmatter) }
+        if (!content || content.frontmatter.published === false) continue
+        result[slug] = { name: displayNameFromContent(slug, content.frontmatter) }
     }
     return result
 }
