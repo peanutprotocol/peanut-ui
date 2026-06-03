@@ -171,6 +171,24 @@ export const BADGES: Record<string, BadgeMeta> = {
         description: 'Found on Arbitrum — mutual onboarding achieved.',
         displayName: 'Arbitrum Native',
     },
+    // Event badges — assets shipped to main via the May 29 hotfix but the catalog
+    // entries were dropped when the parallel maps collapsed into this single BADGES
+    // record, so the backend codes fell back to the Peanutman logo + raw backend name.
+    TOKEN_NATION_SP_2026: {
+        path: '/badges/token_nation_2026.svg',
+        description: 'São Paulo, baby. They came, they claimed, they tagged the wall.',
+    },
+    ETHFLORIPA_HUB: {
+        path: '/badges/ethfloripa_hub.svg',
+        description: 'Ilha da Magia, baby. Coconuts and consensus.',
+        displayName: 'Ethereum Hub Floripa',
+    },
+    // Skip Pass — friends-of-Peanut who bypassed the waitlist via /invite?campaign=skip.
+    // Awarded by the backend /badge/award endpoint, which also flips hasAppAccess.
+    WAITLIST_SKIP: {
+        path: '/badges/skip_pass.svg',
+        description: 'They skipped the waitlist. A friend handed them the key and they walked right in.',
+    },
 }
 
 /** All known badge codes — derived from BADGES so we never duplicate the

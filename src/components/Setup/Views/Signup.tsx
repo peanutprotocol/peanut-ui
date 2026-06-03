@@ -60,6 +60,7 @@ const SignupStep = () => {
                     posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, {
                         is_valid: false,
                         error_type: 'taken',
+                        username,
                     })
                     return false
                 case 400:
@@ -67,12 +68,13 @@ const SignupStep = () => {
                     posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, {
                         is_valid: false,
                         error_type: 'invalid',
+                        username,
                     })
                     return false
                 case 404:
                     // handle is available
                     setError('')
-                    posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, { is_valid: true })
+                    posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, { is_valid: true, username })
                     return true
                 default:
                     // we dont expect any other status code
