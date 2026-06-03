@@ -39,7 +39,7 @@ const DrawerContent = React.forwardRef<
             {...props}
             onTouchMove={(e) => e.stopPropagation()}
         >
-            <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-black" />
+            <div className="mx-auto my-4 h-1.5 w-10 rounded-full bg-black" />
             <div className="flex w-full justify-center">
                 <div className="max-h-[80vh] w-full overflow-auto md:max-w-xl">{children}</div>
             </div>
