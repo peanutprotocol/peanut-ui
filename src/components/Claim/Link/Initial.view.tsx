@@ -15,7 +15,7 @@ import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
-import { areEvmAddressesEqual, formatTokenAmount } from '@/utils/general.utils'
+import { areEvmAddressesEqual, formatTokenAmount, toInviteCode } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
 import { fetchWithSentry } from '@/utils/sentry.utils'
@@ -263,7 +263,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         setLoadingState('Idle')
                         return
                     }
-                    const inviteCode = `${inviterUsername}INVITESYOU`
+                    const inviteCode = toInviteCode(inviterUsername)
                     const result = await invitesApi.acceptInvite(
                         inviteCode,
                         EInviteType.PAYMENT_LINK,

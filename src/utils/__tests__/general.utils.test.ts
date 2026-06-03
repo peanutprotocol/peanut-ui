@@ -6,6 +6,7 @@ import {
     formatTokenAmount,
     isUuid,
     printableUserHandle,
+    toInviteCode,
 } from '../general.utils'
 import { AccountType } from '@/interfaces'
 
@@ -492,6 +493,14 @@ describe('General Utilities', () => {
             const { inviteCode, inviteLink } = generateInviteCodeLink('Alice')
             expect(inviteCode).toBe('alice')
             expect(inviteLink).toBe('https://peanut.example.org/invite?code=alice')
+        })
+    })
+
+    describe('toInviteCode', () => {
+        it('returns the bare lowercased username — no INVITESYOU, no suffix', () => {
+            expect(toInviteCode('alice')).toBe('alice')
+            expect(toInviteCode('Alice')).toBe('alice')
+            expect(toInviteCode('HUGO')).toBe('hugo')
         })
     })
 })

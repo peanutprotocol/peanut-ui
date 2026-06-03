@@ -871,8 +871,19 @@ export function slugify(text: string): string {
         .replace(/^-+|-+$/g, '') // Remove leading and trailing hyphens
 }
 
+/**
+ * Canonical invite-code shape: a bare, lowercased username (e.g. `alice`).
+ *
+ * Single source of truth — use this anywhere an invite code is built for
+ * `/invite?code=…` or `acceptInvite`. The legacy `ALICEINVITESYOU610` /
+ * `ALICEINVITESYOU` shapes are no longer emitted, but stay fully supported on
+ * the backend (peanut-api-ts `extractUsernameFromInvite` uppercases the input
+ * and matches the old suffixes), so existing shared links keep working.
+ */
+export const toInviteCode = (username: string): string => username.toLowerCase()
+
 export const generateInviteCodeLink = (username: string) => {
-    const inviteCode = username.toLowerCase()
+    const inviteCode = toInviteCode(username)
     const inviteLink = shareableUrl(`/invite?code=${inviteCode}`)
     return { inviteLink, inviteCode }
 }
