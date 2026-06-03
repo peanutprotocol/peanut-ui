@@ -323,7 +323,7 @@ const JoinWaitlistPage = () => {
                             </div>
 
                             {!isValid && !isChanging && !!inviteCode && (
-                                <ErrorAlert description="We couldn't find that member. Try another username." />
+                                <ErrorAlert description="No Peanut member with that username. Double-check your inviter's exact handle." />
                             )}
 
                             {error && <ErrorAlert description={error} />}
