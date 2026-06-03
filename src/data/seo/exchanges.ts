@@ -11,7 +11,11 @@
 // from this exchange to Peanut. Absent values fall through to title-casing.
 
 import { listContentSlugs, readPageContent } from '@/lib/content'
+import { DEPOSIT_RAILS } from './deposit-rails'
 import { displayNameFromContent } from './utils'
+
+// Re-exported so existing `@/data/seo` consumers keep importing it from here.
+export { DEPOSIT_RAILS }
 
 export interface Exchange {
     name: string
@@ -22,21 +26,6 @@ interface DepositFrontmatter {
     name?: unknown
     recommended_network?: unknown
     published?: boolean
-}
-
-/** Crypto networks + fiat rails served at /deposit/via-{slug}. Hardcoded
- *  because rails have no entity data — they're purely a content-page concept. */
-export const DEPOSIT_RAILS: Record<string, string> = {
-    ach: 'ACH Bank Transfer',
-    sepa: 'SEPA Bank Transfer',
-    wire: 'Wire Transfer',
-    arbitrum: 'Arbitrum',
-    avalanche: 'Avalanche',
-    base: 'Base',
-    ethereum: 'Ethereum',
-    polygon: 'Polygon',
-    solana: 'Solana',
-    tron: 'Tron',
 }
 
 const RAIL_SLUGS = new Set(Object.keys(DEPOSIT_RAILS))

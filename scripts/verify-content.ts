@@ -15,6 +15,7 @@
 
 import fs from 'fs'
 import path from 'path'
+import { DEPOSIT_RAILS } from '../src/data/seo/deposit-rails'
 
 const ROOT = path.join(process.cwd(), 'src/content')
 const CONTENT_DIR = path.join(ROOT, 'content')
@@ -23,8 +24,13 @@ const APP_DIR = path.join(process.cwd(), 'src/app/[locale]/(marketing)')
 const SUPPORTED_LOCALES = ['en', 'es-419', 'es-ar', 'es-es', 'pt-br']
 const PRIMARY_LOCALES = ['en', 'es-419', 'pt-br']
 
-// Exchange entity slugs (from input/data/exchanges/) — used to distinguish from- vs via- deposit URLs
-const exchangeSlugs = listEntitySlugs('exchanges')
+// Deposit slugs split into rails (via-) vs exchanges (from-) using the same
+// static rail list the live /deposit route uses (src/data/seo). Sourced from
+// peanut-ui code, NOT the content submodule: the mirror strips entity data, so
+// reconstructing the split from shipped content is impossible — every exchange
+// would look like a rail and every /deposit/from-{exchange} link would be a
+// false-positive "broken link".
+const RAIL_SLUGS = new Set(Object.keys(DEPOSIT_RAILS))
 
 // --- Diagnostics ---
 
@@ -56,15 +62,6 @@ function listDirs(dir: string): string[] {
         .map((d) => d.name)
 }
 
-function listEntitySlugs(category: string): string[] {
-    const dir = path.join(ROOT, 'input/data', category)
-    if (!fs.existsSync(dir)) return []
-    return fs
-        .readdirSync(dir)
-        .filter((f) => f.endsWith('.md'))
-        .map((f) => f.replace('.md', ''))
-}
-
 function getAllMdFiles(dir: string): string[] {
     const results: string[] = []
     if (!fs.existsSync(dir)) return results
@@ -73,7 +70,8 @@ function getAllMdFiles(dir: string): string[] {
         if (entry.isDirectory()) {
             if (entry.name === 'deprecated') continue
             results.push(...getAllMdFiles(full))
-        } else if (entry.name.endsWith('.md')) {
+        } else if (entry.name.endsWith('.md') && entry.name !== 'README.md') {
+            // README.md files are directory docs, never published pages.
             results.push(full)
         }
     }
@@ -199,15 +197,10 @@ function discoverRoutes(): Set<string> {
             for (const slug of payWithSlugs) routes.add(`/${locale}/pay-with/${slug}`)
         }
 
-        // Deposit — exchanges use from- prefix, rails use via- prefix
+        // Deposit — rails use via- prefix, exchanges use from- prefix
         if (hasRoute('deposit/[exchange]')) {
-            for (const slug of exchangeSlugs) routes.add(`/${locale}/deposit/from-${slug}`)
             for (const slug of depositSlugs) {
-                if (exchangeSlugs.includes(slug)) {
-                    routes.add(`/${locale}/deposit/from-${slug}`)
-                } else {
-                    routes.add(`/${locale}/deposit/via-${slug}`)
-                }
+                routes.add(`/${locale}/deposit/${RAIL_SLUGS.has(slug) ? 'via' : 'from'}-${slug}`)
             }
         }
 
@@ -337,10 +330,7 @@ function checkPublishedHasRoute(validPaths: Set<string>) {
         { dir: 'pay-with', urlPattern: (l, s) => `/${l}/pay-with/${s}` },
         {
             dir: 'deposit',
-            urlPattern: (l, s) => {
-                const isExchange = exchangeSlugs.includes(s)
-                return `/${l}/deposit/${isExchange ? 'from' : 'via'}-${s}`
-            },
+            urlPattern: (l, s) => `/${l}/deposit/${RAIL_SLUGS.has(s) ? 'via' : 'from'}-${s}`,
         },
         { dir: 'use-cases', urlPattern: (l, s) => `/${l}/use-cases/${s}` },
         { dir: 'stories', urlPattern: (l, s) => `/${l}/stories/${s}` },
