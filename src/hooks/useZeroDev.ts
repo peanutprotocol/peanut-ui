@@ -120,6 +120,19 @@ export const useZeroDev = () => {
                     })
                     console.error('Error accepting invite', e)
                 }
+            } else if (campaignTag) {
+                // No invite code but a campaign tag — only InvitesPage's skip-path
+                // CTA reaches here today (it sets the cookie without an inviteCode).
+                // The BE whitelists which campaigns are claimable, so passing other
+                // values through is safe — anything not on the whitelist 400s.
+                try {
+                    await invitesApi.awardBadge(campaignTag)
+                    posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, { campaign_tag: campaignTag })
+                } catch (e) {
+                    console.error('Error awarding campaign badge', e)
+                } finally {
+                    removeFromCookie('campaignTag')
+                }
             }
 
             setWebAuthnKey(webAuthnKey)

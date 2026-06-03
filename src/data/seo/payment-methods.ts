@@ -20,9 +20,10 @@ export interface PaymentMethod {
 function loadPaymentMethods(): Record<string, PaymentMethod> {
     const result: Record<string, PaymentMethod> = {}
     for (const slug of listContentSlugs('pay-with')) {
+        // Skip slug dirs with no en.md — /pay-with/{slug} would 404.
         const content = readPageContent<{ name?: unknown; published?: boolean }>('pay-with', slug, 'en')
-        if (content && content.frontmatter.published === false) continue
-        result[slug] = { slug, name: displayNameFromContent(slug, content?.frontmatter) }
+        if (!content || content.frontmatter.published === false) continue
+        result[slug] = { slug, name: displayNameFromContent(slug, content.frontmatter) }
     }
     return result
 }

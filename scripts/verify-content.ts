@@ -83,6 +83,17 @@ function listDirs(dir: string): string[] {
         .map((d) => d.name)
 }
 
+/**
+ * Receive-money-from pages render only for corridor origins that actually have
+ * a receive-from article. Mirrors RECEIVE_SOURCES in src/data/seo/corridors.ts.
+ * Without this gate, both the route index and the sitemap "expected URLs" would
+ * agree with each other on a slug that 404s at runtime (e.g. colombia, mexico).
+ */
+function gateReceiveSources(corridors: Array<{ from: string; to: string }>): string[] {
+    const origins = [...new Set(corridors.map((c) => c.from))]
+    return origins.filter((slug) => fs.existsSync(path.join(CONTENT_DIR, 'receive-from', slug, 'en.md')))
+}
+
 function getAllMdFiles(dir: string): string[] {
     const results: string[] = []
     if (!fs.existsSync(dir)) return results
@@ -192,7 +203,7 @@ function discoverRoutes(): Set<string> {
             corridors.push({ to: dest, from: origin })
         }
     }
-    const receiveSources = [...new Set(corridors.map((c) => c.from))]
+    const receiveSources = gateReceiveSources(corridors)
 
     // Check which routes actually have page.tsx files
     const hasRoute = (routePath: string) => {
@@ -704,7 +715,7 @@ function expectedSitemapUrls(): string[] {
         const fromDir = path.join(CONTENT_DIR, 'send-to', dest, 'from')
         for (const origin of listDirs(fromDir)) corridors.push({ from: origin, to: dest })
     }
-    const receiveSources = [...new Set(corridors.map((c) => c.from))]
+    const receiveSources = gateReceiveSources(corridors)
 
     for (const locale of SUPPORTED_LOCALES) {
         for (const slug of countrySlugs) {

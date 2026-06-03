@@ -63,11 +63,12 @@ function loadExchanges(): Record<string, Exchange> {
     const result: Record<string, Exchange> = {}
     for (const slug of listContentSlugs('deposit')) {
         if (RAIL_SLUGS.has(slug)) continue
+        // Skip slug dirs with no en.md — /deposit/from-{slug} would 404.
         const content = readPageContent<DepositFrontmatter>('deposit', slug, 'en')
-        if (content && content.frontmatter.published === false) continue
+        if (!content || content.frontmatter.published === false) continue
         result[slug] = {
-            name: displayNameFromContent(slug, content?.frontmatter),
-            recommendedNetwork: pickRecommendedNetwork(content?.frontmatter),
+            name: displayNameFromContent(slug, content.frontmatter),
+            recommendedNetwork: pickRecommendedNetwork(content.frontmatter),
         }
     }
     return result

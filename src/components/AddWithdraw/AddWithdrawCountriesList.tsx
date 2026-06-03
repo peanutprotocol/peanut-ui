@@ -32,6 +32,7 @@ import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
 import { railJurisdictionForBank } from '@/utils/bridge.utils'
+import { getRegionIntent } from '@/utils/regions.utils'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -59,7 +60,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     // inline sumsub kyc flow for bridge bank users who need verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
-    // intent is passed at call time: handleInitiateKyc('STANDARD')
+    // intent is passed at call time, derived from the destination country.
     const sumsubFlow = useMultiPhaseKycFlow({
         onKycSuccess: () => {
             setIsKycModalOpen(false)
@@ -235,7 +236,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // scenario (2): if the user hasn't completed kyc yet
         // name and email are now collected by sumsub sdk — no need to save them beforehand
         if (!isUserKycApproved) {
-            await sumsubFlow.handleInitiateKyc('STANDARD')
+            await sumsubFlow.handleInitiateKyc(getRegionIntent(currentCountry?.region ?? 'rest-of-the-world'))
         }
 
         return {}
@@ -342,7 +343,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
                         await sumsubFlow.handleInitiateKyc(
-                            'STANDARD',
+                            getRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
                             undefined,
                             gate.kind === 'needs-enrollment' || undefined
                         )

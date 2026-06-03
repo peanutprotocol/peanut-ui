@@ -1,4 +1,4 @@
-export { COUNTRIES_SEO, CORRIDORS, getCountryName } from './corridors'
+export { COUNTRIES_SEO, CORRIDORS, RECEIVE_SOURCES, getCountryName } from './corridors'
 
 export { COMPETITORS } from './comparisons'
 

@@ -21,7 +21,7 @@ import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback } from 'react'
-import { captureException } from '@sentry/nextjs'
+import { captureException, setUser as setSentryUser } from '@sentry/nextjs'
 // import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
 import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
 
@@ -90,6 +90,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             posthog.identify(user.user.userId, {
                 username: user.user.username,
             })
+            // Sentry: every error captured from here on inherits user context
+            // as searchable Sentry tags. Closes the historical gap where FE
+            // errors were anonymous and had to be cross-referenced via the
+            // posthog $sentry_url field to figure out which user hit them.
+            setSentryUser({
+                id: user.user.userId,
+                username: user.user.username ?? undefined,
+                email: user.user.email ?? undefined,
+            })
+        } else {
+            // Logout / unauthenticated: clear Sentry user so subsequent
+            // anonymous-session errors don't get misattributed.
+            setSentryUser(null)
         }
     }, [user])
 
