@@ -1,6 +1,6 @@
 'use client'
 
-import { PeanutWavingHello } from '@/assets/mascot'
+import { PeanutWhistling } from '@/assets/mascot'
 import { GlobalCashLocalFeel, Star } from '@/assets/illustrations'
 import { motion } from 'framer-motion'
 import { useEffect, useCallback, useRef } from 'react'
@@ -62,7 +62,7 @@ function PeanutMascot() {
     return (
         <img
             ref={imgRef}
-            src={PeanutWavingHello.src}
+            src={PeanutWhistling.src}
             alt="Peanut Guy"
             className="absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain"
         />

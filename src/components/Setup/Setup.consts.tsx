@@ -4,7 +4,7 @@ import {
     PeanutPointing,
     PeanutThinking,
     PeanutTooCool,
-    PeanutWavingHello,
+    PeanutWhistling,
 } from '@/assets/mascot'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
 import { InstallPWA, SetupPasskey, SignupStep, LandingStep, SignTestTransaction } from '@/components/Setup/Views'
@@ -52,7 +52,7 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         title: 'Peanut makes dollars easy.',
         description: 'Create your wallet in seconds to save, send, or cash out dollars fast.',
-        image: PeanutWavingHello.src,
+        image: PeanutWhistling.src,
         component: LandingStep,
         showBackButton: false,
         showSkipButton: false,
