@@ -211,6 +211,26 @@ export default function QRPayPage() {
     const shouldBlockPay = kycGateState !== QrKycState.PROCEED_TO_PAY
 
     const sumsubFlow = useMultiPhaseKycFlow({})
+
+    // Auto-dismiss the Sumsub flow if the user's QR-pool rails become enabled
+    // server-side while a flow is mid-air. Two known sources:
+    //   1. The `/users/identity` LATAM re-entry path now calls
+    //      `enableQrPoolRails()` BEFORE returning the Manteca action token
+    //      (peanut-api-ts #920) — so the BE can hand back a Sumsub token AND
+    //      have just unlocked QR access in the same request. Without this,
+    //      the SDK pops on top of an already-unlocked user.
+    //   2. Out-of-band capability updates (sibling-tab refresh, manual
+    //      backfill, etc.) flip the gate to PROCEED_TO_PAY while the modal
+    //      is still open. Same outcome — close it.
+    // Cheap watcher, zero added latency on the happy path: relies on the
+    // existing useUserAutoRefresh / fetchUser polling already in place.
+    useEffect(() => {
+        if (kycGateState !== QrKycState.PROCEED_TO_PAY) return
+        if (sumsubFlow.showWrapper || sumsubFlow.isModalOpen) {
+            sumsubFlow.completeFlow()
+        }
+    }, [kycGateState, sumsubFlow.showWrapper, sumsubFlow.isModalOpen, sumsubFlow.completeFlow])
+
     const queryClient = useQueryClient()
     const [isShaking, setIsShaking] = useState(false)
     const [shakeIntensity, setShakeIntensity] = useState<ShakeIntensity>('none')
