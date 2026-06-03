@@ -26,16 +26,19 @@ interface DepositFrontmatter {
 
 /** Crypto networks + fiat rails served at /deposit/via-{slug}. Hardcoded
  *  because rails have no entity data — they're purely a content-page concept.
- *  generateStaticParams iterates Object.keys(DEPOSIT_RAILS), so a rail 404s on
- *  the live site (and its inbound content links break) until it's listed here.
- *  faster-payments (GB) + spei (MX) are wired end-to-end via Bridge
- *  (getCurrencyConfig in src/utils/bridge.utils.ts); MDX lives in
- *  content/deposit/{faster-payments,spei}/. */
+ *
+ *  TODO(reorg): two missing fiat keys need to be added during the next pass:
+ *      'faster-payments': 'Faster Payments',  // UK — GBP via Bridge, live
+ *      spei: 'SPEI Bank Transfer',            // Mexico — MXN via Bridge, live
+ *  MDX content already exists at mono/content/deposit/{spei,faster-payments}/
+ *  (pushed 2026-05-25). The pages 404 on the live site until the keys are
+ *  registered here — generateStaticParams iterates Object.keys(DEPOSIT_RAILS).
+ *  Both rails are wired end-to-end already: see src/utils/bridge.utils.ts
+ *  getCurrencyConfig('MX' | 'GB', ...) — onramp + offramp via Bridge.
+ *  Full context: mono/content/_system/ROADMAP.md (entry dated 2026-05-22). */
 export const DEPOSIT_RAILS: Record<string, string> = {
     ach: 'ACH Bank Transfer',
     sepa: 'SEPA Bank Transfer',
-    'faster-payments': 'Faster Payments',
-    spei: 'SPEI Bank Transfer',
     wire: 'Wire Transfer',
     arbitrum: 'Arbitrum',
     avalanche: 'Avalanche',
