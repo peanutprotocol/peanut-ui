@@ -178,6 +178,10 @@ export const BADGES: Record<string, BadgeMeta> = {
         path: '/badges/token_nation_2026.svg',
         description: 'São Paulo, baby. They came, they claimed, they tagged the wall.',
     },
+    TOUCHED_GRASS: {
+        path: '/badges/touched_grass.svg',
+        description: 'You logged off and touched real grass with Peanut.',
+    },
     ETHFLORIPA_HUB: {
         path: '/badges/ethfloripa_hub.svg',
         description: 'Ilha da Magia, baby. Coconuts and consensus.',
