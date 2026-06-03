@@ -16,7 +16,6 @@ export { default as PeanutPointingDown } from './peanut-pointing-down.webp' // b
 
 // Stills
 export { default as PEANUTMAN_LOGO } from './peanut-logo.svg'
-export { default as PEANUTMAN_WAVING } from './peanut-waving.svg'
 export { default as PEANUTMAN_PFP } from './peanut-pfp.svg'
 export { default as PEANUTMAN_HOLDING_BEER } from './peanut-beer.svg'
 export { default as PEANUTMAN_MOBILE } from './peanut-club.webp'
