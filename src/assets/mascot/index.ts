@@ -11,7 +11,7 @@ export { default as PeanutCrying } from './peanut-crying.webp' // teary, hands t
 export { default as PeanutTooCool } from './peanut-too-cool.webp' // pixel shades, hand on hip, big grin — confident "too cool" flex
 export { default as PeanutThinking } from './peanut-thinking.webp' // pondering — loading / verification waits
 export { default as PeanutWavingHello } from './peanut-waving-hello.webp' // one arm up, waving — greetings / setup
-export { default as PeanutWalking } from './peanut-walking.webp' // mid-stride, arms swinging — spare, not wired to a screen
+export { default as PeanutWalking } from './peanut-walking.webp' // mid-stride, arms swinging — physical-card waitlist ("on the way / shipping")
 export { default as PeanutPointingDown } from './peanut-pointing-down.webp' // both hands pointing down — marketing CTA
 
 // Stills
