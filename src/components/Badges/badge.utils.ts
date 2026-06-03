@@ -5,6 +5,10 @@
 // This is the SINGLE SOURCE OF TRUTH for badge codes + metadata on the FE.
 // Don't add a parallel catalog elsewhere — consumers (share-asset stamps,
 // /dev/share-builder, debug pages) read `BADGES` and helpers below directly.
+//
+// Codes here must match the backend registry (peanut-api-ts
+// src/acknowledgments/seed-definitions.ts). How the whole system works + how to
+// add a badge: peanut-api-ts/docs/BADGES.md.
 import { PEANUTMAN_LOGO } from '@/assets/peanut'
 
 export type BadgeMeta = {
@@ -93,6 +97,79 @@ export const BADGES: Record<string, BadgeMeta> = {
         path: '/badges/money_stack.svg',
         description: '$1K swiped. They put their money where their card is.',
         // TODO(card-launch): award on cumulative card spend ≥ $1K
+    },
+    // ── growth · invite ladder (awarded by invites_accepted count) ──────────
+    FIRST_INVITE: {
+        path: '/badges/first_invite.svg',
+        description: 'Brought a friend to the table. One down, a whole network to go.',
+    },
+    SECOND_INVITE: {
+        path: '/badges/second_invite.svg',
+        description: `Word's getting around — two friends in and rising.`,
+    },
+    THIRD_INVITE: {
+        path: '/badges/third_invite.svg',
+        description: 'Three friends, no misses. Tip your hat.',
+    },
+    MINI_INFLUENCER: {
+        path: '/badges/mini_influencer.svg',
+        description: 'Built a little fan club, one invite at a time.',
+    },
+    INFLUENCER_25: {
+        path: '/badges/influencer_25.svg',
+        description: 'Twenty-five strong. The likes keep rolling in.',
+        displayName: 'Influencer',
+    },
+    MEGA_INFLUENCER: {
+        path: '/badges/invites_100.svg',
+        description: `A hundred friends in. They're kind of a big deal now.`,
+    },
+    DUNBAR: {
+        path: '/badges/dunbar.svg',
+        description: `150 — more people than you can remember. They hit Dunbar's number.`,
+    },
+    // ── growth · invite-streak ladder — DEFERRED ────────────────────────────
+    // A streak is ephemeral live state that resets on a miss, not a permanent
+    // binary badge. Deferred to a dedicated streak feature; assets stay in
+    // public/badges/. Backend defs are commented out in peanut-api-ts
+    // seed-definitions.ts — keep these parked too so codes stay aligned.
+    // STREAK_SPARK:    { path: '/badges/streak_spark.svg',    description: `Seven days running. The streak's lit.`,       displayName: 'Spark' },
+    // STREAK_BLAZE:    { path: '/badges/streak_blaze.svg',    description: `Thirty days, no gaps. They're blazing.`,       displayName: 'Blaze' },
+    // STREAK_WILDFIRE: { path: '/badges/streak_wildfire.svg', description: 'A hundred days straight. This is a wildfire now.', displayName: 'Wildfire' },
+    // ── mentions · yaps ─────────────────────────────────────────────────────
+    CERTIFIED_YAPPER: {
+        path: '/badges/certified_yapper.svg',
+        description: `Certified loud. They talked about Peanut so we didn't have to.`,
+    },
+    GIGA_YAPPER: {
+        path: '/badges/giga_yapper.svg',
+        description: `Giga loud. They don't mention Peanut, they broadcast it.`,
+    },
+    // ── usage · rewards-earned ladder ───────────────────────────────────────
+    FIRST_CRUMB: {
+        path: '/badges/first_crumb.svg',
+        description: 'First dollar earned. Proof it pays.',
+        displayName: 'First Dollar',
+    },
+    DOUBLE_DIGITS: {
+        path: '/badges/double_digits.svg',
+        description: 'Crossed into double digits. Real money now.',
+    },
+    // ── insider ─────────────────────────────────────────────────────────────
+    VERIFIED: {
+        path: '/badges/verified.svg',
+        description: 'ID checked, identity confirmed. Officially verified.',
+    },
+    CARD_CLOSED_BETA: {
+        path: '/badges/card_closed_beta.svg',
+        description: 'IYKYK. They were testing the card before you knew it existed.',
+        displayName: 'Closed Beta',
+    },
+    // ── community (link-granted) ────────────────────────────────────────────
+    ARBITRUM: {
+        path: '/badges/arbitrum.svg',
+        description: 'Found on Arbitrum — mutual onboarding achieved.',
+        displayName: 'Arbitrum Native',
     },
     // Event badges — assets shipped to main via the May 29 hotfix but the catalog
     // entries were dropped when the parallel maps collapsed into this single BADGES

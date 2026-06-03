@@ -28,6 +28,9 @@ import { displayNameFromContent } from './utils'
 
 export interface CountrySEO {
     name: string
+    /** ISO 3166-1 alpha-2 code, denormalized from the country entity into
+     *  generated frontmatter. Drives flag rendering in DestinationGrid. */
+    iso2?: string
 }
 
 export interface Corridor {
@@ -40,9 +43,14 @@ function loadCountries(): Record<string, CountrySEO> {
     for (const slug of listContentSlugs('countries')) {
         // A slug directory with no en.md has no render target — the route
         // would 404. Gate on content presence, not just directory existence.
-        const content = readPageContent<{ name?: unknown; published?: boolean }>('countries', slug, 'en')
+        const content = readPageContent<{ name?: unknown; iso2?: unknown; published?: boolean }>(
+            'countries',
+            slug,
+            'en'
+        )
         if (!content || content.frontmatter.published === false) continue
-        result[slug] = { name: displayNameFromContent(slug, content.frontmatter) }
+        const iso2 = typeof content.frontmatter.iso2 === 'string' ? content.frontmatter.iso2 : undefined
+        result[slug] = { name: displayNameFromContent(slug, content.frontmatter), iso2 }
     }
     return result
 }

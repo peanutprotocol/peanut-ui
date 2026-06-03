@@ -62,7 +62,7 @@ export function SEOFooter({ locale = 'en' }: { locale?: string } = {}) {
 
     return (
         <nav aria-label="Site directory" className="bg-black px-8 py-8 md:px-20">
-            <div className="flex flex-wrap justify-between gap-y-8">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
                 {hasSendMoney && (
                     <FooterSection title="Send Money">
                         {sendTo.map((entry) => (
