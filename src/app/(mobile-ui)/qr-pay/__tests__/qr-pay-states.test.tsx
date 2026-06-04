@@ -1175,6 +1175,16 @@ describe('GROUP 5: Error States', () => {
         })
     })
 
+    test('Below-minimum Pix charge shows the Pix minimum-amount error', async () => {
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error('PAYMENT_DESTINATION_BELOW_MINIMUM'))
+
+        renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+
+        await waitFor(() => {
+            expect(screen.getByText(/BRL minimum for Pix payments/i)).toBeInTheDocument()
+        })
+    })
+
     test('Manteca API error shows generic error', async () => {
         mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error('Network timeout'))
 

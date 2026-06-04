@@ -533,6 +533,12 @@ export default function QRPayPage() {
                 )
                 posthog.capture(ANALYTICS_EVENTS.QR_DECODING_ERROR_SHOWN, { qr_type: qrType })
                 setWaitingForMerchantAmount(false)
+            } else if (error.message.includes('PAYMENT_DESTINATION_BELOW_MINIMUM')) {
+                // no need to wait for merchant here since we know the amount is too low — just show an error with next steps
+                setWaitingForMerchantAmount(false)
+                setErrorInitiatingPayment(
+                    `This Pix charge is below the ${MIN_PIX_AMOUNT_BRL} BRL minimum for Pix payments.`
+                )
             } else {
                 // Network/timeout errors after all retries exhausted
                 setErrorInitiatingPayment(
