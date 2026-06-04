@@ -1,11 +1,4 @@
-import {
-    PEANUTMAN_MOBILE,
-    PeanutCheering,
-    PeanutPointing,
-    PeanutThinking,
-    PeanutTooCool,
-    PeanutWhistling,
-} from '@/assets/mascot'
+import { PEANUTMAN_MOBILE, PeanutPointing, PeanutThinking, PeanutTooCool, PeanutWhistling } from '@/assets/mascot'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
 import { InstallPWA, SetupPasskey, SignupStep, LandingStep, SignTestTransaction } from '@/components/Setup/Views'
 import JoinWaitlist from './Views/JoinWaitlist'
@@ -96,7 +89,7 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         title: 'Your wallet is ready',
         description: "Just confirm it's you — one tap and you're in.",
-        image: PeanutCheering.src,
+        image: PeanutWhistling.src,
         component: SignTestTransaction,
         showBackButton: false,
         showSkipButton: false,

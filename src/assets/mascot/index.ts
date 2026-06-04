@@ -3,9 +3,9 @@
 // Import from '@/assets/mascot' only; do not reach for raw file paths.
 
 // Animated mascots (animated WebP, alpha background — downscaled 512→320px, gif2webp -q 70)
-export { default as PeanutWhistling } from './peanut-whistling.webp' // whistling, peace-sign, mid-stride — landing hero / setup intro
+export { default as PeanutWhistling } from './peanut-whistling.webp' // whistling, peace-sign, mid-stride — chill / effortless: landing hero, setup intro, low-key "you're in" wins
 export { default as PeanutPointing } from './peanut-pointing.webp' // grinning, pointing off-screen
-export { default as PeanutCheering } from './peanut-cheering.webp' // both fists up, celebrating — success / "you're in"
+export { default as PeanutCheering } from './peanut-cheering.webp' // both fists up, celebrating — big money wins (claim / payment success, confetti moments)
 export { default as PeanutSad } from './peanut-sad.webp' // slumped, frowning, hands on hips — sad / dejected (errors)
 export { default as PeanutCrying } from './peanut-crying.webp' // teary, hands to face — errors / empty states
 export { default as PeanutTooCool } from './peanut-too-cool.webp' // pixel shades, hand on hip, big grin — confident "too cool" flex
