@@ -35,3 +35,46 @@ export async function pollUntilApplyAdvances<R extends { status: string }>({
         if (now() - start >= timeoutMs) return null
     }
 }
+
+/**
+ * Cheap poll-until-ready helper for the post-Sumsub-WebSDK-close window.
+ *
+ * Each `fetchReadiness` call reads a single webhook-stamped flag from our DB
+ * (no Sumsub round-trip), so it's safe to poll fast. Returns `true` when the
+ * backend reports `ready: true` (Sumsub finished reviewing rain-requirements
+ * GREEN), `false` on timeout, `null` on abort.
+ *
+ * Replaces the previous pattern of polling `POST /rain/cards` itself — each
+ * of those calls did `moveToLevel` + `getApplicant` + `getQuestionnaireAnswers`
+ * against Sumsub's API, costing ~5 round-trips per poll × 15 polls per stuck
+ * user.
+ */
+export async function pollUntilReady({
+    fetchReadiness,
+    intervalMs,
+    timeoutMs,
+    signal,
+    sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
+    now = () => Date.now(),
+}: {
+    fetchReadiness: () => Promise<{ ready: boolean }>
+    intervalMs: number
+    timeoutMs: number
+    signal?: AbortSignal
+    sleep?: (ms: number) => Promise<void>
+    now?: () => number
+}): Promise<boolean | null> {
+    const start = now()
+    while (true) {
+        if (signal?.aborted) return null
+        try {
+            const { ready } = await fetchReadiness()
+            if (ready) return true
+        } catch {
+            // Swallow transient fetch errors — the next poll iteration retries.
+        }
+        await sleep(intervalMs)
+        if (signal?.aborted) return null
+        if (now() - start >= timeoutMs) return false
+    }
+}
