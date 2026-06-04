@@ -533,7 +533,7 @@ export default function QRPayPage() {
                 )
                 posthog.capture(ANALYTICS_EVENTS.QR_DECODING_ERROR_SHOWN, { qr_type: qrType })
                 setWaitingForMerchantAmount(false)
-            } else if (error.message.includes('PAYMENT_DESTINATION_BELOW_MINIMUM')) {
+            } else if (error.message.includes('PIX_MIN_AMOUNT')) {
                 // no need to wait for merchant here since we know the amount is too low — just show an error with next steps
                 setWaitingForMerchantAmount(false)
                 setErrorInitiatingPayment(
