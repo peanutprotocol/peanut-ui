@@ -56,7 +56,7 @@ export const BADGES: Record<string, BadgeMeta> = {
     },
     SEEDLING_DEVCONNECT_BA_2025: {
         path: '/badges/seedlings_devconnect.svg',
-        description: `They shill Peanut so we don't have to. Honorary squirrel.`,
+        description: `You shill Peanut so we don't have to. Honorary squirrel.`,
     },
     ARBIVERSE_DEVCONNECT_BA_2025: {
         path: '/badges/arbiverse_devconnect.svg',
