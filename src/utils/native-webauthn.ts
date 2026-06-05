@@ -134,7 +134,7 @@ const RIP7212_CHAIN_IDS = [137, 8453, 10, 42161] // polygon, base, optimism, arb
  * this callback is re-attached after restoring a WebAuthnKey from storage
  * since functions can't be serialized to cookies/localStorage.
  */
-export function createNativeSignMessageCallback(rpId: string) {
+export function createNativeSignMessageCallback(rpId: string, pinnedCredentialId?: string) {
     return async (
         message: SignableMessage,
         _rpId: string,
@@ -158,10 +158,25 @@ export function createNativeSignMessageCallback(rpId: string) {
         const messageBytes = new Uint8Array(formattedMessage.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)))
         const challenge = bufferToBase64URL(messageBytes.buffer)
 
+        // Constrain the assertion to THIS kernel's credential. On a device with
+        // more than one peanut.me passkey (multiple Peanut accounts), an
+        // unconstrained get() lets the platform hand back a DIFFERENT account's
+        // passkey, whose signature the kernel then rejects ("invalid admin
+        // signature"). Honor a caller-supplied allow-list if present; otherwise
+        // fall back to the kernel's own credential id. This only ever *adds* the
+        // kernel's own credential to the allow-list, so a working signature
+        // (which already uses that credential) is never excluded.
+        const effectiveAllowCredentials =
+            allowCredentials && allowCredentials.length > 0
+                ? allowCredentials
+                : pinnedCredentialId
+                  ? [{ id: pinnedCredentialId, type: 'public-key' as const }]
+                  : undefined
+
         const assertionOptions = {
             challenge: messageBytes as BufferSource,
             rpId,
-            allowCredentials: allowCredentials?.map((cred) => ({
+            allowCredentials: effectiveAllowCredentials?.map((cred) => ({
                 id: base64URLToBytes(cred.id) as BufferSource,
                 type: 'public-key' as const,
             })),
