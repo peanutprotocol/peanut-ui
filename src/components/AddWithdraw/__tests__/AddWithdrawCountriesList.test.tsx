@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- jest.mock factories stub component props with `any`; matches the sibling add-money-states.test.tsx style. */
 /**
  * Regression coverage for the deposit/withdraw method list's bank gate.
  *
@@ -105,6 +106,13 @@ jest.mock('@/utils/native-routes', () => ({
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 jest.mock('@/utils/color.utils', () => ({ getColorForUsername: () => ({ lightShade: '#fff' }) }))
 jest.mock('@/utils/withdraw.utils', () => ({ getCountryCodeForWithdraw: (id: string) => id }))
+// bridge.utils + regions.utils are direct util collaborators that transitively
+// pull the heavy @/components/AddMoney/consts barrel (regions.utils computes a
+// top-level `Object.values(BRIDGE_ALPHA3_TO_ALPHA2)` at import time, which throws
+// under jest when consts is stubbed). The gate is mocked, so neither return value
+// affects these assertions — stub both so the real consts is never evaluated.
+jest.mock('@/utils/bridge.utils', () => ({ railJurisdictionForBank: () => 'US' }))
+jest.mock('@/utils/regions.utils', () => ({ getRegionIntent: () => 'STANDARD' }))
 
 jest.mock('@/components/ActionListCard', () => ({
     ActionListCard: (props: any) => (
@@ -127,7 +135,7 @@ jest.mock('@/components/Kyc/BridgeTosStep', () => ({ BridgeTosStep: () => null }
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({
     InitiateKycModal: (props: any) => (props.visible ? <div data-testid="initiate-kyc-modal" /> : null),
 }))
-jest.mock('next/image', () => ({ __esModule: true, default: () => <img alt="" /> }))
+jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
 
 describe('AddWithdrawCountriesList — bank gate', () => {
     beforeEach(() => {
