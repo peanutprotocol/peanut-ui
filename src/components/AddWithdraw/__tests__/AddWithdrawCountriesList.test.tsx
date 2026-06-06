@@ -27,7 +27,8 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }))
 
-// ---- consts: one country ('testland', id 'US') with a single bank add-method ----
+// ---- consts: one country ('testland', id 'US') with a bank add-method and a
+// Bridge bank withdraw-method (the withdraw path also runs checkBridgeGate). ----
 jest.mock('@/components/AddMoney/consts', () => ({
     countryData: [{ type: 'country', path: 'testland', id: 'US', title: 'Testland', currency: 'usd' }],
     COUNTRY_SPECIFIC_METHODS: {
@@ -39,6 +40,17 @@ jest.mock('@/components/AddMoney/consts', () => ({
                     description: 'Add via bank transfer',
                     icon: 'bank',
                     path: '/add-money/testland/bank',
+                },
+            ],
+            // id contains 'default-bank-withdraw' → routes through checkBridgeGate
+            // (not the Manteca direct path), so it exercises the same gate.
+            withdraw: [
+                {
+                    id: 'us-default-bank-withdraw',
+                    title: 'To Bank',
+                    description: 'Withdraw to your bank',
+                    icon: 'bank',
+                    isSoon: false,
                 },
             ],
         },
@@ -178,6 +190,31 @@ describe('AddWithdrawCountriesList — bank gate', () => {
 
         render(<AddWithdrawCountriesList flow="add" />)
         fireEvent.click(screen.getByTestId('method-bank'))
+
+        expect(mockPush).not.toHaveBeenCalled()
+        expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
+    })
+
+    // checkBridgeGate is shared by BOTH flows — cover the withdraw entry too so
+    // the removal can't silently regress bank withdrawals.
+    it('withdraw flow: ready gate + pending sibling proceeds to /withdraw (no dead-end modal)', () => {
+        setCapabilities('ready', [
+            { status: 'enabled', channel: 'bank', country: 'US' },
+            { status: 'pending', channel: 'bank', country: 'EU' },
+        ])
+
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        fireEvent.click(screen.getByText('To Bank'))
+
+        expect(mockPush).toHaveBeenCalledWith('/withdraw')
+        expect(screen.queryByTestId('initiate-kyc-modal')).toBeNull()
+    })
+
+    it('withdraw flow: a non-ready gate still blocks + surfaces the KYC modal', () => {
+        setCapabilities('needs-identity', [])
+
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        fireEvent.click(screen.getByText('To Bank'))
 
         expect(mockPush).not.toHaveBeenCalled()
         expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
