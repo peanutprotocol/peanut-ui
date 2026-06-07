@@ -162,15 +162,6 @@ function StickyShhhhhCTA({ onClick }: { onClick: () => void }) {
 export default function ShhhhhLandingPage() {
     const { user, fetchUser } = useAuth()
     const router = useRouter()
-    // /shhhhh?campaign=skip → Skip Pass (awards the badge). A bare press is NOT
-    // a bypass — it joins the waitlist (Hugo 2026-06-07). Read the param
-    // client-side (not useSearchParams) so the marketing page stays statically
-    // prerendered for SEO — useSearchParams would force a Suspense/dynamic bail.
-    const [isSkipCampaign, setIsSkipCampaign] = useState(false)
-    useEffect(() => {
-        const campaign = new URLSearchParams(window.location.search).get('campaign')?.toLowerCase()
-        setIsSkipCampaign(campaign === SKIP_CAMPAIGN)
-    }, [])
 
     // undefined = not joined; number|null = joined (null when the BE returns no
     // position, e.g. the user already had access). Drives the inline confirmation.
@@ -201,6 +192,13 @@ export default function ShhhhhLandingPage() {
     }, [user])
 
     const handleCTA = async () => {
+        // /shhhhh?campaign=skip → Skip Pass (awards the badge). A bare press is
+        // NOT a bypass — it joins the waitlist (Hugo 2026-06-07). Read the param
+        // at click time (client-only) — avoids useSearchParams (which would bail
+        // /shhhhh out of static prerendering) and any mount-effect race.
+        const isSkipCampaign =
+            new URLSearchParams(window.location.search).get('campaign')?.toLowerCase() === SKIP_CAMPAIGN
+
         posthog.capture(ANALYTICS_EVENTS.DOOR_TRY, {
             signed_in: !!user,
             campaign: isSkipCampaign ? SKIP_CAMPAIGN : null,
