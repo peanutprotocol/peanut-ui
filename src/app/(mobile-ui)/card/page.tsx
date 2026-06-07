@@ -8,7 +8,7 @@ import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { computeCardState, findActiveCard, type CardTopLevelState } from '@/components/Card/cardState.utils'
-import { pollUntilApplyAdvances } from '@/components/Card/cardApply.utils'
+import { resolvePostSumsubAction, type SumsubLevel } from '@/components/Card/cardApply.utils'
 import AddCardEntryScreen from '@/components/Card/AddCardEntryScreen'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 import CardTermsScreen from '@/components/Card/CardTermsScreen'
@@ -238,6 +238,11 @@ const CardPage: FC = () => {
         void queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
     }, [queryClient])
 
+    // Tracks the level the WebSDK was last opened at, so the post-Sumsub
+    // resolver can tell a level transition (main → rain-card-application)
+    // apart from "Sumsub auto-review still pending". See `resolvePostSumsubAction`.
+    const lastSumsubLevelRef = useRef<SumsubLevel | null>(null)
+
     // Routes a non-incomplete apply response to the right next screen. Shared
     // by the user-initiated apply path and the post-Sumsub poll, since both
     // need the same main-kyc-required / terms-required / default fan-out.
@@ -251,6 +256,7 @@ const CardPage: FC = () => {
             // wrapper handles both action and main-level tokens.
             if (res.status === 'main-kyc-required' && 'sumsubAccessToken' in res) {
                 setSumsubToken(res.sumsubAccessToken)
+                lastSumsubLevelRef.current = 'main'
                 posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
                 return
             }
@@ -277,6 +283,7 @@ const CardPage: FC = () => {
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
                 if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
                     setSumsubToken(res.sumsubAccessToken)
+                    lastSumsubLevelRef.current = 'rain-card-application'
                     posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
                     return
                 }
@@ -350,6 +357,10 @@ const CardPage: FC = () => {
 
     const handleSumsubComplete = useCallback(async () => {
         sumsubCompletedRef.current = true
+        // Snapshot which level the WebSDK was closed at — `resolvePostSumsubAction`
+        // needs it to tell a level transition apart from "still pending review".
+        // Read before clearing the token so a re-render race can't clobber it.
+        const justCompletedLevel = lastSumsubLevelRef.current
         posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_COMPLETED)
         setSumsubToken(null)
         setApplyError(null)
@@ -360,19 +371,49 @@ const CardPage: FC = () => {
         pollAbortRef.current = controller
 
         try {
-            const res = await pollUntilApplyAdvances({
+            const action = await resolvePostSumsubAction({
+                justCompletedLevel,
                 fetchApply: () => rainApi.applyForCard({ termsAccepted: false }),
                 intervalMs: 1000,
                 timeoutMs: 15000,
                 signal: controller.signal,
             })
             if (controller.signal.aborted) return
-            if (!res) {
-                setApplyError('Verification is taking longer than expected. Please try again.')
-                return
+            switch (action.kind) {
+                case 'reopen-websdk':
+                    // The user just finished MAIN; BE now wants the
+                    // rain-card-application questionnaire. Open the WebSDK
+                    // again at the new level instead of polling-to-timeout.
+                    // Reset the completion flag — handleSumsubClose uses it
+                    // to gate the CARD_SUMSUB_CLOSED abandonment metric, and
+                    // closing the REOPENED level without finishing should
+                    // count as abandonment of the questionnaire.
+                    sumsubCompletedRef.current = false
+                    setSumsubToken(action.sumsubAccessToken)
+                    lastSumsubLevelRef.current = action.level
+                    posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+                    return
+                case 'advance':
+                    posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, {
+                        outcome: action.response.status,
+                    })
+                    advanceFromApplyResponse(action.response)
+                    return
+                case 'timeout':
+                    setApplyError('Verification is taking longer than expected. Please try again.')
+                    return
+                case 'aborted':
+                    return
+                default: {
+                    // Compile-time exhaustiveness guard: adding a new
+                    // PostSumsubAction variant without a matching case
+                    // becomes a type error here instead of a silent
+                    // fall-through at runtime.
+                    const _exhaustive: never = action
+                    void _exhaustive
+                    return
+                }
             }
-            posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
-            advanceFromApplyResponse(res)
         } catch (e) {
             if (controller.signal.aborted) return
             const message = e instanceof Error ? e.message : 'Failed to apply for card'
