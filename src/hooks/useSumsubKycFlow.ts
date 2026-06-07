@@ -173,8 +173,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 // silent no-op. surface an honest, terminal message and bail BEFORE the
                 // status sync below — syncing APPROVED here would trip the transition
                 // effect into firing onKycSuccess, looping the user back to "all set".
+                //
+                // clear userInitiatedRef so a late/stale websocket APPROVED event can't
+                // satisfy the transition-effect guard and fire onKycSuccess after this
+                // terminal error (the user is approved but has no rail — NOT a success).
                 if (response.data?.actionType === 'unsupported-region') {
-                    if (crossRegion) prevStatusRef.current = savedPrevStatus
+                    userInitiatedRef.current = false
                     setError(
                         "Bank deposits aren't available in your region yet. We'll let you know as soon as they go live."
                     )
