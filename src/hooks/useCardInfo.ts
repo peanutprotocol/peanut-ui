@@ -3,18 +3,14 @@
 /**
  * Hook to fetch /card info for the authenticated user — returns waitlist
  * state, eligibility, skip-badge holdings, and the inner/outer gate
- * booleans.
- *
- * Name is legacy ("Pioneer") — kept for backwards compatibility with the
- * call sites that still import this. Phase 6.5 cleanup will rename to
- * `useCardInfo`.
+ * booleans. (Formerly `useCardPioneerInfo` — Pioneer is gone; renamed.)
  */
 
 import { useQuery } from '@tanstack/react-query'
 import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
 
-export const useCardPioneerInfo = () => {
+export const useCardInfo = () => {
     const { user } = useAuth()
 
     const query = useQuery<CardInfoResponse>({

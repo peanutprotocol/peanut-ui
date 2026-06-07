@@ -20,7 +20,7 @@ import { KycStatusItem, isKycStatusItem, type KycHistoryEntry } from '../Kyc/Kyc
 import { buildKycHistoryEntry } from '@/utils/kyc-grouping.utils'
 import CardUnlockHistoryItem from '../Card/CardUnlockHistoryItem'
 import { deriveCardUnlockEntry, isCardUnlockHistoryItem, type CardUnlockHistoryEntry } from '../Card/cardUnlock.types'
-import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
+import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
@@ -78,7 +78,7 @@ const HomeHistory = ({
     // Pull /card response to derive the synthetic "card unlocked" history
     // entry. Mirrors how kyc derives from user state. Only meaningful when
     // viewing your own history.
-    const { cardInfo } = useCardPioneerInfo()
+    const { cardInfo } = useCardInfo()
     // The card-unlock row gates on an ACTUALLY-issued card, not mere access.
     // Same query key the wallet already loads on home → cache read, no extra
     // fetch. Card *access* (skip badge / admin grant) is held by ~33% of
