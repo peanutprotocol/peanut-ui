@@ -256,15 +256,17 @@ export default function ShhhhhLandingPage() {
                     </div>
                     <div className="flex min-w-0 justify-center md:justify-end">
                         {/* Match ShareAssetD3 pixelation: same PixelatedCardFace component
-                            scaled into the hero column. Native dims are 620×391; the
-                            inner absolute-positioned layout scales linearly with the
-                            transform. Width-bounded so the rotated card stays in column. */}
+                            scaled into the hero column. Native dims are 760×479 (shared
+                            CARD_W/CARD_H); the inner absolute-positioned layout scales
+                            linearly with the transform. Scale 0.526 keeps the on-screen
+                            footprint (~400×253) unchanged after the share-asset card was
+                            enlarged 620→760, so this hero is unaffected by that change. */}
                         <div
                             className="origin-center -rotate-12"
                             style={{
                                 width: 400,
                                 height: 252,
-                                transform: 'scale(0.645) rotate(-12deg)',
+                                transform: 'scale(0.526) rotate(-12deg)',
                                 transformOrigin: 'center center',
                             }}
                         >
