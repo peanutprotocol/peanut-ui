@@ -1,4 +1,4 @@
-import { pollUntilApplyAdvances } from '@/components/Card/cardApply.utils'
+import { pollUntilApplyAdvances, pollUntilReady } from '@/components/Card/cardApply.utils'
 
 const noSleep = async () => {}
 
@@ -107,5 +107,93 @@ describe('pollUntilApplyAdvances', () => {
 
         expect(result).toBeNull()
         expect(fetchApply).not.toHaveBeenCalled()
+    })
+})
+
+describe('pollUntilReady', () => {
+    const noSleep = async () => {}
+
+    it('returns true once the backend reports ready', async () => {
+        const fetchReadiness = jest.fn().mockResolvedValueOnce({ ready: false }).mockResolvedValueOnce({ ready: true })
+
+        const result = await pollUntilReady({ fetchReadiness, intervalMs: 0, timeoutMs: 10_000, sleep: noSleep })
+
+        expect(result).toBe(true)
+        expect(fetchReadiness).toHaveBeenCalledTimes(2)
+    })
+
+    it('returns false on a clean timeout (backend healthy, never went ready)', async () => {
+        const fetchReadiness = jest.fn().mockResolvedValue({ ready: false })
+        let clock = 0
+
+        const result = await pollUntilReady({
+            fetchReadiness,
+            intervalMs: 1000,
+            timeoutMs: 3000,
+            sleep: async (ms) => {
+                clock += ms
+            },
+            now: () => clock,
+        })
+
+        expect(result).toBe(false)
+    })
+
+    // The fix: a PERSISTENT failure (auth / 5xx) must surface its real reason on
+    // timeout instead of being collapsed into a misleading `false` ("taking longer").
+    it('throws the last error when the most recent poll keeps failing', async () => {
+        const fetchReadiness = jest.fn().mockRejectedValue(new Error('401 session expired'))
+        let clock = 0
+
+        await expect(
+            pollUntilReady({
+                fetchReadiness,
+                intervalMs: 1000,
+                timeoutMs: 3000,
+                sleep: async (ms) => {
+                    clock += ms
+                },
+                now: () => clock,
+            })
+        ).rejects.toThrow('401 session expired')
+    })
+
+    // A transient blip that recovers must NOT surface a stale error: if the latest
+    // poll was a clean (not-ready) response, timeout returns false, not the old error.
+    it('does not throw a stale error after recovery — returns false on clean timeout', async () => {
+        const fetchReadiness = jest
+            .fn()
+            .mockRejectedValueOnce(new Error('transient 503'))
+            .mockResolvedValue({ ready: false })
+        let clock = 0
+
+        const result = await pollUntilReady({
+            fetchReadiness,
+            intervalMs: 1000,
+            timeoutMs: 3000,
+            sleep: async (ms) => {
+                clock += ms
+            },
+            now: () => clock,
+        })
+
+        expect(result).toBe(false)
+    })
+
+    it('returns null when the signal is already aborted', async () => {
+        const controller = new AbortController()
+        controller.abort()
+        const fetchReadiness = jest.fn()
+
+        const result = await pollUntilReady({
+            fetchReadiness,
+            intervalMs: 0,
+            timeoutMs: 10_000,
+            signal: controller.signal,
+            sleep: noSleep,
+        })
+
+        expect(result).toBeNull()
+        expect(fetchReadiness).not.toHaveBeenCalled()
     })
 })
