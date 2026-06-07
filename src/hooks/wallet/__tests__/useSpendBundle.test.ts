@@ -5,7 +5,7 @@
  * session-key grant flow — those paths are covered by integration + manual
  * testing on sandbox. These tests lock down the deterministic pieces:
  *   - `computeSpendStrategy` routing (collateral → smart → mixed → insufficient)
- *   - `usdcWeiToRainCents` amount conversion at the Rain API boundary
+ *   - `usdcUnitsToRainCents` amount conversion at the Rain API boundary
  */
 
 // Mock the ZeroDev imports so Jest doesn't try to parse their ESM.

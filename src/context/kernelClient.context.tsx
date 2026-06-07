@@ -395,6 +395,29 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 inFlightRef.current.delete(primaryChainId)
             }
 
+            // Guard: the restored WebAuthnKey must belong to the logged-in user.
+            // On a shared device with two Peanut accounts (two passkeys for the
+            // same RP), the restore path can pair this session with the OTHER
+            // account's credential. The derived kernel address then differs from
+            // the user's real smart-wallet address, and any server-bound ERC-1271
+            // check (Rain card withdraw) rejects the signature as "invalid admin
+            // signature". Purge the poisoned key and force a clean re-auth rather
+            // than silently signing with the wrong credential. Skipped when the
+            // user has no smart-wallet account yet (mid-registration) and for
+            // pre-migration users (address is passed in, so it always matches).
+            const expectedAddress = user?.accounts.find((a) => a.type === AccountType.PEANUT_WALLET)?.identifier
+            const derivedAddress = kernelClient.account?.address
+            if (expectedAddress && derivedAddress && derivedAddress.toLowerCase() !== expectedAddress.toLowerCase()) {
+                console.error('[KernelClient] restored WebAuthnKey does not match the logged-in user — purging', {
+                    userId: user?.user.userId,
+                    derivedAddress,
+                    expectedAddress,
+                })
+                if (user?.user.userId) updateUserPreferences(user.user.userId, { webAuthnKey: undefined })
+                logoutUser()
+                return
+            }
+
             // Only update state after primary succeeds — avoids
             // registering→not→registering UI flicker between retries.
             if (isMounted) {

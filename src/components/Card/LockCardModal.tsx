@@ -12,7 +12,7 @@ import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRa
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { rainSpendingPowerToWei } from '@/utils/balance.utils'
+import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
 
 type Mode = 'lock' | 'unlock'
 type Phase = 'prompt' | 'loading' | 'success' | 'error'
@@ -67,9 +67,9 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                 // smart wallet BEFORE locking so funds stay liquid. The
                 // backend gates the lock on a successful withdrawal — order
                 // is handled there. We only need to deliver the signed body.
-                const spendingPowerWei = rainSpendingPowerToWei(overview?.balance?.spendingPower)
+                const spendingPowerUnits = rainCentsToUsdcUnits(overview?.balance?.spendingPower)
                 let verifiedWithdrawal: import('@/hooks/wallet/useSignSpendBundle').SignedRainWithdrawal | undefined
-                if (spendingPowerWei > 0n) {
+                if (spendingPowerUnits > 0n) {
                     if (!smartWalletAddress) {
                         throw new Error('Wallet not ready — please retry in a moment')
                     }
@@ -78,10 +78,10 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                     // picks 'collateral-only' and signs a Rain withdrawal
                     // straight to the user's smart wallet (1 passkey tap).
                     const artifact = await signSpend({
-                        requiredUsdcAmount: spendingPowerWei,
+                        requiredUsdcAmount: spendingPowerUnits,
                         recipient: smartWalletAddress as `0x${string}`,
                         smartBalance: 0n,
-                        rainSpendingPower: spendingPowerWei,
+                        rainSpendingPower: spendingPowerUnits,
                         kind: 'CRYPTO_WITHDRAW',
                     })
                     if (artifact.strategy !== 'collateral-only') {

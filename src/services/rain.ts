@@ -31,6 +31,13 @@ export interface RainCardBalance {
     pendingCharges: number
     postedCharges: number
     balanceDue: number
+    /**
+     * Card collateral top-up funds debited from the smart account on-chain but
+     * not yet credited to Rain collateral (the ~10–45s smart→collateral
+     * handoff). Folded into the displayed balance so it doesn't crater to 0
+     * mid-top-up. Optional for backward-compat with a pre-deploy backend.
+     */
+    inTransitToCollateralCents?: number
 }
 
 export interface RainCardSummary {
@@ -75,7 +82,7 @@ export type RainCollateralKind =
 
 export interface PrepareRainWithdrawalInput {
     /** Rain cents (2dp), as a decimal string. e.g. `"500"` for $5.00.
-     *  Convert from USDC wei via `usdcWeiToRainCents` at the boundary. */
+     *  Convert from USDC wei via `usdcUnitsToRainCents` at the boundary. */
     amount: string
     recipientAddress: string
     directTransfer: boolean
@@ -127,6 +134,33 @@ export interface SubmitRainWithdrawalInput {
 
 export interface SubmitRainWithdrawalResponse {
     txHash: string
+}
+
+// ─── Funds-recovery types ────────────────────────────────────────────────────
+//
+// Recovery is for the deleted-Rain-user case: Rain's balance endpoint stops
+// returning the collateral, but the on-chain USDC is still there and Rain's
+// signature endpoint still works. The server determines amount + recipient;
+// the FE just signs the admin EIP-712 over what the server gives it. See
+// peanut-api-ts/src/routes/rain/recover-funds.ts for the contract.
+
+export interface RecoverFundsPreviewResponse {
+    collateralProxy: string
+    /** The user's own smart-wallet address — the only allowed recipient. */
+    recipient: string
+    /** Full on-chain USDC balance in token smallest units (6 dp). */
+    amountWei: string
+    /** Recoverable amount in Rain cents (2 dp). */
+    amountCents: string
+    /** Wei below one cent — stays in the contract after recovery. */
+    dustWei: string
+    autoBalanceEnabled: boolean
+    hasRecoverableCard: boolean
+}
+
+export interface PrepareRecoverFundsResponse extends PrepareRainWithdrawalResponse {
+    amountCents: string
+    dustWei: string
 }
 
 // ─── Types for card management endpoints ────────────────────────────────────
@@ -355,6 +389,37 @@ export const rainApi = {
     },
 
     /**
+     * Read-only preview of what would be recovered: on-chain USDC balance,
+     * the user's smart-wallet recipient, and the current autoBalanceEnabled
+     * flag. Backed by GET /rain/cards/recover-funds/preview — no side
+     * effects, so safe to call on page mount and on refresh.
+     */
+    getRecoverFundsPreview: async (): Promise<RecoverFundsPreviewResponse> => {
+        return rainRequest<RecoverFundsPreviewResponse>({
+            method: 'GET',
+            path: '/rain/cards/recover-funds/preview',
+            noStore: true,
+        })
+    },
+
+    /**
+     * Side-effectful: flips autoBalanceEnabled to false, reads on-chain
+     * balance, fetches Rain's executor signature for the FULL cent-aligned
+     * amount payable to the user's smart wallet, creates a TransactionIntent.
+     * Returns the prepared payload the caller signs with their kernel and
+     * submits to /rain/cards/withdraw/submit (unchanged).
+     *
+     * Empty body on purpose — amount and recipient are server-locked.
+     */
+    prepareRecoverFunds: async (): Promise<PrepareRecoverFundsResponse> => {
+        return rainRequest<PrepareRecoverFundsResponse>({
+            method: 'POST',
+            path: '/rain/cards/recover-funds/prepare',
+            body: {},
+        })
+    },
+
+    /**
      * Stamp a client-submitted mixed-strategy UserOp with its on-chain tx
      * hash so the Rain collateral webhook can reconcile against the right
      * intent. Non-fatal on failure.
@@ -396,6 +461,27 @@ export const rainApi = {
             method: 'POST',
             path: '/rain/cards',
             body,
+        })
+    },
+
+    /**
+     * Cheap polling endpoint for the post-Sumsub WebSDK-close window.
+     *
+     * `applyForCard` is a heavy call — each invocation does `moveToLevel` +
+     * `getApplicant` + `getQuestionnaireAnswers` against Sumsub's API. Polling
+     * it every second for 15s during the async-review race adds up to ~75
+     * Sumsub round-trips per stuck user. This endpoint reads a single
+     * webhook-stamped flag from our DB instead, so it's safe to poll at high
+     * frequency without burning Sumsub rate budget.
+     */
+    getCardApplyReadiness: async (): Promise<{
+        ready: boolean
+        hasApplication: boolean
+        readyAt?: string
+    }> => {
+        return rainRequest<{ ready: boolean; hasApplication: boolean; readyAt?: string }>({
+            method: 'GET',
+            path: '/rain/cards/readiness',
         })
     },
 

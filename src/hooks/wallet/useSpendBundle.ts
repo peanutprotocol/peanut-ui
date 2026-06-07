@@ -19,7 +19,7 @@ import { rainApi, type RainCollateralKind } from '@/services/rain'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey, type GrantSessionKeyError } from './useGrantSessionKey'
-import { usdcWeiToRainCents } from '@/utils/balance.utils'
+import { usdcUnitsToRainCents } from '@/utils/balance.utils'
 import { useModalsContextOptional } from '@/context/ModalsContext'
 
 export type SpendStrategy = 'collateral-only' | 'smart-only' | 'mixed' | 'insufficient'
@@ -95,11 +95,11 @@ export class SessionKeyGrantRequiredError extends Error {
     }
 }
 
-// `usdcWeiToRainCents` lives in @/utils/balance.utils alongside its sibling
-// `rainSpendingPowerToWei`. Rain's wire convention is asymmetric: cents (2dp)
+// `usdcUnitsToRainCents` lives in @/utils/balance.utils alongside its sibling
+// `rainCentsToUsdcUnits`. Rain's wire convention is asymmetric: cents (2dp)
 // on INPUT to /prepare, USDC wei (PEANUT_WALLET_TOKEN_DECIMALS) on OUTPUT in
 // the signed parameters (what the EIP-712 message + coordinator sign over).
-// `usdcWeiToRainCents` is for the input side only — never call it on amounts
+// `usdcUnitsToRainCents` is for the input side only — never call it on amounts
 // returned from Rain.
 
 /**
@@ -200,7 +200,7 @@ export const useSpendBundle = () => {
                 // ─── collateral-only ──────────────────────────────────────────────
                 if (strategy === 'collateral-only') {
                     const prep = await rainApi.prepareWithdrawal({
-                        amount: usdcWeiToRainCents(requiredUsdcAmount).toString(),
+                        amount: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                         recipientAddress: recipient!,
                         directTransfer: true,
                         kind,
@@ -281,7 +281,7 @@ export const useSpendBundle = () => {
 
                 const shortfall = requiredUsdcAmount - smartBalance
                 const prep = await rainApi.prepareWithdrawal({
-                    amount: usdcWeiToRainCents(shortfall).toString(),
+                    amount: usdcUnitsToRainCents(shortfall).toString(),
                     // directTransfer=false sends tokens to the admin (kernel). We still pass
                     // the admin address here; the backend + coordinator treat it as the
                     // withdraw beneficiary, which equals msg.sender-to-be in the follow-up UserOp.
@@ -290,7 +290,7 @@ export const useSpendBundle = () => {
                     kind,
                     // History shows the full user-initiated spend, not just the
                     // shortfall Rain signed over.
-                    totalAmountCents: usdcWeiToRainCents(requiredUsdcAmount).toString(),
+                    totalAmountCents: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                 })
 
                 const kernelClient = getClientForChain(chainIdStr)
