@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import type { Address, Hex } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -9,6 +8,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { useKernelClient } from '@/context/kernelClient.context'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import {
     RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
     RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
@@ -40,13 +40,17 @@ type Step = 'preview' | 'confirm' | 'signing' | 'submitting' | 'done'
  * requires the user's passkey.
  */
 export default function CardRecoveryPage() {
-    const router = useRouter()
+    const onBack = useSafeBack('/home')
     const { getClientForChain } = useKernelClient()
 
     const [step, setStep] = useState<Step>('preview')
     const [preview, setPreview] = useState<RecoverFundsPreviewResponse | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [txHash, setTxHash] = useState<Hex | null>(null)
+    // The amount actually prepared + signed + submitted. The mount-time `preview`
+    // can be stale by the time the user confirms (collateral can change), so the
+    // completion screen must report what was really recovered, not the preview.
+    const [recoveredCents, setRecoveredCents] = useState<string | null>(null)
 
     useEffect(() => {
         let cancelled = false
@@ -71,6 +75,8 @@ export default function CardRecoveryPage() {
             // page were tampered with at runtime, the backend signs over the
             // values it computed itself.
             const prep = await rainApi.prepareRecoverFunds()
+            // Lock in the real prepared amount for the completion screen.
+            setRecoveredCents(prep.amountCents)
 
             const chainIdStr = String(PEANUT_WALLET_CHAIN.id)
             const chainIdNum = Number(prep.chainId)
@@ -120,7 +126,7 @@ export default function CardRecoveryPage() {
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">
-            <NavHeader title="Recover card funds" onPrev={() => router.push('/home')} />
+            <NavHeader title="Recover card funds" onPrev={onBack} />
             <div className="my-auto flex flex-col gap-6">
                 {error && <ErrorAlert description={error} />}
 
@@ -128,7 +134,8 @@ export default function CardRecoveryPage() {
                     <Card className="flex flex-col gap-3 p-6">
                         <h2 className="text-h7 font-bold">Funds sent to your wallet.</h2>
                         <p className="text-sm text-grey-1">
-                            ${formatCents(preview!.amountCents)} USDC has been returned to your peanut wallet.
+                            ${formatCents(recoveredCents ?? preview!.amountCents)} USDC has been returned to your peanut
+                            wallet.
                         </p>
                         <a
                             className="text-black underline"
