@@ -167,6 +167,24 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     return
                 }
 
+                // cross-region into a region no first-party bank provider serves (ROW).
+                // the backend approved identity but can't auto-enroll any rail, so it
+                // signals 'unsupported-region' (status APPROVED, no token) instead of a
+                // silent no-op. surface an honest, terminal message and bail BEFORE the
+                // status sync below — syncing APPROVED here would trip the transition
+                // effect into firing onKycSuccess, looping the user back to "all set".
+                //
+                // clear userInitiatedRef so a late/stale websocket APPROVED event can't
+                // satisfy the transition-effect guard and fire onKycSuccess after this
+                // terminal error (the user is approved but has no rail — NOT a success).
+                if (response.data?.actionType === 'unsupported-region') {
+                    userInitiatedRef.current = false
+                    setError(
+                        "Bank deposits aren't available in your region yet. We'll let you know as soon as they go live."
+                    )
+                    return
+                }
+
                 // sync status from api response, but skip when a token is returned
                 // alongside APPROVED — that means the SDK should open (e.g. additional-docs flow),
                 // not that kyc is finished. syncing APPROVED here would trigger the useEffect
