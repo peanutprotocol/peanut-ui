@@ -247,6 +247,7 @@ const HomeHistory = ({
                         cardAccessGrantedAt: cardInfo.waitlistReleasedAt,
                         skipBadges: cardInfo.skipBadges,
                         userBadges: user?.user?.badges,
+                        celebrationSeenAt: cardInfo.cardWaitlistSkipCelebrationSeenAt,
                     })
                     if (unlock) entries.push(unlock)
                 }
@@ -261,17 +262,12 @@ const HomeHistory = ({
                     return dateB - dateA
                 })
 
-                // Cap at 5 fresh entries — but ALWAYS keep the synthetic
-                // card-unlock row if it exists (it's an evergreen
-                // shoulder-tap to re-share the asset, not a transient
-                // event that should age out behind 5 fresh badge unlocks).
+                // Cap at 5 fresh entries. The card-unlock row is NOT pinned —
+                // it ages out like any other entry and is retired entirely once
+                // the user has seen the celebration (celebrationSeenAt gate in
+                // deriveCardUnlockEntry). Pinning it made it "always there".
                 const RECENT_LIMIT = 5
-                const recent = entries.slice(0, RECENT_LIMIT)
-                const unlock = entries.find(isCardUnlockHistoryItem)
-                if (unlock && !recent.some(isCardUnlockHistoryItem)) {
-                    recent.push(unlock)
-                }
-                setCombinedEntries(recent)
+                setCombinedEntries(entries.slice(0, RECENT_LIMIT))
             }
 
             processEntries()

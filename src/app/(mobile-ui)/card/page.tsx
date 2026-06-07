@@ -26,8 +26,10 @@ import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
-// localStorage key for the one-time celebration gate. Phase 5 will swap
-// this for a BE-persisted `cardWaitlistSkipCelebrationSeenAt` lookup.
+// localStorage key for the one-time celebration gate (within-device, instant).
+// The durable signal is the BE `cardWaitlistSkipCelebrationSeenAt` column,
+// stamped via cardApi.markCelebrationSeen() — that's what retires the
+// "You skipped the line" history row (cross-device, survives cache clears).
 // v2 (2026-05-25): celebration now fires for ALL hasCardAccess users, not
 // just skip-badge holders. v1's stale `true` values from earlier QA runs
 // would silently skip the celebration — bumping the key invalidates them.
@@ -41,6 +43,11 @@ function getSkipCelebrationSeen(): boolean {
 function markSkipCelebrationSeen(): void {
     if (typeof window === 'undefined') return
     window.localStorage.setItem(SKIP_CELEBRATION_SEEN_KEY, 'true')
+    // Persist server-side so the history row retires everywhere. Best-effort:
+    // the localStorage gate already handled the in-session UX.
+    void cardApi.markCelebrationSeen().catch((err) => {
+        console.error('[card] markCelebrationSeen failed:', err)
+    })
 }
 
 // Eligibility-check screen lifetime per Hugo's spec: gate fires every

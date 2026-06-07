@@ -10,6 +10,7 @@ const cardInfo = (
         waitlistPosition?: number | null
         waitlistReleasedAt?: string | null
         skipBadges?: string[]
+        cardWaitlistSkipCelebrationSeenAt?: string | null
     } = {}
 ): CardInfoResponse => ({
     hasCardAccess: opts.hasCardAccess ?? false,
@@ -19,6 +20,7 @@ const cardInfo = (
     waitlistPosition: opts.waitlistPosition ?? null,
     waitlistReleasedAt: opts.waitlistReleasedAt ?? null,
     skipBadges: opts.skipBadges ?? [],
+    cardWaitlistSkipCelebrationSeenAt: opts.cardWaitlistSkipCelebrationSeenAt ?? null,
 })
 
 const emptyOverview: RainCardOverview = {

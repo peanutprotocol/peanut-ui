@@ -52,9 +52,17 @@ export function deriveCardUnlockEntry(args: {
     cardAccessGrantedAt: string | null | undefined
     skipBadges: string[]
     userBadges?: Array<{ code: string; earnedAt?: string | Date | null }>
+    /** ISO timestamp once the user has acknowledged the skip-the-line
+     *  celebration (BE `cardWaitlistSkipCelebrationSeenAt`). Once set the
+     *  row is retired — it was an evergreen "re-open your share asset"
+     *  shoulder-tap that, derived from permanent inputs with no seen-gate,
+     *  never left the feed (Hugo: "always there, buggy"). */
+    celebrationSeenAt?: string | null
 }): CardUnlockHistoryEntry | null {
     if (!args.hasIssuedCard) return null
     if (!args.hasCardAccess) return null
+    // Seen the celebration → retire the row (don't pin it forever).
+    if (args.celebrationSeenAt) return null
 
     let timestamp = args.cardAccessGrantedAt ?? undefined
     if (!timestamp && args.userBadges && args.skipBadges.length > 0) {
