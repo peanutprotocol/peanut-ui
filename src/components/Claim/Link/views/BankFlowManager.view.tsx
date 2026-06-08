@@ -297,7 +297,12 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         // scenario 1: receiver needs KYC
         // name and email are now collected by sumsub sdk — no need to save them beforehand
         if (bankClaimType === BankClaimType.ReceiverKycNeeded && !justCompletedKyc) {
-            await sumsubFlow.handleInitiateKyc(getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'))
+            await sumsubFlow.handleInitiateKyc(
+                getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
+                undefined,
+                undefined,
+                selectedCountry?.id
+            )
             return {}
         }
 
@@ -567,7 +572,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                                     await sumsubFlow.handleInitiateKyc(
                                         getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
                                         undefined,
-                                        gate.kind === 'needs-enrollment' || undefined
+                                        gate.kind === 'needs-enrollment' || undefined,
+                                        selectedCountry?.id
                                     )
                                 }
                                 // only close if sdk opened — if it errored, keep modal open to show error
