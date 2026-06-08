@@ -43,6 +43,18 @@ export function isCardPaymentEntry(transaction: TransactionDetails): boolean {
     return transaction.extraDataForDrawer?.cardPayment != null
 }
 
+/** Flows that cross fiat ↔ USD and therefore carry an FX rate worth showing:
+ *  bank on/off-ramps, QR pays, and Rain card spends + refunds. Gating the
+ *  exchange-rate row on this (rather than a hand-kept `direction` allow-list)
+ *  is what stops the "forgot to add the new direction" bug class — card
+ *  refunds arrive as `direction: 'receive'` and were silently missed before.
+ *  The currency-block / non-stablecoin / not-cancelled checks still apply on
+ *  top; this only answers "is this the kind of flow that has an FX rate". */
+export function isFxBearingFlow(transaction: TransactionDetails): boolean {
+    const k = kindOf(transaction)
+    return k === 'ONRAMP' || k === 'OFFRAMP' || k === 'QR_PAY' || isCardPaymentEntry(transaction)
+}
+
 export function isPerkReward(transaction: TransactionDetails): boolean {
     return isKind(transaction, 'PERK_REWARD')
 }

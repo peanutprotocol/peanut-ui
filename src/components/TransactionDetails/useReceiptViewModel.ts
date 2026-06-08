@@ -10,6 +10,7 @@ import {
 import {
     hasShareableReceipt,
     isCardPaymentEntry,
+    isFxBearingFlow,
     isDirectSendEntry,
     isMantecaOnrampEntry,
     isOnrampEntry,
@@ -196,14 +197,7 @@ export function useReceiptViewModel(
             refunded: transaction.status === 'refunded',
             fee: transaction.fee !== undefined && transaction.status !== 'cancelled',
             exchangeRate: !!(
-                (transaction.direction === 'bank_deposit' ||
-                    transaction.direction === 'qr_payment' ||
-                    transaction.direction === 'bank_withdraw' ||
-                    // Card refunds carry `direction: 'receive'`, so the direction
-                    // allow-list above misses them — gate on the card-entry
-                    // predicate too so a non-USD card refund shows its FX rate
-                    // just like the matching card spend (`qr_payment`) does.
-                    isCardPaymentEntry(transaction)) &&
+                isFxBearingFlow(transaction) &&
                 transaction.currency?.code &&
                 transaction.currency.code.toUpperCase() !== 'USD' &&
                 // No FX between USD and USDC/USDT — suppress the rate row.

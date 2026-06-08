@@ -9,6 +9,7 @@ import { type ChargeEntry } from '@/services/services.types'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { shareableUrl } from '@/utils/url.utils'
 import { type StatusPillType } from '@/components/Global/StatusPill'
+import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
 
 export enum EHistoryUserRole {
     SENDER = 'SENDER',
@@ -262,27 +263,30 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
 // bare `$30.24` next to a peer's `-$30.24`.
 const SIGNLESS_STATUSES = new Set<StatusPillType>(['cancelled', 'failed', 'refunded'])
 
+// Direction → balance-change sign. A `Record` (not a switch) so the compiler
+// enforces exhaustiveness: adding a `TransactionDirection` without a sign is a
+// build error, not a silent `''` at runtime.
+const DIRECTION_TO_SIGN: Record<TransactionDirection, '-' | '+'> = {
+    send: '-',
+    request_received: '-',
+    withdraw: '-',
+    bank_withdraw: '-',
+    bank_claim: '-',
+    claim_external: '-',
+    qr_payment: '-',
+    receive: '+',
+    request_sent: '+',
+    add: '+',
+    bank_deposit: '+',
+    bank_request_fulfillment: '+',
+}
+
 /** Returns the sign of the transaction, based on the direction and status of the transaction. */
 export function getTransactionSign(transaction: Pick<TransactionDetails, 'direction' | 'status'>): '-' | '+' | '' {
     if (transaction.status && SIGNLESS_STATUSES.has(transaction.status)) {
         return ''
     }
-    switch (transaction.direction) {
-        case 'send':
-        case 'request_received':
-        case 'withdraw':
-        case 'bank_withdraw':
-        case 'bank_claim':
-        case 'claim_external':
-        case 'qr_payment':
-            return '-'
-        case 'receive':
-        case 'request_sent':
-        case 'add':
-        case 'bank_deposit':
-        case 'bank_request_fulfillment':
-            return '+'
-    }
+    return DIRECTION_TO_SIGN[transaction.direction]
 }
 
 /** Completes a history entry by adding additional data and formatting the amount. */
