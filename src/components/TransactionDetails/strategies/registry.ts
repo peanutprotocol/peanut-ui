@@ -57,6 +57,35 @@ export function isIntentKind(value: unknown): value is IntentKind {
     return typeof value === 'string' && value in STRATEGIES
 }
 
+// Legacy receipt back-compat. Before the decomplexify migration (commit
+// b5a0fa2b, May 2026) shareable receipt URLs were `/receipt/<id>?t=<n>`,
+// where <n> was the index of the old `EHistoryEntryType` enum. The migration
+// switched to `?kind=<IntentKind>` with no back-compat, so every receipt link
+// shared or saved before then now 404s. Only five legacy types ever produced
+// a shareable receipt (SEND_LINK, Manteca/SimpleFi QR, Manteca on/off-ramp),
+// so map just those indices to the canonical kind; any other `?t=` value
+// stays unmapped and 404s exactly as it does today.
+const LEGACY_RECEIPT_TYPE_INDEX_TO_KIND: Record<string, IntentKind> = {
+    '3': 'SEND_LINK', // EHistoryEntryType.SEND_LINK
+    '9': 'QR_PAY', // MANTECA_QR_PAYMENT
+    '10': 'OFFRAMP', // MANTECA_OFFRAMP
+    '11': 'ONRAMP', // MANTECA_ONRAMP
+    '13': 'QR_PAY', // SIMPLEFI_QR_PAYMENT
+}
+
+/** Resolve the receipt kind from the request's query params, accepting both the
+ *  current `?kind=<IntentKind>` and the legacy `?t=<enumIndex>` form so old
+ *  shared links keep resolving. Returns undefined when neither yields a kind
+ *  the FE renders. */
+export function resolveReceiptKind(
+    kindParam: string | string[] | undefined,
+    legacyTypeParam: string | string[] | undefined
+): IntentKind | undefined {
+    if (isIntentKind(kindParam)) return kindParam
+    if (typeof legacyTypeParam === 'string') return LEGACY_RECEIPT_TYPE_INDEX_TO_KIND[legacyTypeParam]
+    return undefined
+}
+
 export function dispatchStrategy(entry: HistoryEntry): TransactionStrategy {
     const kind = entry.extraData?.kind
     if (isIntentKind(kind)) return STRATEGIES[kind]
