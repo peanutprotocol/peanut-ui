@@ -87,6 +87,19 @@ describe('useReceiptViewModel — card exchange-rate row', () => {
         const config = renderConfig(cardRefund({ currency: { code: 'USD', symbol: '$' } }))
         expect(config.exchangeRate).toBe(false)
     })
+
+    test('shows the FX rate for an OFFRAMP viewed from the send-link-claim side (direction=send)', () => {
+        // An OFFRAMP renders as direction `send`/`receive`/`bank_claim` (not
+        // just `bank_withdraw`) on the claim + multi-user paths. The old
+        // direction allow-list hid the FX row for those; gating on the OFFRAMP
+        // *kind* shows it — these are genuine USD→fiat conversions. Locks that
+        // intended generalization.
+        const offrampAsSend = withDrawer(
+            { direction: 'send', status: 'completed', currency: { code: 'ARS', symbol: '$' } },
+            { kind: 'OFFRAMP' }
+        )
+        expect(renderConfig(offrampAsSend).exchangeRate).toBe(true)
+    })
 })
 
 describe('useReceiptViewModel — cancelled sendlink sender', () => {
