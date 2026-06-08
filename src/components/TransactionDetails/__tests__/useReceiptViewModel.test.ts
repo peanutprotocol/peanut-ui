@@ -59,6 +59,36 @@ const cancelledBankWithdraw = (): TransactionDetails =>
         { originalUserRole: EHistoryUserRole.SENDER, kind: 'OFFRAMP' }
     )
 
+// A non-USD card refund: `direction: 'receive'` (set by the cardRefund
+// strategy), carries FX currency, and is flagged as a card entry via the
+// cardPayment block on the drawer.
+const cardRefund = (overrides: Record<string, unknown> = {}): TransactionDetails =>
+    withDrawer(
+        {
+            direction: 'receive',
+            status: 'completed',
+            currency: { code: 'ARS', symbol: '$' },
+            ...overrides,
+        },
+        { kind: 'CARD_REFUND', cardPayment: { isRefund: true } }
+    )
+
+describe('useReceiptViewModel — card exchange-rate row', () => {
+    test('shows the FX rate row for a non-USD card refund (direction=receive)', () => {
+        // Regression: the direction allow-list (bank_deposit/qr_payment/
+        // bank_withdraw) misses card refunds, which arrive as `receive`. The
+        // card-entry predicate fills that gap so the refund shows the same FX
+        // rate its matching spend does.
+        const config = renderConfig(cardRefund())
+        expect(config.exchangeRate).toBe(true)
+    })
+
+    test('still suppresses the FX rate row for a USD card refund', () => {
+        const config = renderConfig(cardRefund({ currency: { code: 'USD', symbol: '$' } }))
+        expect(config.exchangeRate).toBe(false)
+    })
+})
+
 describe('useReceiptViewModel — cancelled sendlink sender', () => {
     test('shows memo + attachment + token/network when sender cancels their own sendlink', () => {
         const config = renderConfig(senderSendLink('cancelled'))

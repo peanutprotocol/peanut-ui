@@ -8,6 +8,7 @@ import { getCachedCurrencyPrice } from '@/app/actions/currency'
 import { type ChargeEntry } from '@/services/services.types'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { shareableUrl } from '@/utils/url.utils'
+import { type StatusPillType } from '@/components/Global/StatusPill'
 
 export enum EHistoryUserRole {
     SENDER = 'SENDER',
@@ -252,9 +253,18 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
     return undefined
 }
 
+// Statuses where the amount didn't (or won't) move, OR that carry their own
+// visual treatment (line-through / de-emphasis) — so prepending a +/- sign
+// would be misleading. Everything else (completed, pending, processing, …)
+// reflects a real or reserved balance change and gets a sign. This keeps
+// long-lived `pending` rows — notably Rain card AUTHs that sit unsettled for
+// hours — consistent with their completed siblings instead of rendering a
+// bare `$30.24` next to a peer's `-$30.24`.
+const SIGNLESS_STATUSES = new Set<StatusPillType>(['cancelled', 'failed', 'refunded'])
+
 /** Returns the sign of the transaction, based on the direction and status of the transaction. */
 export function getTransactionSign(transaction: Pick<TransactionDetails, 'direction' | 'status'>): '-' | '+' | '' {
-    if (transaction.status !== 'completed') {
+    if (transaction.status && SIGNLESS_STATUSES.has(transaction.status)) {
         return ''
     }
     switch (transaction.direction) {

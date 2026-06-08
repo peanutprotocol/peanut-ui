@@ -12,8 +12,9 @@
  * If a future refactor reintroduces a wei assumption here, this fails.
  */
 
-import { completeHistoryEntry } from '../history.utils'
+import { completeHistoryEntry, getTransactionSign } from '../history.utils'
 import type { HistoryEntry } from '../history.utils'
+import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 
 jest.mock('@/app/actions/currency', () => ({ getCachedCurrencyPrice: jest.fn() }))
 jest.mock('@/utils/general.utils', () => ({
@@ -78,5 +79,41 @@ describe('completeHistoryEntry amount-contract guards', () => {
             extraData: { ...baseEntry.extraData, kind: 'CRYPTO_DEPOSIT' },
         }
         await expect(completeHistoryEntry(entry)).resolves.toBeDefined()
+    })
+})
+
+/**
+ * getTransactionSign drives the +/- prefix on the activity-feed amount.
+ *
+ * Regression: a Rain card AUTH sits in `pending` for hours until the CLEAR
+ * webhook settles it. The old guard suppressed the sign for anything that
+ * wasn't `completed`, so a clearly-outgoing card spend rendered a bare
+ * `$30.24` next to a peer transfer's `-$30.24`. The sign must reflect the
+ * direction for any live/reserved status — only states with their own visual
+ * treatment (cancelled/failed/refunded) stay sign-less.
+ */
+describe('getTransactionSign', () => {
+    const sign = (direction: string, status?: string) =>
+        getTransactionSign({ direction, status } as Pick<TransactionDetails, 'direction' | 'status'>)
+
+    it('shows the outflow sign for a pending card spend (qr_payment)', () => {
+        expect(sign('qr_payment', 'pending')).toBe('-')
+    })
+
+    it('shows the outflow sign for a completed card spend', () => {
+        expect(sign('qr_payment', 'completed')).toBe('-')
+    })
+
+    it('shows the inflow sign for a pending receive', () => {
+        expect(sign('receive', 'pending')).toBe('+')
+    })
+
+    it.each(['cancelled', 'failed', 'refunded'])('suppresses the sign for status=%s', (status) => {
+        expect(sign('qr_payment', status)).toBe('')
+        expect(sign('receive', status)).toBe('')
+    })
+
+    it('still signs processing transactions', () => {
+        expect(sign('send', 'processing')).toBe('-')
     })
 })
