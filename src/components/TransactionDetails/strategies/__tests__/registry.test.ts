@@ -35,6 +35,11 @@ describe('resolveReceiptKind', () => {
         expect(resolveReceiptKind(undefined, t)).toBe(expected)
     })
 
+    test('takes the first value when searchParams hands back an array', () => {
+        expect(resolveReceiptKind(['SEND_LINK', 'QR_PAY'], undefined)).toBe('SEND_LINK')
+        expect(resolveReceiptKind(undefined, ['9', '10'])).toBe('QR_PAY')
+    })
+
     test('returns undefined when neither param resolves a kind', () => {
         expect(resolveReceiptKind(undefined, undefined)).toBeUndefined()
         expect(resolveReceiptKind('NOPE', '999')).toBeUndefined()

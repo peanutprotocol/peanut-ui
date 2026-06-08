@@ -81,8 +81,12 @@ export function resolveReceiptKind(
     kindParam: string | string[] | undefined,
     legacyTypeParam: string | string[] | undefined
 ): IntentKind | undefined {
-    if (isIntentKind(kindParam)) return kindParam
-    if (typeof legacyTypeParam === 'string') return LEGACY_RECEIPT_TYPE_INDEX_TO_KIND[legacyTypeParam]
+    // searchParams hands back string[] for duplicated query keys (?kind=a&kind=b);
+    // take the first value so a valid leading param still resolves.
+    const kind = Array.isArray(kindParam) ? kindParam[0] : kindParam
+    if (isIntentKind(kind)) return kind
+    const legacyType = Array.isArray(legacyTypeParam) ? legacyTypeParam[0] : legacyTypeParam
+    if (typeof legacyType === 'string') return LEGACY_RECEIPT_TYPE_INDEX_TO_KIND[legacyType]
     return undefined
 }
 
