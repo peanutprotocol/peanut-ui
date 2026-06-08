@@ -34,7 +34,7 @@ import {
 } from './shareAssetLayout'
 import type { ShareAssetD3Props, TierLevel } from './shareAsset.types'
 import { TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets/badges'
-import { PEANUTMAN_HOLDING_BEER } from '@/assets/peanut'
+import { PEANUTMAN_HOLDING_BEER } from '@/assets/mascot'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import { HandThumbsUp, HandThumbsUpV2, Eyes, Sparkle, Cloud, Star } from '@/assets/illustrations'
 import { PixelatedCardFace } from './PixelatedCardFace'
