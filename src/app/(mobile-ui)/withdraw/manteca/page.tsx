@@ -2,6 +2,7 @@
 
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
+import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
 import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
 import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
@@ -96,6 +97,7 @@ export default function MantecaWithdrawFlow() {
     const router = useRouter()
     const { spendableBalance: balance, balance: smartBalance } = useWallet()
     const { signSpend } = useSignSpendBundle()
+    const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
@@ -410,6 +412,10 @@ export default function MantecaWithdrawFlow() {
                     error_message: result.error,
                 })
 
+                // Wrong-passkey session: backend rejected the signed UserOp with
+                // AA24 / wapk. Unrecoverable without re-auth — force a clean logout.
+                if (handleStaleSession(result.message ?? result.error)) return
+
                 // handle onboarding-incomplete errors by redirecting to complete profile
                 if (await handleOnboardingError(result.message ?? result.error)) return
 
@@ -433,6 +439,7 @@ export default function MantecaWithdrawFlow() {
             })
         } catch (error) {
             console.error('Manteca withdraw error:', error)
+            if (handleStaleSession(error)) return
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
                 method_type: 'manteca',
                 error_message: 'Withdraw failed unexpectedly',
