@@ -168,27 +168,6 @@ export const createKernelClientForChain = async <C extends Chain>(
             webAuthnKey,
             PasskeyValidatorContractVersion.V0_0_2_UNPATCHED
         )
-
-        // A migration account's address is injected (from the backend user
-        // record), not derived from the key — so the access-time guard in the
-        // provider can't tell whether this passkey actually owns it. Derive the
-        // address this key maps to (the same derivation the SDK does internally
-        // when no address is passed) and require it to match. A mismatch means
-        // the session is paired with the wrong passkey; signing would produce a
-        // wrong-owner signature the EntryPoint rejects (AA24). Bail to re-auth.
-        const keyDerivedAccount = await createKernelAccount(publicClient, {
-            plugins: { sudo: oldValidator },
-            entryPoint: USER_OP_ENTRY_POINT,
-            kernelVersion: ZERODEV_KERNEL_VERSION,
-        })
-        if (isStaleClientForUser(keyDerivedAccount.address, address)) {
-            console.error('[KernelClient] passkey does not own the migration account — stale credential', {
-                keyDerivedAddress: keyDerivedAccount.address,
-                expectedAddress: address,
-            })
-            throw createStaleSessionError()
-        }
-
         kernelAccount = await createKernelMigrationAccount(publicClient, {
             address,
             plugins: {
@@ -451,13 +430,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             }
         }
 
-        retryAsync(initializeClients, {
-            maxRetries: 2,
-            baseDelay: 1000,
-            maxDelay: 5000,
-            // A stale-credential error is deterministic — don't burn retries on it.
-            shouldRetry: (error) => !isStaleKeyError(error),
-        }).catch(() => {
+        retryAsync(initializeClients, { maxRetries: 2, baseDelay: 1000, maxDelay: 5000 }).catch(() => {
             if (isMounted) {
                 console.error('[KernelClient] Primary chain client failed after retries — forcing logout')
                 dispatch(zerodevActions.setIsRegistering(false))
