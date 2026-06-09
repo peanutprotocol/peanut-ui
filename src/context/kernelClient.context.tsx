@@ -26,7 +26,7 @@ import type { Address } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { captureException } from '@sentry/nextjs'
 import { retryAsync } from '@/utils/retry.utils'
-import { isStaleClientForUser } from '@/utils/walletCredential.utils'
+import { isStaleClientForUser, isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { isAndroidNative, getNativeRpId } from '@/utils/capacitor'
 import { createNativeSignMessageCallback } from '@/utils/native-webauthn'
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
@@ -168,6 +168,27 @@ export const createKernelClientForChain = async <C extends Chain>(
             webAuthnKey,
             PasskeyValidatorContractVersion.V0_0_2_UNPATCHED
         )
+
+        // A migration account's address is injected (from the backend user
+        // record), not derived from the key — so the access-time guard in the
+        // provider can't tell whether this passkey actually owns it. Derive the
+        // address this key maps to (the same derivation the SDK does internally
+        // when no address is passed) and require it to match. A mismatch means
+        // the session is paired with the wrong passkey; signing would produce a
+        // wrong-owner signature the EntryPoint rejects (AA24). Bail to re-auth.
+        const keyDerivedAccount = await createKernelAccount(publicClient, {
+            plugins: { sudo: oldValidator },
+            entryPoint: USER_OP_ENTRY_POINT,
+            kernelVersion: ZERODEV_KERNEL_VERSION,
+        })
+        if (isStaleClientForUser(keyDerivedAccount.address, address)) {
+            console.error('[KernelClient] passkey does not own the migration account — stale credential', {
+                keyDerivedAddress: keyDerivedAccount.address,
+                expectedAddress: address,
+            })
+            throw createStaleSessionError()
+        }
+
         kernelAccount = await createKernelMigrationAccount(publicClient, {
             address,
             plugins: {
@@ -430,7 +451,13 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             }
         }
 
-        retryAsync(initializeClients, { maxRetries: 2, baseDelay: 1000, maxDelay: 5000 }).catch(() => {
+        retryAsync(initializeClients, {
+            maxRetries: 2,
+            baseDelay: 1000,
+            maxDelay: 5000,
+            // A stale-credential error is deterministic — don't burn retries on it.
+            shouldRetry: (error) => !isStaleKeyError(error),
+        }).catch(() => {
             if (isMounted) {
                 console.error('[KernelClient] Primary chain client failed after retries — forcing logout')
                 dispatch(zerodevActions.setIsRegistering(false))
@@ -482,11 +509,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 })
                 if (user?.user.userId) updateUserPreferences(user.user.userId, { webAuthnKey: undefined })
                 logoutUser()
-                const staleError = new Error('Your session has expired. Please log in again.') as Error & {
-                    isStaleKeyError?: boolean
-                }
-                staleError.isStaleKeyError = true
-                throw staleError
+                throw createStaleSessionError()
             }
             return client
         },
@@ -546,7 +569,11 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 })
                 .catch((error) => {
                     console.error(`Error lazy-building kernel client for chain ${chainId}:`, error)
-                    captureException(error)
+                    if (isStaleKeyError(error)) {
+                        logoutUser()
+                    } else {
+                        captureException(error)
+                    }
                     throw error
                 })
                 .finally(() => {
@@ -556,7 +583,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             inFlightRef.current.set(chainId, promise)
             return promise
         },
-        [clientsByChain, webAuthnKey, isAfterZeroDevMigration, user, assertClientOwnedByUser]
+        [clientsByChain, webAuthnKey, isAfterZeroDevMigration, user, assertClientOwnedByUser, logoutUser]
     )
 
     return (

@@ -8,6 +8,7 @@ import { useAppDispatch, useSetupStore, useZerodevStore } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import { getFromCookie, removeFromCookie, saveToCookie } from '@/utils/general.utils'
 import { clearAuthState } from '@/utils/auth.utils'
+import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
@@ -36,20 +37,6 @@ class PasskeyError extends Error {
 }
 
 const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
-
-/**
- * Detects if an error is due to stale/invalid webAuthnKey
- * AA24 = EntryPoint signature verification failed
- * wapk = WebAuthn Public Key unauthorized (ZeroDev-specific)
- *
- * Note: Intentionally strict to avoid false positives on generic auth errors
- */
-const isStaleKeyError = (error: unknown): boolean => {
-    const errorStr = String(error).toLowerCase()
-    // AA24 = ERC-4337 EntryPoint signature verification failed
-    // wapk + unauthorized = ZeroDev's specific WebAuthn key error (not generic 401)
-    return errorStr.includes('aa24') || (errorStr.includes('wapk') && errorStr.includes('unauthorized'))
-}
 
 export const useZeroDev = () => {
     const dispatch = useAppDispatch()
@@ -225,15 +212,9 @@ export const useZeroDev = () => {
                             userId: user?.user.userId,
                         },
                     })
-                    // Enhance error message for user feedback
-                    const enhancedError = new Error(
-                        'Your session has expired. Please refresh the page and log in again.'
-                    )
-                    ;(enhancedError as any).cause = error
-                    ;(enhancedError as any).isStaleKeyError = true
                     dispatch(zerodevActions.setIsSendingUserOp(false))
                     logoutUser()
-                    throw enhancedError
+                    throw createStaleSessionError(error)
                 }
 
                 dispatch(zerodevActions.setIsSendingUserOp(false))
