@@ -53,7 +53,7 @@ const isStaleKeyError = (error: unknown): boolean => {
 
 export const useZeroDev = () => {
     const dispatch = useAppDispatch()
-    const { user } = useAuth()
+    const { user, logoutUser } = useAuth()
     const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZerodevStore()
     const { setWebAuthnKey, getClientForChain, ensureClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
@@ -210,8 +210,11 @@ export const useZeroDev = () => {
             } catch (error) {
                 console.error('Error sending UserOp:', error)
 
-                // Detect stale webAuthnKey errors (AA24, wapk) and provide user feedback
-                // NOTE: Don't auto-clear here - user is mid-transaction, avoid data loss
+                // Detect stale webAuthnKey errors (AA24, wapk) and force a clean
+                // re-auth. A stale session can't recover by retrying — the only
+                // exit is logging out and back in, so surface the message AND
+                // force the logout (showing the toast alone left users stuck in a
+                // signed-in-but-broken state).
                 if (isStaleKeyError(error)) {
                     console.error('Detected stale webAuthnKey error - session is invalid')
                     captureException(error, {
@@ -229,6 +232,7 @@ export const useZeroDev = () => {
                     ;(enhancedError as any).cause = error
                     ;(enhancedError as any).isStaleKeyError = true
                     dispatch(zerodevActions.setIsSendingUserOp(false))
+                    logoutUser()
                     throw enhancedError
                 }
 
@@ -259,7 +263,7 @@ export const useZeroDev = () => {
                 receipt: userOpReceipt.receipt,
             }
         },
-        [getClientForChain, ensureClientForChain]
+        [getClientForChain, ensureClientForChain, logoutUser]
     )
 
     return {
