@@ -18,6 +18,7 @@ import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
 import AmountInput from '@/components/Global/AmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
+import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
 import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -53,7 +54,8 @@ import ActionModal from '@/components/Global/ActionModal'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
-import { PeanutGuyGIF, STAR_STRAIGHT_ICON } from '@/assets'
+import { PeanutThinking } from '@/assets/mascot'
+import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import { useAuth } from '@/context/authContext'
 import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
@@ -89,6 +91,7 @@ export default function QRPayPage() {
     const qrType = searchParams.get('type')
     const { spendableBalance: balance, sendMoney } = useWallet()
     const { signSpend } = useSignSpendBundle()
+    const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
     const [isSuccess, setIsSuccess] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -681,6 +684,9 @@ export default function QRPayPage() {
                 clearTimeout(payingStateTimerRef.current)
                 payingStateTimerRef.current = null
             }
+            // Wrong-passkey session: backend rejected the signed UserOp with
+            // AA24 / wapk. Unrecoverable without re-auth — force a clean logout.
+            if (handleStaleSession(error)) return
             captureException(error)
             const errorMsg = (error as Error).message || 'Could not complete payment'
 
@@ -704,7 +710,17 @@ export default function QRPayPage() {
         } finally {
             setLoadingState('Idle')
         }
-    }, [paymentLock, signSpend, balance, rainCardOverview, qrCode, currencyAmount, setLoadingState, qrType])
+    }, [
+        paymentLock,
+        signSpend,
+        balance,
+        rainCardOverview,
+        qrCode,
+        currencyAmount,
+        setLoadingState,
+        qrType,
+        handleStaleSession,
+    ])
 
     const payQR = useCallback(async () => {
         if (paymentProcessor === 'MANTECA') {
@@ -1560,7 +1576,8 @@ const QrPayPageLoading = ({ message }: { message: string }) => {
         <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
             <div className="relative">
                 <Image
-                    src={PeanutGuyGIF}
+                    src={PeanutThinking}
+                    unoptimized
                     alt="Peanut Man"
                     layout="fill"
                     objectFit="contain"

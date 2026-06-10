@@ -79,8 +79,16 @@ jest.mock('@/assets/payment-apps', () => ({
     PIX: '/pix.png',
 }))
 
-jest.mock('@/assets', () => ({
-    PeanutGuyGIF: '/peanut-guy.gif',
+// The page imports PeanutThinking from @/assets/mascot and STAR_STRAIGHT_ICON
+// from @/assets/icons directly — mock those paths, not the @/assets barrel, and
+// keep sibling exports (e.g. PEANUTMAN_LOGO, ETHEREUM_ICON used by QRScanner) intact.
+jest.mock('@/assets/mascot', () => ({
+    ...jest.requireActual('@/assets/mascot'),
+    PeanutThinking: '/peanut-guy.gif',
+}))
+
+jest.mock('@/assets/icons', () => ({
+    ...jest.requireActual('@/assets/icons'),
     STAR_STRAIGHT_ICON: '/star.png',
 }))
 

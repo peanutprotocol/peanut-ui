@@ -409,3 +409,69 @@ describe('deriveGate — ready-first ordering (Alexandre fix)', () => {
         expect(gate.kind).toBe('ready')
     })
 })
+
+describe('deriveGate — country scoping (the Add Money dead-end class)', () => {
+    // AddWithdrawCountriesList (Add Money → Bank list) regressed by reading raw
+    // `bankRails()` UNSCOPED to decide whether to open an "under review" modal,
+    // AFTER this gate had already returned `ready`. These tests pin the
+    // gate-level invariant the component must rely on instead: a pending
+    // sibling rail — in ANY country, including the user's own — never downgrades
+    // a scoped `ready`. The gate is the single source of truth; there is
+    // nothing left for a consumer to re-check.
+
+    test('cross-jurisdiction: enabled US rail + pending EU rail, scoped to US → ready', () => {
+        const rails = [
+            bankRail({ id: 'bridge.ach_us', country: 'US', status: 'enabled' }),
+            bankRail({ id: 'bridge.sepa_eu', method: 'SEPA_EU', country: 'EU', currency: 'EUR', status: 'pending' }),
+        ]
+        expect(deriveGate(state(rails), 'deposit', { channel: 'bank', country: 'US' }).kind).toBe('ready')
+    })
+
+    test('same-country: enabled + pending in the SAME country → ready (the case country-scoping alone could not fix)', () => {
+        // Both rails share the country, so narrowing `bankRails({country})` would
+        // STILL see the pending one. The gate is correct anyway: `ready` outranks
+        // `pending`. This is why the fix removed the extra check entirely.
+        const rails = [
+            bankRail({
+                id: 'manteca.bank_transfer_ar',
+                provider: 'manteca',
+                method: 'BANK_TRANSFER_AR',
+                country: 'AR',
+                currency: 'ARS',
+                status: 'enabled',
+            }),
+            bankRail({
+                id: 'bridge.bank_transfer_ar',
+                provider: 'bridge',
+                method: 'BANK_TRANSFER_AR',
+                country: 'AR',
+                currency: 'ARS',
+                status: 'pending',
+            }),
+        ]
+        expect(deriveGate(state(rails), 'deposit', { channel: 'bank', country: 'AR' }).kind).toBe('ready')
+    })
+
+    test('verified user, no rail in the requested jurisdiction → needs-enrollment (the "Unlock Bulgaria" class)', () => {
+        // The cross_region "Unlock <region>" modal is the CORRECT gate output:
+        // identity verified, but no bank rail in the scoped country yet. (The
+        // prod Bulgaria bug was downstream — the BE cross-region enroll ignored
+        // the FE's 4-bucket regionIntent='EU'. The gate classification is right;
+        // a fix belongs in the enrollment path, not here.)
+        const rails = [
+            bankRail({
+                id: 'manteca.pix_br',
+                provider: 'manteca',
+                method: 'PIX_BR',
+                country: 'BR',
+                currency: 'BRL',
+                status: 'enabled',
+            }),
+        ]
+        const gate = deriveGate(state(rails, [], /* identityVerified */ true), 'deposit', {
+            channel: 'bank',
+            country: 'EU',
+        })
+        expect(gate.kind).toBe('needs-enrollment')
+    })
+})

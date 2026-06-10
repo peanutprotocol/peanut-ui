@@ -422,7 +422,8 @@ export default function OnrampBankPage() {
                             await sumsubFlow.handleInitiateKyc(
                                 getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
                                 undefined,
-                                gate.kind === 'needs-enrollment' || undefined
+                                gate.kind === 'needs-enrollment' || undefined,
+                                selectedCountry?.id
                             )
                         }
                     }}

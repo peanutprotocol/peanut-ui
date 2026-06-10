@@ -1,6 +1,6 @@
 'use client'
 
-import PEANUTMAN_CRY from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_05.gif'
+import { PeanutSad } from '@/assets/mascot'
 import { Button } from '@/components/0_Bruddle/Button'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -41,7 +41,7 @@ function ValidationErrorView({
 
     return (
         <div className="flex flex-col items-center justify-center space-y-4 rounded-lg text-center">
-            <Image src={PEANUTMAN_CRY.src} alt="Sad peanut 😢" width={96} height={96} />
+            <Image src={PeanutSad.src} unoptimized alt="Sad peanut 😢" width={96} height={96} />
             <div className="space-y-2">
                 <h1 className="text-lg font-semibold">{title}</h1>
                 <p className="text-sm font-normal md:max-w-xs">{message}</p>

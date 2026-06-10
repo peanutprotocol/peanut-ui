@@ -1,6 +1,6 @@
 'use client'
 import { type FC, useCallback, useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -50,7 +50,6 @@ function markSkipCelebrationSeen(): void {
 // they don't re-see the gate after celebration / add-card transitions.
 
 const CardPage: FC = () => {
-    const router = useRouter()
     const queryClient = useQueryClient()
     const { user, fetchUser } = useAuth()
     const userId = user?.user?.userId
@@ -103,29 +102,35 @@ const CardPage: FC = () => {
     // exact bypass the rework forbids. BE now also reports flowEarlyAccess
     // true whenever hasCardAccess is (inner gate implies outer).
 
-    // Outer gate: pre-public-launch, redirect users without /shhhhh early
-    // access back to the landing page so they don't see a half-baked /card
-    // shell. BE returns `flowEarlyAccess: false` in that case.
+    // Outer gate: pre-public-launch, the card campaign isn't fully online
+    // yet. Users without flow early access get a 404 — the page behaves as
+    // if it doesn't exist. The only ways in are (a) already holding a card
+    // / being mid-application, or (b) holding card access (skip badge /
+    // admin grant — BE reports flowEarlyAccess true whenever hasCardAccess
+    // is). Everyone else belongs on /shhhhh, which joins the waitlist
+    // inline and never routes here.
     //
-    // IMPORTANT: skip the redirect if the user already has a non-canceled
-    // card. Legacy Pioneers + admin-granted users issued cards before
-    // /shhhhh existed and have no flowEarlyAccess stamp — they must still
-    // reach YourCardScreen. The computeCardState() precedence below mirrors
-    // this rule (active-card before no-flow-access).
+    // IMPORTANT: skip the 404 if the user already has a non-canceled card.
+    // Legacy Pioneers + admin-granted users issued cards before /shhhhh
+    // existed and have no flowEarlyAccess stamp — they must still reach
+    // YourCardScreen. The computeCardState() precedence below mirrors this
+    // rule (active-card before no-flow-access).
+    //
+    // notFound() thrown synchronously inside the effect bubbles to Next's
+    // not-found boundary just like a render-time call.
     useEffect(() => {
         if (pioneerLoading || pioneerError) return
         if (!cardInfo) return
         if (cardInfo.flowEarlyAccess) return
         // CR FE#1: wait for overview before checking issued cards — otherwise
-        // legacy card-holders (overview still loading) get incorrectly bounced
-        // to /shhhhh because `overview?.cards.some(...)` returns false on
-        // undefined input.
+        // legacy card-holders (overview still loading) get incorrectly 404'd
+        // because `overview?.cards.some(...)` returns false on undefined input.
         if (overviewLoading || !overview) return
         const hasIssuedCard = overview.cards.some((c) => c.status !== 'CANCELED')
         if (hasIssuedCard) return
         posthog.capture(ANALYTICS_EVENTS.CARD_FLOW_GATED)
-        router.replace('/shhhhh')
-    }, [router, pioneerLoading, pioneerError, cardInfo, overview, overviewLoading])
+        notFound()
+    }, [pioneerLoading, pioneerError, cardInfo, overview, overviewLoading])
 
     const state = computeCardState({
         overview,
@@ -396,8 +401,9 @@ const CardPage: FC = () => {
         return ''
     }, [invalidateOverview])
 
-    // Outer-gate fail — we already kicked off the redirect to /shhhhh in
-    // the useEffect above; render nothing here so the page doesn't flash.
+    // Outer-gate fail — the useEffect above fires notFound() to render the
+    // 404 boundary; render nothing here so the page doesn't flash for the
+    // one frame before that lands.
     if (state === 'no-flow-access') {
         return null
     }

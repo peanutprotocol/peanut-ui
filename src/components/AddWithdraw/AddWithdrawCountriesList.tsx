@@ -23,7 +23,6 @@ import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
-import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
 import { ActionListCard } from '@/components/ActionListCard'
 import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
@@ -104,25 +103,29 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         (country) => country.type === 'country' && country.path === countrySlugFromUrl
     )
 
-    // Provider-blind bank-channel deposit gate + "any bank rail pending"
-    // signal (used to open the under-review status modal AFTER the gate
-    // already returned `ready`). Reads through useCapabilities's role-aware
-    // primitives — see utils/capability-gate.ts + utils/rail-channel.ts.
+    // Provider-blind bank-channel deposit gate, country-scoped to the rail
+    // jurisdiction of the country the user is on. Reads through
+    // useCapabilities's role-aware primitives — see utils/capability-gate.ts.
     //
-    // SCOPE: when the user is on /add-money/<country>, narrow the gate to
-    // that country's rail jurisdiction. Without this, a rejected rail in an
-    // unrelated jurisdiction (e.g. a Bridge BANK_TRANSFER_MX REJECTED row
-    // from the 2026-06-01 sync) trips `blocked-rejection` here and the user
-    // sees "We couldn't unlock this" on a country whose own rail is fine.
-    // Matches the scoping already in /add-money/[country]/bank/page.tsx.
-    const { isKycApproved, gateFor, bankRails } = useCapabilities()
+    // SCOPE rationale: without the country narrowing, a stuck/rejected rail in
+    // an unrelated jurisdiction (e.g. a Bridge BANK_TRANSFER_MX row from the
+    // 2026-06-01 sync) trips `blocked-rejection` here and the user sees
+    // "We couldn't unlock this" on a country whose own rail is fine.
+    //
+    // The gate's `kind` is the SOLE go/no-go signal here — same as the sibling
+    // /add-money/[country]/bank/page.tsx. Do NOT layer a separate "is any bank
+    // rail pending?" check on top: a `ready` gate already means the user has a
+    // working in-scope rail, and `deriveGate` deliberately ranks `ready` above
+    // `pending`/`waiting-on-provider` so a pending sibling rail (a legit
+    // second-country enrollment, a still-provisioning rail) can't re-block
+    // them. The prior unscoped `isBankRailUnderReview` check did exactly that
+    // and dead-ended ready users behind a "You're all set / Go back" modal.
+    const { isKycApproved, gateFor } = useCapabilities()
     const isUserKycApproved = isKycApproved
     const bankCountry = useMemo(() => railJurisdictionForBank(currentCountry?.id), [currentCountry?.id])
     const gate = useMemo(() => gateFor('deposit', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
-    const isBankRailUnderReview = useMemo(() => bankRails().some((rail) => rail.status === 'pending'), [bankRails])
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const { setIsSupportModalOpen } = useModalsContext()
-    const [showKycStatusModal, setShowKycStatusModal] = useState(false)
 
     // stores the callback to replay after tos acceptance in the list view
     const pendingAfterTosRef = useRef<(() => void) | null>(null)
@@ -150,13 +153,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 }
                 return true
             }
-            if (isBankRailUnderReview) {
-                setShowKycStatusModal(true)
-                return true
-            }
             return false
         },
-        [gate, isBankRailUnderReview, guardWithTos]
+        [gate, guardWithTos]
     )
 
     const handleFormSubmit = async (
@@ -181,12 +180,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             } else {
                 setIsKycModalOpen(true)
             }
-            return { error: 'gate_blocked', silent: true }
-        }
-
-        // bridge kyc still under review — don't initiate a new sumsub flow
-        if (isBankRailUnderReview) {
-            setShowKycStatusModal(true)
             return { error: 'gate_blocked', silent: true }
         }
 
@@ -236,7 +229,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // scenario (2): if the user hasn't completed kyc yet
         // name and email are now collected by sumsub sdk — no need to save them beforehand
         if (!isUserKycApproved) {
-            await sumsubFlow.handleInitiateKyc(getRegionIntent(currentCountry?.region ?? 'rest-of-the-world'))
+            await sumsubFlow.handleInitiateKyc(
+                getRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
+                undefined,
+                undefined,
+                currentCountry?.id
+            )
         }
 
         return {}
@@ -345,7 +343,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         await sumsubFlow.handleInitiateKyc(
                             getRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
                             undefined,
-                            gate.kind === 'needs-enrollment' || undefined
+                            gate.kind === 'needs-enrollment' || undefined,
+                            currentCountry?.id
                         )
                     }
                 }}
@@ -524,10 +523,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     isVisible={isSupportedTokensModalOpen}
                 />
             )}
-            <KycVerifiedOrReviewModal
-                isKycApprovedModalOpen={showKycStatusModal}
-                onClose={() => setShowKycStatusModal(false)}
-            />
             {sharedModals}
         </div>
     )
