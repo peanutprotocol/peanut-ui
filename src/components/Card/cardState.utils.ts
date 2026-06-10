@@ -15,7 +15,8 @@ export function findActiveCard(overview: RainCardOverview | undefined): RainCard
  * Top-level state for the /card flow.
  *
  * Precedence (top wins) in `computeCardState`:
- *   loading → active → no-flow-access → rejected → pending/manual-review →
+ *   loading → active → no-flow-access → rejected (incl. FAILED) →
+ *   requires-support → requires-info → pending/manual-review →
  *   eligibility-check (first arrival, not yet held) → skip-celebration →
  *   add-card → waitlist
  *
@@ -38,6 +39,13 @@ export type CardTopLevelState =
     | 'add-card'
     | 'pending'
     | 'manual-review'
+    /** Provider needs more information from the user (rail REQUIRES_INFORMATION /
+     *  REQUIRES_EXTRA_INFORMATION). The capabilities read-model carries the
+     *  display-ready reason — the screen surfaces it. */
+    | 'requires-info'
+    /** Our pipeline broke en route to the provider (rail REQUIRES_SUPPORT).
+     *  Not self-fixable — support has to step in. */
+    | 'requires-support'
     | 'rejected'
     | 'active'
 
@@ -84,11 +92,24 @@ export function computeCardState({
     const rail = overview.status.railStatus
     const app = overview.status.applicationStatus
 
-    // Terminal rejection — always shows the rejection screen.
-    if (rail === 'REJECTED') return 'rejected'
+    // Terminal denial — always shows the rejection screen. FAILED is the
+    // webhook mapping for a locked/canceled application: same dead end,
+    // same screen.
+    if (rail === 'REJECTED' || rail === 'FAILED') return 'rejected'
+
+    // Our submission pipeline broke en route to the provider — re-applying
+    // just returns "Application already submitted". Support has to step in.
+    if (rail === 'REQUIRES_SUPPORT') return 'requires-support'
+
+    // Provider needs more information from the user. These rails HAVE an
+    // application, so falling through to add-card here caused the prod
+    // infinite loop (apply → "Application already submitted" → add-card → …).
+    if (rail === 'REQUIRES_INFORMATION' || rail === 'REQUIRES_EXTRA_INFORMATION') return 'requires-info'
 
     // Application still in flight on Rain's side → show status screen.
-    if (rail === 'PENDING' || rail === 'IN_REVIEW') {
+    // (railStatus is the raw backend RailStatus enum — 'IN_REVIEW' was never
+    // a value of it; the old comparison was dead code.)
+    if (rail === 'PENDING') {
         if (app === 'needsVerification' || app === 'needsInformation' || app === 'locked') {
             return 'manual-review'
         }
