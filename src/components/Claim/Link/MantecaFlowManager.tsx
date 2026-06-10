@@ -50,8 +50,20 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
 
     const isSuccess = currentStep === MercadoPagoStep.SUCCESS
     const selectedCurrency = selectedCountry?.currency || 'ARS'
-    const regionalMethodLogo = regionalMethodType === 'mercadopago' ? MERCADO_PAGO : PIX
+    // display-only fallback when no method is known (legacy regional-claim URL
+    // without a `method` param). NEVER feed this fallback into geo decisions.
+    const displayMethodType = regionalMethodType ?? 'mercadopago'
+    const regionalMethodLogo = displayMethodType === 'mercadopago' ? MERCADO_PAGO : PIX
     const logo = selectedCountry?.id ? undefined : regionalMethodLogo
+
+    // geo for the Manteca KYC action: an explicit country pick wins; otherwise
+    // derive from the regional method, which is only non-null when the user
+    // actually chose it (in-session tap or the `method` URL param that survives
+    // the auth redirect). undefined when unknown — the BE then resolves geo
+    // from the user's documents instead of trusting a wrong FE guess.
+    const targetCountry =
+        selectedCountry?.id ??
+        (regionalMethodType === 'pix' ? 'BR' : regionalMethodType === 'mercadopago' ? 'AR' : undefined)
 
     // show confirmation modal if user hasn't completed manteca verification
     useEffect(() => {
@@ -118,7 +130,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                     avatarSize="medium"
                     transactionType="REGIONAL_METHOD_CLAIM"
                     recipientType="USERNAME"
-                    recipientName={isSuccess ? 'You’ll receive' : 'Receive in ' + regionalMethodType}
+                    recipientName={isSuccess ? 'You’ll receive' : 'Receive in ' + displayMethodType}
                     amount={amount}
                     tokenSymbol={claimLinkData.tokenSymbol}
                     message={attachment.message}
@@ -147,7 +159,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                     } else if (mantecaRejection.state === 'fixable') {
                         await sumsubFlow.handleSelfHealResubmit('MANTECA')
                     } else {
-                        await sumsubFlow.handleInitiateKyc('LATAM', undefined, true)
+                        await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, targetCountry)
                     }
                     setShowKycModal(false)
                 }}

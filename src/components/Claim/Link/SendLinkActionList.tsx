@@ -149,7 +149,10 @@ export default function SendLinkActionList({
             case 'mercadopago':
             case 'pix':
                 if (!user) {
-                    addParamStep('regional-claim')
+                    // carry the tapped method in the URL: the auth redirect fully
+                    // remounts the flow, and Initial.view restores it from the
+                    // `method` param when it re-enters via step=regional-claim.
+                    addParamStep('regional-claim', { method: method.id })
                     setShowVerificationModal(true)
                     return
                 }
