@@ -3,7 +3,7 @@ import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
-import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
+import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { isCardPaymentEntry, isPerkReward } from '@/components/TransactionDetails/transaction-predicates'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
@@ -37,24 +37,6 @@ const TransactionDetailsDrawer = lazy(() =>
         default: mod.TransactionDetailsDrawer,
     }))
 )
-
-export type TransactionType =
-    | 'send'
-    | 'withdraw'
-    | 'add'
-    | 'request'
-    | 'cashout'
-    | 'receive'
-    | 'bank_withdraw'
-    | 'bank_deposit'
-    | 'bank_request_fulfillment'
-    | 'claim_external'
-    | 'bank_claim'
-    | 'pay'
-    // Rain card-spend / card-refund. Distinct from 'pay' (Manteca QR pay)
-    // so the avatar logic can render a credit-card icon instead of the
-    // Mercado Pago / PIX brand mark or the generic wallet fallback.
-    | 'card_pay'
 
 interface TransactionCardProps {
     type: TransactionType

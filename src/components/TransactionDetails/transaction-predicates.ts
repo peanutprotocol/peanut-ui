@@ -23,11 +23,17 @@ export function isQRPayment(transaction: TransactionDetails): boolean {
     return isKind(transaction, 'QR_PAY')
 }
 
+/** Kinds that move money across a fiat rail: bank on/off-ramps + QR pays.
+ *  The single anchor for the receipt-page whitelist (`getReceiptUrl`), the
+ *  share gate (`hasShareableReceipt`), and the FX predicate
+ *  (`isFxBearingFlow`) — previously three hand-kept copies of this set. */
+export const FIAT_RAIL_KINDS: ReadonlySet<string> = new Set(['QR_PAY', 'ONRAMP', 'OFFRAMP'])
+
 // Shareable receipts: QR payments + bank on/off-ramps. Kept as its own
-// predicate so "shareable" can diverge from "QR" later without a sweep.
+// predicate so "shareable" can diverge from "fiat rail" later without a sweep.
 export function hasShareableReceipt(transaction: TransactionDetails): boolean {
     const k = kindOf(transaction)
-    return k === 'QR_PAY' || k === 'ONRAMP' || k === 'OFFRAMP'
+    return !!k && FIAT_RAIL_KINDS.has(k)
 }
 
 // Renders "Completed" label for the timestamp row instead of "Sent"/"Received".
@@ -57,7 +63,7 @@ export function isCardPaymentEntry(transaction: TransactionDetails): boolean {
  *  "simplification" would silently drop their FX rate again. */
 export function isFxBearingFlow(transaction: TransactionDetails): boolean {
     const k = kindOf(transaction)
-    return k === 'ONRAMP' || k === 'OFFRAMP' || k === 'QR_PAY' || isCardPaymentEntry(transaction)
+    return (!!k && FIAT_RAIL_KINDS.has(k)) || isCardPaymentEntry(transaction)
 }
 
 export function isPerkReward(transaction: TransactionDetails): boolean {

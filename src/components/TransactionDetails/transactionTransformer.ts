@@ -1,6 +1,8 @@
 import { type StatusType } from '@/components/Global/Badges/StatusBadge'
-import { type TransactionType as TransactionCardType } from '@/components/TransactionDetails/TransactionCard'
-import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
+import {
+    type TransactionDirection,
+    type TransactionType as TransactionCardType,
+} from '@/components/TransactionDetails/transaction-types'
 import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import {
     getExplorerUrl,

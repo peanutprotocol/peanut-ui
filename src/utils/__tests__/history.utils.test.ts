@@ -12,7 +12,7 @@
  * If a future refactor reintroduces a wei assumption here, this fails.
  */
 
-import { completeHistoryEntry, getTransactionSign } from '../history.utils'
+import { completeHistoryEntry, getReceiptUrl, getTransactionSign } from '../history.utils'
 import type { HistoryEntry } from '../history.utils'
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 
@@ -113,7 +113,32 @@ describe('getTransactionSign', () => {
         expect(sign('receive', status)).toBe('')
     })
 
-    it('still signs processing transactions', () => {
-        expect(sign('send', 'processing')).toBe('-')
+    it.each(['processing', 'soon', 'closed'])('still signs %s transactions', (status) => {
+        expect(sign('send', status)).toBe('-')
+    })
+})
+
+/**
+ * getReceiptUrl decides which kinds get a shareable /receipt page URL.
+ * Locks the FIAT_RAIL_KINDS + SEND_LINK set so the predicate unification
+ * can't silently grow or shrink the receipt-URL surface.
+ */
+describe('getReceiptUrl', () => {
+    const tx = (kind?: string, link?: string) =>
+        ({
+            id: 'entry-1',
+            extraDataForDrawer: { kind, link },
+        }) as unknown as Parameters<typeof getReceiptUrl>[0]
+
+    it.each(['QR_PAY', 'ONRAMP', 'OFFRAMP', 'SEND_LINK'])('gives kind=%s a /receipt page URL', (kind) => {
+        expect(getReceiptUrl(tx(kind))).toContain(`/receipt/entry-1?kind=${kind}`)
+    })
+
+    it('falls back to the stamped link for non-receipt-page kinds', () => {
+        expect(getReceiptUrl(tx('DIRECT_TRANSFER', 'https://peanut.me/x'))).toBe('https://peanut.me/x')
+    })
+
+    it('returns undefined with no kind match and no stamped link', () => {
+        expect(getReceiptUrl(tx('CRYPTO_DEPOSIT'))).toBeUndefined()
     })
 })

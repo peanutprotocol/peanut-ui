@@ -9,7 +9,8 @@ import { type ChargeEntry } from '@/services/services.types'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { shareableUrl } from '@/utils/url.utils'
 import { type StatusPillType } from '@/components/Global/StatusPill'
-import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
+import { type TransactionDirection } from '@/components/TransactionDetails/transaction-types'
+import { FIAT_RAIL_KINDS } from '@/components/TransactionDetails/transaction-predicates'
 
 export enum EHistoryUserRole {
     SENDER = 'SENDER',
@@ -216,14 +217,14 @@ export function isFinalState(transaction: Pick<HistoryEntry, 'status'>): boolean
     return FINAL_STATES.includes(transaction.status)
 }
 
-/** Whitelist of kinds whose receipt URL is the dedicated /receipt page
- *  (shareable, OG-augmented). All other kinds use whatever
- *  `extraDataForDrawer.link` was stamped, or no shareable URL. */
-const RECEIPT_PAGE_KINDS: ReadonlySet<string> = new Set(['QR_PAY', 'ONRAMP', 'OFFRAMP', 'SEND_LINK'])
-
 export function getReceiptUrl(transaction: TransactionDetails): string | undefined {
     const kind = transaction.extraDataForDrawer?.kind
-    if (kind && RECEIPT_PAGE_KINDS.has(kind)) {
+    // Kinds whose receipt URL is the dedicated /receipt page (shareable,
+    // OG-augmented): the fiat rails + SEND_LINK. SEND_LINK is the deliberate
+    // extra over FIAT_RAIL_KINDS — sendlinks get a receipt page too, but their
+    // share *button* is gated by the txHash branch in useReceiptViewModel, not
+    // hasShareableReceipt. All other kinds fall back to the stamped link.
+    if (kind && (kind === 'SEND_LINK' || FIAT_RAIL_KINDS.has(kind))) {
         return shareableUrl(`/receipt/${transaction.id}?kind=${kind}`)
     }
     if (transaction.extraDataForDrawer?.link) {
@@ -254,14 +255,26 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
     return undefined
 }
 
-// Statuses where the amount didn't (or won't) move, OR that carry their own
-// visual treatment (line-through / de-emphasis) — so prepending a +/- sign
-// would be misleading. Everything else (completed, pending, processing, …)
-// reflects a real or reserved balance change and gets a sign. This keeps
-// long-lived `pending` rows — notably Rain card AUTHs that sit unsettled for
-// hours — consistent with their completed siblings instead of rendering a
-// bare `$30.24` next to a peer's `-$30.24`.
-const SIGNLESS_STATUSES = new Set<StatusPillType>(['cancelled', 'failed', 'refunded'])
+// Whether each status's amount carries the +/- sign. Sign-less statuses are
+// the ones where the amount didn't (or won't) move AND that carry their own
+// visual treatment in TransactionCard (line-through / de-emphasis) — a sign
+// there would be misleading. Live/reserved statuses get a sign so long-lived
+// `pending` rows — notably Rain card AUTHs that sit unsettled for hours —
+// stay consistent with their completed siblings instead of rendering a bare
+// `$30.24` next to a peer's `-$30.24`.
+// An exhaustive Record (not a Set) on purpose: adding a StatusPillType forces
+// an explicit sign decision here at compile time, keeping this in lockstep
+// with the status styling in TransactionCard.
+const STATUS_SHOWS_SIGN: Record<StatusPillType, boolean> = {
+    completed: true,
+    pending: true,
+    processing: true,
+    soon: true,
+    closed: true,
+    cancelled: false,
+    failed: false,
+    refunded: false,
+}
 
 // Direction → balance-change sign. A `Record` (not a switch) so the compiler
 // enforces exhaustiveness: adding a `TransactionDirection` without a sign is a
@@ -283,7 +296,7 @@ const DIRECTION_TO_SIGN: Record<TransactionDirection, '-' | '+'> = {
 
 /** Returns the sign of the transaction, based on the direction and status of the transaction. */
 export function getTransactionSign(transaction: Pick<TransactionDetails, 'direction' | 'status'>): '-' | '+' | '' {
-    if (transaction.status && SIGNLESS_STATUSES.has(transaction.status)) {
+    if (transaction.status && !STATUS_SHOWS_SIGN[transaction.status]) {
         return ''
     }
     return DIRECTION_TO_SIGN[transaction.direction]
