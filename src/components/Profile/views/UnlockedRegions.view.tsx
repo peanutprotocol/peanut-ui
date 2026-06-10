@@ -12,10 +12,10 @@ import { KycActionRequiredModal } from '@/components/Kyc/modals/KycActionRequire
 import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
 import ActionModal from '@/components/Global/ActionModal'
 import { useModalsContext } from '@/context/ModalsContext'
-import { deriveRegionAccess, getRegionIntent, type Region } from '@/utils/regions.utils'
+import { deriveRegionAccess, getRegionIntent, providerForRegionIntent, type Region } from '@/utils/regions.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
-import { type RailCapability, type ProviderCode } from '@/types/capabilities'
+import { type RailCapability } from '@/types/capabilities'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import Image from 'next/image'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -23,13 +23,6 @@ import { useState, useCallback, useRef, useMemo } from 'react'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 
 type ModalVariant = 'start' | 'processing' | 'action_required' | 'rejected'
-
-// the provider whose rail backs identity verification for a clicked region.
-//   LATAM / ROW / STANDARD(legacy) → Manteca (general level; pool-tier pay rails
-//                                   post-approval, Manteca submission only for AR/BR)
-//   EU / NA                        → Bridge  (bridge-requirements level)
-const providerForRegionIntent = (intent: KYCRegionIntent | undefined): ProviderCode =>
-    intent === 'EU' || intent === 'NA' ? 'bridge' : 'manteca'
 
 /**
  * Determine which verification modal to show for the clicked region, derived
@@ -78,23 +71,6 @@ const UnlockedRegions = () => {
     const bridgeRejection = useMemo(() => deriveProviderRejection(rails, 'BRIDGE'), [rails])
     const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA'), [rails])
     const isSumsubApproved = isKycApproved
-    // MIGRATION-REVIEW: the existing verification's region intent (was
-    // Which provider the user already holds a functional rail for, used only
-    // to detect a cross-region switch when starting a new verification.
-    // We deliberately capture the PROVIDER directly rather than round-tripping
-    // through KYCRegionIntent: the legacy 'STANDARD' value used to stand in
-    // for "Bridge rail" here, but providerForRegionIntent maps STANDARD →
-    // manteca (it's in the general-bucket fallback), so a Bridge-→Bridge
-    // re-verification would have misclassified as cross-region.
-    const existingVerificationProvider: ProviderCode | null = useMemo(() => {
-        const hasFunctional = (provider: ProviderCode) =>
-            railsForProvider(provider).some(
-                (rail) => rail.status === 'enabled' || rail.status === 'pending' || rail.status === 'requires-info'
-            )
-        if (hasFunctional('manteca')) return 'manteca'
-        if (hasFunctional('bridge')) return 'bridge'
-        return null
-    }, [railsForProvider])
     const { setIsSupportModalOpen } = useModalsContext()
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
     // keeps the region display stable during modal close animation
@@ -119,23 +95,27 @@ const UnlockedRegions = () => {
     const sumsubFailureCount: number | undefined = undefined
 
     const clickedRegionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
+    // the clicked region's provider, mirroring the BE registry. null for ROW —
+    // no first-party bank provider serves rest-of-world, so no rail to read.
+    const clickedRegionProvider = providerForRegionIntent(clickedRegionIntent)
     // the clicked region's downstream provider rail drives the modal state
-    const clickedRegionRail = selectedRegion
-        ? (railsForProvider(providerForRegionIntent(clickedRegionIntent)).find(
-              (rail) => rail.status === 'pending' || rail.status === 'requires-info' || rail.status === 'blocked'
-          ) ?? railsForProvider(providerForRegionIntent(clickedRegionIntent))[0])
-        : undefined
+    const clickedRegionRail =
+        selectedRegion && clickedRegionProvider
+            ? (railsForProvider(clickedRegionProvider).find(
+                  (rail) => rail.status === 'pending' || rail.status === 'requires-info' || rail.status === 'blocked'
+              ) ?? railsForProvider(clickedRegionProvider)[0])
+            : undefined
     const clickedRailHasSumsubAction = clickedRegionRail
         ? nextActionsForRail(clickedRegionRail.id).some((action) => action.kind === 'sumsub')
         : false
     const baseModalVariant = selectedRegion ? getModalVariant(clickedRegionRail, clickedRailHasSumsubAction) : null
 
     // override modal variant when sumsub is approved but a provider rejected the user.
-    // Use the same provider→intent map as the cross-region check below for consistency.
-    const providerRejectionForRegion =
-        providerForRegionIntent(clickedRegionIntent) === 'bridge' ? bridgeRejection : mantecaRejection
+    // ROW has no provider (clickedRegionProvider null) → no provider rejection can apply.
+    const providerRejectionForRegion = clickedRegionProvider === 'bridge' ? bridgeRejection : mantecaRejection
     const hasProviderRejectionForRegion =
         !!selectedRegion &&
+        clickedRegionProvider !== null &&
         isSumsubApproved &&
         (providerRejectionForRegion.state === 'fixable' || providerRejectionForRegion.state === 'blocked')
     const modalVariant = hasProviderRejectionForRegion ? ('provider_rejection' as const) : baseModalVariant
@@ -167,18 +147,18 @@ const UnlockedRegions = () => {
     const handleStartKyc = useCallback(async () => {
         const intent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
         if (intent) setActiveRegionIntent(intent)
-        // Cross-region means "user has an identity for one provider, clicked a
-        // region served by a DIFFERENT provider". Compare PROVIDERS directly:
-        // in the 4-bucket model both 'EU' and 'NA' route to Bridge and both
-        // 'LATAM' / 'ROW' route to Manteca, so an intent-string compare would
-        // miss Bridge-EU → Bridge-NA same-provider flows.
-        const crossRegion =
-            existingVerificationProvider && intent && existingVerificationProvider !== providerForRegionIntent(intent)
-                ? true
-                : undefined
         setSelectedRegion(null)
-        await flow.handleInitiateKyc(intent, undefined, crossRegion)
-    }, [flow.handleInitiateKyc, selectedRegion, existingVerificationProvider])
+        // A locked region by definition has no functional rail backing it, so
+        // clicking one is ALWAYS a cross-region request — send crossRegion
+        // unconditionally and let the BE registry pick the provider (it answers
+        // 'unsupported-region' for ROW, which no provider serves). The old FE
+        // provider-compare derived ROW → manteca, so a Manteca-verified user's
+        // ROW click looked same-provider → crossRegion omitted → BE silently
+        // early-returned APPROVED → "you're all set" with nothing unlocked.
+        // Fresh-KYC safe: the BE's cross-region branches all require an
+        // APPROVED verification, so for first-time users the flag is a no-op.
+        await flow.handleInitiateKyc(intent, undefined, true)
+    }, [flow.handleInitiateKyc, selectedRegion])
 
     // re-submission: skip StartVerificationView since user already consented
     const handleResubmitKyc = useCallback(async () => {

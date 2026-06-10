@@ -107,6 +107,25 @@ export const getRegionIntent = (regionPath: string): KYCRegionIntent => {
 }
 
 /**
+ * Which provider serves a region intent — an exact FE mirror of the BE registry
+ * (`crossRegionProvider` in peanut-api-ts `src/kyc/level-registry.ts`). Used for
+ * DISPLAY only (which provider rail backs a clicked region); the BE stays the
+ * routing source of truth — the FE never sends a provider. Keep in lockstep:
+ *   - EU / NA (+ legacy STANDARD) → 'bridge'
+ *   - LATAM                       → 'manteca'
+ *   - ROW / unknown               → null — no first-party bank provider serves
+ *     rest-of-world, so there is no rail to read state from. The old FE copy
+ *     mapped ROW → 'manteca', which made a Manteca-verified user's ROW click
+ *     look same-provider → crossRegion omitted → BE silently early-returned
+ *     APPROVED → "you're all set" no-op loop.
+ */
+export const providerForRegionIntent = (intent: KYCRegionIntent | undefined): 'bridge' | 'manteca' | null => {
+    if (intent === 'LATAM') return 'manteca'
+    if (intent === 'EU' || intent === 'NA' || intent === 'STANDARD') return 'bridge'
+    return null
+}
+
+/**
  * True when the provider has at least one rail in a functional or in-progress
  * state (enabled / pending / requires-info). This is the capability-model
  * equivalent of the old hook's `hasProviderAccess` (which accepted
