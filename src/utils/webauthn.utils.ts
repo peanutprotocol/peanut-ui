@@ -1,4 +1,6 @@
 import * as Sentry from '@sentry/nextjs'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 /**
  * Retry configuration for WebAuthn operations
@@ -135,10 +137,15 @@ export const PASSKEY_TROUBLESHOOTING_STEPS = {
     },
     ios: {
         NotAllowedError: [
+            // First because it's the dominant field case: a wedged third-party
+            // credential provider refuses every assertion until unlocked or the
+            // device restarts (TASK-20000).
+            'If you use a password manager like 1Password, open it and unlock it first',
             'Exit Private Browsing - use regular Safari',
             'Enable Face ID/Touch ID in Settings',
             'Enable iCloud Keychain in Settings',
             'Turn off VPN temporarily',
+            'Restart your device',
         ],
     },
     web: {
@@ -160,3 +167,18 @@ export const PASSKEY_WARNINGS = {
         NotAllowedError: 'Lower end Android devices may require recent security updates for passkeys to work properly.',
     },
 } as const
+
+/**
+ * Records a WebAuthn ceremony failure during transaction signing (userOp /
+ * EIP-712) as a dedicated PostHog event, so the trend is watchable without
+ * mining `$exception` by message substring. NotAllowedError dominates: iOS
+ * third-party credential providers (1Password) can wedge and refuse every
+ * assertion until unlocked or the device restarts (TASK-20000, ~45 users in
+ * the 30 days to 2026-06-10). No-ops for non-WebAuthn errors so signing
+ * catch blocks can call it without pre-filtering.
+ */
+export function capturePasskeySignFailure(error: unknown, context: string): void {
+    const errorName = error instanceof Error ? error.name : ''
+    if (!Object.values(WebAuthnErrorName).includes(errorName as WebAuthnErrorName)) return
+    posthog.capture(ANALYTICS_EVENTS.PASSKEY_SIGN_FAILED, { error_name: errorName, context })
+}

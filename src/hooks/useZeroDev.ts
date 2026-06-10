@@ -9,6 +9,7 @@ import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import { getFromCookie, removeFromCookie, saveToCookie } from '@/utils/general.utils'
 import { clearAuthState } from '@/utils/auth.utils'
 import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
+import { capturePasskeySignFailure } from '@/utils/webauthn.utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
@@ -196,6 +197,7 @@ export const useZeroDev = () => {
                 })
             } catch (error) {
                 console.error('Error sending UserOp:', error)
+                capturePasskeySignFailure(error, 'send-user-op')
 
                 // Detect stale webAuthnKey errors (AA24, wapk) and force a clean
                 // re-auth. A stale session can't recover by retrying — the only
