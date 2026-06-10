@@ -124,6 +124,19 @@ describe('useSumsubKycFlow — targetCountry gating', () => {
         )
     })
 
+    it('uppercases a lowercase targetCountry (br → BR) before forwarding', async () => {
+        mockInitiate.mockResolvedValue({
+            data: { token: 'tok_1', applicantId: 'app_1', status: 'APPROVED', actionType: 'manteca' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('LATAM', undefined, true, 'br')
+        })
+
+        expect(mockInitiate).toHaveBeenCalledWith(expect.objectContaining({ targetCountry: 'BR' }))
+    })
+
     it('drops a non-Manteca targetCountry (MX) instead of stamping a poisoned geo', async () => {
         mockInitiate.mockResolvedValue({
             data: { token: 'tok_1', applicantId: 'app_1', status: 'APPROVED', actionType: 'manteca' },

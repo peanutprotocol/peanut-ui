@@ -151,8 +151,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             // (MX, CL, …), but Manteca only serves AR/BR — an unsupported stamp
             // poisons the verification metadata (first-write-wins) and bails
             // every later geo resolution, so drop it at this choke point.
+            const normalizedTargetCountry = rawTargetCountry?.toUpperCase()
             const targetCountry =
-                rawTargetCountry && isMantecaSupportedCountryCode(rawTargetCountry) ? rawTargetCountry : undefined
+                normalizedTargetCountry && isMantecaSupportedCountryCode(normalizedTargetCountry)
+                    ? normalizedTargetCountry
+                    : undefined
             userInitiatedRef.current = true
             initiatingRef.current = true
             selfHealProviderRef.current = null
