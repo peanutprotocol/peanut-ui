@@ -158,13 +158,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {/* Prefetch /qr-pay route - disabled in dev to avoid 9s+ compile time */}
                 {process.env.NODE_ENV !== 'development' && <link rel="prefetch" href="/qr-pay" />}
 
-                {/* Chunk-load failure recovery: MUST be inline — error boundaries are lazy
-                    chunks themselves and fail to load in the exact conditions that need them
-                    (see src/utils/chunk-error-recovery.ts) */}
+                {/* Chunk-load failure recovery: MUST be a raw inline script — error boundaries
+                    are lazy chunks themselves and fail to load in the exact conditions that need
+                    them, and even next/script beforeInteractive only queues into self.__next_s
+                    for Next's bootstrap CHUNK to execute (see src/utils/chunk-error-recovery.ts) */}
                 {process.env.NODE_ENV !== 'development' && (
-                    <Script id="chunk-error-recovery" strategy="beforeInteractive">
-                        {CHUNK_ERROR_RECOVERY_SCRIPT}
-                    </Script>
+                    <script
+                        id="chunk-error-recovery"
+                        dangerouslySetInnerHTML={{ __html: CHUNK_ERROR_RECOVERY_SCRIPT }}
+                    />
                 )}
 
                 {/* Service Worker Registration: Register early for offline support and caching */}
