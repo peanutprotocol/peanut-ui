@@ -18,6 +18,7 @@
 import StatusBadge from '../../Global/Badges/StatusBadge'
 import IconStack from '../../Global/IconStack'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
+import { toInviteCode } from '@/utils/general.utils'
 import { type ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
 import { useContext, useMemo, useState } from 'react'
@@ -180,8 +181,7 @@ export default function SendLinkActionList({
         const redirectUri = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)
         const rawUsername = claimLinkData?.sender?.username
         if (isInviteLink && !userHasAppAccess && rawUsername) {
-            const username = rawUsername.toUpperCase()
-            const inviteCode = `${username}INVITESYOU`
+            const inviteCode = toInviteCode(rawUsername)
             dispatch(setupActions.setInviteCode(inviteCode))
             dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
             router.push(`/invite?code=${inviteCode}&redirect_uri=${redirectUri}`)

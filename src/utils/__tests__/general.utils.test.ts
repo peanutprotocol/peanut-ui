@@ -1,10 +1,12 @@
 import {
     formatAmount,
     formatExtendedNumber,
+    generateInviteCodeLink,
     getRequestLink,
     formatTokenAmount,
     isUuid,
     printableUserHandle,
+    toInviteCode,
 } from '../general.utils'
 import { AccountType } from '@/interfaces'
 
@@ -466,6 +468,49 @@ describe('General Utilities', () => {
 
         it('returns empty string unchanged', () => {
             expect(printableUserHandle('')).toBe('')
+        })
+    })
+
+    describe('generateInviteCodeLink', () => {
+        const originalLocation = window.location
+        beforeAll(() => {
+            Object.defineProperty(window, 'location', {
+                value: new URL('https://peanut.example.org'),
+                writable: true,
+            })
+        })
+        afterAll(() => {
+            Object.defineProperty(window, 'location', { value: originalLocation, writable: true })
+        })
+
+        it('emits a username-only invite code (no INVITESYOU, no suffix)', () => {
+            const { inviteCode, inviteLink } = generateInviteCodeLink('alice')
+            expect(inviteCode).toBe('alice')
+            expect(inviteLink).toBe('https://peanut.example.org/invite?code=alice')
+        })
+
+        it('lowercases mixed-case usernames', () => {
+            const { inviteCode, inviteLink } = generateInviteCodeLink('Alice')
+            expect(inviteCode).toBe('alice')
+            expect(inviteLink).toBe('https://peanut.example.org/invite?code=alice')
+        })
+    })
+
+    describe('toInviteCode', () => {
+        it('returns the bare lowercased username — no INVITESYOU, no suffix', () => {
+            expect(toInviteCode('alice')).toBe('alice')
+            expect(toInviteCode('Alice')).toBe('alice')
+            expect(toInviteCode('HUGO')).toBe('hugo')
+        })
+
+        it('tolerates hand-typed input: trims whitespace, strips a leading @', () => {
+            expect(toInviteCode('@alice')).toBe('alice')
+            expect(toInviteCode(' @Alice ')).toBe('alice')
+            expect(toInviteCode('  hugo')).toBe('hugo')
+        })
+
+        it('passes legacy invite codes through with unchanged meaning (BE uppercases before parsing)', () => {
+            expect(toInviteCode('ALICEINVITESYOU610')).toBe('aliceinvitesyou610')
         })
     })
 })

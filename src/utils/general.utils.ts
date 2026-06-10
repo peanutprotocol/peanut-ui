@@ -871,24 +871,21 @@ export function slugify(text: string): string {
 }
 
 /**
- * Generate a deterministic 3-digit suffix from username — pure hash.
+ * Canonical invite-code shape: a bare, lowercased username (e.g. `alice`).
  *
- * Duplicated on the backend (peanut-api-ts/src/utils/invite.ts). Parity is
- * enforced by shared test vectors in __tests__/invite-suffix.test.ts and
- * peanut-api-ts/src/utils/invite.test.ts. Don't edit one without the other.
+ * Single source of truth — use this anywhere an invite code is built for
+ * `/invite?code=…` or `acceptInvite`. The legacy `ALICEINVITESYOU610` /
+ * `ALICEINVITESYOU` shapes are no longer emitted, but stay fully supported on
+ * the backend (peanut-api-ts `extractUsernameFromInvite` uppercases the input
+ * and matches the old suffixes), so existing shared links keep working.
+ *
+ * Also tolerates hand-typed input ("Who invited you?" asks for a username, so
+ * people paste `@alice ` or ` Alice`): trims whitespace and strips a leading @.
  */
-export const generateInviteCodeSuffix = (username: string): string => {
-    const lowerUsername = username.toLowerCase()
-    // Create a simple hash from the username
-    const hash = lowerUsername.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-    // Generate 3 digits between 100-999
-    const threeDigits = 100 + (hash % 900)
-    return threeDigits.toString()
-}
+export const toInviteCode = (username: string): string => username.trim().replace(/^@/, '').toLowerCase()
 
 export const generateInviteCodeLink = (username: string) => {
-    const suffix = generateInviteCodeSuffix(username)
-    const inviteCode = `${username.toUpperCase()}INVITESYOU${suffix}`
+    const inviteCode = toInviteCode(username)
     const inviteLink = shareableUrl(`/invite?code=${inviteCode}`)
     return { inviteLink, inviteCode }
 }

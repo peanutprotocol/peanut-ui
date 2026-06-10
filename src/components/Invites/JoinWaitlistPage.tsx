@@ -20,6 +20,7 @@ import { isValidEmail } from '@/utils/format.utils'
 import { BaseInput } from '@/components/0_Bruddle/BaseInput'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { INVITER_NOT_FOUND_ERROR } from '@/constants/invites.consts'
 
 type WaitlistStep = 'email' | 'notifications' | 'jail'
 
@@ -280,17 +281,18 @@ const JoinWaitlistPage = () => {
                     {step === 'jail' && isLoadingWaitlistPosition && <PeanutLoading coverFullScreen />}
                     {step === 'jail' && !isLoadingWaitlistPosition && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
-                            <h1 className="text-xl font-extrabold">You&apos;re still in Peanut jail</h1>
+                            <h1 className="text-xl font-extrabold">Peanut is invite-only</h1>
 
-                            <h2 className="text-xl font-bold">Prisoner #{data?.position}</h2>
+                            <h2 className="text-xl font-bold">
+                                You&apos;re {data?.position ? `#${data.position} ` : ''}in line
+                            </h2>
                             <p className="text-base font-medium">
-                                No bail without an invite. Got a code? Prove it below. No code? Back to the waitlist. Go
-                                beg your friend!
+                                Skip the line — drop the username of the member who invited you.
                             </p>
 
                             <div className="flex items-center gap-2">
                                 <ValidatedInput
-                                    placeholder="Enter an invite code"
+                                    placeholder="Their username"
                                     value={inviteCode}
                                     debounceTime={750}
                                     validate={validateInviteCode}
@@ -323,7 +325,7 @@ const JoinWaitlistPage = () => {
                             </div>
 
                             {!isValid && !isChanging && !!inviteCode && (
-                                <ErrorAlert description="This code won't take you out of jail. Try another one!" />
+                                <ErrorAlert description={INVITER_NOT_FOUND_ERROR} />
                             )}
 
                             {error && <ErrorAlert description={error} />}
