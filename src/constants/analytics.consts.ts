@@ -201,6 +201,9 @@ export const ANALYTICS_EVENTS = {
     CARD_WITHDRAW_ATTEMPTED: 'card_withdraw_attempted',
     CARD_WITHDRAW_SUCCEEDED: 'card_withdraw_succeeded',
     CARD_WITHDRAW_FAILED: 'card_withdraw_failed',
+    // Rain withdrawal-signature cooldown tripped during a spend. Handled
+    // gracefully in-flow (no captureException), so this is the only telemetry.
+    RAIN_COOLDOWN_HIT: 'rain_cooldown_hit',
 } as const
 
 /**
