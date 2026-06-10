@@ -119,7 +119,8 @@ const SupportDrawer = () => {
                 aria-hidden="true"
             />
 
-            {/* slide-up panel — always mounted so the iframe never unmounts */}
+            {/* slide-up panel — always mounted to preserve drag state; the iframe inside
+                mounts only once the token resolves for logged-in users (isAwaitingToken gate) */}
             <div
                 ref={panelRef}
                 role="dialog"
