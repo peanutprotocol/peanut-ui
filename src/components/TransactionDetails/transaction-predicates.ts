@@ -49,7 +49,12 @@ export function isCardPaymentEntry(transaction: TransactionDetails): boolean {
  *  is what stops the "forgot to add the new direction" bug class — card
  *  refunds arrive as `direction: 'receive'` and were silently missed before.
  *  The currency-block / non-stablecoin / not-cancelled checks still apply on
- *  top; this only answers "is this the kind of flow that has an FX rate". */
+ *  top; this only answers "is this the kind of flow that has an FX rate".
+ *
+ *  The card arm MUST stay `isCardPaymentEntry` (block-based), not a kind
+ *  check: card refunds can arrive with kind `OTHER`/`REFUND` (legacy rows the
+ *  fallback routes to cardRefund via `parentRainTxId`), so a pure-kind
+ *  "simplification" would silently drop their FX rate again. */
 export function isFxBearingFlow(transaction: TransactionDetails): boolean {
     const k = kindOf(transaction)
     return k === 'ONRAMP' || k === 'OFFRAMP' || k === 'QR_PAY' || isCardPaymentEntry(transaction)
