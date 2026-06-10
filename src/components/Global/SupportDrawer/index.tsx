@@ -26,9 +26,14 @@ const SupportDrawer = () => {
     // load immediately.
     const isAwaitingToken = Boolean(userData.userId) && !crispTokenId
 
-    // in capacitor, open native crisp messenger instead of iframe
+    // in capacitor, open native crisp messenger instead of iframe.
+    // Same token gate as the web iframe: for a logged-in user we must not
+    // openMessenger() before the token resolves — a token-less native open
+    // falls back to the device-local Crisp session, which on a shared device
+    // surfaces the previous user's conversation. The effect re-runs and opens
+    // once crispTokenId resolves (it's in the deps).
     useEffect(() => {
-        if (!isSupportModalOpen || !isCapacitor()) return
+        if (!isSupportModalOpen || !isCapacitor() || isAwaitingToken) return
 
         import('@capgo/capacitor-crisp').then(({ CapacitorCrisp }) => {
             // set user data before opening
@@ -57,7 +62,7 @@ const SupportDrawer = () => {
             // close our drawer since native UI takes over
             setIsSupportModalOpen(false)
         })
-    }, [isSupportModalOpen, userData, crispTokenId, prefilledMessage, setIsSupportModalOpen])
+    }, [isSupportModalOpen, isAwaitingToken, userData, crispTokenId, prefilledMessage, setIsSupportModalOpen])
 
     // drag-to-dismiss state
     const panelRef = useRef<HTMLDivElement>(null)
