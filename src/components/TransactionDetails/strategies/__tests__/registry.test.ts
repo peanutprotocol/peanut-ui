@@ -23,16 +23,21 @@ describe('resolveReceiptKind', () => {
         expect(resolveReceiptKind('SEND_LINK', '9')).toBe('SEND_LINK')
     })
 
-    // The five legacy EHistoryEntryType indices that ever produced a shareable
-    // receipt URL before the ?kind= migration (commit b5a0fa2b).
+    // The legacy EHistoryEntryType indices whose id is still resolvable today.
+    // (SimpleFi QR, index 13, is intentionally excluded — see below.)
     test.each([
         ['3', 'SEND_LINK'],
         ['9', 'QR_PAY'], // Manteca QR
         ['10', 'OFFRAMP'],
         ['11', 'ONRAMP'],
-        ['13', 'QR_PAY'], // SimpleFi QR
     ])('maps legacy ?t=%s to kind %s', (t, expected) => {
         expect(resolveReceiptKind(undefined, t)).toBe(expected)
+    })
+
+    test('does NOT map ?t=13 (SimpleFi) — deleted provider, unresolvable id', () => {
+        // SimpleFi's legacy id was dropped in the migration and no BE lookup
+        // probes metadata.simplefiPaymentId, so a ?t=13 link can never resolve.
+        expect(resolveReceiptKind(undefined, '13')).toBeUndefined()
     })
 
     test('takes the first value when searchParams hands back an array', () => {

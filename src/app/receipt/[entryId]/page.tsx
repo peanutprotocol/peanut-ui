@@ -109,7 +109,7 @@ export async function generateMetadata({
     params,
     searchParams,
 }: {
-    params: Promise<{ entryId: string; type?: string }>
+    params: Promise<{ entryId: string }>
     searchParams: Promise<Record<string, string | string[] | undefined>>
 }): Promise<Metadata> {
     const basicMetadata = generateBaseMetadata({
