@@ -41,8 +41,14 @@ interface ClaimBankFlowContextType {
     setJustCompletedKyc: (status: boolean) => void
     claimToMercadoPago: boolean
     setClaimToMercadoPago: (claimToMercadoPago: boolean) => void
-    regionalMethodType: 'mercadopago' | 'pix'
-    setRegionalMethodType: (regionalMethodType: 'mercadopago' | 'pix') => void
+    /**
+     * The regional claim method the user EXPLICITLY chose (tap or URL param) —
+     * null until then. Never default this to a concrete method: the default
+     * used to be 'mercadopago', and after the auth redirect remounted the flow
+     * it masqueraded as a real choice (sending AR geo for a Pix/BR claim).
+     */
+    regionalMethodType: 'mercadopago' | 'pix' | null
+    setRegionalMethodType: (regionalMethodType: 'mercadopago' | 'pix' | null) => void
     hideTokenSelector: boolean
     setHideTokenSelector: (hideTokenSelector: boolean) => void
 }
@@ -63,7 +69,7 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
     const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
     const [justCompletedKyc, setJustCompletedKyc] = useState(false)
     const [claimToMercadoPago, setClaimToMercadoPago] = useState(false)
-    const [regionalMethodType, setRegionalMethodType] = useState<'mercadopago' | 'pix'>('mercadopago')
+    const [regionalMethodType, setRegionalMethodType] = useState<'mercadopago' | 'pix' | null>(null)
     const [hideTokenSelector, setHideTokenSelector] = useState(false)
 
     const resetFlow = useCallback(() => {
@@ -80,7 +86,7 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
         setSelectedBankAccount(null)
         setJustCompletedKyc(false)
         setClaimToMercadoPago(false)
-        setRegionalMethodType('mercadopago')
+        setRegionalMethodType(null)
         setHideTokenSelector(false)
     }, [])
 

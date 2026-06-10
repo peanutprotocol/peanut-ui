@@ -439,9 +439,16 @@ const useClaimLink = () => {
         })
     }
 
-    const addParamStep = (step: 'bank' | 'claim' | 'regional-claim' | 'regional-req-fulfill') => {
+    // `method` carries the regional claim method (pix / mercadopago) alongside
+    // `step=regional-claim` so it survives the auth redirect's full remount —
+    // context state doesn't. Initial.view restores it into the claim bank flow.
+    const addParamStep = (
+        step: 'bank' | 'claim' | 'regional-claim' | 'regional-req-fulfill',
+        extra?: { method: 'mercadopago' | 'pix' }
+    ) => {
         const params = new URLSearchParams(searchParams)
         params.set('step', step)
+        if (extra?.method) params.set('method', extra.method)
 
         const hash = window.location.hash
         const newUrl = `${pathname}?${params.toString()}${hash}`
@@ -451,6 +458,7 @@ const useClaimLink = () => {
     const removeParamStep = () => {
         const params = new URLSearchParams(searchParams)
         params.delete('step')
+        params.delete('method')
         const queryString = params.toString()
         const newUrl = `${pathname}${queryString ? `?${queryString}` : ''}${window.location.hash}`
         window.history.replaceState(null, '', newUrl)

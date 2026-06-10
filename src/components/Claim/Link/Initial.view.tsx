@@ -103,6 +103,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         resetFlow: resetClaimBankFlow,
         claimToMercadoPago,
         setClaimToMercadoPago,
+        setRegionalMethodType,
         hideTokenSelector,
         setHideTokenSelector,
     } = useClaimBankFlow()
@@ -874,6 +875,14 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             if (stepFromURL === 'claim' && isPeanutWallet) {
                 handleClaimLink(false, true)
             } else if (stepFromURL === 'regional-claim') {
+                // restore the method the user tapped BEFORE the auth redirect —
+                // context state didn't survive the remount, only the URL did.
+                // without a valid param the method stays null (unknown), never
+                // a default that could masquerade as a real choice.
+                const methodFromURL = searchParams.get('method')
+                if (methodFromURL === 'pix' || methodFromURL === 'mercadopago') {
+                    setRegionalMethodType(methodFromURL)
+                }
                 setClaimToMercadoPago(true)
             }
         }
