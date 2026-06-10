@@ -229,7 +229,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // scenario (2): if the user hasn't completed kyc yet
         // name and email are now collected by sumsub sdk — no need to save them beforehand
         if (!isUserKycApproved) {
-            await sumsubFlow.handleInitiateKyc(getRegionIntent(currentCountry?.region ?? 'rest-of-the-world'))
+            await sumsubFlow.handleInitiateKyc(
+                getRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
+                undefined,
+                undefined,
+                currentCountry?.id
+            )
         }
 
         return {}
@@ -338,7 +343,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         await sumsubFlow.handleInitiateKyc(
                             getRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
                             undefined,
-                            gate.kind === 'needs-enrollment' || undefined
+                            gate.kind === 'needs-enrollment' || undefined,
+                            currentCountry?.id
                         )
                     }
                 }}

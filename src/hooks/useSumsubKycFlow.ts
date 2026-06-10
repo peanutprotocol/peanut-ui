@@ -4,6 +4,7 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
 import { initiateSumsubKyc, initiateSelfHealResubmission, restartIdentityVerification } from '@/app/actions/sumsub'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
+import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { isCapacitor } from '@/utils/capacitor'
 
 interface UseSumsubKycFlowOptions {
@@ -138,7 +139,23 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     }, [isVerificationProgressModalOpen])
 
     const handleInitiateKyc = useCallback(
-        async (overrideIntent?: KYCRegionIntent, levelName?: string, crossRegion?: boolean, targetCountry?: string) => {
+        async (
+            overrideIntent?: KYCRegionIntent,
+            levelName?: string,
+            crossRegion?: boolean,
+            rawTargetCountry?: string
+        ) => {
+            // targetCountry is only ever consumed by the BE as a Manteca geo
+            // (pendingMantecaGeo stamp + action externalId suffix). Call sites
+            // pass the raw destination country for EVERY `latam`-region country
+            // (MX, CL, …), but Manteca only serves AR/BR — an unsupported stamp
+            // poisons the verification metadata (first-write-wins) and bails
+            // every later geo resolution, so drop it at this choke point.
+            const normalizedTargetCountry = rawTargetCountry?.toUpperCase()
+            const targetCountry =
+                normalizedTargetCountry && isMantecaSupportedCountryCode(normalizedTargetCountry)
+                    ? normalizedTargetCountry
+                    : undefined
             userInitiatedRef.current = true
             initiatingRef.current = true
             selfHealProviderRef.current = null
@@ -162,6 +179,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 })
 
                 if (response.error) {
+                    // same race the unsupported-region branch closes below: restoring
+                    // prevStatusRef while leaving userInitiatedRef set lets a late/stale
+                    // websocket APPROVED event fire onKycSuccess on top of this error.
+                    // every terminal-error exit must clear the user-initiated guard.
+                    userInitiatedRef.current = false
                     if (crossRegion) prevStatusRef.current = savedPrevStatus
                     setError(response.error)
                     return
@@ -226,14 +248,19 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                         try {
                             const SNSMobileSDK = (window as any).SNSMobileSDK
                             if (!SNSMobileSDK) {
+                                userInitiatedRef.current = false
                                 setError('KYC SDK not available. Please update the app.')
                                 return
                             }
                             const effectiveRegionIntent = overrideIntent ?? regionIntent
                             const sdk = SNSMobileSDK.init(response.data.token, async () => {
+                                // keep parity with the web refreshToken below — dropping
+                                // targetCountry here would mint a token for a different
+                                // (suffix-less) applicant action than the one the user is in.
                                 const r = await initiateSumsubKyc({
                                     regionIntent: effectiveRegionIntent,
                                     levelName: levelNameRef.current,
+                                    targetCountry: targetCountryRef.current,
                                 })
                                 return r.data?.token || ''
                             })
@@ -256,6 +283,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                             }
                         } catch (nativeErr) {
                             console.error('[useSumsubKycFlow] native SDK error:', nativeErr)
+                            userInitiatedRef.current = false
                             setError('Verification failed. Please try again.')
                         }
                         return
@@ -265,9 +293,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     setIsActionFlow(!!response.data.actionType)
                     setShowWrapper(true)
                 } else {
+                    userInitiatedRef.current = false
                     setError('Could not initiate verification. Please try again.')
                 }
             } catch (e: unknown) {
+                userInitiatedRef.current = false
                 if (crossRegion) prevStatusRef.current = savedPrevStatus
                 const message = e instanceof Error ? e.message : 'An unexpected error occurred'
                 setError(message)
@@ -351,6 +381,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         try {
             const response = await restartIdentityVerification()
             if (response.error) {
+                userInitiatedRef.current = false
                 setError(response.error)
                 return
             }
@@ -358,9 +389,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setAccessToken(response.data.token)
                 setShowWrapper(true)
             } else {
+                userInitiatedRef.current = false
                 setError('Could not restart identity verification. Please try again.')
             }
         } catch (e: unknown) {
+            userInitiatedRef.current = false
             const message = e instanceof Error ? e.message : 'An unexpected error occurred'
             setError(message)
         } finally {
@@ -380,6 +413,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             const response = await initiateSelfHealResubmission(provider)
 
             if (response.error) {
+                userInitiatedRef.current = false
                 selfHealProviderRef.current = null
                 setError(response.error)
                 return
@@ -389,10 +423,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setAccessToken(response.data.token)
                 setShowWrapper(true)
             } else {
+                userInitiatedRef.current = false
                 selfHealProviderRef.current = null
                 setError('Could not initiate document resubmission. Please try again.')
             }
         } catch (e: unknown) {
+            userInitiatedRef.current = false
             selfHealProviderRef.current = null
             const message = e instanceof Error ? e.message : 'An unexpected error occurred'
             setError(message)
