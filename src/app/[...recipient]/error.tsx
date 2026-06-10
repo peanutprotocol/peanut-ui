@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
+import { recoverFromChunkError } from '@/utils/chunk-error-recovery'
 
 export default function PaymentError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
     const router = useRouter()
@@ -12,6 +13,9 @@ export default function PaymentError({ error, reset }: { error: Error & { digest
 
     useEffect(() => {
         console.error(error)
+        // "Try again" re-renders against the same dead deployment under skew —
+        // for chunk errors only a reload (re-pin to current deployment) works.
+        recoverFromChunkError(error)
     }, [error])
 
     return (
