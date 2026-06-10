@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import posthog from 'posthog-js'
@@ -163,24 +163,35 @@ export default function ShhhhhLandingPage() {
     const { user, fetchUser } = useAuth()
     const router = useRouter()
 
-    // undefined = not joined; number|null = joined (null when the BE returns no
-    // position, e.g. the user already had access). Drives the inline confirmation.
+    // undefined = not joined; number|null = joined (null = joined but BE
+    // returned no position). Drives the inline confirmation.
     const [joinedPosition, setJoinedPosition] = useState<number | null | undefined>(undefined)
     const [ctaBusy, setCtaBusy] = useState(false)
+    const [joinError, setJoinError] = useState(false)
     const isJoined = joinedPosition !== undefined
 
-    const joinWaitlist = async () => {
+    const joinWaitlist = useCallback(async () => {
         setCtaBusy(true)
+        setJoinError(false)
         try {
+            // The door actually OPENS for users who already hold card access
+            // (skip badge / admin grant) — telling them "you're on the
+            // waitlist" would be wrong, and joinWaitlist no-ops for them.
+            const info = await cardApi.getInfo()
+            if (info.hasCardAccess) {
+                router.push('/card')
+                return
+            }
             const res = await cardApi.joinWaitlist()
             posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_JOINED, { position: res.position })
             setJoinedPosition(res.position)
         } catch (err) {
             console.error('[shhhhh] joinWaitlist failed:', err)
+            setJoinError(true)
         } finally {
             setCtaBusy(false)
         }
-    }
+    }, [router])
 
     // Post-signup return: a signed-out door press saved this cookie and routed
     // through signup back to /shhhhh. Now the account exists — finish the join.
@@ -189,7 +200,7 @@ export default function ShhhhhLandingPage() {
         if (getFromCookie('joinWaitlistAfterSignup') !== '1') return
         removeFromCookie('joinWaitlistAfterSignup')
         void joinWaitlist()
-    }, [user])
+    }, [user, joinWaitlist])
 
     const handleCTA = async () => {
         // /shhhhh?campaign=skip → Skip Pass (awards the badge). A bare press is
@@ -208,9 +219,11 @@ export default function ShhhhhLandingPage() {
         // awards a badge — see below.)
         if (isSkipCampaign) {
             if (!user) {
-                // useZeroDev's post-signup `campaignTag` branch awards the badge.
+                // useZeroDev's post-signup `campaignTag` branch awards the badge
+                // (awaited inside registration, before setup redirects) — so
+                // landing on /card afterwards is race-free.
                 saveToCookie('campaignTag', SKIP_CAMPAIGN)
-                router.push('/setup?step=signup')
+                router.push(`/setup?step=signup&redirect_uri=${encodeURIComponent('/card')}`)
                 return
             }
             try {
@@ -220,7 +233,9 @@ export default function ShhhhhLandingPage() {
             } catch (err) {
                 console.error('[shhhhh] awardBadge(skip) failed:', err)
             }
-            router.push('/home')
+            // Straight into the card flow — the badge award just opened both
+            // gates BE-side; /home would make them hunt for the card CTA.
+            router.push('/card')
             return
         }
 
@@ -315,6 +330,11 @@ export default function ShhhhhLandingPage() {
                                     or join the waitlist →
                                 </button>
                             </div>
+                        )}
+                        {joinError && (
+                            <p className="font-roboto-flex mt-3 text-center text-sm font-bold text-error md:text-left">
+                                Couldn&apos;t join the waitlist — try the door again.
+                            </p>
                         )}
                     </div>
                     <div className="flex min-w-0 justify-center md:justify-end">
@@ -557,6 +577,11 @@ export default function ShhhhhLandingPage() {
                             </Button>
                         )}
                     </div>
+                    {joinError && (
+                        <p className="font-roboto-flex mt-3 text-sm font-bold text-error">
+                            Couldn&apos;t join the waitlist — try the door again.
+                        </p>
+                    )}
                 </div>
             </section>
 

@@ -5,7 +5,10 @@
  *
  * No DB table needed — derived client-side. Only surfaces once the user
  * has an issued card (see deriveCardUnlockEntry); the timestamp comes from
- * their cardAccessGrantedAt or earliest skip-badge earnedAt.
+ * their cardAccessGrantedAt or earliest skip-badge earnedAt. It is a
+ * normal chronological row: NOT pinned in the home top-5 (it ages out
+ * behind newer activity) and always reachable on the paginated /history
+ * page (Hugo 2026-06-10).
  */
 
 export type CardUnlockVia = 'badge' | 'admin' | 'public-launch'
@@ -52,17 +55,9 @@ export function deriveCardUnlockEntry(args: {
     cardAccessGrantedAt: string | null | undefined
     skipBadges: string[]
     userBadges?: Array<{ code: string; earnedAt?: string | Date | null }>
-    /** ISO timestamp once the user has acknowledged the skip-the-line
-     *  celebration (BE `cardWaitlistSkipCelebrationSeenAt`). Once set the
-     *  row is retired — it was an evergreen "re-open your share asset"
-     *  shoulder-tap that, derived from permanent inputs with no seen-gate,
-     *  never left the feed (Hugo: "always there, buggy"). */
-    celebrationSeenAt?: string | null
 }): CardUnlockHistoryEntry | null {
     if (!args.hasIssuedCard) return null
     if (!args.hasCardAccess) return null
-    // Seen the celebration → retire the row (don't pin it forever).
-    if (args.celebrationSeenAt) return null
 
     let timestamp = args.cardAccessGrantedAt ?? undefined
     if (!timestamp && args.userBadges && args.skipBadges.length > 0) {

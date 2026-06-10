@@ -26,10 +26,8 @@ import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
-// localStorage key for the one-time celebration gate (within-device, instant).
-// The durable signal is the BE `cardWaitlistSkipCelebrationSeenAt` column,
-// stamped via cardApi.markCelebrationSeen() — that's what retires the
-// "You skipped the line" history row (cross-device, survives cache clears).
+// localStorage key for the one-time celebration gate (per-device by design:
+// re-doing the funnel re-celebrates, see the eligibility-check effect below).
 // v2 (2026-05-25): celebration now fires for ALL hasCardAccess users, not
 // just skip-badge holders. v1's stale `true` values from earlier QA runs
 // would silently skip the celebration — bumping the key invalidates them.
@@ -43,11 +41,6 @@ function getSkipCelebrationSeen(): boolean {
 function markSkipCelebrationSeen(): void {
     if (typeof window === 'undefined') return
     window.localStorage.setItem(SKIP_CELEBRATION_SEEN_KEY, 'true')
-    // Persist server-side so the history row retires everywhere. Best-effort:
-    // the localStorage gate already handled the in-session UX.
-    void cardApi.markCelebrationSeen().catch((err) => {
-        console.error('[card] markCelebrationSeen failed:', err)
-    })
 }
 
 // Eligibility-check screen lifetime per Hugo's spec: gate fires every
@@ -92,8 +85,8 @@ const CardPage: FC = () => {
     const [isIssuing, setIsIssuing] = useState(false)
 
     // Track whether the user has acknowledged the skip-badge celebration.
-    // localStorage for M2; Phase 5 will read this from BE's
-    // cardWaitlistSkipCelebrationSeenAt column.
+    // localStorage on purpose (per-device, replayable via the eligibility
+    // re-hold below) — the celebration is a moment, not durable state.
     const [skipCelebrationSeen, setSkipCelebrationSeen] = useState<boolean>(() => getSkipCelebrationSeen())
 
     // Press-and-hold "see if you qualify" gate. Resets per mount: as long
@@ -104,46 +97,11 @@ const CardPage: FC = () => {
     // exists (see cardState.utils.ts — active-card wins first).
     const [eligibilityCheckDone, setEligibilityCheckDone] = useState<boolean>(false)
 
-    // `?press_door=1` arrives from /shhhhh → /setup → here. It means: the
-    // user clicked "press the door" on /shhhhh while signed out, just
-    // completed signup, and now expects to enter the card flow. We
-    // auto-stamp `flowEarlyAccess` on their behalf so they don't have to
-    // re-press the door. Initial value is read synchronously to gate the
-    // outer-gate redirect on first paint; the param is cleared once the
-    // stamp lands.
-    const [pressDoorMode, setPressDoorMode] = useState<boolean>(() => {
-        if (typeof window === 'undefined') return false
-        return new URL(window.location.href).searchParams.get('press_door') === '1'
-    })
-    const pressDoorFiredRef = useRef(false)
-    useEffect(() => {
-        if (!pressDoorMode) return
-        if (pioneerLoading || !cardInfo) return
-        if (pressDoorFiredRef.current) return
-        pressDoorFiredRef.current = true
-        const finish = (): void => {
-            const url = new URL(window.location.href)
-            url.searchParams.delete('press_door')
-            window.history.replaceState(window.history.state, '', url.toString())
-            setPressDoorMode(false)
-        }
-        if (cardInfo.flowEarlyAccess) {
-            // Already stamped (e.g. quick refresh after stamp landed) — just clean up.
-            finish()
-            return
-        }
-        void (async () => {
-            try {
-                await cardApi.grantFlowEarlyAccess()
-                posthog.capture(ANALYTICS_EVENTS.CARD_FLOW_EARLY_ACCESS_GRANTED)
-                await queryClient.invalidateQueries({ queryKey: ['card-info'] })
-            } catch (err) {
-                console.error('[card] press_door auto-stamp failed:', err)
-            } finally {
-                finish()
-            }
-        })()
-    }, [pressDoorMode, pioneerLoading, cardInfo, queryClient])
+    // The old `?press_door=1` auto-stamp was removed alongside the /shhhhh
+    // door rework: the bare door joins the waitlist and grants nothing, so a
+    // shareable URL that silently stamps flowEarlyAccess would have been the
+    // exact bypass the rework forbids. BE now also reports flowEarlyAccess
+    // true whenever hasCardAccess is (inner gate implies outer).
 
     // Outer gate: pre-public-launch, redirect users without /shhhhh early
     // access back to the landing page so they don't see a half-baked /card
@@ -153,11 +111,8 @@ const CardPage: FC = () => {
     // card. Legacy Pioneers + admin-granted users issued cards before
     // /shhhhh existed and have no flowEarlyAccess stamp — they must still
     // reach YourCardScreen. The computeCardState() precedence below mirrors
-    // this rule (active-card before no-flow-access). Also skip while
-    // pressDoorMode is in flight: the stamp is about to land any tick now,
-    // and bouncing to /shhhhh mid-stamp creates a momentary flash.
+    // this rule (active-card before no-flow-access).
     useEffect(() => {
-        if (pressDoorMode) return
         if (pioneerLoading || pioneerError) return
         if (!cardInfo) return
         if (cardInfo.flowEarlyAccess) return
@@ -170,7 +125,7 @@ const CardPage: FC = () => {
         if (hasIssuedCard) return
         posthog.capture(ANALYTICS_EVENTS.CARD_FLOW_GATED)
         router.replace('/shhhhh')
-    }, [router, pioneerLoading, pioneerError, cardInfo, overview, overviewLoading, pressDoorMode])
+    }, [router, pioneerLoading, pioneerError, cardInfo, overview, overviewLoading])
 
     const state = computeCardState({
         overview,

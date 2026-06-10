@@ -247,7 +247,6 @@ const HomeHistory = ({
                         cardAccessGrantedAt: cardInfo.waitlistReleasedAt,
                         skipBadges: cardInfo.skipBadges,
                         userBadges: user?.user?.badges,
-                        celebrationSeenAt: cardInfo.cardWaitlistSkipCelebrationSeenAt,
                     })
                     if (unlock) entries.push(unlock)
                 }
@@ -263,9 +262,9 @@ const HomeHistory = ({
                 })
 
                 // Cap at 5 fresh entries. The card-unlock row is NOT pinned —
-                // it ages out like any other entry and is retired entirely once
-                // the user has seen the celebration (celebrationSeenAt gate in
-                // deriveCardUnlockEntry). Pinning it made it "always there".
+                // it sorts chronologically and ages out behind newer activity
+                // like any other entry (pinning it made it "always there").
+                // It stays reachable on the paginated /history page.
                 const RECENT_LIMIT = 5
                 setCombinedEntries(entries.slice(0, RECENT_LIMIT))
             }

@@ -44,22 +44,6 @@ describe('deriveCardUnlockEntry', () => {
         expect(isCardUnlockHistoryItem(entry)).toBe(true)
     })
 
-    it('retires the row once the celebration has been seen (the always-there bug)', () => {
-        // Same inputs as the badge-entry case above (which returns a row), but
-        // with celebrationSeenAt set → null. Pre-fix the row was derived from
-        // permanent inputs + force-kept, so it never left the feed.
-        expect(
-            deriveCardUnlockEntry({
-                hasIssuedCard: true,
-                hasCardAccess: true,
-                cardAccessGrantedAt: null,
-                skipBadges: ['OG_2025_10_12'],
-                userBadges: [{ code: 'OG_2025_10_12', earnedAt }],
-                celebrationSeenAt: '2026-06-06T00:00:00.000Z',
-            })
-        ).toBeNull()
-    })
-
     it('returns an admin entry (no badge) when granted + card issued', () => {
         const grantedAt = '2026-06-01T00:00:00.000Z'
         const entry = deriveCardUnlockEntry({
