@@ -147,7 +147,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                     } else if (mantecaRejection.state === 'fixable') {
                         await sumsubFlow.handleSelfHealResubmit('MANTECA')
                     } else {
-                        await sumsubFlow.handleInitiateKyc('LATAM', undefined, true)
+                        await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
                     }
                     setShowKycModal(false)
                 }}

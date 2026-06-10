@@ -18,6 +18,7 @@ import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
 import AmountInput from '@/components/Global/AmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
+import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
 import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -90,6 +91,7 @@ export default function QRPayPage() {
     const qrType = searchParams.get('type')
     const { spendableBalance: balance, sendMoney } = useWallet()
     const { signSpend } = useSignSpendBundle()
+    const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
     const [isSuccess, setIsSuccess] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -682,6 +684,9 @@ export default function QRPayPage() {
                 clearTimeout(payingStateTimerRef.current)
                 payingStateTimerRef.current = null
             }
+            // Wrong-passkey session: backend rejected the signed UserOp with
+            // AA24 / wapk. Unrecoverable without re-auth — force a clean logout.
+            if (handleStaleSession(error)) return
             captureException(error)
             const errorMsg = (error as Error).message || 'Could not complete payment'
 
@@ -705,7 +710,17 @@ export default function QRPayPage() {
         } finally {
             setLoadingState('Idle')
         }
-    }, [paymentLock, signSpend, balance, rainCardOverview, qrCode, currencyAmount, setLoadingState, qrType])
+    }, [
+        paymentLock,
+        signSpend,
+        balance,
+        rainCardOverview,
+        qrCode,
+        currencyAmount,
+        setLoadingState,
+        qrType,
+        handleStaleSession,
+    ])
 
     const payQR = useCallback(async () => {
         if (paymentProcessor === 'MANTECA') {

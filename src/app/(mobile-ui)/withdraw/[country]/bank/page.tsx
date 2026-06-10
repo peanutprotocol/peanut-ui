@@ -535,7 +535,8 @@ export default function WithdrawBankPage() {
                         await sumsubFlow.handleInitiateKyc(
                             getRegionIntent(getCountryFromPath(country)?.region ?? 'rest-of-the-world'),
                             undefined,
-                            gate.kind === 'needs-enrollment' || undefined
+                            gate.kind === 'needs-enrollment' || undefined,
+                            getCountryFromPath(country)?.id
                         )
                     }
                 }}
