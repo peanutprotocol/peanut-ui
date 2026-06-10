@@ -8,6 +8,8 @@
  */
 
 import Cookies from 'js-cookie'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { PEANUT_API_KEY, PEANUT_API_URL } from '@/constants/general.consts'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import type { SignedRainWithdrawal } from '@/hooks/wallet/useSignSpendBundle'
@@ -315,12 +317,20 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
                 : null
         const message =
             err.error || err.message || 'A previous withdrawal is still active for this card. Try again shortly.'
-        if (retryAfterSec !== null && typeof window !== 'undefined') {
-            window.dispatchEvent(
-                new CustomEvent<RainCooldownEventDetail>('rain:cooldown', {
-                    detail: { retryAfterSec, message },
-                })
-            )
+        if (typeof window !== 'undefined') {
+            // Captured here — the single point every spend path's cooldown 425
+            // flows through — so all flows get telemetry, including the
+            // retryAfterSec-less shape that shows no cooldown UI at all
+            // (the PEANUT-UI-QJ1 blind spot). Flow context comes from
+            // PostHog's auto-captured $pathname.
+            posthog.capture(ANALYTICS_EVENTS.RAIN_COOLDOWN_HIT, { retry_after_sec: retryAfterSec })
+            if (retryAfterSec !== null) {
+                window.dispatchEvent(
+                    new CustomEvent<RainCooldownEventDetail>('rain:cooldown', {
+                        detail: { retryAfterSec, message },
+                    })
+                )
+            }
         }
         throw new RainCooldownError(message, retryAfterSec)
     }

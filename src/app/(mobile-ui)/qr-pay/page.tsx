@@ -20,7 +20,6 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
-import { RainCooldownError } from '@/services/rain'
 import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
@@ -614,12 +613,6 @@ export default function QRPayPage() {
             } else if (error instanceof SessionKeyGrantRequiredError) {
                 setErrorMessage("One-time card authorization needed. You'll be asked to confirm once.")
             } else if (rainMsg) {
-                if (error instanceof RainCooldownError) {
-                    posthog.capture(ANALYTICS_EVENTS.RAIN_COOLDOWN_HIT, {
-                        flow: 'qr_pay',
-                        retry_after_sec: error.retryAfterSec,
-                    })
-                }
                 setErrorMessage(rainMsg)
             } else if ((error as Error).toString().includes('not allowed')) {
                 setErrorMessage('Please confirm the transaction.')
