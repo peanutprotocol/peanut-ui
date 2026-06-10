@@ -20,6 +20,7 @@ import { isValidEmail } from '@/utils/format.utils'
 import { BaseInput } from '@/components/0_Bruddle/BaseInput'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { INVITER_NOT_FOUND_ERROR } from '@/constants/invites.consts'
 
 type WaitlistStep = 'email' | 'notifications' | 'jail'
 
@@ -282,7 +283,9 @@ const JoinWaitlistPage = () => {
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
                             <h1 className="text-xl font-extrabold">Peanut is invite-only</h1>
 
-                            <h2 className="text-xl font-bold">You&apos;re #{data?.position} in line</h2>
+                            <h2 className="text-xl font-bold">
+                                You&apos;re {data?.position ? `#${data.position} ` : ''}in line
+                            </h2>
                             <p className="text-base font-medium">
                                 Skip the line — drop the username of the member who invited you.
                             </p>
@@ -322,7 +325,7 @@ const JoinWaitlistPage = () => {
                             </div>
 
                             {!isValid && !isChanging && !!inviteCode && (
-                                <ErrorAlert description="No Peanut member with that username. Double-check your inviter's exact handle." />
+                                <ErrorAlert description={INVITER_NOT_FOUND_ERROR} />
                             )}
 
                             {error && <ErrorAlert description={error} />}

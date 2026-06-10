@@ -878,8 +878,11 @@ export function slugify(text: string): string {
  * `ALICEINVITESYOU` shapes are no longer emitted, but stay fully supported on
  * the backend (peanut-api-ts `extractUsernameFromInvite` uppercases the input
  * and matches the old suffixes), so existing shared links keep working.
+ *
+ * Also tolerates hand-typed input ("Who invited you?" asks for a username, so
+ * people paste `@alice ` or ` Alice`): trims whitespace and strips a leading @.
  */
-export const toInviteCode = (username: string): string => username.toLowerCase()
+export const toInviteCode = (username: string): string => username.trim().replace(/^@/, '').toLowerCase()
 
 export const generateInviteCodeLink = (username: string) => {
     const inviteCode = toInviteCode(username)

@@ -502,5 +502,15 @@ describe('General Utilities', () => {
             expect(toInviteCode('Alice')).toBe('alice')
             expect(toInviteCode('HUGO')).toBe('hugo')
         })
+
+        it('tolerates hand-typed input: trims whitespace, strips a leading @', () => {
+            expect(toInviteCode('@alice')).toBe('alice')
+            expect(toInviteCode(' @Alice ')).toBe('alice')
+            expect(toInviteCode('  hugo')).toBe('hugo')
+        })
+
+        it('passes legacy invite codes through with unchanged meaning (BE uppercases before parsing)', () => {
+            expect(toInviteCode('ALICEINVITESYOU610')).toBe('aliceinvitesyou610')
+        })
     })
 })

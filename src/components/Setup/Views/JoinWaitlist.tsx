@@ -14,6 +14,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import { useLogin } from '@/hooks/useLogin'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { INVITER_NOT_FOUND_ERROR } from '@/constants/invites.consts'
 
 const JoinWaitlist = () => {
     const [inviteCode, setInviteCode] = useState('')
@@ -43,7 +44,7 @@ const JoinWaitlist = () => {
                 invite_code: inviteCode,
             })
             if (!isValid) {
-                setError("We couldn't find that user")
+                setError(INVITER_NOT_FOUND_ERROR)
             }
             return isValid
         } catch {
@@ -52,7 +53,7 @@ const JoinWaitlist = () => {
                 source: 'setup',
                 invite_code: inviteCode,
             })
-            setError("We couldn't find that user")
+            setError(INVITER_NOT_FOUND_ERROR)
             return false
         } finally {
             setisLoading(false)
