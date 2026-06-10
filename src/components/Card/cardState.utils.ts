@@ -116,6 +116,12 @@ export function computeCardState({
         return 'pending'
     }
 
+    // Default-deny for forward-compat: any other non-ENABLED railStatus means
+    // an application EXISTS in a state this build doesn't know. Falling
+    // through to add-card would re-create the apply loop ("Application
+    // already submitted" → add-card → …), so route unknowns to support.
+    if (rail && rail !== 'ENABLED') return 'requires-support'
+
     // First arrival from /shhhhh: gate everything else behind the press-and-hold
     // "see if you qualify" moment. Applies whether the user ultimately lands on
     // celebration or waitlist — the user explicitly engages the door before

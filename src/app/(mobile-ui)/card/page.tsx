@@ -69,7 +69,7 @@ const CardPage: FC = () => {
 
     const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
     const { serializeGrant } = useGrantSessionKey()
-    const { railsForProvider } = useCapabilities()
+    const { railsForProvider, isLoading: capabilitiesLoading } = useCapabilities()
     const { setIsSupportModalOpen } = useModalsContext()
     const onBack = useSafeBack('/home')
 
@@ -516,6 +516,15 @@ const CardPage: FC = () => {
                 // capabilities read-model — `rail.reason.userMessage` is
                 // display-ready and provider-neutral by contract. The card
                 // provider serves exactly one rail, so [0] is the card rail.
+                // Overview and capabilities load independently — wait for
+                // capabilities so the screen never flashes without its reason.
+                if (capabilitiesLoading) {
+                    return (
+                        <div className="flex min-h-[inherit] w-full items-center justify-center">
+                            <Loading />
+                        </div>
+                    )
+                }
                 const cardRailReason = railsForProvider('rain')[0]?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen

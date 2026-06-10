@@ -258,6 +258,20 @@ describe('computeCardState', () => {
                 })
             ).not.toBe('add-card')
         })
+
+        it('routes an UNKNOWN future railStatus to requires-support, never add-card (default-deny)', () => {
+            // A new backend RailStatus value must not silently fall through
+            // to add-card — an application exists, so re-applying would
+            // re-create the same infinite loop for the unknown state.
+            expect(
+                computeCardState({
+                    ...base,
+                    overview: withApp('SOME_FUTURE_STATUS' as never),
+                    cardInfo: cardInfo({ hasCardAccess: true }),
+                    skipCelebrationSeen: true,
+                })
+            ).toBe('requires-support')
+        })
     })
 
     it('returns active even when flowEarlyAccess is false (legacy card-holder regression)', () => {
