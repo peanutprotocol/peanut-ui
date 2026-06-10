@@ -82,7 +82,7 @@ const SUPPORTED_TOKENS_BY_NETWORK: Record<RhinoChainType, TokenName[]> = {
 }
 
 /** returns supported tokens (with logos) for a given chain type */
-export const getSupportedTokens = (network: RhinoChainType) =>
+export const getSupportedTokens = (network: RhinoChainType): Array<{ name: TokenName; logoUrl: string }> =>
     SUPPORTED_TOKENS_BY_NETWORK[network].map((name) => ({ name, logoUrl: TOKEN_LOGOS[name] }))
 
 /** Rhino-supported tokens with their logos */
