@@ -201,6 +201,11 @@ export const ANALYTICS_EVENTS = {
     CARD_WITHDRAW_ATTEMPTED: 'card_withdraw_attempted',
     CARD_WITHDRAW_SUCCEEDED: 'card_withdraw_succeeded',
     CARD_WITHDRAW_FAILED: 'card_withdraw_failed',
+
+    // WebAuthn ceremony failed while signing a transaction (userOp / EIP-712).
+    // `error_name` is the DOMException name (NotAllowedError = provider
+    // refused/wedged, e.g. 1Password on iOS), `context` is the signing call site.
+    PASSKEY_SIGN_FAILED: 'passkey_sign_failed',
 } as const
 
 /**
