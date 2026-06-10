@@ -23,8 +23,7 @@
             }
         ],
         "paths": {
-            "@/*": ["./src/*"],
-            "@/animations/*": ["./src/assets/animations/*"]
+            "@/*": ["./src/*"]
         },
         "types": ["@serwist/next/typings", "jest"],
         "verbatimModuleSyntax": true

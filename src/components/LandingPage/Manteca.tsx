@@ -1,4 +1,4 @@
-import mantecaIphone from '@/assets/iphone-ss/manteca_ss.png'
+import mantecaIphone from '@/assets/iphone-ss/manteca_ss.webp'
 import Image from 'next/image'
 import { MEPA_ARGENTINA_LOGO, PIX_BRZ_LOGO, Star } from '@/assets'
 import { CloudsCss } from './CloudsCss'

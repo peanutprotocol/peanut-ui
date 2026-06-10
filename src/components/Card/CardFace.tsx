@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { PEANUT_CARD_HAND, VISA_BRAND_MARK } from '@/assets/cards'
-import { PEANUTMAN_LOGO } from '@/assets/peanut'
+import { PEANUTMAN_LOGO } from '@/assets/mascot'
 
 export interface RevealedCardDetails {
     pan: string

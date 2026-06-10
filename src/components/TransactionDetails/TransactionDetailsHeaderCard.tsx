@@ -12,7 +12,7 @@ import { VerifiedUserLabel } from '../UserHeader'
 import ProgressBar from '../Global/ProgressBar'
 import { useRouter } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
-import { PEANUTMAN_LOGO } from '@/assets/peanut'
+import { PEANUTMAN_LOGO } from '@/assets/mascot'
 import { profileUrl } from '@/utils/native-routes'
 
 interface TransactionDetailsHeaderCardProps {

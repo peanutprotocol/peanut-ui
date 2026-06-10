@@ -19,7 +19,7 @@ const CARD_PARTNER_NAME = 'Peanut'
 
 // US and international cardholders accept different card-terms documents.
 const LINKS = {
-    eSign: 'https://legal.raincards.xyz/legal/electronic-communications-notice',
+    eSign: 'https://peanut.me/en/card-esign',
     issuerPrivacy: 'https://www.third-national.com/privacypolicy',
     cardTermsUs: 'https://peanut.me/en/card-terms-us',
     cardTermsInternational: 'https://peanut.me/en/card-terms-international',

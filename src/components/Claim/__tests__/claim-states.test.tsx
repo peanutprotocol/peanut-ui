@@ -226,8 +226,9 @@ jest.mock('@/components/Global/PeanutLoading', () => ({
     default: (props: any) => <div data-testid="peanut-loading">Loading...</div>,
 }))
 
-jest.mock('@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_05.gif', () => ({
-    src: '/peanut-cry.gif',
+jest.mock('@/assets/mascot', () => ({
+    ...jest.requireActual('@/assets/mascot'),
+    PeanutCrying: { src: '/peanut-cry.gif' },
 }))
 
 // ---------- import component under test AFTER all mocks ----------

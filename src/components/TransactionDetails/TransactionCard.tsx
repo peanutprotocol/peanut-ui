@@ -26,7 +26,7 @@ import { VerifiedUserLabel } from '../UserHeader'
 import { PerkIcon } from './PerkIcon'
 import { useHaptic } from 'use-haptic'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
-import { PEANUTMAN_LOGO } from '@/assets/peanut'
+import { PEANUTMAN_LOGO } from '@/assets/mascot'
 import InvitesIcon from '../Home/InvitesIcon'
 
 // Lazy load transaction details drawer (~40KB) to reduce initial bundle size
