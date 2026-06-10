@@ -194,6 +194,37 @@ export function deriveRegionAccess(rails: RailCapability[]): { unlockedRegions: 
     return { unlockedRegions: unlocked, lockedRegions: locked }
 }
 
+// Bank-rail jurisdiction (rail_methods.country in the BE catalog) → region
+// picker path. Mirrors the catalog's full bank-method set: ACH_US / SEPA_EU /
+// FASTER_PAYMENTS_GB / SPEI_MX / BANK_TRANSFER_MX (Bridge) and
+// BANK_TRANSFER_AR / PIX_BR / BANK_TRANSFER_BR / BANK_TRANSFER_CO (Manteca).
+const RAIL_COUNTRY_TO_REGION_PATH: Record<string, string> = {
+    US: 'north-america',
+    MX: 'north-america',
+    EU: 'europe',
+    GB: 'europe',
+    AR: 'latam',
+    BR: 'latam',
+    CO: 'latam',
+}
+
+/**
+ * Region picker paths with a mid-flight bank rail (`pending` = BE provisioning,
+ * `requires-info` = user must finish ToS/proof). Scoped per region via the
+ * rail's jurisdiction — a pending PIX_BR rail badges 'latam' only, not every
+ * locked region (the old page-level any-bank-rail-pending boolean did).
+ */
+export function pendingBankRailRegionPaths(rails: RailCapability[]): Set<string> {
+    const paths = new Set<string>()
+    for (const rail of rails) {
+        if (rail.channel !== 'bank') continue
+        if (rail.status !== 'pending' && rail.status !== 'requires-info') continue
+        const path = RAIL_COUNTRY_TO_REGION_PATH[rail.country.toUpperCase()]
+        if (path) paths.add(path)
+    }
+    return paths
+}
+
 // precompute bridge alpha2 values for O(1) lookup
 const BRIDGE_ALPHA2_SET = new Set(Object.values(BRIDGE_ALPHA3_TO_ALPHA2))
 
