@@ -177,8 +177,9 @@ export const PASSKEY_WARNINGS = {
  * the 30 days to 2026-06-10). No-ops for non-WebAuthn errors so signing
  * catch blocks can call it without pre-filtering.
  */
+const WEBAUTHN_ERROR_NAMES = new Set<string>(Object.values(WebAuthnErrorName))
+
 export function capturePasskeySignFailure(error: unknown, context: string): void {
-    const errorName = error instanceof Error ? error.name : ''
-    if (!Object.values(WebAuthnErrorName).includes(errorName as WebAuthnErrorName)) return
-    posthog.capture(ANALYTICS_EVENTS.PASSKEY_SIGN_FAILED, { error_name: errorName, context })
+    if (!(error instanceof Error) || !WEBAUTHN_ERROR_NAMES.has(error.name)) return
+    posthog.capture(ANALYTICS_EVENTS.PASSKEY_SIGN_FAILED, { error_name: error.name, context })
 }
