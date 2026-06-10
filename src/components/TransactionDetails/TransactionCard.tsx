@@ -3,7 +3,7 @@ import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
-import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
+import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { isCardPaymentEntry, isPerkReward } from '@/components/TransactionDetails/transaction-predicates'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
@@ -37,24 +37,6 @@ const TransactionDetailsDrawer = lazy(() =>
         default: mod.TransactionDetailsDrawer,
     }))
 )
-
-export type TransactionType =
-    | 'send'
-    | 'withdraw'
-    | 'add'
-    | 'request'
-    | 'cashout'
-    | 'receive'
-    | 'bank_withdraw'
-    | 'bank_deposit'
-    | 'bank_request_fulfillment'
-    | 'claim_external'
-    | 'bank_claim'
-    | 'pay'
-    // Rain card-spend / card-refund. Distinct from 'pay' (Manteca QR pay)
-    // so the avatar logic can render a credit-card icon instead of the
-    // Mercado Pago / PIX brand mark or the generic wallet fallback.
-    | 'card_pay'
 
 interface TransactionCardProps {
     type: TransactionType
@@ -305,6 +287,30 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     )
 }
 
+// Per-type presentation: the feed row's action icon + label. One table keyed
+// by TransactionType replaces the two parallel switches these used to be, so a
+// new type is a single row here instead of an edit in two places that can
+// drift out of sync. `icon: null` means "no icon" (e.g. `request`, which is
+// direction-dependent and handled in getActionIcon). `text` defaults to the
+// type literal when omitted (matches the old `let actionText = type` fallback).
+const TYPE_PRESENTATION: Record<TransactionType, { icon: IconName | null; iconSize?: number; text?: string }> = {
+    send: { icon: 'arrow-up-right' },
+    receive: { icon: 'arrow-down-left' },
+    request: { icon: null }, // direction-dependent — see getActionIcon
+    withdraw: { icon: 'arrow-up', iconSize: 8 },
+    cashout: { icon: 'arrow-up', iconSize: 8 },
+    claim_external: { icon: 'arrow-up', iconSize: 8, text: 'Claim' },
+    bank_claim: { icon: 'arrow-up', iconSize: 8, text: 'Claim' },
+    bank_withdraw: { icon: 'arrow-up', iconSize: 8, text: 'Withdraw' },
+    add: { icon: 'arrow-down', iconSize: 8 },
+    bank_deposit: { icon: 'arrow-down', iconSize: 8, text: 'Add' },
+    bank_request_fulfillment: { icon: 'arrow-up-right', text: 'Request paid via bank' },
+    pay: { icon: 'arrow-up-right' },
+    // 'Pay' for card spends — the `card_pay` literal is an internal
+    // discriminator (see TransactionType comment) that renders as "Pay".
+    card_pay: { icon: 'arrow-up-right', text: 'Pay' },
+}
+
 // helper functions
 function getActionIcon(
     type: TransactionType,
@@ -314,75 +320,20 @@ function getActionIcon(
     if (status === 'refunded') {
         return <Icon name="arrow-down-left" size={7} fill="currentColor" />
     }
-
-    let iconName: IconName | null = null
-    let iconSize = 7
-
-    switch (type) {
-        case 'send':
-            iconName = 'arrow-up-right'
-            break
-        case 'request':
-            if (direction === 'request_received') {
-                iconName = 'arrow-up-right'
-            } else {
-                iconName = 'arrow-down-left'
-            }
-            break
-        case 'receive':
-            iconName = 'arrow-down-left'
-            break
-        case 'withdraw':
-        case 'bank_withdraw':
-        case 'cashout':
-        case 'claim_external':
-        case 'bank_claim':
-            iconName = 'arrow-up'
-            iconSize = 8
-            break
-        case 'pay':
-        case 'card_pay':
-            iconName = 'arrow-up-right'
-            break
-        case 'add':
-        case 'bank_deposit':
-            iconName = 'arrow-down'
-            iconSize = 8
-            break
-        case 'bank_request_fulfillment':
-            iconName = 'arrow-up-right'
-            break
-        default:
-            return null
+    // `request` is the one type whose icon depends on direction (incoming vs
+    // outgoing request), so it stays out of the table.
+    if (type === 'request') {
+        const iconName: IconName = direction === 'request_received' ? 'arrow-up-right' : 'arrow-down-left'
+        return <Icon name={iconName} size={7} fill="currentColor" />
     }
-    return <Icon name={iconName} size={iconSize} fill="currentColor" />
+    const { icon, iconSize } = TYPE_PRESENTATION[type]
+    if (!icon) return null
+    return <Icon name={icon} size={iconSize ?? 7} fill="currentColor" />
 }
 
 function getActionText(type: TransactionType, status?: StatusPillType): string {
     if (status === 'refunded') return 'Refund'
-
-    let actionText: string = type
-    switch (type) {
-        case 'bank_withdraw':
-            actionText = 'Withdraw'
-            break
-        case 'bank_claim':
-        case 'claim_external':
-            actionText = 'Claim'
-            break
-        case 'bank_deposit':
-            actionText = 'Add'
-            break
-        case 'bank_request_fulfillment':
-            actionText = 'Request paid via bank'
-            break
-        case 'card_pay':
-            // 'Pay' for card spends — the underlying type literal `card_pay`
-            // is an internal discriminator (see TransactionType comment).
-            actionText = 'Pay'
-            break
-    }
-    return actionText
+    return TYPE_PRESENTATION[type].text ?? type
 }
 
 export default TransactionCard

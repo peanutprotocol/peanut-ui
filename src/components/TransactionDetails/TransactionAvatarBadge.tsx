@@ -1,6 +1,6 @@
 import { type IconName } from '@/components/Global/Icons/Icon'
 import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
-import { type TransactionType } from '@/components/TransactionDetails/TransactionCard'
+import { type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import {
     AVATAR_LINK_BG,
     AVATAR_TEXT_DARK,
@@ -11,7 +11,6 @@ import {
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import React from 'react'
 import { isAddress } from 'viem'
-import { type StatusPillType } from '../Global/StatusPill'
 
 interface TransactionAvatarBadgeProps {
     size?: AvatarSize

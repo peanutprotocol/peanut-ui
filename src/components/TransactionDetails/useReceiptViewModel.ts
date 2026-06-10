@@ -10,6 +10,7 @@ import {
 import {
     hasShareableReceipt,
     isCardPaymentEntry,
+    isFxBearingFlow,
     isDirectSendEntry,
     isMantecaOnrampEntry,
     isOnrampEntry,
@@ -196,9 +197,7 @@ export function useReceiptViewModel(
             refunded: transaction.status === 'refunded',
             fee: transaction.fee !== undefined && transaction.status !== 'cancelled',
             exchangeRate: !!(
-                (transaction.direction === 'bank_deposit' ||
-                    transaction.direction === 'qr_payment' ||
-                    transaction.direction === 'bank_withdraw') &&
+                isFxBearingFlow(transaction) &&
                 transaction.currency?.code &&
                 transaction.currency.code.toUpperCase() !== 'USD' &&
                 // No FX between USD and USDC/USDT — suppress the rate row.
