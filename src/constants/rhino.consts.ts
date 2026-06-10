@@ -85,11 +85,10 @@ const SUPPORTED_TOKENS_BY_NETWORK: Record<RhinoChainType, TokenName[]> = {
 export const getSupportedTokens = (network: RhinoChainType): Array<{ name: TokenName; logoUrl: string }> =>
     SUPPORTED_TOKENS_BY_NETWORK[network].map((name) => ({ name, logoUrl: TOKEN_LOGOS[name] }))
 
-/** Rhino-supported tokens with their logos */
-export const RHINO_SUPPORTED_TOKENS = (Object.keys(TOKEN_LOGOS) as TokenName[]).map((name) => ({
-    name,
-    logoUrl: TOKEN_LOGOS[name],
-}))
+/** Union of every token advertised on at least one network (with logos) — for generic "supported tokens" surfaces */
+export const RHINO_SUPPORTED_TOKENS = (Object.keys(TOKEN_LOGOS) as TokenName[])
+    .filter((name) => Object.values(SUPPORTED_TOKENS_BY_NETWORK).some((tokens) => tokens.includes(name)))
+    .map((name) => ({ name, logoUrl: TOKEN_LOGOS[name] }))
 
 /**
  * EVM numeric chainId → Rhino chain-name mapping. Source of truth: Rhino's
