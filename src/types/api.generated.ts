@@ -375,6 +375,7 @@ export interface paths {
                                     id: string;
                                     provider: "bridge" | "manteca" | "rain";
                                     method: string;
+                                    channel: "bank" | "card" | "qr-only";
                                     country: string;
                                     currency: string;
                                     status: "enabled" | "pending" | "requires-info" | "blocked";
@@ -387,11 +388,12 @@ export interface paths {
                                     reason?: {
                                         code: string;
                                         userMessage: string;
+                                        details?: string;
                                     };
                                 }[];
                                 nextActions: {
                                     key: string;
-                                    kind: "sumsub" | "bridge-tos" | "wait" | "contact-support";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support";
                                     purpose: string;
                                     levelKey?: string;
                                     tosUrl?: string;
@@ -1116,6 +1118,7 @@ export interface paths {
                                     id: string;
                                     provider: "bridge" | "manteca" | "rain";
                                     method: string;
+                                    channel: "bank" | "card" | "qr-only";
                                     country: string;
                                     currency: string;
                                     status: "enabled" | "pending" | "requires-info" | "blocked";
@@ -1128,11 +1131,12 @@ export interface paths {
                                     reason?: {
                                         code: string;
                                         userMessage: string;
+                                        details?: string;
                                     };
                                 }[];
                                 nextActions: {
                                     key: string;
-                                    kind: "sumsub" | "bridge-tos" | "wait" | "contact-support";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support";
                                     purpose: string;
                                     levelKey?: string;
                                     tosUrl?: string;
@@ -4266,9 +4270,9 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header: {
+                header?: {
                     /** @description HMAC signature for webhook verification */
-                    "md-webhook-signature": string;
+                    "md-webhook-signature"?: string;
                 };
                 path?: never;
                 cookie?: never;
@@ -6070,18 +6074,6 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            message: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
                 500: {
                     headers: {
                         [name: string]: unknown;
@@ -6339,6 +6331,7 @@ export interface paths {
                                 postedCharges: number;
                                 balanceDue: number;
                                 spendingPower: number;
+                                inTransitToCollateralCents: number;
                             };
                             cards: {
                                 id: string;
@@ -6443,6 +6436,45 @@ export interface paths {
                             applicationStatus?: string;
                             rainUserId?: string;
                             contractAddress?: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/cards/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            ready: boolean;
+                            hasApplication: boolean;
+                            readyAt?: string;
                         };
                     };
                 };
@@ -6942,6 +6974,182 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/cards/recover-funds/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            collateralProxy: string;
+                            recipient: string;
+                            amountWei: string;
+                            amountCents: string;
+                            dustWei: string;
+                            autoBalanceEnabled: boolean;
+                            hasRecoverableCard: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/cards/recover-funds/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            preparationId: string;
+                            coordinatorAddress: string;
+                            collateralProxy: string;
+                            adminAddress: string;
+                            chainId: string;
+                            tokenAddress: string;
+                            amount: string;
+                            recipientAddress: string;
+                            directTransfer: boolean;
+                            adminSalt: string;
+                            adminNonce: string;
+                            executorSignature: string;
+                            executorSalt: string;
+                            expiresAt: number;
+                            amountCents: string;
+                            dustWei: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -8696,7 +8904,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         userId: string;
-                        code: "BETA_TESTER" | "DEVCONNECT_BA_2025" | "PRODUCT_HUNT" | "OG_2025_10_12" | "SEEDLING_DEVCONNECT_BA_2025" | "ARBIVERSE_DEVCONNECT_BA_2025" | "CARD_PIONEER" | "FOUNDER_HOUSE" | "BUG_WHISPERER" | "SHHHHH" | "CARD_FIRST_SWIPE" | "CARD_SPENT_1K";
+                        code: "BETA_TESTER" | "DEVCONNECT_BA_2025" | "PRODUCT_HUNT" | "OG_2025_10_12" | "SEEDLING_DEVCONNECT_BA_2025" | "ARBIVERSE_DEVCONNECT_BA_2025" | "CARD_PIONEER" | "FOUNDER_HOUSE" | "BUG_WHISPERER" | "SHHHHH" | "CARD_FIRST_SWIPE" | "CARD_SPENT_1K" | "TOKEN_NATION_SP_2026" | "ETHFLORIPA_HUB" | "WAITLIST_SKIP";
                         revoke?: boolean;
                     };
                 };

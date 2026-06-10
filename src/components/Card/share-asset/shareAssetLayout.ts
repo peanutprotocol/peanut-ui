@@ -24,11 +24,13 @@ export const CANVAS_H = 900
 
 // Card box (rendered with rotation around its center) — matches the
 // in-app CardFace.tsx aspect ratio 1.586:1.
-export const CARD_W = 620
-export const CARD_H = Math.round(CARD_W / 1.586) // ≈ 391
-export const CARD_LEFT = 264
-// Vertically centered in the new 900-tall canvas: (900 - 391) / 2 ≈ 254.
-export const CARD_TOP = 254
+// Twitter-optimised: the card is the hero, sized to ~63% of canvas width so
+// it stays legible after a timeline's ~3-4× thumbnail downscale. Stamps +
+// decorations frame it at the edges rather than competing for centre space.
+export const CARD_W = 760
+export const CARD_H = Math.round(CARD_W / 1.586) // ≈ 479
+export const CARD_LEFT = Math.round((CANVAS_W - CARD_W) / 2) // 220 — centred
+export const CARD_TOP = Math.round((CANVAS_H - CARD_H) / 2) // 210 — centred
 export const CARD_ROTATION_DEG = -8
 
 // ─── Stamp positions ────────────────────────────────────────────────────
@@ -102,17 +104,20 @@ export interface StampPlacement {
 //
 // Heights are bounded so bottom slots (top≈720) + max-jitter (10) + height
 // stay within the canvas + a 20px overhang tolerance (900 + 20 - 730 = 190).
+// Low counts (1–3, the common case) get a Twitter-legibility bump; counts
+// 4–10 stay near original since the collage crowds and the non-overlap
+// invariant (circumscribing-circle metric + jitter) leaves little headroom.
 const STAMP_SIZE_BY_COUNT: ReadonlyArray<readonly [number, number]> = [
-    [200, 236], // 1 — only slot 1 (hero, top=140) used; canvas-safe.
-    [168, 188], // 2 — slot 2 (top=720) activates here; height capped at 188.
-    [162, 180], // 3
-    [156, 172], // 4
-    [150, 164], // 5
-    [140, 156], // 6
-    [130, 144], // 7
-    [122, 136], // 8
-    [116, 130], // 9
-    [110, 124], // 10
+    [248, 290], // 1 — only slot 1 (hero, top=140) used; canvas-safe.
+    [182, 188], // 2 — slot 2 (top=720) activates here; height capped at 188.
+    [176, 186], // 3
+    [168, 182], // 4
+    [156, 170], // 5
+    [144, 158], // 6
+    [136, 150], // 7
+    [128, 142], // 8
+    [120, 134], // 9
+    [112, 126], // 10
 ] as const
 
 export function placeStamps(badges: ShareAssetBadge[], rng: SeededRandom): StampPlacement[] {
@@ -141,7 +146,9 @@ export function placeStamps(badges: ShareAssetBadge[], rng: SeededRandom): Stamp
         const cycle = Math.floor(i / STAMP_SLOTS.length)
         const base = STAMP_SLOTS[slotIdx]
         const stackOffset = cycle * 22
-        const year = badge.earnedAt ? `'${String(new Date(badge.earnedAt).getFullYear()).slice(-2)}` : undefined
+        // Full 4-digit year — the old `'25` apostrophe denomination read as a
+        // stray tick mark on the stamp ("the ''' look buggy" — Hugo).
+        const year = badge.earnedAt ? String(new Date(badge.earnedAt).getFullYear()) : undefined
         return {
             badge: {
                 code: badge.code,

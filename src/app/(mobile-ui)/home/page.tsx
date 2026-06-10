@@ -24,7 +24,7 @@ import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
+import { useCardInfo } from '@/hooks/useCardInfo'
 import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
 import EnableAutoBalanceBanner from '@/components/Home/EnableAutoBalanceBanner'
 import InvitesIcon from '@/components/Home/InvitesIcon'
@@ -70,7 +70,7 @@ export default function Home() {
     const { isActivated, activationStep, dismissCardStep } = useActivationStatus()
     // Fire-and-forget: warms the card-info cache so /card mounts fast.
     // Return values intentionally unused — only the fetch side effect matters.
-    useCardPioneerInfo()
+    useCardInfo()
     const username = user?.user.username
 
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)

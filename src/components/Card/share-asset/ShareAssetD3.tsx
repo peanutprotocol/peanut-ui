@@ -79,6 +79,11 @@ const DECO_ASSET: Record<DecorationPlacement['kind'], string> = {
     peanutChar: ASSET_PEANUT_CHAR,
 }
 
+// Peanut blue — the brand section colour reused from the prod landing page
+// (LP `businessBgColor` in dropLink.tsx + the global `--background-color`).
+// Replaces the off-brandbook lavender so the asset pops on a timeline.
+const ASSET_BG = '#90A8ED'
+
 const ANIM_CARD_DELAY = 100
 const ANIM_STAMP_BASE_DELAY = 600
 const ANIM_STAMP_STAGGER = 250
@@ -118,7 +123,7 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
             style={{
                 width: CANVAS_W,
                 height: CANVAS_H,
-                background: '#efe4ff',
+                background: ASSET_BG,
                 fontFamily: 'var(--font-roboto), system-ui, sans-serif',
             }}
         >
@@ -426,7 +431,7 @@ const StampEl: FC<StampElProps> = ({ stamp, animate, delay }) => {
                 left: stamp.left,
                 transform: restTransform,
                 zIndex: stamp.behind ? 2 : 4,
-                ['--stamp-bg' as string]: '#efe4ff',
+                ['--stamp-bg' as string]: ASSET_BG,
                 ['--rest-transform' as string]: restTransform,
                 animation: animate ? `stampDrop 700ms cubic-bezier(0.34, 1.56, 0.64, 1) ${delay}ms both` : 'none',
             }}

@@ -1,10 +1,9 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useQueryClient } from '@tanstack/react-query'
 import posthog from 'posthog-js'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Marquee } from '@/components/LandingPage'
@@ -12,9 +11,35 @@ import { useAuth } from '@/context/authContext'
 import { PixelatedCardFace } from '@/components/Card/share-asset/PixelatedCardFace'
 import { Sparkle, Star } from '@/assets/illustrations'
 import { cardApi } from '@/services/card'
+import { invitesApi } from '@/services/invites'
+import { saveToCookie, getFromCookie, removeFromCookie } from '@/utils/general.utils'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const marqueeMessages = ['IYKYK', 'WORD TRAVELS', 'CLOSED BETA', 'SHHHH', 'PEANUT CLUB']
+
+// /shhhhh?campaign=skip — the Skip Pass link. Awards the WAITLIST_SKIP badge
+// (same contract as /invite?campaign=skip) so friends-of-Peanut skip the line.
+// A BARE visit grants nothing: the door joins the waitlist, it is not a bypass.
+const SKIP_CAMPAIGN = 'skip'
+
+// Inline "you're on the waitlist" confirmation shown in place of the door CTA
+// once the user joins (pre-launch, non-skip path). `dark` = on the black §7.
+function WaitlistJoined({ position, dark = false }: { position: number | null; dark?: boolean }) {
+    return (
+        <div className="flex flex-col items-center gap-3 md:items-start">
+            <div
+                className={`font-roboto-flex-extrabold inline-flex items-center gap-2 border-2 border-n-1 px-6 py-3 text-base font-extraBlack uppercase shadow-[4px_4px_0_#000] md:text-lg ${
+                    dark ? 'bg-secondary-1 text-n-1' : 'bg-white text-n-1'
+                }`}
+            >
+                ✓ You&apos;re on the waitlist{typeof position === 'number' ? ` · #${position}` : ''}
+            </div>
+            <p className={`font-roboto-flex text-sm font-bold ${dark ? 'text-white/90' : ''}`}>
+                We&apos;ll holler when your turn comes up.
+            </p>
+        </div>
+    )
+}
 
 const stats: Array<{ value: string; label: string }> = [
     { value: '150M+', label: 'Visa-accepting merchants' },
@@ -135,53 +160,93 @@ function StickyShhhhhCTA({ onClick }: { onClick: () => void }) {
 }
 
 export default function ShhhhhLandingPage() {
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
     const router = useRouter()
-    const queryClient = useQueryClient()
+
+    // undefined = not joined; number|null = joined (null = joined but BE
+    // returned no position). Drives the inline confirmation.
+    const [joinedPosition, setJoinedPosition] = useState<number | null | undefined>(undefined)
+    const [ctaBusy, setCtaBusy] = useState(false)
+    const [joinError, setJoinError] = useState(false)
+    const isJoined = joinedPosition !== undefined
+
+    const joinWaitlist = useCallback(async () => {
+        setCtaBusy(true)
+        setJoinError(false)
+        try {
+            // The door actually OPENS for users who already hold card access
+            // (skip badge / admin grant) — telling them "you're on the
+            // waitlist" would be wrong, and joinWaitlist no-ops for them.
+            const info = await cardApi.getInfo()
+            if (info.hasCardAccess) {
+                router.push('/card')
+                return
+            }
+            const res = await cardApi.joinWaitlist()
+            posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_JOINED, { position: res.position })
+            setJoinedPosition(res.position)
+        } catch (err) {
+            console.error('[shhhhh] joinWaitlist failed:', err)
+            setJoinError(true)
+        } finally {
+            setCtaBusy(false)
+        }
+    }, [router])
+
+    // Post-signup return: a signed-out door press saved this cookie and routed
+    // through signup back to /shhhhh. Now the account exists — finish the join.
+    useEffect(() => {
+        if (!user) return
+        if (getFromCookie('joinWaitlistAfterSignup') !== '1') return
+        removeFromCookie('joinWaitlistAfterSignup')
+        void joinWaitlist()
+    }, [user, joinWaitlist])
 
     const handleCTA = async () => {
-        posthog.capture(ANALYTICS_EVENTS.DOOR_TRY, { signed_in: !!user })
-        if (!user) {
-            // After signup, drop the user STRAIGHT into the card flow — not
-            // back here. The `press_door=1` flag tells /card to call
-            // grantFlowEarlyAccess on their behalf (the BE call needs auth,
-            // so we can't pre-stamp it before the user has an account).
-            // The whole redirect_uri value is URL-encoded so setup's
-            // searchParams.get('redirect_uri') receives '/card?press_door=1'
-            // intact instead of dropping the inner query string.
-            router.push(`/setup?redirect_uri=${encodeURIComponent('/card?press_door=1')}`)
+        // /shhhhh?campaign=skip → Skip Pass (awards the badge). A bare press is
+        // NOT a bypass — it joins the waitlist (Hugo 2026-06-07). Read the param
+        // at click time (client-only) — avoids useSearchParams (which would bail
+        // /shhhhh out of static prerendering) and any mount-effect race.
+        const isSkipCampaign =
+            new URLSearchParams(window.location.search).get('campaign')?.toLowerCase() === SKIP_CAMPAIGN
+
+        posthog.capture(ANALYTICS_EVENTS.DOOR_TRY, {
+            signed_in: !!user,
+            campaign: isSkipCampaign ? SKIP_CAMPAIGN : null,
+        })
+
+        // Skip Pass link → award the badge; the user is in. (The bare door never
+        // awards a badge — see below.)
+        if (isSkipCampaign) {
+            if (!user) {
+                // useZeroDev's post-signup `campaignTag` branch awards the badge
+                // (awaited inside registration, before setup redirects) — so
+                // landing on /card afterwards is race-free.
+                saveToCookie('campaignTag', SKIP_CAMPAIGN)
+                router.push(`/setup?step=signup&redirect_uri=${encodeURIComponent('/card')}`)
+                return
+            }
+            try {
+                await invitesApi.awardBadge(SKIP_CAMPAIGN)
+                posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, { campaign_tag: SKIP_CAMPAIGN })
+                await fetchUser()
+            } catch (err) {
+                console.error('[shhhhh] awardBadge(skip) failed:', err)
+            }
+            // Straight into the card flow — the badge award just opened both
+            // gates BE-side; /home would make them hunt for the card CTA.
+            router.push('/card')
             return
         }
-        // Stamp the early-access flag so the user can pass the /card outer
-        // gate. Idempotent: subsequent presses no-op.
-        try {
-            await cardApi.grantFlowEarlyAccess()
-            posthog.capture(ANALYTICS_EVENTS.CARD_FLOW_EARLY_ACCESS_GRANTED)
-        } catch (err) {
-            console.error('[shhhhh] grantFlowEarlyAccess failed:', err)
+
+        // Bare door → JOIN THE WAITLIST. No flow-early-access stamp, no /card
+        // detour, no badge — visiting /shhhhh is not a bypass (Hugo 2026-06-07).
+        if (!user) {
+            saveToCookie('joinWaitlistAfterSignup', '1')
+            router.push(`/setup?redirect_uri=${encodeURIComponent('/shhhhh')}`)
+            return
         }
-        // PREFETCH fresh card-info into cache before navigating. We can't
-        // rely on `invalidateQueries` here — it only awaits an in-flight
-        // refetch when there's already an observer, and /card hasn't
-        // mounted yet, so invalidate just marks stale and returns. If we
-        // navigated immediately, /card's outer-gate effect would read the
-        // pre-stamp `flowEarlyAccess: false` from cache and bounce back
-        // (sometimes ending the user at /home via the safe-back fallback).
-        //
-        // fetchQuery actively populates the cache with the fresh shape
-        // (flowEarlyAccess: true) BEFORE we route, so /card mounts with
-        // the right state on first paint. Failure is non-fatal — /card
-        // will refetch on its own; the user might briefly see the gate
-        // bounce, but won't get stuck.
-        try {
-            await queryClient.fetchQuery({
-                queryKey: ['card-info', user.user?.userId],
-                queryFn: () => cardApi.getInfo(),
-            })
-        } catch (err) {
-            console.error('[shhhhh] card-info prefetch failed:', err)
-        }
-        router.push('/card')
+        await joinWaitlist()
     }
 
     const marqueeProps = { visible: true, message: marqueeMessages }
@@ -230,41 +295,61 @@ export default function ShhhhhLandingPage() {
                             in slowly — <ScarcityCounter /> a week. If you&apos;ve got the right badge, you skip the
                             line entirely.
                         </p>
-                        <div className="mt-8 flex flex-col items-center gap-5 md:flex-row md:items-center md:gap-6">
-                            <div className="relative">
-                                <Button shadowSize="4" onClick={handleCTA} className={ctaButtonClassName}>
-                                    TRY THE DOOR
-                                </Button>
-                                <motion.img
-                                    src={Sparkle.src}
-                                    alt=""
-                                    aria-hidden
-                                    initial={{ opacity: 0, scale: 0.4, rotate: -30 }}
-                                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                                    transition={{ type: 'spring', damping: 10, delay: 0.6 }}
-                                    className="pointer-events-none absolute -right-4 -top-4 w-8 md:-right-5 md:-top-5 md:w-10"
-                                />
+                        {isJoined ? (
+                            <div className="mt-8 flex justify-center md:justify-start">
+                                <WaitlistJoined position={joinedPosition ?? null} />
                             </div>
-                            <button
-                                type="button"
-                                onClick={handleCTA}
-                                className="font-roboto-flex text-base font-bold underline underline-offset-4"
-                            >
-                                or join the waitlist →
-                            </button>
-                        </div>
+                        ) : (
+                            <div className="mt-8 flex flex-col items-center gap-5 md:flex-row md:items-center md:gap-6">
+                                <div className="relative">
+                                    <Button
+                                        shadowSize="4"
+                                        onClick={handleCTA}
+                                        loading={ctaBusy}
+                                        disabled={ctaBusy}
+                                        className={ctaButtonClassName}
+                                    >
+                                        TRY THE DOOR
+                                    </Button>
+                                    <motion.img
+                                        src={Sparkle.src}
+                                        alt=""
+                                        aria-hidden
+                                        initial={{ opacity: 0, scale: 0.4, rotate: -30 }}
+                                        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                                        transition={{ type: 'spring', damping: 10, delay: 0.6 }}
+                                        className="pointer-events-none absolute -right-4 -top-4 w-8 md:-right-5 md:-top-5 md:w-10"
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleCTA}
+                                    disabled={ctaBusy}
+                                    className="font-roboto-flex text-base font-bold underline underline-offset-4 disabled:opacity-50"
+                                >
+                                    or join the waitlist →
+                                </button>
+                            </div>
+                        )}
+                        {joinError && (
+                            <p className="font-roboto-flex mt-3 text-center text-sm font-bold text-error md:text-left">
+                                Couldn&apos;t join the waitlist — try the door again.
+                            </p>
+                        )}
                     </div>
                     <div className="flex min-w-0 justify-center md:justify-end">
                         {/* Match ShareAssetD3 pixelation: same PixelatedCardFace component
-                            scaled into the hero column. Native dims are 620×391; the
-                            inner absolute-positioned layout scales linearly with the
-                            transform. Width-bounded so the rotated card stays in column. */}
+                            scaled into the hero column. Native dims are 760×479 (shared
+                            CARD_W/CARD_H); the inner absolute-positioned layout scales
+                            linearly with the transform. Scale 0.526 keeps the on-screen
+                            footprint (~400×253) unchanged after the share-asset card was
+                            enlarged 620→760, so this hero is unaffected by that change. */}
                         <div
                             className="origin-center -rotate-12"
                             style={{
                                 width: 400,
                                 height: 252,
-                                transform: 'scale(0.645) rotate(-12deg)',
+                                transform: 'scale(0.526) rotate(-12deg)',
                                 transformOrigin: 'center center',
                             }}
                         >
@@ -478,14 +563,29 @@ export default function ShhhhhLandingPage() {
                         Try the door.
                     </p>
                     <div className="mt-10 flex justify-center">
-                        <Button shadowSize="4" onClick={handleCTA} className={ctaButtonClassName}>
-                            TRY THE DOOR
-                        </Button>
+                        {isJoined ? (
+                            <WaitlistJoined position={joinedPosition ?? null} dark />
+                        ) : (
+                            <Button
+                                shadowSize="4"
+                                onClick={handleCTA}
+                                loading={ctaBusy}
+                                disabled={ctaBusy}
+                                className={ctaButtonClassName}
+                            >
+                                TRY THE DOOR
+                            </Button>
+                        )}
                     </div>
+                    {joinError && (
+                        <p className="font-roboto-flex mt-3 text-sm font-bold text-error">
+                            Couldn&apos;t join the waitlist — try the door again.
+                        </p>
+                    )}
                 </div>
             </section>
 
-            <StickyShhhhhCTA onClick={handleCTA} />
+            {!isJoined && <StickyShhhhhCTA onClick={handleCTA} />}
         </>
     )
 }

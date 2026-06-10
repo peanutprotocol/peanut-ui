@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useMemo } from 'react'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
+import { useCardInfo } from '@/hooks/useCardInfo'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import Card from '../Global/Card'
 import ShowNameToggle from './components/ShowNameToggle'
@@ -30,7 +30,7 @@ export const Profile = () => {
     // Rain) to the provider-blind identityVerification projection, which today mirrors Sumsub
     // applicant state. Bridge/Manteca rail approval does NOT flip this badge.
     const { isVerified: isUserSumsubKycApproved } = useIdentityVerification()
-    const { hasCardAccess } = useCardPioneerInfo()
+    const { hasCardAccess } = useCardInfo()
 
     const logout = async () => {
         await logoutUser()
