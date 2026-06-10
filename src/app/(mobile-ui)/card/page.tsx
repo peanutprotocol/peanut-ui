@@ -23,6 +23,7 @@ import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { rainApi, type ApplyForCardResponse } from '@/services/rain'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
@@ -68,6 +69,7 @@ const CardPage: FC = () => {
 
     const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
     const { serializeGrant } = useGrantSessionKey()
+    const { railsForProvider, isLoading: capabilitiesLoading } = useCapabilities()
     const { setIsSupportModalOpen } = useModalsContext()
     const onBack = useSafeBack('/home')
 
@@ -509,6 +511,40 @@ const CardPage: FC = () => {
                 return <ApplicationStatusScreen variant="pending" onPrev={onBack} />
             case 'manual-review':
                 return <ApplicationStatusScreen variant="manual-review" onPrev={onBack} />
+            case 'requires-info': {
+                // Surface the structured remediation reason from the
+                // capabilities read-model — `rail.reason.userMessage` is
+                // display-ready and provider-neutral by contract. The card
+                // provider serves exactly one rail, so [0] is the card rail.
+                // Overview and capabilities load independently — wait for
+                // capabilities so the screen never flashes without its reason.
+                if (capabilitiesLoading) {
+                    return (
+                        <div className="flex min-h-[inherit] w-full items-center justify-center">
+                            <Loading />
+                        </div>
+                    )
+                }
+                const cardRailReason = railsForProvider('rain')[0]?.reason?.userMessage
+                return (
+                    <ApplicationStatusScreen
+                        variant="requires-info"
+                        reasonMessage={cardRailReason}
+                        onContactSupport={() => setIsSupportModalOpen(true)}
+                        onPrev={onBack}
+                    />
+                )
+            }
+            case 'requires-support':
+                // Pipeline-side failure — nothing the user can re-submit.
+                // Same support deep-link as 'rejected' below.
+                return (
+                    <ApplicationStatusScreen
+                        variant="requires-support"
+                        onContactSupport={() => setIsSupportModalOpen(true)}
+                        onPrev={onBack}
+                    />
+                )
             case 'rejected':
                 // No retry CTA: Rain denials are terminal on our side. The
                 // only path forward is support reviewing the case manually
