@@ -5,6 +5,7 @@
 
 import {
     isDirectSendEntry,
+    isFxBearingFlow,
     isMantecaOnrampEntry,
     isOnrampEntry,
     isQRPayment,
@@ -76,5 +77,24 @@ describe('entry-kind predicates', () => {
     test('hasShareableReceipt does NOT match unrelated kinds', () => {
         expect(hasShareableReceipt(tx('DIRECT_TRANSFER'))).toBe(false)
         expect(hasShareableReceipt(tx('SEND_LINK'))).toBe(false)
+    })
+
+    describe('isFxBearingFlow', () => {
+        test.each(['ONRAMP', 'OFFRAMP', 'QR_PAY'])('matches fiat-rail kind=%s', (kind) => {
+            expect(isFxBearingFlow(tx(kind))).toBe(true)
+        })
+
+        test('matches any card entry regardless of kind (cardPayment block present)', () => {
+            // Card spends (CARD_SPEND_*) and refunds (direction `receive`) both
+            // carry a cardPayment block — that's what kept refunds eligible.
+            expect(isFxBearingFlow(tx('CARD_SPEND_CLEAR', { cardPayment: { isRefund: false } }))).toBe(true)
+            expect(isFxBearingFlow(tx('CARD_AUTH_REVERSAL', { cardPayment: { isRefund: true } }))).toBe(true)
+        })
+
+        test('does NOT match non-FX flows', () => {
+            expect(isFxBearingFlow(tx('DIRECT_TRANSFER'))).toBe(false)
+            expect(isFxBearingFlow(tx('SEND_LINK'))).toBe(false)
+            expect(isFxBearingFlow(tx('CRYPTO_WITHDRAW'))).toBe(false)
+        })
     })
 })

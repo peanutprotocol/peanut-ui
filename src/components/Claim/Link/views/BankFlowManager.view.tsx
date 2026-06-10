@@ -3,7 +3,7 @@
 import { type IClaimScreenProps } from '../../Claim.consts'
 import { DynamicBankAccountForm, type IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { useCallback, useContext, useState, useRef } from 'react'
+import { useCallback, useContext, useMemo, useState, useRef } from 'react'
 import { loadingStateContext } from '@/context'
 import { createBridgeExternalAccountForGuest } from '@/app/actions/external-accounts'
 import { confirmOfframp, createOfframp, createOfframpForGuest } from '@/app/actions/offramp'
@@ -32,13 +32,11 @@ import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { sendLinksApi } from '@/services/sendLinks'
 import { useSearchParams } from 'next/navigation'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { getRegionIntent } from '@/utils/regions.utils'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
-import {
-    useBridgeTransferReadiness,
-    getKycModalVariant,
-    getGateProviderMessage,
-} from '@/hooks/useBridgeTransferReadiness'
-import { useBridgeTosGuard } from '@/hooks/useBridgeTosGuard'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
+import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -84,14 +82,19 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const { isLoading, setLoadingState } = useContext(loadingStateContext)
     const { claimLink } = useClaimLink()
     const dispatch = useAppDispatch()
-    const { gate } = useBridgeTransferReadiness()
-    const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
+    // Provider-blind bank-rail gate via the canonical `useCapabilities().gateFor`
+    // primitive. The bank-claim gate only fires for logged-in users (guest claims
+    // leverage the sender's KYC and bypass `gate` entirely below), so this reads
+    // the *claimer's* own capabilities. See utils/capability-gate.ts.
+    const { gateFor } = useCapabilities()
+    const gate = useMemo(() => gateFor('deposit', { channel: 'bank' }), [gateFor])
+    const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const [showKycModal, setShowKycModal] = useState(false)
     const { setIsSupportModalOpen } = useModalsContext()
 
     // inline sumsub kyc flow for users who need verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
-    // intent is passed at call time: handleInitiateKyc('STANDARD')
+    // intent is passed at call time, derived from the destination country.
     const sumsubFlow = useMultiPhaseKycFlow({
         onKycSuccess: async () => {
             if (justCompletedKyc) return
@@ -117,6 +120,11 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
      */
     const handleConfirmClaim = useCallback(
         async (details: TCreateOfframpResponse) => {
+            // Track whether the on-chain claim already succeeded. Once true, a
+            // failure of the subsequent confirmOfframp() must NOT bubble back to
+            // ConfirmBankClaimView as a retryable error — `onConfirm` would call
+            // claimLink() again and try to send funds twice (Sentry PEANUT-UI-QH9).
+            let claimTxSubmitted = false
             try {
                 const claimTx = await claimLink({
                     address: details.depositInstructions.toAddress,
@@ -127,6 +135,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 if (!claimTx) {
                     throw new Error('Failed to claim link - no transaction hash returned')
                 }
+                claimTxSubmitted = true
 
                 // if a user is logged in, associate the claim with their account.
                 // this helps track their activity correctly.
@@ -139,10 +148,29 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     }
                 }
                 setTransactionHash(claimTx)
-                await confirmOfframp(details.transferId, claimTx)
+
+                try {
+                    await confirmOfframp(details.transferId, claimTx)
+                } catch (confirmErr: any) {
+                    // On-chain claim already executed; the BE has the transfer row
+                    // and Bridge will process the deposit. Log + fall through to the
+                    // SUCCESS view rather than throwing — re-confirming retries are
+                    // safe to drop since the BE poller/webhook will reconcile.
+                    Sentry.captureException(confirmErr)
+                    console.error('confirmOfframp failed after on-chain claim succeeded', confirmErr)
+                }
+
                 if (setClaimType) setClaimType('claim-bank')
                 onCustom('SUCCESS')
             } catch (e: any) {
+                if (claimTxSubmitted) {
+                    // Defensive: even if a post-claim step throws (e.g.
+                    // setClaimType), do not surface a retryable error — the funds
+                    // are already on-chain. Log + show SUCCESS.
+                    Sentry.captureException(e)
+                    onCustom('SUCCESS')
+                    return
+                }
                 const errorString = ErrorHandler(e)
                 setError(errorString)
                 Sentry.captureException(e)
@@ -160,10 +188,17 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         try {
             setError(null)
 
-            // for logged-in users, check bridge readiness before proceeding
+            // for logged-in users, check bank-rail readiness before proceeding
             const isGuestFlow = bankClaimType === BankClaimType.GuestBankClaim
-            if (!isGuestFlow && gate.type !== 'ready') {
-                if (gate.type === 'accept_tos') {
+            if (!isGuestFlow && gate.kind !== 'ready') {
+                // capabilities still loading OR provider doing internal review —
+                // silently return; the CTA that triggered this should be disabled
+                // too, but defend against double-click races. `waiting-on-provider`
+                // means there's no user action to take (Bridge KYC review,
+                // post_processing), so opening the KYC modal would falsely imply
+                // the user has something to do.
+                if (gate.kind === 'loading' || gate.kind === 'waiting-on-provider') return
+                if (gate.kind === 'accept-tos') {
                     guardWithTos()
                 } else {
                     setShowKycModal(true)
@@ -172,21 +207,23 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             }
 
             setLoadingState('Executing transaction')
-            const userForOfframp = isGuestFlow
+            // Guest flow off-ramps on the link SENDER's behalf — fetch the counterparty
+            // and check the provider-agnostic capability the BE exposes for them
+            // (`canReceiveBankOfframp`, i.e. an enabled Bridge bank rail). Replaces the
+            // raw `bridgeKycStatus === 'approved'` read; the FE never sees provider KYC.
+            // Logged-in flow uses the current user, whose readiness is already enforced
+            // above via `gate.kind !== 'ready'` (capability model).
+            const guestSender = isGuestFlow
                 ? await getUserById(claimLinkData.sender?.userId ?? claimLinkData.senderAddress)
-                : user?.user
-
-            // handle error if user for offramp is not found
-            if (!userForOfframp || ('error' in userForOfframp && userForOfframp.error)) {
-                throw new Error(
-                    (userForOfframp && typeof userForOfframp.error === 'string' && userForOfframp.error) ||
-                        'Failed to get user info'
-                )
+                : null
+            if (isGuestFlow) {
+                if (!guestSender) throw new Error('Failed to get user info')
+                if (!guestSender.canReceiveBankOfframp) throw new Error('Sender cannot receive a bank off-ramp')
             }
 
-            // handle error if user is not KYC approved
-            if (userForOfframp.bridgeKycStatus !== 'approved') throw new Error('User not KYC approved')
-            if (!userForOfframp?.bridgeCustomerId) throw new Error('User bridge customer ID not found')
+            const userForOfframp = isGuestFlow ? guestSender : user?.user
+            if (!userForOfframp) throw new Error('Failed to get user info')
+            if (!userForOfframp.bridgeCustomerId) throw new Error('User bridge customer ID not found')
 
             // get payment rail and currency for the offramp
             const paymentRail = getBridgeChainName(claimLinkData.chainId)
@@ -260,7 +297,12 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         // scenario 1: receiver needs KYC
         // name and email are now collected by sumsub sdk — no need to save them beforehand
         if (bankClaimType === BankClaimType.ReceiverKycNeeded && !justCompletedKyc) {
-            await sumsubFlow.handleInitiateKyc('STANDARD')
+            await sumsubFlow.handleInitiateKyc(
+                getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
+                undefined,
+                undefined,
+                selectedCountry?.id
+            )
             return {}
         }
 
@@ -516,18 +558,22 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                                 handleCreateOfframpAndClaim(localBankDetails)
                             }}
                             onSkip={hideTos}
+                            reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
                         />
                         <InitiateKycModal
                             visible={showKycModal}
                             onClose={() => setShowKycModal(false)}
                             onVerify={async () => {
-                                if (gate.type === 'fixable_rejection') {
+                                if (gate.kind === 'restart-identity') {
+                                    await sumsubFlow.handleRestartIdentity()
+                                } else if (gate.kind === 'fixable-rejection') {
                                     await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                                 } else {
                                     await sumsubFlow.handleInitiateKyc(
-                                        'STANDARD',
+                                        getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
                                         undefined,
-                                        gate.type === 'needs_enrollment' || undefined
+                                        gate.kind === 'needs-enrollment' || undefined,
+                                        selectedCountry?.id
                                     )
                                 }
                                 // only close if sdk opened — if it errored, keep modal open to show error
@@ -539,8 +585,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                             }}
                             isLoading={sumsubFlow.isLoading}
                             error={sumsubFlow.error}
-                            variant={getKycModalVariant(gate.type)}
-                            providerMessage={getGateProviderMessage(gate)}
+                            variant={getKycModalVariant(gate.kind)}
+                            providerMessage={getGateUserMessage(gate)}
                         />
                     </>
                 )

@@ -3,8 +3,12 @@
  * synthetic-entry pattern. Surfaces in the user's activity feed so they
  * can re-open the share asset they earned on the celebration moment.
  *
- * No DB table needed — derived client-side from the user's
- * cardAccessGrantedAt timestamp + the skip-badge they hold.
+ * No DB table needed — derived client-side. Only surfaces once the user
+ * has an issued card (see deriveCardUnlockEntry); the timestamp comes from
+ * their cardAccessGrantedAt or earliest skip-badge earnedAt. It is a
+ * normal chronological row: NOT pinned in the home top-5 (it ages out
+ * behind newer activity) and always reachable on the paginated /history
+ * page (Hugo 2026-06-10).
  */
 
 export type CardUnlockVia = 'badge' | 'admin' | 'public-launch'
@@ -30,19 +34,29 @@ export const isCardUnlockHistoryItem = (entry: unknown): entry is CardUnlockHist
     )
 }
 
-/** Returns null if the user doesn't have card access yet. Otherwise picks
- *  the best available timestamp:
+/** Returns null unless the user has ACTUALLY been issued a card. Card
+ *  *access* (a skip badge or an admin grant) is NOT enough — it only means
+ *  the user is allowed a card, not that they ever entered the flow or got
+ *  one. Gating on access alone surfaced this share-asset row + "I got my
+ *  Peanut card" image to ~33% of users (every OG / Devconnect / Arbiverse /
+ *  Pioneer badge holder), the vast majority of whom never received a card.
+ *
+ *  Once gated on `hasIssuedCard`, picks the best available timestamp:
  *    1. Explicit `cardAccessGrantedAt` (admin grant / waitlist release).
  *    2. Earliest skip-badge `earnedAt` (badge-driven access — user has
  *       been "in" since they earned the badge, even if the BE never
  *       stamped a separate grant timestamp).
  *  If neither is present, returns null rather than fabricating one. */
 export function deriveCardUnlockEntry(args: {
+    /** True once the user has at least one Rain card row (the only
+     *  server-verifiable signal that they got through the card flow). */
+    hasIssuedCard: boolean
     hasCardAccess: boolean
     cardAccessGrantedAt: string | null | undefined
     skipBadges: string[]
     userBadges?: Array<{ code: string; earnedAt?: string | Date | null }>
 }): CardUnlockHistoryEntry | null {
+    if (!args.hasIssuedCard) return null
     if (!args.hasCardAccess) return null
 
     let timestamp = args.cardAccessGrantedAt ?? undefined

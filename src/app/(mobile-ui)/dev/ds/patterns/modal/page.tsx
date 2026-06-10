@@ -303,7 +303,6 @@ export default function ModalPage() {
                                 ['InviteFriendsModal', 'Share referral link with copy + social buttons'],
                                 ['ConfirmInviteModal', 'Confirm invitation before sending'],
                                 ['GuestLoginModal', 'Prompt guest users to log in or register'],
-                                ['KycVerifiedOrReviewModal', 'KYC verification status feedback'],
                                 ['BalanceWarningModal', 'Warn about insufficient balance'],
                                 ['TokenAndNetworkConfirmationModal', 'Confirm token + chain before transfer'],
                                 ['TokenSelectorModal', 'Pick token from a list'],

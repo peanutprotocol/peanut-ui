@@ -11,8 +11,10 @@ import { useCurrency } from '@/hooks/useCurrency'
 import { mantecaApi } from '@/services/manteca'
 import { parseUnits } from 'viem'
 import { useQueryClient } from '@tanstack/react-query'
-import useKycStatus from '@/hooks/useKycStatus'
-import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { isVerifiedForCountry } from '@/utils/regions.utils'
+import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -23,7 +25,6 @@ import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails'
@@ -69,16 +70,20 @@ const MantecaAddMoney: FC = () => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
     const onBack = useSafeBack(addMoneyCountryUrl(selectedCountryPath))
-    const { isUserSumsubKycApproved } = useKycStatus()
-    const { isVerifiedForCountry } = useIdentityVerification()
-    const { manteca: mantecaRejection } = useProviderRejectionStatus()
+    // The pool→full upgrade gate asks "did the user clear ID verification?",
+    // not "do they have an enabled rail elsewhere?" — read the identity
+    // signal directly (Sumsub-cleared the human) instead of the old
+    // rail-approval proxy. Same fix-pattern as Profile/ProfileEdit.
+    const { rails } = useCapabilities()
+    const { isVerified: isUserIdentityVerified } = useIdentityVerification()
+    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA'), [rails])
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
     // inline sumsub kyc flow for manteca users who need LATAM verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
     // intent is passed at call time: handleInitiateKyc('LATAM')
     const sumsubFlow = useMultiPhaseKycFlow({})
     const [showKycModal, setShowKycModal] = useState(false)
-    const isUserMantecaKycApprovedForCountry = selectedCountry ? isVerifiedForCountry(selectedCountry.id) : false
+    const isUserMantecaKycApprovedForCountry = selectedCountry ? isVerifiedForCountry(rails, selectedCountry.id) : false
 
     // validates deposit amount against user's limits
     // currency comes from country config - hook normalizes it internally
@@ -236,8 +241,9 @@ const MantecaAddMoney: FC = () => {
                             setShowKycModal(false)
                             return
                         }
-                        const hasRejection = mantecaRejection.state === 'fixable'
-                        if (hasRejection) {
+                        if (mantecaRejection.state === 'restart-identity') {
+                            await sumsubFlow.handleRestartIdentity()
+                        } else if (mantecaRejection.state === 'fixable') {
                             await sumsubFlow.handleSelfHealResubmit('MANTECA')
                         } else {
                             await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
@@ -248,11 +254,13 @@ const MantecaAddMoney: FC = () => {
                     variant={
                         mantecaRejection.state === 'blocked'
                             ? 'blocked'
-                            : mantecaRejection.state === 'fixable'
-                              ? 'provider_rejection'
-                              : isUserSumsubKycApproved
-                                ? 'cross_region'
-                                : 'default'
+                            : mantecaRejection.state === 'restart-identity'
+                              ? 'restart_identity'
+                              : mantecaRejection.state === 'fixable'
+                                ? 'provider_rejection'
+                                : isUserIdentityVerified
+                                  ? 'cross_region'
+                                  : 'default'
                     }
                     providerMessage={mantecaRejection.userMessage ?? undefined}
                     regionName={selectedCountry?.title}

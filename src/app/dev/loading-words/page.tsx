@@ -1,6 +1,6 @@
 'use client'
 
-import { PEANUTMAN_LOGO } from '@/assets/peanut'
+import { PEANUTMAN_LOGO } from '@/assets/mascot'
 import { PAYMENT_LOADING_WORDS } from '@/components/Global/PeanutLoading/words'
 import { useEffect, useState } from 'react'
 

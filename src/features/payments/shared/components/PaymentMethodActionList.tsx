@@ -19,7 +19,7 @@ import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import Loading from '@/components/Global/Loading'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { saveRedirectUrl } from '@/utils/general.utils'
 
 interface PaymentMethodActionListProps {
@@ -43,7 +43,13 @@ export function PaymentMethodActionList({
     onPayWithExternalWallet,
 }: PaymentMethodActionListProps) {
     const router = useRouter()
-    const { isUserMantecaKycApproved, isUserBridgeKycApproved } = useKycStatus()
+    // Display-only "REQUIRES VERIFICATION" badges, provider-blind. The real
+    // gate happens later in the add-money flow.
+    //   QR-pay methods (mercadopago / pix) ← any rail with `pay` op enabled
+    //   Bank methods                       ← any enabled bank rail
+    const { canDo, bankRails } = useCapabilities()
+    const isQrPayEnabled = canDo('pay')
+    const isBankEnabled = bankRails().some((rail) => rail.status === 'enabled')
 
     // use geo filtering hook to sort methods based on user location
     // note: we don't mark verification-required methods as unavailable - they're still clickable
@@ -82,12 +88,10 @@ export function PaymentMethodActionList({
             {showDivider && <Divider text="or" />}
             <div className="space-y-2">
                 {sortedMethods.map((method) => {
-                    // check if method requires verification (for badge display only)
-                    const methodRequiresMantecaVerification =
-                        ['mercadopago', 'pix'].includes(method.id) && !isUserMantecaKycApproved
-                    const methodRequiresBridgeVerification = method.id === 'bank' && !isUserBridgeKycApproved
-                    const methodRequiresVerification =
-                        methodRequiresMantecaVerification || methodRequiresBridgeVerification
+                    // does this method's gate require identity verification (badge display only)?
+                    const qrMethodNeedsUnlock = ['mercadopago', 'pix'].includes(method.id) && !isQrPayEnabled
+                    const bankMethodNeedsUnlock = method.id === 'bank' && !isBankEnabled
+                    const methodRequiresVerification = qrMethodNeedsUnlock || bankMethodNeedsUnlock
                     return (
                         <ActionListCard
                             key={method.id}

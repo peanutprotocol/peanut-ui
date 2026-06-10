@@ -23,19 +23,16 @@ import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
-import useKycStatus from '@/hooks/useKycStatus'
-import KycVerifiedOrReviewModal from '../Global/KycVerifiedOrReviewModal'
 import { ActionListCard } from '@/components/ActionListCard'
 import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
-import {
-    useBridgeTransferReadiness,
-    getKycModalVariant,
-    getGateProviderMessage,
-} from '@/hooks/useBridgeTransferReadiness'
-import { useBridgeTosGuard } from '@/hooks/useBridgeTosGuard'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
+import { railJurisdictionForBank } from '@/utils/bridge.utils'
+import { getRegionIntent } from '@/utils/regions.utils'
+import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useModalsContext } from '@/context/ModalsContext'
 
@@ -62,10 +59,26 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     // inline sumsub kyc flow for bridge bank users who need verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
-    // intent is passed at call time: handleInitiateKyc('STANDARD')
+    // intent is passed at call time, derived from the destination country.
     const sumsubFlow = useMultiPhaseKycFlow({
         onKycSuccess: () => {
             setIsKycModalOpen(false)
+            // The `view: 'form'` branch below renders DynamicBankAccountForm —
+            // the offramp/withdraw bank-account input form. That's correct for
+            // `flow === 'withdraw'` (user enters THEIR bank account to receive
+            // funds) but completely wrong for `flow === 'add'`, which needs
+            // Bridge's deposit instructions (an account belonging to Bridge
+            // that the user wires TO). Pre-fix this unconditional setView
+            // surfaced the withdraw form under an "Add money" title — the
+            // EEA QA Bug #5 ("Submitted, but still asking for account holder
+            // details when I'm trying to add money"). Route add-money users
+            // to /add-money/[country]/bank instead, which mounts
+            // AddMoneyBankDetails (deposit-instructions display).
+            if (flow === 'add') {
+                const countrySlug = currentCountry?.path
+                router.push(countrySlug ? `/add-money/${countrySlug}/bank` : '/add-money')
+                return
+            }
             setView('form')
         },
         onManualClose: () => setIsKycModalOpen(false),
@@ -76,20 +89,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
-
-    const { isUserKycApproved, isUserBridgeKycUnderReview } = useKycStatus()
-    const { gate } = useBridgeTransferReadiness()
-    const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
-    const { setIsSupportModalOpen } = useModalsContext()
-    const [showKycStatusModal, setShowKycStatusModal] = useState(false)
-
-    // stores the callback to replay after tos acceptance in the list view
-    const pendingAfterTosRef = useRef<(() => void) | null>(null)
-
-    // close kyc modal when sumsub sdk opens
-    useEffect(() => {
-        if (sumsubFlow.showWrapper) setIsKycModalOpen(false)
-    }, [sumsubFlow.showWrapper])
 
     // read country from path params (web: /add-money/india) or query params (native: /add-money?country=india)
     const countryFromQuery = searchParams.get('country')
@@ -104,11 +103,49 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         (country) => country.type === 'country' && country.path === countrySlugFromUrl
     )
 
+    // Provider-blind bank-channel deposit gate, country-scoped to the rail
+    // jurisdiction of the country the user is on. Reads through
+    // useCapabilities's role-aware primitives — see utils/capability-gate.ts.
+    //
+    // SCOPE rationale: without the country narrowing, a stuck/rejected rail in
+    // an unrelated jurisdiction (e.g. a Bridge BANK_TRANSFER_MX row from the
+    // 2026-06-01 sync) trips `blocked-rejection` here and the user sees
+    // "We couldn't unlock this" on a country whose own rail is fine.
+    //
+    // The gate's `kind` is the SOLE go/no-go signal here — same as the sibling
+    // /add-money/[country]/bank/page.tsx. Do NOT layer a separate "is any bank
+    // rail pending?" check on top: a `ready` gate already means the user has a
+    // working in-scope rail, and `deriveGate` deliberately ranks `ready` above
+    // `pending`/`waiting-on-provider` so a pending sibling rail (a legit
+    // second-country enrollment, a still-provisioning rail) can't re-block
+    // them. The prior unscoped `isBankRailUnderReview` check did exactly that
+    // and dead-ended ready users behind a "You're all set / Go back" modal.
+    const { isKycApproved, gateFor } = useCapabilities()
+    const isUserKycApproved = isKycApproved
+    const bankCountry = useMemo(() => railJurisdictionForBank(currentCountry?.id), [currentCountry?.id])
+    const gate = useMemo(() => gateFor('deposit', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
+    const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
+    const { setIsSupportModalOpen } = useModalsContext()
+
+    // stores the callback to replay after tos acceptance in the list view
+    const pendingAfterTosRef = useRef<(() => void) | null>(null)
+
+    // close kyc modal when sumsub sdk opens
+    useEffect(() => {
+        if (sumsubFlow.showWrapper) setIsKycModalOpen(false)
+    }, [sumsubFlow.showWrapper])
+
     /** returns true if the user is gated (caller should return early) */
     const checkBridgeGate = useCallback(
         (onAfterTos?: () => void): boolean => {
-            if (gate.type !== 'ready') {
-                if (gate.type === 'accept_tos') {
+            if (gate.kind !== 'ready') {
+                // capabilities still loading OR provider doing internal review —
+                // caller should wait, NOT open a KYC modal. For `loading` we
+                // don't yet know if the user is approved. For `waiting-on-provider`
+                // (Bridge KYC review, post_processing) there's no user action to
+                // take; opening the modal would imply otherwise.
+                if (gate.kind === 'loading' || gate.kind === 'waiting-on-provider') return true
+                if (gate.kind === 'accept-tos') {
                     pendingAfterTosRef.current = onAfterTos ?? null
                     guardWithTos()
                 } else {
@@ -116,13 +153,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 }
                 return true
             }
-            if (isUserBridgeKycUnderReview) {
-                setShowKycStatusModal(true)
-                return true
-            }
             return false
         },
-        [gate, isUserBridgeKycUnderReview, guardWithTos]
+        [gate, guardWithTos]
     )
 
     const handleFormSubmit = async (
@@ -135,18 +168,18 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
         // unified bridge gate: tos → fixable rejection → blocked → enrollment
         // return a non-visible error to prevent the form from treating this as success
-        if (gate.type !== 'ready') {
-            if (gate.type === 'accept_tos') {
+        if (gate.kind !== 'ready') {
+            // capabilities still loading OR provider doing internal review —
+            // silently no-op (don't show a KYC modal). `waiting-on-provider`
+            // means no user action available.
+            if (gate.kind === 'loading' || gate.kind === 'waiting-on-provider') {
+                return { error: 'gate_blocked', silent: true }
+            }
+            if (gate.kind === 'accept-tos') {
                 guardWithTos()
             } else {
                 setIsKycModalOpen(true)
             }
-            return { error: 'gate_blocked', silent: true }
-        }
-
-        // bridge kyc still under review — don't initiate a new sumsub flow
-        if (isUserBridgeKycUnderReview) {
-            setShowKycStatusModal(true)
             return { error: 'gate_blocked', silent: true }
         }
 
@@ -196,7 +229,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // scenario (2): if the user hasn't completed kyc yet
         // name and email are now collected by sumsub sdk — no need to save them beforehand
         if (!isUserKycApproved) {
-            await sumsubFlow.handleInitiateKyc('STANDARD')
+            await sumsubFlow.handleInitiateKyc(
+                getRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
+                undefined,
+                undefined,
+                currentCountry?.id
+            )
         }
 
         return {}
@@ -299,13 +337,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 visible={isKycModalOpen}
                 onClose={() => setIsKycModalOpen(false)}
                 onVerify={async () => {
-                    if (gate.type === 'fixable_rejection') {
+                    if (gate.kind === 'fixable-rejection') {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
                         await sumsubFlow.handleInitiateKyc(
-                            'STANDARD',
+                            getRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
                             undefined,
-                            gate.type === 'needs_enrollment' || undefined
+                            gate.kind === 'needs-enrollment' || undefined,
+                            currentCountry?.id
                         )
                     }
                 }}
@@ -315,8 +354,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 }}
                 isLoading={sumsubFlow.isLoading}
                 error={sumsubFlow.error}
-                variant={getKycModalVariant(gate.type)}
-                providerMessage={getGateProviderMessage(gate)}
+                variant={getKycModalVariant(gate.kind)}
+                providerMessage={getGateUserMessage(gate)}
                 regionName={currentCountry?.title}
             />
             <BridgeTosStep
@@ -329,6 +368,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     else formRef.current?.handleSubmit()
                 }}
                 onSkip={hideTos}
+                reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
             />
             <SumsubKycModals flow={sumsubFlow} />
         </>
@@ -483,10 +523,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     isVisible={isSupportedTokensModalOpen}
                 />
             )}
-            <KycVerifiedOrReviewModal
-                isKycApprovedModalOpen={showKycStatusModal}
-                onClose={() => setShowKycStatusModal(false)}
-            />
             {sharedModals}
         </div>
     )

@@ -6,8 +6,8 @@ import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
-import { useIdentityVerification, type Region } from '@/hooks/useIdentityVerification'
-import useKycStatus from '@/hooks/useKycStatus'
+import { deriveRegionAccess, pendingBankRailRegionPaths, type Region } from '@/utils/regions.utils'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { useLimits } from '@/hooks/useLimits'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import Image from 'next/image'
@@ -23,14 +23,26 @@ import { getProviderRoute } from '../utils'
 const LimitsPageView = () => {
     const router = useRouter()
     const goBack = useSafeBack('/profile', { replace: true })
-    const { unlockedRegions, lockedRegions } = useIdentityVerification()
-    const { isUserKycApproved, isUserBridgeKycUnderReview, isUserBridgeKycIncomplete } = useKycStatus()
+    const { isKycApproved, rails } = useCapabilities()
+    // MIGRATION-REVIEW: finishes the LimitsPageView migration the prior pass deferred
+    // (f4eb9f70e left `useIdentityVerification` here for the region lists). unlockedRegions/
+    // lockedRegions now derive from the capability rails via deriveRegionAccess — same Region
+    // shape, faithful unlock mapping. See deriveRegionAccess for the flagged Sumsub-proxy gaps.
+    const { unlockedRegions, lockedRegions } = useMemo(() => deriveRegionAccess(rails), [rails])
     const { hasMantecaLimits } = useLimits()
     const { overview: rainCardOverview } = useRainCardOverview()
     const activeCard = findActiveCard(rainCardOverview)
 
-    // check if user has any kyc at all
-    const hasAnyKyc = isUserKycApproved
+    // check if user has any kyc at all → any enabled rail unlocks the fiat-limits section.
+    // MIGRATION-REVIEW: old `isUserKycApproved` (any provider approved) → `isKycApproved` (any enabled
+    // rail). Equivalent for the limits-unlock gate.
+    const hasAnyKyc = isKycApproved
+
+    // "pending" badge per REGION: a region is pending only when a mid-flight
+    // bank rail belongs to that region's jurisdiction. The old page-level
+    // boolean badged every locked region off any pending rail — e.g. a pending
+    // AR bank rail incorrectly badged Europe and North America.
+    const pendingRegionPaths = useMemo(() => pendingBankRailRegionPaths(rails), [rails])
 
     // rest of world region config (static)
     const restOfWorldRegion: Region = {
@@ -73,10 +85,7 @@ const LimitsPageView = () => {
 
             {/* locked regions - only render if there are actual locked regions */}
             {filteredLockedRegions.length > 0 && (
-                <LockedRegionsList
-                    regions={filteredLockedRegions}
-                    isBridgeKycPending={isUserBridgeKycUnderReview || isUserBridgeKycIncomplete}
-                />
+                <LockedRegionsList regions={filteredLockedRegions} pendingRegionPaths={pendingRegionPaths} />
             )}
 
             {/* rest of world - always shown with coming soon */}
@@ -163,18 +172,14 @@ const UnlockedRegionsList = ({ regions, hasMantecaKyc }: UnlockedRegionsListProp
 
 interface LockedRegionsListProps {
     regions: Region[]
-    isBridgeKycPending: boolean
+    pendingRegionPaths: Set<string>
 }
 
-const LockedRegionsList = ({ regions, isBridgeKycPending }: LockedRegionsListProps) => {
+const LockedRegionsList = ({ regions, pendingRegionPaths }: LockedRegionsListProps) => {
     const router = useRouter()
 
-    // check if a region should show pending status
-    // bridge kyc pending affects europe and north-america regions
-    const isPendingRegion = (regionPath: string) => {
-        if (!isBridgeKycPending) return false
-        return regionPath === 'europe' || regionPath === 'north-america'
-    }
+    // a region shows pending only when one of ITS bank rails is mid-flight
+    const isPendingRegion = (regionPath: string) => pendingRegionPaths.has(regionPath)
 
     return (
         <div>

@@ -28,7 +28,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { PEANUT_LOGO_BLACK } from '@/assets/illustrations'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { PEANUTMAN_LOGO } from '@/assets/peanut'
+import { PEANUTMAN_LOGO } from '@/assets/mascot'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { tokenSelectorContext } from '@/context'
@@ -44,7 +44,7 @@ import { ActionListCard } from '../../ActionListCard'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import SupportCTA from '../../Global/SupportCTA'
 import { DEVCONNECT_LOGO } from '@/assets'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import {
     MIN_BANK_TRANSFER_AMOUNT,
     MIN_MERCADOPAGO_AMOUNT,
@@ -98,7 +98,10 @@ export default function SendLinkActionList({
         devconnectRecipientAddress,
         devconnectTokenAddress,
     } = useContext(tokenSelectorContext)
-    const { isUserMantecaKycApproved } = useKycStatus()
+    // MIGRATION-REVIEW: mercadopago/pix are QR `pay` methods over Manteca. Old gate was
+    // `isUserMantecaKycApproved`; mapped to canDo('pay', { provider: 'manteca' }) so a Sumsub-
+    // approved user with only the pool-tier pay rail correctly sees these methods as available.
+    const isMantecaPayEnabled = useCapabilities().canDo('pay', { provider: 'manteca' })
     const dispatch = useAppDispatch()
 
     const requiresVerification = useMemo(() => {
@@ -111,7 +114,7 @@ export default function SendLinkActionList({
         isMethodUnavailable: (method) =>
             method.soon ||
             (method.id === 'bank' && requiresVerification) ||
-            (['mercadopago', 'pix'].includes(method.id) && !isUserMantecaKycApproved),
+            (['mercadopago', 'pix'].includes(method.id) && !isMantecaPayEnabled),
         methods: showDevconnectMethod
             ? DEVCONNECT_CLAIM_METHODS.filter((method) => method.id !== 'devconnect')
             : undefined,
@@ -147,7 +150,10 @@ export default function SendLinkActionList({
             case 'mercadopago':
             case 'pix':
                 if (!user) {
-                    addParamStep('regional-claim')
+                    // carry the tapped method in the URL: the auth redirect fully
+                    // remounts the flow, and Initial.view restores it from the
+                    // `method` param when it re-enters via step=regional-claim.
+                    addParamStep('regional-claim', { method: method.id })
                     setShowVerificationModal(true)
                     return
                 }
@@ -250,7 +256,7 @@ export default function SendLinkActionList({
             <div className="space-y-2">
                 {sortedActionMethods.map((method) => {
                     let methodRequiresVerification = method.id === 'bank' && requiresVerification
-                    if (!isUserMantecaKycApproved && ['mercadopago', 'pix'].includes(method.id)) {
+                    if (!isMantecaPayEnabled && ['mercadopago', 'pix'].includes(method.id)) {
                         methodRequiresVerification = true
                     }
 

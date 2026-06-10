@@ -2,9 +2,10 @@
 
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
+import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
 import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
-import { rainSpendingPowerToWei } from '@/utils/balance.utils'
+import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -38,8 +39,9 @@ import Select from '@/components/Global/Select'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
 import { captureException } from '@sentry/nextjs'
-import useKycStatus from '@/hooks/useKycStatus'
-import useProviderRejectionStatus from '@/hooks/useProviderRejectionStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -68,7 +70,7 @@ import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useLimits } from '@/hooks/useLimits'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { isVerifiedForCountry } from '@/utils/regions.utils'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -95,13 +97,16 @@ export default function MantecaWithdrawFlow() {
     const router = useRouter()
     const { spendableBalance: balance, balance: smartBalance } = useWallet()
     const { signSpend } = useSignSpendBundle()
+    const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
     const queryClient = useQueryClient()
-    const { isUserSumsubKycApproved } = useKycStatus()
-    const { isVerifiedForCountry } = useIdentityVerification()
-    const { manteca: mantecaRejection } = useProviderRejectionStatus()
+    // The pool→full upgrade gate reads identityVerification (Sumsub-cleared
+    // the human), not rail-approval. Same fix-pattern as Profile/ProfileEdit.
+    const { rails } = useCapabilities()
+    const { isVerified: isUserIdentityVerified } = useIdentityVerification()
+    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA'), [rails])
     const { hasPendingTransactions } = usePendingTransactions()
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
@@ -128,7 +133,7 @@ export default function MantecaWithdrawFlow() {
         if (!selectedCountry || !isMantecaSupportedCountryCode(selectedCountry.id)) return undefined
         return MANTECA_COUNTRIES_CONFIG[selectedCountry.id]
     }, [selectedCountry])
-    const isUserMantecaKycApprovedForCountry = selectedCountry ? isVerifiedForCountry(selectedCountry.id) : false
+    const isUserMantecaKycApprovedForCountry = selectedCountry ? isVerifiedForCountry(rails, selectedCountry.id) : false
 
     const {
         code: currencyCode,
@@ -205,6 +210,19 @@ export default function MantecaWithdrawFlow() {
     /**
      * Detect Manteca onboarding-incomplete errors and redirect user to complete their profile.
      * Returns true if the error was handled (caller should return early).
+     *
+     * INTENTIONAL FALLBACK — NOT a primary code path. The KYC 2.0 architecture
+     * (engineering/projects/kyc-2.0/final-plan.md) centralizes all data
+     * collection in Sumsub and submits to Manteca via the API (`submitToManteca`
+     * in peanut-api-ts). The Manteca hosted onboarding widget is dead-by-design
+     * — but we keep this last-resort redirect for the long tail of users who
+     * land in an incomplete Manteca state (partial provisioning, undelivered
+     * initial-onboarding API call). Without this escape hatch they'd be stuck
+     * at withdraw time with no actionable error.
+     *
+     * Right fix: root-cause why `submitToManteca` sometimes leaves users
+     * half-onboarded, fix that, delete this fallback + `/manteca/initiate-onboarding`
+     * route + `mantecaApi.initiateOnboarding` client. Tracked separately.
      */
     const handleOnboardingError = useCallback(async (error: string): Promise<boolean> => {
         const onboardingErrorPatterns = ['fund origin', 'profile incomplete', 'onboarding required']
@@ -325,7 +343,7 @@ export default function MantecaWithdrawFlow() {
                     requiredUsdcAmount,
                     recipient: MANTECA_DEPOSIT_ADDRESS,
                     smartBalance: smartBalance ?? 0n,
-                    rainSpendingPower: rainSpendingPowerToWei(rainCardOverview?.balance?.spendingPower),
+                    rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                     kind: 'FIAT_OFFRAMP',
                 })
             } catch (error) {
@@ -394,6 +412,10 @@ export default function MantecaWithdrawFlow() {
                     error_message: result.error,
                 })
 
+                // Wrong-passkey session: backend rejected the signed UserOp with
+                // AA24 / wapk. Unrecoverable without re-auth — force a clean logout.
+                if (handleStaleSession(result.message ?? result.error)) return
+
                 // handle onboarding-incomplete errors by redirecting to complete profile
                 if (await handleOnboardingError(result.message ?? result.error)) return
 
@@ -417,6 +439,7 @@ export default function MantecaWithdrawFlow() {
             })
         } catch (error) {
             console.error('Manteca withdraw error:', error)
+            if (handleStaleSession(error)) return
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
                 method_type: 'manteca',
                 error_message: 'Withdraw failed unexpectedly',
@@ -585,8 +608,9 @@ export default function MantecaWithdrawFlow() {
                         setShowKycModal(false)
                         return
                     }
-                    const hasRejection = mantecaRejection.state === 'fixable'
-                    if (hasRejection) {
+                    if (mantecaRejection.state === 'restart-identity') {
+                        await sumsubFlow.handleRestartIdentity()
+                    } else if (mantecaRejection.state === 'fixable') {
                         await sumsubFlow.handleSelfHealResubmit('MANTECA')
                     } else {
                         await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
@@ -597,11 +621,13 @@ export default function MantecaWithdrawFlow() {
                 variant={
                     mantecaRejection.state === 'blocked'
                         ? 'blocked'
-                        : mantecaRejection.state === 'fixable'
-                          ? 'provider_rejection'
-                          : isUserSumsubKycApproved
-                            ? 'cross_region'
-                            : 'default'
+                        : mantecaRejection.state === 'restart-identity'
+                          ? 'restart_identity'
+                          : mantecaRejection.state === 'fixable'
+                            ? 'provider_rejection'
+                            : isUserIdentityVerified
+                              ? 'cross_region'
+                              : 'default'
                 }
                 providerMessage={mantecaRejection.userMessage ?? undefined}
                 regionName={selectedCountry?.title}

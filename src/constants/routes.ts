@@ -43,8 +43,10 @@ export const DEDICATED_ROUTES = [
     'limits',
     'notifications',
     'recover-funds',
+    'card-recovery',
 
     // Public pages (existing)
+    'm', // merchant landing pages (/m/[slug]) — added on main; register so the catch-all never treats it as a recipient
     'careers',
     'jobs',
     'privacy',
@@ -134,6 +136,37 @@ export function isReservedRoute(path: string): boolean {
     const firstSegment = path.split('/')[1]?.toLowerCase()
     if (!firstSegment) return false
     return RESERVED_ROUTES.includes(firstSegment as any) || isLocaleSegment(firstSegment)
+}
+
+/**
+ * Username validation — mirror of the rule in src/components/Setup/Views/Signup.tsx
+ * (4-12 chars, lowercase letters + digits, must start with a letter). If we widen
+ * this server-side, update both call sites.
+ */
+const USERNAME_PATTERN = /^[a-z][a-z0-9]{3,11}$/
+
+/**
+ * Helper to check if a first segment could plausibly identify a payment recipient:
+ * a Peanut username, an EVM address, an ENS name, or a `username@chain` handle.
+ * Anything else (bare locale codes, random strings, things with dashes/dots) should
+ * 404 instead of falling through to the recipient catch-all and rendering a profile.
+ */
+export function couldBeRecipient(segment: string): boolean {
+    if (!segment) return false
+    let decoded: string
+    try {
+        decoded = decodeURIComponent(segment).toLowerCase()
+    } catch {
+        // malformed percent-encoding (e.g. lone '%') → not a recipient
+        return false
+    }
+    // EVM address
+    if (/^0x[0-9a-f]{40}$/.test(decoded)) return true
+    // ENS name
+    if (decoded.endsWith('.eth') && decoded.length > 4) return true
+    // username@chain handle (chain validation happens downstream)
+    const base = decoded.includes('@') ? decoded.split('@')[0] : decoded
+    return USERNAME_PATTERN.test(base)
 }
 
 /**

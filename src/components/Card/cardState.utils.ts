@@ -46,8 +46,9 @@ interface ComputeArgs {
     cardInfo?: CardInfoResponse
     overviewLoading: boolean
     cardInfoLoading: boolean
-    /** Has the user already seen the badge-skip celebration in this app session
-     *  OR in a prior session (`cardWaitlistSkipCelebrationSeenAt` set)? */
+    /** Has the user already acknowledged the badge-skip celebration on this
+     *  device (localStorage)? Per-device on purpose — re-doing the funnel
+     *  re-celebrates. */
     skipCelebrationSeen: boolean
     /** Has the user pressed-and-held through the eligibility-check screen
      *  yet? Per-mount React state (NOT persisted) — every fresh /card visit

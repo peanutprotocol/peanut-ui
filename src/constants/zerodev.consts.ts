@@ -10,6 +10,14 @@ import { isCapacitor } from '@/utils/capacitor'
 export const BUNDLER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL!
 export const PAYMASTER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL!
 
+// Timeout for the ZeroDev bundler + paymaster RPC transports. viem's http()
+// default is 10s, which intermittently trips a `TimeoutError` on
+// `zd_sponsorUserOperation` during ZeroDev paymaster latency spikes — silently
+// failing crypto withdrawals (and any other smart-account userOp). 30s absorbs
+// the blips. Sponsorship is idempotent (returns gas-sponsorship data, submits
+// nothing on-chain), so waiting longer carries no double-spend risk.
+export const ZERODEV_RPC_TIMEOUT_MS = 30_000
+
 // Passkey server URL. The backend at /passkeys/{login,register}/verify
 // returns Set-Cookie: jwt-token=… which only sticks on the response origin.
 //

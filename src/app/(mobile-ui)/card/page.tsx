@@ -1,6 +1,6 @@
 'use client'
 import { type FC, useCallback, useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -8,7 +8,7 @@ import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { computeCardState, findActiveCard, type CardTopLevelState } from '@/components/Card/cardState.utils'
-import { pollUntilApplyAdvances } from '@/components/Card/cardApply.utils'
+import { pollUntilApplyAdvances, pollUntilReady } from '@/components/Card/cardApply.utils'
 import AddCardEntryScreen from '@/components/Card/AddCardEntryScreen'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 import CardTermsScreen from '@/components/Card/CardTermsScreen'
@@ -26,8 +26,8 @@ import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
-// localStorage key for the one-time celebration gate. Phase 5 will swap
-// this for a BE-persisted `cardWaitlistSkipCelebrationSeenAt` lookup.
+// localStorage key for the one-time celebration gate (per-device by design:
+// re-doing the funnel re-celebrates, see the eligibility-check effect below).
 // v2 (2026-05-25): celebration now fires for ALL hasCardAccess users, not
 // just skip-badge holders. v1's stale `true` values from earlier QA runs
 // would silently skip the celebration — bumping the key invalidates them.
@@ -50,7 +50,6 @@ function markSkipCelebrationSeen(): void {
 // they don't re-see the gate after celebration / add-card transitions.
 
 const CardPage: FC = () => {
-    const router = useRouter()
     const queryClient = useQueryClient()
     const { user, fetchUser } = useAuth()
     const userId = user?.user?.userId
@@ -85,8 +84,8 @@ const CardPage: FC = () => {
     const [isIssuing, setIsIssuing] = useState(false)
 
     // Track whether the user has acknowledged the skip-badge celebration.
-    // localStorage for M2; Phase 5 will read this from BE's
-    // cardWaitlistSkipCelebrationSeenAt column.
+    // localStorage on purpose (per-device, replayable via the eligibility
+    // re-hold below) — the celebration is a moment, not durable state.
     const [skipCelebrationSeen, setSkipCelebrationSeen] = useState<boolean>(() => getSkipCelebrationSeen())
 
     // Press-and-hold "see if you qualify" gate. Resets per mount: as long
@@ -97,73 +96,41 @@ const CardPage: FC = () => {
     // exists (see cardState.utils.ts — active-card wins first).
     const [eligibilityCheckDone, setEligibilityCheckDone] = useState<boolean>(false)
 
-    // `?press_door=1` arrives from /shhhhh → /setup → here. It means: the
-    // user clicked "press the door" on /shhhhh while signed out, just
-    // completed signup, and now expects to enter the card flow. We
-    // auto-stamp `flowEarlyAccess` on their behalf so they don't have to
-    // re-press the door. Initial value is read synchronously to gate the
-    // outer-gate redirect on first paint; the param is cleared once the
-    // stamp lands.
-    const [pressDoorMode, setPressDoorMode] = useState<boolean>(() => {
-        if (typeof window === 'undefined') return false
-        return new URL(window.location.href).searchParams.get('press_door') === '1'
-    })
-    const pressDoorFiredRef = useRef(false)
-    useEffect(() => {
-        if (!pressDoorMode) return
-        if (pioneerLoading || !cardInfo) return
-        if (pressDoorFiredRef.current) return
-        pressDoorFiredRef.current = true
-        const finish = (): void => {
-            const url = new URL(window.location.href)
-            url.searchParams.delete('press_door')
-            window.history.replaceState(window.history.state, '', url.toString())
-            setPressDoorMode(false)
-        }
-        if (cardInfo.flowEarlyAccess) {
-            // Already stamped (e.g. quick refresh after stamp landed) — just clean up.
-            finish()
-            return
-        }
-        void (async () => {
-            try {
-                await cardApi.grantFlowEarlyAccess()
-                posthog.capture(ANALYTICS_EVENTS.CARD_FLOW_EARLY_ACCESS_GRANTED)
-                await queryClient.invalidateQueries({ queryKey: ['card-info'] })
-            } catch (err) {
-                console.error('[card] press_door auto-stamp failed:', err)
-            } finally {
-                finish()
-            }
-        })()
-    }, [pressDoorMode, pioneerLoading, cardInfo, queryClient])
+    // The old `?press_door=1` auto-stamp was removed alongside the /shhhhh
+    // door rework: the bare door joins the waitlist and grants nothing, so a
+    // shareable URL that silently stamps flowEarlyAccess would have been the
+    // exact bypass the rework forbids. BE now also reports flowEarlyAccess
+    // true whenever hasCardAccess is (inner gate implies outer).
 
-    // Outer gate: pre-public-launch, redirect users without /shhhhh early
-    // access back to the landing page so they don't see a half-baked /card
-    // shell. BE returns `flowEarlyAccess: false` in that case.
+    // Outer gate: pre-public-launch, the card campaign isn't fully online
+    // yet. Users without flow early access get a 404 — the page behaves as
+    // if it doesn't exist. The only ways in are (a) already holding a card
+    // / being mid-application, or (b) holding card access (skip badge /
+    // admin grant — BE reports flowEarlyAccess true whenever hasCardAccess
+    // is). Everyone else belongs on /shhhhh, which joins the waitlist
+    // inline and never routes here.
     //
-    // IMPORTANT: skip the redirect if the user already has a non-canceled
-    // card. Legacy Pioneers + admin-granted users issued cards before
-    // /shhhhh existed and have no flowEarlyAccess stamp — they must still
-    // reach YourCardScreen. The computeCardState() precedence below mirrors
-    // this rule (active-card before no-flow-access). Also skip while
-    // pressDoorMode is in flight: the stamp is about to land any tick now,
-    // and bouncing to /shhhhh mid-stamp creates a momentary flash.
+    // IMPORTANT: skip the 404 if the user already has a non-canceled card.
+    // Legacy Pioneers + admin-granted users issued cards before /shhhhh
+    // existed and have no flowEarlyAccess stamp — they must still reach
+    // YourCardScreen. The computeCardState() precedence below mirrors this
+    // rule (active-card before no-flow-access).
+    //
+    // notFound() thrown synchronously inside the effect bubbles to Next's
+    // not-found boundary just like a render-time call.
     useEffect(() => {
-        if (pressDoorMode) return
         if (pioneerLoading || pioneerError) return
         if (!cardInfo) return
         if (cardInfo.flowEarlyAccess) return
         // CR FE#1: wait for overview before checking issued cards — otherwise
-        // legacy card-holders (overview still loading) get incorrectly bounced
-        // to /shhhhh because `overview?.cards.some(...)` returns false on
-        // undefined input.
+        // legacy card-holders (overview still loading) get incorrectly 404'd
+        // because `overview?.cards.some(...)` returns false on undefined input.
         if (overviewLoading || !overview) return
         const hasIssuedCard = overview.cards.some((c) => c.status !== 'CANCELED')
         if (hasIssuedCard) return
         posthog.capture(ANALYTICS_EVENTS.CARD_FLOW_GATED)
-        router.replace('/shhhhh')
-    }, [router, pioneerLoading, pioneerError, cardInfo, overview, overviewLoading, pressDoorMode])
+        notFound()
+    }, [pioneerLoading, pioneerError, cardInfo, overview, overviewLoading])
 
     const state = computeCardState({
         overview,
@@ -360,10 +327,36 @@ const CardPage: FC = () => {
         pollAbortRef.current = controller
 
         try {
+            // Two-stage poll. First wait for the webhook-stamped readiness flag
+            // (cheap, DB-only, safe at 1s cadence). Once Sumsub has reviewed
+            // rain-requirements GREEN, fall through to the existing apply poll.
+            //
+            // Previous behaviour: single-stage `pollUntilApplyAdvances` against
+            // POST /rain/cards — every iteration hit Sumsub for `moveToLevel` +
+            // `getApplicant` + `getQuestionnaireAnswers`. ~75 Sumsub round-trips
+            // per stuck user, AND the WebSDK got re-opened on every `incomplete`
+            // in the race window, showing the user "verification is taking
+            // longer than expected" (Barbara F-M's 2026-06-02 Crisp escalation).
+            const readyResult = await pollUntilReady({
+                fetchReadiness: () => rainApi.getCardApplyReadiness(),
+                intervalMs: 1000,
+                timeoutMs: 30000,
+                signal: controller.signal,
+            })
+            if (controller.signal.aborted) return
+            if (readyResult === false) {
+                setApplyError('Verification is taking longer than expected. Please try again.')
+                return
+            }
+
+            // Sumsub is GREEN — single apply call should now advance past
+            // `incomplete`. Keep `pollUntilApplyAdvances` as a thin safety net
+            // for the rare case where the webhook flag landed but the
+            // applicant state hasn't fully propagated (e.g. read-replica lag).
             const res = await pollUntilApplyAdvances({
                 fetchApply: () => rainApi.applyForCard({ termsAccepted: false }),
                 intervalMs: 1000,
-                timeoutMs: 15000,
+                timeoutMs: 5000,
                 signal: controller.signal,
             })
             if (controller.signal.aborted) return
@@ -408,8 +401,9 @@ const CardPage: FC = () => {
         return ''
     }, [invalidateOverview])
 
-    // Outer-gate fail — we already kicked off the redirect to /shhhhh in
-    // the useEffect above; render nothing here so the page doesn't flash.
+    // Outer-gate fail — the useEffect above fires notFound() to render the
+    // 404 boundary; render nothing here so the page doesn't flash for the
+    // one frame before that lands.
     if (state === 'no-flow-access') {
         return null
     }

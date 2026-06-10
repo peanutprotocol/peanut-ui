@@ -20,6 +20,11 @@ export const ROUTE_SLUGS = [
     'supported-networks',
     'terms',
     'privacy',
+    'card-terms-us',
+    'card-terms-international',
+    'card-privacy',
+    'card-prohibited-activities',
+    'card-esign',
 ] as const
 
 export type RouteSlug = (typeof ROUTE_SLUGS)[number]

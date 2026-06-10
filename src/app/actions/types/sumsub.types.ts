@@ -1,4 +1,4 @@
-export type KycActionType = 'manteca' | 'bridge-direct'
+export type KycActionType = 'manteca' | 'bridge-direct' | 'unsupported-region'
 
 export interface InitiateSumsubKycResponse {
     token: string | null // null when user is already APPROVED or bridge-direct
@@ -16,4 +16,16 @@ export type SumsubKycStatus =
     | 'ACTION_REQUIRED'
     | 'REVERIFYING'
 
-export type KYCRegionIntent = 'STANDARD' | 'LATAM'
+/**
+ * User-facing region-intent bucket. One of four picker buttons:
+ *   - LATAM → backend mints `general` Sumsub level (Sumsub branches to
+ *             `manteca-requirements` for AR/BR applicants)
+ *   - ROW   → same as LATAM (pool-tier rails post-approval, no provider submission)
+ *   - EU    → `bridge-requirements` (Bridge SEPA / Faster Payments)
+ *   - NA    → `bridge-requirements` (Bridge ACH / Wire / SPEI)
+ *
+ * Legacy `STANDARD` is still accepted by the BE during this rollout (it maps to
+ * `general`); hardcoded callers that haven't been migrated to the country-aware
+ * pattern keep sending it. Remove once every call site sends one of the four.
+ */
+export type KYCRegionIntent = 'LATAM' | 'ROW' | 'EU' | 'NA' | 'STANDARD'

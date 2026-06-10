@@ -24,7 +24,7 @@ import { ActionListCard } from '@/components/ActionListCard'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
 import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants/payment.consts'
@@ -59,7 +59,9 @@ export function RequestPotActionList({
     const dispatch = useAppDispatch()
     const { user } = useAuth()
     const { hasSufficientSpendableBalance: hasSufficientBalance, isFetchingBalance } = useWallet()
-    const { isUserMantecaKycApproved } = useKycStatus()
+    // MIGRATION-REVIEW: mercadopago/pix are QR `pay` methods over Manteca. Old gate was
+    // `isUserMantecaKycApproved`; mapped to canDo('pay', { provider: 'manteca' }) (operation-specific).
+    const isMantecaPayEnabled = useCapabilities().canDo('pay', { provider: 'manteca' })
     const { requestType } = useDetermineBankRequestType(recipientUserId ?? '')
 
     const [showMinAmountError, setShowMinAmountError] = useState(false)
@@ -88,7 +90,7 @@ export function RequestPotActionList({
         isMethodUnavailable: (method) =>
             method.soon ||
             (method.id === 'bank' && requiresVerification) ||
-            (['mercadopago', 'pix'].includes(method.id) && !isUserMantecaKycApproved),
+            (['mercadopago', 'pix'].includes(method.id) && !isMantecaPayEnabled),
         methods: ACTION_METHODS,
     })
 
@@ -168,7 +170,7 @@ export function RequestPotActionList({
             <div className="space-y-2">
                 {sortedMethods.map((method) => {
                     let methodRequiresVerification = method.id === 'bank' && requiresVerification
-                    if (!isUserMantecaKycApproved && ['mercadopago', 'pix'].includes(method.id)) {
+                    if (!isMantecaPayEnabled && ['mercadopago', 'pix'].includes(method.id)) {
                         methodRequiresVerification = true
                     }
 

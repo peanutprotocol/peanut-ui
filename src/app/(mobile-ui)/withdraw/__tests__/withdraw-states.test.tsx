@@ -98,8 +98,9 @@ jest.mock('@/utils/general.utils', () => ({
 
 jest.mock('@/utils/bridge.utils', () => ({
     getCountryFromAccount: jest.fn(() => ({ iso2: 'US', path: 'us' })),
-    getCountryFromPath: jest.fn(() => ({ iso2: 'US' })),
+    getCountryFromPath: jest.fn(() => ({ iso2: 'US', id: 'US' })),
     getMinimumAmount: jest.fn(() => 1),
+    railJurisdictionForBank: jest.fn(() => 'US'),
 }))
 
 const mockUseGetExchangeRate = jest.fn()

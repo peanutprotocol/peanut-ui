@@ -1,6 +1,11 @@
 'use client'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
-import { PEANUT_WALLET_CHAIN, USER_OP_ENTRY_POINT, ZERODEV_KERNEL_VERSION } from '@/constants/zerodev.consts'
+import {
+    PEANUT_WALLET_CHAIN,
+    USER_OP_ENTRY_POINT,
+    ZERODEV_KERNEL_VERSION,
+    ZERODEV_RPC_TIMEOUT_MS,
+} from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
 import { createKernelMigrationAccount } from '@zerodev/sdk/accounts'
 import { useAppDispatch } from '@/redux/hooks'
@@ -21,6 +26,7 @@ import type { Address } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { captureException } from '@sentry/nextjs'
 import { retryAsync } from '@/utils/retry.utils'
+import { isStaleClientForUser, isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { isAndroidNative, getNativeRpId } from '@/utils/capacitor'
 import { createNativeSignMessageCallback } from '@/utils/native-webauthn'
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
@@ -197,7 +203,7 @@ export const createKernelClientForChain = async <C extends Chain>(
     const kernelClient = createKernelAccountClient({
         account: kernelAccount,
         chain: chain,
-        bundlerTransport: http(bundlerUrl),
+        bundlerTransport: http(bundlerUrl, { timeout: ZERODEV_RPC_TIMEOUT_MS }),
         pollingInterval: 500,
         userOperation: isMainnetPeanutChain
             ? {
@@ -215,7 +221,7 @@ export const createKernelClientForChain = async <C extends Chain>(
             getPaymasterData: async (userOperation) => {
                 const zerodevPaymaster = createZeroDevPaymasterClient({
                     chain: chain,
-                    transport: http(paymasterUrl),
+                    transport: http(paymasterUrl, { timeout: ZERODEV_RPC_TIMEOUT_MS }),
                 })
 
                 try {
@@ -390,6 +396,29 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 inFlightRef.current.delete(primaryChainId)
             }
 
+            // Guard: the restored WebAuthnKey must belong to the logged-in user.
+            // On a shared device with two Peanut accounts (two passkeys for the
+            // same RP), the restore path can pair this session with the OTHER
+            // account's credential. The derived kernel address then differs from
+            // the user's real smart-wallet address, and any server-bound ERC-1271
+            // check (Rain card withdraw) rejects the signature as "invalid admin
+            // signature". Purge the poisoned key and force a clean re-auth rather
+            // than silently signing with the wrong credential. Skipped when the
+            // user has no smart-wallet account yet (mid-registration) and for
+            // pre-migration users (address is passed in, so it always matches).
+            const expectedAddress = user?.accounts.find((a) => a.type === AccountType.PEANUT_WALLET)?.identifier
+            const derivedAddress = kernelClient.account?.address
+            if (expectedAddress && derivedAddress && derivedAddress.toLowerCase() !== expectedAddress.toLowerCase()) {
+                console.error('[KernelClient] restored WebAuthnKey does not match the logged-in user — purging', {
+                    userId: user?.user.userId,
+                    derivedAddress,
+                    expectedAddress,
+                })
+                if (user?.user.userId) updateUserPreferences(user.user.userId, { webAuthnKey: undefined })
+                logoutUser()
+                return
+            }
+
             // Only update state after primary succeeds — avoids
             // registering→not→registering UI flicker between retries.
             if (isMounted) {
@@ -431,6 +460,35 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [clientsByChain])
 
+    // Refuse to hand out a kernel client whose smart-account address doesn't
+    // match the logged-in user, then force a clean re-auth. On a shared device
+    // with two passkeys for the same RP, the restore path can pair this session
+    // with the OTHER account's credential; signing with it yields a wrong-owner
+    // signature the EntryPoint rejects (AA24) — or Rain's ERC-1271 check rejects
+    // as invalid admin signature. Every sign site reads through here, so one
+    // check covers them all (and the next one written). Skipped when the user
+    // has no smart-wallet account yet (mid-registration); also a no-op for
+    // pre-migration accounts, whose address is injected rather than derived from
+    // the key, so a mismatch can't be detected here for them.
+    const assertClientOwnedByUser = useCallback(
+        (client: GenericSmartAccountClient): GenericSmartAccountClient => {
+            const expectedAddress = user?.accounts.find((a) => a.type === AccountType.PEANUT_WALLET)?.identifier
+            const derivedAddress = client.account?.address
+            if (isStaleClientForUser(derivedAddress, expectedAddress)) {
+                console.error('[KernelClient] active client does not match logged-in user — forcing logout', {
+                    userId: user?.user.userId,
+                    derivedAddress,
+                    expectedAddress,
+                })
+                if (user?.user.userId) updateUserPreferences(user.user.userId, { webAuthnKey: undefined })
+                logoutUser()
+                throw createStaleSessionError()
+            }
+            return client
+        },
+        [user, logoutUser]
+    )
+
     const getClientForChain = useCallback(
         (chainId: string) => {
             const client = clientsByChain[chainId]
@@ -443,18 +501,18 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                     `No client found for chain ${chainId}. This chain may not be configured for wallet operations.`
                 )
             }
-            return client
+            return assertClientOwnedByUser(client)
         },
-        [clientsByChain]
+        [clientsByChain, assertClientOwnedByUser]
     )
 
     const ensureClientForChain = useCallback(
         async (chainId: string): Promise<GenericSmartAccountClient> => {
             const cached = clientsByChain[chainId]
-            if (cached) return cached
+            if (cached) return assertClientOwnedByUser(cached)
 
             const inFlight = inFlightRef.current.get(chainId)
-            if (inFlight) return inFlight
+            if (inFlight) return inFlight.then(assertClientOwnedByUser)
 
             if (!webAuthnKey) {
                 throw new Error(`Cannot build kernel client for chain ${chainId}: not authenticated`)
@@ -480,11 +538,15 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             )
                 .then((kernelClient) => {
                     setClientsByChain((prev) => ({ ...prev, [chainId]: kernelClient }))
-                    return kernelClient
+                    return assertClientOwnedByUser(kernelClient)
                 })
                 .catch((error) => {
                     console.error(`Error lazy-building kernel client for chain ${chainId}:`, error)
-                    captureException(error)
+                    if (isStaleKeyError(error)) {
+                        logoutUser()
+                    } else {
+                        captureException(error)
+                    }
                     throw error
                 })
                 .finally(() => {
@@ -494,7 +556,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             inFlightRef.current.set(chainId, promise)
             return promise
         },
-        [clientsByChain, webAuthnKey, isAfterZeroDevMigration, user]
+        [clientsByChain, webAuthnKey, isAfterZeroDevMigration, user, assertClientOwnedByUser, logoutUser]
     )
 
     return (

@@ -16,7 +16,6 @@ import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS } from '@/constants/to
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/zerodev.consts'
 import { CHAIN_LOGOS, TOKEN_LOGOS, type ChainName, type TokenName } from '@/constants/rhino.consts'
-import { isUserKycVerified } from '@/constants/kyc.consts'
 
 export const shortenAddress = (address?: string, chars?: number) => {
     if (!address) return ''
@@ -941,7 +940,14 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
             amount: charge.tokenAmount,
             username,
             fulfillmentPayment: charge.fulfillmentPayment,
-            isUserVerified: isUserKycVerified(payerAccount?.user),
+            // FOLLOW-UP (tracked, not in this PR pair): the charges/payments BE flow
+            // still returns raw `bridgeKycStatus` on Payment.payerAccount.user. The
+            // user endpoints (/users/:userId, /users/username/:username,
+            // /users/contacts) all migrated to a BE-computed `isVerified` boolean;
+            // bringing the charges flow along requires a focused refactor (project at
+            // intentToCharge + fetchPayerAccounts; change mutation patterns in
+            // charge/service.ts to immutable response building). Scoped separately.
+            isUserVerified: payerAccount?.user?.bridgeKycStatus === 'approved',
             isPeanutUser,
         }
     })

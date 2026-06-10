@@ -8,6 +8,7 @@ import { useAppDispatch, useSetupStore, useZerodevStore } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import { getFromCookie, removeFromCookie, saveToCookie } from '@/utils/general.utils'
 import { clearAuthState } from '@/utils/auth.utils'
+import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
@@ -37,23 +38,9 @@ class PasskeyError extends Error {
 
 const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
 
-/**
- * Detects if an error is due to stale/invalid webAuthnKey
- * AA24 = EntryPoint signature verification failed
- * wapk = WebAuthn Public Key unauthorized (ZeroDev-specific)
- *
- * Note: Intentionally strict to avoid false positives on generic auth errors
- */
-const isStaleKeyError = (error: unknown): boolean => {
-    const errorStr = String(error).toLowerCase()
-    // AA24 = ERC-4337 EntryPoint signature verification failed
-    // wapk + unauthorized = ZeroDev's specific WebAuthn key error (not generic 401)
-    return errorStr.includes('aa24') || (errorStr.includes('wapk') && errorStr.includes('unauthorized'))
-}
-
 export const useZeroDev = () => {
     const dispatch = useAppDispatch()
-    const { user } = useAuth()
+    const { user, logoutUser } = useAuth()
     const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZerodevStore()
     const { setWebAuthnKey, getClientForChain, ensureClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
@@ -119,6 +106,19 @@ export const useZeroDev = () => {
                         error_message: String(e),
                     })
                     console.error('Error accepting invite', e)
+                }
+            } else if (campaignTag) {
+                // No invite code but a campaign tag — only InvitesPage's skip-path
+                // CTA reaches here today (it sets the cookie without an inviteCode).
+                // The BE whitelists which campaigns are claimable, so passing other
+                // values through is safe — anything not on the whitelist 400s.
+                try {
+                    await invitesApi.awardBadge(campaignTag)
+                    posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, { campaign_tag: campaignTag })
+                } catch (e) {
+                    console.error('Error awarding campaign badge', e)
+                } finally {
+                    removeFromCookie('campaignTag')
                 }
             }
 
@@ -197,8 +197,11 @@ export const useZeroDev = () => {
             } catch (error) {
                 console.error('Error sending UserOp:', error)
 
-                // Detect stale webAuthnKey errors (AA24, wapk) and provide user feedback
-                // NOTE: Don't auto-clear here - user is mid-transaction, avoid data loss
+                // Detect stale webAuthnKey errors (AA24, wapk) and force a clean
+                // re-auth. A stale session can't recover by retrying — the only
+                // exit is logging out and back in, so surface the message AND
+                // force the logout (showing the toast alone left users stuck in a
+                // signed-in-but-broken state).
                 if (isStaleKeyError(error)) {
                     console.error('Detected stale webAuthnKey error - session is invalid')
                     captureException(error, {
@@ -209,14 +212,9 @@ export const useZeroDev = () => {
                             userId: user?.user.userId,
                         },
                     })
-                    // Enhance error message for user feedback
-                    const enhancedError = new Error(
-                        'Your session has expired. Please refresh the page and log in again.'
-                    )
-                    ;(enhancedError as any).cause = error
-                    ;(enhancedError as any).isStaleKeyError = true
                     dispatch(zerodevActions.setIsSendingUserOp(false))
-                    throw enhancedError
+                    logoutUser()
+                    throw createStaleSessionError(error)
                 }
 
                 dispatch(zerodevActions.setIsSendingUserOp(false))
@@ -246,7 +244,7 @@ export const useZeroDev = () => {
                 receipt: userOpReceipt.receipt,
             }
         },
-        [getClientForChain, ensureClientForChain]
+        [getClientForChain, ensureClientForChain, logoutUser]
     )
 
     return {

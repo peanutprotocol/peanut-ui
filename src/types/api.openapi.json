@@ -291,8 +291,8 @@
 				}
 			}
 		},
-		"/get-user": {
-			"post": {
+		"/users/me": {
+			"get": {
 				"parameters": [
 					{
 						"schema": {
@@ -313,7 +313,299 @@
 				],
 				"responses": {
 					"200": {
-						"description": "Default Response"
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": true,
+									"type": "object",
+									"properties": {
+										"capabilities": {
+											"type": "object",
+											"properties": {
+												"rails": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"id": {
+																"description": "`${provider}.${method}` e.g. \"bridge.ach_us\"",
+																"type": "string"
+															},
+															"provider": {
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"enum": ["bridge"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["manteca"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["rain"]
+																	}
+																]
+															},
+															"method": {
+																"type": "string"
+															},
+															"channel": {
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"enum": ["bank"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["card"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["qr-only"]
+																	}
+																]
+															},
+															"country": {
+																"type": "string"
+															},
+															"currency": {
+																"type": "string"
+															},
+															"status": {
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"enum": ["enabled"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["pending"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["requires-info"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["blocked"]
+																	}
+																]
+															},
+															"operations": {
+																"type": "object",
+																"properties": {
+																	"pay": {
+																		"anyOf": [
+																			{
+																				"type": "string",
+																				"enum": ["enabled"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["pending"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["requires-info"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["blocked"]
+																			}
+																		]
+																	},
+																	"deposit": {
+																		"anyOf": [
+																			{
+																				"type": "string",
+																				"enum": ["enabled"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["pending"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["requires-info"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["blocked"]
+																			}
+																		]
+																	},
+																	"withdraw": {
+																		"anyOf": [
+																			{
+																				"type": "string",
+																				"enum": ["enabled"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["pending"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["requires-info"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["blocked"]
+																			}
+																		]
+																	}
+																}
+															},
+															"blockingActions": {
+																"type": "array",
+																"items": {
+																	"type": "string"
+																}
+															},
+															"reason": {
+																"type": "object",
+																"properties": {
+																	"code": {
+																		"type": "string"
+																	},
+																	"userMessage": {
+																		"type": "string"
+																	},
+																	"details": {
+																		"type": "string"
+																	}
+																},
+																"required": ["code", "userMessage"]
+															}
+														},
+														"required": [
+															"id",
+															"provider",
+															"method",
+															"channel",
+															"country",
+															"currency",
+															"status"
+														]
+													}
+												},
+												"nextActions": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"key": {
+																"type": "string"
+															},
+															"kind": {
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"enum": ["sumsub"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["accept-tos"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["wait"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["contact-support"]
+																	}
+																]
+															},
+															"purpose": {
+																"type": "string"
+															},
+															"levelKey": {
+																"type": "string"
+															},
+															"tosUrl": {
+																"type": "string"
+															}
+														},
+														"required": ["key", "kind", "purpose"]
+													}
+												},
+												"restrictions": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"code": {
+																"type": "string"
+															},
+															"affectedRailIds": {
+																"type": "array",
+																"items": {
+																	"type": "string"
+																}
+															},
+															"userMessage": {
+																"type": "string"
+															}
+														},
+														"required": ["code", "affectedRailIds", "userMessage"]
+													}
+												}
+											},
+											"required": ["rails", "nextActions", "restrictions"]
+										},
+										"identityVerification": {
+											"type": "object",
+											"properties": {
+												"status": {
+													"anyOf": [
+														{
+															"type": "string",
+															"enum": ["not_started"]
+														},
+														{
+															"type": "string",
+															"enum": ["processing"]
+														},
+														{
+															"type": "string",
+															"enum": ["verified"]
+														},
+														{
+															"type": "string",
+															"enum": ["action_required"]
+														},
+														{
+															"type": "string",
+															"enum": ["failed"]
+														}
+													]
+												},
+												"actionMessage": {
+													"type": "string"
+												},
+												"rejectLabels": {
+													"type": "array",
+													"items": {
+														"type": "string"
+													}
+												},
+												"submittedAt": {
+													"type": "string"
+												},
+												"reviewedAt": {
+													"type": "string"
+												}
+											},
+											"required": ["status"]
+										}
+									},
+									"required": ["capabilities", "identityVerification"]
+								}
+							}
+						}
 					}
 				}
 			}
@@ -835,7 +1127,72 @@
 				],
 				"responses": {
 					"200": {
-						"description": "Default Response"
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"userId": {
+											"type": "string"
+										},
+										"fullName": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"email": {
+											"type": "string"
+										},
+										"bridgeCustomerId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"username": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"showFullName": {
+											"type": "boolean"
+										},
+										"canReceiveBankOfframp": {
+											"type": "boolean"
+										},
+										"isVerified": {
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"userId",
+										"fullName",
+										"email",
+										"bridgeCustomerId",
+										"username",
+										"showFullName",
+										"canReceiveBankOfframp",
+										"isVerified"
+									]
+								}
+							}
+						}
 					}
 				}
 			}
@@ -908,6 +1265,343 @@
 				"responses": {
 					"200": {
 						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/users/capabilities": {
+			"get": {
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "header",
+						"name": "Authorization",
+						"required": true
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "header",
+						"name": "api-key",
+						"required": false
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"capabilities": {
+											"type": "object",
+											"properties": {
+												"rails": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"id": {
+																"description": "`${provider}.${method}` e.g. \"bridge.ach_us\"",
+																"type": "string"
+															},
+															"provider": {
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"enum": ["bridge"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["manteca"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["rain"]
+																	}
+																]
+															},
+															"method": {
+																"type": "string"
+															},
+															"channel": {
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"enum": ["bank"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["card"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["qr-only"]
+																	}
+																]
+															},
+															"country": {
+																"type": "string"
+															},
+															"currency": {
+																"type": "string"
+															},
+															"status": {
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"enum": ["enabled"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["pending"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["requires-info"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["blocked"]
+																	}
+																]
+															},
+															"operations": {
+																"type": "object",
+																"properties": {
+																	"pay": {
+																		"anyOf": [
+																			{
+																				"type": "string",
+																				"enum": ["enabled"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["pending"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["requires-info"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["blocked"]
+																			}
+																		]
+																	},
+																	"deposit": {
+																		"anyOf": [
+																			{
+																				"type": "string",
+																				"enum": ["enabled"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["pending"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["requires-info"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["blocked"]
+																			}
+																		]
+																	},
+																	"withdraw": {
+																		"anyOf": [
+																			{
+																				"type": "string",
+																				"enum": ["enabled"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["pending"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["requires-info"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["blocked"]
+																			}
+																		]
+																	}
+																}
+															},
+															"blockingActions": {
+																"type": "array",
+																"items": {
+																	"type": "string"
+																}
+															},
+															"reason": {
+																"type": "object",
+																"properties": {
+																	"code": {
+																		"type": "string"
+																	},
+																	"userMessage": {
+																		"type": "string"
+																	},
+																	"details": {
+																		"type": "string"
+																	}
+																},
+																"required": ["code", "userMessage"]
+															}
+														},
+														"required": [
+															"id",
+															"provider",
+															"method",
+															"channel",
+															"country",
+															"currency",
+															"status"
+														]
+													}
+												},
+												"nextActions": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"key": {
+																"type": "string"
+															},
+															"kind": {
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"enum": ["sumsub"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["accept-tos"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["wait"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["contact-support"]
+																	}
+																]
+															},
+															"purpose": {
+																"type": "string"
+															},
+															"levelKey": {
+																"type": "string"
+															},
+															"tosUrl": {
+																"type": "string"
+															}
+														},
+														"required": ["key", "kind", "purpose"]
+													}
+												},
+												"restrictions": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"code": {
+																"type": "string"
+															},
+															"affectedRailIds": {
+																"type": "array",
+																"items": {
+																	"type": "string"
+																}
+															},
+															"userMessage": {
+																"type": "string"
+															}
+														},
+														"required": ["code", "affectedRailIds", "userMessage"]
+													}
+												}
+											},
+											"required": ["rails", "nextActions", "restrictions"]
+										}
+									},
+									"required": ["capabilities"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/users/kyc/start-action": {
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"key": {
+										"minLength": 1,
+										"description": "A capability nextAction key",
+										"type": "string"
+									}
+								},
+								"required": ["key"]
+							}
+						}
+					},
+					"required": true
+				},
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "header",
+						"name": "Authorization",
+						"required": true
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "header",
+						"name": "api-key",
+						"required": false
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"sumsubAccessToken": {
+											"type": "string"
+										},
+										"levelName": {
+											"type": "string"
+										},
+										"externalActionId": {
+											"type": "string"
+										}
+									},
+									"required": ["sumsubAccessToken", "levelName"]
+								}
+							}
+						}
 					}
 				}
 			}
@@ -4372,6 +5066,11 @@
 									"properties": {
 										"error": {
 											"type": "string"
+										},
+										"retryAfterSec": {
+											"minimum": 1,
+											"maximum": 600,
+											"type": "integer"
 										}
 									},
 									"required": ["error"]
@@ -5602,7 +6301,7 @@
 						},
 						"in": "header",
 						"name": "md-webhook-signature",
-						"required": true,
+						"required": false,
 						"description": "HMAC signature for webhook verification"
 					}
 				],
@@ -6142,6 +6841,14 @@
 										"minLength": 1,
 										"maxLength": 64,
 										"type": "string"
+									},
+									"override": {
+										"type": "boolean"
+									},
+									"amountUsd": {
+										"minimum": 0.01,
+										"maximum": 50,
+										"type": "number"
 									}
 								},
 								"required": ["username"]
@@ -7314,25 +8021,6 @@
 							}
 						}
 					},
-					"403": {
-						"description": "Default Response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "object",
-									"properties": {
-										"error": {
-											"type": "string"
-										},
-										"message": {
-											"type": "string"
-										}
-									},
-									"required": ["error", "message"]
-								}
-							}
-						}
-					},
 					"500": {
 						"description": "Default Response",
 						"content": {
@@ -7357,7 +8045,7 @@
 		},
 		"/card/waitlist/state": {
 			"get": {
-				"summary": "Get the user\u2019s current waitlist state",
+				"summary": "Get the user’s current waitlist state",
 				"tags": ["card"],
 				"responses": {
 					"200": {
@@ -7677,6 +8365,9 @@
 														},
 														"spendingPower": {
 															"type": "number"
+														},
+														"inTransitToCollateralCents": {
+															"type": "number"
 														}
 													},
 													"required": [
@@ -7684,7 +8375,8 @@
 														"pendingCharges",
 														"postedCharges",
 														"balanceDue",
-														"spendingPower"
+														"spendingPower",
+														"inTransitToCollateralCents"
 													]
 												}
 											]
@@ -7771,6 +8463,34 @@
 										}
 									},
 									"required": ["hasApplication"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/rain/cards/readiness": {
+			"get": {
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ready": {
+											"type": "boolean"
+										},
+										"hasApplication": {
+											"type": "boolean"
+										},
+										"readyAt": {
+											"type": "string"
+										}
+									},
+									"required": ["ready", "hasApplication"]
 								}
 							}
 						}
@@ -8425,6 +9145,260 @@
 						}
 					},
 					"500": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/rain/cards/recover-funds/preview": {
+			"get": {
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"collateralProxy": {
+											"type": "string"
+										},
+										"recipient": {
+											"type": "string"
+										},
+										"amountWei": {
+											"type": "string"
+										},
+										"amountCents": {
+											"type": "string"
+										},
+										"dustWei": {
+											"type": "string"
+										},
+										"autoBalanceEnabled": {
+											"type": "boolean"
+										},
+										"hasRecoverableCard": {
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"collateralProxy",
+										"recipient",
+										"amountWei",
+										"amountCents",
+										"dustWei",
+										"autoBalanceEnabled",
+										"hasRecoverableCard"
+									]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"502": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/rain/cards/recover-funds/prepare": {
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {}
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"preparationId": {
+											"type": "string"
+										},
+										"coordinatorAddress": {
+											"type": "string"
+										},
+										"collateralProxy": {
+											"type": "string"
+										},
+										"adminAddress": {
+											"type": "string"
+										},
+										"chainId": {
+											"type": "string"
+										},
+										"tokenAddress": {
+											"type": "string"
+										},
+										"amount": {
+											"type": "string"
+										},
+										"recipientAddress": {
+											"type": "string"
+										},
+										"directTransfer": {
+											"type": "boolean"
+										},
+										"adminSalt": {
+											"type": "string"
+										},
+										"adminNonce": {
+											"type": "string"
+										},
+										"executorSignature": {
+											"type": "string"
+										},
+										"executorSalt": {
+											"type": "string"
+										},
+										"expiresAt": {
+											"type": "number"
+										},
+										"amountCents": {
+											"type": "string"
+										},
+										"dustWei": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"preparationId",
+										"coordinatorAddress",
+										"collateralProxy",
+										"adminAddress",
+										"chainId",
+										"tokenAddress",
+										"amount",
+										"recipientAddress",
+										"directTransfer",
+										"adminSalt",
+										"adminNonce",
+										"executorSignature",
+										"executorSalt",
+										"expiresAt",
+										"amountCents",
+										"dustWei"
+									]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"502": {
 						"description": "Default Response",
 						"content": {
 							"application/json": {
@@ -9405,7 +10379,7 @@
 			"post": {
 				"summary": "Run one polling cycle synchronously",
 				"tags": ["dev"],
-				"description": "Triggers runPollingCycle() on demand \u2014 used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
+				"description": "Triggers runPollingCycle() on demand — used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
 				"responses": {
 					"200": {
 						"description": "Default Response",
@@ -9625,7 +10599,7 @@
 			"post": {
 				"summary": "Run KYC provider submission synchronously for the given user/applicant",
 				"tags": ["dev"],
-				"description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user \u2192 Manteca, US user \u2192 Bridge) end-to-end.",
+				"description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user → Manteca, US user → Bridge) end-to-end.",
 				"requestBody": {
 					"content": {
 						"application/json": {
@@ -9693,7 +10667,7 @@
 			"post": {
 				"summary": "Synthesise a Sumsub webhook and run the status-processor",
 				"tags": ["dev"],
-				"description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) \u2014 same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub \u2192 routing chain without real webhook delivery.",
+				"description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) — same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub → routing chain without real webhook delivery.",
 				"requestBody": {
 					"content": {
 						"application/json": {
@@ -10798,7 +11772,31 @@
 											},
 											{
 												"type": "string",
-												"enum": ["SUPPORT_SURVIVOR"]
+												"enum": ["BUG_WHISPERER"]
+											},
+											{
+												"type": "string",
+												"enum": ["SHHHHH"]
+											},
+											{
+												"type": "string",
+												"enum": ["CARD_FIRST_SWIPE"]
+											},
+											{
+												"type": "string",
+												"enum": ["CARD_SPENT_1K"]
+											},
+											{
+												"type": "string",
+												"enum": ["TOKEN_NATION_SP_2026"]
+											},
+											{
+												"type": "string",
+												"enum": ["ETHFLORIPA_HUB"]
+											},
+											{
+												"type": "string",
+												"enum": ["WAITLIST_SKIP"]
 											}
 										]
 									},

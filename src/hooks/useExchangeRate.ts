@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useDebounce } from './useDebounce'
 import { useQuery } from '@tanstack/react-query'
 import { isCapacitor } from '@/utils/capacitor'
-import { getCurrencyPrice } from '@/app/actions/currency'
+import { getCachedCurrencyPrice } from '@/app/actions/currency'
 
 type InputValue = number | ''
 
@@ -93,8 +93,18 @@ export function useExchangeRate({
                 const to = destinationCurrency.toUpperCase()
                 if (from === to) return { rate: 1 }
                 try {
-                    const price = await getCurrencyPrice(from === 'USD' ? to : from)
-                    const rate = from === 'USD' ? price.sell : 1 / price.buy
+                    let rate: number
+                    if (from === 'USD' || to === 'USD') {
+                        const price = await getCachedCurrencyPrice(from === 'USD' ? to : from)
+                        rate = from === 'USD' ? price.sell : 1 / price.buy
+                    } else {
+                        // Neither side is USD — cross via USD: (USD per `from`) × (`to` per USD).
+                        const [fromPrice, toPrice] = await Promise.all([
+                            getCachedCurrencyPrice(from),
+                            getCachedCurrencyPrice(to),
+                        ])
+                        rate = (1 / fromPrice.buy) * toPrice.sell
+                    }
                     if (isFinite(rate) && rate > 0) return { rate }
                 } catch {}
                 // fallback to frankfurter (public api)

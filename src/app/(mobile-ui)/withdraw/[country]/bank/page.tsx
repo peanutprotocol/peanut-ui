@@ -19,29 +19,26 @@ import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { AccountType, type Account } from '@/interfaces'
 import { formatIban, shortenStringLong, isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
 import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
-import { getOfframpCurrencyConfig, getCountryFromPath } from '@/utils/bridge.utils'
+import { getOfframpCurrencyConfig, getCountryFromPath, railJurisdictionForBank } from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
-import { useBridgeTosGuard } from '@/hooks/useBridgeTosGuard'
+import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
-import {
-    useBridgeTransferReadiness,
-    getKycModalVariant,
-    getGateProviderMessage,
-} from '@/hooks/useBridgeTransferReadiness'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
 import ExchangeRate from '@/components/ExchangeRate'
 import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { isBridgeSupportedCountry, getRegionIntent } from '@/utils/regions.utils'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { parseUnits } from 'viem'
@@ -51,6 +48,15 @@ import { withdrawCountryUrl } from '@/utils/native-routes'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
 type View = 'INITIAL' | 'SUCCESS'
+
+// Copy shown when the on-chain deposit to the Bridge address succeeded but the
+// subsequent `/bridge/transfers/:id/confirm` call failed (most often a
+// fetchWithSentry timeout). The Bridge transfer row exists on the BE; the
+// poller / Bridge webhook will eventually complete it. We MUST NOT show a
+// Retry button in this state — retrying re-runs sendMoney() and would send
+// funds to the deposit address a second time (Sentry PEANUT-UI-QH9, 2026-06-01).
+const CONFIRM_PENDING_COPY =
+    'Your transfer is processing. Funds were sent on-chain successfully — this can take a few minutes to confirm. If you don’t see the withdrawal in your activity within 30 minutes, please contact support.'
 
 export default function WithdrawBankPage() {
     const {
@@ -63,19 +69,28 @@ export default function WithdrawBankPage() {
     } = useWithdrawFlow()
     const { user, fetchUser } = useAuth()
     const { address, sendMoney, spendableBalance: balance } = useWallet()
-    const { guardWithTos, showBridgeTos, hideTos } = useBridgeTosGuard()
+    const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const queryClient = useQueryClient()
     const router = useRouter()
     const searchParams = useSearchParams()
     const [isLoading, setIsLoading] = useState(false)
     const [view, setView] = useState<View>('INITIAL')
+    // Set as soon as the on-chain wallet→Bridge tx confirms. If a subsequent
+    // confirmOfframp() call fails, this gates the UI into a "processing" state
+    // instead of showing a Retry button that would re-fire sendMoney().
+    const [submittedTxHash, setSubmittedTxHash] = useState<string | null>(null)
     const params = useParams()
     // read country from path params (web) or query params (native/capacitor)
     const country = (params.country as string) || searchParams.get('country') || ''
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const { hasPendingTransactions } = usePendingTransactions()
-    const { isBridgeSupportedCountry } = useIdentityVerification()
-    const { gate } = useBridgeTransferReadiness()
+    // Country-scoped bank-channel withdraw gate. Same rationale as the
+    // add-money/[country]/bank page: scope to the rail jurisdiction this page
+    // actually withdraws to (PT/DE/… → EU SEPA; US → ACH; etc.) so a stuck
+    // PENDING rail in an unrelated jurisdiction can't block this page.
+    const { gateFor } = useCapabilities()
+    const bankCountry = useMemo(() => railJurisdictionForBank(getCountryFromPath(country)?.id), [country])
+    const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     const sumsubFlow = useMultiPhaseKycFlow({})
     const [showKycModal, setShowKycModal] = useState(false)
     const { setIsSupportModalOpen } = useModalsContext()
@@ -179,8 +194,11 @@ export default function WithdrawBankPage() {
     }
 
     const handleCreateAndInitiateOfframp = async () => {
-        if (gate.type !== 'ready') {
-            if (gate.type === 'accept_tos') {
+        if (gate.kind !== 'ready') {
+            // Loading and waiting-on-provider both mean "user has no action to
+            // take" — silently no-op instead of bouncing them through Sumsub.
+            if (gate.kind === 'loading' || gate.kind === 'waiting-on-provider') return
+            if (gate.kind === 'accept-tos') {
                 guardWithTos()
             } else {
                 setShowKycModal(true)
@@ -262,15 +280,22 @@ export default function WithdrawBankPage() {
             // chain tx hash, and the BE rejects it.
             const txIdentifier = receipt?.transactionHash ?? txHash ?? userOpHash
             if (!txIdentifier) throw new Error('No transaction identifier returned from sendMoney')
+
+            // Mark the on-chain leg done BEFORE confirmOfframp. From this point on
+            // any error path (including a confirm timeout) must NOT offer Retry —
+            // re-running this handler would call sendMoney() again and double-pay.
+            setSubmittedTxHash(txIdentifier)
+
             const confirmResult = await confirmOfframp(data.transferId, txIdentifier)
 
             if (confirmResult.error) {
-                // This is a tricky state. The on-chain tx succeeded, but the backend failed to record it.
-                // For now, we'll show a detailed error. A more robust solution could involve a retry mechanism
-                // or flagging this for support.
+                // On-chain tx succeeded, backend confirm failed. Bridge will still
+                // process the deposit (the funds are at the deposit address and the
+                // BE has the transfer row). Show a processing state, NOT an error
+                // with a Retry button — see CONFIRM_PENDING_COPY + the gate below.
                 setError({
                     showError: true,
-                    errorMessage: `Your funds were sent, but there was an issue confirming the transfer. Please contact support.`,
+                    errorMessage: CONFIRM_PENDING_COPY,
                 })
                 throw new Error(confirmResult.error)
             }
@@ -420,7 +445,23 @@ export default function WithdrawBankPage() {
                         <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
                     </Card>
 
-                    {error.showError ? (
+                    {submittedTxHash ? (
+                        // On-chain leg already fired. Even if confirmOfframp failed
+                        // we must NOT offer Retry — it would re-run sendMoney() and
+                        // double-pay (Sentry PEANUT-UI-QH9). Surface the in-progress
+                        // state and a Done button that takes the user home.
+                        <Button
+                            shadowSize="4"
+                            className="w-full"
+                            onClick={() => {
+                                router.push('/home')
+                                setAmountToWithdraw('')
+                                setSelectedMethod(null)
+                            }}
+                        >
+                            Done
+                        </Button>
+                    ) : error.showError ? (
                         <Button
                             disabled={isLoading}
                             onClick={handleCreateAndInitiateOfframp}
@@ -445,7 +486,16 @@ export default function WithdrawBankPage() {
                             Withdraw
                         </Button>
                     )}
-                    {error.showError && <ErrorAlert description={error.errorMessage} />}
+                    {submittedTxHash ? (
+                        <InfoCard
+                            variant="info"
+                            icon="info"
+                            title="Transfer processing"
+                            description={CONFIRM_PENDING_COPY}
+                        />
+                    ) : (
+                        error.showError && <ErrorAlert description={error.errorMessage} />
+                    )}
                     {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
                 </div>
             )}
@@ -470,19 +520,23 @@ export default function WithdrawBankPage() {
                     handleCreateAndInitiateOfframp()
                 }}
                 onSkip={hideTos}
+                reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
             />
 
             <InitiateKycModal
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {
-                    if (gate.type === 'fixable_rejection') {
+                    if (gate.kind === 'restart-identity') {
+                        await sumsubFlow.handleRestartIdentity()
+                    } else if (gate.kind === 'fixable-rejection') {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
                         await sumsubFlow.handleInitiateKyc(
-                            'STANDARD',
+                            getRegionIntent(getCountryFromPath(country)?.region ?? 'rest-of-the-world'),
                             undefined,
-                            gate.type === 'needs_enrollment' || undefined
+                            gate.kind === 'needs-enrollment' || undefined,
+                            getCountryFromPath(country)?.id
                         )
                     }
                 }}
@@ -492,8 +546,8 @@ export default function WithdrawBankPage() {
                 }}
                 isLoading={sumsubFlow.isLoading}
                 error={sumsubFlow.error}
-                variant={getKycModalVariant(gate.type)}
-                providerMessage={getGateProviderMessage(gate)}
+                variant={getKycModalVariant(gate.kind)}
+                providerMessage={getGateUserMessage(gate)}
                 regionName={getCountryFromPath(country)?.title}
             />
             <SumsubKycModals flow={sumsubFlow} />

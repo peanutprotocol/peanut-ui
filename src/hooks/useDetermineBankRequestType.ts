@@ -2,8 +2,7 @@ import { getUserById } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { useEffect, useState } from 'react'
-import useKycStatus from './useKycStatus'
-import { isUserKycVerified } from '@/constants/kyc.consts'
+import { useCapabilities } from './useCapabilities'
 
 export enum BankRequestType {
     GuestBankRequest = 'guest-bank-request',
@@ -24,11 +23,13 @@ export function useDetermineBankRequestType(requesterUserId: string): {
     const { user } = useAuth()
     const [requestType, setRequestType] = useState<BankRequestType>(BankRequestType.PayerKycNeeded)
     const { setRequesterDetails } = useRequestFulfillmentFlow()
-    const { isUserKycApproved } = useKycStatus()
+    // MIGRATION-REVIEW: was useKycStatus().isUserKycApproved. The payer is the CURRENT
+    // user → capability isKycApproved (any enabled rail), same proxy used elsewhere.
+    const { isKycApproved } = useCapabilities()
 
     useEffect(() => {
         const determineBankRequestType = async () => {
-            const payerKycApproved = isUserKycApproved
+            const payerKycApproved = isKycApproved
 
             if (payerKycApproved) {
                 setRequestType(BankRequestType.UserBankRequest)
@@ -46,7 +47,10 @@ export function useDetermineBankRequestType(requesterUserId: string): {
 
             try {
                 const requesterDetails = await getUserById(requesterUserId)
-                const requesterKycApproved = isUserKycVerified(requesterDetails)
+                // BE-computed counterparty capability — gates the GuestBankRequest flow,
+                // mirroring useDetermineBankClaimType. True iff the requester has an
+                // enabled Bridge bank rail.
+                const requesterKycApproved = requesterDetails?.canReceiveBankOfframp ?? false
 
                 if (requesterKycApproved) {
                     setRequesterDetails(requesterDetails)
@@ -68,7 +72,7 @@ export function useDetermineBankRequestType(requesterUserId: string): {
         }
 
         determineBankRequestType()
-    }, [user, requesterUserId, setRequesterDetails])
+    }, [user, requesterUserId, setRequesterDetails, isKycApproved])
 
     return { requestType, setRequestType }
 }

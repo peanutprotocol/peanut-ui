@@ -131,8 +131,10 @@ jest.mock('@/utils/general.utils', () => ({
     getChainLogo: jest.fn(() => '/chain.png'),
 }))
 
-jest.mock('@/constants/kyc.consts', () => ({
-    isUserKycVerified: jest.fn(() => false),
+// Mock the counterparty fetch the sender-verified enrichment uses; default to
+// not-verified so existing assertions stay stable.
+jest.mock('@/app/actions/users', () => ({
+    getUserById: jest.fn(() => Promise.resolve({ isVerified: false })),
 }))
 
 jest.mock('@/app/actions/tokens', () => ({
@@ -224,8 +226,9 @@ jest.mock('@/components/Global/PeanutLoading', () => ({
     default: (props: any) => <div data-testid="peanut-loading">Loading...</div>,
 }))
 
-jest.mock('@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_05.gif', () => ({
-    src: '/peanut-cry.gif',
+jest.mock('@/assets/mascot', () => ({
+    ...jest.requireActual('@/assets/mascot'),
+    PeanutCrying: { src: '/peanut-cry.gif' },
 }))
 
 // ---------- import component under test AFTER all mocks ----------

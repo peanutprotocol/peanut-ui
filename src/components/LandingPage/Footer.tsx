@@ -7,7 +7,7 @@ import handPeace from '@/assets/illustrations/hand-peace.svg'
 import handMiddleFinger from '@/assets/illustrations/hand-middle-finger.svg'
 import { SEOFooter } from './SEOFooter'
 
-const Footer = ({ showSiteDirectory = true }: { showSiteDirectory?: boolean }) => {
+const Footer = ({ showSiteDirectory = true, locale = 'en' }: { showSiteDirectory?: boolean; locale?: string }) => {
     return (
         <>
             <footer className="relative flex h-52 items-end justify-between bg-black px-8 pb-10 md:items-center md:px-20 md:pb-0">
@@ -63,18 +63,18 @@ const Footer = ({ showSiteDirectory = true }: { showSiteDirectory?: boolean }) =
                         <a className="text-xl font-bold text-white" href="/support">
                             Support
                         </a>
-                        <a className="text-xl font-bold text-white" href="/en/content">
+                        <Link className="text-xl font-bold text-white" href={`/${locale}/content`}>
                             Content
-                        </a>
-                        <a className="text-xl font-bold text-white" href="/en/help">
+                        </Link>
+                        <Link className="text-xl font-bold text-white" href={`/${locale}/help`}>
                             Docs
-                        </a>
-                        <a className="text-xl font-bold text-white" href="/en/terms">
+                        </Link>
+                        <Link className="text-xl font-bold text-white" href={`/${locale}/terms`}>
                             Terms
-                        </a>
-                        <a className="text-xl font-bold text-white" href="/en/privacy">
+                        </Link>
+                        <Link className="text-xl font-bold text-white" href={`/${locale}/privacy`}>
                             Privacy
-                        </a>
+                        </Link>
                         <a
                             className="text-xl font-bold text-white"
                             href="https://peanutprotocol.notion.site/Career-b351de56d92e405e962f0027b3a60f52"
@@ -107,7 +107,7 @@ const Footer = ({ showSiteDirectory = true }: { showSiteDirectory?: boolean }) =
                     <Image src={handWaving.src} alt="Hand waving" width={25} height={25} />
                 </section>
             </footer>
-            {showSiteDirectory && <SEOFooter />}
+            {showSiteDirectory && <SEOFooter locale={locale} />}
         </>
     )
 }

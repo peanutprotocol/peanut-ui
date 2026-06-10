@@ -9,14 +9,18 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import ProfileEditField from '../components/ProfileEditField'
 import ProfileHeader from '../components/ProfileHeader'
-import useKycStatus from '@/hooks/useKycStatus'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
 export const ProfileEditView = () => {
     const router = useRouter()
     const onBack = useSafeBack('/profile')
     const { user, fetchUser } = useAuth()
-    const { isUserKycApproved } = useKycStatus()
+    // Verified badge + name/surname lock reflect *identity* verification (the human is ID-verified),
+    // not rail approval. Switched from `useCapabilities().isKycApproved` (any enabled rail, including
+    // Rain) to the provider-blind identityVerification projection — a rail-only approval must NOT
+    // lock the legal-name fields because the rail's KYC was external to our identity flow.
+    const { isVerified: isKycApproved } = useIdentityVerification()
 
     const [isLoading, setIsLoading] = useState(false)
     const [errorMessage, setErrorMessage] = useState('')
@@ -117,7 +121,7 @@ export const ProfileEditView = () => {
         <div className="space-y-8">
             <NavHeader title="Edit Profile" onPrev={onBack} />
 
-            <ProfileHeader name={fullName} username={username} isVerified={isUserKycApproved} />
+            <ProfileHeader name={fullName} username={username} isVerified={isKycApproved} />
 
             <div className="space-y-4">
                 <ProfileEditField
@@ -125,7 +129,7 @@ export const ProfileEditView = () => {
                     value={formData.name}
                     onChange={(value) => handleChange('name', value)}
                     placeholder="Add your name"
-                    disabled={isUserKycApproved}
+                    disabled={isKycApproved}
                 />
 
                 <ProfileEditField
@@ -133,7 +137,7 @@ export const ProfileEditView = () => {
                     value={formData.surname}
                     onChange={(value) => handleChange('surname', value)}
                     placeholder="Add your surname"
-                    disabled={isUserKycApproved}
+                    disabled={isKycApproved}
                 />
 
                 <ProfileEditField

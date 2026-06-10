@@ -81,10 +81,9 @@ export function PeanutDebug() {
             if (userId) return userId
             const cached = currentUserId()
             if (cached) return cached
-            const res = await fetch(`${PEANUT_API_URL}/get-user`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-                body: '{}',
+            const res = await fetch(`${PEANUT_API_URL}/users/me`, {
+                method: 'GET',
+                headers: getAuthHeaders(),
             })
                 .then((r) => (r.ok ? r.json() : null))
                 .catch(() => null)

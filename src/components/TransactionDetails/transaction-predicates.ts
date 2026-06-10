@@ -23,11 +23,17 @@ export function isQRPayment(transaction: TransactionDetails): boolean {
     return isKind(transaction, 'QR_PAY')
 }
 
+/** Kinds that move money across a fiat rail: bank on/off-ramps + QR pays.
+ *  The single anchor for the receipt-page whitelist (`getReceiptUrl`), the
+ *  share gate (`hasShareableReceipt`), and the FX predicate
+ *  (`isFxBearingFlow`) — previously three hand-kept copies of this set. */
+export const FIAT_RAIL_KINDS: ReadonlySet<string> = new Set(['QR_PAY', 'ONRAMP', 'OFFRAMP'])
+
 // Shareable receipts: QR payments + bank on/off-ramps. Kept as its own
-// predicate so "shareable" can diverge from "QR" later without a sweep.
+// predicate so "shareable" can diverge from "fiat rail" later without a sweep.
 export function hasShareableReceipt(transaction: TransactionDetails): boolean {
     const k = kindOf(transaction)
-    return k === 'QR_PAY' || k === 'ONRAMP' || k === 'OFFRAMP'
+    return !!k && FIAT_RAIL_KINDS.has(k)
 }
 
 // Renders "Completed" label for the timestamp row instead of "Sent"/"Received".
@@ -41,6 +47,23 @@ export function usesCompletedTimestampLabel(transaction: TransactionDetails): bo
  *  `extraDataForDrawer.cardPayment` for both — that's the discriminator. */
 export function isCardPaymentEntry(transaction: TransactionDetails): boolean {
     return transaction.extraDataForDrawer?.cardPayment != null
+}
+
+/** Flows that cross fiat ↔ USD and therefore carry an FX rate worth showing:
+ *  bank on/off-ramps, QR pays, and Rain card spends + refunds. Gating the
+ *  exchange-rate row on this (rather than a hand-kept `direction` allow-list)
+ *  is what stops the "forgot to add the new direction" bug class — card
+ *  refunds arrive as `direction: 'receive'` and were silently missed before.
+ *  The currency-block / non-stablecoin / not-cancelled checks still apply on
+ *  top; this only answers "is this the kind of flow that has an FX rate".
+ *
+ *  The card arm MUST stay `isCardPaymentEntry` (block-based), not a kind
+ *  check: card refunds can arrive with kind `OTHER`/`REFUND` (legacy rows the
+ *  fallback routes to cardRefund via `parentRainTxId`), so a pure-kind
+ *  "simplification" would silently drop their FX rate again. */
+export function isFxBearingFlow(transaction: TransactionDetails): boolean {
+    const k = kindOf(transaction)
+    return (!!k && FIAT_RAIL_KINDS.has(k)) || isCardPaymentEntry(transaction)
 }
 
 export function isPerkReward(transaction: TransactionDetails): boolean {
