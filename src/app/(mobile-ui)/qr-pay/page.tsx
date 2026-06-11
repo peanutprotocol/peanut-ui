@@ -76,6 +76,10 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 const MIN_QR_PAYMENT_AMOUNT = '0.1'
 
+// Deterministic provider rejections — retrying the payment-lock query can't
+// change the outcome, so fail fast instead of burning the 3-attempt budget.
+const NON_RETRYABLE_QR_PAY_ERRORS = ['PAYMENT_DESTINATION_DECODING_ERROR', 'PIX_MIN_AMOUNT']
+
 type PaymentProcessor = 'MANTECA'
 
 export default function QRPayPage() {
@@ -489,7 +493,7 @@ export default function QRPayPage() {
             !shouldBlockPay,
         retry: (failureCount, error: any) => {
             // Don't retry provider-specific errors
-            if (error?.message?.includes('PAYMENT_DESTINATION_DECODING_ERROR')) {
+            if (NON_RETRYABLE_QR_PAY_ERRORS.some((code) => error?.message?.includes(code))) {
                 return false
             }
             // Retry network/timeout errors up to 2 times (3 total attempts)
