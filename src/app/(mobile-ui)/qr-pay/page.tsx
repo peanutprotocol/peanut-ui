@@ -78,6 +78,15 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 const MIN_QR_PAYMENT_AMOUNT = '0.1'
 
+// Deterministic provider rejections — retrying the payment-lock query can't
+// change the outcome, so fail fast instead of burning the 3-attempt budget.
+const NON_RETRYABLE_QR_PAY_ERRORS = ['PAYMENT_DESTINATION_DECODING_ERROR', 'PIX_MIN_AMOUNT']
+
+// Shown wherever the backend rejects a Pix payment below the rail minimum
+// (typed 400 PIX_MIN_AMOUNT — fires at lock-init for merchant-encoded amounts
+// and at re-init for user-entered amounts on open-amount QRs).
+const PIX_MIN_AMOUNT_ERROR_MESSAGE = `This Pix charge is below the ${MIN_PIX_AMOUNT_BRL} BRL minimum for Pix payments.`
+
 type PaymentProcessor = 'MANTECA'
 
 export default function QRPayPage() {
@@ -492,7 +501,7 @@ export default function QRPayPage() {
             !shouldBlockPay,
         retry: (failureCount, error: any) => {
             // Don't retry provider-specific errors
-            if (error?.message?.includes('PAYMENT_DESTINATION_DECODING_ERROR')) {
+            if (NON_RETRYABLE_QR_PAY_ERRORS.some((code) => error?.message?.includes(code))) {
                 return false
             }
             // Retry network/timeout errors up to 2 times (3 total attempts)
@@ -536,6 +545,11 @@ export default function QRPayPage() {
                 )
                 posthog.capture(ANALYTICS_EVENTS.QR_DECODING_ERROR_SHOWN, { qr_type: qrType })
                 setWaitingForMerchantAmount(false)
+            } else if (error.message.includes('PIX_MIN_AMOUNT')) {
+                // Deterministic rejection — the merchant-encoded amount is below
+                // the rail minimum, so there's no merchant amount to wait for.
+                setWaitingForMerchantAmount(false)
+                setErrorInitiatingPayment(PIX_MIN_AMOUNT_ERROR_MESSAGE)
             } else {
                 // Network/timeout errors after all retries exhausted
                 setErrorInitiatingPayment(
@@ -574,8 +588,14 @@ export default function QRPayPage() {
                 })
                 setPaymentLock(finalPaymentLock)
             } catch (error) {
-                captureException(error)
-                setErrorMessage('Could not initiate payment due to unexpected error. Please contact support')
+                if (error instanceof Error && error.message.includes('PIX_MIN_AMOUNT')) {
+                    // Deterministic rejection (user-entered amount below the rail
+                    // minimum) — actionable copy, not a Sentry-worthy surprise.
+                    setErrorMessage(PIX_MIN_AMOUNT_ERROR_MESSAGE)
+                } else {
+                    captureException(error)
+                    setErrorMessage('Could not initiate payment due to unexpected error. Please contact support')
+                }
                 setIsSuccess(false)
                 setLoadingState('Idle')
                 return
