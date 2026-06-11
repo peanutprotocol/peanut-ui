@@ -2,7 +2,7 @@
 
 import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
-import { type TransactionType } from '@/components/TransactionDetails/TransactionCard'
+import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import { printableUserHandle } from '@/utils/general.utils'
 import Image from 'next/image'
 import React from 'react'
@@ -12,22 +12,8 @@ import { VerifiedUserLabel } from '../UserHeader'
 import ProgressBar from '../Global/ProgressBar'
 import { useRouter } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
-import { PEANUTMAN_LOGO } from '@/assets'
+import { PEANUTMAN_LOGO } from '@/assets/mascot'
 import { profileUrl } from '@/utils/native-routes'
-
-export type TransactionDirection =
-    | 'send'
-    | 'receive'
-    | 'request_sent'
-    | 'request_received'
-    | 'withdraw'
-    | 'add'
-    | 'bank_withdraw'
-    | 'bank_claim'
-    | 'bank_deposit'
-    | 'bank_request_fulfillment'
-    | 'claim_external'
-    | 'qr_payment'
 
 interface TransactionDetailsHeaderCardProps {
     direction: TransactionDirection

@@ -90,20 +90,4 @@ export const cardApi = {
         }
         return (await response.json()) as WaitlistStateResponse
     },
-
-    /** POST /card/flow-early-access — stamps cardFlowEarlyAccessAt. Called
-     *  by /shhhhh "Try the door" CTA before routing the user to /card. */
-    grantFlowEarlyAccess: async (): Promise<{ grantedAt: string }> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/card/flow-early-access`, {
-            method: 'POST',
-            headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-            body: '{}',
-            cache: 'no-store',
-        })
-        if (!response.ok) {
-            const err = await response.json().catch(() => ({}))
-            throw new Error(err.message || err.error || 'Failed to grant early access')
-        }
-        return (await response.json()) as { grantedAt: string }
-    },
 }

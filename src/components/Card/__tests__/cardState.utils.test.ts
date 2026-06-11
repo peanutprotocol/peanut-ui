@@ -151,7 +151,7 @@ describe('computeCardState', () => {
         expect(
             computeCardState({
                 ...base,
-                overview: withApp('IN_REVIEW', 'needsVerification'),
+                overview: withApp('PENDING', 'needsVerification'),
                 cardInfo: cardInfo({ hasCardAccess: true }),
             })
         ).toBe('manual-review')
@@ -211,6 +211,67 @@ describe('computeCardState', () => {
                 skipCelebrationSeen: false,
             })
         ).toBe('waitlist-skip-celebration')
+    })
+
+    // Exhaustive over the backend RailStatus enum (peanut-api-ts prisma).
+    // If the BE adds a value, add a row here — any unmapped status falls
+    // through to the add-card branch, which is exactly the prod infinite
+    // loop (apply → "Application already submitted" → add-card → …) that
+    // hit REQUIRES_INFORMATION / FAILED / REQUIRES_SUPPORT users (2026-06-10).
+    describe('maps every backend RailStatus value to a real state', () => {
+        const cases: Array<{ railStatus: string; expected: string }> = [
+            { railStatus: 'PENDING', expected: 'pending' },
+            { railStatus: 'ENABLED', expected: 'add-card' },
+            { railStatus: 'REQUIRES_INFORMATION', expected: 'requires-info' },
+            { railStatus: 'REQUIRES_EXTRA_INFORMATION', expected: 'requires-info' },
+            { railStatus: 'REQUIRES_SUPPORT', expected: 'requires-support' },
+            { railStatus: 'REJECTED', expected: 'rejected' },
+            { railStatus: 'FAILED', expected: 'rejected' },
+        ]
+
+        it.each(cases)('$railStatus → $expected', ({ railStatus, expected }) => {
+            expect(
+                computeCardState({
+                    ...base,
+                    overview: withApp(railStatus),
+                    cardInfo: cardInfo({ hasCardAccess: true }),
+                    skipCelebrationSeen: true,
+                })
+            ).toBe(expected)
+        })
+
+        const failureStatuses = [
+            'REQUIRES_INFORMATION',
+            'REQUIRES_EXTRA_INFORMATION',
+            'REQUIRES_SUPPORT',
+            'REJECTED',
+            'FAILED',
+        ]
+
+        it.each(failureStatuses)('%s never resolves to add-card (infinite-loop regression)', (railStatus) => {
+            expect(
+                computeCardState({
+                    ...base,
+                    overview: withApp(railStatus),
+                    cardInfo: cardInfo({ hasCardAccess: true }),
+                    skipCelebrationSeen: true,
+                })
+            ).not.toBe('add-card')
+        })
+
+        it('routes an UNKNOWN future railStatus to requires-support, never add-card (default-deny)', () => {
+            // A new backend RailStatus value must not silently fall through
+            // to add-card — an application exists, so re-applying would
+            // re-create the same infinite loop for the unknown state.
+            expect(
+                computeCardState({
+                    ...base,
+                    overview: withApp('SOME_FUTURE_STATUS' as never),
+                    cardInfo: cardInfo({ hasCardAccess: true }),
+                    skipCelebrationSeen: true,
+                })
+            ).toBe('requires-support')
+        })
     })
 
     it('returns active even when flowEarlyAccess is false (legacy card-holder regression)', () => {

@@ -20,7 +20,7 @@ import { KycStatusItem, isKycStatusItem, type KycHistoryEntry } from '../Kyc/Kyc
 import { buildKycHistoryEntry } from '@/utils/kyc-grouping.utils'
 import CardUnlockHistoryItem from '../Card/CardUnlockHistoryItem'
 import { deriveCardUnlockEntry, isCardUnlockHistoryItem, type CardUnlockHistoryEntry } from '../Card/cardUnlock.types'
-import { useCardPioneerInfo } from '@/hooks/useCardPioneerInfo'
+import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
@@ -78,7 +78,7 @@ const HomeHistory = ({
     // Pull /card response to derive the synthetic "card unlocked" history
     // entry. Mirrors how kyc derives from user state. Only meaningful when
     // viewing your own history.
-    const { cardInfo } = useCardPioneerInfo()
+    const { cardInfo } = useCardInfo()
     // The card-unlock row gates on an ACTUALLY-issued card, not mere access.
     // Same query key the wallet already loads on home → cache read, no extra
     // fetch. Card *access* (skip badge / admin grant) is held by ~33% of
@@ -261,17 +261,12 @@ const HomeHistory = ({
                     return dateB - dateA
                 })
 
-                // Cap at 5 fresh entries — but ALWAYS keep the synthetic
-                // card-unlock row if it exists (it's an evergreen
-                // shoulder-tap to re-share the asset, not a transient
-                // event that should age out behind 5 fresh badge unlocks).
+                // Cap at 5 fresh entries. The card-unlock row is NOT pinned —
+                // it sorts chronologically and ages out behind newer activity
+                // like any other entry (pinning it made it "always there").
+                // It stays reachable on the paginated /history page.
                 const RECENT_LIMIT = 5
-                const recent = entries.slice(0, RECENT_LIMIT)
-                const unlock = entries.find(isCardUnlockHistoryItem)
-                if (unlock && !recent.some(isCardUnlockHistoryItem)) {
-                    recent.push(unlock)
-                }
-                setCombinedEntries(recent)
+                setCombinedEntries(entries.slice(0, RECENT_LIMIT))
             }
 
             processEntries()

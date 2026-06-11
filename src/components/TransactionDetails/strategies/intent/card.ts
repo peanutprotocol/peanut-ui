@@ -1,18 +1,6 @@
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
-
-/** Rain often returns merchant names ALL-CAPS when its enrichment pipeline
- *  doesn't recognize the brand ("BOYACA", "ANTHROPIC"). When that happens,
- *  display them in Title Case for readability — but only when the name is
- *  long enough that title-casing won't garble a real acronym (KFC, IBM,
- *  BBC stay as-is). Mixed-case names are returned unchanged so enriched
- *  brand names like "iPhone Store" or "Acme Coffee" aren't mangled. */
-const ACRONYM_LENGTH_THRESHOLD = 4
-function normalizeMerchantName(raw: string): string {
-    if (raw !== raw.toUpperCase()) return raw
-    if (raw.length <= ACRONYM_LENGTH_THRESHOLD) return raw
-    return raw.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
-}
+import { normalizeMerchantName } from '@/components/TransactionDetails/transaction-details.utils'
 
 export const qrPay: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
     const raw = entry.recipientAccount?.identifier

@@ -23,11 +23,12 @@ import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { rainApi, type ApplyForCardResponse } from '@/services/rain'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
-// localStorage key for the one-time celebration gate. Phase 5 will swap
-// this for a BE-persisted `cardWaitlistSkipCelebrationSeenAt` lookup.
+// localStorage key for the one-time celebration gate (per-device by design:
+// re-doing the funnel re-celebrates, see the eligibility-check effect below).
 // v2 (2026-05-25): celebration now fires for ALL hasCardAccess users, not
 // just skip-badge holders. v1's stale `true` values from earlier QA runs
 // would silently skip the celebration — bumping the key invalidates them.
@@ -68,6 +69,7 @@ const CardPage: FC = () => {
 
     const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
     const { serializeGrant } = useGrantSessionKey()
+    const { railsForProvider, isLoading: capabilitiesLoading } = useCapabilities()
     const { setIsSupportModalOpen } = useModalsContext()
     const onBack = useSafeBack('/home')
 
@@ -84,8 +86,8 @@ const CardPage: FC = () => {
     const [isIssuing, setIsIssuing] = useState(false)
 
     // Track whether the user has acknowledged the skip-badge celebration.
-    // localStorage for M2; Phase 5 will read this from BE's
-    // cardWaitlistSkipCelebrationSeenAt column.
+    // localStorage on purpose (per-device, replayable via the eligibility
+    // re-hold below) — the celebration is a moment, not durable state.
     const [skipCelebrationSeen, setSkipCelebrationSeen] = useState<boolean>(() => getSkipCelebrationSeen())
 
     // Press-and-hold "see if you qualify" gate. Resets per mount: as long
@@ -96,66 +98,29 @@ const CardPage: FC = () => {
     // exists (see cardState.utils.ts — active-card wins first).
     const [eligibilityCheckDone, setEligibilityCheckDone] = useState<boolean>(false)
 
-    // `?press_door=1` arrives from /shhhhh → /setup → here. It means: the
-    // user clicked "press the door" on /shhhhh while signed out, just
-    // completed signup, and now expects to enter the card flow. We
-    // auto-stamp `flowEarlyAccess` on their behalf so they don't have to
-    // re-press the door. Initial value is read synchronously to gate the
-    // outer-gate redirect on first paint; the param is cleared once the
-    // stamp lands.
-    const [pressDoorMode, setPressDoorMode] = useState<boolean>(() => {
-        if (typeof window === 'undefined') return false
-        return new URL(window.location.href).searchParams.get('press_door') === '1'
-    })
-    const pressDoorFiredRef = useRef(false)
-    useEffect(() => {
-        if (!pressDoorMode) return
-        if (pioneerLoading || !cardInfo) return
-        if (pressDoorFiredRef.current) return
-        pressDoorFiredRef.current = true
-        const finish = (): void => {
-            const url = new URL(window.location.href)
-            url.searchParams.delete('press_door')
-            window.history.replaceState(window.history.state, '', url.toString())
-            setPressDoorMode(false)
-        }
-        if (cardInfo.flowEarlyAccess) {
-            // Already stamped (e.g. quick refresh after stamp landed) — just clean up.
-            finish()
-            return
-        }
-        void (async () => {
-            try {
-                await cardApi.grantFlowEarlyAccess()
-                posthog.capture(ANALYTICS_EVENTS.CARD_FLOW_EARLY_ACCESS_GRANTED)
-                await queryClient.invalidateQueries({ queryKey: ['card-info'] })
-            } catch (err) {
-                console.error('[card] press_door auto-stamp failed:', err)
-            } finally {
-                finish()
-            }
-        })()
-    }, [pressDoorMode, pioneerLoading, cardInfo, queryClient])
+    // The old `?press_door=1` auto-stamp was removed alongside the /shhhhh
+    // door rework: the bare door joins the waitlist and grants nothing, so a
+    // shareable URL that silently stamps flowEarlyAccess would have been the
+    // exact bypass the rework forbids. BE now also reports flowEarlyAccess
+    // true whenever hasCardAccess is (inner gate implies outer).
 
     // Outer gate: pre-public-launch, the card campaign isn't fully online
     // yet. Users without flow early access get a 404 — the page behaves as
     // if it doesn't exist. The only ways in are (a) already holding a card
-    // / being mid-application, or (b) entering through the special /shhhhh
-    // page, which stamps `flowEarlyAccess` via ?press_door=1 before landing
-    // here. BE returns `flowEarlyAccess: false` for everyone else.
+    // / being mid-application, or (b) holding card access (skip badge /
+    // admin grant — BE reports flowEarlyAccess true whenever hasCardAccess
+    // is). Everyone else belongs on /shhhhh, which joins the waitlist
+    // inline and never routes here.
     //
     // IMPORTANT: skip the 404 if the user already has a non-canceled card.
     // Legacy Pioneers + admin-granted users issued cards before /shhhhh
     // existed and have no flowEarlyAccess stamp — they must still reach
     // YourCardScreen. The computeCardState() precedence below mirrors this
-    // rule (active-card before no-flow-access). Also skip while pressDoorMode
-    // is in flight: the stamp is about to land any tick now, and 404-ing
-    // mid-stamp would wrongly bounce a legit /shhhhh entrant.
+    // rule (active-card before no-flow-access).
     //
     // notFound() thrown synchronously inside the effect bubbles to Next's
     // not-found boundary just like a render-time call.
     useEffect(() => {
-        if (pressDoorMode) return
         if (pioneerLoading || pioneerError) return
         if (!cardInfo) return
         if (cardInfo.flowEarlyAccess) return
@@ -167,7 +132,7 @@ const CardPage: FC = () => {
         if (hasIssuedCard) return
         posthog.capture(ANALYTICS_EVENTS.CARD_FLOW_GATED)
         notFound()
-    }, [pioneerLoading, pioneerError, cardInfo, overview, overviewLoading, pressDoorMode])
+    }, [pioneerLoading, pioneerError, cardInfo, overview, overviewLoading])
 
     const state = computeCardState({
         overview,
@@ -546,6 +511,40 @@ const CardPage: FC = () => {
                 return <ApplicationStatusScreen variant="pending" onPrev={onBack} />
             case 'manual-review':
                 return <ApplicationStatusScreen variant="manual-review" onPrev={onBack} />
+            case 'requires-info': {
+                // Surface the structured remediation reason from the
+                // capabilities read-model — `rail.reason.userMessage` is
+                // display-ready and provider-neutral by contract. The card
+                // provider serves exactly one rail, so [0] is the card rail.
+                // Overview and capabilities load independently — wait for
+                // capabilities so the screen never flashes without its reason.
+                if (capabilitiesLoading) {
+                    return (
+                        <div className="flex min-h-[inherit] w-full items-center justify-center">
+                            <Loading />
+                        </div>
+                    )
+                }
+                const cardRailReason = railsForProvider('rain')[0]?.reason?.userMessage
+                return (
+                    <ApplicationStatusScreen
+                        variant="requires-info"
+                        reasonMessage={cardRailReason}
+                        onContactSupport={() => setIsSupportModalOpen(true)}
+                        onPrev={onBack}
+                    />
+                )
+            }
+            case 'requires-support':
+                // Pipeline-side failure — nothing the user can re-submit.
+                // Same support deep-link as 'rejected' below.
+                return (
+                    <ApplicationStatusScreen
+                        variant="requires-support"
+                        onContactSupport={() => setIsSupportModalOpen(true)}
+                        onPrev={onBack}
+                    />
+                )
             case 'rejected':
                 // No retry CTA: Rain denials are terminal on our side. The
                 // only path forward is support reviewing the case manually

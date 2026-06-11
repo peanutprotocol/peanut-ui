@@ -5,7 +5,7 @@ import ValidationErrorView from '../Payment/Views/Error.validation.view'
 import InvitesPageLayout from './InvitesPageLayout'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '@/components/0_Bruddle/Button'
-import peanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
+import { PeanutWavingHello } from '@/assets/mascot'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { invitesApi } from '@/services/invites'
 import { useQuery } from '@tanstack/react-query'
@@ -19,25 +19,7 @@ import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { profileUrl } from '@/utils/native-routes'
-
-// mapping of special invite codes to their campaign tags
-// when these invite codes are used, the corresponding campaign tag is automatically applied
-const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
-    arbiverseinvitesyou: 'ARBIVERSE_DEVCONNECT_BA_2025',
-    squirrelinvitesyou: 'ARBIVERSE_DEVCONNECT_BA_2025', // temporary: maps to arbiverse until 12pm noon tomorrow
-    founderhaus: 'FOUNDER_HOUSE',
-    survivor: 'SUPPORT_SURVIVOR',
-}
-
-// Map inbound `utm_campaign` values to the badge codes the backend whitelists.
-// Lets marketing/event links use a single UTM-shaped URL — PostHog auto-captures
-// utm_* on $pageview so the same string also flows into the analytics funnel.
-// Backend whitelist lives in peanut-api-ts/src/routes/badge.ts + invite.ts; keep
-// in sync when adding a new entry here.
-const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
-    'token-nation-2026': 'TOKEN_NATION_SP_2026',
-    ethfloripa: 'ETHFLORIPA_HUB',
-}
+import { INVITE_CODE_TO_CAMPAIGN_MAP, UTM_CAMPAIGN_TO_BADGE_MAP } from './campaign-maps'
 
 // /invite?campaign=skip — bypasses the waitlist with no invite code. The backend
 // /badge/award endpoint flips hasAppAccess + cardFlowEarlyAccessAt and adds the
@@ -210,7 +192,7 @@ function InvitePageContent() {
     const ctaLabel = isSkipCampaign ? 'Claim your Skip Pass' : 'Claim your spot'
 
     return (
-        <InvitesPageLayout image={peanutAnim.src}>
+        <InvitesPageLayout image={PeanutWavingHello.src}>
             <div
                 className={twMerge(
                     'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',

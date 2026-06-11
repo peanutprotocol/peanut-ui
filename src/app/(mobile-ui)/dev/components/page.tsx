@@ -992,9 +992,6 @@ export default function ComponentsPage() {
                                 <span className="font-bold text-n-1">GuestLoginModal</span> — guest auth flow
                             </p>
                             <p>
-                                <span className="font-bold text-n-1">KycVerifiedOrReviewModal</span> — KYC status
-                            </p>
-                            <p>
                                 <span className="font-bold text-n-1">BalanceWarningModal</span> — low balance warning
                             </p>
                             <p>

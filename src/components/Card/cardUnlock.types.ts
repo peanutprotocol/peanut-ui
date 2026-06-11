@@ -5,7 +5,10 @@
  *
  * No DB table needed — derived client-side. Only surfaces once the user
  * has an issued card (see deriveCardUnlockEntry); the timestamp comes from
- * their cardAccessGrantedAt or earliest skip-badge earnedAt.
+ * their cardAccessGrantedAt or earliest skip-badge earnedAt. It is a
+ * normal chronological row: NOT pinned in the home top-5 (it ages out
+ * behind newer activity) and always reachable on the paginated /history
+ * page (Hugo 2026-06-10).
  */
 
 export type CardUnlockVia = 'badge' | 'admin' | 'public-launch'

@@ -6,7 +6,7 @@ import {
     mapTransactionDataForDrawer,
     type TransactionDetails,
 } from '@/components/TransactionDetails/transactionTransformer'
-import { isIntentKind } from '@/components/TransactionDetails/strategies/registry'
+import { resolveReceiptKind } from '@/components/TransactionDetails/strategies/registry'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import NavHeader from '@/components/Global/NavHeader'
 import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
@@ -109,7 +109,7 @@ export async function generateMetadata({
     params,
     searchParams,
 }: {
-    params: Promise<{ entryId: string; type?: string }>
+    params: Promise<{ entryId: string }>
     searchParams: Promise<Record<string, string | string[] | undefined>>
 }): Promise<Metadata> {
     const basicMetadata = generateBaseMetadata({
@@ -118,12 +118,13 @@ export async function generateMetadata({
     })
 
     const { entryId } = await params
-    const kindParam = (await searchParams).kind
-    if (!entryId || !isIntentKind(kindParam)) {
+    const resolvedParams = await searchParams
+    const kind = resolveReceiptKind(resolvedParams.kind, resolvedParams.t)
+    if (!entryId || !kind) {
         return basicMetadata
     }
 
-    const entry = await getHistoryEntry(entryId, kindParam)
+    const entry = await getHistoryEntry(entryId, kind)
     if (!entry) {
         return basicMetadata
     }
@@ -175,11 +176,12 @@ export default async function ReceiptPage({
     searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
     const { entryId } = await params
-    const kindParam = (await searchParams).kind
-    if (!entryId || !isIntentKind(kindParam)) {
+    const resolvedParams = await searchParams
+    const kind = resolveReceiptKind(resolvedParams.kind, resolvedParams.t)
+    if (!entryId || !kind) {
         notFound()
     }
-    const entry = await getHistoryEntry(entryId, kindParam)
+    const entry = await getHistoryEntry(entryId, kind)
     if (!entry) {
         notFound()
     }

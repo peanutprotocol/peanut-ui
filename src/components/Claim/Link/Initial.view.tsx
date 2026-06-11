@@ -15,7 +15,7 @@ import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
-import { areEvmAddressesEqual, formatTokenAmount } from '@/utils/general.utils'
+import { areEvmAddressesEqual, formatTokenAmount, toInviteCode } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
 import { fetchWithSentry } from '@/utils/sentry.utils'
@@ -103,6 +103,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         resetFlow: resetClaimBankFlow,
         claimToMercadoPago,
         setClaimToMercadoPago,
+        setRegionalMethodType,
         hideTokenSelector,
         setHideTokenSelector,
     } = useClaimBankFlow()
@@ -268,7 +269,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         setLoadingState('Idle')
                         return
                     }
-                    const inviteCode = `${inviterUsername}INVITESYOU`
+                    const inviteCode = toInviteCode(inviterUsername)
                     const result = await invitesApi.acceptInvite(
                         inviteCode,
                         EInviteType.PAYMENT_LINK,
@@ -874,6 +875,14 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             if (stepFromURL === 'claim' && isPeanutWallet) {
                 handleClaimLink(false, true)
             } else if (stepFromURL === 'regional-claim') {
+                // restore the method the user tapped BEFORE the auth redirect —
+                // context state didn't survive the remount, only the URL did.
+                // without a valid param the method stays null (unknown), never
+                // a default that could masquerade as a real choice.
+                const methodFromURL = searchParams.get('method')
+                if (methodFromURL === 'pix' || methodFromURL === 'mercadopago') {
+                    setRegionalMethodType(methodFromURL)
+                }
                 setClaimToMercadoPago(true)
             }
         }

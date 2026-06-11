@@ -42,7 +42,10 @@ export async function pollUntilApplyAdvances<R extends { status: string }>({
  * Each `fetchReadiness` call reads a single webhook-stamped flag from our DB
  * (no Sumsub round-trip), so it's safe to poll fast. Returns `true` when the
  * backend reports `ready: true` (Sumsub finished reviewing rain-requirements
- * GREEN), `false` on timeout, `null` on abort.
+ * GREEN), `false` on a clean timeout (backend healthy but never went ready),
+ * `null` on abort. If the MOST RECENT poll failed (persistent auth/5xx), it
+ * re-throws that error on timeout so the caller surfaces the real reason
+ * instead of a misleading "taking longer than expected".
  *
  * Replaces the previous pattern of polling `POST /rain/cards` itself — each
  * of those calls did `moveToLevel` + `getApplicant` + `getQuestionnaireAnswers`
@@ -65,16 +68,26 @@ export async function pollUntilReady({
     now?: () => number
 }): Promise<boolean | null> {
     const start = now()
+    let lastError: unknown
     while (true) {
         if (signal?.aborted) return null
         try {
             const { ready } = await fetchReadiness()
             if (ready) return true
-        } catch {
-            // Swallow transient fetch errors — the next poll iteration retries.
+            // a clean (not-yet-ready) response means the backend is healthy —
+            // clear any earlier transient error so we don't surface a stale one.
+            lastError = undefined
+        } catch (err) {
+            // Swallow transient fetch errors mid-poll and retry, but remember the
+            // most recent one: a persistent failure (auth, 5xx) should surface its
+            // real reason on timeout instead of a misleading "taking longer".
+            lastError = err
         }
         await sleep(intervalMs)
         if (signal?.aborted) return null
-        if (now() - start >= timeoutMs) return false
+        if (now() - start >= timeoutMs) {
+            if (lastError) throw lastError
+            return false
+        }
     }
 }

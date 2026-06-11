@@ -9,7 +9,7 @@
 // Codes here must match the backend registry (peanut-api-ts
 // src/acknowledgments/seed-definitions.ts). How the whole system works + how to
 // add a badge: peanut-api-ts/docs/BADGES.md.
-import { PEANUTMAN_LOGO } from '@/assets/peanut'
+import { PEANUTMAN_LOGO } from '@/assets/mascot'
 
 export type BadgeMeta = {
     path: string

@@ -7,8 +7,10 @@
 // Strategies are pure functions of HistoryEntry — no DOM, no fetches,
 // no mutable state. Tests import them directly.
 
-import { type TransactionType as TransactionCardType } from '@/components/TransactionDetails/TransactionCard'
-import { type TransactionDirection } from '@/components/TransactionDetails/TransactionDetailsHeaderCard'
+import {
+    type TransactionDirection,
+    type TransactionType as TransactionCardType,
+} from '@/components/TransactionDetails/transaction-types'
 import { type StatusPillType } from '@/components/Global/StatusPill'
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 
