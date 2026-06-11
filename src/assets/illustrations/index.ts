@@ -2,6 +2,7 @@ export { default as ButterySmoothGlobalMoney } from './buttery_smooth_global_mon
 export { default as ClaimChainsBadge } from './claim-chains-badge.svg'
 export { default as Cloud } from './cloud.svg'
 export { default as Eyes } from './eyes.svg'
+export { default as HandPeace } from './hand-peace.svg'
 export { default as HandThumbsUp } from './hand-thumbs-up.svg'
 export { default as HandThumbsUpV2 } from './hand-thumbs-up-v2.svg'
 export { default as HandToken } from './new-hand-token.svg'

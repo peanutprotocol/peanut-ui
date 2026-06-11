@@ -146,9 +146,11 @@ export function placeStamps(badges: ShareAssetBadge[], rng: SeededRandom): Stamp
         const cycle = Math.floor(i / STAMP_SLOTS.length)
         const base = STAMP_SLOTS[slotIdx]
         const stackOffset = cycle * 22
-        // Full 4-digit year — the old `'25` apostrophe denomination read as a
-        // stray tick mark on the stamp ("the ''' look buggy" — Hugo).
-        const year = badge.earnedAt ? String(new Date(badge.earnedAt).getFullYear()) : undefined
+        // `'25`-style year denomination. (An earlier pass switched this to the
+        // full 4-digit year chasing Konrad's "the ''' look buggy" note — that
+        // was actually about sparkle.svg's slash-strokes, not the year. Hugo
+        // 2026-06-11: the apostrophe year looked fine; bring it back.)
+        const year = badge.earnedAt ? `'${String(new Date(badge.earnedAt).getFullYear()).slice(-2)}` : undefined
         return {
             badge: {
                 code: badge.code,
@@ -171,7 +173,7 @@ export function placeStamps(badges: ShareAssetBadge[], rng: SeededRandom): Stamp
 // `kind` selects which SVG. PRNG picks which subset to actually render.
 
 interface DecorationCandidate {
-    kind: 'star' | 'starAlt' | 'thumbsUp' | 'thumbsUpV2' | 'eyes' | 'sparkle' | 'cloud' | 'peanutChar'
+    kind: 'star' | 'starAlt' | 'thumbsUp' | 'thumbsUpV2' | 'peace' | 'eyes' | 'cloud' | 'peanutChar'
     top?: number
     bottom?: number
     left?: number
@@ -185,9 +187,11 @@ interface DecorationCandidate {
 
 // Decoration pool. No peanut characters — both peanut-raising-hands.svg
 // and peanutman-waving.svg crop the lower body at the SVG source (it's
-// the art style, not a bug we can fix). The pool sticks to stars,
-// sparkles, eyes, clouds, and thumbs-up so every decoration renders
-// fully formed.
+// the art style, not a bug we can fix). No sparkle.svg either — it's
+// three loose slash-strokes that read as stray tick marks / apostrophes
+// on the asset (Konrad's "the ''' look a bit buggy"). The pool sticks to
+// stars, hands, eyes, and clouds so every decoration reads as a clearly
+// formed shape.
 //
 // Layout-zone map on the 1200×900 canvas:
 //   - EARNED stamp:          x[920..1200], y[20..200]    (top-right)
@@ -201,23 +205,23 @@ const DECORATION_POOL: readonly DecorationCandidate[] = [
     //    EARNED right. Two natural columns left/right of the centre stamp.
     { kind: 'cloud', top: 16, left: 880, size: 64, rotation: -4, safe: true },
     { kind: 'star', top: 36, left: 380, size: 72, rotation: 8, safe: true },
-    { kind: 'sparkle', top: 52, left: 720, size: 56, rotation: -12, safe: true },
+    { kind: 'peace', top: 52, left: 720, size: 56, rotation: -12, safe: true },
     { kind: 'thumbsUp', top: 56, left: 232, size: 92, rotation: -10, safe: true },
     { kind: 'thumbsUpV2', top: 80, left: 700, size: 76, rotation: 12, safe: true },
     { kind: 'eyes', top: 28, left: 580, size: 48, rotation: 6, safe: true },
-    { kind: 'sparkle', top: 130, left: 980, size: 40, rotation: 18, safe: true },
+    { kind: 'star', top: 130, left: 980, size: 40, rotation: 18, safe: true },
     { kind: 'starAlt', top: 110, left: 320, size: 52, rotation: -20, safe: true },
 
     // ── Top-LEFT quadrant (Hugo flagged this as empty) — fits between
     //    the EDITION header (y<120) and the tier block (y>158, x<360).
     //    Tight space; small accents only.
     { kind: 'star', top: 14, left: 56, size: 32, rotation: 22, safe: true },
-    { kind: 'sparkle', top: 8, left: 460, size: 36, rotation: -16, safe: true },
+    { kind: 'starAlt', top: 8, left: 460, size: 36, rotation: -16, safe: true },
     { kind: 'eyes', top: 130, left: 180, size: 36, rotation: 14, safe: true },
 
     // ── Mid-right gap between stamp slot 3 (y≤396) and slot 5 (y≥470).
     { kind: 'star', top: 410, right: 30, size: 44, rotation: 45, safe: true },
-    { kind: 'sparkle', top: 420, right: 140, size: 42, rotation: -10, safe: true },
+    { kind: 'peace', top: 420, right: 140, size: 42, rotation: -10, safe: true },
 
     // ── Mid-left / mid-right margins outside the card.
     { kind: 'cloud', top: 380, left: 26, size: 48, rotation: 10, safe: true },
@@ -229,13 +233,13 @@ const DECORATION_POOL: readonly DecorationCandidate[] = [
     //    x≈400 worst case, so anything in x[120..380] is safely in the
     //    gutter to the LEFT of the pill.
     { kind: 'star', top: 660, left: 200, size: 44, rotation: -14, safe: true },
-    { kind: 'sparkle', top: 700, left: 320, size: 48, rotation: 18, safe: true },
+    { kind: 'starAlt', top: 700, left: 320, size: 48, rotation: 18, safe: true },
     { kind: 'eyes', top: 670, left: 60, size: 40, rotation: -6, safe: true },
     { kind: 'thumbsUpV2', top: 690, left: 130, size: 64, rotation: 8, safe: true },
 
     // ── Lower-right (small sprinkles between EARNED-zone clear point and
     //    the pill's top edge at y≈770).
-    { kind: 'sparkle', bottom: 220, right: 280, size: 52, rotation: -8, safe: true },
+    { kind: 'peace', bottom: 220, right: 280, size: 52, rotation: -8, safe: true },
     { kind: 'star', bottom: 60, right: 360, size: 34, rotation: -12, safe: true },
     { kind: 'cloud', bottom: 80, right: 60, size: 56, rotation: 8, safe: true },
 
@@ -252,7 +256,7 @@ const DECORATION_POOL: readonly DecorationCandidate[] = [
 ] as const
 
 export interface DecorationPlacement {
-    kind: 'star' | 'starAlt' | 'thumbsUp' | 'thumbsUpV2' | 'eyes' | 'sparkle' | 'cloud' | 'peanutChar'
+    kind: 'star' | 'starAlt' | 'thumbsUp' | 'thumbsUpV2' | 'peace' | 'eyes' | 'cloud' | 'peanutChar'
     top?: number
     bottom?: number
     left?: number
