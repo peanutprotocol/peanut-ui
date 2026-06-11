@@ -117,9 +117,10 @@ const UnlockedRegions = () => {
         !!selectedRegion &&
         clickedRegionProvider !== null &&
         isSumsubApproved &&
-        (providerRejectionForRegion.state === 'fixable' ||
-            providerRejectionForRegion.state === 'blocked' ||
-            providerRejectionForRegion.state === 'restart-identity')
+        // Any non-happy state has a dedicated rendering in the ActionModal below.
+        // Derive from !== 'happy' so a new ProviderRejectionState member can't
+        // silently miss this gate again (restart-identity did exactly that).
+        providerRejectionForRegion.state !== 'happy'
     const modalVariant = hasProviderRejectionForRegion ? ('provider_rejection' as const) : baseModalVariant
 
     const handleFinalKycSuccess = useCallback(() => {
