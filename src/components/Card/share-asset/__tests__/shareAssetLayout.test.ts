@@ -8,6 +8,13 @@
  * regress here.
  */
 
+// jest-transform-stub flattens svg imports to a bare string; getBadgeIcon unwraps
+// PEANUTMAN_LOGO.src, so mirror the real StaticImageData shape for the fallback path.
+jest.mock('@/assets/mascot', () => ({
+    ...jest.requireActual('@/assets/mascot'),
+    PEANUTMAN_LOGO: { src: '/peanut-logo-stub.svg' },
+}))
+
 import { SeededRandom } from '../seededRandom'
 import {
     CANVAS_W,

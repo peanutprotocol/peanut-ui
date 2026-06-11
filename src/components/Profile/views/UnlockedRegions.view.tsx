@@ -117,7 +117,9 @@ const UnlockedRegions = () => {
         !!selectedRegion &&
         clickedRegionProvider !== null &&
         isSumsubApproved &&
-        (providerRejectionForRegion.state === 'fixable' || providerRejectionForRegion.state === 'blocked')
+        (providerRejectionForRegion.state === 'fixable' ||
+            providerRejectionForRegion.state === 'blocked' ||
+            providerRejectionForRegion.state === 'restart-identity')
     const modalVariant = hasProviderRejectionForRegion ? ('provider_rejection' as const) : baseModalVariant
 
     const handleFinalKycSuccess = useCallback(() => {
