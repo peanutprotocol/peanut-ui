@@ -195,8 +195,10 @@ export const BADGES: Record<string, BadgeMeta> = {
  *  list. Used by /dev/share-builder + /dev/debug for iteration. */
 export const BADGE_CODES: readonly string[] = Object.keys(BADGES)
 
-export function getBadgeIcon(code?: string) {
-    return (code && BADGES[code]?.path) || PEANUTMAN_LOGO
+export function getBadgeIcon(code?: string): string {
+    // .src: the svg import is StaticImageData (typed `any` by the module shim, so the
+    // annotation alone can't enforce this) — raw <img src> consumers need a string URL.
+    return (code && BADGES[code]?.path) || PEANUTMAN_LOGO.src
 }
 
 // returns the public-facing description for a badge code (third-person perspective)
