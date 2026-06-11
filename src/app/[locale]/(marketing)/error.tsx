@@ -2,10 +2,14 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
+import { recoverFromChunkError } from '@/utils/chunk-error-recovery'
 
 export default function MarketingError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
     useEffect(() => {
         console.error(error)
+        // "Try again" re-renders against the same dead deployment under skew —
+        // for chunk errors only a reload (re-pin to current deployment) works.
+        recoverFromChunkError(error)
     }, [error])
 
     return (

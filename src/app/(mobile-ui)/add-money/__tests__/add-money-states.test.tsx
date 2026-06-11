@@ -268,8 +268,9 @@ jest.mock('@/constants/rhino.consts', () => ({
     getSupportedTokens: jest.fn(() => [
         { name: 'USDC', logoUrl: '/usdc.png' },
         { name: 'USDT', logoUrl: '/usdt.png' },
+        { name: 'ETH', logoUrl: '/eth-token.png' },
     ]),
-    TOKEN_LOGOS: { USDC: '/usdc.png', USDT: '/usdt.png' },
+    TOKEN_LOGOS: { USDC: '/usdc.png', USDT: '/usdt.png', ETH: '/eth-token.png' },
 }))
 
 jest.mock('@/constants/zerodev.consts', () => ({

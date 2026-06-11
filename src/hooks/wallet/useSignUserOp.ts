@@ -13,6 +13,7 @@ import { parseUnits, encodeFunctionData, erc20Abi } from 'viem'
 import type { Hex, Address } from 'viem'
 import type { SignUserOperationReturnType } from '@zerodev/sdk/actions'
 import { captureException } from '@sentry/nextjs'
+import { capturePasskeySignFailure } from '@/utils/webauthn.utils'
 
 export interface SignedUserOpData {
     signedUserOp: SignUserOperationReturnType
@@ -54,6 +55,7 @@ export const useSignUserOp = () => {
                 }
             } catch (error) {
                 console.error('[useSignUserOp] Error signing calls UserOperation:', error)
+                capturePasskeySignFailure(error, 'sign-user-op')
                 captureException(error, {
                     tags: { feature: 'sign-user-op' },
                     extra: { callCount: calls.length, chainId },

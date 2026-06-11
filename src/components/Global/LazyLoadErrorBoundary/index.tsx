@@ -1,5 +1,6 @@
 'use client'
 import React from 'react'
+import { recoverFromChunkError } from '@/utils/chunk-error-recovery'
 
 interface LazyLoadErrorBoundaryProps {
     children: React.ReactNode
@@ -30,6 +31,10 @@ class LazyLoadErrorBoundary extends React.Component<LazyLoadErrorBoundaryProps, 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
         console.error('LazyLoad Error Boundary caught error:', error, errorInfo)
         this.props.onError?.(error)
+        // A swallowed chunk failure means UI silently never appears (e.g. the
+        // transaction-details drawer); a one-time reload re-pins to the current
+        // deployment and restores it.
+        recoverFromChunkError(error)
     }
 
     render() {

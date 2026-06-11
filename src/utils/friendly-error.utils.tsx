@@ -88,6 +88,16 @@ export const ErrorHandler = (error: unknown): string => {
         return 'Failed to switch network. Try switching to the correct network manually.'
     if (text.includes('Insufficient balance')) return "You don't have enough balance."
     if (text.includes('The operation either timed out or was not allowed')) return 'Please confirm the transaction.'
+    // iOS Safari's NotAllowedError copy when the passkey ceremony never
+    // completes. Third-party credential providers (1Password) can wedge and
+    // refuse every assertion until unlocked or the device restarts
+    // (TASK-20000) — retrying after that works, so don't dead-end on the
+    // generic "contact support" fallback. Matched on message text rather
+    // than error.name: NotAllowedError is also thrown by camera/clipboard
+    // APIs (the QR scanner raises one), and wrapped signing errors keep the
+    // text but lose the name.
+    if (text.includes('not allowed by the user agent'))
+        return "Your device didn't complete the passkey confirmation. Try again — if it keeps failing, unlock your password manager (e.g. 1Password) or restart your device."
     if (text.includes('Wrong password or invalid transaction.') || text.includes('transaction may fail'))
         return 'Could not claim link, please refresh page. If problem persist confirm link with sender'
     if (text.includes('Send link already claimed')) return 'Send link already claimed'

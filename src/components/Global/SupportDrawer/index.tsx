@@ -18,9 +18,22 @@ const SupportDrawer = () => {
 
     const crispProxyUrl = useCrispProxyUrl(userData, prefilledMessage, crispTokenId)
 
-    // in capacitor, open native crisp messenger instead of iframe
+    // A logged-in user's token is computed asynchronously (SHA-256 of their userId).
+    // Until it resolves we must NOT load the proxy: a token-less load makes Crisp fall
+    // back to the shared anonymous session persisted on client.crisp.chat, which on a
+    // browser that has hosted more than one Peanut account surfaces the *previous*
+    // user's conversation. Anonymous visitors (no userId) have no token by design and
+    // load immediately.
+    const isAwaitingToken = Boolean(userData.userId) && !crispTokenId
+
+    // in capacitor, open native crisp messenger instead of iframe.
+    // Same token gate as the web iframe: for a logged-in user we must not
+    // openMessenger() before the token resolves — a token-less native open
+    // falls back to the device-local Crisp session, which on a shared device
+    // surfaces the previous user's conversation. The effect re-runs and opens
+    // once crispTokenId resolves (it's in the deps).
     useEffect(() => {
-        if (!isSupportModalOpen || !isCapacitor()) return
+        if (!isSupportModalOpen || !isCapacitor() || isAwaitingToken) return
 
         import('@capgo/capacitor-crisp').then(({ CapacitorCrisp }) => {
             // set user data before opening
@@ -49,7 +62,7 @@ const SupportDrawer = () => {
             // close our drawer since native UI takes over
             setIsSupportModalOpen(false)
         })
-    }, [isSupportModalOpen, userData, crispTokenId, prefilledMessage, setIsSupportModalOpen])
+    }, [isSupportModalOpen, isAwaitingToken, userData, crispTokenId, prefilledMessage, setIsSupportModalOpen])
 
     // drag-to-dismiss state
     const panelRef = useRef<HTMLDivElement>(null)
@@ -111,7 +124,8 @@ const SupportDrawer = () => {
                 aria-hidden="true"
             />
 
-            {/* slide-up panel — always mounted so the iframe never unmounts */}
+            {/* slide-up panel — always mounted to preserve drag state; the iframe inside
+                mounts only once the token resolves for logged-in users (isAwaitingToken gate) */}
             <div
                 ref={panelRef}
                 role="dialog"
@@ -137,19 +151,21 @@ const SupportDrawer = () => {
 
                 <div className="flex w-full justify-center">
                     <div className="relative h-[80vh] w-full overflow-auto md:max-w-xl">
-                        {!isCrispReady && (
+                        {(!isCrispReady || isAwaitingToken) && (
                             <div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
                                 <PeanutLoading />
                             </div>
                         )}
-                        <iframe
-                            src={crispProxyUrl}
-                            className="h-full w-full"
-                            allow="storage-access *"
-                            sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-storage-access-by-user-activation"
-                            title="Support Chat"
-                            tabIndex={isSupportModalOpen ? 0 : -1}
-                        />
+                        {!isAwaitingToken && (
+                            <iframe
+                                src={crispProxyUrl}
+                                className="h-full w-full"
+                                allow="storage-access *"
+                                sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-storage-access-by-user-activation"
+                                title="Support Chat"
+                                tabIndex={isSupportModalOpen ? 0 : -1}
+                            />
+                        )}
                     </div>
                 </div>
             </div>

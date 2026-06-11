@@ -128,7 +128,7 @@ function CrispProxyContent() {
                 {`
                     window.$crisp=[];
                     window.CRISP_WEBSITE_ID="${CRISP_WEBSITE_ID}";
-                    window.CRISP_RUNTIME_CONFIG={lock_maximized:true,lock_full_view:true,cross_origin_cookies:true,session_merge:true};
+                    window.CRISP_RUNTIME_CONFIG={lock_maximized:true,lock_full_view:true,cross_origin_cookies:true};
                     (function(){
                         var t=new URLSearchParams(window.location.search).get("crisp_token_id");
                         if(t) window.CRISP_TOKEN_ID=t;
