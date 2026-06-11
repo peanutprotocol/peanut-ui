@@ -36,15 +36,15 @@ import type { ShareAssetD3Props, TierLevel } from './shareAsset.types'
 import { TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets/badges'
 import { PEANUTMAN_HOLDING_BEER } from '@/assets/mascot'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
-import { HandThumbsUp, HandThumbsUpV2, Eyes, Sparkle, Cloud, Star } from '@/assets/illustrations'
+import { HandPeace, HandThumbsUp, HandThumbsUpV2, Eyes, Cloud, Star } from '@/assets/illustrations'
 import { PixelatedCardFace } from './PixelatedCardFace'
 
 const ASSET_STAR = STAR_STRAIGHT_ICON.src
 const ASSET_STAR_ALT = Star.src
 const ASSET_HAND_THUMBS = HandThumbsUp.src
 const ASSET_HAND_THUMBS_V2 = HandThumbsUpV2.src
+const ASSET_HAND_PEACE = HandPeace.src
 const ASSET_EYES = Eyes.src
-const ASSET_SPARKLE = Sparkle.src
 const ASSET_CLOUD = Cloud.src
 // The peanut character art style is intentionally legless — the body
 // tapers to a rounded point. Rather than dropping the character, we
@@ -73,8 +73,8 @@ const DECO_ASSET: Record<DecorationPlacement['kind'], string> = {
     starAlt: ASSET_STAR_ALT,
     thumbsUp: ASSET_HAND_THUMBS,
     thumbsUpV2: ASSET_HAND_THUMBS_V2,
+    peace: ASSET_HAND_PEACE,
     eyes: ASSET_EYES,
-    sparkle: ASSET_SPARKLE,
     cloud: ASSET_CLOUD,
     peanutChar: ASSET_PEANUT_CHAR,
 }
