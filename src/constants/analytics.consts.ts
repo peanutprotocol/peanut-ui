@@ -206,6 +206,10 @@ export const ANALYTICS_EVENTS = {
     // `error_name` is the DOMException name (NotAllowedError = provider
     // refused/wedged, e.g. 1Password on iOS), `context` is the signing call site.
     PASSKEY_SIGN_FAILED: 'passkey_sign_failed',
+
+    // Rain withdrawal-signature cooldown tripped during a spend. Handled
+    // gracefully in-flow (no captureException), so this is the only telemetry.
+    RAIN_COOLDOWN_HIT: 'rain_cooldown_hit',
 } as const
 
 /**

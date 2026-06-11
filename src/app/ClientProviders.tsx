@@ -7,6 +7,7 @@
  * the root layout (server component) renders this single client boundary.
  */
 import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
+import RainCooldownIntroModal from '@/components/Global/RainCooldown/IntroModal'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
 import { PeanutProvider } from '@/config'
@@ -40,6 +41,10 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                             <ConsoleGreeting />
                             <ScreenOrientationLocker />
                             <PeanutDebug />
+                            {/* Mounted here (not in a route-group layout) so the cooldown
+                                explainer also covers public pay/send/request pages —
+                                the rain:cooldown event fires on every spend path. */}
+                            <RainCooldownIntroModal />
                             {HarnessBootstrap && (
                                 <Suspense fallback={null}>
                                     <HarnessBootstrap />
