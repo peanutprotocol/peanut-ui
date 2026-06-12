@@ -1,4 +1,8 @@
-export type KycActionType = 'manteca' | 'bridge-direct' | 'unsupported-region'
+// 'bridge-uplift': cross-region EU/NA tap by an applicant whose base verification
+// completed on a non-Bridge level — BE returns an applicant-action token that
+// collects the Bridge data delta (email + questionnaire). Handled generically
+// (token → SDK opens), same as 'manteca'.
+export type KycActionType = 'manteca' | 'bridge-direct' | 'bridge-uplift' | 'unsupported-region'
 
 export interface InitiateSumsubKycResponse {
     token: string | null // null when user is already APPROVED or bridge-direct
