@@ -43,10 +43,17 @@ const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
     'touched-grass': 'TOUCHED_GRASS',
 }
 
-// /invite?campaign=skip — bypasses the waitlist with no invite code. The backend
-// /badge/award endpoint flips hasAppAccess + cardFlowEarlyAccessAt and adds the
-// Skip Pass badge (which is also in SKIP_BADGE_CODES, so card-waitlist is bypassed).
+// Campaigns claimable from a bare ?campaign= link with NO invite code. The
+// auto-claim effect below fires for these even for an already-logged-in user.
+// - `skip`: the backend /badge/award flips hasAppAccess + cardFlowEarlyAccessAt
+//   and adds the Skip Pass badge (also in SKIP_BADGE_CODES) — awarding it IS what
+//   grants access, so it fires even without hasAppAccess.
+// - `EVENT_ALUMNI`: event-reactivation mailer. Only awards its badge (in
+//   SKIP_BADGE_CODES → skips the card waitlist); it does not grant app access.
+//   Listed here so returning attendees — who already have accounts — claim on a
+//   logged-in visit. (useZeroDev's award only fires on new-account registration.)
 const SKIP_CAMPAIGN = 'skip'
+const BARE_SKIP_CAMPAIGNS = new Set([SKIP_CAMPAIGN, 'event_alumni']) // matched case-insensitively
 
 function InvitePageContent() {
     const searchParams = useSearchParams()
@@ -66,10 +73,11 @@ function InvitePageContent() {
         (inviteCode ? INVITE_CODE_TO_CAMPAIGN_MAP[inviteCode] : undefined) ||
         (utmCampaignParam ? UTM_CAMPAIGN_TO_BADGE_MAP[utmCampaignParam] : undefined)
 
-    // Skip-the-waitlist link: no invite code, ?campaign=skip. The auto-claim
-    // effect below treats it specially (fires even without hasAppAccess) since
-    // awarding the badge IS what grants access.
-    const isSkipCampaign = !inviteCode && campaign?.toLowerCase() === SKIP_CAMPAIGN
+    // Bare card-skip link (no invite code): ?campaign=skip or ?campaign=EVENT_ALUMNI.
+    // The auto-claim effect below treats these specially so a returning logged-in
+    // attendee still gets the badge (the new-signup award in useZeroDev only fires
+    // on registration, never on a returning login).
+    const isSkipCampaign = !inviteCode && !!campaign && BARE_SKIP_CAMPAIGNS.has(campaign.toLowerCase())
 
     const dispatch = useAppDispatch()
     const router = useRouter()
@@ -168,7 +176,7 @@ function InvitePageContent() {
     ])
 
     const handleClaim = () => {
-        const eventTag = inviteCode || (isSkipCampaign ? SKIP_CAMPAIGN : undefined)
+        const eventTag = inviteCode || (isSkipCampaign ? campaign : undefined)
         posthog.capture(ANALYTICS_EVENTS.INVITE_CLAIM_CLICKED, { invite_code: eventTag })
 
         if (inviteCode) {
