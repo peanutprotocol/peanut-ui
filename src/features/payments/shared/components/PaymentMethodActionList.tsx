@@ -59,6 +59,15 @@ export function PaymentMethodActionList({
         methods: ACTION_METHODS,
     })
 
+    // The "Exchange or Wallet" card only does anything when the caller passes an
+    // external-wallet handler (semantic-request flow). The direct-send flow has
+    // no external-wallet path, so without this filter the card renders enabled
+    // but its tap is a silent no-op — a dead button. Only offer it when we can
+    // actually honor it.
+    const visibleMethods = onPayWithExternalWallet
+        ? sortedMethods
+        : sortedMethods.filter((method) => method.id !== 'exchange-or-wallet')
+
     const handleMethodClick = (method: PaymentMethod) => {
         // for all methods, save current url and redirect to setup with add-money as final destination
         // verification will be handled in the add-money flow after login
@@ -87,7 +96,7 @@ export function PaymentMethodActionList({
         <div className="space-y-2">
             {showDivider && <Divider text="or" />}
             <div className="space-y-2">
-                {sortedMethods.map((method) => {
+                {visibleMethods.map((method) => {
                     // does this method's gate require identity verification (badge display only)?
                     const qrMethodNeedsUnlock = ['mercadopago', 'pix'].includes(method.id) && !isQrPayEnabled
                     const bankMethodNeedsUnlock = method.id === 'bank' && !isBankEnabled
