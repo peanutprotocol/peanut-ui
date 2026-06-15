@@ -96,8 +96,11 @@ jest.mock('@/utils/general.utils', () => ({
     formatNumberForDisplay: jest.fn((v: any) => v ?? '0'),
 }))
 
+const mockGetCountryFromAccount = jest.fn(
+    () => ({ iso2: 'US', path: 'us' }) as { iso2: string; path: string } | undefined
+)
 jest.mock('@/utils/bridge.utils', () => ({
-    getCountryFromAccount: jest.fn(() => ({ iso2: 'US', path: 'us' })),
+    getCountryFromAccount: mockGetCountryFromAccount,
     getCountryFromPath: jest.fn(() => ({ iso2: 'US', id: 'US' })),
     getMinimumAmount: jest.fn(() => 1),
     railJurisdictionForBank: jest.fn(() => 'US'),
@@ -482,8 +485,7 @@ describe('GROUP 6: Continue never dead-buttons', () => {
         // getCountryFromAccount can't resolve a country, the handler used to
         // `throw` inside onClick — aborting the router transition with no UI
         // feedback (Sentry: incomplete-app-router-transaction, 6 users/14d).
-        const { getCountryFromAccount } = require('@/utils/bridge.utils')
-        getCountryFromAccount.mockReturnValue(undefined)
+        mockGetCountryFromAccount.mockReturnValue(undefined)
 
         mockUseWallet.mockReturnValue({ spendableBalance: parseUnits('100', 6) })
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
@@ -501,7 +503,7 @@ describe('GROUP 6: Continue never dead-buttons', () => {
             errorMessage: "We couldn't determine this account's country. Please contact support.",
         })
 
-        getCountryFromAccount.mockReturnValue({ iso2: 'US', path: 'us' })
+        mockGetCountryFromAccount.mockReturnValue({ iso2: 'US', path: 'us' })
     })
 
     test('Manteca account routes to the Manteca flow, not the bank branch', () => {
