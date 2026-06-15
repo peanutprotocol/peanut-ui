@@ -71,10 +71,26 @@ import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useLimits } from '@/hooks/useLimits'
 import { isVerifiedForCountry } from '@/utils/regions.utils'
+import PixKeySendView from '@/components/Withdraw/views/PixKeySend.view'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
 export default function MantecaWithdrawFlow() {
+    const searchParams = useSearchParams()
+    // Brazil PIX sends go through the Manteca QR-payment endpoint (send to any
+    // PIX key), not the offramp/withdraw endpoint. Delegate to the lightweight
+    // PIX-key entry, which wraps the key and hands off to /qr-pay. The gate
+    // there (canDo('pay', { provider: 'manteca' })) is broader than the full
+    // Manteca KYC the withdraw flow requires — so PIX-pay-capable users get
+    // through. All Brazil-PIX entry points funnel here, so this is the single
+    // chokepoint that flips the endpoint without touching the AR / bank paths.
+    if (searchParams.get('country') === 'brazil' && searchParams.get('method') === 'pix') {
+        return <PixKeySendView destinationParam={searchParams.get('destination')} />
+    }
+    return <MantecaBankWithdrawFlow />
+}
+
+function MantecaBankWithdrawFlow() {
     const flowId = useId() // Unique ID per flow instance to prevent cache collisions
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>(undefined)
     const [usdAmount, setUsdAmount] = useState<string | undefined>(undefined)
