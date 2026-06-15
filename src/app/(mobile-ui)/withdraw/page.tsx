@@ -273,21 +273,37 @@ export default function WithdrawPage() {
             if (selectedMethod.type === 'crypto') {
                 const queryParams = isFromSendFlow ? `?${methodQueryParam}` : ''
                 router.push(`/withdraw/crypto${queryParams}`)
+            } else if (selectedMethod.type === 'manteca') {
+                // Manteca (AR/BR) accounts route to the Manteca flow. Checked BEFORE
+                // the generic saved-bank-account branch below — that branch targets
+                // the Bridge bank page via getCountryFromAccount and would both
+                // mis-route a Manteca account and throw when its country can't be
+                // resolved. Route directly with method + country params instead.
+                const mantecaMethodParam = selectedMethod.title?.toLowerCase().replace(/\s+/g, '-') || 'bank-transfer'
+                const additionalParams = isFromSendFlow ? `&${methodQueryParam}` : ''
+                router.push(
+                    `/withdraw/manteca?method=${mantecaMethodParam}&country=${selectedMethod.countryPath}${additionalParams}`
+                )
             } else if (selectedBankAccount) {
                 const country = getCountryFromAccount(selectedBankAccount)
                 if (country) {
                     const queryParams = isFromSendFlow ? `?${methodQueryParam}` : ''
                     router.push(withdrawBankUrl(country.path, queryParams))
                 } else {
-                    throw new Error('Failed to get country from bank account')
+                    // Never throw inside the click handler: a synchronous throw aborts
+                    // the router transition with no UI feedback, so the button silently
+                    // dies ("press Continue, nothing happens"). Surface a recoverable
+                    // error and log for observability instead.
+                    console.error('[withdraw] could not resolve country from saved bank account', {
+                        type: selectedBankAccount.type,
+                        countryName: selectedBankAccount.details?.countryName,
+                        countryCode: selectedBankAccount.details?.countryCode,
+                    })
+                    setError({
+                        showError: true,
+                        errorMessage: "We couldn't determine this account's country. Please contact support.",
+                    })
                 }
-            } else if (selectedMethod.type === 'manteca') {
-                // Route directly to Manteca with method and country params
-                const mantecaMethodParam = selectedMethod.title?.toLowerCase().replace(/\s+/g, '-') || 'bank-transfer'
-                const additionalParams = isFromSendFlow ? `&${methodQueryParam}` : ''
-                router.push(
-                    `/withdraw/manteca?method=${mantecaMethodParam}&country=${selectedMethod.countryPath}${additionalParams}`
-                )
             } else if (selectedMethod.type === 'bridge' && selectedMethod.countryPath) {
                 // Bridge countries go to country page for bank account form
                 const queryParams = isFromSendFlow ? `?${methodQueryParam}` : ''
@@ -296,6 +312,18 @@ export default function WithdrawPage() {
                 // Other countries go to their country pages
                 const queryParams = isFromSendFlow ? `?${methodQueryParam}` : ''
                 router.push(withdrawCountryUrl(selectedMethod.countryPath, queryParams))
+            } else {
+                // No branch matched the selected method — surface an error rather
+                // than leaving the user with a silently-dead Continue button.
+                console.error('[withdraw] no route matched for selected method', {
+                    type: selectedMethod.type,
+                    countryPath: selectedMethod.countryPath,
+                    hasBankAccount: !!selectedBankAccount,
+                })
+                setError({
+                    showError: true,
+                    errorMessage: 'Something went wrong setting up your withdrawal. Please contact support.',
+                })
             }
         }
     }
