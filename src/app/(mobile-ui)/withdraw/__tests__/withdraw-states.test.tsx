@@ -248,7 +248,8 @@ function applyDefaults() {
     mockWithdrawFlow.selectedBankAccount = null
 
     mockUseWallet.mockReturnValue({
-        balance: parseUnits('100', 6),
+        // component destructures `spendableBalance` (not `balance`) — CodeRabbit nit
+        spendableBalance: parseUnits('100', 6),
     })
 
     mockUseGetExchangeRate.mockReturnValue({
