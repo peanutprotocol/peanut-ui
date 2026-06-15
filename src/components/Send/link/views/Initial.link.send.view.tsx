@@ -55,7 +55,7 @@ const LinkSendInitialView = () => {
             // clear any previous errors
             setErrorState({ showError: false, errorMessage: '' })
 
-            const { link, pubKey, chainId, contractVersion, depositIdx, txHash, amount, tokenAddress } =
+            const { link, pubKey, chainId, contractVersion, depositIdx, txHash, amount, tokenAddress, preparationId } =
                 await createLink(parseUnits(tokenValue!, PEANUT_WALLET_TOKEN_DECIMALS))
 
             posthog.capture(ANALYTICS_EVENTS.SEND_LINK_CREATED, {
@@ -83,6 +83,7 @@ const LinkSendInitialView = () => {
                         depositIdx,
                         amount,
                         tokenAddress,
+                        preparationId,
                         reference: attachmentOptions?.message,
                         attachment: attachmentOptions?.rawFile,
                         filename: attachmentOptions?.rawFile?.name,

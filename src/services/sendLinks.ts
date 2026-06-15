@@ -24,6 +24,10 @@ type CreateLinkBody = {
     contractVersion?: string
     amount?: bigint
     tokenAddress?: string
+    // Set only for collateral-funded ("mixed") links: the Rain prepare intent
+    // id (`intentId` from useSpendBundle). Lets the backend adopt that intent as
+    // the canonical SEND_LINK instead of creating a duplicate.
+    preparationId?: string
 }
 
 type UpdateLinkBody = {

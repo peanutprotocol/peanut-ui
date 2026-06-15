@@ -75,7 +75,7 @@ export const useCreateLink = () => {
             // Route through sendTransactions with `requiredUsdcAmount` so a Rain
             // collateral withdraw is prepended to the UserOp when the smart
             // account is short. Covers the mixed (smart + collateral) case.
-            const [nextIndex, { receipt }] = await Promise.all([
+            const [nextIndex, { receipt, intentId }] = await Promise.all([
                 getNextDepositIndex(contractVersion),
                 sendTransactions(
                     [
@@ -116,6 +116,10 @@ export const useCreateLink = () => {
                 txHash,
                 amount,
                 tokenAddress,
+                // Present only for collateral-funded ("mixed") links — the Rain
+                // prepare intent id, threaded to /send-links so the backend
+                // adopts it instead of minting a duplicate SEND_LINK.
+                preparationId: intentId,
             }
         },
         [sendTransactions]
