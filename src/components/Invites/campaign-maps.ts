@@ -11,6 +11,7 @@ export const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
     squirrelinvitesyou: 'ARBIVERSE_DEVCONNECT_BA_2025', // temporary: maps to arbiverse until 12pm noon tomorrow
     founderhaus: 'FOUNDER_HOUSE',
     survivor: 'SUPPORT_SURVIVOR',
+    notsoshhh: 'NOT_SO_SHHHH',
 }
 
 // Map inbound `utm_campaign` values to the badge codes the backend whitelists.
