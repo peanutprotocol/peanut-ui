@@ -269,6 +269,10 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockSearchParams.clear()
     applyDefaults()
+    // clearAllMocks() resets call history but not implementations, so restore
+    // the default country resolution here — tests that override it (GROUP 6)
+    // then don't leak into later tests regardless of order or early failure.
+    mockGetCountryFromAccount.mockReturnValue({ iso2: 'US', path: 'us' })
 })
 
 // ============================================================
@@ -502,8 +506,6 @@ describe('GROUP 6: Continue never dead-buttons', () => {
             showError: true,
             errorMessage: "We couldn't determine this account's country. Please contact support.",
         })
-
-        mockGetCountryFromAccount.mockReturnValue({ iso2: 'US', path: 'us' })
     })
 
     test('Manteca account routes to the Manteca flow, not the bank branch', () => {
