@@ -8,7 +8,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { isPixEmvcoQr, isPixPhoneNumber, normalizePixPhoneNumber, validatePixKey } from '@/utils/withdraw.utils'
+import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdraw.utils'
 import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
 
 /**
@@ -57,15 +57,7 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
                             value={pixKey}
                             placeholder="PIX Key (Include +55 in case of phone number)"
                             onUpdate={(update) => {
-                                // Auto-normalize: strip whitespace and normalize phone numbers
-                                let normalized = update.value
-                                normalized = isPixEmvcoQr(normalized.trim())
-                                    ? normalized.trim()
-                                    : normalized.replace(/\s/g, '')
-                                if (isPixPhoneNumber(normalized)) {
-                                    normalized = normalizePixPhoneNumber(normalized)
-                                }
-                                setPixKey(normalized)
+                                setPixKey(normalizePixInput(update.value))
                                 setIsValid(update.isValid)
                                 setIsChanging(update.isChanging)
                                 if (update.isValid || update.value === '') {

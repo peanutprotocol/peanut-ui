@@ -3,6 +3,7 @@ import {
     isPixPhoneNumber,
     normalizePixPhoneNumber,
     isPixEmvcoQr,
+    normalizePixInput,
     validatePixKey,
 } from '@/utils/withdraw.utils'
 
@@ -278,10 +279,9 @@ describe('Withdraw Utilities', () => {
         })
 
         describe('Pasted values with whitespace (stripped before validation)', () => {
-            // The withdraw page strips all whitespace from non-QR PIX keys before validation.
+            // PIX-key inputs strip all whitespace from non-QR keys before validation.
             // EMVCo QR codes only get trimmed (internal whitespace is preserved).
-            const normalizePixInput = (value: string) =>
-                isPixEmvcoQr(value.trim()) ? value.trim() : value.replace(/\s/g, '')
+            // Exercises the shared normalizePixInput used by every PIX-key entry.
 
             it.each([
                 { raw: ' +5511999999999 ', desc: 'phone with leading/trailing spaces' },

@@ -23,13 +23,7 @@ import { countryData } from '@/components/AddMoney/consts'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Image from 'next/image'
 import { formatAmount, formatNumberForDisplay } from '@/utils/general.utils'
-import {
-    validateCbuCvuAlias,
-    validatePixKey,
-    normalizePixPhoneNumber,
-    isPixPhoneNumber,
-    isPixEmvcoQr,
-} from '@/utils/withdraw.utils'
+import { validateCbuCvuAlias, validatePixKey, normalizePixInput, isPixEmvcoQr } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import AmountInput from '@/components/Global/AmountInput'
 import { formatUnits, parseUnits } from 'viem'
@@ -785,15 +779,8 @@ function MantecaBankWithdrawFlow() {
                                 placeholder={countryConfig!.accountNumberLabel}
                                 onUpdate={(update) => {
                                     // Auto-normalize PIX keys for Brazil: strip whitespace and normalize phone numbers
-                                    let normalizedValue = update.value
-                                    if (countryPath === 'brazil') {
-                                        normalizedValue = isPixEmvcoQr(normalizedValue.trim())
-                                            ? normalizedValue.trim()
-                                            : normalizedValue.replace(/\s/g, '')
-                                        if (isPixPhoneNumber(normalizedValue)) {
-                                            normalizedValue = normalizePixPhoneNumber(normalizedValue)
-                                        }
-                                    }
+                                    const normalizedValue =
+                                        countryPath === 'brazil' ? normalizePixInput(update.value) : update.value
                                     setDestinationAddress(normalizedValue)
                                     setIsDestinationAddressValid(update.isValid)
                                     setIsDestinationAddressChanging(update.isChanging)
