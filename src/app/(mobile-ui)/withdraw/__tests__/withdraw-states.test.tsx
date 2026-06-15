@@ -472,3 +472,51 @@ describe('GROUP 5: Navigation', () => {
         expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(null)
     })
 })
+
+// ============================================================
+// GROUP 6: Continue must never silently die (regression)
+// ============================================================
+describe('GROUP 6: Continue never dead-buttons', () => {
+    test('Unresolved bank-account country shows an error instead of throwing (dead button)', () => {
+        // Regression for the "press Continue, nothing happens" report: when
+        // getCountryFromAccount can't resolve a country, the handler used to
+        // `throw` inside onClick — aborting the router transition with no UI
+        // feedback (Sentry: incomplete-app-router-transaction, 6 users/14d).
+        const { getCountryFromAccount } = require('@/utils/bridge.utils')
+        getCountryFromAccount.mockReturnValue(undefined)
+
+        mockUseWallet.mockReturnValue({ spendableBalance: parseUnits('100', 6) })
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
+        mockWithdrawFlow.selectedBankAccount = { type: 'iban', details: { countryName: '', countryCode: '' } }
+        mockWithdrawFlow.amountToWithdraw = '50'
+
+        renderWithdraw()
+
+        // Pressing Continue must NOT throw and must NOT navigate...
+        expect(() => fireEvent.click(screen.getByText('Continue'))).not.toThrow()
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        // ...it surfaces a recoverable error instead.
+        expect(mockSetError).toHaveBeenCalledWith({
+            showError: true,
+            errorMessage: "We couldn't determine this account's country. Please contact support.",
+        })
+
+        getCountryFromAccount.mockReturnValue({ iso2: 'US', path: 'us' })
+    })
+
+    test('Manteca account routes to the Manteca flow, not the bank branch', () => {
+        // Manteca (AR/BR) accounts set selectedBankAccount too; the manteca
+        // method check must win over the generic bank branch so they reach
+        // /withdraw/manteca rather than the Bridge bank page (or the throw).
+        mockUseWallet.mockReturnValue({ spendableBalance: parseUnits('100', 6) })
+        mockWithdrawFlow.selectedMethod = { type: 'manteca', countryPath: 'argentina', title: 'Bank Transfer' }
+        mockWithdrawFlow.selectedBankAccount = { type: 'manteca', details: { countryName: 'argentina' } }
+        mockWithdrawFlow.amountToWithdraw = '50'
+
+        renderWithdraw()
+
+        fireEvent.click(screen.getByText('Continue'))
+        expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('/withdraw/manteca'))
+        expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('country=argentina'))
+    })
+})
