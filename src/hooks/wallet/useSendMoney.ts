@@ -6,7 +6,7 @@ import { TRANSACTIONS, BALANCE_DECREASE, SEND_MONEY } from '@/constants/query.co
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useBalance } from './useBalance'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '../useRainCardOverview'
-import { rainSpendingPowerToWei } from '@/utils/balance.utils'
+import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
 import type { RainCollateralKind } from '@/services/rain'
 import {
     InsufficientSpendableError,
@@ -74,7 +74,7 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
                 requiredUsdcAmount: amountToSend,
                 recipient: toAddress,
                 smartBalance: smartBalance ?? 0n,
-                rainSpendingPower: rainSpendingPowerToWei(overview?.balance?.spendingPower),
+                rainSpendingPower: rainCentsToUsdcUnits(overview?.balance?.spendingPower),
                 kind,
                 chargeId,
                 onStrategyDecided,

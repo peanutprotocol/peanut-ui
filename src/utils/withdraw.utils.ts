@@ -229,6 +229,16 @@ export const isPixEmvcoQr = (pixKey: string): boolean => {
 }
 
 /**
+ * Normalizes a raw PIX key as the user types: keep an EMVCo QR verbatim,
+ * otherwise strip whitespace and canonicalize a phone number to its +55 form.
+ * Shared by every PIX-key input so they can't drift.
+ */
+export const normalizePixInput = (value: string): string => {
+    const normalized = isPixEmvcoQr(value.trim()) ? value.trim() : value.replace(/\s/g, '')
+    return isPixPhoneNumber(normalized) ? normalizePixPhoneNumber(normalized) : normalized
+}
+
+/**
  * Validates a PIX key based on Brazilian Central Bank standards
  * Supports: Phone, CPF, CNPJ, Email, Random Key (UUID), and EMVCo QR Code
  * @param pixKey - The PIX key to validate

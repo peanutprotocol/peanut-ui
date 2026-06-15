@@ -20,6 +20,7 @@ export const CHAIN_LOGOS = {
 export const TOKEN_LOGOS = {
     USDT: 'https://assets.coingecko.com/coins/images/325/standard/Tether.png?1696501661',
     USDC: 'https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png',
+    ETH: 'https://assets.coingecko.com/coins/images/279/standard/ethereum.png?1696501628',
 } as const
 
 export type ChainName = keyof typeof CHAIN_LOGOS
@@ -67,15 +68,27 @@ export const NETWORK_LOGOS: Record<RhinoChainType, string> = {
     TRON: CHAIN_LOGOS.TRON,
 }
 
-/** returns supported tokens for a given chain type (TRON has no USDC) */
-export const getSupportedTokens = (network: RhinoChainType) =>
-    RHINO_SUPPORTED_TOKENS.filter((token) => (network === 'TRON' ? token.name !== 'USDC' : true))
+/**
+ * Tokens we advertise per chain type — mirrors Rhino's live SDA config
+ * (`depositAddresses.getSupportedConfigs()`). A token sent to an SDA that
+ * Rhino doesn't accept on that chain is silently lost (no webhook, no
+ * intent), so never list a token here without confirming Rhino accepts it.
+ * ETH is EVM-only; TRON is USDT-only (no USDC on Tron).
+ */
+const SUPPORTED_TOKENS_BY_NETWORK: Record<RhinoChainType, TokenName[]> = {
+    EVM: ['USDT', 'USDC', 'ETH'],
+    SOL: ['USDT', 'USDC'],
+    TRON: ['USDT'],
+}
 
-/** Rhino-supported tokens with their logos */
-export const RHINO_SUPPORTED_TOKENS = (Object.keys(TOKEN_LOGOS) as TokenName[]).map((name) => ({
-    name,
-    logoUrl: TOKEN_LOGOS[name],
-}))
+/** returns supported tokens (with logos) for a given chain type */
+export const getSupportedTokens = (network: RhinoChainType): Array<{ name: TokenName; logoUrl: string }> =>
+    SUPPORTED_TOKENS_BY_NETWORK[network].map((name) => ({ name, logoUrl: TOKEN_LOGOS[name] }))
+
+/** Union of every token advertised on at least one network (with logos) — for generic "supported tokens" surfaces */
+export const RHINO_SUPPORTED_TOKENS = (Object.keys(TOKEN_LOGOS) as TokenName[])
+    .filter((name) => Object.values(SUPPORTED_TOKENS_BY_NETWORK).some((tokens) => tokens.includes(name)))
+    .map((name) => ({ name, logoUrl: TOKEN_LOGOS[name] }))
 
 /**
  * EVM numeric chainId → Rhino chain-name mapping. Source of truth: Rhino's

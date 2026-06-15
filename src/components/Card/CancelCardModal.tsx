@@ -12,7 +12,7 @@ import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRa
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { rainSpendingPowerToWei } from '@/utils/balance.utils'
+import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
 
 type Phase = 'confirm' | 'canceling' | 'feedback' | 'submitting-feedback' | 'thanks'
 
@@ -60,18 +60,18 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
             // Cancel can be terminal on Rain's side (collateral contract may
             // become unreachable), so we MUST drain it BEFORE the cancel.
             // Backend enforces order — this just delivers the signed body.
-            const spendingPowerWei = rainSpendingPowerToWei(overview?.balance?.spendingPower)
+            const spendingPowerUnits = rainCentsToUsdcUnits(overview?.balance?.spendingPower)
             let verifiedWithdrawal: import('@/hooks/wallet/useSignSpendBundle').SignedRainWithdrawal | undefined
-            if (spendingPowerWei > 0n) {
+            if (spendingPowerUnits > 0n) {
                 if (!smartWalletAddress) {
                     throw new Error('Wallet not ready — please retry in a moment')
                 }
                 // Force collateral-only routing — same pattern as LockCardModal.
                 const artifact = await signSpend({
-                    requiredUsdcAmount: spendingPowerWei,
+                    requiredUsdcAmount: spendingPowerUnits,
                     recipient: smartWalletAddress as `0x${string}`,
                     smartBalance: 0n,
-                    rainSpendingPower: spendingPowerWei,
+                    rainSpendingPower: spendingPowerUnits,
                     kind: 'CRYPTO_WITHDRAW',
                 })
                 if (artifact.strategy !== 'collateral-only') {

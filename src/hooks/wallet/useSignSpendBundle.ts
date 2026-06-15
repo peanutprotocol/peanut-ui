@@ -23,7 +23,7 @@ import {
     SessionKeyGrantRequiredError,
     type SpendStrategy,
 } from './useSpendBundle'
-import { usdcWeiToRainCents } from '@/utils/balance.utils'
+import { usdcUnitsToRainCents } from '@/utils/balance.utils'
 
 /**
  * Wire payload for a Rain withdrawal that the backend will broadcast (via
@@ -188,7 +188,7 @@ export const useSignSpendBundle = () => {
             // the user's session-key UserOp (1 tap total).
             if (strategy === 'collateral-only') {
                 const prep = await rainApi.prepareWithdrawal({
-                    amount: usdcWeiToRainCents(requiredUsdcAmount).toString(),
+                    amount: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                     recipientAddress: recipient,
                     directTransfer: true,
                     kind,
@@ -240,13 +240,13 @@ export const useSignSpendBundle = () => {
 
             const shortfall = requiredUsdcAmount - smartBalance
             const prep = await rainApi.prepareWithdrawal({
-                amount: usdcWeiToRainCents(shortfall).toString(),
+                amount: usdcUnitsToRainCents(shortfall).toString(),
                 // directTransfer=false sends tokens to the admin (kernel). Same
                 // semantics as broadcasting useSpendBundle.spend's mixed path.
                 recipientAddress: adminAddress,
                 directTransfer: false,
                 kind,
-                totalAmountCents: usdcWeiToRainCents(requiredUsdcAmount).toString(),
+                totalAmountCents: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
             })
 
             const adminSignature = (await kernelAccount.signTypedData({

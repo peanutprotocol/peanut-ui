@@ -18,10 +18,11 @@ import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
 import AmountInput from '@/components/Global/AmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
+import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
 import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
-import { rainSpendingPowerToWei } from '@/utils/balance.utils'
+import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
 import { isTxReverted, saveRedirectUrl, formatNumberForDisplay } from '@/utils/general.utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
 import {
@@ -53,7 +54,8 @@ import ActionModal from '@/components/Global/ActionModal'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
-import { PeanutGuyGIF, STAR_STRAIGHT_ICON } from '@/assets'
+import { PeanutThinking } from '@/assets/mascot'
+import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import { useAuth } from '@/context/authContext'
 import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
@@ -76,6 +78,15 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 const MIN_QR_PAYMENT_AMOUNT = '0.1'
 
+// Deterministic provider rejections — retrying the payment-lock query can't
+// change the outcome, so fail fast instead of burning the 3-attempt budget.
+const NON_RETRYABLE_QR_PAY_ERRORS = ['PAYMENT_DESTINATION_DECODING_ERROR', 'PIX_MIN_AMOUNT']
+
+// Shown wherever the backend rejects a Pix payment below the rail minimum
+// (typed 400 PIX_MIN_AMOUNT — fires at lock-init for merchant-encoded amounts
+// and at re-init for user-entered amounts on open-amount QRs).
+const PIX_MIN_AMOUNT_ERROR_MESSAGE = `This Pix charge is below the ${MIN_PIX_AMOUNT_BRL} BRL minimum for Pix payments.`
+
 type PaymentProcessor = 'MANTECA'
 
 export default function QRPayPage() {
@@ -89,6 +100,7 @@ export default function QRPayPage() {
     const qrType = searchParams.get('type')
     const { spendableBalance: balance, sendMoney } = useWallet()
     const { signSpend } = useSignSpendBundle()
+    const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
     const [isSuccess, setIsSuccess] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -489,7 +501,7 @@ export default function QRPayPage() {
             !shouldBlockPay,
         retry: (failureCount, error: any) => {
             // Don't retry provider-specific errors
-            if (error?.message?.includes('PAYMENT_DESTINATION_DECODING_ERROR')) {
+            if (NON_RETRYABLE_QR_PAY_ERRORS.some((code) => error?.message?.includes(code))) {
                 return false
             }
             // Retry network/timeout errors up to 2 times (3 total attempts)
@@ -533,6 +545,11 @@ export default function QRPayPage() {
                 )
                 posthog.capture(ANALYTICS_EVENTS.QR_DECODING_ERROR_SHOWN, { qr_type: qrType })
                 setWaitingForMerchantAmount(false)
+            } else if (error.message.includes('PIX_MIN_AMOUNT')) {
+                // Deterministic rejection — the merchant-encoded amount is below
+                // the rail minimum, so there's no merchant amount to wait for.
+                setWaitingForMerchantAmount(false)
+                setErrorInitiatingPayment(PIX_MIN_AMOUNT_ERROR_MESSAGE)
             } else {
                 // Network/timeout errors after all retries exhausted
                 setErrorInitiatingPayment(
@@ -571,8 +588,14 @@ export default function QRPayPage() {
                 })
                 setPaymentLock(finalPaymentLock)
             } catch (error) {
-                captureException(error)
-                setErrorMessage('Could not initiate payment due to unexpected error. Please contact support')
+                if (error instanceof Error && error.message.includes('PIX_MIN_AMOUNT')) {
+                    // Deterministic rejection (user-entered amount below the rail
+                    // minimum) — actionable copy, not a Sentry-worthy surprise.
+                    setErrorMessage(PIX_MIN_AMOUNT_ERROR_MESSAGE)
+                } else {
+                    captureException(error)
+                    setErrorMessage('Could not initiate payment due to unexpected error. Please contact support')
+                }
                 setIsSuccess(false)
                 setLoadingState('Idle')
                 return
@@ -600,7 +623,7 @@ export default function QRPayPage() {
                 requiredUsdcAmount,
                 recipient: MANTECA_DEPOSIT_ADDRESS,
                 smartBalance: balance ?? 0n,
-                rainSpendingPower: rainSpendingPowerToWei(rainCardOverview?.balance?.spendingPower),
+                rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                 kind: 'QR_PAY',
             })
         } catch (error) {
@@ -681,6 +704,9 @@ export default function QRPayPage() {
                 clearTimeout(payingStateTimerRef.current)
                 payingStateTimerRef.current = null
             }
+            // Wrong-passkey session: backend rejected the signed UserOp with
+            // AA24 / wapk. Unrecoverable without re-auth — force a clean logout.
+            if (handleStaleSession(error)) return
             captureException(error)
             const errorMsg = (error as Error).message || 'Could not complete payment'
 
@@ -704,7 +730,17 @@ export default function QRPayPage() {
         } finally {
             setLoadingState('Idle')
         }
-    }, [paymentLock, signSpend, balance, rainCardOverview, qrCode, currencyAmount, setLoadingState, qrType])
+    }, [
+        paymentLock,
+        signSpend,
+        balance,
+        rainCardOverview,
+        qrCode,
+        currencyAmount,
+        setLoadingState,
+        qrType,
+        handleStaleSession,
+    ])
 
     const payQR = useCallback(async () => {
         if (paymentProcessor === 'MANTECA') {
@@ -1560,7 +1596,8 @@ const QrPayPageLoading = ({ message }: { message: string }) => {
         <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
             <div className="relative">
                 <Image
-                    src={PeanutGuyGIF}
+                    src={PeanutThinking}
+                    unoptimized
                     alt="Peanut Man"
                     layout="fill"
                     objectFit="contain"

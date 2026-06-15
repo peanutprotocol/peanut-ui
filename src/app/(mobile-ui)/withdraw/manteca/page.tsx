@@ -2,9 +2,10 @@
 
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
+import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
 import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
-import { rainSpendingPowerToWei } from '@/utils/balance.utils'
+import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -22,13 +23,7 @@ import { countryData } from '@/components/AddMoney/consts'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Image from 'next/image'
 import { formatAmount, formatNumberForDisplay } from '@/utils/general.utils'
-import {
-    validateCbuCvuAlias,
-    validatePixKey,
-    normalizePixPhoneNumber,
-    isPixPhoneNumber,
-    isPixEmvcoQr,
-} from '@/utils/withdraw.utils'
+import { validateCbuCvuAlias, validatePixKey, normalizePixInput, isPixEmvcoQr } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import AmountInput from '@/components/Global/AmountInput'
 import { formatUnits, parseUnits } from 'viem'
@@ -70,10 +65,26 @@ import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useLimits } from '@/hooks/useLimits'
 import { isVerifiedForCountry } from '@/utils/regions.utils'
+import PixKeySendView from '@/components/Withdraw/views/PixKeySend.view'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
 export default function MantecaWithdrawFlow() {
+    const searchParams = useSearchParams()
+    // Brazil PIX sends go through the Manteca QR-payment endpoint (send to any
+    // PIX key), not the offramp/withdraw endpoint. Delegate to the lightweight
+    // PIX-key entry, which wraps the key and hands off to /qr-pay. The gate
+    // there (canDo('pay', { provider: 'manteca' })) is broader than the full
+    // Manteca KYC the withdraw flow requires — so PIX-pay-capable users get
+    // through. All Brazil-PIX entry points funnel here, so this is the single
+    // chokepoint that flips the endpoint without touching the AR / bank paths.
+    if (searchParams.get('country') === 'brazil' && searchParams.get('method') === 'pix') {
+        return <PixKeySendView destinationParam={searchParams.get('destination')} />
+    }
+    return <MantecaBankWithdrawFlow />
+}
+
+function MantecaBankWithdrawFlow() {
     const flowId = useId() // Unique ID per flow instance to prevent cache collisions
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>(undefined)
     const [usdAmount, setUsdAmount] = useState<string | undefined>(undefined)
@@ -96,6 +107,7 @@ export default function MantecaWithdrawFlow() {
     const router = useRouter()
     const { spendableBalance: balance, balance: smartBalance } = useWallet()
     const { signSpend } = useSignSpendBundle()
+    const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
@@ -341,7 +353,7 @@ export default function MantecaWithdrawFlow() {
                     requiredUsdcAmount,
                     recipient: MANTECA_DEPOSIT_ADDRESS,
                     smartBalance: smartBalance ?? 0n,
-                    rainSpendingPower: rainSpendingPowerToWei(rainCardOverview?.balance?.spendingPower),
+                    rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                     kind: 'FIAT_OFFRAMP',
                 })
             } catch (error) {
@@ -410,6 +422,10 @@ export default function MantecaWithdrawFlow() {
                     error_message: result.error,
                 })
 
+                // Wrong-passkey session: backend rejected the signed UserOp with
+                // AA24 / wapk. Unrecoverable without re-auth — force a clean logout.
+                if (handleStaleSession(result.message ?? result.error)) return
+
                 // handle onboarding-incomplete errors by redirecting to complete profile
                 if (await handleOnboardingError(result.message ?? result.error)) return
 
@@ -433,6 +449,7 @@ export default function MantecaWithdrawFlow() {
             })
         } catch (error) {
             console.error('Manteca withdraw error:', error)
+            if (handleStaleSession(error)) return
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
                 method_type: 'manteca',
                 error_message: 'Withdraw failed unexpectedly',
@@ -762,15 +779,8 @@ export default function MantecaWithdrawFlow() {
                                 placeholder={countryConfig!.accountNumberLabel}
                                 onUpdate={(update) => {
                                     // Auto-normalize PIX keys for Brazil: strip whitespace and normalize phone numbers
-                                    let normalizedValue = update.value
-                                    if (countryPath === 'brazil') {
-                                        normalizedValue = isPixEmvcoQr(normalizedValue.trim())
-                                            ? normalizedValue.trim()
-                                            : normalizedValue.replace(/\s/g, '')
-                                        if (isPixPhoneNumber(normalizedValue)) {
-                                            normalizedValue = normalizePixPhoneNumber(normalizedValue)
-                                        }
-                                    }
+                                    const normalizedValue =
+                                        countryPath === 'brazil' ? normalizePixInput(update.value) : update.value
                                     setDestinationAddress(normalizedValue)
                                     setIsDestinationAddressValid(update.isValid)
                                     setIsDestinationAddressChanging(update.isChanging)

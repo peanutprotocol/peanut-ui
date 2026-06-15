@@ -48,6 +48,25 @@ describe('ErrorHandler', () => {
         })
     })
 
+    describe('WebAuthn NotAllowedError (passkey ceremony refused)', () => {
+        test('maps the verbatim iOS Safari message to retry/unlock guidance', () => {
+            // Verbatim DOMException message from prod (user ariel, 2026-06-06,
+            // TASK-20000): 1Password as iOS credential provider wedged and
+            // refused every signing assertion. Previously fell through to the
+            // generic "contact support" fallback even though a retry after
+            // unlocking the provider (or rebooting) succeeds.
+            const webAuthnRefused = Object.assign(
+                new Error(
+                    'The request is not allowed by the user agent or the platform in the current context, possibly because the user denied permission.'
+                ),
+                { name: 'NotAllowedError' }
+            )
+            expect(ErrorHandler(webAuthnRefused)).toBe(
+                "Your device didn't complete the passkey confirmation. Try again — if it keeps failing, unlock your password manager (e.g. 1Password) or restart your device."
+            )
+        })
+    })
+
     test('unknown errors still fall through to the support fallback', () => {
         expect(ErrorHandler(new Error('something nobody mapped'))).toBe(
             'There was an issue with your request. Please contact support.'

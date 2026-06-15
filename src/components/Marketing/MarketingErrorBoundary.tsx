@@ -1,6 +1,7 @@
 'use client'
 
 import { Component, type ReactNode } from 'react'
+import { recoverFromChunkError } from '@/utils/chunk-error-recovery'
 
 interface Props {
     children: ReactNode
@@ -23,6 +24,9 @@ export class MarketingErrorBoundary extends Component<Props, State> {
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
         console.error('MDX rendering error:', error, errorInfo)
+        // The fallback says "try refreshing" — do it for them when the cause
+        // is a failed chunk (one-time, sessionStorage-guarded).
+        recoverFromChunkError(error)
     }
 
     render() {

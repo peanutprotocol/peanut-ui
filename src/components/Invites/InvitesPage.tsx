@@ -5,7 +5,7 @@ import ValidationErrorView from '../Payment/Views/Error.validation.view'
 import InvitesPageLayout from './InvitesPageLayout'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '@/components/0_Bruddle/Button'
-import peanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
+import { PeanutWavingHello } from '@/assets/mascot'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { invitesApi } from '@/services/invites'
 import { useQuery } from '@tanstack/react-query'
@@ -19,41 +19,7 @@ import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { profileUrl } from '@/utils/native-routes'
-
-// mapping of special invite codes to their campaign tags
-// when these invite codes are used, the corresponding campaign tag is automatically applied
-const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
-    arbiverseinvitesyou: 'ARBIVERSE_DEVCONNECT_BA_2025',
-    squirrelinvitesyou: 'ARBIVERSE_DEVCONNECT_BA_2025', // temporary: maps to arbiverse until 12pm noon tomorrow
-    founderhaus: 'FOUNDER_HOUSE',
-    alumni: 'EVENT_ALUMNI',
-    touched_grass: 'TOUCHED_GRASS',
-    survivor: 'SUPPORT_SURVIVOR',
-}
-
-// Map inbound `utm_campaign` values to the badge codes the backend whitelists.
-// Lets marketing/event links use a single UTM-shaped URL — PostHog auto-captures
-// utm_* on $pageview so the same string also flows into the analytics funnel.
-// Backend whitelist lives in peanut-api-ts/src/routes/badge.ts + invite.ts; keep
-// in sync when adding a new entry here.
-const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
-    'token-nation-2026': 'TOKEN_NATION_SP_2026',
-    ethfloripa: 'ETHFLORIPA_HUB',
-    alumni: 'EVENT_ALUMNI',
-    'touched-grass': 'TOUCHED_GRASS',
-}
-
-// Campaigns claimable from a bare ?campaign= link with NO invite code. The
-// auto-claim effect below fires for these even for an already-logged-in user.
-// - `skip`: the backend /badge/award flips hasAppAccess + cardFlowEarlyAccessAt
-//   and adds the Skip Pass badge (also in SKIP_BADGE_CODES) — awarding it IS what
-//   grants access, so it fires even without hasAppAccess.
-// - `EVENT_ALUMNI`: event-reactivation mailer. Only awards its badge (in
-//   SKIP_BADGE_CODES → skips the card waitlist); it does not grant app access.
-//   Listed here so returning attendees — who already have accounts — claim on a
-//   logged-in visit. (useZeroDev's award only fires on new-account registration.)
-const SKIP_CAMPAIGN = 'skip'
-const BARE_SKIP_CAMPAIGNS = new Set([SKIP_CAMPAIGN, 'event_alumni']) // matched case-insensitively
+import { INVITE_CODE_TO_CAMPAIGN_MAP, UTM_CAMPAIGN_TO_BADGE_MAP, classifyBareCampaign } from './campaign-maps'
 
 function InvitePageContent() {
     const searchParams = useSearchParams()
@@ -73,11 +39,13 @@ function InvitePageContent() {
         (inviteCode ? INVITE_CODE_TO_CAMPAIGN_MAP[inviteCode] : undefined) ||
         (utmCampaignParam ? UTM_CAMPAIGN_TO_BADGE_MAP[utmCampaignParam] : undefined)
 
-    // Bare card-skip link (no invite code): ?campaign=skip or ?campaign=EVENT_ALUMNI.
-    // The auto-claim effect below treats these specially so a returning logged-in
-    // attendee still gets the badge (the new-signup award in useZeroDev only fires
-    // on registration, never on a returning login).
-    const isSkipCampaign = !inviteCode && !!campaign && BARE_SKIP_CAMPAIGNS.has(campaign.toLowerCase())
+    // Bare campaign link (no invite code) that's claimable without an invite. The
+    // effects below treat these specially so a returning logged-in user still gets
+    // the badge (useZeroDev's award only fires on new-account registration). The
+    // copy distinguishes the two flavours: `isWaitlistSkip` (skip + event_alumni)
+    // promises a card-waitlist skip; vanity badges (touched_grass) are claimable
+    // but show generic copy. See classifyBareCampaign in campaign-maps.ts.
+    const { isBareClaimCampaign, isWaitlistSkip } = classifyBareCampaign(campaign, inviteCode)
 
     const dispatch = useAppDispatch()
     const router = useRouter()
@@ -123,12 +91,15 @@ function InvitePageContent() {
         }
         // a logged-in visitor on either claim path will be auto-routed by the
         // effect below — keep the loading spinner so they don't see the CTA flash.
-        if (user?.user && (isSkipCampaign || (!redirectUri && user.user.hasAppAccess && inviteCodeData?.success))) {
+        if (
+            user?.user &&
+            (isBareClaimCampaign || (!redirectUri && user.user.hasAppAccess && inviteCodeData?.success))
+        ) {
             setShouldShowContent(false)
             return
         }
         setShouldShowContent(true)
-    }, [user, isFetchingUser, redirectUri, inviteCodeData, isLoading, isSkipCampaign, inviteCode])
+    }, [user, isFetchingUser, redirectUri, inviteCodeData, isLoading, isBareClaimCampaign, inviteCode])
 
     // Logged-in auto-claim: award the campaign badge then push /home, or fall
     // back to the inviter's profile when there's a valid invite but no campaign.
@@ -141,7 +112,7 @@ function InvitePageContent() {
 
         const hasValidInvite = !!inviteCodeData?.success && !!inviteCodeData.username
         const isInviteAutoClaim = !redirectUri && user.user.hasAppAccess && hasValidInvite
-        if (!isInviteAutoClaim && !isSkipCampaign) return
+        if (!isInviteAutoClaim && !isBareClaimCampaign) return
 
         hasStartedAwardingRef.current = true
 
@@ -171,12 +142,12 @@ function InvitePageContent() {
         campaign,
         redirectUri,
         fetchUser,
-        isSkipCampaign,
+        isBareClaimCampaign,
         inviteCode,
     ])
 
     const handleClaim = () => {
-        const eventTag = inviteCode || (isSkipCampaign ? campaign : undefined)
+        const eventTag = inviteCode || (isBareClaimCampaign ? campaign : undefined)
         posthog.capture(ANALYTICS_EVENTS.INVITE_CLAIM_CLICKED, { invite_code: eventTag })
 
         if (inviteCode) {
@@ -201,8 +172,9 @@ function InvitePageContent() {
     }
 
     // Invalid invite code (only reachable when an invite code was supplied).
-    // The skip path has no invite code so it never falls here.
-    if (!isSkipCampaign && (isError || !inviteCodeData?.success)) {
+    // Bare-claim campaigns (skip / event_alumni / touched_grass) carry no invite
+    // code, so they bypass this gate and never show the invalid-invite screen.
+    if (!isBareClaimCampaign && (isError || !inviteCodeData?.success)) {
         return (
             <div className="my-auto flex h-[100dvh] w-screen flex-col items-center justify-center space-y-4 px-6">
                 <ValidationErrorView
@@ -215,14 +187,23 @@ function InvitePageContent() {
         )
     }
 
-    const title = isSkipCampaign ? "You're skipping the waitlist" : `${inviteCodeData?.username} invited you to Peanut`
-    const description = isSkipCampaign
+    // Three copy variants: waitlist-skip (skip + event_alumni), bare vanity badge
+    // (touched_grass — claimable but no skip), and the default inviter-code screen.
+    const isVanityClaim = isBareClaimCampaign && !isWaitlistSkip
+    const title = isWaitlistSkip
+        ? "You're skipping the waitlist"
+        : isVanityClaim
+          ? 'Claim your badge'
+          : `${inviteCodeData?.username} invited you to Peanut`
+    const description = isWaitlistSkip
         ? 'Someone at Peanut wants you in. Create your wallet and walk straight past the line — no invite code, no queue.'
-        : 'Members-only access. Use this invite to open your wallet and start sending and receiving money globally.'
-    const ctaLabel = isSkipCampaign ? 'Claim your Skip Pass' : 'Claim your spot'
+        : isVanityClaim
+          ? 'You earned a Peanut badge. Claim it and open your wallet to send and receive money globally.'
+          : 'Members-only access. Use this invite to open your wallet and start sending and receiving money globally.'
+    const ctaLabel = isWaitlistSkip ? 'Claim your Skip Pass' : isVanityClaim ? 'Claim your badge' : 'Claim your spot'
 
     return (
-        <InvitesPageLayout image={peanutAnim.src}>
+        <InvitesPageLayout image={PeanutWavingHello.src}>
             <div
                 className={twMerge(
                     'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',

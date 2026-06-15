@@ -34,17 +34,17 @@ import {
 } from './shareAssetLayout'
 import type { ShareAssetD3Props, TierLevel } from './shareAsset.types'
 import { TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets/badges'
-import { PEANUTMAN_HOLDING_BEER } from '@/assets/peanut'
+import { PEANUTMAN_HOLDING_BEER } from '@/assets/mascot'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
-import { HandThumbsUp, HandThumbsUpV2, Eyes, Sparkle, Cloud, Star } from '@/assets/illustrations'
+import { HandPeace, HandThumbsUp, HandThumbsUpV2, Eyes, Cloud, Star } from '@/assets/illustrations'
 import { PixelatedCardFace } from './PixelatedCardFace'
 
 const ASSET_STAR = STAR_STRAIGHT_ICON.src
 const ASSET_STAR_ALT = Star.src
 const ASSET_HAND_THUMBS = HandThumbsUp.src
 const ASSET_HAND_THUMBS_V2 = HandThumbsUpV2.src
+const ASSET_HAND_PEACE = HandPeace.src
 const ASSET_EYES = Eyes.src
-const ASSET_SPARKLE = Sparkle.src
 const ASSET_CLOUD = Cloud.src
 // The peanut character art style is intentionally legless — the body
 // tapers to a rounded point. Rather than dropping the character, we
@@ -73,11 +73,16 @@ const DECO_ASSET: Record<DecorationPlacement['kind'], string> = {
     starAlt: ASSET_STAR_ALT,
     thumbsUp: ASSET_HAND_THUMBS,
     thumbsUpV2: ASSET_HAND_THUMBS_V2,
+    peace: ASSET_HAND_PEACE,
     eyes: ASSET_EYES,
-    sparkle: ASSET_SPARKLE,
     cloud: ASSET_CLOUD,
     peanutChar: ASSET_PEANUT_CHAR,
 }
+
+// Peanut blue — the brand section colour reused from the prod landing page
+// (LP `businessBgColor` in dropLink.tsx + the global `--background-color`).
+// Replaces the off-brandbook lavender so the asset pops on a timeline.
+const ASSET_BG = '#90A8ED'
 
 const ANIM_CARD_DELAY = 100
 const ANIM_STAMP_BASE_DELAY = 600
@@ -118,7 +123,7 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
             style={{
                 width: CANVAS_W,
                 height: CANVAS_H,
-                background: '#efe4ff',
+                background: ASSET_BG,
                 fontFamily: 'var(--font-roboto), system-ui, sans-serif',
             }}
         >
@@ -426,7 +431,7 @@ const StampEl: FC<StampElProps> = ({ stamp, animate, delay }) => {
                 left: stamp.left,
                 transform: restTransform,
                 zIndex: stamp.behind ? 2 : 4,
-                ['--stamp-bg' as string]: '#efe4ff',
+                ['--stamp-bg' as string]: ASSET_BG,
                 ['--rest-transform' as string]: restTransform,
                 animation: animate ? `stampDrop 700ms cubic-bezier(0.34, 1.56, 0.64, 1) ${delay}ms both` : 'none',
             }}

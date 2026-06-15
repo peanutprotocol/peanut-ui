@@ -43,6 +43,7 @@ export const DEDICATED_ROUTES = [
     'limits',
     'notifications',
     'recover-funds',
+    'card-recovery',
 
     // Public pages (existing)
     'm', // merchant landing pages (/m/[slug]) — added on main; register so the catch-all never treats it as a recipient

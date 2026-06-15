@@ -1,4 +1,4 @@
-import { pixKeyToBRCode } from '@/utils/pix.utils'
+import { pixKeyToBRCode, pixKeyToQrPayUrl } from '@/utils/pix.utils'
 
 jest.mock('@/assets', () => ({}))
 
@@ -89,6 +89,31 @@ describe('PIX Utilities', () => {
                 expect(result).not.toBeNull()
                 expect(result).toContain('user@example.com')
             })
+        })
+    })
+
+    describe('pixKeyToQrPayUrl', () => {
+        it('wraps a valid PIX key into a /qr-pay PIX redirect with the encoded BR Code', () => {
+            const url = pixKeyToQrPayUrl('user@example.com')
+            expect(url).not.toBeNull()
+            expect(url).toMatch(/^\/qr-pay\?qrCode=/)
+            expect(url).toContain('&type=PIX')
+            // The encoded BR Code round-trips back to what pixKeyToBRCode produced.
+            const qrCode = new URLSearchParams(url!.split('?')[1]).get('qrCode')
+            expect(qrCode).toBe(pixKeyToBRCode('user@example.com'))
+        })
+
+        it('passes an existing BR Code through unchanged', () => {
+            const brCode =
+                '00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-4266554400005204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'
+            const url = pixKeyToQrPayUrl(brCode)
+            const qrCode = new URLSearchParams(url!.split('?')[1]).get('qrCode')
+            expect(qrCode).toBe(brCode)
+        })
+
+        it('returns null for an invalid PIX key so callers can surface an error', () => {
+            expect(pixKeyToQrPayUrl('not-a-valid-key')).toBeNull()
+            expect(pixKeyToQrPayUrl('')).toBeNull()
         })
     })
 })

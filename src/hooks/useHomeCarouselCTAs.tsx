@@ -12,7 +12,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { DeviceType, useDeviceType } from './useGetDeviceType'
 import { usePWAStatus } from './usePWAStatus'
 import { useGeoLocation } from './useGeoLocation'
-import { useCardPioneerInfo } from './useCardPioneerInfo'
+import { useCardInfo } from './useCardInfo'
 import { useActivationStatus } from './useActivationStatus'
 import { useTransactionHistory } from './useTransactionHistory'
 import { STAR_STRAIGHT_ICON } from '@/assets'
@@ -99,7 +99,7 @@ export const useHomeCarouselCTAs = () => {
         isEligible: isCardPioneerEligible,
         hasCardAccess: hasCardAccessGranted,
         isLoading: isCardPioneerLoading,
-    } = useCardPioneerInfo()
+    } = useCardInfo()
     const { isActivated } = useActivationStatus()
 
     // Completion signals — used to hide educational CTAs from users who've already

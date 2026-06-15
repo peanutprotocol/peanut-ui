@@ -18,6 +18,7 @@
 import StatusBadge from '../../Global/Badges/StatusBadge'
 import IconStack from '../../Global/IconStack'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
+import { toInviteCode } from '@/utils/general.utils'
 import { type ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
 import { useContext, useMemo, useState } from 'react'
@@ -27,7 +28,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { PEANUT_LOGO_BLACK } from '@/assets/illustrations'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { PEANUTMAN_LOGO } from '@/assets/peanut'
+import { PEANUTMAN_LOGO } from '@/assets/mascot'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { tokenSelectorContext } from '@/context'
@@ -149,7 +150,10 @@ export default function SendLinkActionList({
             case 'mercadopago':
             case 'pix':
                 if (!user) {
-                    addParamStep('regional-claim')
+                    // carry the tapped method in the URL: the auth redirect fully
+                    // remounts the flow, and Initial.view restores it from the
+                    // `method` param when it re-enters via step=regional-claim.
+                    addParamStep('regional-claim', { method: method.id })
                     setShowVerificationModal(true)
                     return
                 }
@@ -177,8 +181,7 @@ export default function SendLinkActionList({
         const redirectUri = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)
         const rawUsername = claimLinkData?.sender?.username
         if (isInviteLink && !userHasAppAccess && rawUsername) {
-            const username = rawUsername.toUpperCase()
-            const inviteCode = `${username}INVITESYOU`
+            const inviteCode = toInviteCode(rawUsername)
             dispatch(setupActions.setInviteCode(inviteCode))
             dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
             router.push(`/invite?code=${inviteCode}&redirect_uri=${redirectUri}`)
