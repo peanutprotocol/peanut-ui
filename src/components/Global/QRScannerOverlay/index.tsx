@@ -14,7 +14,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { BASE_URL } from '@/constants/general.consts'
 import { serverFetch } from '@/utils/api-fetch'
 import { openExternalUrl } from '@/utils/capacitor'
-import { pixKeyToBRCode } from '@/utils/pix.utils'
+import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
 import * as Sentry from '@sentry/nextjs'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
@@ -300,10 +300,9 @@ export default function QRScannerOverlay() {
                 break
             case EQrType.PIX_KEY:
                 {
-                    const brCode = pixKeyToBRCode(data)
-                    if (brCode) {
-                        const timestamp = Date.now()
-                        redirectUrl = `/qr-pay?qrCode=${encodeURIComponent(brCode)}&t=${timestamp}&type=${EQrType.PIX}`
+                    const url = pixKeyToQrPayUrl(data)
+                    if (url) {
+                        redirectUrl = url
                     } else {
                         showModal(EModalType.UNRECOGNIZED)
                         return { success: true }
