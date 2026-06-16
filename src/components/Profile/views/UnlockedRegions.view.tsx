@@ -174,6 +174,11 @@ const UnlockedRegions = () => {
         await handleStartKyc()
     }, [handleStartKyc])
 
+    // ROW (rest-of-world) regions have no provider/rail, so an initiate there is a
+    // terminal "not available in your region yet" — not a transient failure. Only
+    // offer "Try again" for regions that can actually succeed on a retry.
+    const failedRegionRetriable = providerForRegionIntent(activeRegionIntent) !== null
+
     return (
         <div className="flex min-h-[inherit] flex-col space-y-8">
             <NavHeader title="Unlocked regions" onPrev={onBack} titleClassName="text-xl md:text-2xl" />
@@ -289,29 +294,40 @@ const UnlockedRegions = () => {
             <ActionModal
                 visible={!!flow.error && !errorAcknowledged}
                 onClose={() => setErrorAcknowledged(true)}
-                title="Verification couldn't start"
+                title={failedRegionRetriable ? "Verification couldn't start" : 'Not available yet'}
                 description={flow.error || 'Something went wrong. Please try again or contact support.'}
                 icon="alert"
                 iconContainerClassName="bg-yellow-1"
-                ctas={[
-                    {
-                        text: 'Try again',
-                        variant: 'purple',
-                        shadowSize: '4',
-                        disabled: flow.isLoading,
-                        onClick: () => {
-                            void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
-                        },
-                    },
-                    {
-                        text: 'Contact support',
-                        variant: 'stroke',
-                        onClick: () => {
-                            setErrorAcknowledged(true)
-                            setIsSupportModalOpen(true)
-                        },
-                    },
-                ]}
+                ctas={
+                    failedRegionRetriable
+                        ? [
+                              {
+                                  text: 'Try again',
+                                  variant: 'purple',
+                                  shadowSize: '4',
+                                  disabled: flow.isLoading,
+                                  onClick: () => {
+                                      void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
+                                  },
+                              },
+                              {
+                                  text: 'Contact support',
+                                  variant: 'stroke',
+                                  onClick: () => {
+                                      setErrorAcknowledged(true)
+                                      setIsSupportModalOpen(true)
+                                  },
+                              },
+                          ]
+                        : [
+                              {
+                                  text: 'Got it',
+                                  variant: 'purple',
+                                  shadowSize: '4',
+                                  onClick: () => setErrorAcknowledged(true),
+                              },
+                          ]
+                }
             />
 
             <SumsubKycModals flow={flow} autoStartSdk={autoStartSdk} />
