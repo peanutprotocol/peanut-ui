@@ -148,12 +148,10 @@ export const useWallet = () => {
             // the smart account within the same UserOp when the balance is short.
             if (options.requiredUsdcAmount !== undefined) {
                 const rainSpendingPower = rainCentsToUsdcUnits(rainOverview?.balance?.spendingPower)
-                const smartNow = balanceFromQuery ?? 0n
                 const result = await spendBundle({
                     requiredUsdcAmount: options.requiredUsdcAmount,
                     recipient: options.recipient,
                     subsequentCalls: params,
-                    smartBalance: smartNow,
                     rainSpendingPower,
                     kind: options.kind ?? 'OTHER',
                     onStrategyDecided: options.onStrategyDecided,

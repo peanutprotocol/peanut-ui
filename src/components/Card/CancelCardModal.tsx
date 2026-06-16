@@ -70,7 +70,6 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                 const artifact = await signSpend({
                     requiredUsdcAmount: spendingPowerUnits,
                     recipient: smartWalletAddress as `0x${string}`,
-                    smartBalance: 0n,
                     rainSpendingPower: spendingPowerUnits,
                     kind: 'CRYPTO_WITHDRAW',
                 })
