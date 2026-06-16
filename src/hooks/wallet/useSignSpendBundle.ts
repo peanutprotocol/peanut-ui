@@ -19,6 +19,7 @@ import { useGrantSessionKey, type GrantSessionKeyError } from './useGrantSession
 import { useSignUserOp, type SignedUserOpData } from './useSignUserOp'
 import {
     computeSpendStrategy,
+    fetchLiveSmartUsdcBalance,
     InsufficientSpendableError,
     SessionKeyGrantRequiredError,
     type SpendStrategy,
@@ -69,8 +70,6 @@ export interface SignSpendBundleInput {
     requiredUsdcAmount: bigint
     /** Final recipient — required (Manteca-style flows always have a fixed destination). */
     recipient: Address
-    /** Smart-account USDC balance right now, in token smallest units. */
-    smartBalance: bigint
     /** Rain collateral `spendingPower` right now, in token smallest units. */
     rainSpendingPower: bigint
     /** User-semantic category of this spend (QR_PAY, FIAT_OFFRAMP, …).
@@ -106,15 +105,26 @@ export const useSignSpendBundle = () => {
 
     const signSpend = useCallback(
         async (input: SignSpendBundleInput): Promise<SignedSpendArtifact> => {
-            const {
-                requiredUsdcAmount,
-                recipient,
-                smartBalance,
-                rainSpendingPower,
-                kind,
-                onStrategyDecided,
-                onGrantRequired,
-            } = input
+            const { requiredUsdcAmount, recipient, rainSpendingPower, kind, onStrategyDecided, onGrantRequired } = input
+
+            const chainIdNum = PEANUT_WALLET_CHAIN.id
+            const chainIdStr = chainIdNum.toString()
+
+            // Resolve the kernel account once for all strategies. The non-null
+            // assertion on `client.account` was crash-prone if auth was still
+            // hydrating; do the guard once and reuse `account.address` as the
+            // canonical admin address (rather than re-deriving from useAuth).
+            const kernelClient = getClientForChain(chainIdStr)
+            const kernelAccount = kernelClient.account
+            if (!kernelAccount) {
+                throw new Error('useSignSpendBundle: kernel account not initialized')
+            }
+
+            // Route on the LIVE on-chain balance of the exact account that will
+            // send the UserOp — never a cached value (see fetchLiveSmartUsdcBalance).
+            // A stale, pre-sweep balance routes `smart-only` to an empty account
+            // and reverts on-chain (incident #2230).
+            const smartBalance = await fetchLiveSmartUsdcBalance(kernelAccount.address)
 
             // Manteca-style flows always have a single recipient and no
             // subsequent kernel calls — collateral-only is always eligible.
@@ -136,9 +146,6 @@ export const useSignSpendBundle = () => {
             onStrategyDecided?.(strategy)
             posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, { strategy, kind, flow: 'sign-only' })
 
-            const chainIdNum = PEANUT_WALLET_CHAIN.id
-            const chainIdStr = chainIdNum.toString()
-
             // Pre-flight: any strategy that touches Rain collateral requires
             // the one-time session-key grant. If missing, run the inline grant
             // flow now. Reject when the overview hasn't loaded yet — we can't
@@ -157,16 +164,6 @@ export const useSignSpendBundle = () => {
                         throw new SessionKeyGrantRequiredError(grantResult.error as GrantSessionKeyError)
                     }
                 }
-            }
-
-            // Resolve the kernel account once for all strategies. The non-null
-            // assertion on `client.account` was crash-prone if auth was still
-            // hydrating; do the guard once and reuse `account.address` as the
-            // canonical admin address (rather than re-deriving from useAuth).
-            const kernelClient = getClientForChain(chainIdStr)
-            const kernelAccount = kernelClient.account
-            if (!kernelAccount) {
-                throw new Error('useSignSpendBundle: kernel account not initialized')
             }
 
             // ─── smart-only ─────────────────────────────────────────────────

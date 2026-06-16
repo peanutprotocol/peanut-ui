@@ -24,7 +24,8 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
 }))
 jest.mock('../useGrantSessionKey', () => ({ useGrantSessionKey: jest.fn() }))
 jest.mock('@/services/rain', () => ({ rainApi: {} }))
-jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: {} }))
+const mockReadContract = jest.fn()
+jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: { readContract: mockReadContract } }))
 
 // Mock constants so the module can resolve token decimals during import.
 jest.mock('@/constants/zerodev.consts', () => ({
@@ -40,7 +41,7 @@ jest.mock('@/constants/rain.consts', () => ({
 }))
 
 // eslint-disable-next-line import/first -- mocks must register before import
-import { computeSpendStrategy } from '../useSpendBundle'
+import { computeSpendStrategy, fetchLiveSmartUsdcBalance } from '../useSpendBundle'
 
 describe('computeSpendStrategy', () => {
     const amount = 1000n
@@ -92,5 +93,33 @@ describe('computeSpendStrategy', () => {
         expect(computeSpendStrategy({ smart: amount, rain: 0n, amount, collateralOnlyAllowed: false })).toBe(
             'smart-only'
         )
+    })
+})
+
+describe('fetchLiveSmartUsdcBalance', () => {
+    beforeEach(() => mockReadContract.mockReset())
+
+    // Routing reads this live (not the cached useBalance value) so a smart
+    // account that's been swept empty into collateral can't be mis-routed to
+    // `smart-only` and revert on-chain (incident #2230).
+    it('reads the live on-chain USDC balanceOf the given sender address', async () => {
+        mockReadContract.mockResolvedValue(0n)
+        const sender = '0x959e088a09f61ab01cb83b0ebcc74b2cf6d62053'
+        const balance = await fetchLiveSmartUsdcBalance(sender)
+
+        expect(balance).toBe(0n)
+        expect(mockReadContract).toHaveBeenCalledTimes(1)
+        expect(mockReadContract).toHaveBeenCalledWith(
+            expect.objectContaining({
+                address: '0x1234567890123456789012345678901234567890', // mocked PEANUT_WALLET_TOKEN
+                functionName: 'balanceOf',
+                args: [sender],
+            })
+        )
+    })
+
+    it('returns the on-chain balance unchanged when funds are present', async () => {
+        mockReadContract.mockResolvedValue(5_000_000n)
+        expect(await fetchLiveSmartUsdcBalance('0xabc0000000000000000000000000000000000001')).toBe(5_000_000n)
     })
 })

@@ -622,7 +622,6 @@ export default function QRPayPage() {
             signedArtifact = await signSpend({
                 requiredUsdcAmount,
                 recipient: MANTECA_DEPOSIT_ADDRESS,
-                smartBalance: balance ?? 0n,
                 rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                 kind: 'QR_PAY',
             })
