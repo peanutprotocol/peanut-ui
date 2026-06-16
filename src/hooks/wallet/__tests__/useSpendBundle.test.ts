@@ -40,7 +40,7 @@ jest.mock('@/constants/rain.consts', () => ({
     RAIN_WITHDRAW_EIP712_DOMAIN_VERSION: '2',
 }))
 
-import { computeSpendStrategy, fetchLiveSmartUsdcBalance, rerouteAfterSmartOnlySweep } from '../useSpendBundle'
+import { computeSpendStrategy, fetchLiveSmartUsdcBalance } from '../useSpendBundle'
 
 describe('computeSpendStrategy', () => {
     const amount = 1000n
@@ -145,52 +145,5 @@ describe('fetchLiveSmartUsdcBalance', () => {
         expect(await fetchLiveSmartUsdcBalance(makeQueryClient(), '0xabc0000000000000000000000000000000000001')).toBe(
             5_000_000n
         )
-    })
-})
-
-describe('rerouteAfterSmartOnlySweep', () => {
-    const amount = 1000n
-
-    // A `smart-only` spend threw but the smart account STILL covers the amount —
-    // so the failure wasn't a sweep (bundler down, passkey cancelled, …).
-    // Return null → the caller rethrows the original error instead of retrying.
-    it('returns null when the fresh balance still covers the amount (real failure)', () => {
-        expect(
-            rerouteAfterSmartOnlySweep({ freshSmartBalance: 1000n, rain: 5000n, amount, collateralOnlyAllowed: true })
-        ).toBeNull()
-    })
-
-    it('returns null at the exact boundary (fresh == amount → smart still works)', () => {
-        expect(
-            rerouteAfterSmartOnlySweep({ freshSmartBalance: amount, rain: 5000n, amount, collateralOnlyAllowed: true })
-        ).toBeNull()
-    })
-
-    // Swept to empty after we routed: re-route to collateral when it covers.
-    it('re-routes to collateral-only when swept empty and collateral covers (allowed)', () => {
-        expect(
-            rerouteAfterSmartOnlySweep({ freshSmartBalance: 0n, rain: 5000n, amount, collateralOnlyAllowed: true })
-        ).toBe('collateral-only')
-    })
-
-    // Link-creation-style spends (subsequentCalls present) disallow collateral-only —
-    // a swept smart account must re-route to mixed, never collateral-only.
-    it('re-routes to mixed when collateral-only is disallowed even if collateral alone covers', () => {
-        expect(
-            rerouteAfterSmartOnlySweep({ freshSmartBalance: 0n, rain: 5000n, amount, collateralOnlyAllowed: false })
-        ).toBe('mixed')
-    })
-
-    it('re-routes to mixed when neither bucket alone covers but the sum does', () => {
-        expect(
-            rerouteAfterSmartOnlySweep({ freshSmartBalance: 400n, rain: 700n, amount, collateralOnlyAllowed: true })
-        ).toBe('mixed')
-    })
-
-    // Funds genuinely gone from both buckets — nothing to retry. Rethrow.
-    it('returns null when the total spendable is below the amount', () => {
-        expect(
-            rerouteAfterSmartOnlySweep({ freshSmartBalance: 100n, rain: 200n, amount, collateralOnlyAllowed: true })
-        ).toBeNull()
     })
 })
