@@ -104,9 +104,13 @@ export class SessionKeyGrantRequiredError extends Error {
 
 /**
  * Pure routing helper — decides which bucket(s) a spend will pull from.
- * Priority: collateral → smart → mixed. Collateral-only requires a single
- * recipient AND no subsequent kernel calls (Rain's coordinator transfers
- * tokens directly; nothing follows).
+ * Priority: smart → collateral → mixed. The smart account is spent first
+ * whenever it can cover the whole amount, so a payment never touches the
+ * Rain collateral — and Rain's per-account withdrawal-signature cooldown —
+ * if the user's smart-account USDC already covers it. Collateral is the
+ * fallback (single recipient AND no subsequent kernel calls, since Rain's
+ * coordinator transfers tokens directly with nothing following), and `mixed`
+ * tops up the shortfall from collateral when smart alone can't cover it.
  */
 export function computeSpendStrategy(input: {
     smart: bigint
@@ -114,8 +118,8 @@ export function computeSpendStrategy(input: {
     amount: bigint
     collateralOnlyAllowed: boolean
 }): SpendStrategy {
-    if (input.collateralOnlyAllowed && input.rain >= input.amount) return 'collateral-only'
     if (input.smart >= input.amount) return 'smart-only'
+    if (input.collateralOnlyAllowed && input.rain >= input.amount) return 'collateral-only'
     if (input.smart + input.rain >= input.amount) return 'mixed'
     return 'insufficient'
 }
