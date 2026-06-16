@@ -4,7 +4,7 @@
  * The hook itself orchestrates kernel clients, Rain API calls, and the
  * session-key grant flow — those paths are covered by integration + manual
  * testing on sandbox. These tests lock down the deterministic pieces:
- *   - `computeSpendStrategy` routing (collateral → smart → mixed → insufficient)
+ *   - `computeSpendStrategy` routing (smart → collateral → mixed → insufficient)
  *   - `usdcUnitsToRainCents` amount conversion at the Rain API boundary
  */
 
@@ -45,8 +45,17 @@ import { computeSpendStrategy } from '../useSpendBundle'
 describe('computeSpendStrategy', () => {
     const amount = 1000n
 
-    it('prefers collateral-only when allowed and rain covers the amount', () => {
+    it('prefers smart-only when smart covers the amount, even if collateral-only is allowed', () => {
+        // Smart account is spent first so the payment never touches the Rain
+        // collateral (and its per-account withdrawal-signature cooldown) when
+        // smart-account USDC already covers it.
         expect(computeSpendStrategy({ smart: 5000n, rain: 10_000n, amount, collateralOnlyAllowed: true })).toBe(
+            'smart-only'
+        )
+    })
+
+    it('uses collateral-only when smart cannot cover but collateral can (allowed)', () => {
+        expect(computeSpendStrategy({ smart: 100n, rain: 10_000n, amount, collateralOnlyAllowed: true })).toBe(
             'collateral-only'
         )
     })
