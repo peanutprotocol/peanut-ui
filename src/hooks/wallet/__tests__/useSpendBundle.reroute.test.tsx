@@ -75,7 +75,6 @@ jest.mock('@/app/actions/clients', () => ({
     peanutPublicClient: { readContract: (...args: unknown[]) => mockReadContract(...args) },
 }))
 
-// eslint-disable-next-line import/first -- mocks must register before import
 import { useSpendBundle } from '../useSpendBundle'
 
 const wrapper = ({ children }: { children: ReactNode }) => {

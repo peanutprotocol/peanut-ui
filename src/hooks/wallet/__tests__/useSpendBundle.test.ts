@@ -40,7 +40,6 @@ jest.mock('@/constants/rain.consts', () => ({
     RAIN_WITHDRAW_EIP712_DOMAIN_VERSION: '2',
 }))
 
-// eslint-disable-next-line import/first -- mocks must register before import
 import { computeSpendStrategy, fetchLiveSmartUsdcBalance, rerouteAfterSmartOnlySweep } from '../useSpendBundle'
 
 describe('computeSpendStrategy', () => {
