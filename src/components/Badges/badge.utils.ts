@@ -56,7 +56,7 @@ export const BADGES: Record<string, BadgeMeta> = {
     },
     SEEDLING_DEVCONNECT_BA_2025: {
         path: '/badges/seedlings_devconnect.svg',
-        description: `They shill Peanut so we don't have to. Honorary squirrel.`,
+        description: `You shill Peanut so we don't have to. Honorary squirrel.`,
     },
     ARBIVERSE_DEVCONNECT_BA_2025: {
         path: '/badges/arbiverse_devconnect.svg',
@@ -177,6 +177,14 @@ export const BADGES: Record<string, BadgeMeta> = {
     TOKEN_NATION_SP_2026: {
         path: '/badges/token_nation_2026.svg',
         description: 'São Paulo, baby. They came, they claimed, they tagged the wall.',
+    },
+    TOUCHED_GRASS: {
+        path: '/badges/touched_grass.svg',
+        description: 'You logged off and touched real grass with Peanut.',
+    },
+    EVENT_ALUMNI: {
+        path: '/badges/event_alumni.svg',
+        description: 'Old school. You were in the room before most.',
     },
     ETHFLORIPA_HUB: {
         path: '/badges/ethfloripa_hub.svg',

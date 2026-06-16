@@ -1,5 +1,11 @@
 import { BADGES } from '@/components/Badges/badge.utils'
-import { INVITE_CODE_TO_CAMPAIGN_MAP, UTM_CAMPAIGN_TO_BADGE_MAP } from './campaign-maps'
+import {
+    INVITE_CODE_TO_CAMPAIGN_MAP,
+    UTM_CAMPAIGN_TO_BADGE_MAP,
+    WAITLIST_SKIP_CAMPAIGNS,
+    BARE_VANITY_CAMPAIGNS,
+    classifyBareCampaign,
+} from './campaign-maps'
 
 // Regression guard. The /invite flow resolves an inbound invite code / utm_campaign
 // to one of these badge codes, carries it through signup, and the UI renders
@@ -25,4 +31,47 @@ describe('campaign maps reference real BADGES codes', () => {
             expect(badgeCodes).toContain(code)
         }
     )
+})
+
+describe('classifyBareCampaign', () => {
+    // A bare campaign (no invite code) must be claimable, or /invite dead-ends at
+    // the "Invalid Invite Code" screen. This is the bug that left touched_grass
+    // unclaimable — it was never registered as a bare campaign.
+    it.each([...WAITLIST_SKIP_CAMPAIGNS, ...BARE_VANITY_CAMPAIGNS])(
+        'campaign "%s" is bare-claimable with no invite code',
+        (campaign) => {
+            expect(classifyBareCampaign(campaign, undefined).isBareClaimCampaign).toBe(true)
+        }
+    )
+
+    it('classifies waitlist-skip vs vanity, case-insensitively', () => {
+        // event_alumni skips the card waitlist → skip copy
+        expect(classifyBareCampaign('EVENT_ALUMNI', undefined)).toEqual({
+            isBareClaimCampaign: true,
+            isWaitlistSkip: true,
+        })
+        // touched_grass is a vanity badge → claimable but NOT a waitlist skip
+        expect(classifyBareCampaign('TOUCHED_GRASS', undefined)).toEqual({
+            isBareClaimCampaign: true,
+            isWaitlistSkip: false,
+        })
+    })
+
+    it('only waitlist-skip campaigns promise a card-waitlist skip', () => {
+        for (const c of BARE_VANITY_CAMPAIGNS) {
+            expect(classifyBareCampaign(c, undefined).isWaitlistSkip).toBe(false)
+        }
+    })
+
+    it('an invite code defers to the invite flow (not bare-claimable)', () => {
+        expect(classifyBareCampaign('TOUCHED_GRASS', 'somecode')).toEqual({
+            isBareClaimCampaign: false,
+            isWaitlistSkip: false,
+        })
+    })
+
+    it('an unrelated or missing campaign is not bare-claimable', () => {
+        expect(classifyBareCampaign(undefined, undefined).isBareClaimCampaign).toBe(false)
+        expect(classifyBareCampaign('FOUNDER_HOUSE', undefined).isBareClaimCampaign).toBe(false)
+    })
 })
