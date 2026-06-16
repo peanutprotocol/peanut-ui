@@ -41,7 +41,7 @@ jest.mock('@/constants/rain.consts', () => ({
 }))
 
 // eslint-disable-next-line import/first -- mocks must register before import
-import { computeSpendStrategy, fetchLiveSmartUsdcBalance } from '../useSpendBundle'
+import { computeSpendStrategy, fetchLiveSmartUsdcBalance, rerouteAfterSmartOnlySweep } from '../useSpendBundle'
 
 describe('computeSpendStrategy', () => {
     const amount = 1000n
@@ -99,13 +99,23 @@ describe('computeSpendStrategy', () => {
 describe('fetchLiveSmartUsdcBalance', () => {
     beforeEach(() => mockReadContract.mockReset())
 
-    // Routing reads this live (not the cached useBalance value) so a smart
-    // account that's been swept empty into collateral can't be mis-routed to
-    // `smart-only` and revert on-chain (incident #2230).
-    it('reads the live on-chain USDC balanceOf the given sender address', async () => {
+    // A queryClient stand-in whose fetchQuery just runs the provided queryFn —
+    // exercises the real `smartUsdcBalanceQueryOptions` (the shared balance
+    // query) so we prove routing reads it through the cache, not a second
+    // readContract.
+    const makeQueryClient = () =>
+        ({
+            fetchQuery: jest.fn(async (opts: { queryFn: () => Promise<bigint> }) => opts.queryFn()),
+        }) as unknown as import('@tanstack/react-query').QueryClient
+
+    // Routing reads this live (force-refetch, not the 30s-cached useBalance
+    // value) so a smart account that's been swept empty into collateral can't be
+    // mis-routed to `smart-only` and revert on-chain (incident #2230).
+    it('reads the live on-chain USDC balanceOf the given sender via the shared query', async () => {
         mockReadContract.mockResolvedValue(0n)
+        const queryClient = makeQueryClient()
         const sender = '0x959e088a09f61ab01cb83b0ebcc74b2cf6d62053'
-        const balance = await fetchLiveSmartUsdcBalance(sender)
+        const balance = await fetchLiveSmartUsdcBalance(queryClient, sender)
 
         expect(balance).toBe(0n)
         expect(mockReadContract).toHaveBeenCalledTimes(1)
@@ -118,8 +128,70 @@ describe('fetchLiveSmartUsdcBalance', () => {
         )
     })
 
+    it('force-refetches the shared balance query (staleTime 0) keyed on the sender', async () => {
+        mockReadContract.mockResolvedValue(0n)
+        const queryClient = makeQueryClient()
+        const sender = '0x959e088a09f61ab01cb83b0ebcc74b2cf6d62053'
+        await fetchLiveSmartUsdcBalance(queryClient, sender)
+
+        // staleTime:0 = ignore the 30s display cache and read chain now; same
+        // ['balance', sender] key so the displayed balance refreshes too.
+        expect(queryClient.fetchQuery).toHaveBeenCalledWith(
+            expect.objectContaining({ staleTime: 0, queryKey: ['balance', sender] })
+        )
+    })
+
     it('returns the on-chain balance unchanged when funds are present', async () => {
         mockReadContract.mockResolvedValue(5_000_000n)
-        expect(await fetchLiveSmartUsdcBalance('0xabc0000000000000000000000000000000000001')).toBe(5_000_000n)
+        expect(await fetchLiveSmartUsdcBalance(makeQueryClient(), '0xabc0000000000000000000000000000000000001')).toBe(
+            5_000_000n
+        )
+    })
+})
+
+describe('rerouteAfterSmartOnlySweep', () => {
+    const amount = 1000n
+
+    // A `smart-only` spend threw but the smart account STILL covers the amount —
+    // so the failure wasn't a sweep (bundler down, passkey cancelled, …).
+    // Return null → the caller rethrows the original error instead of retrying.
+    it('returns null when the fresh balance still covers the amount (real failure)', () => {
+        expect(
+            rerouteAfterSmartOnlySweep({ freshSmartBalance: 1000n, rain: 5000n, amount, collateralOnlyAllowed: true })
+        ).toBeNull()
+    })
+
+    it('returns null at the exact boundary (fresh == amount → smart still works)', () => {
+        expect(
+            rerouteAfterSmartOnlySweep({ freshSmartBalance: amount, rain: 5000n, amount, collateralOnlyAllowed: true })
+        ).toBeNull()
+    })
+
+    // Swept to empty after we routed: re-route to collateral when it covers.
+    it('re-routes to collateral-only when swept empty and collateral covers (allowed)', () => {
+        expect(
+            rerouteAfterSmartOnlySweep({ freshSmartBalance: 0n, rain: 5000n, amount, collateralOnlyAllowed: true })
+        ).toBe('collateral-only')
+    })
+
+    // Link-creation-style spends (subsequentCalls present) disallow collateral-only —
+    // a swept smart account must re-route to mixed, never collateral-only.
+    it('re-routes to mixed when collateral-only is disallowed even if collateral alone covers', () => {
+        expect(
+            rerouteAfterSmartOnlySweep({ freshSmartBalance: 0n, rain: 5000n, amount, collateralOnlyAllowed: false })
+        ).toBe('mixed')
+    })
+
+    it('re-routes to mixed when neither bucket alone covers but the sum does', () => {
+        expect(
+            rerouteAfterSmartOnlySweep({ freshSmartBalance: 400n, rain: 700n, amount, collateralOnlyAllowed: true })
+        ).toBe('mixed')
+    })
+
+    // Funds genuinely gone from both buckets — nothing to retry. Rethrow.
+    it('returns null when the total spendable is below the amount', () => {
+        expect(
+            rerouteAfterSmartOnlySweep({ freshSmartBalance: 100n, rain: 200n, amount, collateralOnlyAllowed: true })
+        ).toBeNull()
     })
 })

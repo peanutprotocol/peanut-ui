@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
+import { useQueryClient, type QueryClient } from '@tanstack/react-query'
 import type { Address, Hash, Hex, TransactionReceipt } from 'viem'
 import { encodeFunctionData, erc20Abi } from 'viem'
 import posthog from 'posthog-js'
@@ -21,7 +22,8 @@ import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey, type GrantSessionKeyError } from './useGrantSessionKey'
 import { usdcUnitsToRainCents } from '@/utils/balance.utils'
 import { useModalsContextOptional } from '@/context/ModalsContext'
-import { peanutPublicClient } from '@/app/actions/clients'
+import { smartUsdcBalanceQueryOptions } from './useBalance'
+import { isStaleKeyError } from '@/utils/walletCredential.utils'
 
 export type SpendStrategy = 'collateral-only' | 'smart-only' | 'mixed' | 'insufficient'
 
@@ -102,21 +104,52 @@ export class SessionKeyGrantRequiredError extends Error {
 // returned from Rain.
 
 /**
- * Live (uncached) smart-account USDC balance, read straight from chain for the
- * exact account that will send the UserOp. Routing MUST use this rather than a
- * cached `useBalance` value: card funds are swept smart→collateral, so a stale
- * (pre-sweep) balance routes `smart-only` to an account that's already empty and
- * the transfer reverts on-chain ("ERC20: transfer amount exceeds balance" —
- * incident #2230). The cached value backs display/optimistic UI; routing reads
- * the chain.
+ * Live smart-account USDC balance for ROUTING, read through the SAME TanStack
+ * query that backs the displayed balance (`smartUsdcBalanceQueryOptions`) — one
+ * source of truth, one `readContract`. `staleTime: 0` forces a fresh on-chain
+ * read AND writes the result into `['balance', address]`, so the displayed
+ * balance refreshes in the same call.
+ *
+ * Routing MUST use this rather than the 30s-cached `useBalance` value: card
+ * funds are swept smart→collateral, so a stale (pre-sweep) balance routes
+ * `smart-only` to an account that's already empty and the transfer reverts
+ * on-chain ("ERC20: transfer amount exceeds balance" — incident #2230).
  */
-export async function fetchLiveSmartUsdcBalance(address: Address): Promise<bigint> {
-    return peanutPublicClient.readContract({
-        address: PEANUT_WALLET_TOKEN as Address,
-        abi: erc20Abi,
-        functionName: 'balanceOf',
-        args: [address],
+export async function fetchLiveSmartUsdcBalance(queryClient: QueryClient, address: Address): Promise<bigint> {
+    return queryClient.fetchQuery({ ...smartUsdcBalanceQueryOptions(address), staleTime: 0 })
+}
+
+/**
+ * Decide whether a thrown `smart-only` spend was actually a smart→collateral
+ * SWEEP race (funds left the smart account between our balance read and the
+ * UserOp submission) and, if so, which collateral-backed strategy to retry on.
+ *
+ * Safe to retry because a thrown `smart-only` spend never broadcast: the kernel
+ * send path throws only when `sendUserOperation` itself fails (the UserOp never
+ * enters the mempool); its receipt-timeout path RETURNS instead of throwing
+ * (see `useZeroDev.handleSendUserOpEncoded`), so a thrown error can't mean
+ * "already in flight". Nothing moved → re-routing can't double-spend.
+ *
+ * Returns null (→ rethrow the original error) when:
+ *   - the fresh balance still covers the amount → NOT a sweep, a real failure
+ *     (bundler down, passkey cancelled, …); retrying would just fail again.
+ *   - collateral can't cover it either (insufficient), or it re-routes back to
+ *     `smart-only` (would revert again).
+ */
+export function rerouteAfterSmartOnlySweep(input: {
+    freshSmartBalance: bigint
+    rain: bigint
+    amount: bigint
+    collateralOnlyAllowed: boolean
+}): Extract<SpendStrategy, 'collateral-only' | 'mixed'> | null {
+    if (input.freshSmartBalance >= input.amount) return null
+    const rerouted = computeSpendStrategy({
+        smart: input.freshSmartBalance,
+        rain: input.rain,
+        amount: input.amount,
+        collateralOnlyAllowed: input.collateralOnlyAllowed,
     })
+    return rerouted === 'collateral-only' || rerouted === 'mixed' ? rerouted : null
 }
 
 /**
@@ -164,6 +197,7 @@ export const useSpendBundle = () => {
     // the actual spend. Production trees mount the provider via
     // contextProvider, so the overlay still renders end-to-end.
     const modals = useModalsContextOptional()
+    const queryClient = useQueryClient()
 
     const spend = useCallback(
         async (input: SpendBundleInput): Promise<SpendBundleResult> => {
@@ -189,30 +223,20 @@ export const useSpendBundle = () => {
             // getClientForChain also asserts the client belongs to the logged-in
             // user, so this is the authoritative sender + balance pair.
             const kernelClient = getClientForChain(chainIdStr)
-            const smartBalance = await fetchLiveSmartUsdcBalance(kernelClient.account!.address)
+            const smartBalance = await fetchLiveSmartUsdcBalance(queryClient, kernelClient.account!.address)
 
-            const strategy = computeSpendStrategy({
-                smart: smartBalance,
-                rain: rainSpendingPower,
-                amount: requiredUsdcAmount,
-                collateralOnlyAllowed,
-            })
-            if (strategy === 'insufficient') {
-                posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
-                    strategy: 'insufficient',
-                    error_kind: 'insufficient',
-                })
-                throw new InsufficientSpendableError()
-            }
-
-            onStrategyDecided?.(strategy)
-            posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, { strategy, kind })
-
-            try {
+            // Executes one resolved strategy end-to-end. Pulled out of the
+            // routing so a `smart-only` spend that loses the sweep race can be
+            // re-run as collateral/mixed (with the fresh post-sweep balance)
+            // without duplicating any of the three execution paths.
+            const runStrategy = async (
+                activeStrategy: Exclude<SpendStrategy, 'insufficient'>,
+                smart: bigint
+            ): Promise<SpendBundleResult> => {
                 // Pre-flight: any strategy that touches Rain collateral requires
                 // the one-time session-key grant. If missing, run the inline grant
                 // flow now (one extra passkey tap the FIRST time, zero after).
-                const touchesCollateral = strategy === 'collateral-only' || strategy === 'mixed'
+                const touchesCollateral = activeStrategy === 'collateral-only' || activeStrategy === 'mixed'
                 const card = overview?.cards?.[0]
                 if (touchesCollateral && card && !card.hasWithdrawApproval) {
                     onGrantRequired?.()
@@ -225,7 +249,7 @@ export const useSpendBundle = () => {
                 }
 
                 // ─── collateral-only ──────────────────────────────────────────────
-                if (strategy === 'collateral-only') {
+                if (activeStrategy === 'collateral-only') {
                     const prep = await rainApi.prepareWithdrawal({
                         amount: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                         recipientAddress: recipient!,
@@ -267,12 +291,12 @@ export const useSpendBundle = () => {
                         executorSalt: prep.executorSalt,
                         expiresAt: prep.expiresAt,
                     })
-                    posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, { strategy, kind })
-                    return { strategy, txHash: txHash as Hex, intentId: prep.preparationId }
+                    posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, { strategy: activeStrategy, kind })
+                    return { strategy: activeStrategy, txHash: txHash as Hex, intentId: prep.preparationId }
                 }
 
                 // ─── smart-only ──────────────────────────────────────────────────
-                if (strategy === 'smart-only') {
+                if (activeStrategy === 'smart-only') {
                     const calls: UserOpEncodedParams[] = []
                     if (recipient) {
                         calls.push({
@@ -290,8 +314,8 @@ export const useSpendBundle = () => {
                         throw new Error('useSpendBundle: smart-only path needs either recipient or subsequentCalls')
                     }
                     const { userOpHash, receipt } = await handleSendUserOpEncoded(calls, chainIdStr)
-                    posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, { strategy, kind })
-                    return { strategy, userOpHash, receipt }
+                    posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, { strategy: activeStrategy, kind })
+                    return { strategy: activeStrategy, userOpHash, receipt }
                 }
 
                 // ─── mixed ───────────────────────────────────────────────────────
@@ -305,7 +329,7 @@ export const useSpendBundle = () => {
                     | undefined
                 if (!adminAddress) throw new Error('useSpendBundle: missing peanut-wallet address for mixed spend')
 
-                const shortfall = requiredUsdcAmount - smartBalance
+                const shortfall = requiredUsdcAmount - smart
                 const prep = await rainApi.prepareWithdrawal({
                     amount: usdcUnitsToRainCents(shortfall).toString(),
                     // directTransfer=false sends tokens to the admin (kernel). We still pass
@@ -400,18 +424,74 @@ export const useSpendBundle = () => {
                             .catch(() => {})
                     }
 
-                    posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, { strategy, kind })
-                    return { strategy, userOpHash, receipt, intentId: prep.preparationId }
+                    posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, { strategy: activeStrategy, kind })
+                    return { strategy: activeStrategy, userOpHash, receipt, intentId: prep.preparationId }
                 } finally {
                     modals?.setIsSecurityVerificationOpen?.(false)
                 }
+            }
+
+            const strategy = computeSpendStrategy({
+                smart: smartBalance,
+                rain: rainSpendingPower,
+                amount: requiredUsdcAmount,
+                collateralOnlyAllowed,
+            })
+            if (strategy === 'insufficient') {
+                posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
+                    strategy: 'insufficient',
+                    error_kind: 'insufficient',
+                })
+                throw new InsufficientSpendableError()
+            }
+
+            onStrategyDecided?.(strategy)
+            posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, { strategy, kind })
+
+            // Tracked for the outer failure analytics: a recoverable `smart-only`
+            // revert re-routes, so the strategy that ultimately failed may differ
+            // from the one we first attempted.
+            let executedStrategy: Exclude<SpendStrategy, 'insufficient'> = strategy
+            try {
+                if (strategy === 'smart-only') {
+                    try {
+                        return await runStrategy('smart-only', smartBalance)
+                    } catch (e) {
+                        // Auth failures can't be recovered by spending differently.
+                        if (isStaleKeyError(e)) throw e
+                        // Sweep race? A thrown smart-only spend never broadcast, so
+                        // re-read the live balance: if it dropped below the amount,
+                        // funds were swept smart→collateral after we routed — retry
+                        // on collateral/mixed. Otherwise it's a real failure; rethrow.
+                        const freshSmartBalance = await fetchLiveSmartUsdcBalance(
+                            queryClient,
+                            kernelClient.account!.address
+                        )
+                        const rerouted = rerouteAfterSmartOnlySweep({
+                            freshSmartBalance,
+                            rain: rainSpendingPower,
+                            amount: requiredUsdcAmount,
+                            collateralOnlyAllowed,
+                        })
+                        if (!rerouted) throw e
+                        executedStrategy = rerouted
+                        onStrategyDecided?.(rerouted)
+                        posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, {
+                            strategy: rerouted,
+                            kind,
+                            rerouted_from: 'smart-only',
+                        })
+                        return await runStrategy(rerouted, freshSmartBalance)
+                    }
+                }
+                return await runStrategy(strategy, smartBalance)
             } catch (e) {
                 const errorKind =
                     e instanceof SessionKeyGrantRequiredError
                         ? `session-key:${e.cause.kind}`
                         : ((e as Error)?.name ?? 'unknown')
                 posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
-                    strategy,
+                    strategy: executedStrategy,
                     kind,
                     error_kind: errorKind,
                     error_message: (e as Error)?.message,
@@ -419,7 +499,7 @@ export const useSpendBundle = () => {
                 throw e
             }
         },
-        [getClientForChain, handleSendUserOpEncoded, user, overview, grant, modals]
+        [getClientForChain, handleSendUserOpEncoded, user, overview, grant, modals, queryClient]
     )
 
     return { spend }
