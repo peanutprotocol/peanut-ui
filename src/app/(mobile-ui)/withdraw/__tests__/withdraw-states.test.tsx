@@ -96,8 +96,11 @@ jest.mock('@/utils/general.utils', () => ({
     formatNumberForDisplay: jest.fn((v: any) => v ?? '0'),
 }))
 
+const mockGetCountryFromAccount = jest.fn(
+    () => ({ iso2: 'US', path: 'us' }) as { iso2: string; path: string } | undefined
+)
 jest.mock('@/utils/bridge.utils', () => ({
-    getCountryFromAccount: jest.fn(() => ({ iso2: 'US', path: 'us' })),
+    getCountryFromAccount: mockGetCountryFromAccount,
     getCountryFromPath: jest.fn(() => ({ iso2: 'US', id: 'US' })),
     getMinimumAmount: jest.fn(() => 1),
     railJurisdictionForBank: jest.fn(() => 'US'),
@@ -245,7 +248,8 @@ function applyDefaults() {
     mockWithdrawFlow.selectedBankAccount = null
 
     mockUseWallet.mockReturnValue({
-        balance: parseUnits('100', 6),
+        // component destructures `spendableBalance` (not `balance`) — CodeRabbit nit
+        spendableBalance: parseUnits('100', 6),
     })
 
     mockUseGetExchangeRate.mockReturnValue({
@@ -266,6 +270,10 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockSearchParams.clear()
     applyDefaults()
+    // clearAllMocks() resets call history but not implementations, so restore
+    // the default country resolution here — tests that override it (GROUP 6)
+    // then don't leak into later tests regardless of order or early failure.
+    mockGetCountryFromAccount.mockReturnValue({ iso2: 'US', path: 'us' })
 })
 
 // ============================================================
@@ -470,5 +478,50 @@ describe('GROUP 5: Navigation', () => {
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
         expect(mockSetAmountToWithdraw).toHaveBeenCalledWith('')
         expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(null)
+    })
+})
+
+// ============================================================
+// GROUP 6: Continue must never silently die (regression)
+// ============================================================
+describe('GROUP 6: Continue never dead-buttons', () => {
+    test('Unresolved bank-account country shows an error instead of throwing (dead button)', () => {
+        // Regression for the "press Continue, nothing happens" report: when
+        // getCountryFromAccount can't resolve a country, the handler used to
+        // `throw` inside onClick — aborting the router transition with no UI
+        // feedback (Sentry: incomplete-app-router-transaction, 6 users/14d).
+        mockGetCountryFromAccount.mockReturnValue(undefined)
+
+        mockUseWallet.mockReturnValue({ spendableBalance: parseUnits('100', 6) })
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
+        mockWithdrawFlow.selectedBankAccount = { type: 'iban', details: { countryName: '', countryCode: '' } }
+        mockWithdrawFlow.amountToWithdraw = '50'
+
+        renderWithdraw()
+
+        // Pressing Continue must NOT throw and must NOT navigate...
+        expect(() => fireEvent.click(screen.getByText('Continue'))).not.toThrow()
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        // ...it surfaces a recoverable error instead.
+        expect(mockSetError).toHaveBeenCalledWith({
+            showError: true,
+            errorMessage: "We couldn't determine this account's country. Please contact support.",
+        })
+    })
+
+    test('Manteca account routes to the Manteca flow, not the bank branch', () => {
+        // Manteca (AR/BR) accounts set selectedBankAccount too; the manteca
+        // method check must win over the generic bank branch so they reach
+        // /withdraw/manteca rather than the Bridge bank page (or the throw).
+        mockUseWallet.mockReturnValue({ spendableBalance: parseUnits('100', 6) })
+        mockWithdrawFlow.selectedMethod = { type: 'manteca', countryPath: 'argentina', title: 'Bank Transfer' }
+        mockWithdrawFlow.selectedBankAccount = { type: 'manteca', details: { countryName: 'argentina' } }
+        mockWithdrawFlow.amountToWithdraw = '50'
+
+        renderWithdraw()
+
+        fireEvent.click(screen.getByText('Continue'))
+        expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('/withdraw/manteca'))
+        expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('country=argentina'))
     })
 })
