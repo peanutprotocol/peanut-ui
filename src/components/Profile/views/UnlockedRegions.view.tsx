@@ -81,6 +81,10 @@ const UnlockedRegions = () => {
     const [activeRegionIntent, setActiveRegionIntent] = useState<KYCRegionIntent | undefined>(undefined)
     // skip StartVerificationView when re-submitting (user already consented)
     const [autoStartSdk, setAutoStartSdk] = useState(false)
+    // when an initiate fails, flow.error is set but the modal that triggered it
+    // has already closed — show a dismissible error modal so the user isn't left
+    // staring at a screen where "verify now" appeared to do nothing.
+    const [errorAcknowledged, setErrorAcknowledged] = useState(false)
 
     // MIGRATION-REVIEW + CONTRACT GAP: KycFailedModal's terminal-rejection heuristic used
     // sumsubRejectLabels / sumsubRejectType / a rejected-SUMSUB-verification count, all read
@@ -150,6 +154,7 @@ const UnlockedRegions = () => {
     const handleStartKyc = useCallback(async () => {
         const intent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
         if (intent) setActiveRegionIntent(intent)
+        setErrorAcknowledged(false)
         setSelectedRegion(null)
         // A locked region by definition has no functional rail backing it, so
         // clicking one is ALWAYS a cross-region request — send crossRegion
@@ -168,6 +173,11 @@ const UnlockedRegions = () => {
         setAutoStartSdk(true)
         await handleStartKyc()
     }, [handleStartKyc])
+
+    // ROW (rest-of-world) regions have no provider/rail, so an initiate there is a
+    // terminal "not available in your region yet" — not a transient failure. Only
+    // offer "Try again" for regions that can actually succeed on a retry.
+    const failedRegionRetriable = providerForRegionIntent(activeRegionIntent) !== null
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-8">
@@ -281,7 +291,44 @@ const UnlockedRegions = () => {
                 ]}
             />
 
-            {flow.error && <p className="text-red-500 mt-2 text-sm">{flow.error}</p>}
+            <ActionModal
+                visible={!!flow.error && !errorAcknowledged}
+                onClose={() => setErrorAcknowledged(true)}
+                title={failedRegionRetriable ? "Verification couldn't start" : 'Not available yet'}
+                description={flow.error || 'Something went wrong. Please try again or contact support.'}
+                icon="alert"
+                iconContainerClassName="bg-yellow-1"
+                ctas={
+                    failedRegionRetriable
+                        ? [
+                              {
+                                  text: 'Try again',
+                                  variant: 'purple',
+                                  shadowSize: '4',
+                                  disabled: flow.isLoading,
+                                  onClick: () => {
+                                      void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
+                                  },
+                              },
+                              {
+                                  text: 'Contact support',
+                                  variant: 'stroke',
+                                  onClick: () => {
+                                      setErrorAcknowledged(true)
+                                      setIsSupportModalOpen(true)
+                                  },
+                              },
+                          ]
+                        : [
+                              {
+                                  text: 'Got it',
+                                  variant: 'purple',
+                                  shadowSize: '4',
+                                  onClick: () => setErrorAcknowledged(true),
+                              },
+                          ]
+                }
+            />
 
             <SumsubKycModals flow={flow} autoStartSdk={autoStartSdk} />
         </div>

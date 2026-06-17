@@ -336,8 +336,16 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
                 posthog.capture(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED)
                 // show loading state while confirming + polling
                 setModalPhase('preparing')
-                await confirmBridgeTosAndAwaitRails(fetchUser)
-                completeFlow()
+                try {
+                    await confirmBridgeTosAndAwaitRails(fetchUser)
+                    completeFlow()
+                } catch {
+                    // Don't leave the modal frozen on 'preparing' with no feedback
+                    // if the confirm POST / rails poll throws — surface the
+                    // timed-out recovery state immediately instead of a ~30s dead
+                    // modal. (BridgeTosStep wraps the same call in try/catch.)
+                    setPreparingTimedOut(true)
+                }
             }
             // if manual close, stay on bridge_tos phase (user can try again)
         },

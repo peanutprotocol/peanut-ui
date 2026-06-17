@@ -1,6 +1,8 @@
 'use client'
 
+import { useState, type ReactNode } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
+import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { isMantecaOnrampEntry, isRequestEntry } from '@/components/TransactionDetails/transaction-predicates'
@@ -37,6 +39,7 @@ export function CancelDepositActions({
     onClose: (() => void) | undefined
 }) {
     const queryClient = useQueryClient()
+    const [error, setError] = useState<string | null>(null)
     if (!setIsLoading || !onClose) return null
 
     const refetchAndClose = () =>
@@ -47,15 +50,26 @@ export function CancelDepositActions({
 
     const wrapAction = async (run: () => Promise<void>) => {
         setIsLoading(true)
+        setError(null)
         try {
             await run()
             await refetchAndClose()
-        } catch (error) {
-            captureException(error)
-            console.error('Error canceling deposit:', error)
+        } catch (err) {
+            captureException(err)
+            // A cancel that fails silently makes the user believe the deposit is
+            // cancelled when it isn't — surface it instead of only logging.
+            setError("We couldn't cancel this deposit. Please try again or contact support.")
             setIsLoading(false)
         }
     }
+
+    // Render the active cancel button (if any) alongside any failure message.
+    const withError = (button: ReactNode) => (
+        <div className="flex w-full flex-col gap-2">
+            {button}
+            {error && <ErrorAlert description={error} />}
+        </div>
+    )
 
     // 1. Bridge onramp pending — generic bank deposit cancel. Excludes REQUEST
     // rows (those take the dedicated request-cancel branch below).
@@ -66,7 +80,7 @@ export function CancelDepositActions({
         !!transaction.extraDataForDrawer?.depositInstructions
 
     if (showBridgeOnrampCancel) {
-        return (
+        return withError(
             <CancelButton
                 disabled={!!isLoading}
                 onClick={() =>
@@ -83,7 +97,7 @@ export function CancelDepositActions({
     const showMantecaCancel = isMantecaOnrampEntry(transaction) && transaction.status === 'pending'
 
     if (showMantecaCancel) {
-        return (
+        return withError(
             <CancelButton
                 disabled={!!isLoading}
                 onClick={() =>
@@ -103,7 +117,7 @@ export function CancelDepositActions({
         isPendingBankRequest && transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
 
     if (showPendingBankRequestCancel) {
-        return (
+        return withError(
             <div className="pr-1">
                 <CancelButton
                     label="Cancel Request"
