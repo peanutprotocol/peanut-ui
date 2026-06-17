@@ -79,6 +79,9 @@ describe('Withdraw Utilities', () => {
             // Should keep existing + prefix
             ['+5511999999999', '+5511999999999'],
             ['+551199999999', '+551199999999'],
+            // Should strip separators even when the + prefix is already present
+            ['+55-11-99999-9999', '+5511999999999'],
+            ['+55 11 99999 9999', '+5511999999999'],
             // Should not modify non-phone formats
             ['12345678901', '12345678901'], // CPF
             ['12345678901234', '12345678901234'], // CNPJ

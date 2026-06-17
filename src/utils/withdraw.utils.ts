@@ -212,10 +212,11 @@ export const isPixPhoneNumber = (pixKey: string): boolean => {
  */
 export const normalizePixPhoneNumber = (pixKey: string): string => {
     const cleaned = pixKey.replace(/[\s-]/g, '')
-    if (isPixPhoneNumber(cleaned) && !cleaned.startsWith('+')) {
-        return '+' + cleaned
-    }
-    return pixKey
+    if (!isPixPhoneNumber(cleaned)) return pixKey
+    // Always return the separator-free +55 form. The old code returned the raw
+    // input untouched when it already started with '+', so inputs like
+    // '+55-11-99999-9999' kept their separators and stayed non-canonical.
+    return cleaned.startsWith('+') ? cleaned : '+' + cleaned
 }
 
 /**
