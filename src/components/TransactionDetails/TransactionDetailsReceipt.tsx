@@ -753,7 +753,7 @@ export const TransactionDetailsReceipt = ({
                             // the merchant param so the request comment isn't "Bill split for Card payment".
                             const merchantParam =
                                 transaction.userName && transaction.userName !== 'Card payment'
-                                    ? `&merchant=${transaction.userName}`
+                                    ? `&merchant=${encodeURIComponent(transaction.userName)}`
                                     : ''
                             router.push(`/request?amount=${transaction.amount}${merchantParam}`)
                         }}
