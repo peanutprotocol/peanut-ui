@@ -52,6 +52,7 @@ import {
     usesCompletedTimestampLabel,
 } from './transaction-predicates'
 import { useReceiptViewModel } from './useReceiptViewModel'
+import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
 import { LocalRailNudge } from './provider-rows/LocalRailNudge'
 import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
@@ -748,15 +749,7 @@ export const TransactionDetailsReceipt = ({
                 transaction.status !== 'refunded' &&
                 transaction.status !== 'failed' && (
                     <Button
-                        onClick={() => {
-                            // Card spends with no merchant surface userName as "Card payment" — omit
-                            // the merchant param so the request comment isn't "Bill split for Card payment".
-                            const merchantParam =
-                                transaction.userName && transaction.userName !== 'Card payment'
-                                    ? `&merchant=${encodeURIComponent(transaction.userName)}`
-                                    : ''
-                            router.push(`/request?amount=${transaction.amount}${merchantParam}`)
-                        }}
+                        onClick={() => router.push(buildSplitBillRequestUrl(transaction.amount, transaction.userName))}
                         icon="split"
                         shadowSize="4"
                     >
