@@ -316,7 +316,10 @@ export const TransactionDetailsReceipt = ({
                 isAvatarClickable={isAvatarClickable}
                 showProgessBar={transaction.isRequestPotLink}
                 goal={Number(transaction.amount)}
-                progress={Number(formattedTotalAmountCollected)}
+                // Use the raw numeric field, NOT formattedTotalAmountCollected — the
+                // latter is comma-grouped ("1,234.56"), so Number() → NaN for any pot
+                // that has collected ≥ $1,000, blanking the progress bar.
+                progress={Number(transaction.totalAmountCollected)}
                 isRequestPotTransaction={transaction.isRequestPotLink}
                 isTransactionClosed={transaction.status === 'closed'}
                 convertedAmount={convertedAmount ?? undefined}
