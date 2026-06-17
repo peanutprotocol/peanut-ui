@@ -88,6 +88,10 @@ export const BADGES: Record<string, BadgeMeta> = {
         description: 'They know the secret.',
         // TODO(card-launch): award on shhhhh-waitlist signup
     },
+    NOT_SO_SHHHH: {
+        path: '/badges/not_so_shhhh.svg',
+        description: "You couldn't keep it quiet — and you got paid for it.",
+    },
     CARD_FIRST_SWIPE: {
         path: '/badges/happy_card.svg',
         description: 'First swipe. They put their card to work.',
