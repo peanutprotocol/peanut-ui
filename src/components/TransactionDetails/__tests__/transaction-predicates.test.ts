@@ -4,6 +4,7 @@
 // `extraData.kind` pinned to a canonical TransactionIntentKind value.
 
 import {
+    isCardSpend,
     isDirectSendEntry,
     isFxBearingFlow,
     isMantecaOnrampEntry,
@@ -77,6 +78,16 @@ describe('entry-kind predicates', () => {
     test('hasShareableReceipt does NOT match unrelated kinds', () => {
         expect(hasShareableReceipt(tx('DIRECT_TRANSFER'))).toBe(false)
         expect(hasShareableReceipt(tx('SEND_LINK'))).toBe(false)
+    })
+
+    // Gates the "Split this bill" CTA — must fire on real card spends only,
+    // never on refunds or auth reversals (you didn't pay those).
+    test('isCardSpend matches CARD_SPEND_AUTH + CARD_SPEND_CLEAR only', () => {
+        expect(isCardSpend(tx('CARD_SPEND_AUTH'))).toBe(true)
+        expect(isCardSpend(tx('CARD_SPEND_CLEAR'))).toBe(true)
+        expect(isCardSpend(tx('CARD_AUTH_REVERSAL'))).toBe(false)
+        expect(isCardSpend(tx('REFUND'))).toBe(false)
+        expect(isCardSpend(tx('QR_PAY'))).toBe(false)
     })
 
     describe('isFxBearingFlow', () => {

@@ -121,6 +121,7 @@ export const TransactionDetailsReceipt = ({
         isPendingRequester,
         isPendingSentLink,
         isQRPayment,
+        isCardSpend,
         country,
         rowVisibilityConfig,
         shouldHideBorder,
@@ -316,7 +317,10 @@ export const TransactionDetailsReceipt = ({
                 isAvatarClickable={isAvatarClickable}
                 showProgessBar={transaction.isRequestPotLink}
                 goal={Number(transaction.amount)}
-                progress={Number(formattedTotalAmountCollected)}
+                // Use the raw numeric field, NOT formattedTotalAmountCollected — the
+                // latter is comma-grouped ("1,234.56"), so Number() → NaN for any pot
+                // that has collected ≥ $1,000, blanking the progress bar.
+                progress={Number(transaction.totalAmountCollected)}
                 isRequestPotTransaction={transaction.isRequestPotLink}
                 isTransactionClosed={transaction.status === 'closed'}
                 convertedAmount={convertedAmount ?? undefined}
@@ -739,17 +743,26 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
-            {!isPublic && isQRPayment && transaction.status !== 'refunded' && (
-                <Button
-                    onClick={() => {
-                        router.push(`/request?amount=${transaction.amount}&merchant=${transaction.userName}`)
-                    }}
-                    icon="split"
-                    shadowSize="4"
-                >
-                    Split this bill
-                </Button>
-            )}
+            {!isPublic &&
+                (isQRPayment || isCardSpend) &&
+                transaction.status !== 'refunded' &&
+                transaction.status !== 'failed' && (
+                    <Button
+                        onClick={() => {
+                            // Card spends with no merchant surface userName as "Card payment" — omit
+                            // the merchant param so the request comment isn't "Bill split for Card payment".
+                            const merchantParam =
+                                transaction.userName && transaction.userName !== 'Card payment'
+                                    ? `&merchant=${encodeURIComponent(transaction.userName)}`
+                                    : ''
+                            router.push(`/request?amount=${transaction.amount}${merchantParam}`)
+                        }}
+                        icon="split"
+                        shadowSize="4"
+                    >
+                        Split this bill
+                    </Button>
+                )}
 
             {shouldShowShareReceipt && !!getReceiptUrl(transaction) && (
                 <div className="pr-1">

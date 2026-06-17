@@ -23,6 +23,13 @@ export function isQRPayment(transaction: TransactionDetails): boolean {
     return isKind(transaction, 'QR_PAY')
 }
 
+/** A Rain card *spend* (not a refund or reversal) — the only card rows eligible
+ *  for a "Split this bill" CTA. Kind-based so refunds (REFUND/OTHER) and auth
+ *  reversals are excluded. */
+export function isCardSpend(transaction: TransactionDetails): boolean {
+    return isKind(transaction, 'CARD_SPEND_AUTH') || isKind(transaction, 'CARD_SPEND_CLEAR')
+}
+
 /** Kinds that move money across a fiat rail: bank on/off-ramps + QR pays.
  *  The single anchor for the receipt-page whitelist (`getReceiptUrl`), the
  *  share gate (`hasShareableReceipt`), and the FX predicate
