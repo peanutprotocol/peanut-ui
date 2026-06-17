@@ -19,12 +19,7 @@ import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { profileUrl } from '@/utils/native-routes'
-import { INVITE_CODE_TO_CAMPAIGN_MAP, UTM_CAMPAIGN_TO_BADGE_MAP } from './campaign-maps'
-
-// /invite?campaign=skip — bypasses the waitlist with no invite code. The backend
-// /badge/award endpoint flips hasAppAccess + cardFlowEarlyAccessAt and adds the
-// Skip Pass badge (which is also in SKIP_BADGE_CODES, so card-waitlist is bypassed).
-const SKIP_CAMPAIGN = 'skip'
+import { INVITE_CODE_TO_CAMPAIGN_MAP, UTM_CAMPAIGN_TO_BADGE_MAP, classifyBareCampaign } from './campaign-maps'
 
 function InvitePageContent() {
     const searchParams = useSearchParams()
@@ -44,10 +39,13 @@ function InvitePageContent() {
         (inviteCode ? INVITE_CODE_TO_CAMPAIGN_MAP[inviteCode] : undefined) ||
         (utmCampaignParam ? UTM_CAMPAIGN_TO_BADGE_MAP[utmCampaignParam] : undefined)
 
-    // Skip-the-waitlist link: no invite code, ?campaign=skip. The auto-claim
-    // effect below treats it specially (fires even without hasAppAccess) since
-    // awarding the badge IS what grants access.
-    const isSkipCampaign = !inviteCode && campaign?.toLowerCase() === SKIP_CAMPAIGN
+    // Bare campaign link (no invite code) that's claimable without an invite. The
+    // effects below treat these specially so a returning logged-in user still gets
+    // the badge (useZeroDev's award only fires on new-account registration). The
+    // copy distinguishes the two flavours: `isWaitlistSkip` (skip + event_alumni)
+    // promises a card-waitlist skip; vanity badges (touched_grass) are claimable
+    // but show generic copy. See classifyBareCampaign in campaign-maps.ts.
+    const { isBareClaimCampaign, isWaitlistSkip } = classifyBareCampaign(campaign, inviteCode)
 
     const dispatch = useAppDispatch()
     const router = useRouter()
@@ -93,12 +91,15 @@ function InvitePageContent() {
         }
         // a logged-in visitor on either claim path will be auto-routed by the
         // effect below — keep the loading spinner so they don't see the CTA flash.
-        if (user?.user && (isSkipCampaign || (!redirectUri && user.user.hasAppAccess && inviteCodeData?.success))) {
+        if (
+            user?.user &&
+            (isBareClaimCampaign || (!redirectUri && user.user.hasAppAccess && inviteCodeData?.success))
+        ) {
             setShouldShowContent(false)
             return
         }
         setShouldShowContent(true)
-    }, [user, isFetchingUser, redirectUri, inviteCodeData, isLoading, isSkipCampaign, inviteCode])
+    }, [user, isFetchingUser, redirectUri, inviteCodeData, isLoading, isBareClaimCampaign, inviteCode])
 
     // Logged-in auto-claim: award the campaign badge then push /home, or fall
     // back to the inviter's profile when there's a valid invite but no campaign.
@@ -111,7 +112,7 @@ function InvitePageContent() {
 
         const hasValidInvite = !!inviteCodeData?.success && !!inviteCodeData.username
         const isInviteAutoClaim = !redirectUri && user.user.hasAppAccess && hasValidInvite
-        if (!isInviteAutoClaim && !isSkipCampaign) return
+        if (!isInviteAutoClaim && !isBareClaimCampaign) return
 
         hasStartedAwardingRef.current = true
 
@@ -141,12 +142,12 @@ function InvitePageContent() {
         campaign,
         redirectUri,
         fetchUser,
-        isSkipCampaign,
+        isBareClaimCampaign,
         inviteCode,
     ])
 
     const handleClaim = () => {
-        const eventTag = inviteCode || (isSkipCampaign ? SKIP_CAMPAIGN : undefined)
+        const eventTag = inviteCode || (isBareClaimCampaign ? campaign : undefined)
         posthog.capture(ANALYTICS_EVENTS.INVITE_CLAIM_CLICKED, { invite_code: eventTag })
 
         if (inviteCode) {
@@ -171,8 +172,9 @@ function InvitePageContent() {
     }
 
     // Invalid invite code (only reachable when an invite code was supplied).
-    // The skip path has no invite code so it never falls here.
-    if (!isSkipCampaign && (isError || !inviteCodeData?.success)) {
+    // Bare-claim campaigns (skip / event_alumni / touched_grass) carry no invite
+    // code, so they bypass this gate and never show the invalid-invite screen.
+    if (!isBareClaimCampaign && (isError || !inviteCodeData?.success)) {
         return (
             <div className="my-auto flex h-[100dvh] w-screen flex-col items-center justify-center space-y-4 px-6">
                 <ValidationErrorView
@@ -185,11 +187,20 @@ function InvitePageContent() {
         )
     }
 
-    const title = isSkipCampaign ? "You're skipping the waitlist" : `${inviteCodeData?.username} invited you to Peanut`
-    const description = isSkipCampaign
+    // Three copy variants: waitlist-skip (skip + event_alumni), bare vanity badge
+    // (touched_grass — claimable but no skip), and the default inviter-code screen.
+    const isVanityClaim = isBareClaimCampaign && !isWaitlistSkip
+    const title = isWaitlistSkip
+        ? "You're skipping the waitlist"
+        : isVanityClaim
+          ? 'Claim your badge'
+          : `${inviteCodeData?.username} invited you to Peanut`
+    const description = isWaitlistSkip
         ? 'Someone at Peanut wants you in. Create your wallet and walk straight past the line — no invite code, no queue.'
-        : 'Members-only access. Use this invite to open your wallet and start sending and receiving money globally.'
-    const ctaLabel = isSkipCampaign ? 'Claim your Skip Pass' : 'Claim your spot'
+        : isVanityClaim
+          ? 'You earned a Peanut badge. Claim it and open your wallet to send and receive money globally.'
+          : 'Members-only access. Use this invite to open your wallet and start sending and receiving money globally.'
+    const ctaLabel = isWaitlistSkip ? 'Claim your Skip Pass' : isVanityClaim ? 'Claim your badge' : 'Claim your spot'
 
     return (
         <InvitesPageLayout image={PeanutWavingHello.src}>

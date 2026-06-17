@@ -56,7 +56,7 @@ export const BADGES: Record<string, BadgeMeta> = {
     },
     SEEDLING_DEVCONNECT_BA_2025: {
         path: '/badges/seedlings_devconnect.svg',
-        description: `They shill Peanut so we don't have to. Honorary squirrel.`,
+        description: `You shill Peanut so we don't have to. Honorary squirrel.`,
     },
     ARBIVERSE_DEVCONNECT_BA_2025: {
         path: '/badges/arbiverse_devconnect.svg',
@@ -87,6 +87,10 @@ export const BADGES: Record<string, BadgeMeta> = {
         path: '/badges/shhhhh.svg',
         description: 'They know the secret.',
         // TODO(card-launch): award on shhhhh-waitlist signup
+    },
+    NOT_SO_SHHHH: {
+        path: '/badges/not_so_shhhh.svg',
+        description: "You couldn't keep it quiet — and you got paid for it.",
     },
     CARD_FIRST_SWIPE: {
         path: '/badges/happy_card.svg',
@@ -178,6 +182,14 @@ export const BADGES: Record<string, BadgeMeta> = {
         path: '/badges/token_nation_2026.svg',
         description: 'São Paulo, baby. They came, they claimed, they tagged the wall.',
     },
+    TOUCHED_GRASS: {
+        path: '/badges/touched_grass.svg',
+        description: 'You logged off and touched real grass with Peanut.',
+    },
+    EVENT_ALUMNI: {
+        path: '/badges/event_alumni.svg',
+        description: 'Old school. You were in the room before most.',
+    },
     ETHFLORIPA_HUB: {
         path: '/badges/ethfloripa_hub.svg',
         description: 'Ilha da Magia, baby. Coconuts and consensus.',
@@ -195,8 +207,10 @@ export const BADGES: Record<string, BadgeMeta> = {
  *  list. Used by /dev/share-builder + /dev/debug for iteration. */
 export const BADGE_CODES: readonly string[] = Object.keys(BADGES)
 
-export function getBadgeIcon(code?: string) {
-    return (code && BADGES[code]?.path) || PEANUTMAN_LOGO
+export function getBadgeIcon(code?: string): string {
+    // .src: the svg import is StaticImageData (typed `any` by the module shim, so the
+    // annotation alone can't enforce this) — raw <img src> consumers need a string URL.
+    return (code && BADGES[code]?.path) || PEANUTMAN_LOGO.src
 }
 
 // returns the public-facing description for a badge code (third-person perspective)

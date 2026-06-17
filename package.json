@@ -176,7 +176,7 @@
             "node_modules/(?!(@wagmi|wagmi|viem|@viem|@walletconnect|@justaname\\.id|@zerodev|permissionless)/)"
         ],
         "moduleNameMapper": {
-            "\\.(svg|png|jpg|jpeg|gif|webp)$": "jest-transform-stub",
+            "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/src/utils/__mocks__/static-image.ts",
             "^@/config/wagmi\\.config$": "<rootDir>/src/utils/__mocks__/wagmi-config.ts",
             "^wagmi/chains$": "<rootDir>/src/utils/__mocks__/wagmi.ts",
             "^@justaname\\.id/react$": "<rootDir>/src/utils/__mocks__/justaname.ts",

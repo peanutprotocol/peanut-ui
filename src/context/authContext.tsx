@@ -86,9 +86,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (typeof window !== 'undefined' && window.gtag) {
                 window.gtag('set', { user_id: user.user.userId })
             }
-            // PostHog: identify user (stitches anonymous pre-login events to this user)
+            // PostHog: identify user (stitches anonymous pre-login events to this user).
+            // `name` duplicates username because PostHog's Persons-page search is
+            // hardcoded to email/name/distinct_id — username alone is not searchable.
             posthog.identify(user.user.userId, {
                 username: user.user.username,
+                name: user.user.username,
             })
             // Sentry: every error captured from here on inherits user context
             // as searchable Sentry tags. Closes the historical gap where FE

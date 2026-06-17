@@ -1,14 +1,12 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { recoverFromChunkError } from '@/utils/chunk-error-recovery'
 
 export default function PaymentError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-    const router = useRouter()
     const { setIsSupportModalOpen } = useModalsContext()
 
     useEffect(() => {

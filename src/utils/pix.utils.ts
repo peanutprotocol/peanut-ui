@@ -38,3 +38,19 @@ export const pixKeyToBRCode = (pixKey: string): string | null => {
 
     return pix.toBRCode()
 }
+
+/**
+ * Wraps a raw PIX key into a `/qr-pay` redirect URL — the Manteca QR-payment
+ * flow (send to any PIX key), as opposed to the offramp/withdraw endpoint.
+ * Returns null when the key is invalid so callers can surface an error.
+ *
+ * Single source of truth for the scanner's PIX_KEY branch and the
+ * withdraw/send PIX-key entry, so both reach the exact same `/qr-pay` flow.
+ */
+export const pixKeyToQrPayUrl = (pixKey: string): string | null => {
+    const brCode = pixKeyToBRCode(pixKey)
+    if (!brCode) return null
+    const timestamp = Date.now()
+    // type=PIX mirrors EQrType.PIX; qr-pay routes it to the Manteca PIX rail.
+    return `/qr-pay?qrCode=${encodeURIComponent(brCode)}&t=${timestamp}&type=PIX`
+}
