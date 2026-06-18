@@ -41,9 +41,10 @@ import { decodeRecoveryKey, toRescueWebAuthnKey, type RecoveryKeyInput } from '@
 import { captureException } from '@sentry/nextjs'
 import { useSearchParams } from 'next/navigation'
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
-import { type Address, encodeFunctionData, erc20Abi, formatUnits } from 'viem'
+import { type Address, encodeFunctionData, erc20Abi, formatUnits, isAddress } from 'viem'
 
 type Phase = 'loading' | 'invalid' | 'ready' | 'final'
+type RescueClient = Awaited<ReturnType<typeof createKernelClientForChain>>
 
 // useSearchParams requires a Suspense boundary to keep the route from forcing
 // the whole tree dynamic at build time.
@@ -70,6 +71,7 @@ function RecoverWalletInner() {
 
     const [phase, setPhase] = useState<Phase>('loading')
     const [fatal, setFatal] = useState<string>('')
+    const [client, setClient] = useState<RescueClient | null>(null)
     const [balance, setBalance] = useState<bigint>(0n)
     const [recipient, setRecipient] = useState<RecipientState>({ address: '', name: '' })
     const [inputChanging, setInputChanging] = useState(false)
@@ -100,7 +102,7 @@ function RecoverWalletInner() {
                     bundlerUrl: entry.bundlerUrl,
                     paymasterUrl: entry.paymasterUrl,
                 }
-                const client = await createKernelClientForChain(
+                const builtClient = await createKernelClientForChain(
                     entry.client,
                     entry.chain,
                     // Affected wallets all post-date the ZeroDev migration, so they
@@ -111,7 +113,7 @@ function RecoverWalletInner() {
                     undefined,
                     options
                 )
-                const derived = client.account!.address
+                const derived = builtClient.account!.address
                 if (!areEvmAddressesEqual(derived, recoveryKey.address)) {
                     throw new Error(`derived ${derived} != expected ${recoveryKey.address}`)
                 }
@@ -122,6 +124,9 @@ function RecoverWalletInner() {
                     args: [recoveryKey.address],
                 })
                 if (cancelled) return
+                // Keep the proven client so signing reuses the asserted account
+                // rather than rebuilding (and re-deriving) it.
+                setClient(builtClient)
                 setBalance(onChainBalance)
                 setPhase('ready')
             } catch (error) {
@@ -138,19 +143,12 @@ function RecoverWalletInner() {
     }, [recoveryKey, chainId])
 
     const recover = useCallback(async () => {
-        if (!recoveryKey || !recipient.address || balance <= 0n) return
+        // `client` is the address-asserted client built at init — reuse it so we
+        // never sign from an unverified re-derivation.
+        if (!client || !isAddress(recipient.address) || balance <= 0n) return
         setIsSigning(true)
         setSignError('')
         try {
-            const entry = PUBLIC_CLIENTS_BY_CHAIN[chainId]
-            const client = await createKernelClientForChain(
-                entry.client,
-                entry.chain,
-                true,
-                toRescueWebAuthnKey(recoveryKey),
-                undefined,
-                { bundlerUrl: entry.bundlerUrl, paymasterUrl: entry.paymasterUrl }
-            )
             const data = encodeFunctionData({
                 abi: erc20Abi,
                 functionName: 'transfer',
@@ -173,7 +171,7 @@ function RecoverWalletInner() {
         } finally {
             setIsSigning(false)
         }
-    }, [recoveryKey, recipient.address, balance, chainId])
+    }, [client, recipient.address, balance])
 
     if (phase === 'loading') return <PeanutLoading />
 
@@ -255,7 +253,7 @@ function RecoverWalletInner() {
                             variant="purple"
                             shadowSize="4"
                             onClick={recover}
-                            disabled={!!recipientError || inputChanging || !recipient.address || isSigning}
+                            disabled={!!recipientError || inputChanging || !isAddress(recipient.address) || isSigning}
                             loading={isSigning}
                             className="w-full"
                         >
