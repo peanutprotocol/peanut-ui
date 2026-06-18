@@ -2,6 +2,8 @@ export { COUNTRIES_SEO, CORRIDORS, RECEIVE_SOURCES, getCountryName } from './cor
 
 export { COMPETITORS } from './comparisons'
 
-export { EXCHANGES, DEPOSIT_RAILS } from './exchanges'
+export { EXCHANGES } from './exchanges'
+
+export { DEPOSIT_RAILS } from './deposit-rails'
 
 export { PAYMENT_METHODS, PAYMENT_METHOD_SLUGS } from './payment-methods'
