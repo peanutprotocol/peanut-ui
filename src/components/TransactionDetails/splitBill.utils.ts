@@ -12,5 +12,5 @@
 export function buildSplitBillRequestUrl(amount: number | bigint | string, merchantName?: string | null): string {
     const merchantParam =
         merchantName && merchantName !== 'Card payment' ? `&merchant=${encodeURIComponent(merchantName)}` : ''
-    return `/request?amount=${amount}${merchantParam}`
+    return `/request?amount=${encodeURIComponent(String(amount))}${merchantParam}`
 }
