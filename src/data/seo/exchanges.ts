@@ -41,7 +41,6 @@ export const DEPOSIT_RAILS: Record<string, string> = {
     sepa: 'SEPA Bank Transfer',
     wire: 'Wire Transfer',
     arbitrum: 'Arbitrum',
-    avalanche: 'Avalanche',
     base: 'Base',
     ethereum: 'Ethereum',
     polygon: 'Polygon',
