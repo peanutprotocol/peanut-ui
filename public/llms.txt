@@ -25,8 +25,8 @@ Peanut is a self-custody money app built on digital dollars (USDC). You hold dol
 
 - A **virtual Visa card** that spends your digital-dollar balance anywhere Visa is accepted.
 - Free to issue, free to top up. You pay only the exchange-rate spread when spending in another currency — no separate card fee.
-- Currently in early access (**Card Pioneers**) across 29 countries: the United States, 18 Latin American countries, and 10 African countries. Requires identity verification.
-- Not yet available in the EU/UK, Canada, or most of Asia-Pacific. (Roadmap — not a global launch yet.)
+- **Available in most countries** — the US, Europe, the UK, Latin America, Africa, and more. Requires identity verification.
+- A short list of countries can't be issued the card (the issuer's restricted-region list — including China, India, Russia, Turkey, Vietnam, Iran, and Israel, among a handful of others).
 
 ## Send & receive money
 
@@ -61,7 +61,7 @@ Peanut is a self-custody money app built on digital dollars (USDC). You hold dol
 - **Local QR spending live now:** Argentina (MercadoPago) and Brazil (PIX).
 - **Bank deposit/withdraw live:** 36 SEPA-zone European countries (EUR), United States (ACH/wire), Mexico (SPEI), United Kingdom (Faster Payments).
 - **Crypto deposit/withdraw:** available globally in all non-restricted countries.
-- **Peanut Card:** 29-country early access (US + 18 Latin American + 10 African).
+- **Peanut Card:** available in most countries (a short restricted list is excluded — e.g. China, India, Russia, Turkey, Vietnam).
 - **Coming soon (not live):** local QR/payment methods in many more countries — Mexico (CoDi), Colombia (Transfiya), Peru (Yape), Spain (Bizum), Portugal (MB WAY), India (UPI), and others. These are roadmap; only Argentina and Brazil have live local spending today.
 
 ## Who it's for

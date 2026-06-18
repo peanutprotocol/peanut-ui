@@ -15,7 +15,7 @@ PIX is Brazil's instant payment network — ~150 million people use it daily. No
 MercadoPago QR is accepted at 1,000,000+ merchants in Argentina. Locals need a DNI to open an account; Peanut gives access to the payment network without one — pay in pesos with a passport-verified account. Conversion uses the cripto dólar rate (a direct dollar-to-peso market rate that beats the regulated MEP rate cards use), typically several percent to ~11% more pesos per dollar. Free, instant, rate locked at payment.
 
 ### The Peanut Card
-A virtual Visa card that spends the user's digital-dollar balance anywhere Visa is accepted. Free to issue and top up; the only cost is the exchange-rate spread on currency conversion. Currently in early access (Card Pioneers) across 29 countries — the US, 18 Latin American, and 10 African countries — and requires identity verification. Not yet available in the EU/UK, Canada, or most of Asia-Pacific.
+A virtual Visa card that spends the user's digital-dollar balance anywhere Visa is accepted. Free to issue and top up; the only cost is the exchange-rate spread on currency conversion. Available in most countries (the US, Europe, the UK, Latin America, Africa, and more) and requires identity verification. A short list of regions is excluded — the card issuer's restricted-issuance list (China, India, Russia, Turkey, Vietnam, Iran, Israel, and a handful of others).
 
 ## Core features
 
@@ -61,7 +61,7 @@ Send from balance straight to any third-party bank account, and receive into the
 - Local QR spending live: Argentina (MercadoPago), Brazil (PIX).
 - Bank rails live: 36 SEPA-zone countries (EUR), US (ACH/wire), Mexico (SPEI), UK (Faster Payments).
 - Crypto deposit/withdraw: global, all non-restricted countries.
-- Card: 29-country early access (US + 18 LATAM + 10 African).
+- Card: available in most countries; excludes a short restricted-issuance list (China, India, Russia, Turkey, Vietnam, and others).
 - Roadmap (not live): local payment methods in many more countries (CoDi, Transfiya, Yape, Bizum, MB WAY, UPI, and others). Only Argentina and Brazil have live local spending today.
 
 ## Who it's for
