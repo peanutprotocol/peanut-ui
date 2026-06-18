@@ -8,7 +8,8 @@
 // names + recommended network come from content frontmatter fields denormalized
 // at generation time (see mono/content/_system/templates/intents/deposit-from.md);
 // `recommended_network:` is the editorial pick for the lowest-friction path
-// from this exchange to Peanut. Absent values fall through to title-casing.
+// from this exchange to Peanut. Missing `name` falls back to title-casing;
+// missing `recommended_network` falls back to `arbitrum`.
 
 import { listContentSlugs, readPageContent } from '@/lib/content'
 import { RAIL_SLUGS } from './deposit-rails'
