@@ -164,5 +164,15 @@
         "source": "/:locale/withdraw/avalanche",
         "destination": "/:locale/supported-networks",
         "permanent": true
+    },
+    {
+        "source": "/:locale/deposit/from-faster-payments",
+        "destination": "/:locale/deposit/via-faster-payments",
+        "permanent": true
+    },
+    {
+        "source": "/:locale/deposit/from-spei",
+        "destination": "/:locale/deposit/via-spei",
+        "permanent": true
     }
 ]
