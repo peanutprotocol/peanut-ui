@@ -53,7 +53,9 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
     const queryClient = useQueryClient()
     const toast = useToast()
     const { spend } = useSpendBundle()
-    const { data: smartBalance } = useBalance(address)
+    // Keep the smart-account balance query subscribed/warm for the optimistic
+    // update in onMutate; spend() reads its OWN live balance for routing.
+    useBalance(address)
     const { overview } = useRainCardOverview()
 
     return useMutation({
@@ -73,7 +75,6 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
             const result = await spend({
                 requiredUsdcAmount: amountToSend,
                 recipient: toAddress,
-                smartBalance: smartBalance ?? 0n,
                 rainSpendingPower: rainCentsToUsdcUnits(overview?.balance?.spendingPower),
                 kind,
                 chargeId,

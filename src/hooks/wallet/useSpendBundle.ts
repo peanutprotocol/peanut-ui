@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
+import { useQueryClient, type QueryClient } from '@tanstack/react-query'
 import type { Address, Hash, Hex, TransactionReceipt } from 'viem'
 import { encodeFunctionData, erc20Abi } from 'viem'
 import posthog from 'posthog-js'
@@ -21,6 +22,7 @@ import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey, type GrantSessionKeyError } from './useGrantSessionKey'
 import { usdcUnitsToRainCents } from '@/utils/balance.utils'
 import { useModalsContextOptional } from '@/context/ModalsContext'
+import { smartUsdcBalanceQueryOptions } from './useBalance'
 
 export type SpendStrategy = 'collateral-only' | 'smart-only' | 'mixed' | 'insufficient'
 
@@ -33,8 +35,6 @@ export interface SpendBundleInput {
      *  Pass `undefined` for flows whose `subsequentCalls` already handle delivery
      *  (e.g. Peanut link creation `approve + makeDeposit`). */
     recipient?: Address
-    /** Smart-account USDC balance right now, in token smallest units. */
-    smartBalance: bigint
     /** Rain collateral `spendingPower` right now, in token smallest units. */
     rainSpendingPower: bigint
     /** User-semantic category of this spend (P2P_SEND, QR_PAY, CRYPTO_WITHDRAW, …).
@@ -103,10 +103,30 @@ export class SessionKeyGrantRequiredError extends Error {
 // returned from Rain.
 
 /**
+ * Live smart-account USDC balance for ROUTING, read through the SAME TanStack
+ * query that backs the displayed balance (`smartUsdcBalanceQueryOptions`) — one
+ * source of truth, one `readContract`. `staleTime: 0` forces a fresh on-chain
+ * read AND writes the result into `['balance', address]`, so the displayed
+ * balance refreshes in the same call.
+ *
+ * Routing MUST use this rather than the 30s-cached `useBalance` value: card
+ * funds are swept smart→collateral, so a stale (pre-sweep) balance routes
+ * `smart-only` to an account that's already empty and the transfer reverts
+ * on-chain ("ERC20: transfer amount exceeds balance" — incident #2230).
+ */
+export async function fetchLiveSmartUsdcBalance(queryClient: QueryClient, address: Address): Promise<bigint> {
+    return queryClient.fetchQuery({ ...smartUsdcBalanceQueryOptions(address), staleTime: 0 })
+}
+
+/**
  * Pure routing helper — decides which bucket(s) a spend will pull from.
- * Priority: collateral → smart → mixed. Collateral-only requires a single
- * recipient AND no subsequent kernel calls (Rain's coordinator transfers
- * tokens directly; nothing follows).
+ * Priority: smart → collateral → mixed. The smart account is spent first
+ * whenever it can cover the whole amount, so a payment never touches the
+ * Rain collateral — and Rain's per-account withdrawal-signature cooldown —
+ * if the user's smart-account USDC already covers it. Collateral is the
+ * fallback (single recipient AND no subsequent kernel calls, since Rain's
+ * coordinator transfers tokens directly with nothing following), and `mixed`
+ * tops up the shortfall from collateral when smart alone can't cover it.
  */
 export function computeSpendStrategy(input: {
     smart: bigint
@@ -114,8 +134,8 @@ export function computeSpendStrategy(input: {
     amount: bigint
     collateralOnlyAllowed: boolean
 }): SpendStrategy {
-    if (input.collateralOnlyAllowed && input.rain >= input.amount) return 'collateral-only'
     if (input.smart >= input.amount) return 'smart-only'
+    if (input.collateralOnlyAllowed && input.rain >= input.amount) return 'collateral-only'
     if (input.smart + input.rain >= input.amount) return 'mixed'
     return 'insufficient'
 }
@@ -143,6 +163,7 @@ export const useSpendBundle = () => {
     // the actual spend. Production trees mount the provider via
     // contextProvider, so the overlay still renders end-to-end.
     const modals = useModalsContextOptional()
+    const queryClient = useQueryClient()
 
     const spend = useCallback(
         async (input: SpendBundleInput): Promise<SpendBundleResult> => {
@@ -150,7 +171,6 @@ export const useSpendBundle = () => {
                 requiredUsdcAmount,
                 recipient,
                 subsequentCalls = [],
-                smartBalance,
                 rainSpendingPower,
                 kind,
                 chargeId,
@@ -160,6 +180,16 @@ export const useSpendBundle = () => {
 
             const hasSubsequent = subsequentCalls.length > 0
             const collateralOnlyAllowed = !hasSubsequent && !!recipient
+
+            const chainIdNum = PEANUT_WALLET_CHAIN.id
+            const chainIdStr = chainIdNum.toString()
+
+            // Route on the LIVE on-chain balance of the exact account that will
+            // send the UserOp — never a cached value (see fetchLiveSmartUsdcBalance).
+            // getClientForChain also asserts the client belongs to the logged-in
+            // user, so this is the authoritative sender + balance pair.
+            const kernelClient = getClientForChain(chainIdStr)
+            const smartBalance = await fetchLiveSmartUsdcBalance(queryClient, kernelClient.account!.address)
 
             const strategy = computeSpendStrategy({
                 smart: smartBalance,
@@ -179,9 +209,6 @@ export const useSpendBundle = () => {
             posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, { strategy, kind })
 
             try {
-                const chainIdNum = PEANUT_WALLET_CHAIN.id
-                const chainIdStr = chainIdNum.toString()
-
                 // Pre-flight: any strategy that touches Rain collateral requires
                 // the one-time session-key grant. If missing, run the inline grant
                 // flow now (one extra passkey tap the FIRST time, zero after).
@@ -209,7 +236,6 @@ export const useSpendBundle = () => {
                         chargeId,
                     })
 
-                    const kernelClient = getClientForChain(chainIdStr)
                     const adminSignature = (await kernelClient.account!.signTypedData({
                         domain: {
                             name: RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
@@ -293,7 +319,6 @@ export const useSpendBundle = () => {
                     totalAmountCents: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                 })
 
-                const kernelClient = getClientForChain(chainIdStr)
                 const adminSignature = (await kernelClient.account!.signTypedData({
                     domain: {
                         name: RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
@@ -394,7 +419,7 @@ export const useSpendBundle = () => {
                 throw e
             }
         },
-        [getClientForChain, handleSendUserOpEncoded, user, overview, grant, modals]
+        [getClientForChain, handleSendUserOpEncoded, user, overview, grant, modals, queryClient]
     )
 
     return { spend }

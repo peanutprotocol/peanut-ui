@@ -105,7 +105,7 @@ function MantecaBankWithdrawFlow() {
     const [priceLock, setPriceLock] = useState<WithdrawPriceLock | null>(null)
     const [isLockingPrice, setIsLockingPrice] = useState(false)
     const router = useRouter()
-    const { spendableBalance: balance, balance: smartBalance } = useWallet()
+    const { spendableBalance: balance } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
@@ -352,7 +352,6 @@ function MantecaBankWithdrawFlow() {
                 signedArtifact = await signSpend({
                     requiredUsdcAmount,
                     recipient: MANTECA_DEPOSIT_ADDRESS,
-                    smartBalance: smartBalance ?? 0n,
                     rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                     kind: 'FIAT_OFFRAMP',
                 })

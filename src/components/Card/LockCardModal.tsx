@@ -80,7 +80,6 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                     const artifact = await signSpend({
                         requiredUsdcAmount: spendingPowerUnits,
                         recipient: smartWalletAddress as `0x${string}`,
-                        smartBalance: 0n,
                         rainSpendingPower: spendingPowerUnits,
                         kind: 'CRYPTO_WITHDRAW',
                     })

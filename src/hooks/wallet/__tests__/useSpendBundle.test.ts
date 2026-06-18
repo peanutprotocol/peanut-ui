@@ -4,7 +4,7 @@
  * The hook itself orchestrates kernel clients, Rain API calls, and the
  * session-key grant flow — those paths are covered by integration + manual
  * testing on sandbox. These tests lock down the deterministic pieces:
- *   - `computeSpendStrategy` routing (collateral → smart → mixed → insufficient)
+ *   - `computeSpendStrategy` routing (smart → collateral → mixed → insufficient)
  *   - `usdcUnitsToRainCents` amount conversion at the Rain API boundary
  */
 
@@ -24,7 +24,8 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
 }))
 jest.mock('../useGrantSessionKey', () => ({ useGrantSessionKey: jest.fn() }))
 jest.mock('@/services/rain', () => ({ rainApi: {} }))
-jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: {} }))
+const mockReadContract = jest.fn()
+jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: { readContract: mockReadContract } }))
 
 // Mock constants so the module can resolve token decimals during import.
 jest.mock('@/constants/zerodev.consts', () => ({
@@ -39,14 +40,22 @@ jest.mock('@/constants/rain.consts', () => ({
     RAIN_WITHDRAW_EIP712_DOMAIN_VERSION: '2',
 }))
 
-// eslint-disable-next-line import/first -- mocks must register before import
-import { computeSpendStrategy } from '../useSpendBundle'
+import { computeSpendStrategy, fetchLiveSmartUsdcBalance } from '../useSpendBundle'
 
 describe('computeSpendStrategy', () => {
     const amount = 1000n
 
-    it('prefers collateral-only when allowed and rain covers the amount', () => {
+    it('prefers smart-only when smart covers the amount, even if collateral-only is allowed', () => {
+        // Smart account is spent first so the payment never touches the Rain
+        // collateral (and its per-account withdrawal-signature cooldown) when
+        // smart-account USDC already covers it.
         expect(computeSpendStrategy({ smart: 5000n, rain: 10_000n, amount, collateralOnlyAllowed: true })).toBe(
+            'smart-only'
+        )
+    })
+
+    it('uses collateral-only when smart cannot cover but collateral can (allowed)', () => {
+        expect(computeSpendStrategy({ smart: 100n, rain: 10_000n, amount, collateralOnlyAllowed: true })).toBe(
             'collateral-only'
         )
     })
@@ -82,6 +91,59 @@ describe('computeSpendStrategy', () => {
     it('handles exact-match at the boundary as smart-only when rain disallowed', () => {
         expect(computeSpendStrategy({ smart: amount, rain: 0n, amount, collateralOnlyAllowed: false })).toBe(
             'smart-only'
+        )
+    })
+})
+
+describe('fetchLiveSmartUsdcBalance', () => {
+    beforeEach(() => mockReadContract.mockReset())
+
+    // A queryClient stand-in whose fetchQuery just runs the provided queryFn —
+    // exercises the real `smartUsdcBalanceQueryOptions` (the shared balance
+    // query) so we prove routing reads it through the cache, not a second
+    // readContract.
+    const makeQueryClient = () =>
+        ({
+            fetchQuery: jest.fn(async (opts: { queryFn: () => Promise<bigint> }) => opts.queryFn()),
+        }) as unknown as import('@tanstack/react-query').QueryClient
+
+    // Routing reads this live (force-refetch, not the 30s-cached useBalance
+    // value) so a smart account that's been swept empty into collateral can't be
+    // mis-routed to `smart-only` and revert on-chain (incident #2230).
+    it('reads the live on-chain USDC balanceOf the given sender via the shared query', async () => {
+        mockReadContract.mockResolvedValue(0n)
+        const queryClient = makeQueryClient()
+        const sender = '0x959e088a09f61ab01cb83b0ebcc74b2cf6d62053'
+        const balance = await fetchLiveSmartUsdcBalance(queryClient, sender)
+
+        expect(balance).toBe(0n)
+        expect(mockReadContract).toHaveBeenCalledTimes(1)
+        expect(mockReadContract).toHaveBeenCalledWith(
+            expect.objectContaining({
+                address: '0x1234567890123456789012345678901234567890', // mocked PEANUT_WALLET_TOKEN
+                functionName: 'balanceOf',
+                args: [sender],
+            })
+        )
+    })
+
+    it('force-refetches the shared balance query (staleTime 0) keyed on the sender', async () => {
+        mockReadContract.mockResolvedValue(0n)
+        const queryClient = makeQueryClient()
+        const sender = '0x959e088a09f61ab01cb83b0ebcc74b2cf6d62053'
+        await fetchLiveSmartUsdcBalance(queryClient, sender)
+
+        // staleTime:0 = ignore the 30s display cache and read chain now; same
+        // ['balance', sender] key so the displayed balance refreshes too.
+        expect(queryClient.fetchQuery).toHaveBeenCalledWith(
+            expect.objectContaining({ staleTime: 0, queryKey: ['balance', sender] })
+        )
+    })
+
+    it('returns the on-chain balance unchanged when funds are present', async () => {
+        mockReadContract.mockResolvedValue(5_000_000n)
+        expect(await fetchLiveSmartUsdcBalance(makeQueryClient(), '0xabc0000000000000000000000000000000000001')).toBe(
+            5_000_000n
         )
     })
 })
