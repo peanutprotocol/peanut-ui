@@ -18,6 +18,8 @@ export const DEPOSIT_RAILS: Record<string, string> = {
     ach: 'ACH Bank Transfer',
     sepa: 'SEPA Bank Transfer',
     wire: 'Wire Transfer',
+    'faster-payments': 'Faster Payments',
+    spei: 'SPEI Bank Transfer',
     arbitrum: 'Arbitrum',
     base: 'Base',
     ethereum: 'Ethereum',
