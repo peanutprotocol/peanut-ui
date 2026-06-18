@@ -39,18 +39,7 @@ const PRIMARY_LOCALES = ['en', 'es-419', 'pt-br']
 //   rails     → /{locale}/deposit/via-{slug}
 // The rail list lives in src/data/seo/exchanges.ts (DEPOSIT_RAILS). Keep in sync.
 // Anything in content/deposit/ that isn't a rail is an exchange.
-const RAIL_SLUGS = new Set([
-    'ach',
-    'arbitrum',
-    'avalanche',
-    'base',
-    'ethereum',
-    'polygon',
-    'sepa',
-    'solana',
-    'tron',
-    'wire',
-])
+const RAIL_SLUGS = new Set(['ach', 'arbitrum', 'base', 'ethereum', 'polygon', 'sepa', 'solana', 'tron', 'wire'])
 const exchangeSlugs = listDirs(path.join(ROOT, 'content/deposit')).filter((s) => !RAIL_SLUGS.has(s))
 
 // --- Diagnostics ---
