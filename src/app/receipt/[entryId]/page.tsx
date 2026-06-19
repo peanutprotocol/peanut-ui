@@ -13,6 +13,7 @@ import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
 import { type Metadata } from 'next'
 import { BASE_URL } from '@/constants/general.consts'
 import { formatAmount, formatCurrency, isStableCoin } from '@/utils/general.utils'
+import { buildOgImageUrl } from '@/utils/og.utils'
 import getOrigin from '@/lib/hosting/get-origin'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 
@@ -138,32 +139,31 @@ export async function generateMetadata({
 
     // Generate dynamic OG image URL
     const origin = (await getOrigin()) || BASE_URL
-    const ogUrl = new URL(`${origin}/api/og`)
-
-    // Map transaction type for OG image
     const ogType = mapTransactionTypeToOGType(transactionDetails.extraDataForDrawer?.transactionCardType || 'send')
-    ogUrl.searchParams.set('type', ogType)
-    ogUrl.searchParams.set('isReceipt', 'true')
-
-    // Add amount if available (always use USD amount)
-    if (transactionDetails.amount > 0) {
-        ogUrl.searchParams.set('amount', formatCurrency(Number(transactionDetails.amount).toString()))
-        ogUrl.searchParams.set('token', 'USDC')
-    }
-
-    // Add username if available and not an address-like string
-    if (
+    const hasAmount = transactionDetails.amount > 0
+    // include username only when present and not an address-like string
+    const hasUsername = Boolean(
         transactionDetails.userName &&
         transactionDetails.userName.length < 20 &&
         !transactionDetails.userName.startsWith('0x')
-    ) {
-        ogUrl.searchParams.set('username', transactionDetails.userName)
-    }
+    )
+
+    const ogImageUrl = buildOgImageUrl(
+        {
+            type: ogType,
+            isReceipt: true,
+            username: hasUsername ? transactionDetails.userName : undefined,
+            // always denominate the receipt amount in USD
+            amount: hasAmount ? formatCurrency(Number(transactionDetails.amount).toString()) : undefined,
+            token: hasAmount ? 'USDC' : undefined,
+        },
+        origin
+    )
 
     return generateBaseMetadata({
         title,
         description,
-        image: ogUrl.toString(),
+        image: ogImageUrl,
         keywords: 'crypto receipt, transaction receipt, payment receipt, Peanut Protocol',
     })
 }

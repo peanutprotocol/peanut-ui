@@ -2,6 +2,7 @@ import { PEANUT_WALLET_TOKEN_DECIMALS, PEANUT_WALLET_TOKEN_SYMBOL } from '@/cons
 import { sendLinksApi } from '@/services/sendLinks'
 import { resolveAddressToUsername } from '@/utils/ens.utils'
 import { formatAmount } from '@/utils/general.utils'
+import { buildOgImageUrl } from '@/utils/og.utils'
 import { type Metadata } from 'next'
 import { formatUnits } from 'viem'
 
@@ -98,17 +99,18 @@ export function buildClaimMetadata({
             title = `You received ${amount < 0.01 ? 'some ' : `${formatAmount(amount)} in `}${linkDetails.tokenSymbol}!`
         }
 
-        const ogUrl = new URL('/api/og', siteUrl)
-        ogUrl.searchParams.set('type', 'send')
-        ogUrl.searchParams.set('username', username || linkDetails.senderAddress)
-        if (linkDetails.claimed) {
-            // claimed links show the "receipt" variant of the OG image
-            ogUrl.searchParams.set('isReceipt', 'true')
-        } else {
-            ogUrl.searchParams.set('amount', linkDetails.tokenAmount)
-            ogUrl.searchParams.set('token', linkDetails.tokenSymbol)
-        }
-        ogImageUrl = ogUrl.toString()
+        // claimed links show the "receipt" variant; unclaimed show amount + token
+        ogImageUrl = buildOgImageUrl(
+            linkDetails.claimed
+                ? { type: 'send', username: username || linkDetails.senderAddress, isReceipt: true }
+                : {
+                      type: 'send',
+                      username: username || linkDetails.senderAddress,
+                      amount: linkDetails.tokenAmount,
+                      token: linkDetails.tokenSymbol,
+                  },
+            siteUrl
+        )
     }
 
     const description = claimData?.linkDetails.claimed
