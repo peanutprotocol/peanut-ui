@@ -137,6 +137,21 @@ export interface HistoryEntryExtraData {
     merchantLogo?: string | null
     merchantId?: string | null
 
+    // Dispute lifecycle. Set when Rain has fired any dispute.* webhook for
+    // the spend. Transformer narrows into TransactionDetails.cardPayment.dispute.
+    dispute?: {
+        rainDisputeId?: string
+        status?: 'pending' | 'inReview' | 'accepted' | 'rejected' | 'canceled' | 'resolvedByMerchant'
+        type?: string
+        createdAt?: string
+        resolvedAt?: string | null
+        textEvidence?: string | null
+        evidenceRequestedMessage?: string | null
+        evidenceRequestedAt?: string | null
+        chargebackRainTxId?: string | null
+        chargebackCreatedAt?: string | null
+    } | null
+
     // Perk reward + claim metadata. Shapes match
     // TransactionDetails.extraDataForDrawer.perk* — kept loose here to
     // avoid a cross-import; transformer narrows.
