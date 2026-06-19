@@ -540,7 +540,7 @@ export interface paths {
                         showFullName?: boolean;
                         hasSeenEarlyUserModal?: boolean;
                         bridgeKycStatus?: "not_started" | "incomplete" | "under_review" | "approved" | "rejected";
-                        showKycCompletedModal?: boolean;
+                        dismissActivationCelebration?: boolean;
                     };
                 };
             };

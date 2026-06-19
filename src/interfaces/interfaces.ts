@@ -198,7 +198,9 @@ export interface User {
     activatedAt?: string | null
     activationMilestone?: 'registered' | 'verified' | 'funded' | 'activated'
     showFullName: boolean
-    showKycCompletedModal?: boolean
+    // Null until the user dismisses the "You're unlocked" celebration. The modal
+    // shows once, when KYC-approved (a rail is enabled) AND this is still null.
+    activationCelebratedAt?: string | null
     createdAt: string
     accounts: Account[]
     badges?: Array<{
