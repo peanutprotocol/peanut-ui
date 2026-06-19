@@ -26,6 +26,9 @@ export const TOKEN_LOGOS = {
 export type ChainName = keyof typeof CHAIN_LOGOS
 export type TokenName = keyof typeof TOKEN_LOGOS
 
+// Mirrors Rhino's live SDA config (`depositAddresses.getSupportedConfigs()`).
+// Scroll was removed 2026-06-11: Rhino's live config no longer returns an SDA
+// entry for it, and a deposit on an unsupported chain is silently lost.
 export const SUPPORTED_EVM_CHAINS = [
     'ARBITRUM',
     'ETHEREUM',
@@ -34,7 +37,6 @@ export const SUPPORTED_EVM_CHAINS = [
     'BNB',
     'POLYGON',
     'KATANA',
-    'SCROLL',
     'GNOSIS',
     'CELO',
 ] as const
