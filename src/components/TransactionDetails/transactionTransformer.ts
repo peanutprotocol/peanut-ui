@@ -21,6 +21,19 @@ import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/re
 /** Rain dispute lifecycle status values. Source: Rain dispute.* webhooks. */
 export type DisputeStatus = 'pending' | 'inReview' | 'accepted' | 'rejected' | 'canceled' | 'resolvedByMerchant'
 
+const DISPUTE_STATUSES: ReadonlySet<string> = new Set([
+    'pending',
+    'inReview',
+    'accepted',
+    'rejected',
+    'canceled',
+    'resolvedByMerchant',
+])
+
+function isDisputeStatus(value: unknown): value is DisputeStatus {
+    return typeof value === 'string' && DISPUTE_STATUSES.has(value)
+}
+
 // Mirror of peanut-api-ts `enum TransactionProvider`. Receipts that branch
 // on provider (e.g. Manteca-specific deposit-info row) use this typed
 // value via `extraDataForDrawer.provider` for positive identity rather
@@ -608,10 +621,12 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                           dispute: (() => {
                               const d = entry.extraData?.dispute as Record<string, unknown> | null | undefined
                               if (!d || typeof d !== 'object') return null
-                              const status = d.status as DisputeStatus | undefined
-                              if (!status) return null
+                              // Type-guard d.status — any non-DisputeStatus string from
+                              // the wire (sandbox drift, schema bump) should drop the
+                              // whole block rather than leak through.
+                              if (!isDisputeStatus(d.status)) return null
                               return {
-                                  status,
+                                  status: d.status,
                                   type: (d.type as string | undefined) ?? null,
                                   resolvedAt: (d.resolvedAt as string | undefined) ?? null,
                                   textEvidence: (d.textEvidence as string | undefined) ?? null,

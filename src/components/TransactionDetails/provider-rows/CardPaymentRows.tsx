@@ -244,11 +244,15 @@ export function CardPaymentRows({
             label: 'Dispute',
             value: disputeStatusLabel(card.dispute.status),
         })
-        if (card.dispute.evidenceRequestedMessage) {
+        // Rain prompt text is free-form prose; the same nonBlank gate the
+        // decline-reason row uses keeps whitespace-only payloads from
+        // rendering an empty "Evidence requested" row.
+        const evidenceMessage = nonBlank(card.dispute.evidenceRequestedMessage)
+        if (evidenceMessage) {
             subRows.push({
                 key: 'disputeEvidenceRequest',
                 label: 'Evidence requested',
-                value: card.dispute.evidenceRequestedMessage,
+                value: evidenceMessage,
             })
         }
     }
