@@ -70,7 +70,12 @@ const UnlockedRegions = () => {
     // users who already hold a card so they can still unlock bank regions here.
     const { hasCardAccess } = useCardInfo()
     const { overview } = useRainCardOverview()
-    const hasActiveCard = useMemo(() => !!findActiveCard(overview), [overview])
+    // Tri-state: undefined while the overview is still loading, so a card-holder
+    // isn't briefly treated as "no card" and bounced to /card before it resolves.
+    const hasActiveCard = useMemo<boolean | undefined>(() => {
+        if (!overview) return undefined
+        return !!findActiveCard(overview)
+    }, [overview])
     const { rails, isKycApproved, railsForProvider, nextActionsForRail } = useCapabilities()
     // MIGRATION-REVIEW: unlockedRegions/lockedRegions previously came from
     // `useIdentityVerification` (raw rails + Sumsub flags). Now derived from the
@@ -169,7 +174,7 @@ const UnlockedRegions = () => {
         // regionIntent, no Bridge/Manteca rail enrollment) instead of starting
         // region KYC, for ANY region they picked. Card-holders fall through and
         // can still unlock bank regions here.
-        if (hasCardAccess === true && !hasActiveCard) {
+        if (hasCardAccess === true && hasActiveCard === false) {
             setSelectedRegion(null)
             router.push('/card')
             return
