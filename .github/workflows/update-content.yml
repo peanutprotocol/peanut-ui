@@ -13,7 +13,14 @@ jobs:
     update:
         runs-on: ubuntu-latest
         steps:
+            # Base the bump on `dev` (the PR target), NOT the repo default branch.
+            # Branching off a different branch than the base is what let unrelated
+            # code drift leak into the auto-PR (#2226) and made it conflict with dev
+            # once dev's content pointer moved (#2247). Off `dev`, the PR is
+            # content-only by construction and always cleanly mergeable.
             - uses: actions/checkout@v4
+              with:
+                  ref: dev
 
             - name: Init and update submodule
               env:
@@ -34,14 +41,19 @@ jobs:
                     echo "changed=true" >> "$GITHUB_OUTPUT"
                   fi
 
-            - name: Create PR
+            - name: Create PR + auto-merge (content-only)
               if: steps.check.outputs.changed == 'true'
+              # Prefer a PAT (CONTENT_BOT_TOKEN) so the PR triggers CI and auto-merge
+              # can fire on green checks. Falls back to GITHUB_TOKEN — the PR still
+              # opens, but GITHUB_TOKEN-created PRs don't trigger CI, so auto-merge
+              # won't fire until the PAT is configured (no regression vs today).
               env:
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GH_TOKEN: ${{ secrets.CONTENT_BOT_TOKEN || secrets.GITHUB_TOKEN }}
               run: |
+                  set -euo pipefail
                   BRANCH="auto/update-content-$(date -u +%Y%m%d-%H%M%S)"
                   SUBMODULE_SHA=$(git -C src/content rev-parse HEAD)
-                  PARENT=$(git rev-parse HEAD)
+                  PARENT=$(git rev-parse HEAD)   # dev tip — bump is content-only vs dev
                   BASE_TREE=$(gh api repos/${{ github.repository }}/git/commits/$PARENT --jq '.tree.sha')
                   # Create tree via API with updated submodule pointer
                   TREE=$(gh api repos/${{ github.repository }}/git/trees \
@@ -64,8 +76,18 @@ jobs:
                     --method POST \
                     -f "ref=refs/heads/$BRANCH" \
                     -f "sha=$COMMIT_SHA"
-                  gh pr create \
+                  PR_URL=$(gh pr create \
                     --head "$BRANCH" \
                     --base dev \
                     --title "Update content submodule" \
-                    --body "Auto-generated: updates content submodule to latest peanut-content main."
+                    --body "Auto-generated: bumps the content submodule to latest peanut-content main. Based on dev, so it's content-only and auto-merges once checks pass.")
+                  # Guard: only auto-merge when the PR touches NOTHING but the submodule
+                  # pointer. If anything else slipped in, leave it for a human.
+                  FILES=$(gh pr diff "$PR_URL" --name-only)
+                  if [ "$FILES" = "src/content" ]; then
+                    gh pr merge "$PR_URL" --auto --squash \
+                      || echo "::warning::auto-merge not enabled/permitted — left for manual merge ($PR_URL)"
+                  else
+                    echo "::warning::PR touches more than src/content — left for manual review:"
+                    echo "$FILES"
+                  fi
