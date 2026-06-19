@@ -11,6 +11,9 @@ export interface RevealedCardDetails {
     cvv: string
     expiryMonth: number
     expiryYear: number
+    /** Registered cardholder name from Rain. Optional — the backend resolves it
+     *  best-effort, so a Rain hiccup leaves it absent and the field is hidden. */
+    cardholderName?: string
 }
 
 interface Props {
@@ -125,6 +128,13 @@ const CardFace: FC<Props> = ({
                                     </button>
                                 )}
                             </div>
+                            {/* Registered cardholder name — PII, kept out of session
+                             * recordings like the other revealed fields. */}
+                            {revealed.cardholderName && (
+                                <span className="ph-no-capture mt-1 text-sm font-bold uppercase tracking-wide">
+                                    {revealed.cardholderName}
+                                </span>
+                            )}
                             <div className="flex items-end justify-between">
                                 <div className="text-s flex gap-6">
                                     <div>
