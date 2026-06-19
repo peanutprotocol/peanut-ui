@@ -15,8 +15,9 @@
  * gate is NOT ready — so the fix didn't just delete the guard wholesale.
  */
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import AddWithdrawCountriesList from '../AddWithdrawCountriesList'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 // ---- routing ----
 const mockPush = jest.fn()
@@ -40,6 +41,13 @@ jest.mock('@/components/AddMoney/consts', () => ({
                     description: 'Add via bank transfer',
                     icon: 'bank',
                     path: '/add-money/testland/bank',
+                },
+                {
+                    id: 'pix-add',
+                    title: 'Pix',
+                    description: 'Instant transfers',
+                    icon: 'pix',
+                    path: '/add-money/brazil/manteca',
                 },
             ],
             // id contains 'default-bank-withdraw' → routes through checkBridgeGate
@@ -128,8 +136,13 @@ jest.mock('@/utils/regions.utils', () => ({ getRegionIntent: () => 'STANDARD' })
 
 jest.mock('@/components/ActionListCard', () => ({
     ActionListCard: (props: any) => (
-        <button data-testid={`method-${props.title?.toLowerCase()}`} onClick={props.onClick}>
+        <button
+            data-testid={`method-${props.title?.toLowerCase()}`}
+            onClick={props.isDisabled ? undefined : props.onClick}
+            disabled={props.isDisabled}
+        >
             {props.title}
+            {props.rightContent}
         </button>
     ),
 }))
@@ -137,7 +150,10 @@ jest.mock('@/components/Global/NavHeader', () => ({
     __esModule: true,
     default: () => <div data-testid="nav-header" />,
 }))
-jest.mock('@/components/Global/Badges/StatusBadge', () => ({ __esModule: true, default: () => <span /> }))
+jest.mock('@/components/Global/Badges/StatusBadge', () => ({
+    __esModule: true,
+    default: (props: any) => <span data-testid="status-badge">{props.customText ?? props.status}</span>,
+}))
 jest.mock('@/components/Profile/AvatarWithBadge', () => ({ __esModule: true, default: () => <span /> }))
 jest.mock('@/components/Global/EmptyStates/EmptyState', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/AddWithdraw/DynamicBankAccountForm', () => ({ DynamicBankAccountForm: () => <div /> }))
@@ -218,5 +234,43 @@ describe('AddWithdrawCountriesList — bank gate', () => {
 
         expect(mockPush).not.toHaveBeenCalled()
         expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
+    })
+})
+
+/**
+ * BRL-via-PIX onramp is unstable, so the Pix option is flagged "under maintenance"
+ * (config: pixBrazilOnrampMaintenance) — warn-only: it stays visible and clickable.
+ */
+describe('AddWithdrawCountriesList — PIX onramp maintenance tag', () => {
+    beforeEach(() => {
+        mockPush.mockClear()
+        // a ready gate so a click can navigate — proving the option is not blocked
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+    })
+
+    afterEach(() => {
+        underMaintenanceConfig.pixBrazilOnrampMaintenance = true
+    })
+
+    it('tags the Pix option "Maintenance" but keeps it clickable (warn-only)', () => {
+        underMaintenanceConfig.pixBrazilOnrampMaintenance = true
+
+        render(<AddWithdrawCountriesList flow="add" />)
+
+        const pixCard = screen.getByTestId('method-pix')
+        expect(within(pixCard).getByText('Maintenance')).toBeInTheDocument()
+
+        // warn-only: still navigates into the deposit flow
+        fireEvent.click(pixCard)
+        expect(mockPush).toHaveBeenCalledWith('/add-money/brazil/manteca')
+    })
+
+    it('shows no maintenance tag when the flag is off, and never tags non-Pix methods', () => {
+        underMaintenanceConfig.pixBrazilOnrampMaintenance = false
+
+        render(<AddWithdrawCountriesList flow="add" />)
+
+        expect(within(screen.getByTestId('method-pix')).queryByText('Maintenance')).toBeNull()
+        expect(within(screen.getByTestId('method-bank')).queryByText('Maintenance')).toBeNull()
     })
 })
