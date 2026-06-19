@@ -49,6 +49,7 @@ import {
     isPerkReward as isPerkRewardTransaction,
     isRequestEntry,
     isSendLinkEntry,
+    isSplittable,
     usesCompletedTimestampLabel,
 } from './transaction-predicates'
 import { useReceiptViewModel } from './useReceiptViewModel'
@@ -122,7 +123,6 @@ export const TransactionDetailsReceipt = ({
         isPendingRequester,
         isPendingSentLink,
         isQRPayment,
-        isCardSpend,
         country,
         rowVisibilityConfig,
         shouldHideBorder,
@@ -744,18 +744,15 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
-            {!isPublic &&
-                (isQRPayment || isCardSpend) &&
-                transaction.status !== 'refunded' &&
-                transaction.status !== 'failed' && (
-                    <Button
-                        onClick={() => router.push(buildSplitBillRequestUrl(transaction.amount, transaction.userName))}
-                        icon="split"
-                        shadowSize="4"
-                    >
-                        Split this bill
-                    </Button>
-                )}
+            {!isPublic && isSplittable(transaction) && (
+                <Button
+                    onClick={() => router.push(buildSplitBillRequestUrl(transaction.amount, transaction.userName))}
+                    icon="split"
+                    shadowSize="4"
+                >
+                    Split this bill
+                </Button>
+            )}
 
             {shouldShowShareReceipt && !!getReceiptUrl(transaction) && (
                 <div className="pr-1">

@@ -20,4 +20,10 @@ describe('buildSplitBillRequestUrl', () => {
         expect(buildSplitBillRequestUrl(8, null)).toBe('/request?amount=8')
         expect(buildSplitBillRequestUrl(8, '')).toBe('/request?amount=8')
     })
+
+    test('strips a leading minus so the prefill amount is never negative', () => {
+        expect(buildSplitBillRequestUrl(-15, 'Cafe Tortoni')).toBe('/request?amount=15&merchant=Cafe%20Tortoni')
+        expect(buildSplitBillRequestUrl('-12.5')).toBe('/request?amount=12.5')
+        expect(buildSplitBillRequestUrl(-20n)).toBe('/request?amount=20')
+    })
 })
