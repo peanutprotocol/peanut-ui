@@ -115,4 +115,35 @@ test.describe('Add money flow', () => {
         consoleLogs.flush(testInfo, 'add-money-ar-bank-back')
         await context.close()
     })
+
+    // Same regression, the originally-reported flow: Manteca (MP) AR deposit at
+    // /add-money/argentina/manteca. Both add-money amount screens shared the
+    // { history: 'push' } bug; this covers the reported variant directly.
+    test('add-money/argentina/manteca — back button leaves the amount screen after typing (verified-ar)', async ({
+        browser,
+    }, testInfo) => {
+        const context = await browser.newContext({ ...devices['Pixel 7'] })
+        await usePersona(context, 'verified-ar')
+
+        const page = await context.newPage()
+        const consoleLogs = collectConsoleLogs(page)
+        await installApiMocks(page)
+
+        await page.goto('/add-money/argentina/manteca')
+
+        // amount step renders (verified persona; currency rate is mocked)
+        const amountInput = page.locator('input[inputmode="decimal"]').first()
+        await amountInput.waitFor({ state: 'visible', timeout: 15000 })
+
+        await amountInput.fill('100')
+        await captureStep(page, testInfo, { name: '01-add-money-manteca-amount-typed' })
+
+        // one tap must exit to the country page, not linger on /manteca with a stale amount
+        await page.locator('[data-testid="nav-back"]').first().click()
+        await expect(page).toHaveURL(/\/add-money\/argentina(?:\?.*)?$/)
+        await captureStep(page, testInfo, { name: '02-add-money-manteca-back-left-screen' })
+
+        consoleLogs.flush(testInfo, 'add-money-manteca-back')
+        await context.close()
+    })
 })
