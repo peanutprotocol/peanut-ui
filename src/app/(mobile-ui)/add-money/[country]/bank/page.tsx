@@ -51,13 +51,15 @@ export default function OnrampBankPage() {
 
     // URL state - persisted in query params
     // Example: /add-money/mexico/bank?step=inputAmount&amount=500
-    const [urlState, setUrlState] = useQueryStates(
-        {
-            step: parseAsStringEnum<BridgeBankStep>(['inputAmount', 'showDetails']),
-            amount: parseAsString,
-        },
-        { history: 'push' }
-    )
+    // history stays at the nuqs default ('replace'): `amount` is rewritten on every
+    // keystroke, so 'push' would stack a browser-history entry per character and the
+    // NavHeader back button (useSafeBack → router.back()) would only step through stale
+    // amounts of this same screen instead of leaving it. The URL stays shareable either
+    // way. Enforced by the no-restricted-syntax guard in eslint.config.js.
+    const [urlState, setUrlState] = useQueryStates({
+        step: parseAsStringEnum<BridgeBankStep>(['inputAmount', 'showDetails']),
+        amount: parseAsString,
+    })
 
     // Amount from URL
     const rawTokenAmount = urlState.amount ?? ''
