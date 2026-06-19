@@ -1,4 +1,4 @@
-import { Claim } from '@/components'
+import { Claim } from '@/components/Claim'
 import { BASE_URL } from '@/constants/general.consts'
 import getOrigin from '@/lib/hosting/get-origin'
 import { buildClaimMetadata, getClaimLinkData } from '@/utils/claim-metadata.utils'

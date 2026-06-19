@@ -1,4 +1,5 @@
 import { buildClaimMetadata, getClaimLinkData, type ClaimLinkData } from '@/utils/claim-metadata.utils'
+import { sendLinksApi } from '@/services/sendLinks'
 
 const SITE_URL = 'https://peanut.me'
 
@@ -76,8 +77,13 @@ describe('buildClaimMetadata', () => {
 
 describe('getClaimLinkData', () => {
     it('returns null without hitting the API when chainId or depositIdx is missing', async () => {
+        const getByParamsSpy = jest.spyOn(sendLinksApi, 'getByParams')
+
         await expect(getClaimLinkData({}, SITE_URL)).resolves.toBeNull()
         await expect(getClaimLinkData({ c: '42161' }, SITE_URL)).resolves.toBeNull()
         await expect(getClaimLinkData({ i: '159' }, SITE_URL)).resolves.toBeNull()
+
+        expect(getByParamsSpy).not.toHaveBeenCalled()
+        getByParamsSpy.mockRestore()
     })
 })

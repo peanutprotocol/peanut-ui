@@ -52,9 +52,16 @@ export async function getClaimLinkData(
         // Fall back to ENS reverse-resolution when the sender has no Peanut
         // handle. Race a 3s timeout so a slow ENS lookup never stalls metadata.
         if (!username && linkDetails.senderAddress) {
-            const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))
+            let timeoutId: ReturnType<typeof setTimeout> | undefined
+            const timeout = new Promise<null>((resolve) => {
+                timeoutId = setTimeout(() => resolve(null), 3000)
+            })
             const resolved = resolveAddressToUsername(linkDetails.senderAddress, siteUrl).catch(() => null)
-            username = await Promise.race([resolved, timeout])
+            try {
+                username = await Promise.race([resolved, timeout])
+            } finally {
+                clearTimeout(timeoutId)
+            }
         }
 
         return { linkDetails, username }
