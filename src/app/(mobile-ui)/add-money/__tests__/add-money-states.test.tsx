@@ -1503,6 +1503,27 @@ describe('GROUP 8: InputAmountStep Component', () => {
         expect(screen.getByText('Continue')).not.toBeDisabled()
     })
 
+    test('renders maintenanceBanner and keeps Continue enabled (warn-only)', () => {
+        renderWithProviders(
+            <InputAmountStep
+                tokenAmount="100"
+                setTokenAmount={jest.fn()}
+                onSubmit={jest.fn()}
+                isLoading={false}
+                error={null}
+                setCurrencyAmount={jest.fn()}
+                limitsValidation={{ isBlocking: false, isWarning: false, currency: 'USD' }}
+                limitsCurrency="USD"
+                onBack={jest.fn()}
+                maintenanceBanner={<div data-testid="pix-maintenance">PIX deposits are under maintenance</div>}
+            />
+        )
+
+        expect(screen.getByTestId('pix-maintenance')).toBeInTheDocument()
+        // warn-only: the banner is informational and must not block submission
+        expect(screen.getByText('Continue')).not.toBeDisabled()
+    })
+
     test('Continue disabled when limits blocking', () => {
         const { getLimitsWarningCardProps } = require('@/features/limits/utils')
         getLimitsWarningCardProps.mockReturnValue({
