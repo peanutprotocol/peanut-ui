@@ -23,11 +23,26 @@ export function isQRPayment(transaction: TransactionDetails): boolean {
     return isKind(transaction, 'QR_PAY')
 }
 
-/** A Rain card *spend* (not a refund or reversal) — the only card rows eligible
- *  for a "Split this bill" CTA. Kind-based so refunds (REFUND/OTHER) and auth
- *  reversals are excluded. */
+/** A Rain card *spend* (not a refund or reversal). Kind-based so refunds
+ *  (REFUND/OTHER) and auth reversals are excluded. Card-spend eligibility for
+ *  the "Split this bill" CTA layers a settled-status check on top — see
+ *  {@link isSplittable}. */
 export function isCardSpend(transaction: TransactionDetails): boolean {
     return isKind(transaction, 'CARD_SPEND_AUTH') || isKind(transaction, 'CARD_SPEND_CLEAR')
+}
+
+/** Eligible for the "Split this bill" CTA: a QR payment, or a card spend that
+ *  actually went through. This is an in-the-moment action right after paying,
+ *  so a freshly-authorized card hold (`pending`) IS splittable — settlement can
+ *  take days and we don't make users wait. The only card spends excluded are the
+ *  ones that didn't stick: refunded, failed, and `cancelled` (the auth was
+ *  reversed or expired — "Hold released, funds back on your card"). QR pays keep
+ *  their prior behaviour (splittable unless refunded/failed). */
+export function isSplittable(transaction: TransactionDetails): boolean {
+    if (transaction.status === 'refunded' || transaction.status === 'failed') return false
+    if (isQRPayment(transaction)) return true
+    if (isCardSpend(transaction)) return transaction.status !== 'cancelled'
+    return false
 }
 
 /** Kinds that move money across a fiat rail: bank on/off-ramps + QR pays.

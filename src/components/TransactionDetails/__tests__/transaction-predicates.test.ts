@@ -12,6 +12,7 @@ import {
     isQRPayment,
     isRequestEntry,
     isSendLinkEntry,
+    isSplittable,
     hasShareableReceipt,
 } from '../transaction-predicates'
 import type { TransactionDetails } from '../transactionTransformer'
@@ -107,5 +108,47 @@ describe('entry-kind predicates', () => {
             expect(isFxBearingFlow(tx('SEND_LINK'))).toBe(false)
             expect(isFxBearingFlow(tx('CRYPTO_WITHDRAW'))).toBe(false)
         })
+    })
+})
+
+// Gates the "Split this bill" CTA: a QR payment, or a card spend that went
+// through. It's an in-the-moment action right after paying, so a freshly-
+// authorized (`pending`) card hold IS splittable — settlement takes days. Only
+// charges that didn't stick (refunded/failed/cancelled) are excluded.
+describe('isSplittable', () => {
+    const txWithStatus = (kind: string, status?: string): TransactionDetails =>
+        ({
+            status,
+            extraDataForDrawer: { originalType: 'TRANSACTION_INTENT', kind },
+        }) as unknown as TransactionDetails
+
+    test('QR payments are splittable unless refunded/failed (behaviour unchanged)', () => {
+        expect(isSplittable(txWithStatus('QR_PAY', 'completed'))).toBe(true)
+        expect(isSplittable(txWithStatus('QR_PAY', 'pending'))).toBe(true)
+        expect(isSplittable(txWithStatus('QR_PAY', 'refunded'))).toBe(false)
+        expect(isSplittable(txWithStatus('QR_PAY', 'failed'))).toBe(false)
+    })
+
+    test('a freshly-authorized (pending) card hold IS splittable — split in the moment, settlement takes days', () => {
+        expect(isSplittable(txWithStatus('CARD_SPEND_AUTH', 'pending'))).toBe(true)
+    })
+
+    test('settled card spends are splittable', () => {
+        expect(isSplittable(txWithStatus('CARD_SPEND_CLEAR', 'completed'))).toBe(true)
+        expect(isSplittable(txWithStatus('CARD_SPEND_AUTH', 'completed'))).toBe(true)
+    })
+
+    test('a cancelled (reversed/expired) card hold is NOT splittable — the charge never stuck', () => {
+        expect(isSplittable(txWithStatus('CARD_SPEND_AUTH', 'cancelled'))).toBe(false)
+    })
+
+    test('refunded/failed card spends are NOT splittable', () => {
+        expect(isSplittable(txWithStatus('CARD_SPEND_CLEAR', 'refunded'))).toBe(false)
+        expect(isSplittable(txWithStatus('CARD_SPEND_CLEAR', 'failed'))).toBe(false)
+    })
+
+    test('non-QR / non-card kinds are never splittable', () => {
+        expect(isSplittable(txWithStatus('DIRECT_TRANSFER', 'completed'))).toBe(false)
+        expect(isSplittable(txWithStatus('SEND_LINK', 'completed'))).toBe(false)
     })
 })
