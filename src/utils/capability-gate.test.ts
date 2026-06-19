@@ -1,5 +1,6 @@
 import {
     deriveGate,
+    getGateAdvisory,
     getGateUserMessage,
     getKycModalVariant,
     type CapabilityState,
@@ -473,5 +474,107 @@ describe('deriveGate — country scoping (the Add Money dead-end class)', () => 
             country: 'EU',
         })
         expect(gate.kind).toBe('needs-enrollment')
+    })
+})
+
+describe('deriveGate — advisory pre-empt (future-dated requirement on a ready rail)', () => {
+    // A Bridge rail that's ENABLED now but carries a future-dated requirement,
+    // surfaced by the BE as a non-blocking hintAction whose NextAction has an
+    // `effectiveDate` (the 2026-06-29 sof_individual_primary_purpose cohort).
+    const advisoryAction: NextAction = {
+        key: 'sumsub:eea_uplift',
+        kind: 'sumsub',
+        purpose: 'unlock-bridge',
+        levelKey: 'eea_uplift',
+        effectiveDate: '2099-06-29',
+        requirementKey: 'sof_individual_primary_purpose',
+    }
+
+    test('enabled rail with a future-dated hint → ready + advisory (rail stays usable)', () => {
+        const rail = bankRail({
+            id: 'bridge.sepa_eu',
+            method: 'SEPA_EU',
+            country: 'EU',
+            currency: 'EUR',
+            status: 'enabled',
+            hintActions: ['sumsub:eea_uplift'],
+        })
+        const gate = deriveGate(state([rail], [advisoryAction]), 'deposit', { channel: 'bank' })
+        expect(gate.kind).toBe('ready')
+        if (gate.kind === 'ready') {
+            expect(gate.advisory).toEqual({
+                effectiveDate: '2099-06-29',
+                levelKey: 'eea_uplift',
+                requirementKey: 'sof_individual_primary_purpose',
+            })
+        }
+        expect(getGateAdvisory(gate)).toMatchObject({ effectiveDate: '2099-06-29', levelKey: 'eea_uplift' })
+    })
+
+    test('enabled rail with no hint → ready, no advisory (back-compat)', () => {
+        const gate = deriveGate(state([bankRail({ status: 'enabled' })]), 'deposit', { channel: 'bank' })
+        expect(gate.kind).toBe('ready')
+        if (gate.kind === 'ready') expect(gate.advisory).toBeUndefined()
+        expect(getGateAdvisory(gate)).toBeUndefined()
+    })
+
+    test('a hint WITHOUT effectiveDate (Manteca cap-nudge) is not an advisory pre-empt', () => {
+        const capNudge: NextAction = {
+            key: 'sumsub:source_of_funds',
+            kind: 'sumsub',
+            purpose: 'raise-manteca-limit',
+            levelKey: 'source_of_funds',
+        }
+        const rail = bankRail({
+            id: 'manteca.pix_br',
+            provider: 'manteca',
+            method: 'PIX_BR',
+            country: 'BR',
+            currency: 'BRL',
+            status: 'enabled',
+            hintActions: ['sumsub:source_of_funds'],
+        })
+        const gate = deriveGate(state([rail], [capNudge]), 'deposit', { channel: 'bank' })
+        expect(gate.kind).toBe('ready')
+        if (gate.kind === 'ready') expect(gate.advisory).toBeUndefined()
+    })
+
+    test('earliest effectiveDate wins across multiple ready rails', () => {
+        const later: NextAction = {
+            key: 'sumsub:tax_identification_number',
+            kind: 'sumsub',
+            purpose: 'unlock-bridge',
+            levelKey: 'tax_identification_number',
+            effectiveDate: '2099-12-31',
+        }
+        const rails = [
+            bankRail({
+                id: 'bridge.sepa_eu',
+                method: 'SEPA_EU',
+                country: 'EU',
+                currency: 'EUR',
+                status: 'enabled',
+                hintActions: ['sumsub:tax_identification_number'],
+            }),
+            bankRail({ id: 'bridge.ach_us', status: 'enabled', hintActions: ['sumsub:eea_uplift'] }),
+        ]
+        const gate = deriveGate(state(rails, [advisoryAction, later]), 'deposit', { channel: 'bank' })
+        expect(gate.kind).toBe('ready')
+        if (gate.kind === 'ready') expect(gate.advisory?.effectiveDate).toBe('2099-06-29')
+    })
+
+    test('a blocking sibling still wins — advisory only rides on an otherwise-ready scope', () => {
+        // If the same scope has a CURRENT blocker, that takes priority (ready
+        // requires an enabled rail); advisory is strictly a ready-state rider.
+        const blockedRail = bankRail({
+            id: 'bridge.sepa_eu',
+            method: 'SEPA_EU',
+            country: 'EU',
+            currency: 'EUR',
+            status: 'requires-info',
+            blockingActions: ['sumsub:eea_uplift'],
+        })
+        const gate = deriveGate(state([blockedRail], [advisoryAction]), 'deposit', { channel: 'bank' })
+        expect(gate.kind).toBe('fixable-rejection')
     })
 })

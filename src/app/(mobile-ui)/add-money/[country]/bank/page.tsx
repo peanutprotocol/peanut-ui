@@ -34,6 +34,8 @@ import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
+import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
+import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
@@ -111,6 +113,20 @@ export default function OnrampBankPage() {
     const { gateFor } = useCapabilities()
     const bankCountry = useMemo(() => railJurisdictionForBank(selectedCountry?.id), [selectedCountry?.id])
     const gate = useMemo(() => gateFor('deposit', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
+    // A ready bank rail can still carry a future-dated requirement (the gate's
+    // `advisory`). Offer it as a skippable pre-empt at the proceed step.
+    const advisory = gate.kind === 'ready' ? gate.advisory : undefined
+    const { intercept: advisoryIntercept, modalProps: advisoryModalProps } = useAdvisoryPreempt({
+        advisory,
+        isLoading: sumsubFlow.isLoading,
+        onCompleteNow: () =>
+            sumsubFlow.handleInitiateKyc(
+                getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
+                advisory?.levelKey,
+                undefined,
+                selectedCountry?.id
+            ),
+    })
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const { setIsSupportModalOpen } = useModalsContext()
 
@@ -236,7 +252,9 @@ export default function OnrampBankPage() {
             method_type: 'bank',
             country: selectedCountryPath,
         })
-        setShowWarningModal(true)
+        // ready — but offer the skippable advisory pre-empt once before the
+        // confirmation modal (no-op when there's nothing future-dated pending).
+        advisoryIntercept(() => setShowWarningModal(true))
     }
 
     const handleWarningConfirm = async () => {
@@ -437,6 +455,8 @@ export default function OnrampBankPage() {
                     providerMessage={getGateUserMessage(gate)}
                     regionName={selectedCountry?.title}
                 />
+
+                <AdvisoryPreemptModal {...advisoryModalProps} />
 
                 <SumsubKycModals flow={sumsubFlow} autoStartSdk />
 
