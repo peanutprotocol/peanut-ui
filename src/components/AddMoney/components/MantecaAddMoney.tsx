@@ -39,15 +39,17 @@ const MantecaAddMoney: FC = () => {
 
     // URL state - persisted in query params
     // Example: /add-money/argentina/manteca?step=inputAmount&amount=100&currency=ARS
-    // The `amount` is stored in whatever denomination `currency` specifies
-    const [urlState, setUrlState] = useQueryStates(
-        {
-            step: parseAsStringEnum<MantecaStep>(['inputAmount', 'depositDetails']),
-            amount: parseAsString,
-            currency: parseAsStringEnum<CurrencyDenomination>(['USD', 'ARS', 'BRL', 'MXN', 'EUR']),
-        },
-        { history: 'push' }
-    )
+    // The `amount` is stored in whatever denomination `currency` specifies.
+    // history stays at the nuqs default ('replace'): `amount` is rewritten on every
+    // keystroke, so 'push' would stack a browser-history entry per character and the
+    // NavHeader back button (useSafeBack → router.back()) would only step through stale
+    // amounts of this same screen instead of leaving it. The URL stays shareable either
+    // way. Enforced by the no-restricted-syntax guard in eslint.config.js.
+    const [urlState, setUrlState] = useQueryStates({
+        step: parseAsStringEnum<MantecaStep>(['inputAmount', 'depositDetails']),
+        amount: parseAsString,
+        currency: parseAsStringEnum<CurrencyDenomination>(['USD', 'ARS', 'BRL', 'MXN', 'EUR']),
+    })
 
     // Derive state from URL (with defaults)
     const step: MantecaStep = urlState.step ?? 'inputAmount'

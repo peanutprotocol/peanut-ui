@@ -81,4 +81,38 @@ test.describe('Add money flow', () => {
         consoleLogs.flush(testInfo, 'add-money-us-bank')
         await context.close()
     })
+
+    // Regression: the NavHeader back button must LEAVE the amount screen on the first tap.
+    // Before fix/addmoney-back-nuqs-replace the flow used nuqs { history: 'push' }, so every
+    // amount keystroke stacked a same-screen history entry and useSafeBack's router.back()
+    // only stepped through stale amounts — the back button looked dead (MP/bank reports).
+    test('add-money/AR/bank — back button leaves the amount screen after typing (verified-ar)', async ({
+        browser,
+    }, testInfo) => {
+        const context = await browser.newContext({ ...devices['Pixel 7'] })
+        await usePersona(context, 'verified-ar')
+
+        const page = await context.newPage()
+        const consoleLogs = collectConsoleLogs(page)
+        await installApiMocks(page)
+
+        await page.goto('/add-money/AR/bank')
+
+        // amount step renders (verified persona skips the "country not found" gate)
+        const amountInput = page.locator('input[inputmode="decimal"]').first()
+        await amountInput.waitFor({ state: 'visible', timeout: 15000 })
+
+        // typing writes ?amount= — with the old { history: 'push' } this stacked back-stack
+        // entries; with the default 'replace' it does not.
+        await amountInput.fill('100')
+        await captureStep(page, testInfo, { name: '01-add-money-ar-bank-amount-typed' })
+
+        // one tap must exit to the country page, not linger on /bank with a stale amount
+        await page.locator('[data-testid="nav-back"]').first().click()
+        await expect(page).toHaveURL(/\/add-money\/AR(?:\?.*)?$/)
+        await captureStep(page, testInfo, { name: '02-add-money-ar-bank-back-left-screen' })
+
+        consoleLogs.flush(testInfo, 'add-money-ar-bank-back')
+        await context.close()
+    })
 })

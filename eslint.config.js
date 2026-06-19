@@ -127,6 +127,16 @@ module.exports = [
                     message:
                         "window.history.length is the pre-useSafeBack idiom (history.length > 1 ? back : push). It misfires on cold-load from external referrers — useSafeBack's pushState counter is more accurate. See PR #1965.",
                 },
+                {
+                    // nuqs `history: 'push'` stacks a browser-history entry on every URL write.
+                    // For per-keystroke params (e.g. `amount`) that poisons the back stack:
+                    // useSafeBack → router.back() then steps through stale same-screen states
+                    // and the back button looks dead (add-money MP/bank reports, June 2026).
+                    selector:
+                        "CallExpression[callee.name=/^useQueryStates?$/] Property[key.name='history'][value.value='push']",
+                    message:
+                        "Don't pass { history: 'push' } to nuqs useQueryState(s) — a history entry per URL write breaks the back button (useSafeBack steps through same-screen states instead of leaving). Use the default 'replace'; the URL stays shareable. If a flow genuinely needs push-per-step, add a scoped file exemption with a comment (see useNativePlugins).",
+                },
             ],
         },
     },
