@@ -2,7 +2,12 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
-import { initiateSumsubKyc, initiateSelfHealResubmission, restartIdentityVerification } from '@/app/actions/sumsub'
+import {
+    initiateSumsubKyc,
+    initiateSelfHealResubmission,
+    restartIdentityVerification,
+    startKycAction,
+} from '@/app/actions/sumsub'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { isCapacitor } from '@/utils/capacitor'
@@ -437,6 +442,37 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         }
     }, [])
 
+    // Start a capability nextAction by key (POST /users/kyc/start-action) and
+    // open the WebSDK with the returned token. Unlike handleInitiateKyc (which
+    // resolves the level from region and no-ops for an already-approved user),
+    // this mints a token for the specific RFI level the key maps to — the path
+    // the advisory pre-empt needs to start a future-dated requirement early.
+    const handleStartAction = useCallback(async (key: string) => {
+        setIsLoading(true)
+        setError(null)
+        userInitiatedRef.current = true
+        selfHealProviderRef.current = null
+
+        try {
+            const response = await startKycAction(key)
+            if (response.error || !response.data?.token) {
+                userInitiatedRef.current = false
+                setError(response.error || 'Could not start verification. Please try again.')
+                return
+            }
+            levelNameRef.current = response.data.levelName
+            setAccessToken(response.data.token)
+            setIsActionFlow(true)
+            setShowWrapper(true)
+        } catch (e: unknown) {
+            userInitiatedRef.current = false
+            const message = e instanceof Error ? e.message : 'An unexpected error occurred'
+            setError(message)
+        } finally {
+            setIsLoading(false)
+        }
+    }, [])
+
     return {
         isLoading,
         error,
@@ -447,6 +483,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         handleInitiateKyc,
         handleRestartIdentity,
         handleSelfHealResubmit,
+        handleStartAction,
         handleSdkComplete,
         handleClose,
         refreshToken,

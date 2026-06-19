@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { useAdvisoryPreempt } from './useAdvisoryPreempt'
 import type { GateAdvisory } from '@/utils/capability-gate'
 
-const advisory: GateAdvisory = { effectiveDate: '2099-06-29', levelKey: 'eea_uplift' }
+const advisory: GateAdvisory = { effectiveDate: '2099-06-29', actionKey: 'sumsub:eea_uplift' }
 
 describe('useAdvisoryPreempt', () => {
     test('no advisory → intercept proceeds immediately, modal stays hidden', () => {
@@ -40,6 +40,24 @@ describe('useAdvisoryPreempt', () => {
         expect(result.current.modalProps.visible).toBe(false)
 
         // Dismissed for the session — a second proceed runs immediately, no re-prompt.
+        const proceed2 = jest.fn()
+        act(() => result.current.intercept(proceed2))
+        expect(proceed2).toHaveBeenCalledTimes(1)
+        expect(result.current.modalProps.visible).toBe(false)
+    })
+
+    test('onClose dismisses without running the deferred proceed (X must not trigger the money action)', () => {
+        const proceed = jest.fn()
+        const onCompleteNow = jest.fn()
+        const { result } = renderHook(() => useAdvisoryPreempt({ advisory, onCompleteNow }))
+
+        act(() => result.current.intercept(proceed))
+        act(() => result.current.modalProps.onClose())
+
+        expect(proceed).not.toHaveBeenCalled()
+        expect(result.current.modalProps.visible).toBe(false)
+
+        // ...but it dismisses for the session — the next click passes through, no re-prompt.
         const proceed2 = jest.fn()
         act(() => result.current.intercept(proceed2))
         expect(proceed2).toHaveBeenCalledTimes(1)

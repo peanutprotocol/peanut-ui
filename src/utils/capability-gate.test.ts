@@ -504,11 +504,11 @@ describe('deriveGate — advisory pre-empt (future-dated requirement on a ready 
         if (gate.kind === 'ready') {
             expect(gate.advisory).toEqual({
                 effectiveDate: '2099-06-29',
-                levelKey: 'eea_uplift',
+                actionKey: 'sumsub:eea_uplift',
                 requirementKey: 'sof_individual_primary_purpose',
             })
         }
-        expect(getGateAdvisory(gate)).toMatchObject({ effectiveDate: '2099-06-29', levelKey: 'eea_uplift' })
+        expect(getGateAdvisory(gate)).toMatchObject({ effectiveDate: '2099-06-29', actionKey: 'sumsub:eea_uplift' })
     })
 
     test('enabled rail with no hint → ready, no advisory (back-compat)', () => {

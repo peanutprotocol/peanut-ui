@@ -112,3 +112,44 @@ export const initiateSelfHealResubmission = async (
         return { error: message }
     }
 }
+
+export interface StartKycActionResponse {
+    token: string
+    levelName: string
+    externalActionId?: string
+}
+
+/**
+ * Mint a Sumsub WebSDK token for a capability nextAction by its `key`
+ * (POST /users/kyc/start-action). The capability model returns action
+ * descriptors (a stable key + a registry levelKey) and never carries a token;
+ * the FE posts the key here to get an unexpired token bound to the right RFI
+ * level. Used by the advisory pre-empt — an already-approved user starting a
+ * future-dated RFI early, where /users/identity would short-circuit on
+ * "already approved" and never mint a token.
+ */
+export const startKycAction = async (key: string): Promise<{ data?: StartKycActionResponse; error?: string }> => {
+    try {
+        const response = await serverFetch('/users/kyc/start-action', {
+            method: 'POST',
+            body: JSON.stringify({ key }),
+        })
+        const responseJson = await response.json()
+        if (!response.ok) {
+            return { error: responseJson.userMessage || responseJson.error || 'Failed to start verification' }
+        }
+        if (!responseJson.sumsubAccessToken) {
+            return { error: 'Invalid response from server' }
+        }
+        return {
+            data: {
+                token: responseJson.sumsubAccessToken,
+                levelName: responseJson.levelName,
+                externalActionId: responseJson.externalActionId,
+            },
+        }
+    } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'An unexpected error occurred'
+        return { error: message }
+    }
+}

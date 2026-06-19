@@ -51,7 +51,14 @@ export function useAdvisoryPreempt({ advisory, onCompleteNow, isLoading = false 
         proceed?.()
     }, [])
 
-    const close = useCallback(() => setVisible(false), [])
+    // X / backdrop / Escape: dismiss for the session WITHOUT running the deferred
+    // proceed — closing the dialog must not auto-trigger the add/withdraw action.
+    // The user's next add/withdraw click then passes straight through (dismissed).
+    const close = useCallback(() => {
+        setDismissed(true)
+        setVisible(false)
+        pendingProceed.current = null
+    }, [])
 
     return {
         intercept,

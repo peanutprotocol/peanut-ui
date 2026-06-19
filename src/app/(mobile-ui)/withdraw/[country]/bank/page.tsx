@@ -100,13 +100,7 @@ export default function WithdrawBankPage() {
     const { intercept: advisoryIntercept, modalProps: advisoryModalProps } = useAdvisoryPreempt({
         advisory,
         isLoading: sumsubFlow.isLoading,
-        onCompleteNow: () =>
-            sumsubFlow.handleInitiateKyc(
-                getRegionIntent(getCountryFromPath(country)?.region ?? 'rest-of-the-world'),
-                advisory?.levelKey,
-                undefined,
-                getCountryFromPath(country)?.id
-            ),
+        onCompleteNow: () => (advisory ? sumsubFlow.handleStartAction(advisory.actionKey) : Promise.resolve()),
     })
     const [showKycModal, setShowKycModal] = useState(false)
     const { setIsSupportModalOpen } = useModalsContext()

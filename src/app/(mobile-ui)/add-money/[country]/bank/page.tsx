@@ -119,13 +119,7 @@ export default function OnrampBankPage() {
     const { intercept: advisoryIntercept, modalProps: advisoryModalProps } = useAdvisoryPreempt({
         advisory,
         isLoading: sumsubFlow.isLoading,
-        onCompleteNow: () =>
-            sumsubFlow.handleInitiateKyc(
-                getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
-                advisory?.levelKey,
-                undefined,
-                selectedCountry?.id
-            ),
+        onCompleteNow: () => (advisory ? sumsubFlow.handleStartAction(advisory.actionKey) : Promise.resolve()),
     })
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const { setIsSupportModalOpen } = useModalsContext()
@@ -247,14 +241,18 @@ export default function OnrampBankPage() {
             return
         }
 
-        posthog.capture(ANALYTICS_EVENTS.DEPOSIT_AMOUNT_ENTERED, {
-            amount_usd: usdEquivalent,
-            method_type: 'bank',
-            country: selectedCountryPath,
+        // ready — offer the skippable advisory pre-empt once; on proceed (now, or
+        // after "Not now") record the amount-entered event and open the
+        // confirmation modal. Firing inside the proceed avoids double-counting if
+        // the user dismisses the advisory and re-clicks.
+        advisoryIntercept(() => {
+            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_AMOUNT_ENTERED, {
+                amount_usd: usdEquivalent,
+                method_type: 'bank',
+                country: selectedCountryPath,
+            })
+            setShowWarningModal(true)
         })
-        // ready — but offer the skippable advisory pre-empt once before the
-        // confirmation modal (no-op when there's nothing future-dated pending).
-        advisoryIntercept(() => setShowWarningModal(true))
     }
 
     const handleWarningConfirm = async () => {

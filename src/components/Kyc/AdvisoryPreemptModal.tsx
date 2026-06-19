@@ -15,9 +15,11 @@ interface AdvisoryPreemptModalProps {
 function formatEffectiveDate(iso?: string): string | null {
     if (!iso) return null
     const date = new Date(iso)
+    // `iso` is a date-only YYYY-MM-DD, so `new Date()` parses it at UTC midnight.
+    // Format in UTC too, or Americas timezones render the day before the deadline.
     return Number.isNaN(date.getTime())
         ? null
-        : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
 }
 
 /**

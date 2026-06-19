@@ -29,8 +29,8 @@ import type { NextAction, RailCapability, RailOperation, CapabilityReason, RailC
 export interface GateAdvisory {
     /** ISO date the requirement becomes blocking. */
     effectiveDate: string
-    /** registry key for the Sumsub RFI to launch if the user completes it now (NextAction.levelKey). */
-    levelKey?: string
+    /** the NextAction `key` to start (POST /users/kyc/start-action) if the user completes it now. */
+    actionKey: string
     /** which requirement — telemetry / FE branching. */
     requirementKey?: string
 }
@@ -131,7 +131,7 @@ function firstAdvisory(rails: RailCapability[], byKey: Map<string, NextAction>):
         }
     }
     if (!best) return undefined
-    return { effectiveDate: best.effectiveDate!, levelKey: best.levelKey, requirementKey: best.requirementKey }
+    return { effectiveDate: best.effectiveDate!, actionKey: best.key, requirementKey: best.requirementKey }
 }
 
 /**
