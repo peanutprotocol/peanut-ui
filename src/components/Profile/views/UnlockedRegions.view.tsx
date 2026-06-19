@@ -21,6 +21,10 @@ import Image from 'next/image'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useState, useCallback, useRef, useMemo } from 'react'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
+import { useRouter } from 'next/navigation'
+import { useCardInfo } from '@/hooks/useCardInfo'
+import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { findActiveCard } from '@/components/Card/cardState.utils'
 
 type ModalVariant = 'start' | 'processing' | 'action_required' | 'rejected'
 
@@ -59,6 +63,14 @@ function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: bool
 
 const UnlockedRegions = () => {
     const onBack = useSafeBack('/profile', { replace: true })
+    const router = useRouter()
+    // Card-priority guard: an eligible user (skip badge / admin grant →
+    // hasCardAccess) without an active card is steered to /card from the region
+    // picker (see handleStartKyc), regardless of region. `hasActiveCard` excludes
+    // users who already hold a card so they can still unlock bank regions here.
+    const { hasCardAccess } = useCardInfo()
+    const { overview } = useRainCardOverview()
+    const hasActiveCard = useMemo(() => !!findActiveCard(overview), [overview])
     const { rails, isKycApproved, railsForProvider, nextActionsForRail } = useCapabilities()
     // MIGRATION-REVIEW: unlockedRegions/lockedRegions previously came from
     // `useIdentityVerification` (raw rails + Sumsub flags). Now derived from the
@@ -152,6 +164,16 @@ const UnlockedRegions = () => {
     }, [])
 
     const handleStartKyc = useCallback(async () => {
+        // Card takes priority for eligible users: if the user has card access but
+        // no active card yet, send them to /card (KYC on rain-requirements — no
+        // regionIntent, no Bridge/Manteca rail enrollment) instead of starting
+        // region KYC, for ANY region they picked. Card-holders fall through and
+        // can still unlock bank regions here.
+        if (hasCardAccess === true && !hasActiveCard) {
+            setSelectedRegion(null)
+            router.push('/card')
+            return
+        }
         const intent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
         if (intent) setActiveRegionIntent(intent)
         setErrorAcknowledged(false)
@@ -166,7 +188,7 @@ const UnlockedRegions = () => {
         // Fresh-KYC safe: the BE's cross-region branches all require an
         // APPROVED verification, so for first-time users the flag is a no-op.
         await flow.handleInitiateKyc(intent, undefined, true)
-    }, [flow.handleInitiateKyc, selectedRegion])
+    }, [flow.handleInitiateKyc, selectedRegion, hasCardAccess, hasActiveCard, router])
 
     // re-submission: skip StartVerificationView since user already consented
     const handleResubmitKyc = useCallback(async () => {
