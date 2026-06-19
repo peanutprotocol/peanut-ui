@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import { type ReactNode } from 'react'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { type DisputeStatus, type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { friendlyDeclineReason } from '@/utils/cardDeclineReason'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { extractMerchantIso2 } from '@/components/TransactionDetails/transaction-details.utils'
@@ -25,6 +25,30 @@ function parseCents(value: string | null | undefined): number | null {
     if (value == null) return null
     const n = Number(value)
     return Number.isFinite(n) ? n : null
+}
+
+/**
+ * Friendly copy for the dispute status row. The drawer shows ONE row labeled
+ * "Dispute" with the status-mapped text. Keep terminal-state copy actionable:
+ * "Resolved by merchant refund" / "Accepted (refund issued)" both signal that
+ * money has been returned (or is being returned), which is the user's actual
+ * concern at that point.
+ */
+export function disputeStatusLabel(status: DisputeStatus): string {
+    switch (status) {
+        case 'pending':
+            return 'Disputed — Awaiting review'
+        case 'inReview':
+            return 'Disputed — In review'
+        case 'accepted':
+            return 'Disputed — Accepted (refund issued)'
+        case 'rejected':
+            return 'Disputed — Rejected'
+        case 'canceled':
+            return 'Disputed — Cancelled'
+        case 'resolvedByMerchant':
+            return 'Disputed — Resolved by merchant refund'
+    }
 }
 
 /**
@@ -65,6 +89,7 @@ export function hasCardPaymentRowsContent(transaction: TransactionDetails): bool
     if (card.cancellationReason === 'auth_reversed' || card.cancellationReason === 'auth_expired_uncaptured') {
         return true
     }
+    if (card.dispute) return true
     return false
 }
 
@@ -198,12 +223,34 @@ export function CardPaymentRows({
         card.cancellationReason === 'auto_closed' ||
         card.cancellationReason === 'auth_reversed' ||
         card.cancellationReason === 'auth_expired_uncaptured'
-    if (transaction.status === 'pending' && !card.isRefund && !hasCancellationNote) {
+    // Active disputes flip the pill to pending too (see transactionTransformer),
+    // but the dispute row IS the status — the spend already settled, so
+    // "Authorized, awaiting settlement" is a lie next to "Disputed — In review".
+    const hasActiveDispute = card.dispute?.status === 'pending' || card.dispute?.status === 'inReview'
+    if (transaction.status === 'pending' && !card.isRefund && !hasCancellationNote && !hasActiveDispute) {
         subRows.push({
             key: 'pendingNote',
             label: 'Status',
             value: 'Authorized, awaiting settlement or reversal',
         })
+    }
+
+    // Dispute lifecycle. One row for the status; an additional row when Rain
+    // has requested evidence so the user knows to upload it. Both render
+    // regardless of the spend's status — disputes outlive the spend lifecycle.
+    if (card.dispute) {
+        subRows.push({
+            key: 'disputeStatus',
+            label: 'Dispute',
+            value: disputeStatusLabel(card.dispute.status),
+        })
+        if (card.dispute.evidenceRequestedMessage) {
+            subRows.push({
+                key: 'disputeEvidenceRequest',
+                label: 'Evidence requested',
+                value: card.dispute.evidenceRequestedMessage,
+            })
+        }
     }
 
     if (subRows.length === 0) return null
