@@ -75,7 +75,7 @@ export default function Home() {
 
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
-    const [showKycModal, setShowKycModal] = useState(user?.user.showKycCompletedModal ?? false)
+    const [showKycModal, setShowKycModal] = useState(false)
 
     // Track if this is a fresh signup session - captured once on mount so it persists
     // even after NoMoreJailModal clears the sessionStorage key
@@ -89,12 +89,16 @@ export default function Home() {
         fetchUser()
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-    // sync modal state with user data when it changes
+    // Show the "You're unlocked" celebration exactly once: the user has a usable
+    // rail (isKycApproved) and has never dismissed it (activationCelebratedAt is
+    // null, stamped server-side on dismiss). A KYC re-approval can't resurface it
+    // — unlike the old showKycCompletedModal flag, which re-fired on every
+    // `→ approved` transition (e.g. the faster_payments endorsement backfill).
     useEffect(() => {
-        if (user?.user.showKycCompletedModal !== undefined) {
-            setShowKycModal(user.user.showKycCompletedModal)
+        if (isKycApproved && !user?.user.activationCelebratedAt) {
+            setShowKycModal(true)
         }
-    }, [user?.user.showKycCompletedModal])
+    }, [isKycApproved, user?.user.activationCelebratedAt])
 
     const userFullName = useMemo(() => {
         if (!user) return
@@ -256,7 +260,7 @@ export default function Home() {
                             if (user?.user.userId) {
                                 await updateUserById({
                                     userId: user.user.userId,
-                                    showKycCompletedModal: false,
+                                    dismissActivationCelebration: true,
                                 })
                                 // refetch user to ensure the modal doesn't reappear
                                 await fetchUser()
