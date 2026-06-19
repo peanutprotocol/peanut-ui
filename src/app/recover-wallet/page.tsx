@@ -91,7 +91,11 @@ function RecoverWalletInner() {
             setFatal('This recovery link is invalid or has expired. Please ask support for a fresh one.')
             return
         }
-        if (recoveryKey.to) setRecipient({ address: recoveryKey.to, name: '' })
+        // name MUST be undefined, not '' — GeneralRecipientInput shows
+        // `recipient.name ?? recipient.address`, and ?? only falls through on
+        // null/undefined, so an empty-string name would hide the prefilled
+        // destination while still enabling the button (invisible target).
+        if (recoveryKey.to) setRecipient({ address: recoveryKey.to, name: undefined })
 
         let cancelled = false
         ;(async () => {
