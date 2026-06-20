@@ -17,6 +17,8 @@ import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '../useRainCar
 import { computeAvailableSpendable, computeDisplaySpendable, rainCentsToUsdcUnits } from '@/utils/balance.utils'
 import { useSpendBundle, type SpendStrategy } from './useSpendBundle'
 import type { RainCollateralKind } from '@/services/rain'
+import { isReviewerMode } from '@/utils/reviewer'
+import { DEMO_BALANCE_UNITS } from '@/constants/demo-data'
 
 type SendTransactionsOptions = {
     chainId?: string
@@ -189,16 +191,21 @@ export const useWallet = () => {
         await refetchBalance()
     }, [isAddressReady, refetchBalance])
 
+    // Reviewer/demo mode overlays a fixed balance so screens aren't empty.
+    // No real funds, no chain reads — see constants/demo-data.ts.
+    const demoMode = isReviewerMode()
+
     // Use balance from query if available, otherwise fall back to Redux
-    const balance =
-        balanceFromQuery !== undefined
-            ? balanceFromQuery
-            : reduxBalance !== undefined
-              ? BigInt(reduxBalance)
-              : undefined
+    const balance = demoMode
+        ? DEMO_BALANCE_UNITS
+        : balanceFromQuery !== undefined
+          ? balanceFromQuery
+          : reduxBalance !== undefined
+            ? BigInt(reduxBalance)
+            : undefined
 
     // consider balance as fetching until: address is validated and query has resolved
-    const isBalanceLoading = !isAddressReady || isFetchingBalance
+    const isBalanceLoading = demoMode ? false : !isAddressReady || isFetchingBalance
 
     // Two flavours of "spendable", both summing the smart-account balance with
     // Rain collateral. See docs §4.5 and §6 in peanut-api-ts/docs/rain-card-test-summary.md
@@ -242,7 +249,7 @@ export const useWallet = () => {
     const spendableBalance = stableSpendable ?? rawSpendableBalance
     // Block on both smart-account and rain queries to avoid a flicker from
     // the balance jumping when the rain number arrives.
-    const isSpendableBalanceLoading = isBalanceLoading || isRainOverviewLoading
+    const isSpendableBalanceLoading = demoMode ? false : isBalanceLoading || isRainOverviewLoading
 
     // formatted balance for display (e.g. "1,234.56"). Smart-account only —
     // use `formattedSpendableBalance` below for user-facing widgets that

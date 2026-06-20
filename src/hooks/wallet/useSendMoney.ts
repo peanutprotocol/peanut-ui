@@ -7,6 +7,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { useBalance } from './useBalance'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '../useRainCardOverview'
 import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
+import { notifyHaptic } from '@/utils/haptics'
 import type { RainCollateralKind } from '@/services/rain'
 import {
     InsufficientSpendableError,
@@ -103,6 +104,8 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
         },
 
         onSuccess: () => {
+            // Native success buzz — feels like a real payment confirmation.
+            notifyHaptic('success')
             // Refresh both buckets. For collateral-only the smart balance didn't
             // actually change, but invalidating is cheap and keeps the display honest.
             queryClient.invalidateQueries({ queryKey: ['balance', address] })

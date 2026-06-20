@@ -48,6 +48,15 @@ export function useNativePlugins() {
             } catch (e) {
                 console.warn('failed to hide splash screen:', e)
             }
+
+            try {
+                // Resize the webview when the soft keyboard appears so inputs on
+                // amount / send / invite screens aren't hidden behind it.
+                const { Keyboard, KeyboardResize } = await import('@capacitor/keyboard')
+                await Keyboard.setResizeMode({ mode: KeyboardResize.Native })
+            } catch (e) {
+                console.warn('failed to configure keyboard:', e)
+            }
         }
 
         init()

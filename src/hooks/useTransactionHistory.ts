@@ -4,6 +4,8 @@ import type { InfiniteData, InfiniteQueryObserverResult, QueryObserverResult } f
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import type { HistoryEntry } from '@/utils/history.utils'
+import { isReviewerMode } from '@/utils/reviewer'
+import { DEMO_HISTORY_ENTRIES } from '@/constants/demo-data'
 
 //TODO: remove and import all from utils everywhere
 export { EHistoryUserRole } from '@/utils/history.utils'
@@ -54,6 +56,12 @@ export function useTransactionHistory({
     filterMutualTxs,
 }: UseTransactionHistoryOptions): LatestHistoryResult | InfiniteHistoryResult {
     const fetchHistory = async ({ cursor, limit }: { cursor?: string; limit: number }): Promise<HistoryResponse> => {
+        // reviewer/demo mode: serve static demo transactions so the home/history
+        // screens aren't empty. no network, no chain — see constants/demo-data.ts.
+        if (isReviewerMode()) {
+            return { entries: DEMO_HISTORY_ENTRIES.slice(0, limit), hasMore: false }
+        }
+
         const queryParams = new URLSearchParams()
         if (cursor) queryParams.append('cursor', cursor)
         if (limit) queryParams.append('limit', limit.toString())
