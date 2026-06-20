@@ -327,6 +327,9 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 }
                 if (addBankAccountResponse.data?.id) {
                     const bankDetails = {
+                        // carry the account type so getOfframpConfigFromAccount() derives
+                        // the rail from it (GB→GBP) instead of falling back to country
+                        type: addBankAccountResponse.data.type,
                         name: addBankAccountResponse.data.details.accountOwnerName || user?.user.fullName || '',
                         iban:
                             addBankAccountResponse.data.type === 'iban'
@@ -416,6 +419,18 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
 
                 // merge the external account details with the user's details
                 const finalBankDetails = {
+                    // derive the account type from the response shape so
+                    // getOfframpConfigFromAccount() routes by rail (GB sort_code → gb)
+                    // instead of falling back to country
+                    type: externalAccountResponse?.iban
+                        ? 'iban'
+                        : externalAccountResponse?.clabe
+                          ? 'clabe'
+                          : externalAccountResponse?.account?.sort_code
+                            ? 'gb'
+                            : externalAccountResponse?.account
+                              ? 'us'
+                              : undefined,
                     id: externalAccountResponse.id,
                     bridgeAccountId: externalAccountResponse.id,
                     name: externalAccountResponse.bank_name ?? rawData.name,
@@ -465,6 +480,9 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         const lastName = lastNameParts.join(' ')
 
                         const bankDetails = {
+                            // carry the account type so getOfframpConfigFromAccount()
+                            // derives the rail from it instead of falling back to country
+                            type: account.type,
                             name: account.details?.accountOwnerName || user?.user.fullName || '',
                             iban: account.type === 'iban' ? account.identifier || '' : '',
                             clabe: account.type === 'clabe' ? account.identifier || '' : '',

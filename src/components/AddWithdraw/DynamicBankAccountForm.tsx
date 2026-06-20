@@ -226,10 +226,15 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 // countryCode=ESP and 400. Derive all three country fields from the
                 // IBAN to keep the Bridge payload internally consistent (exactly what
                 // the old equality gate guaranteed, just sourced from the IBAN).
+                // Single normalized IBAN source: the IBAN is entered in the
+                // accountNumber field (→ cleanedAccountNumber), but fall back to the
+                // separate `iban` form value so the country never derives off an empty
+                // string (which would send an empty countryCode to Bridge → 400).
+                const normalizedIban = isIban ? cleanedAccountNumber || (iban || '').replace(/\s/g, '') : ''
                 const ibanCountryCode = isIban
-                    ? getCountryCodeForWithdraw(cleanedAccountNumber.slice(0, 2).toUpperCase())
+                    ? getCountryCodeForWithdraw(normalizedIban.slice(0, 2).toUpperCase())
                     : ''
-                const ibanCountryName = isIban ? (getCountryFromIban(cleanedAccountNumber) ?? selectedCountry) : ''
+                const ibanCountryName = isIban ? (getCountryFromIban(normalizedIban) ?? selectedCountry) : ''
                 const resolvedCountryCode = isUs ? 'USA' : isIban ? ibanCountryCode : country.toUpperCase()
 
                 const payload: Partial<AddBankAccountPayload> = {
