@@ -5,10 +5,9 @@ import { Icon } from '../Icons/Icon'
 
 interface MoreInfoProps {
     text: string | React.ReactNode
-    html?: boolean
 }
 
-const MoreInfo = ({ text, html = false }: MoreInfoProps) => {
+const MoreInfo = ({ text }: MoreInfoProps) => {
     const buttonRef = useRef<HTMLButtonElement>(null)
     const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({})
     const [mounted, setMounted] = useState(false)
@@ -81,7 +80,7 @@ const MoreInfo = ({ text, html = false }: MoreInfoProps) => {
                     className="whitespace-pre-line rounded border border-n-1 bg-white px-3 py-2 shadow-lg"
                 >
                     <div className="block text-h8 font-normal text-black">
-                        {html ? <div dangerouslySetInnerHTML={{ __html: text as string }} /> : <div>{text}</div>}
+                        <div>{text}</div>
                     </div>
                 </div>
             </Transition>,

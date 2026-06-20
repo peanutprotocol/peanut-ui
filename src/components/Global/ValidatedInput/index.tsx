@@ -156,7 +156,7 @@ const ValidatedInput = ({
             <div className="absolute left-1 top-1/2 z-10 flex -translate-y-1/2 items-center gap-1">
                 {infoText && (
                     <div className="notranslate flex h-6 w-6 items-center justify-center bg-white">
-                        <MoreInfo text={infoText} html={true} />
+                        <MoreInfo text={infoText} />
                     </div>
                 )}
             </div>
