@@ -407,15 +407,17 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     }, [])
 
     // initiate self-heal document resubmission: calls the resubmit API
-    // and opens the sumsub SDK with the action token
-    const handleSelfHealResubmit = useCallback(async (provider: 'BRIDGE' | 'MANTECA') => {
+    // and opens the sumsub SDK with the action token. `requirementKey` targets a
+    // specific (e.g. future-dated advisory) Bridge requirement; omitted for the
+    // legacy blocking flow.
+    const handleSelfHealResubmit = useCallback(async (provider: 'BRIDGE' | 'MANTECA', requirementKey?: string) => {
         setIsLoading(true)
         setError(null)
         userInitiatedRef.current = true
         selfHealProviderRef.current = provider
 
         try {
-            const response = await initiateSelfHealResubmission(provider)
+            const response = await initiateSelfHealResubmission(provider, requirementKey)
 
             if (response.error) {
                 userInitiatedRef.current = false

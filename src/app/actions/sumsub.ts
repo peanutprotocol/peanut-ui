@@ -86,12 +86,15 @@ export const restartIdentityVerification = async (): Promise<{
 
 // initiate self-heal document resubmission for a provider-rejected user
 export const initiateSelfHealResubmission = async (
-    provider: 'BRIDGE' | 'MANTECA'
+    provider: 'BRIDGE' | 'MANTECA',
+    // Optional — target a specific (e.g. future-dated advisory) Bridge requirement
+    // by key. Omitted for the legacy blocking flow (current nextAction).
+    requirementKey?: string
 ): Promise<{ data?: SelfHealResubmissionResponse; error?: string }> => {
     try {
         const response = await serverFetch('/users/identity/resubmit', {
             method: 'POST',
-            body: JSON.stringify({ provider }),
+            body: JSON.stringify({ provider, ...(requirementKey ? { requirementKey } : {}) }),
         })
 
         const responseJson = await response.json()

@@ -121,7 +121,11 @@ export default function OnrampBankPage() {
     const { intercept: advisoryIntercept, modalProps: advisoryModalProps } = useAdvisoryPreempt({
         advisory,
         isLoading: sumsubFlow.isLoading,
-        onCompleteNow: () => (advisory ? sumsubFlow.handleStartAction(advisory.actionKey) : Promise.resolve()),
+        // Route through the self-heal resubmit path (reheal-tagged action) so the
+        // completed submission round-trips to Bridge. start-action mints a plain
+        // token whose webhook completion has no Bridge relay → answers are dropped.
+        onCompleteNow: () =>
+            advisory ? sumsubFlow.handleSelfHealResubmit('BRIDGE', advisory.requirementKey) : Promise.resolve(),
     })
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const { setIsSupportModalOpen } = useModalsContext()
