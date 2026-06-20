@@ -22,8 +22,9 @@ import {
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react'
 import { type Chain, http, type PublicClient, type Transport } from 'viem'
 import { AccountType } from '@/interfaces/interfaces'
-import type { Address } from 'viem'
+import type { Address, Hash } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
+import { isDemoMode } from '@/utils/demo'
 import { captureException } from '@sentry/nextjs'
 import { retryAsync } from '@/utils/retry.utils'
 import { isStaleClientForUser, isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
@@ -236,6 +237,13 @@ export const createKernelClientForChain = async <C extends Chain>(
             },
         },
     })
+
+    // demo mode hard-stop: no UserOp from any flow can reach the chain.
+    const realSendUserOperation = kernelClient.sendUserOperation.bind(kernelClient)
+    kernelClient.sendUserOperation = (async (args: unknown) => {
+        if (isDemoMode()) return `0x${'de'.repeat(32)}` as Hash
+        return realSendUserOperation(args as never)
+    }) as typeof kernelClient.sendUserOperation
 
     return kernelClient
 }

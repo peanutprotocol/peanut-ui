@@ -6,7 +6,7 @@ import { initiateSumsubKyc, initiateSelfHealResubmission, restartIdentityVerific
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { isCapacitor } from '@/utils/capacitor'
-import { isReviewerMode } from '@/utils/reviewer'
+import { isDemoMode } from '@/utils/demo'
 
 interface UseSumsubKycFlowOptions {
     onKycSuccess?: () => void
@@ -152,9 +152,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             // (MX, CL, …), but Manteca only serves AR/BR — an unsupported stamp
             // poisons the verification metadata (first-write-wins) and bails
             // every later geo resolution, so drop it at this choke point.
-            // reviewer/demo mode: never launch the real Sumsub flow — treat KYC as
-            // already complete so the reviewer can proceed (see utils/reviewer.ts).
-            if (isReviewerMode()) {
+            // demo mode: skip Sumsub, treat KYC as complete.
+            if (isDemoMode()) {
                 onKycSuccess?.()
                 return
             }

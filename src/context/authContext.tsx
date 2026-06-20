@@ -17,7 +17,7 @@ import { apiFetch } from '@/utils/api-fetch'
 import { isCapacitor } from '@/utils/capacitor'
 import { clearAuthToken } from '@/utils/auth-token'
 import { resetCrispProxySessions } from '@/utils/crisp'
-import { disableReviewerMode } from '@/utils/reviewer'
+import { disableDemoMode } from '@/utils/demo'
 import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
@@ -226,8 +226,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             sessionStorage.removeItem('hasSeenIOSPWAPromptThisSession')
         } catch {}
 
-        // clear reviewer/demo mode flag
-        disableReviewerMode()
+        // clear demo mode flag
+        disableDemoMode()
 
         // reset third-party sessions (non-fatal)
         try {

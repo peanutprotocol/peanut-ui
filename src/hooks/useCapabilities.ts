@@ -13,7 +13,7 @@ import {
 } from '@/types/capabilities'
 import { deriveGate, type GateScope, type GateState } from '@/utils/capability-gate'
 import type { RailChannel } from '@/types/capabilities'
-import { isReviewerMode } from '@/utils/reviewer'
+import { isDemoMode } from '@/utils/demo'
 import { useCallback, useMemo } from 'react'
 
 /**
@@ -182,10 +182,9 @@ export function useCapabilities(): UseCapabilitiesResult {
         [restrictions]
     )
 
-    // Reviewer/demo mode: present the account as verified so KYC prompts/walls
-    // don't block the walkthrough. Real rails are still empty (no funds move).
+    // demo mode: present as verified so KYC walls don't block the walkthrough.
     const isKycApproved = useMemo(
-        () => isReviewerMode() || rails.some((rail) => rail.status === 'enabled'),
+        () => isDemoMode() || rails.some((rail) => rail.status === 'enabled'),
         [rails]
     )
 

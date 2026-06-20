@@ -1,7 +1,7 @@
 import { validateInviteCode } from '@/app/actions/invites'
 import { serverFetch } from '@/utils/api-fetch'
 import { toInviteCode } from '@/utils/general.utils'
-import { enableReviewerMode, isDemoInviteCode } from '@/utils/reviewer'
+import { enableDemoMode, isDemoInviteCode } from '@/utils/demo'
 import { EInviteType, type PointsInvitesResponse } from './services.types'
 
 export const invitesApi = {
@@ -46,10 +46,9 @@ export const invitesApi = {
     validateInviteCode: async (inviteCode: string): Promise<{ success: boolean; username: string }> => {
         try {
             const res = await validateInviteCode(toInviteCode(inviteCode))
-            // the `demo` code starts a reviewer/demo session (populated screens,
-            // KYC skipped, simulated transfers) — see utils/reviewer.ts.
+            // demo code enables demo mode.
             if (res.data?.success && isDemoInviteCode(inviteCode)) {
-                enableReviewerMode()
+                enableDemoMode()
             }
             return {
                 success: res.data?.success || false,

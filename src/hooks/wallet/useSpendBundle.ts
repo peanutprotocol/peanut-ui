@@ -23,7 +23,7 @@ import { useGrantSessionKey, type GrantSessionKeyError } from './useGrantSession
 import { usdcUnitsToRainCents } from '@/utils/balance.utils'
 import { useModalsContextOptional } from '@/context/ModalsContext'
 import { smartUsdcBalanceQueryOptions } from './useBalance'
-import { isReviewerMode } from '@/utils/reviewer'
+import { isDemoMode } from '@/utils/demo'
 
 export type SpendStrategy = 'collateral-only' | 'smart-only' | 'mixed' | 'insufficient'
 
@@ -179,9 +179,8 @@ export const useSpendBundle = () => {
                 onGrantRequired,
             } = input
 
-            // reviewer/demo mode: skip routing/signing/submission entirely and
-            // return a simulated smart-only success (no chain, no funds moved).
-            if (isReviewerMode()) {
+            // demo mode: simulated success, no chain.
+            if (isDemoMode()) {
                 onStrategyDecided?.('smart-only')
                 await new Promise((resolve) => setTimeout(resolve, 600))
                 return { strategy: 'smart-only', userOpHash: `0x${'de'.repeat(32)}` as Hash, receipt: null }

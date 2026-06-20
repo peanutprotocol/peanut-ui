@@ -17,7 +17,7 @@ import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '../useRainCar
 import { computeAvailableSpendable, computeDisplaySpendable, rainCentsToUsdcUnits } from '@/utils/balance.utils'
 import { useSpendBundle, type SpendStrategy } from './useSpendBundle'
 import type { RainCollateralKind } from '@/services/rain'
-import { isReviewerMode } from '@/utils/reviewer'
+import { isDemoMode } from '@/utils/demo'
 import { DEMO_BALANCE_UNITS } from '@/constants/demo-data'
 
 type SendTransactionsOptions = {
@@ -191,9 +191,8 @@ export const useWallet = () => {
         await refetchBalance()
     }, [isAddressReady, refetchBalance])
 
-    // Reviewer/demo mode overlays a fixed balance so screens aren't empty.
-    // No real funds, no chain reads — see constants/demo-data.ts.
-    const demoMode = isReviewerMode()
+    // demo mode: fixed balance overlay (constants/demo-data.ts).
+    const demoMode = isDemoMode()
 
     // Use balance from query if available, otherwise fall back to Redux
     const balance = demoMode
