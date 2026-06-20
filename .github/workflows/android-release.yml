@@ -1,0 +1,121 @@
+name: Android Release (Play)
+
+# Builds a SIGNED Android App Bundle and uploads it to Google Play.
+# Removes the "release only builds on one laptop" gap: the upload keystore lives
+# as CI secrets, the build is reproducible, and the AAB lands on a Play track.
+#
+# Trigger: push a tag `vX.Y.Z`, or run manually (workflow_dispatch) and pick a track.
+# Prereq: fix/native-build-reliability must be merged (card-comparison static-export
+#         fix + Java 17 force) or `native:release` will fail to build.
+#
+# Required repo secrets (see docs/NATIVE-RELEASE.md §Ops):
+#   ANDROID_KEYSTORE_BASE64      base64 of the upload keystore
+#   ANDROID_KEYSTORE_PASSWORD    store password
+#   ANDROID_KEY_ALIAS            key alias (e.g. peanut)
+#   ANDROID_KEY_PASSWORD         key password
+#   PLAY_SERVICE_ACCOUNT_JSON    Google Play Developer API service-account JSON
+#   SUBMODULE_TOKEN              read access to the src/content submodule
+# Plus the production NEXT_PUBLIC_* the static export bakes in (see the env step).
+
+on:
+    push:
+        tags: ['v*']
+    workflow_dispatch:
+        inputs:
+            track:
+                description: 'Play track'
+                required: true
+                default: 'internal'
+                type: choice
+                options: [internal, alpha, beta, production]
+            versionName:
+                description: 'versionName override (optional; defaults to package.json)'
+                required: false
+                type: string
+
+concurrency:
+    group: android-release-${{ github.ref }}
+    cancel-in-progress: false
+
+jobs:
+    release:
+        runs-on: ubuntu-latest
+        # Protect with required reviewers in repo Settings → Environments → production.
+        environment: production
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: recursive
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 10
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '22' # @sentry/profiling-node has no Node 25 binary; project targets 22
+                  cache: 'pnpm'
+
+            - uses: actions/setup-java@v4
+              with:
+                  distribution: 'temurin'
+                  java-version: '17' # matches the Java 17 force in android/build.gradle
+
+            - name: Install dependencies
+              run: pnpm install
+
+            - name: Decode upload keystore
+              env:
+                  ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+                  ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+                  ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+                  ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+              run: |
+                  echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/peanut-release.keystore
+                  cat > android/keystore.properties <<EOF
+                  storeFile=../peanut-release.keystore
+                  storePassword=${ANDROID_KEYSTORE_PASSWORD}
+                  keyAlias=${ANDROID_KEY_ALIAS}
+                  keyPassword=${ANDROID_KEY_PASSWORD}
+                  EOF
+
+            - name: Production web env
+              run: |
+                  # NEXT_PUBLIC_* values are baked into the static export at build time.
+                  # rpId MUST be peanut.me (passkeys + assetlinks/AASA). Add the full
+                  # production set as repo Variables/Secrets and wire them in here.
+                  cat > .env.production.local <<EOF
+                  NEXT_PUBLIC_NATIVE_RP_ID=peanut.me
+                  NEXT_PUBLIC_BASE_URL=https://peanut.me
+                  NEXT_PUBLIC_PEANUT_API_URL=https://peanut.me
+                  NEXT_PUBLIC_CAPACITOR_BUILD=true
+                  # TODO: add remaining prod NEXT_PUBLIC_* (OneSignal, Sentry DSN, chain, etc.)
+                  EOF
+
+            - name: Build signed AAB
+              env:
+                  # Monotonic, always-increments-even-on-rerun. Play requires each
+                  # upload's versionCode to exceed the last.
+                  ANDROID_VERSION_CODE: ${{ github.run_number }}
+                  ANDROID_VERSION_NAME: ${{ github.event.inputs.versionName || '' }}
+              run: pnpm native:release
+
+            - name: Upload to Google Play
+              uses: r0adkll/upload-google-play@v1
+              with:
+                  serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+                  packageName: me.peanut.wallet
+                  releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+                  track: ${{ github.event.inputs.track || 'internal' }}
+                  status: completed
+                  # Staged production rollout: set status: inProgress + userFraction: 0.1,
+                  # then promote in Play Console once crash/error rates look clean.
+
+            - name: Upload AAB as build artifact
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: app-release-aab
+                  path: android/app/build/outputs/bundle/release/app-release.aab
+                  if-no-files-found: warn
