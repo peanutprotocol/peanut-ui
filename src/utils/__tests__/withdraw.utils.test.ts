@@ -5,11 +5,45 @@ import {
     isPixEmvcoQr,
     normalizePixInput,
     validatePixKey,
+    getCountryCodeForWithdraw,
+    getCountryFromIban,
 } from '@/utils/withdraw.utils'
 
 jest.mock('@/assets', () => ({}))
 
 describe('Withdraw Utilities', () => {
+    // Locks in the IBAN→country derivation the bank-details form relies on after
+    // dropping the "IBAN must match the selected country" gate: the Bridge payload
+    // countryCode is now sourced from the IBAN, so a German IBAN entered under any
+    // SEPA country must resolve to DEU (not the dropdown's country).
+    describe('getCountryCodeForWithdraw (ISO-2 → ISO-3 for the Bridge payload)', () => {
+        it.each([
+            ['GB', 'GBR'],
+            ['DE', 'DEU'],
+            ['ES', 'ESP'],
+            ['US', 'USA'],
+        ])('maps %s → %s', (iso2, iso3) => {
+            expect(getCountryCodeForWithdraw(iso2)).toBe(iso3)
+        })
+
+        it('is idempotent on an already ISO-3 code', () => {
+            expect(getCountryCodeForWithdraw('DEU')).toBe('DEU')
+        })
+    })
+
+    describe('getCountryFromIban', () => {
+        it('resolves the country from the IBAN prefix (GB/DE) and is whitespace-tolerant', () => {
+            // GB IBAN (Revolut-style) — the GB-IBAN-EUR case (Ibrahima).
+            expect(getCountryFromIban('GB33BUKB20201555555555')).not.toBeNull()
+            // DE IBAN with spaces — the intra-SEPA mismatch case.
+            expect(getCountryFromIban('DE89 3704 0044 0532 0130 00')).not.toBeNull()
+        })
+
+        it('returns null for an unknown country prefix', () => {
+            expect(getCountryFromIban('ZZ00')).toBeNull()
+        })
+    })
+
     describe('validateCbuCvuAlias', () => {
         it.each([
             { value: '', valid: false, message: 'Invalid length' },

@@ -20,7 +20,12 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard, { type PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
-import { validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
+import {
+    getCountryFromIban,
+    getCountryCodeForWithdraw,
+    validateMXCLabeAccount,
+    validateUSBankAccount,
+} from '@/utils/withdraw.utils'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { useAppDispatch, useAppSelector } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
@@ -214,11 +219,24 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     ? accountNumber.replace(/\s/g, '').padStart(8, '0')
                     : accountNumber.replace(/\s/g, '')
 
+                // SEPA routes by IBAN, so the destination country must come from the
+                // IBAN itself — not the country picked on the previous screen. We
+                // relaxed the "IBAN must match the selected country" gate, so without
+                // this a German IBAN entered under "Spain" would reach Bridge with
+                // countryCode=ESP and 400. Derive all three country fields from the
+                // IBAN to keep the Bridge payload internally consistent (exactly what
+                // the old equality gate guaranteed, just sourced from the IBAN).
+                const ibanCountryCode = isIban
+                    ? getCountryCodeForWithdraw(cleanedAccountNumber.slice(0, 2).toUpperCase())
+                    : ''
+                const ibanCountryName = isIban ? (getCountryFromIban(cleanedAccountNumber) ?? selectedCountry) : ''
+                const resolvedCountryCode = isUs ? 'USA' : isIban ? ibanCountryCode : country.toUpperCase()
+
                 const payload: Partial<AddBankAccountPayload> = {
                     accountType,
                     accountNumber: cleanedAccountNumber,
-                    countryCode: isUs ? 'USA' : country.toUpperCase(),
-                    countryName: selectedCountry,
+                    countryCode: resolvedCountryCode,
+                    countryName: isIban ? ibanCountryName : selectedCountry,
                     accountOwnerType: BridgeAccountOwnerType.INDIVIDUAL,
                     accountOwnerName: {
                         firstName: firstName.trim(),
@@ -229,7 +247,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                         city: data.city ?? '',
                         state: data.state ?? '',
                         postalCode: data.postalCode ?? '',
-                        country: isUs ? 'USA' : country.toUpperCase(),
+                        country: resolvedCountryCode,
                     },
                     ...(bic && { bic }),
                 }
