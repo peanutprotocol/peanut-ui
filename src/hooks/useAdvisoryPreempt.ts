@@ -23,6 +23,10 @@ export function useAdvisoryPreempt({ advisory, onCompleteNow, isLoading = false 
     const [dismissed, setDismissed] = useState(false)
     const [visible, setVisible] = useState(false)
     const pendingProceed = useRef<(() => void) | null>(null)
+    // Guards against double-submit: onCompleteNow now fires a real network call
+    // (self-heal resubmit), so rapid clicks before isLoading disables the CTA
+    // would otherwise launch duplicate requests.
+    const completingRef = useRef(false)
 
     const intercept = useCallback(
         (proceed: () => void) => {
@@ -37,10 +41,16 @@ export function useAdvisoryPreempt({ advisory, onCompleteNow, isLoading = false 
     )
 
     const completeNow = useCallback(async () => {
+        if (completingRef.current) return
+        completingRef.current = true
         setDismissed(true)
         setVisible(false)
         pendingProceed.current = null
-        await onCompleteNow()
+        try {
+            await onCompleteNow()
+        } finally {
+            completingRef.current = false
+        }
     }, [onCompleteNow])
 
     const skip = useCallback(() => {
