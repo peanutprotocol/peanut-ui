@@ -10,6 +10,7 @@ import { BRIDGE_ALPHA3_TO_ALPHA2, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/compo
 import { useParams, useRouter } from 'next/navigation'
 import {
     validateIban,
+    validateBankAccount,
     validateBic,
     isValidRoutingNumber,
     isValidSortCode,
@@ -19,7 +20,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard, { type PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
-import { getCountryFromIban, validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
+import { validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { useAppDispatch, useAppSelector } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
@@ -453,9 +454,14 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                             const isValidIban = await validateIban(val)
                                             if (!isValidIban) return 'Invalid IBAN'
 
-                                            if (getCountryFromIban(val)?.toLowerCase() !== selectedCountry) {
-                                                return 'IBAN does not match the selected country'
-                                            }
+                                            // SEPA routes by IBAN — the country picked on the
+                                            // previous screen is cosmetic for a EUR payout. Don't
+                                            // force the IBAN's country to equal the dropdown: that
+                                            // false-rejected a German IBAN with Spain selected, and
+                                            // blocked UK users withdrawing EUR to a GB IBAN. Gate on
+                                            // actual support instead (BE allowedCountries: SEPA/US/CA).
+                                            const isSupported = await validateBankAccount(val)
+                                            if (!isSupported) return 'This IBAN isn’t supported for withdrawals'
 
                                             return true
                                         },
