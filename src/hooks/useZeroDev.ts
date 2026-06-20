@@ -18,6 +18,7 @@ import { invitesApi } from '@/services/invites'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
+import { isReviewerMode } from '@/utils/reviewer'
 
 // types
 type UserOpEncodedParams = {
@@ -25,6 +26,9 @@ type UserOpEncodedParams = {
     value?: bigint | undefined
     data?: Hex | undefined
 }
+
+// Deterministic placeholder hash returned for simulated reviewer/demo spends.
+const DEMO_USEROP_HASH = `0x${'de'.repeat(32)}` as Hash
 
 // custom error class for passkey-related errors
 class PasskeyError extends Error {
@@ -184,6 +188,13 @@ export const useZeroDev = () => {
             calls: UserOpEncodedParams[],
             chainId: string
         ): Promise<{ userOpHash: Hash; receipt: TransactionReceipt | null }> => {
+            // reviewer/demo mode: never submit a real UserOp — return a simulated
+            // success so money flows complete without touching chain or funds.
+            if (isReviewerMode()) {
+                await new Promise((resolve) => setTimeout(resolve, 600))
+                return { userOpHash: DEMO_USEROP_HASH, receipt: null }
+            }
+
             // Non-Arb chains (recover-funds) aren't pre-built — wait for lazy build.
             await ensureClientForChain(chainId)
             const client = getClientForChain(chainId)

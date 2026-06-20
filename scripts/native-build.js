@@ -22,6 +22,7 @@ const ITEMS_TO_DISABLE = [
     { path: 'robots.ts', type: 'file' },
     { path: 'manifest.ts', type: 'file' },
     { path: 'jobs/route.ts', type: 'file' },
+    { path: 'm/[slug]', type: 'dir' },
     // web-only routes that conflict with static export
     { path: '[locale]', type: 'dir' }, // marketing/blog/seo pages
     { path: 'quests/[questId]', type: 'dir' }, // quest detail page (dynamicParams issues)
@@ -225,6 +226,64 @@ function copyComponentsBeforeDisable() {
     }
 }
 
+// Anti-rot guard. The static export (output: 'export') cannot build server-only
+// routes — route handlers and `force-dynamic` pages. Those are renamed out of the
+// way via ITEMS_TO_DISABLE, but that list is hand-maintained: when web work adds a
+// NEW server route not in the list, `next build` used to fail deep in the build
+// with a cryptic error (the "build rot" symptom). This scans the app tree up front
+// and fails LOUDLY with the exact offending paths so the fix is obvious: add them
+// to ITEMS_TO_DISABLE (or give the page a generateStaticParams).
+function isCoveredByDisableList(relPath) {
+    return ITEMS_TO_DISABLE.some((item) => {
+        if (item.type === 'dir') {
+            return relPath === item.path || relPath.startsWith(item.path + path.sep) || relPath.startsWith(item.path + '/')
+        }
+        return relPath === item.path
+    })
+}
+
+function detectUncoveredServerRoutes(dir = APP_DIR, found = []) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (entry.name.includes('.disabled') || entry.name.startsWith('_')) continue
+        const full = path.join(dir, entry.name)
+        const rel = path.relative(APP_DIR, full)
+        if (entry.isDirectory()) {
+            if (isCoveredByDisableList(rel)) continue
+            detectUncoveredServerRoutes(full, found)
+            continue
+        }
+        if (isCoveredByDisableList(rel)) continue
+        if (entry.name === 'route.ts' || entry.name === 'route.js') {
+            found.push({ rel, reason: 'route handler (cannot be statically exported)' })
+            continue
+        }
+        if (entry.name.endsWith('.tsx') || entry.name.endsWith('.ts')) {
+            const content = fs.readFileSync(full, 'utf-8')
+            if (/export\s+const\s+dynamic\s*=\s*['"]force-dynamic['"]/.test(content)) {
+                found.push({ rel, reason: "export const dynamic = 'force-dynamic'" })
+            }
+        }
+    }
+    return found
+}
+
+function assertNoUncoveredServerRoutes() {
+    console.log('🔎 Scanning for server-only routes not covered by the disable list...')
+    const offenders = detectUncoveredServerRoutes()
+    if (offenders.length === 0) {
+        console.log('  ✓ none — every server-only route is handled')
+        return
+    }
+    const lines = offenders.map((o) => `    • src/app/${o.rel}  (${o.reason})`).join('\n')
+    throw new Error(
+        `Native build would break: ${offenders.length} server-only route(s) are not handled for static export:\n` +
+            `${lines}\n\n` +
+            `Fix: add each path to ITEMS_TO_DISABLE in scripts/native-build.js (web-only routes),\n` +
+            `or give dynamic pages a generateStaticParams. This guard prevents the silent "build rot"\n` +
+            `where an unrelated web change breaks the native build.`
+    )
+}
+
 function getDisabledPath(itemPath) {
     const dir = path.dirname(itemPath)
     const base = path.basename(itemPath)
@@ -384,6 +443,9 @@ async function main() {
     let buildSucceeded = false
 
     try {
+        // fail fast & loud if a new server-only route slipped in (anti-rot guard)
+        assertNoUncoveredServerRoutes()
+
         // clean cache FIRST to prevent stale route trees
         console.log('🧹 Cleaning build cache...')
         if (fs.existsSync(path.join(__dirname, '..', '.next'))) {
