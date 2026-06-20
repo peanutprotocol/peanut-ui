@@ -134,7 +134,7 @@ const RIP7212_CHAIN_IDS = [137, 8453, 10, 42161] // polygon, base, optimism, arb
  * this callback is re-attached after restoring a WebAuthnKey from storage
  * since functions can't be serialized to cookies/localStorage.
  */
-export function createNativeSignMessageCallback(rpId: string) {
+export function createNativeSignMessageCallback(rpId: string, pinnedCredentialId?: string) {
     return async (
         message: SignableMessage,
         _rpId: string,
@@ -158,10 +158,24 @@ export function createNativeSignMessageCallback(rpId: string) {
         const messageBytes = new Uint8Array(formattedMessage.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)))
         const challenge = bufferToBase64URL(messageBytes.buffer)
 
+        // Pin the assertion to this kernel's OWN credential when the caller
+        // (ZeroDev's shim) didn't supply an allow-list. On a device holding more
+        // than one peanut.me passkey, an unconstrained get() lets the OS hand
+        // back a different account's key → on-chain signature rejection. This is
+        // additive: a previously-valid signature already used this exact
+        // credential, so it can never be excluded. Worst case (shim ignores
+        // allowCredentials) it's a no-op.
+        const effectiveAllowCredentials: AllowCredentialDescriptor[] | undefined =
+            allowCredentials && allowCredentials.length > 0
+                ? allowCredentials
+                : pinnedCredentialId
+                  ? [{ id: pinnedCredentialId, type: 'public-key' as const }]
+                  : undefined
+
         const assertionOptions = {
             challenge: messageBytes as BufferSource,
             rpId,
-            allowCredentials: allowCredentials?.map((cred) => ({
+            allowCredentials: effectiveAllowCredentials?.map((cred) => ({
                 id: base64URLToBytes(cred.id) as BufferSource,
                 type: 'public-key' as const,
             })),

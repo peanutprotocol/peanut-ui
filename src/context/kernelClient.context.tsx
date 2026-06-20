@@ -283,7 +283,13 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // the native capacitor plugin callback so signing works after restore.
             if (isAndroidNative() && !storedWebAuthnKey.signMessageCallback) {
                 const rpId = storedWebAuthnKey.rpID || getNativeRpId()
-                storedWebAuthnKey.signMessageCallback = createNativeSignMessageCallback(rpId)
+                // Pin the native signing ceremony to THIS kernel's own credential
+                // so a second peanut.me passkey on the device can't be substituted
+                // (see createNativeSignMessageCallback + PR #2189).
+                storedWebAuthnKey.signMessageCallback = createNativeSignMessageCallback(
+                    rpId,
+                    storedWebAuthnKey.authenticatorId
+                )
             }
             // Only update if the key actually changed to avoid re-triggering kernel client init
             // Note: WebAuthnKey contains BigInt fields (pubX, pubY) which JSON.stringify cannot handle,
