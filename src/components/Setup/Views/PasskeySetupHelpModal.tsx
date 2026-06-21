@@ -38,11 +38,13 @@ const getErrorDescription = (errorName: string, platform: 'android' | 'ios' | 'w
 }
 
 const getTroubleshootingSteps = (errorName: string, platform: 'android' | 'ios' | 'web'): readonly string[] => {
-    if (platform === 'android' && errorName in PASSKEY_TROUBLESHOOTING_STEPS.android) {
-        return PASSKEY_TROUBLESHOOTING_STEPS.android[errorName as keyof typeof PASSKEY_TROUBLESHOOTING_STEPS.android]
+    if (platform === 'android') {
+        const steps = PASSKEY_TROUBLESHOOTING_STEPS.android
+        return errorName in steps ? steps[errorName as keyof typeof steps] : steps.default
     }
-    if (platform === 'ios' && errorName in PASSKEY_TROUBLESHOOTING_STEPS.ios) {
-        return PASSKEY_TROUBLESHOOTING_STEPS.ios[errorName as keyof typeof PASSKEY_TROUBLESHOOTING_STEPS.ios]
+    if (platform === 'ios') {
+        const steps = PASSKEY_TROUBLESHOOTING_STEPS.ios
+        return errorName in steps ? steps[errorName as keyof typeof steps] : steps.default
     }
     return PASSKEY_TROUBLESHOOTING_STEPS.web.default
 }
