@@ -29,7 +29,7 @@ interface DirectRequestInitialViewProps {
 const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) => {
     const onBack = useSafeBack('/home')
     const { user: authUser } = useUserStore()
-    const { balance, address } = useWallet()
+    const { spendableBalance: balance, address } = useWallet()
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         message: undefined,
         fileUrl: undefined,

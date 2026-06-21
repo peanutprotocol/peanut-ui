@@ -34,7 +34,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 export const CreateRequestLinkView = () => {
     const toast = useToast()
     const onBack = useSafeBack('/home')
-    const { address, isConnected, balance } = useWallet()
+    const { address, isConnected, spendableBalance: balance } = useWallet()
     const { user } = useAuth()
     const { selectedChainID, setSelectedChainID, selectedTokenAddress, setSelectedTokenAddress, selectedTokenData } =
         useContext(tokenSelectorContext)
