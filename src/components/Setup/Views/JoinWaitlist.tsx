@@ -15,6 +15,8 @@ import { useLogin } from '@/hooks/useLogin'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { INVITER_NOT_FOUND_ERROR } from '@/constants/invites.consts'
+import { enableDemoMode, isDemoInviteCode } from '@/utils/demo'
+import { isCapacitor } from '@/utils/capacitor'
 
 const JoinWaitlist = () => {
     const [inviteCode, setInviteCode] = useState('')
@@ -103,6 +105,12 @@ const JoinWaitlist = () => {
                 <Button
                     disabled={!isValid || isChanging || isLoading || inviteCode.length === 0}
                     onClick={() => {
+                        // Demo mode: skip signup + passkey; hard-nav to /home so providers re-init under the demo flag.
+                        if (isCapacitor() && isDemoInviteCode(inviteCode)) {
+                            enableDemoMode()
+                            window.location.href = '/home'
+                            return
+                        }
                         dispatch(setupActions.setInviteCode(inviteCode))
                         handleNext()
                     }}

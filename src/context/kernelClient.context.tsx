@@ -25,6 +25,7 @@ import { AccountType } from '@/interfaces/interfaces'
 import type { Address, Hash } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { isDemoMode } from '@/utils/demo'
+import { DEMO_ADDRESS } from '@/constants/demo-data'
 import { captureException } from '@sentry/nextjs'
 import { retryAsync } from '@/utils/retry.utils'
 import { isStaleClientForUser, isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
@@ -279,6 +280,13 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // (and re-applying them would write into a fresh post-logout state).
             inFlightRef.current.clear()
             dispatch(zerodevActions.setAddress(undefined)) // explicitly clear address from redux
+            return
+        }
+
+        // Demo mode: no passkey/kernel client — synthesize the address and report ready.
+        if (isDemoMode()) {
+            dispatch(zerodevActions.setAddress(DEMO_ADDRESS))
+            dispatch(zerodevActions.setIsKernelClientReady(true))
             return
         }
 
