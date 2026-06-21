@@ -1,7 +1,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import ValidatedInput from '@/components/Global/ValidatedInput'
-import { PEANUT_API_URL } from '@/constants/general.consts'
+import { PEANUT_API_URL, USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
@@ -33,7 +33,7 @@ const SignupStep = () => {
         }
 
         // check length requirement
-        if (username.length < 4) {
+        if (username.length < USERNAME_MIN_LENGTH) {
             setError('Username must be at least 4 characters long')
             return false
         }
@@ -125,6 +125,7 @@ const SignupStep = () => {
                             value={username}
                             debounceTime={750}
                             validate={checkUsernameValidity}
+                            shouldValidate={(v) => v.length >= USERNAME_MIN_LENGTH}
                             onUpdate={handleInputUpdate}
                             isSetupFlow
                             isInputChanging={isChanging}
