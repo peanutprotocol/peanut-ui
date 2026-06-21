@@ -15,6 +15,8 @@ import { useLogin } from '@/hooks/useLogin'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { INVITER_NOT_FOUND_ERROR } from '@/constants/invites.consts'
+import { toInviteCode } from '@/utils/general.utils'
+import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 
 const JoinWaitlist = () => {
     const [inviteCode, setInviteCode] = useState('')
@@ -87,10 +89,12 @@ const JoinWaitlist = () => {
                     value={inviteCode}
                     debounceTime={750}
                     validate={validateInviteCode}
+                    shouldValidate={(v) => toInviteCode(v).length >= USERNAME_MIN_LENGTH}
                     onUpdate={({ value, isValid, isChanging }) => {
                         setIsValid(isValid)
                         setIsChanging(isChanging)
                         setInviteCode(value)
+                        if (isChanging) setError('')
                     }}
                     isSetupFlow
                     isInputChanging={isChanging}
