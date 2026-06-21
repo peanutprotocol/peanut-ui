@@ -31,6 +31,7 @@ import { useNativePlugins } from '@/hooks/useNativePlugins'
 // guarantees the patch is installed before any child page's mount-time router.push.
 import '@/hooks/useSafeBack'
 import { isCapacitor } from '@/utils/capacitor'
+import { isDemoMode } from '@/utils/demo'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
@@ -97,7 +98,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             const url = new URL(window.location.href)
             if (url.searchParams.get('__reproduce')) return
         }
-        if (!isPublicPath && isReady && !isFetchingUser && !user && !isRedirecting.current) {
+        // Demo mode: never bounce to /setup — the loading gate holds until the async synthetic user settles.
+        if (!isPublicPath && isReady && !isFetchingUser && !user && !isRedirecting.current && !isDemoMode()) {
             isRedirecting.current = true
             router.replace('/setup')
             // hard navigation fallback in case soft navigation silently fails
