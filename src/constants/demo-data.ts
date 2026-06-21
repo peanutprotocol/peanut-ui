@@ -1,6 +1,6 @@
 // Static balance + history overlaid in demo mode (utils/demo.ts). Native-only.
 
-import { parseUnits } from 'viem'
+import { parseUnits, type Address } from 'viem'
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
@@ -9,11 +9,15 @@ import {
 } from '@/constants/zerodev.consts'
 // Type-only: importing the enum values would cause a runtime import cycle.
 import type { HistoryEntry } from '@/utils/history.utils'
+import type { AccountType, IUserProfile } from '@/interfaces/interfaces'
 
 /** Demo smart-account balance in token base units (USDC, 6 decimals). */
 export const DEMO_BALANCE_UNITS = parseUnits('1250.75', PEANUT_WALLET_TOKEN_DECIMALS)
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
+
+// Synthetic kernel address for demo mode, pinned to DEMO_USER's PEANUT_WALLET account so useWallet's address-match passes.
+export const DEMO_ADDRESS = '0xdec0debad1dec0debad1dec0debad1dec0debad1' as Address
 
 const account = (username: string, fullName: string) => ({
     identifier: username,
@@ -89,3 +93,48 @@ export const DEMO_HISTORY_ENTRIES: HistoryEntry[] = [
         memo: 'Invoice #1042',
     },
 ]
+
+// Synthetic backend-free user for demo mode; satisfies the route guards (hasAppAccess + a PEANUT_WALLET account pinned to DEMO_ADDRESS).
+const DEMO_CREATED_AT = '2026-01-01T00:00:00.000Z'
+
+export const DEMO_USER: IUserProfile = {
+    streak: 0,
+    pwQueue: { totalUsers: 0, userPosition: null },
+    totalPoints: 0,
+    contacts: [],
+    rails: [],
+    invitesSent: [],
+    showEarlyUserModal: false,
+    invitedBy: null,
+    accounts: [
+        {
+            id: 'demo-account',
+            userId: 'demo-user',
+            bridgeAccountId: '',
+            type: 'peanut-wallet' as AccountType,
+            identifier: DEMO_ADDRESS,
+            details: {
+                bankName: null,
+                accountOwnerName: 'Demo User',
+                countryCode: '',
+                countryName: '',
+            },
+            createdAt: DEMO_CREATED_AT,
+            updatedAt: DEMO_CREATED_AT,
+            chainId: CHAIN_ID,
+        },
+    ],
+    user: {
+        userId: 'demo-user',
+        email: 'demo@peanut.me',
+        profile_picture: null,
+        username: 'demo',
+        bridgeCustomerId: null,
+        fullName: 'Demo User',
+        telegram: null,
+        hasAppAccess: true,
+        showFullName: false,
+        createdAt: DEMO_CREATED_AT,
+        accounts: [],
+    },
+}
