@@ -83,14 +83,25 @@ jobs:
             - name: Production web env
               run: |
                   # NEXT_PUBLIC_* values are baked into the static export at build time.
-                  # rpId MUST be peanut.me (passkeys + assetlinks/AASA). Add the full
-                  # production set as repo Variables/Secrets and wire them in here.
+                  # rpId MUST be peanut.me (passkeys + assetlinks/AASA).
+                  # Keep this block identical to ios-release.yml. CAPACITOR_BUILD /
+                  # IS_NATIVE_BUILD / GIT_COMMIT_HASH are auto-baked by next.config.native.js.
                   cat > .env.production.local <<EOF
-                  NEXT_PUBLIC_NATIVE_RP_ID=peanut.me
                   NEXT_PUBLIC_BASE_URL=https://peanut.me
-                  NEXT_PUBLIC_PEANUT_API_URL=https://peanut.me
-                  NEXT_PUBLIC_CAPACITOR_BUILD=true
-                  # TODO: add remaining prod NEXT_PUBLIC_* (OneSignal, Sentry DSN, chain, etc.)
+                  NEXT_PUBLIC_PEANUT_API_URL=${{ vars.NEXT_PUBLIC_PEANUT_API_URL }}
+                  NEXT_PUBLIC_NATIVE_RP_ID=peanut.me
+                  NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL=${{ secrets.NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL }}
+                  NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL=${{ secrets.NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL }}
+                  NEXT_PUBLIC_ZERO_DEV_PASSKEY_PROJECT_ID=${{ secrets.NEXT_PUBLIC_ZERO_DEV_PASSKEY_PROJECT_ID }}
+                  NEXT_PUBLIC_ZERO_DEV_RECOVERY_BUNDLER_URL=${{ secrets.NEXT_PUBLIC_ZERO_DEV_RECOVERY_BUNDLER_URL }}
+                  NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN=peanut.me
+                  NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+                  NEXT_PUBLIC_POSTHOG_KEY=${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+                  NEXT_PUBLIC_POSTHOG_HOST=${{ vars.NEXT_PUBLIC_POSTHOG_HOST }}
+                  NEXT_PUBLIC_GA_KEY=${{ secrets.NEXT_PUBLIC_GA_KEY }}
+                  NEXT_PUBLIC_ONESIGNAL_APP_ID=${{ secrets.NEXT_PUBLIC_ONESIGNAL_APP_ID }}
+                  NEXT_PUBLIC_SAFARI_WEB_ID=${{ vars.NEXT_PUBLIC_SAFARI_WEB_ID }}
+                  NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
                   EOF
 
             - name: Build signed AAB

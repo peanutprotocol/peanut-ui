@@ -232,13 +232,16 @@ the build is reproducible, the AAB lands on a Play track.
 
 ---
 
-## 11. iOS (in progress — `feat/native-ios`)
+## 11. iOS release
 
-The Capacitor iOS platform is being scaffolded to mirror Android (Info.plist usage
-strings, associated-domains entitlement `webcredentials:peanut.me`, pods). When it
-lands, mirror this pipeline: **fastlane `match`** (certs/profiles in an encrypted repo)
-is the iOS answer to the keystore-on-one-machine problem, and an **App Store Connect API
-key** + `fastlane pilot/deliver` is the upload half.
+The iOS release pipeline (`.github/workflows/ios-release.yml`) is maintained on its own
+branch (`feat/ci-ios`), separate from this Android runbook. It mirrors the Android lane's
+no-fastlane style: an Apple Distribution cert + App Store provisioning profile stored as
+CI secrets, `xcodebuild` archive/export, and upload to TestFlight via
+`apple-actions/upload-testflight-build`.
+
+See **`docs/NATIVE-RELEASE-IOS.md`** (on `feat/ci-ios`) for the full iOS pipeline,
+one-time signing-material setup, secrets table, and manual App Store promotion.
 
 ---
 
