@@ -56,9 +56,11 @@ export function useTransactionHistory({
     filterMutualTxs,
 }: UseTransactionHistoryOptions): LatestHistoryResult | InfiniteHistoryResult {
     const fetchHistory = async ({ cursor, limit }: { cursor?: string; limit: number }): Promise<HistoryResponse> => {
-        // demo mode: static demo transactions.
+        // demo mode: static demo transactions. Run through completeHistoryEntry
+        // (same as real entries below) so amounts/links format correctly.
         if (isDemoMode()) {
-            return { entries: DEMO_HISTORY_ENTRIES.slice(0, limit), hasMore: false }
+            const entries = await Promise.all(DEMO_HISTORY_ENTRIES.slice(0, limit).map(completeHistoryEntry))
+            return { entries, hasMore: false }
         }
 
         const queryParams = new URLSearchParams()
