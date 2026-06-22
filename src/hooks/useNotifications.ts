@@ -1,8 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import OneSignal from 'react-onesignal'
 import { captureException } from '@sentry/nextjs'
+import { getOneSignalAdapter, type NotificationPermissionState } from '@/services/onesignal'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useUserStore } from '@/redux/hooks'
 import posthog from 'posthog-js'
@@ -23,9 +23,9 @@ export function useNotifications() {
     const [isRequestingPermission, setIsRequestingPermission] = useState(false)
 
     // track notification permission state
-    const [permissionState, setPermissionState] = useState<'default' | 'granted' | 'denied'>(() => {
+    const [permissionState, setPermissionState] = useState<NotificationPermissionState>(() => {
         if (typeof window === 'undefined' || typeof Notification === 'undefined') return 'default'
-        return Notification.permission as 'default' | 'granted' | 'denied'
+        return Notification.permission as NotificationPermissionState
     })
 
     // track onesignal initialization status
@@ -38,46 +38,38 @@ export function useNotifications() {
     // can hide themselves the moment EITHER signal confirms the user is signed up.
     const [isPushOptedIn, setIsPushOptedIn] = useState(false)
 
-    // update permission state from browser api
-    const refreshPermissionState = useCallback(() => {
-        if (typeof window === 'undefined' || typeof Notification === 'undefined') return
-        setPermissionState(Notification.permission as 'default' | 'granted' | 'denied')
+    // update permission state from the platform adapter
+    const refreshPermissionState = useCallback(async () => {
+        if (typeof window === 'undefined') return
+        try {
+            const adapter = await getOneSignalAdapter()
+            setPermissionState(await adapter.getPermission())
+        } catch {
+            // adapter unavailable (e.g. SDK blocked) — leave state as-is
+        }
     }, [])
 
     // check if user has granted notification permission
-    const getPermissionGranted = useCallback((): Promise<boolean> => {
-        return new Promise((resolve) => {
-            if (typeof window === 'undefined') return resolve(false)
-
-            // use native permission api when available for reliability
-            if (typeof Notification !== 'undefined' && Notification.permission !== 'default') {
-                return resolve(Notification.permission === 'granted')
-            }
-
-            if (!oneSignalInitialized) return resolve(false)
-
-            try {
-                // fallback to onesignal permission check
-                const perm = OneSignal?.Notifications?.permission
-                resolve(perm === true)
-            } catch {
-                resolve(false)
-            }
-        })
+    const getPermissionGranted = useCallback(async (): Promise<boolean> => {
+        if (typeof window === 'undefined' || !oneSignalInitialized) return false
+        try {
+            const adapter = await getOneSignalAdapter()
+            return (await adapter.getPermission()) === 'granted'
+        } catch {
+            return false
+        }
     }, [oneSignalInitialized])
 
     // check if user has opted into push notifications
     // note: this checks the onesignal subscription state, not the browser permission
-    const isPushSubscriptionOptedIn = useCallback((): Promise<boolean> => {
-        return new Promise((resolve) => {
-            if (typeof window === 'undefined' || !oneSignalInitialized) return resolve(false)
-
-            try {
-                resolve(Boolean(OneSignal.User?.PushSubscription?.optedIn))
-            } catch {
-                resolve(false)
-            }
-        })
+    const isPushSubscriptionOptedIn = useCallback(async (): Promise<boolean> => {
+        if (typeof window === 'undefined' || !oneSignalInitialized) return false
+        try {
+            const adapter = await getOneSignalAdapter()
+            return await adapter.isOptedIn()
+        } catch {
+            return false
+        }
     }, [oneSignalInitialized])
 
     // determine if permission modal should be shown (once per user)
@@ -129,129 +121,65 @@ export function useNotifications() {
         user?.user.userId,
     ])
 
-    // initialize onesignal sdk
+    // initialize onesignal (web or native) via the platform adapter
     useEffect(() => {
         if (typeof window === 'undefined' || oneSignalInitialized) return
 
-        const w = window as any
+        const w = window as Window & { __ONE_SIGNAL_LISTENERS_ADDED__?: boolean }
+        let cancelled = false
 
         const bootstrap = async () => {
             try {
-                // fast-path if already initialized
-                if (w.__ONE_SIGNAL_INIT_DONE__) {
-                    setOneSignalInitialized(true)
-                    setSdkReady(true)
-                    return
-                }
-
-                // reuse single in-flight init across hook instances
-                if (w.__ONE_SIGNAL_INIT_PROMISE__) {
-                    await w.__ONE_SIGNAL_INIT_PROMISE__
-                } else {
-                    w.__ONE_SIGNAL_INIT_PROMISE__ = (async () => {
-                        const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID
-                        const safariWebId = process.env.NEXT_PUBLIC_SAFARI_WEB_ID
-                        const webhookUrl = process.env.NEXT_PUBLIC_ONESIGNAL_WEBHOOK!
-
-                        if (!appId || !safariWebId) {
-                            console.error(
-                                'OneSignal configuration missing: NEXT_PUBLIC_ONESIGNAL_APP_ID and NEXT_PUBLIC_SAFARI_WEB_ID are required'
-                            )
-                            return
-                        }
-
-                        await OneSignal.init({
-                            appId: appId,
-                            safari_web_id: safariWebId,
-                            // disable automatic prompts - we handle them manually
-                            autoResubscribe: false,
-                            autoRegister: false,
-                            serviceWorkerParam: { scope: '/onesignal/' },
-                            serviceWorkerPath: 'onesignal/OneSignalSDKWorker.js',
-                            allowLocalhostAsSecureOrigin: true,
-                            // prevent auto-prompts
-                            promptOptions: {
-                                slidedown: {
-                                    prompts: [{ type: 'push', autoPrompt: false, categories: [], delay: {} }],
-                                },
-                            },
-                            webhooks: {
-                                cors: true,
-                                // note: webhook endpoint is protected server-side via a shared token in additionaldata.authtoken
-                                // this prevents random generated webhook calls, onesignal dashboard sends pass through additionaldata
-                                'notification.willDisplay': webhookUrl,
-                                'notification.clicked': webhookUrl,
-                            },
-                        })
-                        w.__ONE_SIGNAL_READY__ = true
-                        w.__ONE_SIGNAL_INIT_DONE__ = true
-                    })()
-
-                    try {
-                        await w.__ONE_SIGNAL_INIT_PROMISE__
-                    } finally {
-                        // avoid holding the promise forever
-                        delete w.__ONE_SIGNAL_INIT_PROMISE__
-                    }
-                }
+                const adapter = await getOneSignalAdapter()
+                await adapter.init()
+                if (cancelled) return
 
                 // attach listeners once across hook instances
                 if (!w.__ONE_SIGNAL_LISTENERS_ADDED__) {
-                    OneSignal.Notifications.addEventListener('permissionChange', () => {
+                    w.__ONE_SIGNAL_LISTENERS_ADDED__ = true
+
+                    adapter.onPermissionChange((state) => {
                         // update local permission state and immediately re-evaluate ui visibility
-                        refreshPermissionState()
+                        setPermissionState(state)
                         evaluateVisibility()
 
                         // track the resulting permission state
-                        if (typeof Notification !== 'undefined') {
-                            const perm = Notification.permission
-                            if (perm === 'granted') {
-                                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_GRANTED)
-                            } else if (perm === 'denied') {
-                                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_DENIED)
-                            }
+                        if (state === 'granted') {
+                            posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_GRANTED)
+                        } else if (state === 'denied') {
+                            posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_DENIED)
                         }
                     })
 
-                    type PushSubscriptionChangeEvent = { current?: { optedIn?: boolean } | null }
-                    OneSignal.User.PushSubscription.addEventListener(
-                        'change',
-                        async (event: PushSubscriptionChangeEvent) => {
-                            // link subscription to logged-in user if available
-                            const id = externalIdRef.current
-                            if (id && !disableExternalIdLoginRef.current) {
-                                try {
-                                    await OneSignal.login(id)
-                                } catch (err: any) {
-                                    const msg = (err && (err.message || err.toString())) || ''
-                                    // disable login on identity verification errors
-                                    if (
-                                        msg.toLowerCase().includes('identity') ||
-                                        msg.toLowerCase().includes('verify')
-                                    ) {
-                                        disableExternalIdLoginRef.current = true
-                                        console.warn(
-                                            'OneSignal external_id login disabled due to identity verification error'
-                                        )
-                                    }
+                    adapter.onSubscriptionChange(async (optedIn) => {
+                        // link subscription to logged-in user if available
+                        const id = externalIdRef.current
+                        if (id && !disableExternalIdLoginRef.current) {
+                            try {
+                                await adapter.login(id)
+                            } catch (err: unknown) {
+                                const msg = err instanceof Error ? err.message : String(err ?? '')
+                                // disable login on identity verification errors
+                                if (msg.toLowerCase().includes('identity') || msg.toLowerCase().includes('verify')) {
+                                    disableExternalIdLoginRef.current = true
+                                    console.warn(
+                                        'OneSignal external_id login disabled due to identity verification error'
+                                    )
                                 }
                             }
-
-                            // mirror OneSignal subscription state into local state so consumers
-                            // that gate on `isPushOptedIn` (e.g. the home carousel CTA) react
-                            // without waiting for the next permissionChange event.
-                            const optedIn = !!event.current?.optedIn
-                            setIsPushOptedIn(optedIn)
-
-                            // hide modal when user opts in
-                            if (optedIn) {
-                                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_SUBSCRIBED)
-                                setShowPermissionModal(false)
-                            }
                         }
-                    )
 
-                    w.__ONE_SIGNAL_LISTENERS_ADDED__ = true
+                        // mirror OneSignal subscription state into local state so consumers
+                        // that gate on `isPushOptedIn` (e.g. the home carousel CTA) react
+                        // without waiting for the next permissionChange event.
+                        setIsPushOptedIn(optedIn)
+
+                        // hide modal when user opts in
+                        if (optedIn) {
+                            posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_SUBSCRIBED)
+                            setShowPermissionModal(false)
+                        }
+                    })
                 }
 
                 setOneSignalInitialized(true)
@@ -264,36 +192,31 @@ export function useNotifications() {
         }
 
         bootstrap()
-    }, [oneSignalInitialized, evaluateVisibility, refreshPermissionState])
+
+        return () => {
+            cancelled = true
+        }
+    }, [oneSignalInitialized, evaluateVisibility])
 
     // request notification permission from user
-    const requestPermission = useCallback(async (): Promise<'granted' | 'denied' | 'default'> => {
+    const requestPermission = useCallback(async (): Promise<NotificationPermissionState> => {
         if (typeof window === 'undefined' || !oneSignalInitialized) return 'default'
 
         setIsRequestingPermission(true)
         posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_REQUESTED)
 
         try {
-            // always use the native browser permission dialog, avoid onesignal slidedown ui
-            // optIn may trigger the native prompt on supported browsers, but we explicitly request permission
-            if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
-                await OneSignal.Notifications.requestPermission()
-            }
+            const adapter = await getOneSignalAdapter()
+            const newPermission = await adapter.requestPermission()
+            setPermissionState(newPermission)
+            return newPermission
         } catch (error) {
             console.warn('Error requesting permission:', error)
             captureException(error, { tags: { source: 'onesignal_request_permission' } })
+            return 'default'
         } finally {
             setIsRequestingPermission(false)
         }
-
-        // update permission state after request
-        if (typeof Notification !== 'undefined') {
-            const newPermission = Notification.permission as 'default' | 'granted' | 'denied'
-            setPermissionState(newPermission)
-            return newPermission
-        }
-
-        return 'default'
     }, [oneSignalInitialized])
 
     // re-check visibility when sdk becomes ready
@@ -319,10 +242,11 @@ export function useNotifications() {
             const loginUser = async () => {
                 try {
                     if (!disableExternalIdLoginRef.current) {
-                        await OneSignal.login(externalId)
+                        const adapter = await getOneSignalAdapter()
+                        await adapter.login(externalId)
                     }
-                } catch (err: any) {
-                    const msg = (err && (err.message || err.toString())) || ''
+                } catch (err: unknown) {
+                    const msg = err instanceof Error ? err.message : String(err ?? '')
                     // disable on identity errors
                     if (msg.toLowerCase().includes('identity') || msg.toLowerCase().includes('verify')) {
                         disableExternalIdLoginRef.current = true
@@ -339,7 +263,8 @@ export function useNotifications() {
 
             const logoutUser = async () => {
                 try {
-                    await OneSignal.logout()
+                    const adapter = await getOneSignalAdapter()
+                    await adapter.logout()
                 } catch (_) {}
             }
 
@@ -359,7 +284,7 @@ export function useNotifications() {
         // mark modal as closed to prevent it from showing again
         updateUserPreferences(user?.user.userId, { notifModalClosed: true })
         // refresh permission state
-        refreshPermissionState()
+        await refreshPermissionState()
     }, [user?.user.userId, refreshPermissionState])
 
     return {
