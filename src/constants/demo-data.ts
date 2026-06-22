@@ -10,6 +10,7 @@ import {
 // Type-only: importing the enum values would cause a runtime import cycle.
 import type { HistoryEntry } from '@/utils/history.utils'
 import type { AccountType, IUserProfile } from '@/interfaces/interfaces'
+import type { UserCapabilities, IdentityVerification } from '@/types/capabilities'
 
 /** Demo smart-account balance in token base units (USDC, 6 decimals). */
 export const DEMO_BALANCE_UNITS = parseUnits('1250.75', PEANUT_WALLET_TOKEN_DECIMALS)
@@ -97,6 +98,33 @@ export const DEMO_HISTORY_ENTRIES: HistoryEntry[] = [
 // Synthetic backend-free user for demo mode; satisfies the route guards (hasAppAccess + a PEANUT_WALLET account pinned to DEMO_ADDRESS).
 const DEMO_CREATED_AT = '2026-01-01T00:00:00.000Z'
 
+// Verified identity + enabled rails so KYC walls and regional on/off-ramps are
+// unlocked for the walkthrough. All simulated: demo has no JWT and UserOps are
+// hard-stopped, so "enabled" rails can't move real money.
+const DEMO_CAPABILITIES: UserCapabilities = {
+    rails: [
+        { id: 'bridge.ach_us', provider: 'bridge', method: 'ACH_US', channel: 'bank', country: 'US', currency: 'USD', status: 'enabled' },
+        { id: 'manteca.pix_br', provider: 'manteca', method: 'PIX_BR', channel: 'bank', country: 'BR', currency: 'BRL', status: 'enabled' },
+        {
+            id: 'manteca.bank_transfer_ar',
+            provider: 'manteca',
+            method: 'BANK_TRANSFER_AR',
+            channel: 'bank',
+            country: 'AR',
+            currency: 'ARS',
+            status: 'enabled',
+        },
+    ],
+    nextActions: [],
+    restrictions: [],
+}
+
+const DEMO_IDENTITY_VERIFICATION: IdentityVerification = {
+    status: 'verified',
+    submittedAt: DEMO_CREATED_AT,
+    reviewedAt: DEMO_CREATED_AT,
+}
+
 export const DEMO_USER: IUserProfile = {
     streak: 0,
     pwQueue: { totalUsers: 0, userPosition: null },
@@ -106,6 +134,8 @@ export const DEMO_USER: IUserProfile = {
     invitesSent: [],
     showEarlyUserModal: false,
     invitedBy: null,
+    capabilities: DEMO_CAPABILITIES,
+    identityVerification: DEMO_IDENTITY_VERIFICATION,
     accounts: [
         {
             id: 'demo-account',

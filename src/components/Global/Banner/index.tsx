@@ -10,6 +10,7 @@ import Image from 'next/image'
 import { useModalsContext } from '@/context/ModalsContext'
 import { GIT_COMMIT_HASH, IS_PRODUCTION } from '@/constants/general.consts'
 import { getRunMode, isRealMoneyMode, logRunMode } from '@/utils/mode'
+import { isDemoMode } from '@/utils/demo'
 
 export function Banner() {
     const pathname = usePathname()
@@ -41,6 +42,21 @@ function FeedbackBanner() {
 
     const handleClick = () => {
         setIsSupportModalOpen(true)
+    }
+
+    // Demo mode: this isn't a real account, so swap the feedback ask for a clear
+    // "you're in a demo" notice (non-interactive — no support modal).
+    if (isDemoMode()) {
+        return (
+            <div className="w-full">
+                <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
+                    <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">
+                        Demo mode — you’re previewing Peanut with a simulated wallet. Balances and transactions aren’t
+                        real.
+                    </span>
+                </MarqueeWrapper>
+            </div>
+        )
     }
 
     const mode = !IS_PRODUCTION ? getRunMode() : null
