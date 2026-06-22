@@ -101,3 +101,66 @@ produce the same `.env.production.local`.
 The `ios/` Capacitor platform must exist on the branch CI builds. It currently lives
 **only in the `peanut-ui-ios2` / `peanut-ui-ios` worktrees** — until `ios/` is committed
 to the branch this workflow runs on, `npx cap sync ios` (and the whole job) will fail.
+
+---
+
+## 6. Push notifications (OneSignal / APNs)
+
+Push is delivered through the same OneSignal app as web — the device links to the user
+via `OneSignal.login(userId)`, so the existing `external_id`-targeted sequences reach
+native with no backend or sequence changes. The web/native split lives behind
+`src/services/onesignal/` (selected by `isCapacitor()`); the native side is
+`@onesignal/capacitor-plugin`, wired into the app target's SPM by `npx cap sync ios`.
+
+### 6a. App target — already committed
+- `App.entitlements`: `aps-environment` + App Group `group.me.peanut.wallet.onesignal`.
+- `Info.plist`: `UIBackgroundModes` → `remote-notification`.
+- `aps-environment` is committed as `development` (local on-device debug builds use the
+  APNs **sandbox**). **Release/TestFlight builds need `production`** — the App Store
+  provisioning profile carries production APNs. Either flip the value before an archive
+  or keep a build-config-specific entitlements file. Watch for a signing mismatch if the
+  profile and entitlement environments disagree.
+
+### 6b. Notification Service Extension (NSE) — needs a one-time Xcode step
+Rich media, badge sync, and confirmed-delivery analytics require an NSE target. The
+**source files are committed** under `ios/App/OneSignalNotificationServiceExtension/`
+(`NotificationService.swift`, `Info.plist`, `*.entitlements`). The Xcode **target**
+itself is not hand-forged into `project.pbxproj` (too error-prone to script blind). Add
+it once in Xcode:
+
+1. **File → New → Target → Notification Service Extension.** Name it
+   `OneSignalNotificationServiceExtension`. Set its deployment target to **iOS 15**
+   (match the app). Do **not** activate the scheme when prompted.
+2. Delete Xcode's generated `NotificationService.swift` / `Info.plist` for the target and
+   **add the committed files** in `ios/App/OneSignalNotificationServiceExtension/` to the
+   target instead (or point the target's `INFOPLIST_FILE` / sources at them).
+3. **Signing & Capabilities** for the extension target: add the **App Groups** capability
+   and tick `group.me.peanut.wallet.onesignal` (same group as the app). Set
+   `CODE_SIGN_ENTITLEMENTS` to the committed `*.entitlements`.
+4. **Add the OneSignal extension SPM product to the *extension* target:** File → Add
+   Package Dependencies → `https://github.com/OneSignal/OneSignal-iOS-SDK` → add the
+   **`OneSignalExtension`** product **to the extension target only** (the app target gets
+   OneSignal transitively via the Capacitor plugin — don't double-add).
+5. The extension bundle id is `me.peanut.wallet.OneSignalNotificationServiceExtension`;
+   create a matching **App Store provisioning profile** for it (with the App Group) and
+   add it to CI signing alongside the app profile.
+
+> After adding the target, commit the resulting `project.pbxproj` (and `Package.resolved`)
+> so CI builds it. `npx cap sync ios` regenerates `CapApp-SPM/Package.swift` for the app
+> target only and will **not** touch the extension target — the NSE's SPM dependency is
+> managed directly on the target in Xcode.
+
+### 6c. Provider setup (OneSignal dashboard — do once, no code)
+- Create an **APNs `.p8` auth key** in the Apple Developer portal (Keys → enable Apple
+  Push Notifications service). Note the **Key ID** and your **Team ID**.
+- In the OneSignal dashboard → the existing app → **Apple iOS (APNs)** platform → upload
+  the `.p8`, Key ID, Team ID, and bundle id `me.peanut.wallet`.
+- Enable **Push Notifications** on the `me.peanut.wallet` App ID, and make sure the App
+  Store provisioning profile(s) include the push entitlement.
+
+### 6d. Verify (real device — APNs doesn't work on the simulator)
+1. `node scripts/native-build.js && npx cap sync ios`, open `ios/App/App.xcworkspace`,
+   run on a physical device.
+2. Accept the permission prompt (surfaced via the existing `SetupNotificationsModal`),
+   confirm a subscription appears under the user's `external_id` in OneSignal.
+3. Send a test push with an image and confirm the NSE renders the rich notification.

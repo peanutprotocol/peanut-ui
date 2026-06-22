@@ -21,6 +21,7 @@ let package = Package(
         .package(name: "CapgoCapacitorCrisp", path: "../../../node_modules/.pnpm/@capgo+capacitor-crisp@8.0.27_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-crisp"),
         .package(name: "CapgoCapacitorPasskey", path: "../../../node_modules/@capgo/capacitor-passkey"),
         .package(name: "CapgoCapacitorUpdater", path: "../../../node_modules/.pnpm/@capgo+capacitor-updater@8.45.9_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-updater"),
+        .package(name: "OnesignalCapacitorPlugin", path: "../../../node_modules/@onesignal/capacitor-plugin"),
         .package(name: "SumsubCordovaIdensicMobileSdkPlugin", path: "../../capacitor-cordova-ios-plugins/sources/SumsubCordovaIdensicMobileSdkPlugin")
     ],
     targets: [
@@ -38,6 +39,7 @@ let package = Package(
                 .product(name: "CapgoCapacitorCrisp", package: "CapgoCapacitorCrisp"),
                 .product(name: "CapgoCapacitorPasskey", package: "CapgoCapacitorPasskey"),
                 .product(name: "CapgoCapacitorUpdater", package: "CapgoCapacitorUpdater"),
+                .product(name: "OnesignalCapacitorPlugin", package: "OnesignalCapacitorPlugin"),
                 .product(name: "SumsubCordovaIdensicMobileSdkPlugin", package: "SumsubCordovaIdensicMobileSdkPlugin")
             ]
         )
