@@ -1,5 +1,6 @@
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type PendingPerk } from '@/services/perks'
+import { isDemoMode } from '@/utils/demo'
 export type { PendingPerk }
 
 export interface RailStatusUpdate {
@@ -265,6 +266,9 @@ let websocketInstanceUsername: string | null = null
 
 export const getWebSocketInstance = (username?: string): PeanutWebSocket | null => {
     if (typeof window === 'undefined') return null
+    // Demo mode has no backend/charges socket — returning null is the no-op
+    // (callers already handle it) and avoids the mixed-content wss:// failure.
+    if (isDemoMode()) return null
     // Can't connect without a username — the server route is /ws/charges/:username.
     // Returning null lets callers bail out and re-try once auth is ready.
     if (!username) return null

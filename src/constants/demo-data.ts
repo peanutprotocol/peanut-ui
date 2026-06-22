@@ -9,7 +9,7 @@ import {
 } from '@/constants/zerodev.consts'
 // Type-only: importing the enum values would cause a runtime import cycle.
 import type { HistoryEntry } from '@/utils/history.utils'
-import type { AccountType, IUserProfile } from '@/interfaces/interfaces'
+import type { AccountType, Contact, IUserProfile, UserLimitsResponse } from '@/interfaces/interfaces'
 import type { UserCapabilities, IdentityVerification } from '@/types/capabilities'
 
 /** Demo smart-account balance in token base units (USDC, 6 decimals). */
@@ -167,4 +167,59 @@ export const DEMO_USER: IUserProfile = {
         createdAt: DEMO_CREATED_AT,
         accounts: [],
     },
+}
+
+// Demo counterparties — the same people who appear in DEMO_HISTORY_ENTRIES, so
+// Send → Contacts is populated with familiar names.
+const demoContact = (
+    username: string,
+    fullName: string,
+    relationshipTypes: Contact['relationshipTypes'],
+    transactionCount: number
+): Contact => ({
+    userId: `demo-${username}`,
+    username,
+    fullName,
+    isVerified: true,
+    showFullName: true,
+    relationshipTypes,
+    firstInteractionDate: DEMO_CREATED_AT,
+    lastInteractionDate: DEMO_CREATED_AT,
+    transactionCount,
+})
+
+export const DEMO_CONTACTS: Contact[] = [
+    demoContact('alice', 'Alice Nguyen', ['received_money'], 1),
+    demoContact('bob', 'Bob Carter', ['sent_money'], 1),
+    demoContact('carol', 'Carol Diaz', ['sent_money'], 1),
+    demoContact('dave', 'Dave Patel', ['received_money'], 1),
+]
+
+// Realistic fiat limits so the add-money / withdraw screens show believable caps.
+export const DEMO_LIMITS: UserLimitsResponse = {
+    bridge: {
+        onRampPerTransaction: '10000',
+        offRampPerTransaction: '10000',
+        asset: 'USD',
+    },
+    manteca: [
+        {
+            exchangeCountry: 'BRA',
+            type: 'EXCHANGE',
+            asset: 'BRL',
+            yearlyLimit: '120000',
+            availableYearlyLimit: '118500',
+            monthlyLimit: '10000',
+            availableMonthlyLimit: '9500',
+        },
+        {
+            exchangeCountry: 'ARG',
+            type: 'EXCHANGE',
+            asset: 'ARS',
+            yearlyLimit: '12000000',
+            availableYearlyLimit: '11800000',
+            monthlyLimit: '1000000',
+            availableMonthlyLimit: '950000',
+        },
+    ],
 }
