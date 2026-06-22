@@ -42,6 +42,13 @@ const JoinWaitlist = () => {
     }, [])
 
     const validateInviteCode = async (inviteCode: string): Promise<boolean> => {
+        // Demo mode (native): `demo` is a client-only trigger — never hit the invite
+        // API. Keeps it from creating accounts / bypassing the waitlist, and lets it
+        // work even when the (prod) backend doesn't know the code.
+        if (isCapacitor() && isDemoInviteCode(inviteCode)) {
+            enableDemoMode()
+            return true
+        }
         try {
             setError('')
             setisLoading(true)
