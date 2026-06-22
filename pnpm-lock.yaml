@@ -73,6 +73,9 @@ importers:
       '@noble/curves':
         specifier: 1.9.7
         version: 1.9.7
+      '@onesignal/capacitor-plugin':
+        specifier: ^1.0.6
+        version: 1.0.6(@capacitor/core@8.2.0)
       '@radix-ui/react-accordion':
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -1557,6 +1560,11 @@ packages:
   '@nodelib/fs.walk@1.2.8':
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
+
+  '@onesignal/capacitor-plugin@1.0.6':
+    resolution: {integrity: sha512-06gUX322p74rFSvPzGoCrUgKl1++Twm4sVK4Y5htfGTKKvBYx5AKWkqWngamyzcT/pjq6ZHcnA/RnqJPYnNZrA==}
+    peerDependencies:
+      '@capacitor/core': '>=7.0.0'
 
   '@opentelemetry/api-logs@0.208.0':
     resolution: {integrity: sha512-CjruKY9V6NMssL/T1kAFgzosF1v9o6oeN+aX5JB/C/xPNtmgIJqcXHG7fA82Ou1zCpWGl4lROQUKwUNE1pMCyg==}
@@ -9665,6 +9673,10 @@ snapshots:
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.1
+
+  '@onesignal/capacitor-plugin@1.0.6(@capacitor/core@8.2.0)':
+    dependencies:
+      '@capacitor/core': 8.2.0
 
   '@opentelemetry/api-logs@0.208.0':
     dependencies:

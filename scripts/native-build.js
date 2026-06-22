@@ -461,6 +461,15 @@ async function main() {
                 throw new Error('NEXT_PUBLIC_NATIVE_RP_ID is not set in .env.production.local — passkeys will fail')
             }
             console.log(`✅ NEXT_PUBLIC_NATIVE_RP_ID=${rpIdMatch[1].trim()}`)
+
+            // app id is inlined into the bundle at build time; without it the native
+            // OneSignal SDK can't initialize and push notifications silently no-op.
+            const appIdMatch = envContent.match(/NEXT_PUBLIC_ONESIGNAL_APP_ID=(.+)/)
+            if (!appIdMatch || !appIdMatch[1].trim()) {
+                console.warn('⚠️  NEXT_PUBLIC_ONESIGNAL_APP_ID is not set — native push notifications will be disabled')
+            } else {
+                console.log('✅ NEXT_PUBLIC_ONESIGNAL_APP_ID is set')
+            }
         } else {
             console.warn('⚠️  .env.production.local not found — using default rpId (peanut.me)')
         }
