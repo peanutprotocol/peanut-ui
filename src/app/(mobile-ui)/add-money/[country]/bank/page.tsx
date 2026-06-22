@@ -34,6 +34,8 @@ import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
+import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
+import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
@@ -113,6 +115,18 @@ export default function OnrampBankPage() {
     const { gateFor } = useCapabilities()
     const bankCountry = useMemo(() => railJurisdictionForBank(selectedCountry?.id), [selectedCountry?.id])
     const gate = useMemo(() => gateFor('deposit', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
+    // A ready bank rail can still carry a future-dated requirement (the gate's
+    // `advisory`). Offer it as a skippable pre-empt at the proceed step.
+    const advisory = gate.kind === 'ready' ? gate.advisory : undefined
+    const { intercept: advisoryIntercept, modalProps: advisoryModalProps } = useAdvisoryPreempt({
+        advisory,
+        isLoading: sumsubFlow.isLoading,
+        // Route through the self-heal resubmit path (reheal-tagged action) so the
+        // completed submission round-trips to Bridge. start-action mints a plain
+        // token whose webhook completion has no Bridge relay → answers are dropped.
+        onCompleteNow: () =>
+            advisory ? sumsubFlow.handleSelfHealResubmit('BRIDGE', advisory.requirementKey) : Promise.resolve(),
+    })
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const { setIsSupportModalOpen } = useModalsContext()
 
@@ -233,12 +247,18 @@ export default function OnrampBankPage() {
             return
         }
 
-        posthog.capture(ANALYTICS_EVENTS.DEPOSIT_AMOUNT_ENTERED, {
-            amount_usd: usdEquivalent,
-            method_type: 'bank',
-            country: selectedCountryPath,
+        // ready — offer the skippable advisory pre-empt once; on proceed (now, or
+        // after "Not now") record the amount-entered event and open the
+        // confirmation modal. Firing inside the proceed avoids double-counting if
+        // the user dismisses the advisory and re-clicks.
+        advisoryIntercept(() => {
+            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_AMOUNT_ENTERED, {
+                amount_usd: usdEquivalent,
+                method_type: 'bank',
+                country: selectedCountryPath,
+            })
+            setShowWarningModal(true)
         })
-        setShowWarningModal(true)
     }
 
     const handleWarningConfirm = async () => {
@@ -439,6 +459,8 @@ export default function OnrampBankPage() {
                     providerMessage={getGateUserMessage(gate)}
                     regionName={selectedCountry?.title}
                 />
+
+                <AdvisoryPreemptModal {...advisoryModalProps} />
 
                 <SumsubKycModals flow={sumsubFlow} autoStartSdk />
 

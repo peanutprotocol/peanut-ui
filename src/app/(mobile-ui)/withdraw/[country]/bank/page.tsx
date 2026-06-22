@@ -33,6 +33,8 @@ import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
+import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
+import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -92,6 +94,18 @@ export default function WithdrawBankPage() {
     const bankCountry = useMemo(() => railJurisdictionForBank(getCountryFromPath(country)?.id), [country])
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     const sumsubFlow = useMultiPhaseKycFlow({})
+    // A ready bank rail can still carry a future-dated requirement (the gate's
+    // `advisory`). Offer it as a skippable pre-empt before the withdrawal.
+    const advisory = gate.kind === 'ready' ? gate.advisory : undefined
+    const { intercept: advisoryIntercept, modalProps: advisoryModalProps } = useAdvisoryPreempt({
+        advisory,
+        isLoading: sumsubFlow.isLoading,
+        // Route through the self-heal resubmit path (reheal-tagged action) so the
+        // completed submission round-trips to Bridge. start-action mints a plain
+        // token whose webhook completion has no Bridge relay → answers are dropped.
+        onCompleteNow: () =>
+            advisory ? sumsubFlow.handleSelfHealResubmit('BRIDGE', advisory.requirementKey) : Promise.resolve(),
+    })
     const [showKycModal, setShowKycModal] = useState(false)
     const { setIsSupportModalOpen } = useModalsContext()
 
@@ -193,7 +207,7 @@ export default function WithdrawBankPage() {
         return 'N/A'
     }
 
-    const handleCreateAndInitiateOfframp = async () => {
+    const proceedWithOfframp = async () => {
         if (gate.kind !== 'ready') {
             // Loading and waiting-on-provider both mean "user has no action to
             // take" — silently no-op instead of bouncing them through Sumsub.
@@ -326,6 +340,11 @@ export default function WithdrawBankPage() {
             setIsLoading(false)
         }
     }
+
+    // Offer the skippable advisory pre-empt once, then run the offramp. When the
+    // gate isn't `ready` (or nothing is future-dated) this is a no-op and
+    // proceedWithOfframp runs straight away (it handles the not-ready cases).
+    const handleCreateAndInitiateOfframp = () => advisoryIntercept(() => void proceedWithOfframp())
 
     const countryCodeForFlag = () => {
         if (!bankAccount?.details?.countryCode) return ''
@@ -550,6 +569,7 @@ export default function WithdrawBankPage() {
                 providerMessage={getGateUserMessage(gate)}
                 regionName={getCountryFromPath(country)?.title}
             />
+            <AdvisoryPreemptModal {...advisoryModalProps} />
             <SumsubKycModals flow={sumsubFlow} />
         </div>
     )

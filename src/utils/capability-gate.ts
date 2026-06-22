@@ -19,6 +19,23 @@
 import type { NextAction, RailCapability, RailOperation, CapabilityReason, RailChannel } from '@/types/capabilities'
 
 /**
+ * A non-blocking advisory pre-empt riding on a `ready` gate. An ENABLED rail can
+ * carry a future-dated requirement (Bridge's `future_requirements[].effective_date`,
+ * surfaced as a `hintAction` whose NextAction has an `effectiveDate`). The rail
+ * stays usable; the FE offers a SKIPPABLE "complete before {date}" prompt. When
+ * the date passes the BE reclassifies it to blocking and the gate becomes
+ * `fixable-rejection` on its own — no FE date logic, no hardcoded cutover.
+ */
+export interface GateAdvisory {
+    /** ISO date the requirement becomes blocking. */
+    effectiveDate: string
+    /** the NextAction `key` to start (POST /users/kyc/start-action) if the user completes it now. */
+    actionKey: string
+    /** which requirement — telemetry / FE branching. */
+    requirementKey?: string
+}
+
+/**
  * Normalized gate state. Discriminated union — consumers branch on `kind`.
  *
  * Mapping from the old `BridgeGateAction`:
@@ -38,7 +55,7 @@ import type { NextAction, RailCapability, RailOperation, CapabilityReason, RailC
  */
 export type GateState =
     | { kind: 'loading' }
-    | { kind: 'ready' }
+    | { kind: 'ready'; advisory?: GateAdvisory }
     | { kind: 'pending' }
     | { kind: 'waiting-on-provider'; userMessage: string | null; reason?: CapabilityReason }
     | { kind: 'accept-tos'; tosUrl?: string; userMessage: string | null; reason?: CapabilityReason }
@@ -91,6 +108,30 @@ function railActions(rail: RailCapability, byKey: Map<string, NextAction>): Next
     return (rail.blockingActions ?? [])
         .map((key) => byKey.get(key))
         .filter((action): action is NextAction => action !== undefined)
+}
+
+/** Resolve a rail's HINT (non-blocking) actions to NextAction descriptors. */
+function railHintActions(rail: RailCapability, byKey: Map<string, NextAction>): NextAction[] {
+    return (rail.hintActions ?? [])
+        .map((key) => byKey.get(key))
+        .filter((action): action is NextAction => action !== undefined)
+}
+
+/**
+ * The most-urgent advisory pre-empt among the given (ready) rails — the
+ * hintAction whose NextAction carries the earliest `effectiveDate`. Returns
+ * undefined when no rail has a future-dated hint.
+ */
+function firstAdvisory(rails: RailCapability[], byKey: Map<string, NextAction>): GateAdvisory | undefined {
+    let best: NextAction | undefined
+    for (const rail of rails) {
+        for (const action of railHintActions(rail, byKey)) {
+            if (!action.effectiveDate) continue
+            if (!best || action.effectiveDate < best.effectiveDate!) best = action
+        }
+    }
+    if (!best) return undefined
+    return { effectiveDate: best.effectiveDate!, actionKey: best.key, requirementKey: best.requirementKey }
 }
 
 /**
@@ -147,8 +188,14 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
     // above blocked / accept-tos / fixable-rejection because the user has
     // a working path; a blocked sibling rail (different currency, KYC
     // remediation pending) is not the user's problem right now.
-    const hasReady = candidates.some((rail) => operationStatus(rail, op) === 'enabled')
-    if (hasReady) return { kind: 'ready' }
+    const readyRails = candidates.filter((rail) => operationStatus(rail, op) === 'enabled')
+    if (readyRails.length > 0) {
+        // A working rail can still carry a future-dated requirement as a
+        // non-blocking hint — surface it as a SKIPPABLE pre-empt without
+        // demoting `ready` (the rail is usable now).
+        const advisory = firstAdvisory(readyRails, actionByKey)
+        return advisory ? { kind: 'ready', advisory } : { kind: 'ready' }
+    }
 
     // 3. blocked — split: if the rail carries a `restart-identity` action the
     // user can self-fix by re-verifying with a different document; otherwise
@@ -262,4 +309,9 @@ export function getGateUserMessage(gate: GateState): string | undefined {
         return gate.userMessage ?? undefined
     }
     return undefined
+}
+
+/** The advisory pre-empt riding on a `ready` gate, if present. */
+export function getGateAdvisory(gate: GateState): GateAdvisory | undefined {
+    return gate.kind === 'ready' ? gate.advisory : undefined
 }
