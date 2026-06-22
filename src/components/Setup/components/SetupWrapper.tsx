@@ -7,6 +7,7 @@ import InstallPWA from '@/components/Setup/Views/InstallPWA'
 import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import classNames from 'classnames'
+import { motion, useReducedMotion } from 'framer-motion'
 import Image from 'next/image'
 import { Children, type ReactNode, cloneElement, memo, type ReactElement, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -208,6 +209,17 @@ export const SetupWrapper = memo(function SetupWrapper({
 }: SetupWrapperProps) {
     const { isBrave } = useBravePWAInstallState()
     const [showBraveSuccessMessage, setShowBraveSuccessMessage] = useState(false)
+    const prefersReducedMotion = useReducedMotion()
+
+    // Slide the white panel up on first paint for a native bottom-sheet feel.
+    // Mobile + landing only; read synchronously so the offset is correct on mount.
+    const [slideUpPanel] = useState(
+        () =>
+            screenId === 'landing' &&
+            typeof window !== 'undefined' &&
+            window.matchMedia('(max-width: 767px)').matches
+    )
+    const animatePanelIn = slideUpPanel && !prefersReducedMotion
 
     const shouldShowBraveInstalledHeaderOnly =
         (screenId === 'pwa-install' || screenId === 'android-initial-pwa-install') && isBrave && showBraveSuccessMessage
@@ -218,7 +230,7 @@ export const SetupWrapper = memo(function SetupWrapper({
         : description
 
     return (
-        <div className="flex min-h-[100dvh] flex-col">
+        <div className="flex min-h-[100dvh] flex-col overflow-hidden">
             {/* navigation buttons */}
             <Navigation
                 showBackButton={showBackButton}
@@ -243,13 +255,15 @@ export const SetupWrapper = memo(function SetupWrapper({
                 />
 
                 {/* content section */}
-                <div
+                <motion.div
+                    initial={animatePanelIn ? { y: '100%' } : false}
+                    animate={animatePanelIn ? { y: 0 } : undefined}
+                    transition={{ type: 'spring', stiffness: 260, damping: 30 }}
                     className={twMerge(
                         'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pb-[calc(2rem_+_env(safe-area-inset-bottom))] pt-6 md:h-[100dvh] md:justify-center md:space-y-4 md:pb-8',
                         contentClassName
                     )}
                 >
-                    {/* todo: add transition animation */}
                     {/* title and description container */}
                     <div
                         className={twMerge(
@@ -284,7 +298,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                             return child
                         })}
                     </div>
-                </div>
+                </motion.div>
             </div>
         </div>
     )
