@@ -17,14 +17,17 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const isPWA = usePWAStatus()
     const { deviceType } = useDeviceType()
 
-    // configure status bar for native — matches mobile-ui layout behavior
+    // configure status bar for native. the setup/onboarding flow has a periwinkle
+    // top (illustration + feedback ribbon), so tint the status bar to match — on
+    // pre-edge-to-edge Android the OS paints this color; on Android 15+ it's a
+    // no-op (edge-to-edge forced) and the CSS safe zone below handles it.
     useEffect(() => {
         if (!isCapacitor()) return
         import('@capacitor/status-bar')
             .then(({ StatusBar, Style }) => {
                 StatusBar.setOverlaysWebView({ overlay: false })
                 StatusBar.setStyle({ style: Style.Light })
-                StatusBar.setBackgroundColor({ color: '#ffffff' })
+                StatusBar.setBackgroundColor({ color: '#90A8ED' }) // secondary-3
             })
             .catch(() => {})
     }, [])
@@ -51,7 +54,16 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
 
     return (
         <>
-            <Banner />
+            {/* Status-bar safe zone + feedback ribbon.
+                Android 15 (targetSdk 36) forces edge-to-edge, so the webview draws
+                UNDER the status bar — without this the ribbon/status icons collide
+                in a blank strip (see bug report). Fill the inset with the brand
+                periwinkle (matches the onboarding illustration) so the top reads as
+                intentional. env(safe-area-inset-top) resolves to 0 on web and on
+                non-edge-to-edge Android, so this is a no-op there. */}
+            <div className="bg-secondary-3" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+                <Banner />
+            </div>
             {children}
         </>
     )

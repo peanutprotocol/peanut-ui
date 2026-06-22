@@ -22,6 +22,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { USER } from '@/constants/query.consts'
 import { userActions } from '@/redux/slices/user-slice'
 import { DEMO_USER } from '@/constants/demo-data'
+import { toInviteCode } from '@/utils/general.utils'
+import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 
 const JoinWaitlist = () => {
     const [inviteCode, setInviteCode] = useState('')
@@ -96,10 +98,12 @@ const JoinWaitlist = () => {
                     value={inviteCode}
                     debounceTime={750}
                     validate={validateInviteCode}
+                    shouldValidate={(v) => toInviteCode(v).length >= USERNAME_MIN_LENGTH}
                     onUpdate={({ value, isValid, isChanging }) => {
                         setIsValid(isValid)
                         setIsChanging(isChanging)
                         setInviteCode(value)
+                        if (isChanging) setError('')
                     }}
                     isSetupFlow
                     isInputChanging={isChanging}

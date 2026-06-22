@@ -12,6 +12,7 @@ type ValidatedInputProps = {
     placeholder?: string
     debounceTime?: number
     validate: (value: string) => Promise<boolean>
+    shouldValidate?: (value: string) => boolean
     onUpdate: (update: InputUpdate) => void
     className?: string
     autoComplete?: string
@@ -34,6 +35,7 @@ const ValidatedInput = ({
     debounceTime = 750,
     onUpdate,
     validate,
+    shouldValidate,
     className,
     autoComplete,
     name,
@@ -94,6 +96,17 @@ const ValidatedInput = ({
 
     useEffect(() => {
         if (debouncedValue === '') {
+            return
+        }
+
+        // Incomplete input (e.g. too short to be a real handle): treat as still-changing
+        // rather than invalid, so we skip the lookup and suppress the error UI.
+        if (shouldValidate && !shouldValidate(debouncedValue)) {
+            setIsValidating(false)
+            setIsValid(false)
+            if (currentValueRef.current === debouncedValue) {
+                onUpdate({ value: debouncedValue, isValid: false, isChanging: true })
+            }
             return
         }
 
