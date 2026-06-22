@@ -42,6 +42,10 @@ const config: CapacitorConfig = {
             origin: `https://${process.env.NEXT_PUBLIC_NATIVE_RP_ID || 'peanut.me'}`,
             domains: [process.env.NEXT_PUBLIC_NATIVE_RP_ID || 'peanut.me'],
         },
+        Keyboard: {
+            // resize the webview when the soft keyboard shows so inputs aren't hidden.
+            resize: 'native',
+        },
     },
 }
 

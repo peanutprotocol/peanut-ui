@@ -6,15 +6,51 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+// Version is sourced from the release pipeline so it always increments without a
+// manual edit. Play requires each upload's versionCode to exceed the last; the
+// rejected first submission was code 1, so we never emit below 2.
+//   - versionName: ANDROID_VERSION_NAME env, else package.json "version"
+//   - versionCode: ANDROID_VERSION_CODE env (set by scripts/native-release.sh),
+//     else the git commit count — monotonic and zero-bookkeeping, so even a raw
+//     `./gradlew bundleRelease` produces a valid, increasing code.
+def pkgVersion = '1.0.0'
+try {
+    def pkgJson = new groovy.json.JsonSlurper().parse(rootProject.file('../package.json'))
+    if (pkgJson.version) pkgVersion = pkgJson.version
+} catch (Exception e) {
+    logger.warn("Could not read version from package.json: ${e.message}")
+}
+
+def gitCommitCount = {
+    try {
+        def proc = ['git', 'rev-list', '--count', 'HEAD'].execute(null, rootProject.projectDir)
+        proc.waitFor()
+        def out = proc.in.text.trim()
+        if (out.isInteger() && out.toInteger() >= 2) return out.toInteger()
+    } catch (Exception e) {
+        logger.warn("Could not derive versionCode from git: ${e.message}")
+    }
+    return 2 // floor — rejected first upload was code 1
+}
+
+def resolvedVersionName = System.getenv('ANDROID_VERSION_NAME') ?: pkgVersion
+def resolvedVersionCode = (System.getenv('ANDROID_VERSION_CODE')?.isInteger()
+        ? System.getenv('ANDROID_VERSION_CODE').toInteger()
+        : gitCommitCount())
+
 android {
     namespace = "me.peanut.wallet"
     compileSdk = rootProject.ext.compileSdkVersion
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
     defaultConfig {
         applicationId "me.peanut.wallet"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0.0"
+        versionCode resolvedVersionCode
+        versionName resolvedVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

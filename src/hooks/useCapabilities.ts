@@ -13,6 +13,7 @@ import {
 } from '@/types/capabilities'
 import { deriveGate, type GateScope, type GateState } from '@/utils/capability-gate'
 import type { RailChannel } from '@/types/capabilities'
+import { isDemoMode } from '@/utils/demo'
 import { useCallback, useMemo } from 'react'
 
 /**
@@ -181,7 +182,11 @@ export function useCapabilities(): UseCapabilitiesResult {
         [restrictions]
     )
 
-    const isKycApproved = useMemo(() => rails.some((rail) => rail.status === 'enabled'), [rails])
+    // demo mode: present as verified so KYC walls don't block the walkthrough.
+    const isKycApproved = useMemo(
+        () => isDemoMode() || rails.some((rail) => rail.status === 'enabled'),
+        [rails]
+    )
 
     const isKycInProgress = useMemo(
         () => rails.some((rail) => rail.status === 'pending' || rail.status === 'requires-info'),

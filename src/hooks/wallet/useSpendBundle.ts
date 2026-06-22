@@ -23,6 +23,7 @@ import { useGrantSessionKey, type GrantSessionKeyError } from './useGrantSession
 import { usdcUnitsToRainCents } from '@/utils/balance.utils'
 import { useModalsContextOptional } from '@/context/ModalsContext'
 import { smartUsdcBalanceQueryOptions } from './useBalance'
+import { isDemoMode } from '@/utils/demo'
 
 export type SpendStrategy = 'collateral-only' | 'smart-only' | 'mixed' | 'insufficient'
 
@@ -177,6 +178,13 @@ export const useSpendBundle = () => {
                 onStrategyDecided,
                 onGrantRequired,
             } = input
+
+            // demo mode: simulated success, no chain.
+            if (isDemoMode()) {
+                onStrategyDecided?.('smart-only')
+                await new Promise((resolve) => setTimeout(resolve, 600))
+                return { strategy: 'smart-only', userOpHash: `0x${'de'.repeat(32)}` as Hash, receipt: null }
+            }
 
             const hasSubsequent = subsequentCalls.length > 0
             const collateralOnlyAllowed = !hasSubsequent && !!recipient

@@ -22,8 +22,10 @@ import {
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react'
 import { type Chain, http, type PublicClient, type Transport } from 'viem'
 import { AccountType } from '@/interfaces/interfaces'
-import type { Address } from 'viem'
+import type { Address, Hash } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
+import { isDemoMode } from '@/utils/demo'
+import { DEMO_ADDRESS } from '@/constants/demo-data'
 import { captureException } from '@sentry/nextjs'
 import { retryAsync } from '@/utils/retry.utils'
 import { isStaleClientForUser, isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
@@ -237,6 +239,13 @@ export const createKernelClientForChain = async <C extends Chain>(
         },
     })
 
+    // demo mode hard-stop: no UserOp from any flow can reach the chain.
+    const realSendUserOperation = kernelClient.sendUserOperation.bind(kernelClient)
+    kernelClient.sendUserOperation = (async (args: unknown) => {
+        if (isDemoMode()) return `0x${'de'.repeat(32)}` as Hash
+        return realSendUserOperation(args as never)
+    }) as typeof kernelClient.sendUserOperation
+
     return kernelClient
 }
 
@@ -274,6 +283,13 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             return
         }
 
+        // Demo mode: no passkey/kernel client — synthesize the address and report ready.
+        if (isDemoMode()) {
+            dispatch(zerodevActions.setAddress(DEMO_ADDRESS))
+            dispatch(zerodevActions.setIsKernelClientReady(true))
+            return
+        }
+
         const userPreferences = getUserPreferences(user.user.userId)
         const storedWebAuthnKey = userPreferences?.webAuthnKey ?? getFromCookie(WEB_AUTHN_COOKIE_KEY)
         if (storedWebAuthnKey) {
@@ -283,7 +299,13 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // the native capacitor plugin callback so signing works after restore.
             if (isAndroidNative() && !storedWebAuthnKey.signMessageCallback) {
                 const rpId = storedWebAuthnKey.rpID || getNativeRpId()
-                storedWebAuthnKey.signMessageCallback = createNativeSignMessageCallback(rpId)
+                // Pin the native signing ceremony to THIS kernel's own credential
+                // so a second peanut.me passkey on the device can't be substituted
+                // (see createNativeSignMessageCallback + PR #2189).
+                storedWebAuthnKey.signMessageCallback = createNativeSignMessageCallback(
+                    rpId,
+                    storedWebAuthnKey.authenticatorId
+                )
             }
             // Only update if the key actually changed to avoid re-triggering kernel client init
             // Note: WebAuthnKey contains BigInt fields (pubX, pubY) which JSON.stringify cannot handle,

@@ -122,26 +122,36 @@ export async function withWebAuthnRetry<T>(
  */
 export const PASSKEY_TROUBLESHOOTING_STEPS = {
     android: {
+        // Native default — unknown/unclassified errors in the app shell.
+        default: [
+            'Sign in to a Google account on this device',
+            'Update Google Play Services',
+            'Enable screen lock (Settings > Security)',
+            'Restart the app and retry',
+        ],
         NotReadableError: [
             'Restart your device',
             'Update Google Play Services',
             'Enable screen lock in Settings > Security',
         ],
         NotAllowedError: [
-            'Exit Incognito/Private mode - use regular Chrome',
-            "Make sure you're signed into Google account in Chrome",
+            "Make sure you're signed in to a Google account on this device",
             'Enable screen lock (Settings > Security)',
+            'Update Google Play Services',
             'Turn off VPN or privacy apps temporarily',
-            'Update Google Play Services and Chrome',
         ],
     },
     ios: {
+        default: [
+            'Enable iCloud Keychain in Settings',
+            'Enable Face ID/Touch ID in Settings',
+            'Restart the app and retry',
+        ],
         NotAllowedError: [
             // First because it's the dominant field case: a wedged third-party
             // credential provider refuses every assertion until unlocked or the
             // device restarts (TASK-20000).
             'If you use a password manager like 1Password, open it and unlock it first',
-            'Exit Private Browsing - use regular Safari',
             'Enable Face ID/Touch ID in Settings',
             'Enable iCloud Keychain in Settings',
             'Turn off VPN temporarily',
