@@ -38,6 +38,7 @@
         "verify-content": "tsx scripts/verify-content.ts",
         "native:build": "node scripts/native-build.js",
         "native:sync": "npx cap sync android",
+        "native:release": "bash scripts/native-release.sh",
         "capgo:upload:dev": "node scripts/native-build.js && npx @capgo/cli@latest bundle upload --channel development --path ./out",
         "capgo:upload:staging": "node scripts/native-build.js && npx @capgo/cli@latest bundle upload --channel staging --path ./out",
         "test:unit:ci": "jest --coverage --reporters=default --reporters=jest-junit"
@@ -48,6 +49,9 @@
         "@capacitor/browser": "^8.0.3",
         "@capacitor/cli": "8.2.0",
         "@capacitor/core": "8.2.0",
+        "@capacitor/haptics": "^8.0.2",
+        "@capacitor/ios": "8.2.0",
+        "@capacitor/keyboard": "^8.0.3",
         "@capacitor/splash-screen": "^8.0.1",
         "@capacitor/status-bar": "^8.0.2",
         "@capgo/capacitor-crisp": "^8.0.27",

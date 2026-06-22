@@ -9,6 +9,8 @@ import { useDeviceType } from '../useGetDeviceType'
 import { USER } from '@/constants/query.consts'
 import { apiFetch } from '@/utils/api-fetch'
 import { clearAuthToken, setAuthToken } from '@/utils/auth-token'
+import { isDemoMode } from '@/utils/demo'
+import { DEMO_USER } from '@/constants/demo-data'
 
 // custom error class for backend errors (5xx) that should trigger retry
 export class BackendError extends Error {
@@ -27,6 +29,12 @@ export const useUserQuery = (dependsOn: boolean = true) => {
     const { user: authUser } = useUserStore()
 
     const fetchUser = async (): Promise<IUserProfile | null> => {
+        // Demo mode: no backend/JWT/passkey — return the synthetic user.
+        if (isDemoMode()) {
+            dispatch(userActions.setUser(DEMO_USER))
+            return DEMO_USER
+        }
+
         const userResponse = await apiFetch('/users/me', { method: 'GET' })
         if (userResponse.ok) {
             const payload: (IUserProfile & { token?: string }) | null = await userResponse.json()

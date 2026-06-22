@@ -15,6 +15,13 @@ import { useLogin } from '@/hooks/useLogin'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { INVITER_NOT_FOUND_ERROR } from '@/constants/invites.consts'
+import { enableDemoMode, isDemoInviteCode } from '@/utils/demo'
+import { isCapacitor } from '@/utils/capacitor'
+import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
+import { USER } from '@/constants/query.consts'
+import { userActions } from '@/redux/slices/user-slice'
+import { DEMO_USER } from '@/constants/demo-data'
 
 const JoinWaitlist = () => {
     const [inviteCode, setInviteCode] = useState('')
@@ -27,6 +34,8 @@ const JoinWaitlist = () => {
     const { handleNext } = useSetupFlow()
     const dispatch = useAppDispatch()
     const { handleLoginClick, isLoggingIn } = useLogin()
+    const router = useRouter()
+    const queryClient = useQueryClient()
 
     useEffect(() => {
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_WAITLIST_VIEWED)
@@ -103,6 +112,17 @@ const JoinWaitlist = () => {
                 <Button
                     disabled={!isValid || isChanging || isLoading || inviteCode.length === 0}
                     onClick={() => {
+                        // Demo mode: skip signup + passkey. Soft-nav (no reload) so the
+                        // in-memory demo flag survives — a hard nav loses it and races the
+                        // no-credential logout/redirect guards before localStorage is
+                        // readable. Seed the user query so the app is logged-in instantly.
+                        if (isCapacitor() && isDemoInviteCode(inviteCode)) {
+                            enableDemoMode()
+                            dispatch(userActions.setUser(DEMO_USER))
+                            queryClient.setQueryData([USER], DEMO_USER)
+                            router.push('/home')
+                            return
+                        }
                         dispatch(setupActions.setInviteCode(inviteCode))
                         handleNext()
                     }}

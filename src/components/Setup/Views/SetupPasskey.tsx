@@ -40,6 +40,25 @@ const SetupPasskey = () => {
         // clear any previous inline errors
         setInlineError(null)
         setErrorName(null)
+
+        // Re-check support live before attempting registration. Device state can
+        // change after mount (e.g. user signs into a Google account / updates Play
+        // Services), and crucially this guarantees a tap NEVER silently no-ops:
+        // if passkeys aren't available we surface an actionable message instead of
+        // calling create() and failing cryptically. (Was the May-18 rejection.)
+        const support = await checkPasskeySupport()
+        if (!support.isSupported) {
+            const message = support.warning ?? 'Passkeys aren’t available on this device yet. Please try again.'
+            setPreflightWarning(message)
+            setInlineError(message)
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
+                device_type: deviceType,
+                error_name: 'PreflightUnsupported',
+            })
+            return
+        }
+        setPreflightWarning(null)
+
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_STARTED, { device_type: deviceType })
 
         try {
@@ -119,9 +138,12 @@ const SetupPasskey = () => {
         <div>
             <div className="flex h-full flex-col justify-between gap-11 p-0 md:min-h-32">
                 <div className="flex h-full flex-col justify-end gap-2 text-center">
+                    {/* Stays enabled even with a preflight warning: handlePasskeySetup
+                        re-checks support and surfaces an actionable message, so a tap is
+                        never a silent no-op. Only disabled while actually working. */}
                     <Button
                         loading={isRegistering || isLoading}
-                        disabled={isRegistering || isLoading || !!preflightWarning}
+                        disabled={isRegistering || isLoading}
                         onClick={handlePasskeySetup}
                         className="text-nowrap"
                         shadowSize="4"

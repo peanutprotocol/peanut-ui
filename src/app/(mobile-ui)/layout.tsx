@@ -31,6 +31,7 @@ import { useNativePlugins } from '@/hooks/useNativePlugins'
 // guarantees the patch is installed before any child page's mount-time router.push.
 import '@/hooks/useSafeBack'
 import { isCapacitor } from '@/utils/capacitor'
+import { isDemoMode, enableDemoMode } from '@/utils/demo'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
@@ -97,12 +98,16 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             const url = new URL(window.location.href)
             if (url.searchParams.get('__reproduce')) return
         }
-        if (!isPublicPath && isReady && !isFetchingUser && !user && !isRedirecting.current) {
+        // Demo mode: never bounce to /setup. isDemoMode() reads the #demo hash
+        // (reliable on the first render after the hard-nav); persist it so later
+        // navigations that drop the hash stay in demo mode.
+        if (isDemoMode()) enableDemoMode()
+        if (!isPublicPath && isReady && !isFetchingUser && !user && !isRedirecting.current && !isDemoMode()) {
             isRedirecting.current = true
             router.replace('/setup')
-            // hard navigation fallback in case soft navigation silently fails
+            // Hard-nav fallback if the soft nav silently fails; re-check at fire time.
             const fallback = setTimeout(() => {
-                window.location.replace('/setup')
+                if (!isDemoMode()) window.location.replace('/setup')
             }, 3000)
             return () => clearTimeout(fallback)
         }
