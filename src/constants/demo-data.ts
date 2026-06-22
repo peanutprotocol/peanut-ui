@@ -44,7 +44,7 @@ export const DEMO_HISTORY_ENTRIES: HistoryEntry[] = [
         userRole: 'RECIPIENT',
         senderAccount: account('alice', 'Alice Nguyen'),
         recipientAccount: SELF,
-        extraData: { kind: 'DIRECT_TRANSFER' },
+        extraData: { kind: 'DIRECT_TRANSFER', usdAmount: '45.00' },
         memo: 'Lunch split',
     },
     {
@@ -59,7 +59,7 @@ export const DEMO_HISTORY_ENTRIES: HistoryEntry[] = [
         userRole: 'SENDER',
         senderAccount: SELF,
         recipientAccount: account('bob', 'Bob Carter'),
-        extraData: { kind: 'DIRECT_TRANSFER' },
+        extraData: { kind: 'DIRECT_TRANSFER', usdAmount: '120.00' },
         memo: 'Rent share',
     },
     {
@@ -74,7 +74,7 @@ export const DEMO_HISTORY_ENTRIES: HistoryEntry[] = [
         userRole: 'SENDER',
         senderAccount: SELF,
         recipientAccount: account('carol', 'Carol Diaz'),
-        extraData: { kind: 'DIRECT_TRANSFER' },
+        extraData: { kind: 'DIRECT_TRANSFER', usdAmount: '8.50' },
         memo: 'Coffee',
     },
     {
@@ -89,7 +89,7 @@ export const DEMO_HISTORY_ENTRIES: HistoryEntry[] = [
         userRole: 'RECIPIENT',
         senderAccount: account('dave', 'Dave Patel'),
         recipientAccount: SELF,
-        extraData: { kind: 'DIRECT_TRANSFER' },
+        extraData: { kind: 'DIRECT_TRANSFER', usdAmount: '300.00' },
         memo: 'Invoice #1042',
     },
 ]
