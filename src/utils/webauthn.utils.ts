@@ -27,6 +27,55 @@ export enum WebAuthnErrorName {
     NotSupported = 'NotSupportedError',
 }
 
+export type PasskeyErrorClassification = { code: string; message: string }
+
+// Curated copy keyed by code. Never surface raw error.message / server bodies to
+// the user (those go to Sentry only); these strings are the only thing shown.
+const PASSKEY_LOGIN_MESSAGES: Record<string, string> = {
+    LOGIN_CANCELED: 'Login was cancelled, or no passkey was found on this device. Try again, or create a wallet.',
+    PASSKEY_INTERRUPTED: 'Something interrupted the passkey prompt. Please try again.',
+    PASSKEY_UNSUPPORTED:
+        'Passkeys aren’t available on this device yet. Sign in to a Google account and update Google Play Services, then try again.',
+    PASSKEY_STATE: 'There was a problem with the passkey on this device. Restart the app and try again.',
+    PASSKEY_ORIGIN: 'This app isn’t authorized for passkeys on peanut.me. Please update to the latest version.',
+    NETWORK: 'Couldn’t reach Peanut’s servers. Check your connection and try again.',
+    LOGIN_ERROR: 'We couldn’t verify your passkey. Please try again, or contact support if it keeps happening.',
+}
+
+function isNetworkError(error: Error): boolean {
+    if (error.name === 'TypeError' && /fetch|network/i.test(error.message)) return true
+    return /failed to fetch|network ?error|timeout|connection|offline/i.test(error.message)
+}
+
+/**
+ * Maps a passkey/WebAuthn failure to a curated { code, message } pair.
+ * Classification order: known DOMException name → network heuristic → fallback.
+ */
+export function classifyPasskeyError(error: unknown): PasskeyErrorClassification {
+    const err = error instanceof Error ? error : new Error(String(error))
+    let code = 'LOGIN_ERROR'
+    switch (err.name) {
+        case WebAuthnErrorName.NotAllowed:
+            code = 'LOGIN_CANCELED'
+            break
+        case WebAuthnErrorName.NotReadable:
+            code = 'PASSKEY_INTERRUPTED'
+            break
+        case WebAuthnErrorName.NotSupported:
+            code = 'PASSKEY_UNSUPPORTED'
+            break
+        case WebAuthnErrorName.InvalidState:
+            code = 'PASSKEY_STATE'
+            break
+        case 'SecurityError':
+            code = 'PASSKEY_ORIGIN'
+            break
+        default:
+            if (isNetworkError(err)) code = 'NETWORK'
+    }
+    return { code, message: PASSKEY_LOGIN_MESSAGES[code] }
+}
+
 /**
  * Delays execution for specified milliseconds
  */

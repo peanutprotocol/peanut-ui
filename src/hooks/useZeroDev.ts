@@ -9,7 +9,7 @@ import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import { getFromCookie, removeFromCookie, saveToCookie } from '@/utils/general.utils'
 import { clearAuthState } from '@/utils/auth.utils'
 import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
-import { capturePasskeySignFailure } from '@/utils/webauthn.utils'
+import { capturePasskeySignFailure, classifyPasskeyError } from '@/utils/webauthn.utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
@@ -164,22 +164,15 @@ export const useZeroDev = () => {
             setWebAuthnKey(webAuthnKey)
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
         } catch (e) {
-            const error = e as Error
-            if (error.name === 'NotAllowedError') {
-                // User cancelled - no state was saved, just let them retry
-                dispatch(zerodevActions.setIsLoggingIn(false))
-                throw new PasskeyError(
-                    'Login was canceled or no passkey found. Please try again or register.',
-                    'LOGIN_CANCELED'
-                )
-            }
-
-            // Other login errors - clear any stale state
-            console.error('Error logging in', e)
-            clearAuthState(user?.user.userId)
-            captureException(e, { tags: { error_type: 'login_error' } })
+            const { code, message } = classifyPasskeyError(e)
             dispatch(zerodevActions.setIsLoggingIn(false))
-            throw new PasskeyError('An unexpected error occurred during login.', 'LOGIN_ERROR')
+            // Cancel saved no state; everything else clears stale state and reports the raw error to Sentry.
+            if (code !== 'LOGIN_CANCELED') {
+                console.error('Error logging in', e)
+                clearAuthState(user?.user.userId)
+                captureException(e, { tags: { error_type: 'login_error' } })
+            }
+            throw new PasskeyError(message, code)
         }
     }
 
