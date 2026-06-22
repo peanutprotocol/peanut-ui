@@ -232,7 +232,43 @@ the build is reproducible, the AAB lands on a Play track.
 
 ---
 
-## 11. iOS release
+## 11. Push notifications (OneSignal / FCM)
+
+Push is delivered through the same OneSignal app as web — the device links to the user
+via `OneSignal.login(userId)`, so existing `external_id`-targeted sequences reach native
+with **no backend or sequence changes**. The web/native split lives behind
+`src/services/onesignal/` (selected by `isCapacitor()`); native uses
+`@onesignal/capacitor-plugin`, autolinked into Gradle by `npx cap sync android`.
+
+**Already wired (committed):**
+- `@onesignal/capacitor-plugin` in `package.json`; the plugin's FCM/OneSignal Gradle
+  deps autolink on `cap sync`.
+- `AndroidManifest.xml`: `POST_NOTIFICATIONS` (the Android 13+ runtime prompt, driven by
+  the plugin's `requestPermission()`).
+- `android/app/build.gradle` already conditionally applies the `google-services` plugin
+  **only when `google-services.json` is present** — its absence disables push but never
+  fails the build.
+- `scripts/native-build.js` warns when `NEXT_PUBLIC_ONESIGNAL_APP_ID` is unset (the app id
+  is inlined into the static bundle; without it the native SDK can't initialize).
+
+**Provider setup (do once, no code):**
+1. **Firebase:** create/locate the Firebase project for `me.peanut.wallet`, download
+   `google-services.json`, place it at `android/app/google-services.json` (gitignored).
+2. **OneSignal dashboard** → the existing app → **Google Android (FCM)** platform →
+   upload the **FCM v1 service account JSON** (Firebase → Project settings → Service
+   accounts → Generate private key).
+3. **CI:** set the `ANDROID_GOOGLE_SERVICES_JSON` secret to `base64 -w0 google-services.json`.
+   The `Decode google-services.json` step in `android-release.yml` writes it before the
+   build (and skips gracefully when unset).
+
+**Verify (real device/emulator with Play Services):**
+`node scripts/native-build.js && npx cap sync android && ./gradlew assembleDebug`, install,
+accept the prompt (surfaced via the existing `SetupNotificationsModal`), confirm a
+subscription appears under the user's `external_id` in OneSignal, then send a test push.
+
+---
+
+## 12. iOS release
 
 The iOS release pipeline (`.github/workflows/ios-release.yml`) is maintained on its own
 branch (`feat/ci-ios`), separate from this Android runbook. It mirrors the Android lane's
@@ -245,7 +281,7 @@ one-time signing-material setup, secrets table, and manual App Store promotion.
 
 ---
 
-## 12. Play submission
+## 13. Play submission
 
 - Upload to a **closed/internal** track first; dogfood the reviewer flow end-to-end.
 - Re-check Data safety, permissions (camera for QR/KYC), content rating, and the App
