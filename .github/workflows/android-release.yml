@@ -104,6 +104,20 @@ jobs:
                   NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
                   EOF
 
+            - name: Decode google-services.json
+              # FCM credentials for native push. When the secret is unset the file
+              # is skipped and build.gradle simply omits the google-services plugin
+              # (push disabled, build still succeeds).
+              env:
+                  ANDROID_GOOGLE_SERVICES_JSON: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON }}
+              run: |
+                  if [ -n "$ANDROID_GOOGLE_SERVICES_JSON" ]; then
+                      echo "$ANDROID_GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+                      echo "✅ google-services.json written"
+                  else
+                      echo "⚠️  ANDROID_GOOGLE_SERVICES_JSON unset — native push disabled for this build"
+                  fi
+
             - name: Build signed AAB
               env:
                   # Monotonic, always-increments-even-on-rerun. Play requires each

@@ -18,6 +18,7 @@ dependencies {
     implementation project(':capgo-capacitor-crisp')
     implementation project(':capgo-capacitor-passkey')
     implementation project(':capgo-capacitor-updater')
+    implementation project(':onesignal-capacitor-plugin')
 
 }
 apply from: "../../node_modules/.pnpm/@sumsub+cordova-idensic-mobile-sdk-plugin@1.42.0/node_modules/@sumsub/cordova-idensic-mobile-sdk-plugin/src/android/build-extras.gradle"
