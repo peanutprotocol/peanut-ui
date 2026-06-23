@@ -138,6 +138,10 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
 
 jest.mock('@/utils/balance.utils', () => ({
     rainCentsToUsdcUnits: jest.fn(() => 0n),
+    SPEND_BLOCK_MESSAGE: {
+        settling: 'Your balance is updating. Try again in a few seconds.',
+        insufficient: 'Not enough balance. Add funds to continue.',
+    },
 }))
 
 const mockUseTransactionDetailsDrawer = jest.fn()
@@ -561,7 +565,7 @@ function applyDefaults() {
     mockUseWallet.mockReturnValue({
         balance: parseUnits('100', 6), // $100 USDC
         spendableBalance: parseUnits('100', 6),
-        hasSufficientSpendableBalance: () => true,
+        spendBlockReason: () => null, // affordable by default
         sendMoney: jest.fn(),
     })
 
@@ -784,13 +788,13 @@ describe('GROUP 2: Payment Form States', () => {
 
     test('Insufficient balance shows pay button disabled + error', async () => {
         // Payment needs ~$18.4 but the available-now spendable is only $5, so the
-        // affordability gate (hasSufficientSpendableBalance) blocks it. Revived from
-        // skip once the gate moved off the raw display balance onto the shared hook
-        // predicate (the original mock-shape drift this test hit).
+        // gate (spendBlockReason) returns 'insufficient'. Revived from skip once the
+        // gate moved off the raw display balance onto the shared hook classifier
+        // (the original mock-shape drift this test hit).
         mockUseWallet.mockReturnValue({
             balance: parseUnits('5', 6),
             spendableBalance: parseUnits('5', 6),
-            hasSufficientSpendableBalance: () => false,
+            spendBlockReason: () => 'insufficient',
             sendMoney: jest.fn(),
         })
 

@@ -22,7 +22,6 @@ import { type IToken } from '@/interfaces'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { requestsApi } from '@/services/requests'
 import { fetchTokenSymbol, formatTokenAmount, getRequestLink, isNativeCurrency } from '@/utils/general.utils'
-import { printableUsdc } from '@/utils/balance.utils'
 import * as Sentry from '@sentry/nextjs'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useQueryClient } from '@tanstack/react-query'
@@ -34,7 +33,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 export const CreateRequestLinkView = () => {
     const toast = useToast()
     const onBack = useSafeBack('/home')
-    const { address, isConnected, spendableBalance: balance } = useWallet()
+    const { address, isConnected, spendableBalance: balance, formattedSpendableBalance } = useWallet()
     const { user } = useAuth()
     const { selectedChainID, setSelectedChainID, selectedTokenAddress, setSelectedTokenAddress, selectedTokenData } =
         useContext(tokenSelectorContext)
@@ -79,8 +78,12 @@ export const CreateRequestLinkView = () => {
     // Refs for cleanup
     const createLinkAbortRef = useRef<AbortController | null>(null)
 
-    // Derived state
-    const peanutWalletBalance = useMemo(() => (balance !== undefined ? printableUsdc(balance) : ''), [balance])
+    // Derived state — displayed total spendable, single-sourced + formatted by the
+    // hook; empty while loading so we don't flash "$0.00".
+    const peanutWalletBalance = useMemo(
+        () => (balance === undefined ? '' : formattedSpendableBalance),
+        [balance, formattedSpendableBalance]
+    )
 
     const usdValue = useMemo(() => {
         if (!selectedTokenData?.price || !tokenValue) return ''

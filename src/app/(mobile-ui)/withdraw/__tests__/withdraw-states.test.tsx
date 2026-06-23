@@ -252,6 +252,9 @@ function applyDefaults() {
         // (the spend ceiling that backs maxDecimalAmount). Same value here: no in-transit.
         spendableBalance: parseUnits('100', 6),
         availableSpendableBalance: parseUnits('100', 6),
+        formattedSpendableBalance: '100.00',
+        // amount-aware so over-$100 entries classify as a real shortfall
+        spendBlockReason: (amt: string | number) => (Number(amt) > 100 ? 'insufficient' : null),
     })
 
     mockUseGetExchangeRate.mockReturnValue({
@@ -366,10 +369,10 @@ describe('GROUP 3: Amount Validation', () => {
 
     test('Error state shows ErrorAlert', () => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
-        mockWithdrawFlow.error = { showError: true, errorMessage: 'Amount exceeds your wallet balance.' }
+        mockWithdrawFlow.error = { showError: true, errorMessage: 'Not enough balance. Add funds to continue.' }
         renderWithdraw()
 
-        expect(screen.getByTestId('error-alert')).toHaveTextContent('Amount exceeds your wallet balance.')
+        expect(screen.getByTestId('error-alert')).toHaveTextContent('Not enough balance. Add funds to continue.')
     })
 
     test('Error hidden when limits blocking card is displayed', () => {
@@ -497,6 +500,8 @@ describe('GROUP 6: Continue never dead-buttons', () => {
         mockUseWallet.mockReturnValue({
             spendableBalance: parseUnits('100', 6),
             availableSpendableBalance: parseUnits('100', 6),
+            formattedSpendableBalance: '100.00',
+            spendBlockReason: (amt: string | number) => (Number(amt) > 100 ? 'insufficient' : null),
         })
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
         mockWithdrawFlow.selectedBankAccount = { type: 'iban', details: { countryName: '', countryCode: '' } }
@@ -521,6 +526,8 @@ describe('GROUP 6: Continue never dead-buttons', () => {
         mockUseWallet.mockReturnValue({
             spendableBalance: parseUnits('100', 6),
             availableSpendableBalance: parseUnits('100', 6),
+            formattedSpendableBalance: '100.00',
+            spendBlockReason: (amt: string | number) => (Number(amt) > 100 ? 'insufficient' : null),
         })
         mockWithdrawFlow.selectedMethod = { type: 'manteca', countryPath: 'argentina', title: 'Bank Transfer' }
         mockWithdrawFlow.selectedBankAccount = { type: 'manteca', details: { countryName: 'argentina' } }

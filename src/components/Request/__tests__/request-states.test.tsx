@@ -138,7 +138,7 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
     default: (props: any) => (
-        <div data-testid="amount-input" data-disabled={props.disabled}>
+        <div data-testid="amount-input" data-disabled={props.disabled} data-wallet-balance={props.walletBalance}>
             <input
                 data-testid="amount-field"
                 value={props.initialAmount ?? ''}
@@ -283,15 +283,18 @@ jest.mock('@/context/loadingStates.context', () => {
 })
 
 // DirectRequestInitialView deps — only this view uses them (PayRequestLink does
-// not), so stubbing them globally is safe. We render the view in its loading
-// state below; printableUsdc runs in a useMemo BEFORE the early return, so the
-// balance-field assertion still fires without rendering the full form.
-const mockUseUserStore = jest.fn(() => ({ user: undefined }))
+// not), so stubbing them globally is safe. Defaults resolve to a logged-in user
+// viewing a valid recipient, so the main form (incl. AmountInput) renders.
+const mockUseUserStore = jest.fn(() => ({ user: { user: { userId: 'user-1', username: 'me' } } }))
 jest.mock('@/redux/hooks', () => ({
     useUserStore: () => mockUseUserStore(),
 }))
 
-const mockUseUserByUsername = jest.fn(() => ({ user: undefined, isLoading: true, error: undefined }))
+const mockUseUserByUsername = jest.fn(() => ({
+    user: { userId: 'recip-1', username: 'test-user', fullName: 'Test User', isVerified: false },
+    isLoading: false,
+    error: undefined,
+}))
 jest.mock('@/hooks/useUserByUsername', () => ({
     useUserByUsername: () => mockUseUserByUsername(),
 }))
@@ -306,11 +309,15 @@ jest.mock('@/components/Global/PeanutLoading', () => ({
     default: () => <div data-testid="peanut-loading" />,
 }))
 
+jest.mock('@/components/User/UserCard', () => ({
+    __esModule: true,
+    default: () => <div data-testid="user-card" />,
+}))
+
 // ---------- import components under test AFTER all mocks ----------
 import { CreateRequestLinkView } from '../link/views/Create.request.link.view'
 import { PayRequestLink } from '../Pay/Pay'
 import DirectRequestInitialView from '../direct-request/views/Initial.direct.request.view'
-import { printableUsdc } from '@/utils/balance.utils' // the jest.fn mock above
 
 // ---------- helpers ----------
 
@@ -451,38 +458,34 @@ beforeEach(() => {
 // GROUP 0: Balance affordance — spendable (smart + card collateral)
 // ============================================================
 describe('GROUP 0: Balance affordance', () => {
-    test('formats spendableBalance (smart + collateral), not smart-only balance', () => {
-        // Regression for the report where /request read lower than /home: the view
-        // must format `spendableBalance` (smart + card collateral), not the smart-only
-        // `balance`. printableUsdc is mocked to a constant, so we assert the VALUE it
-        // was handed (the field choice) rather than the rendered text.
-        mockUseWallet.mockReturnValue({
-            address: '0x1234567890abcdef1234567890abcdef12345678',
-            isConnected: true,
-            balance: BigInt(100_000_000), // smart-only: $100
-            spendableBalance: BigInt(250_000_000), // smart + collateral: $250
-        })
+    // Regression for the report where /request read lower than /home: both entry
+    // views must show the spendable total (smart + card collateral), sourced from
+    // the hook's `formattedSpendableBalance` — NOT the smart-only `formattedBalance`.
+    // Distinct sentinels prove which field reaches the AmountInput's walletBalance.
+    const SPENDABLE = '250.00 (spendable)'
+    const SMART_ONLY = '100.00 (smart-only)'
+    const walletWithSplit = {
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        isConnected: true,
+        spendableBalance: BigInt(250_000_000), // defined → not the loading branch
+        formattedSpendableBalance: SPENDABLE,
+        formattedBalance: SMART_ONLY,
+    }
+
+    test('create-request shows the spendable balance, not smart-only', () => {
+        mockUseWallet.mockReturnValue(walletWithSplit)
 
         renderCreateRequest()
 
-        expect(jest.mocked(printableUsdc)).toHaveBeenCalledWith(BigInt(250_000_000))
-        expect(jest.mocked(printableUsdc)).not.toHaveBeenCalledWith(BigInt(100_000_000))
+        expect(screen.getByTestId('amount-input')).toHaveAttribute('data-wallet-balance', SPENDABLE)
     })
 
-    test('direct-request formats spendableBalance (smart + collateral), not smart-only balance', () => {
-        // Mirror of the above for the second entry view both the report and the fix
-        // covered. Renders in the loading state (default mocks) — printableUsdc runs
-        // in a useMemo before the early return, so the field choice is still asserted.
-        mockUseWallet.mockReturnValue({
-            address: '0x1234567890abcdef1234567890abcdef12345678',
-            balance: BigInt(100_000_000), // smart-only: $100
-            spendableBalance: BigInt(250_000_000), // smart + collateral: $250
-        })
+    test('direct-request shows the spendable balance, not smart-only', () => {
+        mockUseWallet.mockReturnValue(walletWithSplit)
 
         renderDirectRequest()
 
-        expect(jest.mocked(printableUsdc)).toHaveBeenCalledWith(BigInt(250_000_000))
-        expect(jest.mocked(printableUsdc)).not.toHaveBeenCalledWith(BigInt(100_000_000))
+        expect(screen.getByTestId('amount-input')).toHaveAttribute('data-wallet-balance', SPENDABLE)
     })
 })
 

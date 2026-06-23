@@ -15,7 +15,6 @@ import { useUserStore } from '@/redux/hooks'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { usersApi } from '@/services/users'
 import { formatAmount } from '@/utils/general.utils'
-import { printableUsdc } from '@/utils/balance.utils'
 import { captureException } from '@sentry/nextjs'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
@@ -29,7 +28,7 @@ interface DirectRequestInitialViewProps {
 const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) => {
     const onBack = useSafeBack('/home')
     const { user: authUser } = useUserStore()
-    const { spendableBalance: balance, address } = useWallet()
+    const { spendableBalance: balance, formattedSpendableBalance, address } = useWallet()
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         message: undefined,
         fileUrl: undefined,
@@ -66,9 +65,11 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         })
     }
 
+    // Displayed total spendable, single-sourced + formatted by the hook; empty
+    // while loading so we don't flash "$0.00".
     const peanutWalletBalance = useMemo(() => {
-        return balance !== undefined ? printableUsdc(balance) : ''
-    }, [balance])
+        return balance === undefined ? '' : formattedSpendableBalance
+    }, [balance, formattedSpendableBalance])
 
     const handleTokenValueChange = (value: string | undefined) => {
         setCurrentInputValue(value || '')

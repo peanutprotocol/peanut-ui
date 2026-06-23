@@ -5,7 +5,7 @@ import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
 import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
-import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
+import { rainCentsToUsdcUnits, SPEND_BLOCK_MESSAGE } from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -22,11 +22,11 @@ import { loadingStateContext } from '@/context/loadingStates.context'
 import { countryData } from '@/components/AddMoney/consts'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Image from 'next/image'
-import { formatAmount, formatNumberForDisplay } from '@/utils/general.utils'
+import { formatNumberForDisplay } from '@/utils/general.utils'
 import { validateCbuCvuAlias, validatePixKey, normalizePixInput, isPixEmvcoQr } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import AmountInput from '@/components/Global/AmountInput'
-import { formatUnits, parseUnits } from 'viem'
+import { parseUnits } from 'viem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useModalsContext } from '@/context/ModalsContext'
 import Select from '@/components/Global/Select'
@@ -105,7 +105,7 @@ function MantecaBankWithdrawFlow() {
     const [priceLock, setPriceLock] = useState<WithdrawPriceLock | null>(null)
     const [isLockingPrice, setIsLockingPrice] = useState(false)
     const router = useRouter()
-    const { spendableBalance: balance, hasSufficientSpendableBalance } = useWallet()
+    const { spendableBalance: balance, formattedSpendableBalance, spendBlockReason } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
@@ -496,14 +496,13 @@ function MantecaBankWithdrawFlow() {
         // only check min amount and balance here - max amount is handled by limits validation
         if (paymentAmount < parseUnits(MIN_MANTECA_WITHDRAW_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
             setBalanceErrorMessage(`Withdraw amount must be at least $${MIN_MANTECA_WITHDRAW_AMOUNT}`)
-        } else if (!hasSufficientSpendableBalance(usdAmount)) {
-            // available-now gate (excludes in-transit collateral); displayed `balance`
-            // can read higher during a card top-up.
-            setBalanceErrorMessage('Not enough balance to complete withdrawal.')
         } else {
-            setBalanceErrorMessage(null)
+            // available-now gate; 'settling' covers the brief card top-up window
+            // where the displayed balance reads higher than what's routable.
+            const block = spendBlockReason(usdAmount)
+            setBalanceErrorMessage(block ? SPEND_BLOCK_MESSAGE[block] : null)
         }
-    }, [usdAmount, balance, hasSufficientSpendableBalance, hasPendingTransactions, isLoading])
+    }, [usdAmount, balance, spendBlockReason, hasPendingTransactions, isLoading])
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // Use flowId as uniqueId to prevent cache collisions between different withdrawal flows
@@ -689,9 +688,7 @@ function MantecaBankWithdrawFlow() {
                             price: 1,
                             decimals: 2,
                         }}
-                        walletBalance={
-                            balance ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : undefined
-                        }
+                        walletBalance={balance ? formattedSpendableBalance : undefined}
                     />
 
                     {/* limits warning/error card - uses centralized helper for props */}

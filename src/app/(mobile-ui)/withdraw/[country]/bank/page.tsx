@@ -24,6 +24,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
+import { SPEND_BLOCK_MESSAGE } from '@/utils/balance.utils'
 import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
 import { getOfframpCurrencyConfig, getCountryFromPath, railJurisdictionForBank } from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
@@ -67,7 +68,7 @@ export default function WithdrawBankPage() {
         setSelectedMethod,
     } = useWithdrawFlow()
     const { user, fetchUser } = useAuth()
-    const { address, sendMoney, spendableBalance: balance, hasSufficientSpendableBalance } = useWallet()
+    const { address, sendMoney, spendableBalance: balance, spendBlockReason } = useWallet()
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const queryClient = useQueryClient()
     const router = useRouter()
@@ -350,14 +351,11 @@ export default function WithdrawBankPage() {
             return
         }
 
-        // available-now gate (excludes in-transit collateral); `balance` above is
-        // the displayed total and can read higher mid-top-up.
-        if (!hasSufficientSpendableBalance(amountToWithdraw)) {
-            setBalanceErrorMessage('Not enough balance to complete withdrawal.')
-        } else {
-            setBalanceErrorMessage(null)
-        }
-    }, [amountToWithdraw, balance, hasSufficientSpendableBalance, hasPendingTransactions, isLoading])
+        // available-now gate; 'settling' covers the brief card top-up window where
+        // the displayed balance reads higher than what's routable.
+        const block = spendBlockReason(amountToWithdraw)
+        setBalanceErrorMessage(block ? SPEND_BLOCK_MESSAGE[block] : null)
+    }, [amountToWithdraw, balance, spendBlockReason, hasPendingTransactions, isLoading])
 
     if (!bankAccount) {
         return null

@@ -10,7 +10,7 @@ import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
-import { printableUsdc } from '@/utils/balance.utils'
+import { SPEND_BLOCK_MESSAGE } from '@/utils/balance.utils'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
@@ -38,13 +38,15 @@ const LinkSendInitialView = () => {
 
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
 
-    const { fetchBalance, spendableBalance: balance, hasSufficientSpendableBalance } = useWallet()
+    const { fetchBalance, spendableBalance: balance, formattedSpendableBalance, spendBlockReason } = useWallet()
     const queryClient = useQueryClient()
     const { hasPendingTransactions } = usePendingTransactions()
 
+    // Displayed total spendable (smart + collateral), single-sourced + formatted
+    // by the hook. Empty while loading so we don't flash "$0.00".
     const peanutWalletBalance = useMemo(() => {
-        return balance !== undefined ? printableUsdc(balance) : ''
-    }, [balance])
+        return balance === undefined ? '' : formattedSpendableBalance
+    }, [balance, formattedSpendableBalance])
 
     const handleOnNext = useCallback(async () => {
         try {
@@ -133,23 +135,16 @@ const LinkSendInitialView = () => {
             setErrorState({ showError: false, errorMessage: '' })
             return
         }
-        // Gate on available-now (smart + LANDED collateral), NOT the displayed
-        // `peanutWalletBalance` which includes in-transit top-ups that can't be
-        // routed yet — otherwise the ~10–45s post-top-up window green-lights a
-        // create-link that fails at execution. Matches the features/payments flows.
-        if (!hasSufficientSpendableBalance(tokenValue)) {
-            setErrorState({ showError: true, errorMessage: 'Insufficient balance' })
+        // Classify against available-now vs the displayed total: the ~10–45s
+        // post-top-up window shows the generic "updating" copy instead of a misleading
+        // "insufficient" that would contradict the balance on screen.
+        const block = spendBlockReason(tokenValue)
+        if (block) {
+            setErrorState({ showError: true, errorMessage: SPEND_BLOCK_MESSAGE[block] })
         } else {
             setErrorState({ showError: false, errorMessage: '' })
         }
-    }, [
-        peanutWalletBalance,
-        tokenValue,
-        setErrorState,
-        hasPendingTransactions,
-        isLoading,
-        hasSufficientSpendableBalance,
-    ])
+    }, [peanutWalletBalance, tokenValue, setErrorState, hasPendingTransactions, isLoading, spendBlockReason])
 
     return (
         <div className="w-full space-y-4">

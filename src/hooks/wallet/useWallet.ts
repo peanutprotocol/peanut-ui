@@ -14,7 +14,12 @@ import { useBalance } from './useBalance'
 import { useSendMoney as useSendMoneyMutation } from './useSendMoney'
 import { formatCurrency } from '@/utils/general.utils'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '../useRainCardOverview'
-import { computeAvailableSpendable, computeDisplaySpendable, rainCentsToUsdcUnits } from '@/utils/balance.utils'
+import {
+    computeAvailableSpendable,
+    computeDisplaySpendable,
+    rainCentsToUsdcUnits,
+    type SpendBlockReason,
+} from '@/utils/balance.utils'
 import { useSpendBundle, type SpendStrategy } from './useSpendBundle'
 import type { RainCollateralKind } from '@/services/rain'
 
@@ -268,6 +273,14 @@ export const useWallet = () => {
         return formatCurrency(formatUnits(spendableBalance, PEANUT_WALLET_TOKEN_DECIMALS))
     }, [spendableBalance])
 
+    // Parse a USD amount to token base units; null for invalid/negative input.
+    // Shared by the gate + shortfall classifier so they parse identically.
+    const parseUsdToBaseUnits = useCallback((amountUsd: string | number): bigint | null => {
+        const amount = typeof amountUsd === 'string' ? parseFloat(amountUsd) : amountUsd
+        if (isNaN(amount) || amount < 0) return null
+        return BigInt(Math.floor(amount * 10 ** PEANUT_WALLET_TOKEN_DECIMALS))
+    }, [])
+
     // Check if the user has enough spendable to cover a USD amount. Gates on
     // available-now (smart + LANDED collateral) — NOT the displayed total, which
     // includes in-transit top-ups that can't be routed until they land. Using the
@@ -276,12 +289,30 @@ export const useWallet = () => {
     const hasSufficientSpendableBalance = useCallback(
         (amountUsd: string | number): boolean => {
             if (availableSpendableBalance === undefined) return false
-            const amount = typeof amountUsd === 'string' ? parseFloat(amountUsd) : amountUsd
-            if (isNaN(amount) || amount < 0) return false
-            const amountInBaseUnits = BigInt(Math.floor(amount * 10 ** PEANUT_WALLET_TOKEN_DECIMALS))
+            const amountInBaseUnits = parseUsdToBaseUnits(amountUsd)
+            if (amountInBaseUnits === null) return false
             return availableSpendableBalance >= amountInBaseUnits
         },
-        [availableSpendableBalance]
+        [availableSpendableBalance, parseUsdToBaseUnits]
+    )
+
+    // Classify why a would-be spend of `amountUsd` can't go through, so callers
+    // can show the right message instead of a blanket "insufficient":
+    //   • null          — fully spendable now (≤ available-now)
+    //   • 'settling'    — covered by the displayed total but part is in-transit
+    //                     collateral not yet landed (≤ display, > available-now)
+    //   • 'insufficient'— exceeds the displayed total too
+    // `null` while either figure is still loading (callers also guard on that).
+    const spendBlockReason = useCallback(
+        (amountUsd: string | number): SpendBlockReason | null => {
+            if (availableSpendableBalance === undefined || spendableBalance === undefined) return null
+            const amountInBaseUnits = parseUsdToBaseUnits(amountUsd)
+            if (amountInBaseUnits === null) return null
+            if (amountInBaseUnits <= availableSpendableBalance) return null
+            if (amountInBaseUnits <= spendableBalance) return 'settling'
+            return 'insufficient'
+        },
+        [availableSpendableBalance, spendableBalance, parseUsdToBaseUnits]
     )
 
     return {
@@ -296,6 +327,7 @@ export const useWallet = () => {
         formattedBalance,
         formattedSpendableBalance,
         hasSufficientSpendableBalance,
+        spendBlockReason,
         isConnected: isKernelClientReady,
         sendTransactions,
         sendMoney,
