@@ -21,7 +21,11 @@ const revealed: RevealedCardDetails = {
 describe('CardFace cardholder name', () => {
     it('shows the registered name when the card is revealed', () => {
         render(<CardFace last4="1234" revealed={revealed} />)
-        expect(screen.getByText('Jane Doe')).toBeInTheDocument()
+        const name = screen.getByText('Jane Doe')
+        expect(name).toBeInTheDocument()
+        // PII guard: the name must stay inside the ph-no-capture wrapper so it's
+        // kept out of session recordings — assert the class, not just the text.
+        expect(name).toHaveClass('ph-no-capture')
     })
 
     it('hides the name when the card is masked (not revealed)', () => {
