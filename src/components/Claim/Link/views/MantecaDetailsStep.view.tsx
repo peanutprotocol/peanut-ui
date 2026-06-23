@@ -57,6 +57,7 @@ const MantecaDetailsStep: FC<MantecaDetailsStepProps> = ({
                 }}
                 placeholder={countryConfig.accountNumberLabel}
                 validate={validateDestinationAddress}
+                smartPasteKind="cbuCvuAlias"
             />
             <div className="flex items-center gap-2 text-xs text-grey-1">
                 <Icon name="info" width={16} height={16} />
