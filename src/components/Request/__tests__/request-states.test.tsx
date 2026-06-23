@@ -282,9 +282,34 @@ jest.mock('@/context/loadingStates.context', () => {
     return { loadingStateContext }
 })
 
+// DirectRequestInitialView deps — only this view uses them (PayRequestLink does
+// not), so stubbing them globally is safe. We render the view in its loading
+// state below; printableUsdc runs in a useMemo BEFORE the early return, so the
+// balance-field assertion still fires without rendering the full form.
+const mockUseUserStore = jest.fn(() => ({ user: undefined }))
+jest.mock('@/redux/hooks', () => ({
+    useUserStore: () => mockUseUserStore(),
+}))
+
+const mockUseUserByUsername = jest.fn(() => ({ user: undefined, isLoading: true, error: undefined }))
+jest.mock('@/hooks/useUserByUsername', () => ({
+    useUserByUsername: () => mockUseUserByUsername(),
+}))
+
+const mockUseUserInteractions = jest.fn(() => ({ interactions: {} }))
+jest.mock('@/hooks/useUserInteractions', () => ({
+    useUserInteractions: () => mockUseUserInteractions(),
+}))
+
+jest.mock('@/components/Global/PeanutLoading', () => ({
+    __esModule: true,
+    default: () => <div data-testid="peanut-loading" />,
+}))
+
 // ---------- import components under test AFTER all mocks ----------
 import { CreateRequestLinkView } from '../link/views/Create.request.link.view'
 import { PayRequestLink } from '../Pay/Pay'
+import DirectRequestInitialView from '../direct-request/views/Initial.direct.request.view'
 import { printableUsdc } from '@/utils/balance.utils' // the jest.fn mock above
 
 // ---------- helpers ----------
@@ -320,6 +345,16 @@ function renderPayRequest(params: Record<string, string> = {}) {
     return render(
         <QueryClientProvider client={queryClient}>
             <PayRequestLink />
+        </QueryClientProvider>
+    )
+}
+
+function renderDirectRequest() {
+    const queryClient = createQueryClient()
+
+    return render(
+        <QueryClientProvider client={queryClient}>
+            <DirectRequestInitialView username="test-user" />
         </QueryClientProvider>
     )
 }
@@ -429,6 +464,22 @@ describe('GROUP 0: Balance affordance', () => {
         })
 
         renderCreateRequest()
+
+        expect(jest.mocked(printableUsdc)).toHaveBeenCalledWith(BigInt(250_000_000))
+        expect(jest.mocked(printableUsdc)).not.toHaveBeenCalledWith(BigInt(100_000_000))
+    })
+
+    test('direct-request formats spendableBalance (smart + collateral), not smart-only balance', () => {
+        // Mirror of the above for the second entry view both the report and the fix
+        // covered. Renders in the loading state (default mocks) — printableUsdc runs
+        // in a useMemo before the early return, so the field choice is still asserted.
+        mockUseWallet.mockReturnValue({
+            address: '0x1234567890abcdef1234567890abcdef12345678',
+            balance: BigInt(100_000_000), // smart-only: $100
+            spendableBalance: BigInt(250_000_000), // smart + collateral: $250
+        })
+
+        renderDirectRequest()
 
         expect(jest.mocked(printableUsdc)).toHaveBeenCalledWith(BigInt(250_000_000))
         expect(jest.mocked(printableUsdc)).not.toHaveBeenCalledWith(BigInt(100_000_000))

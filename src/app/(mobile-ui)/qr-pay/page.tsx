@@ -98,7 +98,7 @@ export default function QRPayPage() {
     const qrCode = decodeURIComponent(searchParams.get('qrCode') || '')
     const timestamp = searchParams.get('t')
     const qrType = searchParams.get('type')
-    const { spendableBalance: balance, hasSufficientSpendableBalance, sendMoney } = useWallet()
+    const { spendableBalance: balance, hasSufficientSpendableBalance } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
