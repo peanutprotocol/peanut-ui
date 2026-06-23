@@ -35,7 +35,7 @@ import { getRegionIntent } from '@/utils/regions.utils'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useModalsContext } from '@/context/ModalsContext'
-import underMaintenanceConfig, { PIX_BRAZIL_ONRAMP_MAINTENANCE } from '@/config/underMaintenance.config'
+import { PIX_BRAZIL_ONRAMP_MAINTENANCE, isPixBrazilOnrampUnderMaintenance } from '@/config/underMaintenance.config'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -429,11 +429,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 <div className="flex flex-col">
                     {paymentMethods.map((method, index) => {
                         // BRL-via-PIX onramp is warn-only under maintenance: tag the Pix option but
-                        // keep it clickable (do not set isDisabled).
-                        const isPixOnrampUnderMaintenance =
-                            flow === 'add' &&
-                            method.id === 'pix-add' &&
-                            underMaintenanceConfig.pixBrazilOnrampMaintenance
+                        // keep it clickable (do not set isDisabled). The `pix-add` method is itself
+                        // Brazil-only (consts filter it to countryCode === 'BR').
+                        const showPixMaintenanceTag =
+                            flow === 'add' && method.id === 'pix-add' && isPixBrazilOnrampUnderMaintenance()
                         return (
                             <ActionListCard
                                 key={method.id}
@@ -470,7 +469,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                 rightContent={
                                     method.isSoon ? (
                                         <StatusBadge status="soon" size="small" />
-                                    ) : isPixOnrampUnderMaintenance ? (
+                                    ) : showPixMaintenanceTag ? (
                                         <StatusBadge
                                             status="pending"
                                             customText={PIX_BRAZIL_ONRAMP_MAINTENANCE.badge}

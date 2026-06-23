@@ -38,7 +38,8 @@
  *    - shows a "Maintenance" tag on the Pix option in /add-money/brazil
  *    - shows a warning banner inside the deposit flow (/add-money/brazil/manteca)
  *    - does NOT block deposits — the option stays usable (warn-only)
- *    - set to false when PIX deposits are stable again
+ *    - set to true when PIX deposits degrade again; both surfaces read it through
+ *      isPixBrazilOnrampUnderMaintenance() so they can never drift apart
  *
  * note: if either mode is enabled, the maintenance banner will show everywhere
  *
@@ -65,7 +66,7 @@ const underMaintenanceConfig: MaintenanceConfig = {
     disableXchainWithdraw: true, // set to true to disable cross-chain withdrawals (only allows USDC on Arbitrum)
     disableXchainSend: true, // set to true to disable cross-chain sends (claim, request payments - only allows USDC on Arbitrum)
     disableCardPioneers: true, // set to false to enable the Card Pioneers waitlist feature
-    pixBrazilOnrampMaintenance: true, // set to false when BRL-via-PIX deposits are stable again
+    pixBrazilOnrampMaintenance: false, // set to true when BRL-via-PIX deposits degrade again
 }
 
 // shared user-facing copy for cross-chain disabled paths — keep wording aligned with TokenSelector banner
@@ -79,6 +80,18 @@ export const PIX_BRAZIL_ONRAMP_MAINTENANCE = {
     title: 'PIX deposits are under maintenance',
     description:
         'PIX deposits are currently unstable and may be delayed or fail. You can still continue, but service may be unreliable until this is resolved.',
+}
+
+/**
+ * Whether the BRL-via-PIX onramp (Manteca Brazil deposit) is flagged warn-only under maintenance.
+ *
+ * Single source of truth for the two surfaces that warn about it — the "Maintenance" tag on the
+ * Pix option in the add-money country list, and the in-flow banner on /add-money/brazil/manteca.
+ * Callers add only their own context check (the `pix-add` method, or country `BR`); the maintenance
+ * determination lives here so the two surfaces can never drift apart.
+ */
+export function isPixBrazilOnrampUnderMaintenance(): boolean {
+    return underMaintenanceConfig.pixBrazilOnrampMaintenance
 }
 
 export default underMaintenanceConfig

@@ -242,14 +242,19 @@ describe('AddWithdrawCountriesList — bank gate', () => {
  * (config: pixBrazilOnrampMaintenance) — warn-only: it stays visible and clickable.
  */
 describe('AddWithdrawCountriesList — PIX onramp maintenance tag', () => {
+    // snapshot/restore the shipped flag so each test can flip it without leaking state —
+    // and without coupling the restore to whatever the committed default happens to be
+    let originalPixMaintenance: boolean
+
     beforeEach(() => {
         mockPush.mockClear()
         // a ready gate so a click can navigate — proving the option is not blocked
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+        originalPixMaintenance = underMaintenanceConfig.pixBrazilOnrampMaintenance
     })
 
     afterEach(() => {
-        underMaintenanceConfig.pixBrazilOnrampMaintenance = true
+        underMaintenanceConfig.pixBrazilOnrampMaintenance = originalPixMaintenance
     })
 
     it('tags the Pix option "Maintenance" but keeps it clickable (warn-only)', () => {

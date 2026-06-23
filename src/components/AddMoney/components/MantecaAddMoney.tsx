@@ -26,7 +26,7 @@ import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import InfoCard from '@/components/Global/InfoCard'
-import underMaintenanceConfig, { PIX_BRAZIL_ONRAMP_MAINTENANCE } from '@/config/underMaintenance.config'
+import { PIX_BRAZIL_ONRAMP_MAINTENANCE, isPixBrazilOnrampUnderMaintenance } from '@/config/underMaintenance.config'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails'
@@ -72,9 +72,9 @@ const MantecaAddMoney: FC = () => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
     const onBack = useSafeBack(addMoneyCountryUrl(selectedCountryPath))
-    // BRL-via-PIX onramp warn-only maintenance flag (see underMaintenance.config.ts).
+    // BRL-via-PIX onramp warn-only maintenance banner (see underMaintenance.config.ts).
     // Brazil-scoped so the Argentina/ARS Manteca onramp is unaffected.
-    const showPixMaintenance = selectedCountry?.id === 'BR' && underMaintenanceConfig.pixBrazilOnrampMaintenance
+    const showPixMaintenanceBanner = selectedCountry?.id === 'BR' && isPixBrazilOnrampUnderMaintenance()
     // The pool→full upgrade gate asks "did the user clear ID verification?",
     // not "do they have an enabled rail elsewhere?" — read the identity
     // signal directly (Sumsub-cleared the human) instead of the old
@@ -286,7 +286,7 @@ const MantecaAddMoney: FC = () => {
                     limitsCurrency={limitsValidation.currency}
                     onBack={onBack}
                     maintenanceBanner={
-                        showPixMaintenance ? (
+                        showPixMaintenanceBanner ? (
                             <InfoCard
                                 variant="warning"
                                 icon="alert"
