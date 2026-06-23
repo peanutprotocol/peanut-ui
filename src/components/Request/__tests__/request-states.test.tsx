@@ -285,6 +285,7 @@ jest.mock('@/context/loadingStates.context', () => {
 // ---------- import components under test AFTER all mocks ----------
 import { CreateRequestLinkView } from '../link/views/Create.request.link.view'
 import { PayRequestLink } from '../Pay/Pay'
+import { printableUsdc } from '@/utils/balance.utils' // the jest.fn mock above
 
 // ---------- helpers ----------
 
@@ -409,6 +410,29 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockSearchParams.clear()
     applyDefaults()
+})
+
+// ============================================================
+// GROUP 0: Balance affordance — spendable (smart + card collateral)
+// ============================================================
+describe('GROUP 0: Balance affordance', () => {
+    test('formats spendableBalance (smart + collateral), not smart-only balance', () => {
+        // Regression for the report where /request read lower than /home: the view
+        // must format `spendableBalance` (smart + card collateral), not the smart-only
+        // `balance`. printableUsdc is mocked to a constant, so we assert the VALUE it
+        // was handed (the field choice) rather than the rendered text.
+        mockUseWallet.mockReturnValue({
+            address: '0x1234567890abcdef1234567890abcdef12345678',
+            isConnected: true,
+            balance: BigInt(100_000_000), // smart-only: $100
+            spendableBalance: BigInt(250_000_000), // smart + collateral: $250
+        })
+
+        renderCreateRequest()
+
+        expect(jest.mocked(printableUsdc)).toHaveBeenCalledWith(BigInt(250_000_000))
+        expect(jest.mocked(printableUsdc)).not.toHaveBeenCalledWith(BigInt(100_000_000))
+    })
 })
 
 // ============================================================

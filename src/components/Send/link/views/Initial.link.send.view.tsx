@@ -38,7 +38,7 @@ const LinkSendInitialView = () => {
 
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
 
-    const { fetchBalance, spendableBalance: balance } = useWallet()
+    const { fetchBalance, spendableBalance: balance, hasSufficientSpendableBalance } = useWallet()
     const queryClient = useQueryClient()
     const { hasPendingTransactions } = usePendingTransactions()
 
@@ -133,15 +133,23 @@ const LinkSendInitialView = () => {
             setErrorState({ showError: false, errorMessage: '' })
             return
         }
-        if (
-            parseUnits(peanutWalletBalance, PEANUT_WALLET_TOKEN_DECIMALS) <
-            parseUnits(tokenValue, PEANUT_WALLET_TOKEN_DECIMALS)
-        ) {
+        // Gate on available-now (smart + LANDED collateral), NOT the displayed
+        // `peanutWalletBalance` which includes in-transit top-ups that can't be
+        // routed yet — otherwise the ~10–45s post-top-up window green-lights a
+        // create-link that fails at execution. Matches the features/payments flows.
+        if (!hasSufficientSpendableBalance(tokenValue)) {
             setErrorState({ showError: true, errorMessage: 'Insufficient balance' })
         } else {
             setErrorState({ showError: false, errorMessage: '' })
         }
-    }, [peanutWalletBalance, tokenValue, setErrorState, hasPendingTransactions, isLoading])
+    }, [
+        peanutWalletBalance,
+        tokenValue,
+        setErrorState,
+        hasPendingTransactions,
+        isLoading,
+        hasSufficientSpendableBalance,
+    ])
 
     return (
         <div className="w-full space-y-4">

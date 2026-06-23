@@ -105,7 +105,7 @@ function MantecaBankWithdrawFlow() {
     const [priceLock, setPriceLock] = useState<WithdrawPriceLock | null>(null)
     const [isLockingPrice, setIsLockingPrice] = useState(false)
     const router = useRouter()
-    const { spendableBalance: balance } = useWallet()
+    const { spendableBalance: balance, hasSufficientSpendableBalance } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
@@ -496,12 +496,14 @@ function MantecaBankWithdrawFlow() {
         // only check min amount and balance here - max amount is handled by limits validation
         if (paymentAmount < parseUnits(MIN_MANTECA_WITHDRAW_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
             setBalanceErrorMessage(`Withdraw amount must be at least $${MIN_MANTECA_WITHDRAW_AMOUNT}`)
-        } else if (paymentAmount > balance) {
+        } else if (!hasSufficientSpendableBalance(usdAmount)) {
+            // available-now gate (excludes in-transit collateral); displayed `balance`
+            // can read higher during a card top-up.
             setBalanceErrorMessage('Not enough balance to complete withdrawal.')
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, hasPendingTransactions, isLoading])
+    }, [usdAmount, balance, hasSufficientSpendableBalance, hasPendingTransactions, isLoading])
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // Use flowId as uniqueId to prevent cache collisions between different withdrawal flows

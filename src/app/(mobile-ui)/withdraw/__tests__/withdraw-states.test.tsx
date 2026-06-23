@@ -248,8 +248,10 @@ function applyDefaults() {
     mockWithdrawFlow.selectedBankAccount = null
 
     mockUseWallet.mockReturnValue({
-        // component destructures `spendableBalance` (not `balance`) — CodeRabbit nit
+        // component destructures `spendableBalance` (display) + `availableSpendableBalance`
+        // (the spend ceiling that backs maxDecimalAmount). Same value here: no in-transit.
         spendableBalance: parseUnits('100', 6),
+        availableSpendableBalance: parseUnits('100', 6),
     })
 
     mockUseGetExchangeRate.mockReturnValue({
@@ -492,7 +494,10 @@ describe('GROUP 6: Continue never dead-buttons', () => {
         // feedback (Sentry: incomplete-app-router-transaction, 6 users/14d).
         mockGetCountryFromAccount.mockReturnValue(undefined)
 
-        mockUseWallet.mockReturnValue({ spendableBalance: parseUnits('100', 6) })
+        mockUseWallet.mockReturnValue({
+            spendableBalance: parseUnits('100', 6),
+            availableSpendableBalance: parseUnits('100', 6),
+        })
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
         mockWithdrawFlow.selectedBankAccount = { type: 'iban', details: { countryName: '', countryCode: '' } }
         mockWithdrawFlow.amountToWithdraw = '50'
@@ -513,7 +518,10 @@ describe('GROUP 6: Continue never dead-buttons', () => {
         // Manteca (AR/BR) accounts set selectedBankAccount too; the manteca
         // method check must win over the generic bank branch so they reach
         // /withdraw/manteca rather than the Bridge bank page (or the throw).
-        mockUseWallet.mockReturnValue({ spendableBalance: parseUnits('100', 6) })
+        mockUseWallet.mockReturnValue({
+            spendableBalance: parseUnits('100', 6),
+            availableSpendableBalance: parseUnits('100', 6),
+        })
         mockWithdrawFlow.selectedMethod = { type: 'manteca', countryPath: 'argentina', title: 'Bank Transfer' }
         mockWithdrawFlow.selectedBankAccount = { type: 'manteca', details: { countryName: 'argentina' } }
         mockWithdrawFlow.amountToWithdraw = '50'

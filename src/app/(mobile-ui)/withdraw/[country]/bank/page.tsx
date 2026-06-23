@@ -41,7 +41,6 @@ import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/count
 import { isBridgeSupportedCountry, getRegionIntent } from '@/utils/regions.utils'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
-import { parseUnits } from 'viem'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawCountryUrl } from '@/utils/native-routes'
@@ -68,7 +67,7 @@ export default function WithdrawBankPage() {
         setSelectedMethod,
     } = useWithdrawFlow()
     const { user, fetchUser } = useAuth()
-    const { address, sendMoney, spendableBalance: balance } = useWallet()
+    const { address, sendMoney, spendableBalance: balance, hasSufficientSpendableBalance } = useWallet()
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const queryClient = useQueryClient()
     const router = useRouter()
@@ -351,13 +350,14 @@ export default function WithdrawBankPage() {
             return
         }
 
-        const withdrawAmount = parseUnits(amountToWithdraw, PEANUT_WALLET_TOKEN_DECIMALS)
-        if (withdrawAmount > balance) {
+        // available-now gate (excludes in-transit collateral); `balance` above is
+        // the displayed total and can read higher mid-top-up.
+        if (!hasSufficientSpendableBalance(amountToWithdraw)) {
             setBalanceErrorMessage('Not enough balance to complete withdrawal.')
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [amountToWithdraw, balance, hasPendingTransactions, isLoading])
+    }, [amountToWithdraw, balance, hasSufficientSpendableBalance, hasPendingTransactions, isLoading])
 
     if (!bankAccount) {
         return null

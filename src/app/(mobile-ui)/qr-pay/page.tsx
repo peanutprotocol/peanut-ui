@@ -98,7 +98,7 @@ export default function QRPayPage() {
     const qrCode = decodeURIComponent(searchParams.get('qrCode') || '')
     const timestamp = searchParams.get('t')
     const qrType = searchParams.get('type')
-    const { spendableBalance: balance, sendMoney } = useWallet()
+    const { spendableBalance: balance, hasSufficientSpendableBalance, sendMoney } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
@@ -937,12 +937,14 @@ export default function QRPayPage() {
             setBalanceErrorMessage(`QR payment amount exceeds maximum limit of $${MAX_QR_PAYMENT_AMOUNT}`)
         } else if (paymentAmount < parseUnits(MIN_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
             setBalanceErrorMessage(`QR payment amount must be at least $${MIN_QR_PAYMENT_AMOUNT}`)
-        } else if (paymentAmount > balance) {
+        } else if (!hasSufficientSpendableBalance(usdAmount)) {
+            // available-now gate (excludes in-transit collateral) — the displayed
+            // `balance` can briefly read higher during a card top-up.
             setBalanceErrorMessage('Not enough balance to complete payment. Add funds!')
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, paymentProcessor, currency?.code, currencyAmount])
+    }, [usdAmount, balance, hasSufficientSpendableBalance, paymentProcessor, currency?.code, currencyAmount])
 
     // Use points confetti hook for animation - must be called unconditionally
     usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)

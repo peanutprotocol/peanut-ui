@@ -560,6 +560,8 @@ function applyDefaults() {
 
     mockUseWallet.mockReturnValue({
         balance: parseUnits('100', 6), // $100 USDC
+        spendableBalance: parseUnits('100', 6),
+        hasSufficientSpendableBalance: () => true,
         sendMoney: jest.fn(),
     })
 
@@ -780,14 +782,15 @@ describe('GROUP 2: Payment Form States', () => {
         expect(screen.getByRole('button', { name: 'Pay' })).toBeInTheDocument()
     })
 
-    test.skip('Insufficient balance shows pay button disabled + error', async () => {
-        // SKIP 2026-04-24: feat/card-ui merge surfaced post-merge balance
-        // path mismatch in qr-pay state tests. Mock signature for useWallet
-        // drifted vs new spendable-balance shape. FOLLOW-UP: rewrite or delete
-        // these state tests after the card-ui apply flow stabilises.
-        // Set balance to $5 but payment needs $18.4
+    test('Insufficient balance shows pay button disabled + error', async () => {
+        // Payment needs ~$18.4 but the available-now spendable is only $5, so the
+        // affordability gate (hasSufficientSpendableBalance) blocks it. Revived from
+        // skip once the gate moved off the raw display balance onto the shared hook
+        // predicate (the original mock-shape drift this test hit).
         mockUseWallet.mockReturnValue({
             balance: parseUnits('5', 6),
+            spendableBalance: parseUnits('5', 6),
+            hasSufficientSpendableBalance: () => false,
             sendMoney: jest.fn(),
         })
 

@@ -288,6 +288,11 @@ export const useWallet = () => {
         address: isAddressReady ? address : undefined, // populate address only if it is validated and matches the user's wallet address
         balance,
         spendableBalance,
+        // available-now spendable (smart + LANDED collateral), excluding in-transit
+        // top-ups. This is the spend CEILING — what `hasSufficientSpendableBalance`
+        // gates on. Use it (not `spendableBalance`) anywhere you cap or validate an
+        // amount the user is about to move, so the in-transit window can't over-permit.
+        availableSpendableBalance,
         formattedBalance,
         formattedSpendableBalance,
         hasSufficientSpendableBalance,

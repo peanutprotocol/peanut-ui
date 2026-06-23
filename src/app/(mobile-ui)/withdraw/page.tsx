@@ -81,11 +81,16 @@ export default function WithdrawPage() {
     // raw amount currently typed in the input
     const [rawTokenAmount, setRawTokenAmount] = useState<string>(amountFromContext || '')
 
-    const { spendableBalance: balance } = useWallet()
+    const { spendableBalance: balance, availableSpendableBalance } = useWallet()
 
+    // Spend CEILING — gates the entered amount. Use available-now (smart + LANDED
+    // collateral); the displayed balance below includes in-transit top-ups that
+    // can't be withdrawn until they land.
     const maxDecimalAmount = useMemo(() => {
-        return balance !== undefined ? Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : 0
-    }, [balance])
+        return availableSpendableBalance !== undefined
+            ? Number(formatUnits(availableSpendableBalance, PEANUT_WALLET_TOKEN_DECIMALS))
+            : 0
+    }, [availableSpendableBalance])
 
     const peanutWalletBalance = useMemo(() => {
         return balance !== undefined ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : ''
