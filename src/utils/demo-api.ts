@@ -10,9 +10,21 @@ import {
     PEANUT_WALLET_TOKEN_SYMBOL,
 } from '@/constants/zerodev.consts'
 import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_USER } from '@/constants/demo-data'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
+
+// Public read-only rate endpoints proxied to the real backend so demo shows live
+// FX rates. Best-effort: any failure falls through to the canned handler below.
+const PASSTHROUGH_GET = new Set(['/bridge/exchange-rate', '/manteca/prices'])
+
+const EMPTY_GRAPH = {
+    nodes: [] as unknown[],
+    edges: [] as unknown[],
+    p2pEdges: [] as unknown[],
+    stats: { totalNodes: 0, totalEdges: 0, totalP2PEdges: 0, usersWithAccess: 0, orphans: 0 },
+}
 
 const soon = () => new Date(Date.now() + 120_000).toISOString()
 
@@ -363,6 +375,12 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'POST', pattern: '/invites/validate', handler: () => ({ success: true, username: 'demo' }) },
     { method: 'POST', pattern: '/invites/accept', handler: () => ({ success: true }) },
     { method: 'GET', pattern: '/invites/waitlist-position', handler: () => ({ position: null }) },
+    // graph endpoints return an OBJECT ({nodes,edges,...}); InvitesGraph derefs
+    // .nodes.length, so an array/empty value would crash the rewards screen.
+    { method: 'GET', pattern: '/invites/user-graph', handler: () => EMPTY_GRAPH },
+    { method: 'GET', pattern: '/invites/graph', handler: () => EMPTY_GRAPH },
+    { method: 'GET', pattern: '/invites/graph/external', handler: () => ({ nodes: [], stats: { total: 0, byType: { WALLET: 0, BANK: 0, MERCHANT: 0 } } }) },
+    { method: 'GET', pattern: '/points/invites', handler: () => ({ invitees: [], summary: { totalInvited: 0, totalPointsEarned: 0 } }) },
 
     // notifications
     { method: 'GET', pattern: '/notifications', handler: () => ({ items: [], nextCursor: null }) },
@@ -423,8 +441,10 @@ const compiled = ROUTES.map((r) => {
 })
 
 // Shape-aware fallback so an unmatched route never makes a consumer throw on
-// undefined.map: collection-ish paths → [], everything else → {}.
-const LIST_HINTS = /(s|list|history|graph|leaderboard|accounts|payments|contacts)$/i
+// undefined.map: collection-ish paths → [], everything else → {}. Note: graph /
+// leaderboard endpoints are OBJECT-shaped ({nodes,...}/{leaderboard,...}) and are
+// handled explicitly above, so they deliberately fall to {} here.
+const LIST_HINTS = /(list|history|accounts|payments|contacts|rewards)$/i
 function defaultShape(pathname: string): unknown {
     const last = pathname.split('/').filter(Boolean).pop() ?? ''
     return LIST_HINTS.test(last) ? [] : {}
@@ -433,6 +453,16 @@ function defaultShape(pathname: string): unknown {
 export async function demoRespond(path: string, options?: RequestInit): Promise<Response> {
     const method = (options?.method ?? 'GET').toUpperCase()
     const pathname = path.split('?')[0].replace(/\/+$/, '') || '/'
+
+    // Live-rate passthrough to the real backend (best-effort).
+    if (method === 'GET' && PASSTHROUGH_GET.has(pathname)) {
+        try {
+            const res = await fetch(`${PEANUT_API_URL}${path}`, { headers: { accept: 'application/json' } })
+            if (res.ok) return res
+        } catch {
+            // fall through to the canned handler below
+        }
+    }
 
     for (const route of compiled) {
         if (route.method !== method) continue
