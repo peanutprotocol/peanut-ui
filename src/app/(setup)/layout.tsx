@@ -8,6 +8,7 @@ import { setupSteps } from '../../components/Setup/Setup.consts'
 import '../../styles/globals.css'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { Banner } from '@/components/Global/Banner'
+import SupportDrawer from '@/components/Global/SupportDrawer'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { isCapacitor } from '@/utils/capacitor'
@@ -74,6 +75,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
                 className="pointer-events-none fixed inset-x-0 bottom-0 -z-10 bg-secondary-3"
                 style={{ height: 'env(safe-area-inset-bottom)' }}
             />
+            <SupportDrawer />
         </>
     )
 }
