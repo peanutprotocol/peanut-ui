@@ -379,7 +379,7 @@ export default function ShhhhhLandingPage() {
                         {stats.map((stat) => (
                             <div
                                 key={stat.label}
-                                className="flex basis-[calc(50%-0.375rem)] flex-col items-center justify-center rounded-sm border-2 border-n-1 bg-white px-4 py-8 text-center shadow-[4px_4px_0_#000] md:flex-1 md:basis-0 md:py-10"
+                                className="flex basis-[calc(50%_-_0.375rem)] flex-col items-center justify-center rounded-sm border-2 border-n-1 bg-white px-4 py-8 text-center shadow-[4px_4px_0_#000] md:flex-1 md:basis-0 md:py-10"
                             >
                                 <div className="font-roboto-flex-extrabold text-5xl font-extraBlack md:text-6xl">
                                     {stat.value}
