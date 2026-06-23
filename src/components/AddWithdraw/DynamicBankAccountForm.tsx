@@ -7,7 +7,7 @@ import { type AddBankAccountPayload, BridgeAccountOwnerType, BridgeAccountType }
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { BRIDGE_ALPHA3_TO_ALPHA2, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import {
     validateIban,
     validateBic,
@@ -89,13 +89,23 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const [isSubmitting, setIsSubmitting] = useState(false)
         const [submissionError, setSubmissionError] = useState<string | null>(null)
         const { country: countryNameParams } = useParams()
+        // Native/Capacitor passes country as a query param (?country=usa), so
+        // useParams() is empty there — fall back to searchParams and finally the
+        // `country` prop so this never derefs undefined (white-screen crash).
+        const searchParams = useSearchParams()
         const { amountToWithdraw, setSelectedBankAccount } = useWithdrawFlow()
         const router = useRouter()
         const savedAccounts = useSavedAccounts()
         const [isCheckingBICValid, setisCheckingBICValid] = useState(false)
         const STREET_ADDRESS_MAX_LENGTH = 35 // From bridge docs: street address can be max 35 characters
 
-        let selectedCountry = (countryNameFromProps ?? (countryNameParams as string)).toLowerCase()
+        let selectedCountry = (
+            countryNameFromProps ??
+            (countryNameParams as string) ??
+            searchParams.get('country') ??
+            country ??
+            ''
+        ).toLowerCase()
 
         // Get persisted form data from Redux
         const persistedFormData = useAppSelector((state) => state.bankForm.formData)

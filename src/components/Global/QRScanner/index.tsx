@@ -8,6 +8,7 @@ import { Icon } from '../Icons/Icon'
 import { useQRScanner, type QRScanHandler } from './useQRScanner'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CameraPermissionModal from './CameraPermissionModal'
+import { Clipboard } from '@capacitor/clipboard'
 
 // ============================================================================
 // Configuration
@@ -143,9 +144,13 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
 
     const handlePaste = async () => {
         try {
-            const text = await navigator.clipboard.readText()
-            if (text.trim()) {
-                await onScan(text.trim())
+            // Capacitor Clipboard reads through the native bridge on device (the
+            // WebView's navigator.clipboard.readText is unreliable/blocked in the
+            // Android WebView); its web shim falls back to navigator.clipboard.
+            const { value } = await Clipboard.read()
+            const text = (value ?? '').trim()
+            if (text) {
+                await onScan(text)
             } else {
                 toast.error('Clipboard is empty')
             }

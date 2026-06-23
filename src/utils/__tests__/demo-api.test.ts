@@ -79,6 +79,16 @@ describe('demoRespond — shape-aware fallback (never throws on undefined.map)',
         const { data } = await body('/users/demo-user/rewards')
         expect(Array.isArray(data)).toBe(true)
     })
+
+    it('invite-graph endpoints return an object with array fields (InvitesGraph derefs .nodes.length)', async () => {
+        for (const path of ['/invites/user-graph', '/invites/graph']) {
+            const { data } = await body(path)
+            expect(Array.isArray(data)).toBe(false)
+            expect(Array.isArray(data.nodes)).toBe(true)
+            expect(Array.isArray(data.edges)).toBe(true)
+            expect(typeof data.stats?.totalNodes).toBe('number')
+        }
+    })
 })
 
 describe('demo mode is web-safe', () => {
