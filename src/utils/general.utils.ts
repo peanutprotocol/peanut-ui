@@ -137,7 +137,9 @@ export const saveToLocalStorage = (key: string, data: any, expirySeconds?: numbe
         } else {
             localStorage.removeItem(`${key}-expiry`)
         }
-        console.log(`Saved ${key} to localStorage:`, data)
+        // key is passed as an argument (not interpolated into the format string)
+        // so a user-controlled key can't act as a console format string (CodeQL).
+        console.log('Saved to localStorage:', key, data)
     } catch (error) {
         Sentry.captureException(error)
         console.error('Error saving to localStorage:', error)
