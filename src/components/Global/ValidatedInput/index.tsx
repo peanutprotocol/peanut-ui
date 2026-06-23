@@ -1,5 +1,6 @@
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import MoreInfo from '@/components/Global/MoreInfo'
+import { createSmartPasteHandler, type PasteFieldKind } from '@/utils/clipboard-extract.utils'
 import { useDebounce } from '@/hooks/useDebounce'
 import * as Sentry from '@sentry/nextjs'
 import { type ChangeEvent, useEffect, useRef, useState } from 'react'
@@ -21,6 +22,7 @@ type ValidatedInputProps = {
     formatDisplayValue?: (value: string) => string
     isSetupFlow?: boolean
     isInputChanging?: boolean
+    smartPasteKind?: PasteFieldKind
 }
 
 export type InputUpdate = {
@@ -43,6 +45,7 @@ const ValidatedInput = ({
     formatDisplayValue,
     isSetupFlow = false,
     isInputChanging = false,
+    smartPasteKind,
 }: ValidatedInputProps) => {
     const [isValid, setIsValid] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
@@ -180,6 +183,13 @@ const ValidatedInput = ({
                     type="text"
                     value={formatDisplayValue ? formatDisplayValue(value) : value}
                     onChange={handleChange}
+                    onPaste={
+                        smartPasteKind
+                            ? createSmartPasteHandler(smartPasteKind, (v) =>
+                                  onUpdate({ value: v, isValid: false, isChanging: true })
+                              )
+                            : undefined
+                    }
                     className={twMerge(
                         `notranslate h-12 w-full border-0 bg-white 
                         pr-1 text-sm font-medium outline-none focus:outline-none

@@ -20,6 +20,7 @@ import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard, { type PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { getCountryFromIban, validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
+import { createSmartPasteHandler, type PasteFieldKind } from '@/utils/clipboard-extract.utils'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { useAppDispatch, useAppSelector } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
@@ -283,6 +284,23 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             }
         }
 
+        const smartPasteKindFor = (name: keyof IBankAccountDetails): PasteFieldKind | undefined => {
+            switch (name) {
+                case 'clabe':
+                    return 'clabe'
+                case 'bic':
+                    return 'bic'
+                case 'routingNumber':
+                    return 'routingNumber'
+                case 'sortCode':
+                    return 'ukSortCode'
+                case 'accountNumber':
+                    return isIban ? 'iban' : isUk ? 'ukAccount' : 'usAccount'
+                default:
+                    return undefined
+            }
+        }
+
         const renderInput = (
             name: keyof IBankAccountDetails,
             placeholder: string,
@@ -292,7 +310,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             onBlur?: (field: any) => Promise<void> | void,
             showCharCount?: boolean,
             maxLength?: number
-        ) => (
+        ) => {
+            const smartPasteKind = smartPasteKindFor(name)
+            return (
             <div className="w-full">
                 <div className="relative">
                     <Controller
@@ -304,6 +324,11 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 {...field}
                                 type={type}
                                 placeholder={placeholder}
+                                onPaste={
+                                    smartPasteKind
+                                        ? createSmartPasteHandler(smartPasteKind, field.onChange)
+                                        : undefined
+                                }
                                 className={twMerge(
                                     'h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm',
                                     errors[name] && touchedFields[name] && 'border-error'
@@ -334,7 +359,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     {errors[name] && touchedFields[name] && <ErrorAlert description={errors[name]?.message ?? ''} />}
                 </div>
             </div>
-        )
+            )
+        }
 
         const renderSelect = (name: keyof IBankAccountDetails, placeholder: string, options: any[], rules: any) => (
             <div className="w-full">
