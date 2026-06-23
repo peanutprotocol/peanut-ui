@@ -2,17 +2,15 @@
  * <ShareAssetD3 /> — the in-app share asset that users can post or save
  * after they get their Peanut card.
  *
- * Asset is 1200×900 (4:3 postage-stamp proportions — see CANVAS_W /
- * CANVAS_H in shareAssetLayout.ts). It's NOT a Twitter card image: the
- * X intent (see share.utils.ts) is text-only and doesn't include a URL,
- * so there's no OG/twitter:image scrape path. Capture is via
- * captureShareAsset.ts (html-to-image at native 1200×900, attached to
- * navigator.share or downloaded by the user).
+ * Asset is 1200×900 (4:3 — see CANVAS_W / CANVAS_H in shareAssetLayout.ts).
+ * It's NOT a Twitter card image: the X intent (see share.utils.ts) is
+ * text-only and doesn't include a URL, so there's no OG/twitter:image
+ * scrape path. Capture is via captureShareAsset.ts (html-to-image at
+ * native 1200×900, attached to navigator.share or downloaded).
  *
- * Type hierarchy is tuned for readability at the captured PNG's typical
- * downscale on social timelines: every meaningful text is ≥22px native
- * (~7px at 3.4× downscale, bold-readable), with the username pill +
- * EDITION header far larger.
+ * Composition is a sticker collage: the pixelated card sits in the middle
+ * and the user's badges are slapped around it as big raw stickers. The
+ * only text is the @username pill.
  */
 
 'use client'
@@ -26,96 +24,92 @@ import {
     CARD_TOP,
     CARD_ROTATION_DEG,
     placeStamps,
-    placeDecorations,
-    buildStatColumns,
     usernameFontSize,
     type StampPlacement,
-    type DecorationPlacement,
+    type KeepoutEllipse,
 } from './shareAssetLayout'
-import type { ShareAssetD3Props, TierLevel } from './shareAsset.types'
-import { TIER_0_BADGE, TIER_1_BADGE, TIER_2_BADGE, TIER_3_BADGE } from '@/assets/badges'
-import { PEANUTMAN_HOLDING_BEER } from '@/assets/mascot'
-import { STAR_STRAIGHT_ICON } from '@/assets/icons'
-import { HandPeace, HandThumbsUp, HandThumbsUpV2, Eyes, Cloud, Star } from '@/assets/illustrations'
+import type { ShareAssetD3Props, HeroMessage } from './shareAsset.types'
 import { PixelatedCardFace } from './PixelatedCardFace'
-
-const ASSET_STAR = STAR_STRAIGHT_ICON.src
-const ASSET_STAR_ALT = Star.src
-const ASSET_HAND_THUMBS = HandThumbsUp.src
-const ASSET_HAND_THUMBS_V2 = HandThumbsUpV2.src
-const ASSET_HAND_PEACE = HandPeace.src
-const ASSET_EYES = Eyes.src
-const ASSET_CLOUD = Cloud.src
-// The peanut character art style is intentionally legless — the body
-// tapers to a rounded point. Rather than dropping the character, we
-// place him BEHIND the card with his bottom inside the card's bbox so
-// only his head + arms peek out above the card edge. Of the available
-// poses, peanut-holding-beer is the most expressive (both arms visible,
-// holding a beer, peace sign) and reads cleanly at small sizes.
-const ASSET_PEANUT_CHAR = PEANUTMAN_HOLDING_BEER.src
-
-const TIER_SVG: Record<TierLevel, string> = {
-    0: TIER_0_BADGE,
-    1: TIER_1_BADGE,
-    2: TIER_2_BADGE,
-    3: TIER_3_BADGE,
-}
-
-const TIER_LABEL: Record<TierLevel, string> = {
-    0: 'TIER 0',
-    1: 'TIER 1',
-    2: 'TIER 2',
-    3: 'TIER 3',
-}
-
-const DECO_ASSET: Record<DecorationPlacement['kind'], string> = {
-    star: ASSET_STAR,
-    starAlt: ASSET_STAR_ALT,
-    thumbsUp: ASSET_HAND_THUMBS,
-    thumbsUpV2: ASSET_HAND_THUMBS_V2,
-    peace: ASSET_HAND_PEACE,
-    eyes: ASSET_EYES,
-    cloud: ASSET_CLOUD,
-    peanutChar: ASSET_PEANUT_CHAR,
-}
 
 // Peanut blue — the brand section colour reused from the prod landing page
 // (LP `businessBgColor` in dropLink.tsx + the global `--background-color`).
-// Replaces the off-brandbook lavender so the asset pops on a timeline.
 const ASSET_BG = '#90A8ED'
 
 const ANIM_CARD_DELAY = 100
 const ANIM_STAMP_BASE_DELAY = 600
-const ANIM_STAMP_STAGGER = 250
-const ANIM_TIER_DELAY = 1500
+const ANIM_STAMP_STAGGER = 200
+const ANIM_HERO_DELAY = 350
 const ANIM_ATTRIBUTION_DELAY = 1700
-const ANIM_EARNED_DELAY = 1900
+
+// Hero message sits centred near the top of the canvas.
+const HERO_TOP = 26
+const HERO_CX = CANVAS_W / 2
+
+/** Nominal pixel footprint of the hero sticker, used both to render it and to
+ *  reserve a keep-out so badges don't cover it. Width grows with the copy. */
+function heroGeometry(msg: HeroMessage): { w: number; h: number; fontSize: number } {
+    const scale = msg.scale ?? 1
+    const len = Math.max(msg.text.length, 4)
+    if (msg.variant === 'burst') {
+        const fontSize = 58 * scale
+        const w = Math.max(320, len * fontSize * 0.58 + 180)
+        const h = Math.max(240, fontSize + 150) * scale
+        return { w, h, fontSize }
+    }
+    // pill + banner are single-line labels
+    const fontSize = 60 * scale
+    const h = fontSize + 40
+    const w = Math.max(240, len * fontSize * 0.6 + 96)
+    return { w, h, fontSize }
+}
+
+const USERNAME_BG: Record<NonNullable<ShareAssetD3Props['usernameStyle']>['bg'], string> = {
+    white: '#FFFFFF',
+    pink: '#FF90E8',
+    blue: '#6E8BEF',
+}
+
+// The shipped look. Callers that omit these props (the real card-unlock share
+// surfaces) get this; the /dev/share-builder passes its own to iterate.
+const DEFAULT_HERO: HeroMessage = { variant: 'burst', text: "I'M IN!", scale: 1.15, tilt: 5 }
+const DEFAULT_USERNAME_STYLE: Required<NonNullable<ShareAssetD3Props['usernameStyle']>> = {
+    bg: 'white',
+    prefixRatio: 0.5,
+    scale: 1,
+    letterSpacing: 0,
+}
 
 const ShareAssetD3: FC<ShareAssetD3Props> = ({
     username,
     badges,
-    stats,
-    tier = 0,
-    pointsBalance = 0,
     cardLast4,
     seedOverride,
+    heroMessage,
+    usernameStyle,
     animate = true,
 }) => {
     const safeUsername = (username || '').trim() || 'anon'
     const safeLast4 = (cardLast4 || '').trim().padStart(4, '•').slice(-4) || '5695'
 
-    const { stamps, decorations, statCols } = useMemo(() => {
-        const rng = new SeededRandom(seedOverride ?? safeUsername)
-        return {
-            stamps: placeStamps(badges, rng),
-            decorations: placeDecorations(rng),
-            statCols: buildStatColumns(stats),
-        }
-    }, [seedOverride, safeUsername, badges, stats])
+    // `undefined` (real callers) → the shipped default hero; `null` (builder
+    // "none") → no hero.
+    const resolvedHero = heroMessage === undefined ? DEFAULT_HERO : heroMessage
+    const hero = resolvedHero && resolvedHero.text.trim() ? resolvedHero : null
+    const heroGeo = useMemo(() => (hero ? heroGeometry(hero) : null), [hero?.text, hero?.variant, hero?.scale])
 
-    // "Truly new" users (tier 0 + 0 pts) hide the whole tier block — "TIER 0 / 0"
-    // reads as "you have nothing", wrong vibe for a celebration asset.
-    const showTierBlock = tier > 0 || pointsBalance > 0
+    const stickers = useMemo(() => {
+        const extraKeepouts: KeepoutEllipse[] = heroGeo
+            ? [{ cx: HERO_CX, cy: HERO_TOP + heroGeo.h / 2, rx: heroGeo.w / 2, ry: heroGeo.h / 2 }]
+            : []
+        return placeStamps(badges, new SeededRandom(seedOverride ?? safeUsername), extraKeepouts)
+    }, [seedOverride, safeUsername, badges, heroGeo])
+
+    // Username pill: "peanut.me/<handle>" — the prefix is rendered much smaller
+    // than the handle. Colour + typography come from usernameStyle.
+    const uHandleSize = usernameFontSize(safeUsername) * (usernameStyle?.scale ?? DEFAULT_USERNAME_STYLE.scale)
+    const uPrefixSize = uHandleSize * (usernameStyle?.prefixRatio ?? DEFAULT_USERNAME_STYLE.prefixRatio)
+    const uTracking = usernameStyle?.letterSpacing ?? DEFAULT_USERNAME_STYLE.letterSpacing
+    const uBg = USERNAME_BG[usernameStyle?.bg ?? DEFAULT_USERNAME_STYLE.bg]
 
     return (
         <div
@@ -162,16 +156,6 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                         transform: translateY(0);
                     }
                 }
-                @keyframes sparkle {
-                    0% {
-                        opacity: 0;
-                        transform: scale(0.4) rotate(0deg);
-                    }
-                    100% {
-                        opacity: var(--rest-opacity, 0.95);
-                        transform: var(--rest-transform);
-                    }
-                }
             `}</style>
 
             {/* ─── Background pattern (faint pink polka — texture, no content) ─── */}
@@ -184,116 +168,7 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                 }}
             />
 
-            {/* ─── Decorations (stars + thumbs-up + peanut chars) ─── */}
-            {decorations.map((deco, i) => (
-                <DecorationEl key={i} deco={deco} animate={animate} delay={50 * i + 800} />
-            ))}
-
-            {/* ─── EDITION header (top-left) — consolidated single banner.
-                 Was 2 lines + a rotated vertical spine; now one tighter
-                 line that reads cleanly at thumbnail scale and stops
-                 fighting the EARNED stamp on the right. */}
-            <div
-                className="absolute"
-                style={{
-                    top: 56,
-                    left: 56,
-                    zIndex: 6,
-                    animation: animate ? `fadeUp 600ms ease-out ${ANIM_CARD_DELAY}ms both` : 'none',
-                }}
-            >
-                <HeroCaps style={{ fontSize: 36, letterSpacing: '0.16em' }}>EDITION · 01</HeroCaps>
-                <HeroCaps style={{ fontSize: 22, letterSpacing: '0.18em', opacity: 0.55, marginTop: 6 }}>
-                    PEANUT CARD ARRIVES
-                </HeroCaps>
-            </div>
-
-            {/* ─── Tier badge + stats anchor (left mid) ─── */}
-            {(showTierBlock || statCols.length > 0) && (
-                <div
-                    className="absolute"
-                    style={{
-                        top: 158,
-                        left: 88,
-                        transform: 'rotate(-4deg)',
-                        zIndex: 6,
-                        animation: animate ? `fadeUp 700ms ease-out ${ANIM_TIER_DELAY}ms both` : 'none',
-                    }}
-                >
-                    {showTierBlock && (
-                        <div className="flex items-end" style={{ gap: 14 }}>
-                            <img
-                                src={TIER_SVG[tier]}
-                                alt=""
-                                aria-hidden
-                                style={{
-                                    height: 140,
-                                    width: 'auto',
-                                    filter: 'drop-shadow(0.3rem 0.3rem 0 rgba(0,0,0,0.85))',
-                                }}
-                            />
-                            <div style={{ paddingBottom: 10 }}>
-                                <HeroCaps style={{ fontSize: 18, letterSpacing: '0.14em', opacity: 0.62 }}>
-                                    {TIER_LABEL[tier]} · PEANUT PTS
-                                </HeroCaps>
-                                <HeroCaps style={{ fontSize: 56, lineHeight: 0.95, marginTop: 4 }}>
-                                    {pointsBalance.toLocaleString('en-US')}
-                                </HeroCaps>
-                            </div>
-                        </div>
-                    )}
-                    {/* Stats strip — renders only the cols present */}
-                    {statCols.length > 0 && (
-                        <div
-                            className={`inline-block border-[3px] border-black bg-white ${showTierBlock ? 'mt-4' : ''}`}
-                            style={{
-                                padding: '10px 18px',
-                                boxShadow: '0.2rem 0.2rem 0 #000',
-                            }}
-                        >
-                            <div className="flex items-baseline" style={{ gap: 22 }}>
-                                {statCols.map((col, i) => (
-                                    <span key={col.label} className="flex items-baseline" style={{ gap: 22 }}>
-                                        {i > 0 && (
-                                            <span className="text-black/30" style={{ fontSize: 28 }}>
-                                                ·
-                                            </span>
-                                        )}
-                                        <span>
-                                            <HeroCaps
-                                                style={{
-                                                    fontSize: 16,
-                                                    letterSpacing: '0.14em',
-                                                    opacity: 0.6,
-                                                }}
-                                            >
-                                                {col.label}
-                                            </HeroCaps>
-                                            <HeroCaps style={{ fontSize: 30, lineHeight: 1, marginTop: 4 }}>
-                                                {col.value}
-                                            </HeroCaps>
-                                        </span>
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* ─── Stamps BEHIND the card (z-index 2) ─── */}
-            {stamps
-                .filter((s) => s.behind)
-                .map((s, i) => (
-                    <StampEl
-                        key={`b-${i}`}
-                        stamp={s}
-                        animate={animate}
-                        delay={ANIM_STAMP_STAGGER * i + ANIM_STAMP_BASE_DELAY}
-                    />
-                ))}
-
-            {/* ─── The card (z-index 3) ─── */}
+            {/* ─── The card (z-index 3) — sits in the middle of the collage ─── */}
             <div
                 className="absolute"
                 style={{
@@ -305,203 +180,211 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                         : 'none',
                 }}
             >
-                <PixelatedCardFace last4={safeLast4} />
+                <PixelatedCardFace last4={safeLast4} hideVisa />
             </div>
 
-            {/* ─── Stamps IN FRONT (z-index 4) ─── */}
-            {stamps
-                .filter((s) => !s.behind)
-                .map((s, i, frontList) => {
-                    const behindCount = stamps.length - frontList.length
-                    return (
-                        <StampEl
-                            key={`f-${i}`}
-                            stamp={s}
-                            animate={animate}
-                            delay={ANIM_STAMP_STAGGER * (behindCount + i) + ANIM_STAMP_BASE_DELAY}
-                        />
-                    )
-                })}
+            {/* ─── Stickers (z-index 4) — raw badge art collaged ON TOP of the
+                 card. No frames, no chrome: the badge SVGs already carry a
+                 white sticker border + thick outline, so they read as
+                 peel-off stickers slapped over the card. ─── */}
+            {stickers.map((s, i) => (
+                <StickerEl
+                    key={`s-${i}`}
+                    sticker={s}
+                    animate={animate}
+                    delay={ANIM_STAMP_STAGGER * i + ANIM_STAMP_BASE_DELAY}
+                />
+            ))}
 
-            {/* ─── EARNED ✓ rubber stamp (top-right corner, tasteful) ─── */}
-            <div
-                className="pointer-events-none absolute"
-                style={{
-                    top: 48,
-                    right: 56,
-                    transform: 'rotate(-12deg)',
-                    zIndex: 7,
-                    animation: animate ? `fadeUp 500ms ease-out ${ANIM_EARNED_DELAY}ms both` : 'none',
-                }}
-            >
-                <div
-                    style={{
-                        fontFamily: 'var(--font-roboto), sans-serif',
-                        fontSize: 36,
-                        fontWeight: 1000,
-                        color: '#b3261e',
-                        border: '5px solid #b3261e',
-                        padding: '8px 22px',
-                        borderRadius: 10,
-                        background: 'rgba(255,255,255,0.65)',
-                        letterSpacing: '0.12em',
-                        opacity: 0.92,
-                        textTransform: 'uppercase',
-                    }}
-                >
-                    EARNED ✓
-                </div>
-            </div>
-
-            {/* ─── @username pill — the sharer's own handle, displayed for
-                pride. No "who invited you?" caption: this is the asset's
-                "this is ME" anchor, not a referral nudge to the viewer. ─── */}
+            {/* ─── @username pill — the sharer's own handle, the asset's
+                "this is ME" anchor. Sits below the stickers (z-index 4) so a
+                sticker that lands over it reads as slapped on top; the pill's
+                repulsion keep-out keeps it mostly clear regardless. ─── */}
             <div
                 className="absolute flex flex-col items-end"
                 style={{
                     bottom: 48,
                     right: 56,
-                    zIndex: 6,
+                    zIndex: 3,
                     animation: animate ? `fadeUp 600ms ease-out ${ANIM_ATTRIBUTION_DELAY}ms both` : 'none',
                 }}
             >
                 <span
-                    className="inline-block rounded-full border-[5px] border-black bg-secondary-1"
+                    className="inline-flex items-baseline rounded-full border-[5px] border-black"
                     style={{
-                        fontSize: usernameFontSize(safeUsername),
-                        padding: '10px 44px',
-                        fontWeight: 1000,
+                        backgroundColor: uBg,
+                        padding: '10px 40px',
                         textTransform: 'lowercase',
-                        letterSpacing: '-0.02em',
                         boxShadow: '0.375rem 0.375rem 0 #000',
                         whiteSpace: 'nowrap',
-                        maxWidth: 720,
+                        maxWidth: 780,
                         overflow: 'hidden',
-                        textOverflow: 'ellipsis',
                         lineHeight: 1.05,
                         transform: 'rotate(-3deg)',
+                        gap: 1,
                     }}
                 >
-                    @{safeUsername}
+                    <span style={{ fontSize: uPrefixSize, fontWeight: 800 }}>peanut.me/</span>
+                    <span style={{ fontSize: uHandleSize, fontWeight: 1000, letterSpacing: `${uTracking}em` }}>
+                        {safeUsername}
+                    </span>
                 </span>
             </div>
+
+            {/* ─── Hero "I got in" message sticker (top, z-index 5 — above the
+                collage). Its keep-out (computed above) keeps badges clear. ─── */}
+            {hero && heroGeo && (
+                <div
+                    className="absolute flex justify-center"
+                    style={{
+                        top: HERO_TOP,
+                        left: 0,
+                        right: 0,
+                        zIndex: 5,
+                        animation: animate ? `fadeUp 600ms ease-out ${ANIM_HERO_DELAY}ms both` : 'none',
+                    }}
+                >
+                    <HeroMessageEl hero={hero} geo={heroGeo} />
+                </div>
+            )}
         </div>
     )
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────
 
-const HeroCaps: FC<{ children: React.ReactNode; style?: React.CSSProperties; className?: string }> = ({
-    children,
-    style,
-    className,
-}) => (
-    <div
-        className={className}
-        style={{
-            fontFamily: 'var(--font-roboto), sans-serif',
-            fontWeight: 1000,
-            textTransform: 'uppercase',
-            letterSpacing: '-0.02em',
-            lineHeight: 0.92,
-            color: '#000',
-            ...style,
-        }}
-    >
-        {children}
-    </div>
-)
-
-interface StampElProps {
-    stamp: StampPlacement
+interface StickerElProps {
+    sticker: StampPlacement
     animate: boolean
     delay: number
 }
 
-const StampEl: FC<StampElProps> = ({ stamp, animate, delay }) => {
-    const restTransform = `rotate(${stamp.rotation}deg)`
-    return (
-        <figure
-            className="stamp"
-            style={{
-                position: 'absolute', // inline beats `.stamp { position: relative }` from globals.css
-                width: stamp.width,
-                height: stamp.height,
-                top: stamp.top,
-                left: stamp.left,
-                transform: restTransform,
-                zIndex: stamp.behind ? 2 : 4,
-                ['--stamp-bg' as string]: ASSET_BG,
-                ['--rest-transform' as string]: restTransform,
-                animation: animate ? `stampDrop 700ms cubic-bezier(0.34, 1.56, 0.64, 1) ${delay}ms both` : 'none',
-            }}
-        >
-            {stamp.withTape && (
-                <div
-                    className="absolute"
-                    style={{
-                        top: -4,
-                        left: '50%',
-                        transform: 'translateX(-50%) rotate(8deg)',
-                        width: 88,
-                        height: 22,
-                        background:
-                            'linear-gradient(rgba(255,201,0,0.5),rgba(255,201,0,0.5)),repeating-linear-gradient(90deg,transparent 0,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px)',
-                        borderLeft: '1px dashed rgba(0,0,0,0.15)',
-                        borderRight: '1px dashed rgba(0,0,0,0.15)',
-                        zIndex: 6,
-                    }}
-                />
-            )}
-            <span className="stamp-issuer">PEANUT</span>
-            {/* Year denomination — dynamic, derived from badge.earnedAt at
-                layout time (see placeStamps in shareAssetLayout.ts). */}
-            {stamp.badge.year && <span className="stamp-denom">{stamp.badge.year}</span>}
-            {/* Badge icon fills the stamp. Caption row was dropped (Hugo:
-                "remove the colored subtitle from the stamps, just the
-                badge svg, a bit larger") — icon now uses the full
-                stamp interior below the issuer/year row. */}
-            <div
-                className="absolute inset-0 flex items-center justify-center"
-                style={{ paddingTop: '14%', paddingBottom: '6%' }}
-            >
-                <img
-                    src={stamp.badge.iconUrl}
-                    alt=""
-                    aria-hidden
-                    style={{ maxWidth: '94%', maxHeight: '94%', objectFit: 'contain' }}
-                />
-            </div>
-        </figure>
-    )
-}
-
-const DecorationEl: FC<{ deco: DecorationPlacement; animate: boolean; delay: number }> = ({ deco, animate, delay }) => {
-    const src = DECO_ASSET[deco.kind]
-    const restTransform = `rotate(${deco.rotation}deg)`
-    const opacity = deco.kind === 'star' ? 0.85 : 0.95
+// Raw badge sticker — just the SVG, rotated, with a hard offset shadow so
+// it lifts off the card like a real peel-off sticker. No frame, no issuer
+// text, no year: the badge art already has its own white sticker border.
+const StickerEl: FC<StickerElProps> = ({ sticker, animate, delay }) => {
+    const restTransform = `rotate(${sticker.rotation}deg)`
     return (
         <img
-            src={src}
+            src={sticker.badge.iconUrl}
             alt=""
             aria-hidden
             className="pointer-events-none absolute select-none"
             style={{
-                top: deco.top,
-                bottom: deco.bottom,
-                left: deco.left,
-                right: deco.right,
-                width: deco.size,
-                height: 'auto',
-                opacity,
+                width: sticker.width,
+                height: sticker.height,
+                top: sticker.top,
+                left: sticker.left,
+                objectFit: 'contain',
                 transform: restTransform,
-                zIndex: 1,
+                zIndex: 4,
+                filter: 'drop-shadow(0.22rem 0.22rem 0 rgba(0,0,0,0.9))',
                 ['--rest-transform' as string]: restTransform,
-                ['--rest-opacity' as string]: opacity,
-                animation: animate ? `sparkle 500ms cubic-bezier(0.34, 1.56, 0.64, 1) ${delay}ms both` : 'none',
+                animation: animate ? `stampDrop 700ms cubic-bezier(0.34, 1.56, 0.64, 1) ${delay}ms both` : 'none',
             }}
         />
     )
+}
+
+// Hero "I got in" message — three sticker treatments. All share the thick
+// black outline + hard offset shadow of the collage so they read as one more
+// (bigger) sticker slapped on top.
+const HeroMessageEl: FC<{ hero: HeroMessage; geo: { w: number; h: number; fontSize: number } }> = ({ hero, geo }) => {
+    const { text, variant } = hero
+    const { w, h, fontSize } = geo
+    // Tilt: explicit override, else a small per-variant lean.
+    const tilt = hero.tilt ?? (variant === 'banner' ? -2 : variant === 'pill' ? -3 : -4)
+    const rot = `rotate(${tilt}deg)`
+
+    if (variant === 'pill') {
+        return (
+            <span
+                className="inline-flex items-center justify-center rounded-full border-[6px] border-black bg-secondary-1"
+                style={{
+                    height: h,
+                    padding: `0 ${fontSize * 0.7}px`,
+                    fontFamily: 'var(--font-roboto), sans-serif',
+                    fontSize,
+                    fontWeight: 1000,
+                    letterSpacing: '-0.01em',
+                    whiteSpace: 'nowrap',
+                    boxShadow: '0.4rem 0.4rem 0 #000',
+                    transform: rot,
+                }}
+            >
+                {text}
+            </span>
+        )
+    }
+
+    if (variant === 'banner') {
+        return (
+            <span
+                className="inline-flex items-center justify-center border-[6px] border-black bg-primary-1"
+                style={{
+                    height: h,
+                    padding: `0 ${fontSize * 0.6}px`,
+                    fontFamily: 'var(--font-roboto), sans-serif',
+                    fontSize,
+                    fontWeight: 1000,
+                    letterSpacing: '0.02em',
+                    textTransform: 'uppercase',
+                    whiteSpace: 'nowrap',
+                    boxShadow: '0.4rem 0.4rem 0 #000',
+                    transform: rot,
+                }}
+            >
+                {text}
+            </span>
+        )
+    }
+
+    // burst — a yellow seal/starburst behind the text
+    const points = burstSealPoints(w / 2, h / 2, 16, 0.6)
+    return (
+        <div style={{ position: 'relative', width: w, height: h, transform: rot }}>
+            <svg
+                width={w}
+                height={h}
+                viewBox={`0 0 ${w} ${h}`}
+                style={{ position: 'absolute', inset: 0, filter: 'drop-shadow(0.4rem 0.4rem 0 #000)' }}
+            >
+                <polygon
+                    points={points}
+                    fill="#FFC900"
+                    stroke="#000"
+                    strokeWidth={7}
+                    strokeLinejoin="round"
+                    transform={`translate(${w / 2} ${h / 2})`}
+                />
+            </svg>
+            <span
+                className="absolute inset-0 flex items-center justify-center text-center"
+                style={{
+                    fontFamily: 'var(--font-roboto), sans-serif',
+                    fontSize,
+                    fontWeight: 1000,
+                    letterSpacing: '-0.01em',
+                    lineHeight: 0.95,
+                    padding: '0 12%',
+                }}
+            >
+                {text}
+            </span>
+        </div>
+    )
+}
+
+/** Build an N-spike seal/starburst polygon centred on (0,0), to be translated
+ *  to the sticker centre. Alternates outer (rx,ry) and inner radii. */
+function burstSealPoints(rx: number, ry: number, spikes: number, innerRatio: number): string {
+    const pts: string[] = []
+    for (let i = 0; i < spikes * 2; i++) {
+        const angle = (i * Math.PI) / spikes - Math.PI / 2
+        const r = i % 2 === 0 ? 1 : innerRatio
+        pts.push(`${(Math.cos(angle) * rx * r).toFixed(1)},${(Math.sin(angle) * ry * r).toFixed(1)}`)
+    }
+    return pts.join(' ')
 }
 
 export default ShareAssetD3

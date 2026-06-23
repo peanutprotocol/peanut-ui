@@ -54,9 +54,18 @@ export interface PixelatedCardFaceProps {
      *  through the same canvas-rasterisation pipeline as the hand so the
      *  whole card reads as chunky pixels, not a mix of pixels + blur. */
     blurAll?: boolean
+    /** When true, omit the Visa brand mark entirely. The share asset can't
+     *  display the Visa wordmark for compliance reasons (it renders crisp
+     *  there since the share asset is the one surface that doesn't `blurAll`). */
+    hideVisa?: boolean
 }
 
-export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({ className, style, blurAll = false }) => (
+export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
+    className,
+    style,
+    blurAll = false,
+    hideVisa = false,
+}) => (
     <div
         className={`relative overflow-hidden rounded-3xl border-[4px] border-black ${className ?? ''}`}
         style={{
@@ -76,15 +85,16 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({ className, style
             ) : (
                 <img src={ASSET_PEANUTMAN_LOGO} alt="" aria-hidden style={{ height: 52, width: 'auto' }} />
             )}
-            {blurAll ? (
-                <PixelatedImg src={ASSET_VISA_BRAND} displayW={80} displayH={32} invert />
-            ) : (
-                <img
-                    src={ASSET_VISA_BRAND}
-                    alt="Visa"
-                    style={{ height: 32, width: 'auto', filter: 'brightness(0) invert(1)' }}
-                />
-            )}
+            {!hideVisa &&
+                (blurAll ? (
+                    <PixelatedImg src={ASSET_VISA_BRAND} displayW={80} displayH={32} invert />
+                ) : (
+                    <img
+                        src={ASSET_VISA_BRAND}
+                        alt="Visa"
+                        style={{ height: 32, width: 'auto', filter: 'brightness(0) invert(1)' }}
+                    />
+                ))}
         </div>
 
         {/* Bottom: card number — same `•••• ????` pattern in both modes.
