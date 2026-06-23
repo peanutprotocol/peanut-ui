@@ -224,15 +224,19 @@ const PointsPage = () => {
                 {/* invite graph with consolidated explanation */}
                 {myGraphResult?.data && (
                     <>
-                        <Card className="!mt-8 overflow-hidden p-0">
-                            <InvitesGraph
-                                minimal
-                                data={myGraphResult.data}
-                                height={250}
-                                backgroundColor="#ffffff"
-                                showUsernames
-                            />
-                        </Card>
+                        {/* only render the graph when there are people to show — an
+                            empty graph renders as a blank box (demo / no invites yet) */}
+                        {myGraphResult.data.nodes?.length > 0 && (
+                            <Card className="!mt-8 overflow-hidden p-0">
+                                <InvitesGraph
+                                    minimal
+                                    data={myGraphResult.data}
+                                    height={250}
+                                    backgroundColor="#ffffff"
+                                    showUsernames
+                                />
+                            </Card>
+                        )}
                         <p className="text-center text-sm">
                             {user?.invitedBy && (
                                 <>
