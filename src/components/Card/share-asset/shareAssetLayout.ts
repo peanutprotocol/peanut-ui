@@ -75,8 +75,28 @@ const STICKER_OVERHANG = 24
 // extends to the bottom-right canvas corner; PILL_PAD adds a margin so the
 // repulsion leaves a gap, not just a touch. Any sticker pushed inside is
 // shoved back out each relaxation pass — the pill repels like everything else.
-const PILL_KEEPOUT = { x0: 690, y0: 712 } as const
+// The pill's real width varies with the username + typography, so the caller
+// passes a box sized to the *rendered* pill (see pillKeepoutBox); this default
+// is a conservative fallback for callers that can't measure it.
+const DEFAULT_PILL_KEEPOUT = { x0: 690, y0: 712 } as const
 const PILL_PAD = 26
+
+// Bottom-right anchor of the username pill — mirrors ShareAssetD3's render
+// (`bottom: PILL_BOTTOM, right: PILL_RIGHT`). Exported so the component keeps
+// the render and the keep-out in lockstep.
+export const PILL_RIGHT = 56
+export const PILL_BOTTOM = 48
+
+/** Top-left corner of the username pill's bounding box, given its rendered
+ *  size. The pill is anchored bottom-right, so the keep-out's top-left walks
+ *  left/up as the pill grows — protecting the *whole* pill, not just its
+ *  right edge (which a fixed x0 missed for long handles). */
+export function pillKeepoutBox(pillW: number, pillH: number): { x0: number; y0: number } {
+    return {
+        x0: CANVAS_W - PILL_RIGHT - pillW,
+        y0: CANVAS_H - PILL_BOTTOM - pillH,
+    }
+}
 
 // Relaxation iterations + how close two sticker centres may sit (× combined
 // radii). 1.0 = just touching; below 1.0 allows a bit of overlap while the
@@ -119,8 +139,8 @@ function stickerSize(count: number): number {
 
 /** Does a size×size sticker centred at (cx,cy) intersect the pill keep-out
  *  (which extends to the bottom-right canvas corner)? */
-function hitsPill(cx: number, cy: number, half: number): boolean {
-    return cx + half > PILL_KEEPOUT.x0 - PILL_PAD && cy + half > PILL_KEEPOUT.y0 - PILL_PAD
+function hitsPill(cx: number, cy: number, half: number, pill: { x0: number; y0: number }): boolean {
+    return cx + half > pill.x0 - PILL_PAD && cy + half > pill.y0 - PILL_PAD
 }
 
 /** An extra keep-out region (e.g. the hero message sticker at the top) that
@@ -135,7 +155,8 @@ export interface KeepoutEllipse {
 export function placeStamps(
     badges: ShareAssetBadge[],
     rng: SeededRandom,
-    extraKeepouts: readonly KeepoutEllipse[] = []
+    extraKeepouts: readonly KeepoutEllipse[] = [],
+    pill: { x0: number; y0: number } = DEFAULT_PILL_KEEPOUT
 ): StampPlacement[] {
     const sorted = [...badges].sort((a, b) => {
         const aT = a.earnedAt ? new Date(a.earnedAt).getTime() : 0
@@ -223,9 +244,9 @@ export function placeStamps(
             if (p.y < loY) p.y += (loY - p.y) * 0.5
             else if (p.y > hiY) p.y -= (p.y - hiY) * 0.5
             // pill keep-out: shove out along the shallower axis
-            if (hitsPill(p.x, p.y, half)) {
-                const exitLeft = p.x + half - (PILL_KEEPOUT.x0 - PILL_PAD)
-                const exitUp = p.y + half - (PILL_KEEPOUT.y0 - PILL_PAD)
+            if (hitsPill(p.x, p.y, half, pill)) {
+                const exitLeft = p.x + half - (pill.x0 - PILL_PAD)
+                const exitUp = p.y + half - (pill.y0 - PILL_PAD)
                 if (exitLeft < exitUp) p.x -= exitLeft
                 else p.y -= exitUp
             }

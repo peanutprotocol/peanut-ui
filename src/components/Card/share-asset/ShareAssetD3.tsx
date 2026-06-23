@@ -23,7 +23,10 @@ import {
     CARD_LEFT,
     CARD_TOP,
     CARD_ROTATION_DEG,
+    PILL_RIGHT,
+    PILL_BOTTOM,
     placeStamps,
+    pillKeepoutBox,
     usernameFontSize,
     type StampPlacement,
     type KeepoutEllipse,
@@ -45,6 +48,10 @@ const ANIM_ATTRIBUTION_DELAY = 1700
 const HERO_TOP = 26
 const HERO_CX = CANVAS_W / 2
 
+// Max rendered width of the username pill (caps very long handles). Shared by
+// the pill render and the layout keep-out estimate so they stay in lockstep.
+const PILL_MAX_W = 780
+
 /** Nominal pixel footprint of the hero sticker, used both to render it and to
  *  reserve a keep-out so badges don't cover it. Width grows with the copy. */
 function heroGeometry(msg: HeroMessage): { w: number; h: number; fontSize: number } {
@@ -61,6 +68,13 @@ function heroGeometry(msg: HeroMessage): { w: number; h: number; fontSize: numbe
     const h = fontSize + 40
     const w = Math.max(240, len * fontSize * 0.6 + 96)
     return { w, h, fontSize }
+}
+
+/** Resolved tilt (deg) for a hero message — explicit override, else a small
+ *  per-variant lean. Shared by the renderer (HeroMessageEl) and the keep-out
+ *  calc so the reserved region matches the *rotated* sticker. */
+function heroTilt(msg: HeroMessage): number {
+    return msg.tilt ?? (msg.variant === 'banner' ? -2 : msg.variant === 'pill' ? -3 : -4)
 }
 
 const USERNAME_BG: Record<NonNullable<ShareAssetD3Props['usernameStyle']>['bg'], string> = {
@@ -97,19 +111,41 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
     const hero = resolvedHero && resolvedHero.text.trim() ? resolvedHero : null
     const heroGeo = useMemo(() => (hero ? heroGeometry(hero) : null), [hero?.text, hero?.variant, hero?.scale])
 
-    const stickers = useMemo(() => {
-        const extraKeepouts: KeepoutEllipse[] = heroGeo
-            ? [{ cx: HERO_CX, cy: HERO_TOP + heroGeo.h / 2, rx: heroGeo.w / 2, ry: heroGeo.h / 2 }]
-            : []
-        return placeStamps(badges, new SeededRandom(seedOverride ?? safeUsername), extraKeepouts)
-    }, [seedOverride, safeUsername, badges, heroGeo])
-
     // Username pill: "peanut.me/<handle>" — the prefix is rendered much smaller
     // than the handle. Colour + typography come from usernameStyle.
     const uHandleSize = usernameFontSize(safeUsername) * (usernameStyle?.scale ?? DEFAULT_USERNAME_STYLE.scale)
     const uPrefixSize = uHandleSize * (usernameStyle?.prefixRatio ?? DEFAULT_USERNAME_STYLE.prefixRatio)
     const uTracking = usernameStyle?.letterSpacing ?? DEFAULT_USERNAME_STYLE.letterSpacing
     const uBg = USERNAME_BG[usernameStyle?.bg ?? DEFAULT_USERNAME_STYLE.bg]
+
+    // Estimate the rendered pill footprint so the layout engine keeps badges
+    // off the *whole* pill (its width varies with the handle + typography), not
+    // just its right edge. Mirrors the pill's render geometry below.
+    const pillBox = useMemo(() => {
+        const PREFIX_CHARS = 'peanut.me/'.length
+        const PAD_X = 80 // 40px horizontal padding each side
+        const BORDER = 10 // 5px border each side
+        const prefixW = PREFIX_CHARS * uPrefixSize * 0.6
+        const handleW = safeUsername.length * uHandleSize * (0.62 + Math.max(0, uTracking))
+        const pillW = Math.min(PILL_MAX_W, prefixW + handleW + PAD_X + BORDER)
+        const pillH = uHandleSize * 1.1 + 30
+        return pillKeepoutBox(pillW, pillH)
+    }, [safeUsername, uPrefixSize, uHandleSize, uTracking])
+
+    const stickers = useMemo(() => {
+        const extraKeepouts: KeepoutEllipse[] = []
+        if (heroGeo && hero) {
+            // Reserve the *rotated* hero bounding box — the sticker is tilted,
+            // so its corners reach beyond the unrotated w×h ellipse.
+            const rad = Math.abs((heroTilt(hero) * Math.PI) / 180)
+            const cos = Math.abs(Math.cos(rad))
+            const sin = Math.abs(Math.sin(rad))
+            const rw = (heroGeo.w * cos + heroGeo.h * sin) / 2
+            const rh = (heroGeo.w * sin + heroGeo.h * cos) / 2
+            extraKeepouts.push({ cx: HERO_CX, cy: HERO_TOP + heroGeo.h / 2, rx: rw, ry: rh })
+        }
+        return placeStamps(badges, new SeededRandom(seedOverride ?? safeUsername), extraKeepouts, pillBox)
+    }, [seedOverride, safeUsername, badges, heroGeo, hero, pillBox])
 
     return (
         <div
@@ -203,8 +239,8 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
             <div
                 className="absolute flex flex-col items-end"
                 style={{
-                    bottom: 48,
-                    right: 56,
+                    bottom: PILL_BOTTOM,
+                    right: PILL_RIGHT,
                     zIndex: 3,
                     animation: animate ? `fadeUp 600ms ease-out ${ANIM_ATTRIBUTION_DELAY}ms both` : 'none',
                 }}
@@ -217,7 +253,7 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                         textTransform: 'lowercase',
                         boxShadow: '0.375rem 0.375rem 0 #000',
                         whiteSpace: 'nowrap',
-                        maxWidth: 780,
+                        maxWidth: PILL_MAX_W,
                         overflow: 'hidden',
                         lineHeight: 1.05,
                         transform: 'rotate(-3deg)',
@@ -292,9 +328,9 @@ const StickerEl: FC<StickerElProps> = ({ sticker, animate, delay }) => {
 const HeroMessageEl: FC<{ hero: HeroMessage; geo: { w: number; h: number; fontSize: number } }> = ({ hero, geo }) => {
     const { text, variant } = hero
     const { w, h, fontSize } = geo
-    // Tilt: explicit override, else a small per-variant lean.
-    const tilt = hero.tilt ?? (variant === 'banner' ? -2 : variant === 'pill' ? -3 : -4)
-    const rot = `rotate(${tilt}deg)`
+    // Tilt: explicit override, else a small per-variant lean (shared with the
+    // layout keep-out via heroTilt so the reserved region matches the render).
+    const rot = `rotate(${heroTilt(hero)}deg)`
 
     if (variant === 'pill') {
         return (

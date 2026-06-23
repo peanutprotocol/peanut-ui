@@ -15,6 +15,7 @@ import {
     CARD_LEFT,
     CARD_TOP,
     placeStamps,
+    pillKeepoutBox,
     buildStatColumns,
     usernameFontSize,
 } from '../shareAssetLayout'
@@ -184,6 +185,33 @@ describe('placeStamps', () => {
         const badges = Array.from({ length: 13 }, (_, i) => badge(`B${i}`))
         const placed = placeStamps(badges, new SeededRandom('kkonrad'))
         expect(placed.length).toBe(13)
+    })
+
+    // The username pill is the asset's "this is ME" anchor — a sticker must
+    // never cover it. The keep-out is sized to the *rendered* pill (which
+    // widens with the handle), so for a wide pill no sticker's bbox may enter
+    // its bottom-right rectangle. (Regression: a fixed x0 only guarded the
+    // pill's right edge, so stickers could land on a long handle.)
+    it('keeps stickers clear of the rendered username pill box', () => {
+        const pill = pillKeepoutBox(700, 132) // ≈ a long "peanut.me/<handle>" pill
+        const seeds = ['kkonrad', 'longusername', 'hugo', 'mara', '0', 'twelvecharsxx']
+        for (let n = 1; n <= 10; n++) {
+            const badges = Array.from({ length: n }, (_, i) => badge(`B${i}`))
+            for (const seed of seeds) {
+                const placed = placeStamps(badges, new SeededRandom(seed), [], pill)
+                for (const s of placed) {
+                    const intrudesRight = s.left + s.width > pill.x0
+                    const intrudesBottom = s.top + s.height > pill.y0
+                    if (intrudesRight && intrudesBottom) {
+                        throw new Error(
+                            `Sticker covers the pill at count=${n} seed="${seed}": ` +
+                                `bbox right=${(s.left + s.width).toFixed(0)} bottom=${(s.top + s.height).toFixed(0)} ` +
+                                `vs pill x0=${pill.x0.toFixed(0)} y0=${pill.y0.toFixed(0)}`
+                        )
+                    }
+                }
+            }
+        }
     })
 })
 

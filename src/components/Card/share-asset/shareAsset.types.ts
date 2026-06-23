@@ -75,10 +75,12 @@ export interface ShareAssetD3Props {
     /** Last 4 of card PAN — rendered on the card face. */
     cardLast4?: string
 
-    /** Optional hero "I got in" message sticker at the top. Null/omitted = none. */
+    /** Optional hero "I got in" message sticker at the top.
+     *  Omitted (`undefined`) = the shipped default hero; `null` = no hero. */
     heroMessage?: HeroMessage | null
 
-    /** Username pill colour + typography. Defaults to pink with auto-fit sizing. */
+    /** Username pill colour + typography. Defaults to a white pill with
+     *  auto-fit sizing. */
     usernameStyle?: UsernameStyle
 
     /**
