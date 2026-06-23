@@ -207,7 +207,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     >
                         <div
                             className={twMerge(
-                                'flex w-full items-center justify-center md:ml-auto md:w-[calc(100%-160px)]',
+                                'flex w-full items-center justify-center md:ml-auto md:w-[calc(100%_-_160px)]',
                                 alignStart && 'items-start',
                                 isSupport && 'h-full',
                                 isUserLoggedIn

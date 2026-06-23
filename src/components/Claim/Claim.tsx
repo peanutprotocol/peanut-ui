@@ -433,7 +433,7 @@ export const Claim = ({}) => {
     return (
         <PageContainer
             alignItems="center"
-            className={twMerge('flex flex-col', !user && !isFetchingUser && 'min-h-[calc(100dvh-110px)]')}
+            className={twMerge('flex flex-col', !user && !isFetchingUser && 'min-h-[calc(100dvh_-_110px)]')}
         >
             {linkState === _consts.claimLinkStateType.LOADING && (
                 <div className="flex flex-col items-center gap-4 px-4">
