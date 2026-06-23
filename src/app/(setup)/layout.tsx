@@ -65,6 +65,15 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
                 <Banner />
             </div>
             {children}
+            {/* Bottom safe-area zone. Mirrors the periwinkle status-bar strip above:
+                on Android 15 edge-to-edge the webview draws under the nav bar, where the
+                page's beige (bg-background) would otherwise show. Fill the inset with the
+                brand periwinkle so the bottom matches the top. No-op on web (inset = 0). */}
+            <div
+                aria-hidden
+                className="pointer-events-none fixed inset-x-0 bottom-0 -z-10 bg-secondary-3"
+                style={{ height: 'env(safe-area-inset-bottom)' }}
+            />
         </>
     )
 }
