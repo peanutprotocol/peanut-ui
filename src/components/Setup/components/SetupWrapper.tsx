@@ -230,7 +230,7 @@ export const SetupWrapper = memo(function SetupWrapper({
         : description
 
     return (
-        <div className="flex min-h-[100dvh] flex-col overflow-hidden">
+        <div className="flex min-h-[calc(100dvh_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))] flex-col overflow-hidden">
             {/* navigation buttons */}
             <Navigation
                 showBackButton={showBackButton}
@@ -260,7 +260,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                     animate={animatePanelIn ? { y: 0 } : undefined}
                     transition={{ type: 'spring', stiffness: 260, damping: 30 }}
                     className={twMerge(
-                        'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pb-[calc(2rem_+_env(safe-area-inset-bottom))] pt-6 md:h-[100dvh] md:justify-center md:space-y-4 md:pb-8',
+                        'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',
                         contentClassName
                     )}
                 >
