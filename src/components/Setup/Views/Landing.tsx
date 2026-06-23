@@ -4,16 +4,26 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useLogin } from '@/hooks/useLogin'
 import * as Sentry from '@sentry/nextjs'
-import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useEffect } from 'react'
+import { disableDemoMode } from '@/utils/demo'
+import { useModalsContext } from '@/context/ModalsContext'
 
 const LandingStep = () => {
     const { handleNext } = useSetupFlow()
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
+    const { openSupportWithMessage } = useModalsContext()
+
+    // The auth landing is a "real auth" surface. Demo mode persists in
+    // localStorage, so without this a prior demo session would make Log In /
+    // Sign up re-enter demo (user = DEMO_USER → routed to the demo home).
+    useEffect(() => {
+        disableDemoMode()
+    }, [])
 
     const handleError = (error: any) => {
         toast.error(error?.message || 'We couldn’t log you in. Please try again.')
@@ -53,9 +63,13 @@ const LandingStep = () => {
                     Log In
                 </Button>
                 <div className="pt-2 text-center">
-                    <Link href="/support" className="text-xs text-grey-1 underline underline-offset-2">
+                    <button
+                        type="button"
+                        onClick={() => openSupportWithMessage('I need help recovering my Peanut wallet: ')}
+                        className="text-xs text-grey-1 underline underline-offset-2"
+                    >
                         Need to recover your Peanut wallet?
-                    </Link>
+                    </button>
                 </div>
             </Card.Content>
         </Card>
