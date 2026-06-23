@@ -190,6 +190,19 @@ describe('bridge.utils', () => {
             })
         })
 
+        it('accepts the exact Prisma enum BANK_GB → GBP / faster_payments (uk-gbp-withdraw-flow)', () => {
+            // The withdraw bank page derives the offramp payload from the account
+            // via destinationDetails → getOfframpConfigFromAccount. A UK account
+            // whose `type` arrives as the raw Prisma enum 'BANK_GB' (not the
+            // projected 'gb') must still map to GBP/faster_payments; the previous
+            // switch's `default` returned an empty rail → "External account ID is
+            // missing.".
+            expect(getOfframpConfigFromAccount({ type: 'BANK_GB' })).toEqual({
+                currency: 'gbp',
+                paymentRail: 'faster_payments',
+            })
+        })
+
         it('throws on Manteca account type — must use the Manteca offramp path', () => {
             expect(() => getOfframpConfigFromAccount({ type: 'manteca' })).toThrow(
                 'Manteca accounts route through a separate offramp path'

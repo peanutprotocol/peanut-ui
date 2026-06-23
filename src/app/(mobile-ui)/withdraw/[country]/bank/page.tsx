@@ -25,7 +25,7 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
 import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
-import { getOfframpCurrencyConfig, getCountryFromPath, railJurisdictionForBank } from '@/utils/bridge.utils'
+import { getOfframpConfigFromAccount, getCountryFromPath, railJurisdictionForBank } from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
 import { useTosGuard } from '@/hooks/useTosGuard'
@@ -160,32 +160,17 @@ export default function WithdrawBankPage() {
     }, [bankAccount, router, amountToWithdraw, country, view])
 
     const destinationDetails = (account: Account) => {
-        let countryId: string
-
-        switch (account.type) {
-            case AccountType.US:
-                countryId = 'US'
-                break
-            case AccountType.IBAN:
-                // Default to a European country that uses EUR/SEPA
-                countryId = 'DE' // Germany as default EU country
-                break
-            case AccountType.CLABE:
-                countryId = 'MX'
-                break
-            case AccountType.GB:
-                countryId = 'GB'
-                break
-            default:
-                return {
-                    currency: '',
-                    paymentRail: '',
-                    externalAccountId: null,
-                }
-        }
-
-        const { currency, paymentRail } = getOfframpCurrencyConfig(countryId)
-
+        // Derive currency + rail from the account's actual type (GB→GBP, IBAN→EUR,
+        // US→USD, CLABE→MXN) rather than re-deriving from a country switch whose
+        // `default` returned an empty currency/rail. A UK account that arrived typed
+        // anything but GB (the pre-BANK_GB BE mistype, or a Prisma-shaped 'BANK_GB'
+        // string) fell through that default → empty payload → "External account ID
+        // is missing.". getOfframpConfigFromAccount tolerates both the projected
+        // ('gb') and Prisma-shaped ('BANK_GB') strings and keeps this flow
+        // consistent with the Claim flow (BankFlowManager). Manteca accounts never
+        // reach this Bridge page (separate /withdraw/manteca route), so its throw
+        // cannot fire here.
+        const { currency, paymentRail } = getOfframpConfigFromAccount(account)
         return {
             currency,
             paymentRail,
