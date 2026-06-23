@@ -30,6 +30,8 @@ interface InputAmountStepProps {
     // required - must be provided by caller based on the payment flow's currency (ARS, BRL, USD)
     limitsCurrency: LimitCurrency
     onBack: () => void
+    // optional warning banner rendered at the top of the step (e.g. PIX-under-maintenance)
+    maintenanceBanner?: React.ReactNode
 }
 
 const InputAmountStep = ({
@@ -46,6 +48,7 @@ const InputAmountStep = ({
     limitsValidation,
     limitsCurrency,
     onBack,
+    maintenanceBanner,
 }: InputAmountStepProps) => {
     if (currencyData?.isLoading) {
         return <PeanutLoading />
@@ -63,6 +66,7 @@ const InputAmountStep = ({
         <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
             <NavHeader title="Add Money" onPrev={onBack} />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
+                {maintenanceBanner}
                 <div className="text-sm font-bold">How much do you want to add?</div>
 
                 <AmountInput
