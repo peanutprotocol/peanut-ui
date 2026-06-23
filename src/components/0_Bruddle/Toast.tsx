@@ -64,7 +64,7 @@ const Toast: React.FC<ToastMessage> = ({ type = 'info', message, content, classN
                 className
             )}
         >
-            {content ?? <p className="break-words text-sm font-bold">{message}</p>}
+            {content ?? <p className="break-words text-center text-sm font-bold">{message}</p>}
         </motion.div>
     )
 }
