@@ -396,7 +396,13 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     payloadWithCountry
                 )
                 if ('error' in externalAccountResponse && externalAccountResponse.error) {
-                    throw new Error(String(externalAccountResponse.error))
+                    // The backend returns a curated, user-facing message for bank-account
+                    // validation failures (e.g. an unverifiable billing address). Surface it
+                    // verbatim — routing it through ErrorHandler would collapse it into the
+                    // generic "contact support" fallback, hiding the actionable detail. (TASK-20194)
+                    const accountError = String(externalAccountResponse.error)
+                    Sentry.captureException(new Error(`External account creation failed: ${accountError}`))
+                    return { error: accountError }
                 }
                 if (!('id' in externalAccountResponse)) {
                     throw new Error('Failed to create external account')
