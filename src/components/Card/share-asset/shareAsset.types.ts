@@ -42,6 +42,11 @@ export interface HeroMessage {
     tilt?: number
 }
 
+/** Which smug peanut mascot to slap on the rejection ("not tonight") asset.
+ *  'none' hides it. cool = pixel-shades flex, mock = grinning point-and-laugh,
+ *  chill = whistling "whatever". */
+export type RejectionMascot = 'none' | 'cool' | 'mock' | 'chill'
+
 /** Background colour for the username pill. */
 export type UsernameBg = 'white' | 'pink' | 'blue'
 
