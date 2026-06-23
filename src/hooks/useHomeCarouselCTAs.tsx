@@ -295,7 +295,13 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        if (!hasKycApproval && !isInFlight) {
+        // Don't push card-eligible users (skip badge / admin grant) to the
+        // region picker. This CTA routes to /profile/identity-verification,
+        // where EU/NA users get `bridge-requirements` + Bridge bank rails — the
+        // detour we steer eligible users away from (they go to /card instead,
+        // which KYCs on `rain-requirements`). `=== false` so we suppress while
+        // card-info is still loading too, mirroring the card-pioneer gate above.
+        if (!hasKycApproval && !isInFlight && hasCardAccessGranted === false) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
                 title: (

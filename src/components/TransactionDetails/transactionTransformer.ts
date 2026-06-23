@@ -18,6 +18,22 @@ import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
 import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/registry'
 
+/** Rain dispute lifecycle status values. Source: Rain dispute.* webhooks. */
+export type DisputeStatus = 'pending' | 'inReview' | 'accepted' | 'rejected' | 'canceled' | 'resolvedByMerchant'
+
+const DISPUTE_STATUSES: ReadonlySet<string> = new Set([
+    'pending',
+    'inReview',
+    'accepted',
+    'rejected',
+    'canceled',
+    'resolvedByMerchant',
+])
+
+function isDisputeStatus(value: unknown): value is DisputeStatus {
+    return typeof value === 'string' && DISPUTE_STATUSES.has(value)
+}
+
 // Mirror of peanut-api-ts `enum TransactionProvider`. Receipts that branch
 // on provider (e.g. Manteca-specific deposit-info row) use this typed
 // value via `extraDataForDrawer.provider` for positive identity rather
@@ -374,6 +390,17 @@ export interface TransactionDetails {
             parentRainTxId: string | null
             rainTransactionId: string | null
             isRefund: boolean
+            /** Populated when Rain has fired any dispute.* webhook for this
+             *  spend. Status drives the drawer's "Disputed — <label>" badge;
+             *  evidenceRequestedMessage prompts the user to upload docs. */
+            dispute: {
+                status: DisputeStatus
+                type: string | null
+                resolvedAt: string | null
+                textEvidence: string | null
+                evidenceRequestedMessage: string | null
+                chargebackRainTxId: string | null
+            } | null
         }
     }
     sourceView?: 'status' | 'history'
@@ -458,6 +485,19 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // Strategy uiStatus wins (e.g. SEND_LINK BOTH → 'cancelled'); otherwise
     // map raw entry.status via the shared helper.
     if (!strategyOverrodeUiStatus) uiStatus = mapEntryStatusToUiStatus(entry, direction)
+
+    // Active dispute trumps the underlying spend's status — a card spend
+    // that's been contested isn't really "completed" from the user's POV,
+    // even though Rain settled it. Flip the pill to `pending` while the
+    // dispute is open. Terminal dispute states (accepted / resolvedByMerchant
+    // / rejected / canceled) restore the underlying status: the chargeback
+    // for accepted disputes arrives as a separate credit transaction; the
+    // others left the original spend standing. Status discrimination beyond
+    // the pill lives on the "Disputed — <label>" sub-row.
+    const disputeStatus = (entry.extraData?.dispute as { status?: string } | null | undefined)?.status
+    if (disputeStatus === 'pending' || disputeStatus === 'inReview') {
+        uiStatus = 'pending'
+    }
 
     // parse the amount from the usdamount string in extradata
     const amount = entry.extraData?.usdAmount
@@ -576,6 +616,24 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                           parentRainTxId: entry.extraData?.parentRainTxId as string | null,
                           rainTransactionId: entry.extraData?.rainTransactionId as string | null,
                           isRefund: !!entry.extraData?.parentRainTxId,
+                          // Dispute lifecycle — null when Rain hasn't fired
+                          // any dispute.* webhook for this spend.
+                          dispute: (() => {
+                              const d = entry.extraData?.dispute as Record<string, unknown> | null | undefined
+                              if (!d || typeof d !== 'object') return null
+                              // Type-guard d.status — any non-DisputeStatus string from
+                              // the wire (sandbox drift, schema bump) should drop the
+                              // whole block rather than leak through.
+                              if (!isDisputeStatus(d.status)) return null
+                              return {
+                                  status: d.status,
+                                  type: (d.type as string | undefined) ?? null,
+                                  resolvedAt: (d.resolvedAt as string | undefined) ?? null,
+                                  textEvidence: (d.textEvidence as string | undefined) ?? null,
+                                  evidenceRequestedMessage: (d.evidenceRequestedMessage as string | undefined) ?? null,
+                                  chargebackRainTxId: (d.chargebackRainTxId as string | undefined) ?? null,
+                              }
+                          })(),
                       }
                     : undefined,
             perkReward: entry.extraData?.perkReward as HistoryEntryPerkReward | undefined,

@@ -34,6 +34,12 @@
  *    - card pioneer modal, carousel cta, and perk rewards hidden from home
  *    - set to false to enable the feature
  *
+ * 7. pixBrazilOnrampMaintenance: warn-only flag for the BRL-via-PIX onramp (Manteca Brazil deposit)
+ *    - shows a "Maintenance" tag on the Pix option in /add-money/brazil
+ *    - shows a warning banner inside the deposit flow (/add-money/brazil/manteca)
+ *    - does NOT block deposits — the option stays usable (warn-only)
+ *    - set to false when PIX deposits are stable again
+ *
  * note: if either mode is enabled, the maintenance banner will show everywhere
  *
  * I HOPE WE NEVER NEED TO USE THIS...
@@ -49,6 +55,7 @@ interface MaintenanceConfig {
     disableXchainWithdraw: boolean
     disableXchainSend: boolean
     disableCardPioneers: boolean
+    pixBrazilOnrampMaintenance: boolean
 }
 
 const underMaintenanceConfig: MaintenanceConfig = {
@@ -58,10 +65,20 @@ const underMaintenanceConfig: MaintenanceConfig = {
     disableXchainWithdraw: true, // set to true to disable cross-chain withdrawals (only allows USDC on Arbitrum)
     disableXchainSend: true, // set to true to disable cross-chain sends (claim, request payments - only allows USDC on Arbitrum)
     disableCardPioneers: true, // set to false to enable the Card Pioneers waitlist feature
+    pixBrazilOnrampMaintenance: true, // set to false when BRL-via-PIX deposits are stable again
 }
 
 // shared user-facing copy for cross-chain disabled paths — keep wording aligned with TokenSelector banner
 export const CROSS_CHAIN_DISABLED_MESSAGE =
     'Cross-chain claims are temporarily unavailable. Try claiming to an external wallet on the same chain as the link, or try again later.'
+
+// shared user-facing copy for the BRL-via-PIX onramp maintenance warning — keep the list tag and
+// the in-flow banner aligned
+export const PIX_BRAZIL_ONRAMP_MAINTENANCE = {
+    badge: 'Maintenance',
+    title: 'PIX deposits are under maintenance',
+    description:
+        'PIX deposits are currently unstable and may be delayed or fail. You can still continue, but service may be unreliable until this is resolved.',
+}
 
 export default underMaintenanceConfig
