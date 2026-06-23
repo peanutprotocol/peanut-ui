@@ -89,6 +89,25 @@ describe('demoRespond — shape-aware fallback (never throws on undefined.map)',
             expect(typeof data.stats?.totalNodes).toBe('number')
         }
     })
+
+    it('POST /charges returns a TCharge with data.id (withdraw "Failed to create charge")', async () => {
+        const { data } = await body('/charges', { method: 'POST' })
+        expect(data.data?.id).toBeTruthy()
+        expect(Array.isArray(data.warnings)).toBe(true)
+    })
+
+    it('GET /request-charges/:id returns a usable charge with requestLink.recipientAddress', async () => {
+        const { data } = await body('/request-charges/demo-charge')
+        expect(data.requestLink?.recipientAddress).toBeTruthy()
+        expect(data.uuid).toBe('demo-charge')
+    })
+
+    it('POST /rhino/deposit returns a deposit address (add-money crypto network crash)', async () => {
+        const { data } = await body('/rhino/deposit', { method: 'POST' })
+        expect(data.depositAddress).toBeTruthy()
+        expect(typeof data.minDepositLimitUsd).toBe('number')
+        expect(Array.isArray(data.supportedChains)).toBe(true)
+    })
 })
 
 describe('demo mode is web-safe', () => {

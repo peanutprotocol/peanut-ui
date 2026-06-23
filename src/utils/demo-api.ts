@@ -106,6 +106,67 @@ const demoRequest = (uuid: string, options?: RequestInit) => {
     }
 }
 
+const demoCharge = () => ({
+    data: { id: 'demo-charge', code: 'DEMO', hosted_url: '', created_at: CREATED_AT, status: 'NEW' },
+    warnings: [],
+})
+
+const demoPayment = (chargeUuid: string) => ({
+    uuid: 'demo-payment',
+    paidTokenAddress: PEANUT_WALLET_TOKEN,
+    payerChainId: CHAIN_ID,
+    payerTransactionHash: '0xdede',
+    createdAt: CREATED_AT,
+    requestCharge: {
+        uuid: chargeUuid,
+        chainId: CHAIN_ID,
+        createdAt: CREATED_AT,
+        tokenAddress: PEANUT_WALLET_TOKEN,
+        tokenAmount: '0',
+        tokenDecimals: PEANUT_WALLET_TOKEN_DECIMALS,
+        requestLink: { recipientAddress: DEMO_ADDRESS },
+    },
+})
+
+const demoRequestCharge = (id: string) => ({
+    uuid: id,
+    createdAt: CREATED_AT,
+    link: '',
+    chainId: CHAIN_ID,
+    tokenAmount: '0',
+    tokenAddress: PEANUT_WALLET_TOKEN,
+    tokenDecimals: PEANUT_WALLET_TOKEN_DECIMALS,
+    tokenType: 'erc20',
+    tokenSymbol: PEANUT_WALLET_TOKEN_SYMBOL,
+    transactionType: 'WITHDRAW',
+    updatedAt: CREATED_AT,
+    payments: [],
+    fulfillmentPayment: null,
+    currencyCode: 'USD',
+    currencyAmount: '0',
+    timeline: [],
+    requestLink: {
+        uuid: 'demo-request',
+        recipientAddress: DEMO_ADDRESS,
+        reference: null,
+        attachmentUrl: null,
+        trackId: null,
+        recipientAccount: {
+            userId: 'demo-user',
+            identifier: DEMO_ADDRESS,
+            type: 'peanut-wallet',
+            user: { username: 'demo' },
+        },
+    },
+})
+
+const demoDepositAddress = () => ({
+    depositAddress: DEMO_ADDRESS,
+    minDepositLimitUsd: 10,
+    maxDepositLimitUsd: 10000,
+    supportedChains: ['arbitrum', 'ethereum', 'base', 'optimism', 'polygon'],
+})
+
 const demoSendLink = (pubKey: string) => ({
     pubKey,
     depositIdx: 0,
@@ -249,9 +310,11 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'PATCH', pattern: '/send-links/:pubKey', handler: ({ params }) => demoSendLink(params.pubKey) },
 
     // charges
+    { method: 'POST', pattern: '/charges', handler: () => demoCharge() },
+    { method: 'POST', pattern: '/charges/:chargeId/payments', handler: ({ params }) => demoPayment(params.chargeId) },
     { method: 'GET', pattern: '/charges/:chargeId/payments', handler: () => [] },
     { method: 'GET', pattern: '/charges/:id', handler: () => ({}) },
-    { method: 'GET', pattern: '/request-charges/:id', handler: () => ({}) },
+    { method: 'GET', pattern: '/request-charges/:id', handler: ({ params }) => demoRequestCharge(params.id) },
 
     // bridge on/off-ramp
     {
@@ -415,6 +478,14 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             tokenSymbol: PEANUT_WALLET_TOKEN_SYMBOL,
         }),
     },
+
+    // rhino (crypto deposit / cross-chain) — return a believable deposit address
+    // (the demo wallet) so the "add money → crypto → choose network" screen renders
+    // its QR instead of crashing on an undefined address.
+    { method: 'POST', pattern: '/rhino/deposit', handler: () => demoDepositAddress() },
+    { method: 'POST', pattern: '/rhino/request-fulfilment', handler: () => demoDepositAddress() },
+    { method: 'GET', pattern: '/rhino/status/:depositAddress', handler: () => ({ status: 'pending' }) },
+    { method: 'POST', pattern: '/rhino/reset-status/:depositAddress', handler: () => ({ status: 'pending' }) },
 
     // misc
     { method: 'POST', pattern: '/is-valid-bic', handler: () => ({ isValid: true }) },
