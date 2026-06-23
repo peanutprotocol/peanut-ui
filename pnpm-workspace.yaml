@@ -1,0 +1,22 @@
+# pnpm 10 reads its settings from here instead of .npmrc, so npm no longer
+# warns about these (pnpm-only) keys.
+
+# Turbopack OTel instrumentation hoisting workaround.
+# https://github.com/vercel/next.js/issues/68805
+publicHoistPattern:
+  - '*import-in-the-middle*'
+  - '*require-in-the-middle*'
+
+# Supply-chain freshness floor in minutes (14 days): block deps published more
+# recently to dodge freshly-compromised releases. Emergency override:
+#   PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 pnpm install
+minimumReleaseAge: 20160
+
+# Exempt from the floor: protobufjs (critical RCE fix, GHSA-xx7c-cv9c-4p4r) and
+# the @capgo/* native plugins (rolling Capacitor 8.x releases the build needs,
+# which the floor would otherwise block). Revisit and prune periodically.
+minimumReleaseAgeExclude:
+  - protobufjs
+  - '@capgo/capacitor-passkey'
+  - '@capgo/capacitor-crisp'
+  - '@capgo/capacitor-updater'
