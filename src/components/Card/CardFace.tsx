@@ -138,7 +138,7 @@ const CardFace: FC<Props> = ({
                             <div className="flex items-end justify-between">
                                 <div className="text-s flex gap-6">
                                     <div>
-                                        <div className="opacity-70">Expiry</div>
+                                        {/* "Expiry" label dropped — value row stays one line so PAN/name clear the artwork */}
                                         {/* ph-no-capture: expiry digits out of recordings. */}
                                         <div className="ph-no-capture font-bold">
                                             {String(revealed.expiryMonth).padStart(2, '0')}/
@@ -147,7 +147,7 @@ const CardFace: FC<Props> = ({
                                     </div>
                                     <div className="flex items-end gap-1">
                                         <div>
-                                            <div className="opacity-70">CVV</div>
+                                            {/* "CVV" label dropped — value only */}
                                             {/* ph-no-capture: CVV out of recordings. */}
                                             <div className="ph-no-capture font-bold">{revealed.cvv}</div>
                                         </div>
@@ -180,11 +180,11 @@ const CardFace: FC<Props> = ({
                             <div className="h-7 w-56 animate-pulse rounded bg-white/40" />
                             <div className="mt-2 flex items-end gap-6 text-xs">
                                 <div>
-                                    <div className="opacity-70">Expiry</div>
+                                    {/* label dropped to match the revealed layout — no height jump on reveal */}
                                     <div className="mt-1 h-4 w-12 animate-pulse rounded bg-white/40" />
                                 </div>
                                 <div>
-                                    <div className="opacity-70">CVV</div>
+                                    {/* label dropped to match the revealed layout */}
                                     <div className="mt-1 h-4 w-10 animate-pulse rounded bg-white/40" />
                                 </div>
                             </div>
