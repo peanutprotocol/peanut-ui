@@ -103,8 +103,17 @@ const CardRejectionScreen: FC<Props> = ({
             })
         } catch (err) {
             if (err instanceof Error && err.name === 'AbortError') return
-            console.error('[card-rejection] appeal share failed', err)
+            // Capture/native-share failed (e.g. html-to-image error or an OS
+            // share-sheet refusal). The appeal is the whole point of this
+            // screen — don't drop it silently. Fall back to a text-only tweet
+            // so the @joinpeanut tag still goes out.
+            console.error('[card-rejection] appeal share failed; falling back to intent', err)
             Sentry.captureException(err, { tags: { feature: 'rejection-asset', action: 'appeal' } })
+            posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, {
+                source: 'rejection-appeal',
+                method: 'twitter-intent-error-fallback',
+            })
+            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(caption)}`, '_blank', 'noopener')
         } finally {
             setSharing(false)
         }
