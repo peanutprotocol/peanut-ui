@@ -257,6 +257,23 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     externalAccountId,
                 },
                 features: { allowAnyFromAddress: true },
+                // travel rule: pass claimer details for third-party guest claims
+                ...(isGuestFlow &&
+                    account.firstName &&
+                    account.lastName && {
+                        beneficiaryName: `${account.firstName} ${account.lastName}`,
+                        ...(account.street &&
+                            account.city &&
+                            account.country && {
+                                beneficiaryAddress: {
+                                    street: account.street,
+                                    city: account.city,
+                                    country: account.country,
+                                    state: account.state || undefined,
+                                    postalCode: account.postalCode || undefined,
+                                },
+                            }),
+                    }),
             }
 
             const offrampResponse = isGuestFlow

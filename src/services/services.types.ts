@@ -273,6 +273,15 @@ export interface TCreateOfframpRequest {
     features?: {
         allowAnyFromAddress?: boolean
     }
+    // travel rule: claimer (beneficiary) details for third-party guest claims
+    beneficiaryName?: string
+    beneficiaryAddress?: {
+        street: string
+        city: string
+        country: string
+        state?: string
+        postalCode?: string
+    }
 }
 
 export interface TCreateOfframpResponse {
