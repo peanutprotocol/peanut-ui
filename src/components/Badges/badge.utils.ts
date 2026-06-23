@@ -186,6 +186,11 @@ export const BADGES: Record<string, BadgeMeta> = {
         path: '/badges/touched_grass.svg',
         description: 'You logged off and touched real grass with Peanut.',
     },
+    PSYOPS_DIVISION: {
+        path: '/badges/psyops_division.svg',
+        description: 'Enlisted in the Psyops Division. Welcome to the influence game.',
+        displayName: 'Psyops Division',
+    },
     EVENT_ALUMNI: {
         path: '/badges/event_alumni.svg',
         description: 'Old school. You were in the room before most.',

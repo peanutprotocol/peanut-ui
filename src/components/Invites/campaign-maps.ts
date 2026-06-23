@@ -14,6 +14,7 @@ export const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
     touched_grass: 'TOUCHED_GRASS',
     survivor: 'SUPPORT_SURVIVOR',
     notsoshhh: 'NOT_SO_SHHHH',
+    psyops: 'PSYOPS_DIVISION',
 }
 
 // Map inbound `utm_campaign` values to the badge codes the backend whitelists.
