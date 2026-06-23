@@ -132,20 +132,10 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
         [createToast, dismiss]
     )
 
-    const getPositionClasses = (position: ToastPosition = 'top-right') => {
-        const positions: Record<ToastPosition, string> = {
-            'top-right': 'top-4 right-4',
-            'top-left': 'top-4 left-4',
-            'bottom-right': 'bottom-[100px] right-4',
-            'bottom-left': 'bottom-[100px] left-4',
-        }
-        return positions[position]
-    }
-
     return (
         <>
             <ToastContext.Provider value={contextValue}>
-                <div className={`fixed z-[99999] flex flex-col gap-2 ${getPositionClasses('bottom-right')}`}>
+                <div className="fixed inset-x-0 bottom-[100px] z-[99999] flex flex-col items-center gap-2 px-4">
                     <AnimatePresence mode="sync">
                         {toasts.map((toast) => (
                             <Toast key={toast.id} {...toast} />
