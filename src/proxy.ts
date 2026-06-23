@@ -3,7 +3,7 @@
 // https://nextjs.org/docs/messages/middleware-to-proxy
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
-import maintenanceConfig from '@/config/underMaintenance.config'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
@@ -15,7 +15,7 @@ export function proxy(request: NextRequest) {
     // }
 
     // check if full maintenance mode is enabled
-    if (maintenanceConfig.enableFullMaintenance) {
+    if (underMaintenanceConfig.enableFullMaintenance) {
         const allowedPaths = ['/', '/maintenance', '/apple-app-site-association', '/support']
         if (
             !allowedPaths.includes(pathname) &&

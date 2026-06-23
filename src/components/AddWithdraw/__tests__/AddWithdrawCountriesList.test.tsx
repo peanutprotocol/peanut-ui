@@ -239,7 +239,7 @@ describe('AddWithdrawCountriesList — bank gate', () => {
 
 /**
  * BRL-via-PIX onramp is unstable, so the Pix option is flagged "under maintenance"
- * (config: pixBrazilOnrampMaintenance) — warn-only: it stays visible and clickable.
+ * (config: enablePixOnrampMaintenanceWarning) — warn-only: it stays visible and clickable.
  */
 describe('AddWithdrawCountriesList — PIX onramp maintenance tag', () => {
     // snapshot/restore the shipped flag so each test can flip it without leaking state —
@@ -250,15 +250,15 @@ describe('AddWithdrawCountriesList — PIX onramp maintenance tag', () => {
         mockPush.mockClear()
         // a ready gate so a click can navigate — proving the option is not blocked
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
-        originalPixMaintenance = underMaintenanceConfig.pixBrazilOnrampMaintenance
+        originalPixMaintenance = underMaintenanceConfig.enablePixOnrampMaintenanceWarning
     })
 
     afterEach(() => {
-        underMaintenanceConfig.pixBrazilOnrampMaintenance = originalPixMaintenance
+        underMaintenanceConfig.enablePixOnrampMaintenanceWarning = originalPixMaintenance
     })
 
     it('tags the Pix option "Maintenance" but keeps it clickable (warn-only)', () => {
-        underMaintenanceConfig.pixBrazilOnrampMaintenance = true
+        underMaintenanceConfig.enablePixOnrampMaintenanceWarning = true
 
         render(<AddWithdrawCountriesList flow="add" />)
 
@@ -271,7 +271,7 @@ describe('AddWithdrawCountriesList — PIX onramp maintenance tag', () => {
     })
 
     it('shows no maintenance tag when the flag is off, and never tags non-Pix methods', () => {
-        underMaintenanceConfig.pixBrazilOnrampMaintenance = false
+        underMaintenanceConfig.enablePixOnrampMaintenanceWarning = false
 
         render(<AddWithdrawCountriesList flow="add" />)
 

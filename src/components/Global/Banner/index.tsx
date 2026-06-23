@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { MaintenanceBanner } from './MaintenanceBanner'
 import { MarqueeWrapper } from '../MarqueeWrapper'
-import maintenanceConfig from '@/config/underMaintenance.config'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { HandThumbsUp } from '@/assets'
 import Image from 'next/image'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -16,7 +16,7 @@ export function Banner() {
     if (!pathname) return null
 
     // check if maintenance banner OR full maintenance is enabled - show on all pages
-    if (maintenanceConfig.enableMaintenanceBanner || maintenanceConfig.enableFullMaintenance) {
+    if (underMaintenanceConfig.enableMaintenanceBanner || underMaintenanceConfig.enableFullMaintenance) {
         return <MaintenanceBanner />
     }
 
