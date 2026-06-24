@@ -22,8 +22,19 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import ContactsView from './Contacts.view'
 import { ValidatedUsernameWrapper } from '@/components/Username/ValidatedUsernameWrapper'
 import { DirectSendPageWrapper } from '@/features/payments/flows/direct-send/DirectSendPageWrapper'
-import { SemanticRequestPageWrapper } from '@/features/payments/flows/semantic-request/SemanticRequestPageWrapper'
 import { isAddress } from 'viem'
+import dynamic from 'next/dynamic'
+
+// Lazy — only needed for address/ENS recipients, and pulls the heavy
+// TokenSelector → wagmi config graph. Static-importing it bloats the common
+// username path and breaks jest suites that don't mock that graph.
+const SemanticRequestPageWrapper = dynamic(
+    () =>
+        import('@/features/payments/flows/semantic-request/SemanticRequestPageWrapper').then(
+            (m) => m.SemanticRequestPageWrapper
+        ),
+    { ssr: false }
+)
 
 export const SendRouterView = () => {
     const router = useRouter()

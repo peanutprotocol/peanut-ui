@@ -6,7 +6,6 @@ import { getAuthHeaders } from '@/utils/auth-token'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { isDemoMode } from '@/utils/demo'
-import { demoRespond } from '@/utils/demo-api'
 
 export { ESendLinkStatus } from '@/services/services.types'
 export type { SendLinkStatus, SendLink } from '@/services/services.types'
@@ -45,8 +44,10 @@ type UpdateLinkBody = {
 export const sendLinksApi = {
     create: async (sendLink: CreateLinkBody): Promise<SendLink> => {
         // This call bypasses callApi (multipart upload), so the demo interceptor
-        // is invoked explicitly here.
+        // is invoked explicitly here. Lazy import keeps the demo module out of
+        // this service's module graph on web/tests.
         if (isDemoMode()) {
+            const { demoRespond } = await import('@/utils/demo-api')
             return jsonParse(await (await demoRespond('/send-links', { method: 'POST' })).text())
         }
 

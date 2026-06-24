@@ -2,6 +2,7 @@
 
 import ActionModal from '@/components/Global/ActionModal'
 import { useRainCooldown } from '@/context/RainCooldownContext'
+import DocsLink from '@/components/Global/DocsLink'
 
 /**
  * Shown the first time the user trips Rain's withdrawal-signature lock in a
@@ -36,14 +37,9 @@ const RainCooldownIntroModal = () => {
                 },
             ]}
             footer={
-                <a
-                    href="/en/help/card-collateral"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block pt-2 text-center text-sm text-black underline"
-                >
+                <DocsLink href="/en/help/card-collateral" className="block pt-2 text-center text-sm text-black underline">
                     Read more
-                </a>
+                </DocsLink>
             }
         />
     )

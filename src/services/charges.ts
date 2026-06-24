@@ -10,13 +10,14 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
 import { getAuthToken } from '@/utils/auth-token'
 import { apiFetch, serverFetch } from '@/utils/api-fetch'
 import { isDemoMode } from '@/utils/demo'
-import { demoRespond } from '@/utils/demo-api'
 
 export const chargesApi = {
     create: async (data: CreateChargeRequest): Promise<TCharge> => {
         // This call bypasses callApi (multipart FormData via fetchWithSentry), so
-        // the demo interceptor is invoked explicitly here.
+        // the demo interceptor is invoked explicitly here. Lazy import keeps the
+        // demo module out of this service's module graph on web/tests.
         if (isDemoMode()) {
+            const { demoRespond } = await import('@/utils/demo-api')
             return (await demoRespond('/charges', { method: 'POST' })).json()
         }
 

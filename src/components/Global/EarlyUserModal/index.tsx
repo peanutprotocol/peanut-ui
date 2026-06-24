@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import ActionModal from '../ActionModal'
 import ShareButton from '../ShareButton'
+import DocsLink from '@/components/Global/DocsLink'
 import { generateInviteCodeLink } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
 import { updateUserById } from '@/app/actions/users'
@@ -50,14 +51,9 @@ const EarlyUserModal = () => {
                     <ShareButton url={inviteLink} title="Share your invite link">
                         Share Invite link
                     </ShareButton>
-                    <a
-                        className="text-sm text-grey-1 underline"
-                        href="/en/help"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
+                    <DocsLink href="/en/help" className="text-sm text-grey-1 underline">
                         Learn more
-                    </a>
+                    </DocsLink>
                 </>
             }
         />
