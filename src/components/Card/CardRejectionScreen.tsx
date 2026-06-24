@@ -78,6 +78,31 @@ const CardRejectionScreen: FC<Props> = ({
 
     const handleAppeal = async (): Promise<void> => {
         const caption = pickRejectionCaption()
+
+        // Appeal = tweet AND join the waitlist. Joining is NOT access — release
+        // stays manual (admin grant) — it just drops the appealer into the
+        // userId-keyed waitlist queue we grant from by hand, and flips them to
+        // the friendly cooldown after they share. `source: 'appeal'` lets
+        // PostHog tell appealers apart from quiet "Join anyway" joiners. Same
+        // idempotent call the secondary button makes. Fire it in PARALLEL with
+        // the capture, but defer onJoined() (which unmounts this screen) to the
+        // finally so we never yank captureRef out from under captureShareAsset.
+        const joined = cardApi
+            .joinWaitlist()
+            .then((res) => {
+                posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_JOINED, { position: res.position, source: 'appeal' })
+            })
+            .catch((e) => {
+                // Non-fatal: the tweet still goes out, and the CARD_SHARE_ASSET_SHARED
+                // appeal event is the backstop signal. They can also use "Join
+                // the waitlist anyway".
+                console.error('[card-rejection] appeal waitlist-join failed', e)
+                posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_JOIN_FAILED, {
+                    error_name: e instanceof Error ? e.name : 'unknown',
+                    source: 'appeal',
+                })
+            })
+
         // Text-only appeal: opens the X composer with the caption (which tags
         // @joinpeanut). The image doesn't attach via the intent URL, but the
         // tag — the point of the appeal — still goes out.
@@ -111,6 +136,12 @@ const CardRejectionScreen: FC<Props> = ({
             tweetIntent('twitter-intent-error-fallback')
         } finally {
             setSharing(false)
+            // Now that the capture/share UI is done, refetch /card. onJoined()
+            // only shows the cooldown screen if the join actually persisted —
+            // a failed join leaves them here (no lying "you're in"), able to
+            // retry via "Join the waitlist anyway".
+            await joined
+            onJoined?.()
         }
     }
 
