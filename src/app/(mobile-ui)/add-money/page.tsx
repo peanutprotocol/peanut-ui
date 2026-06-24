@@ -17,7 +17,7 @@ import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { checkIfInternalNavigation, getRedirectUrl, clearRedirectUrl, getFromLocalStorage } from '@/utils/general.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { addMoneyBankUrl } from '@/utils/native-routes'
+import { addMoneyCountryUrl } from '@/utils/native-routes'
 
 export default function AddMoneyPage() {
     const router = useRouter()
@@ -68,10 +68,7 @@ export default function AddMoneyPage() {
             method_type: 'bank',
             country: country.path,
         })
-        // User already chose Bank Transfer (this handler only renders in the bank
-        // branch), so go straight to the bank step — don't re-show the method
-        // picker on /add-money/[country] (that was the double "select bank twice").
-        router.push(addMoneyBankUrl(country.path))
+        router.push(addMoneyCountryUrl(country.path))
     }
 
     // native app: render sub-views based on query params
