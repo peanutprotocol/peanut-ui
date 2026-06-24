@@ -19,7 +19,7 @@ export const WIN_CAPTIONS: readonly string[] = [
     'devconnect was just the start — peanut card is here.',
     'from a devconnect booth to my wallet. peanut card 🥜',
     'you saw peanut at devconnect. now watch this.',
-    'can’t talk — got the peanut card 🤫',
+    "can't talk — got the peanut card 🤫",
     "shhhh. you didn't see this.",
     "the nuttiest card in crypto, and it's mine.",
     'banked by a peanut. unbothered.',
