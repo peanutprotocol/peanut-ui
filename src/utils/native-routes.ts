@@ -12,6 +12,14 @@ export function sendUrl(username: string): string {
     return isCapacitor() ? `/send?recipient=${encodeURIComponent(username)}` : `/send/${username}`
 }
 
+// Pay/send to an arbitrary recipient PATH — covers usernames AND addresses/ENS,
+// optionally with chain + amount + token (e.g. `0xabc@1/100usdc`, `vitalik.eth`).
+// Web uses the [...recipient] catch-all; native (no dynamic routes) funnels it
+// into /send?recipient=, which SendRouterView dispatches by recipient type.
+export function recipientPayUrl(path: string): string {
+    return isCapacitor() ? `/send?recipient=${encodeURIComponent(path)}` : `/${path}`
+}
+
 export function requestUrl(username: string): string {
     return isCapacitor() ? `/request?recipient=${encodeURIComponent(username)}` : `/request/${username}`
 }

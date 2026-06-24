@@ -16,6 +16,7 @@ import { serverFetch } from '@/utils/api-fetch'
 import { openExternalUrl } from '@/utils/capacitor'
 import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
 import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
+import { recipientPayUrl, qrClaimUrl } from '@/utils/native-routes'
 import * as Sentry from '@sentry/nextjs'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
@@ -252,11 +253,11 @@ export default function QRScannerOverlay() {
                             if (lookup.claimed && lookup.redirectUrl) {
                                 redirectUrl = lookup.redirectUrl
                             } else {
-                                redirectUrl = `/qr/${redirectQrCode}`
+                                redirectUrl = qrClaimUrl(redirectQrCode)
                             }
                         } catch (error) {
                             console.error('Error checking redirect QR:', error)
-                            redirectUrl = `/qr/${redirectQrCode}`
+                            redirectUrl = qrClaimUrl(redirectQrCode)
                         }
                     } else {
                         redirectUrl = path
@@ -265,24 +266,28 @@ export default function QRScannerOverlay() {
                 break
             case EQrType.EVM_ADDRESS:
                 {
-                    toConfirmUrl = `/${normalized}`
+                    // recipientPayUrl → web: /<addr> ([...recipient]); native: /send?recipient=<addr>
+                    toConfirmUrl = recipientPayUrl(normalized)
                 }
                 break
             case EQrType.EIP_681:
                 {
                     try {
                         const { address, chainId, amount, tokenSymbol } = parseEip681(normalized)
-                        toConfirmUrl = `/${address}`
+                        // build the recipient PATH (no leading slash), then route it
+                        // through recipientPayUrl for native query-param compatibility.
+                        let path = address
                         if (chainId) {
-                            toConfirmUrl += `@${chainId}`
+                            path += `@${chainId}`
                             if (tokenSymbol) {
-                                toConfirmUrl += `/`
+                                path += `/`
                                 if (amount) {
-                                    toConfirmUrl += `${amount}`
+                                    path += `${amount}`
                                 }
-                                toConfirmUrl += `${tokenSymbol}`
+                                path += `${tokenSymbol}`
                             }
                         }
+                        toConfirmUrl = recipientPayUrl(path)
                     } catch (error) {
                         toast.error('Error parsing EIP-681 URL')
                         Sentry.captureException(error)
@@ -292,7 +297,7 @@ export default function QRScannerOverlay() {
             case EQrType.ENS_NAME: {
                 const resolvedAddress = await resolveEns(normalized)
                 if (resolvedAddress) {
-                    toConfirmUrl = `/${normalized}`
+                    toConfirmUrl = recipientPayUrl(normalized)
                 } else {
                     showModal(EModalType.UNRECOGNIZED)
                     return { success: true }

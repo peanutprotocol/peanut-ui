@@ -108,6 +108,11 @@ describe('demoRespond — shape-aware fallback (never throws on undefined.map)',
         expect(typeof data.minDepositLimitUsd).toBe('number')
         expect(Array.isArray(data.supportedChains)).toBe(true)
     })
+
+    it('GET /ens/:name resolves to an address (so ENS sends complete in demo)', async () => {
+        const { data } = await body('/ens/vitalik.eth')
+        expect(data.address).toMatch(/^0x[a-fA-F0-9]{40}$/)
+    })
 })
 
 describe('demo mode is web-safe', () => {
