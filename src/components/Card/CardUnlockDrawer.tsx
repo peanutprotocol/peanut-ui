@@ -78,11 +78,7 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
                             value={hideUsername}
                             onChange={(e) => setHideUsername(e.target.checked)}
                         />
-                        <ShareAssetActions
-                            captureRef={captureRef}
-                            source="history-replay"
-                            shareText="I got my Peanut card. shhhh."
-                        />
+                        <ShareAssetActions captureRef={captureRef} source="history-replay" />
                     </div>
                 </div>
             </DrawerContent>

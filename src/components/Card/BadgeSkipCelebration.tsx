@@ -184,11 +184,7 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
                     value={hideUsername}
                     onChange={(e) => setHideUsername(e.target.checked)}
                 />
-                <ShareAssetActions
-                    captureRef={captureRef}
-                    source="celebration"
-                    shareText="I got my Peanut card. shhhh."
-                />
+                <ShareAssetActions captureRef={captureRef} source="celebration" />
                 <Button onClick={onContinue} variant="stroke" className="w-full">
                     Continue to your card
                 </Button>
