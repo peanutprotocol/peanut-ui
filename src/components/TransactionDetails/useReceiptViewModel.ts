@@ -10,6 +10,7 @@ import {
 import {
     hasShareableReceipt,
     isCardPaymentEntry,
+    isCardSpend as isCardSpendTransaction,
     isFxBearingFlow,
     isDirectSendEntry,
     isMantecaOnrampEntry,
@@ -46,6 +47,7 @@ export interface ReceiptViewModel {
     isPendingRequester: boolean
     isPendingSentLink: boolean
     isQRPayment: boolean
+    isCardSpend: boolean
 
     /** Country resolved from the transaction's currency code (used by the
      *  Manteca deposit-info row for the country-specific address label). */
@@ -295,6 +297,7 @@ export function useReceiptViewModel(
     }, [transaction])
 
     const isQRPayment = transaction ? isQRPaymentTransaction(transaction) : false
+    const isCardSpend = transaction ? isCardSpendTransaction(transaction) : false
     const formattedTotalAmountCollected = formatCurrency(transaction?.totalAmountCollected?.toString() ?? '0', 2, 0)
 
     return {
@@ -305,6 +308,7 @@ export function useReceiptViewModel(
         isPendingRequester,
         isPendingSentLink,
         isQRPayment,
+        isCardSpend,
         country,
         rowVisibilityConfig,
         shouldHideBorder,

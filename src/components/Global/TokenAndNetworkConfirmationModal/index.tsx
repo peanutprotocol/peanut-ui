@@ -2,11 +2,13 @@ import ActionModal from '@/components/Global/ActionModal'
 import { Slider } from '@/components/Slider'
 import ChainChip from '@/components/AddMoney/components/ChainChip'
 import {
-    RHINO_SUPPORTED_CHAINS,
     RHINO_SUPPORTED_EVM_CHAINS,
     RHINO_SUPPORTED_OTHER_CHAINS,
     RHINO_SUPPORTED_TOKENS,
 } from '@/constants/rhino.consts'
+
+const VISIBLE_EVM_CHAINS = 6
+const overflowEvmCount = RHINO_SUPPORTED_EVM_CHAINS.length - VISIBLE_EVM_CHAINS
 
 export default function TokenAndNetworkConfirmationModal({
     onClose,
@@ -38,14 +40,16 @@ export default function TokenAndNetworkConfirmationModal({
                             {RHINO_SUPPORTED_OTHER_CHAINS.map((chain) => (
                                 <ChainChip key={chain.name} chainName={chain.name} chainSymbol={chain.logoUrl} />
                             ))}
-                            {RHINO_SUPPORTED_EVM_CHAINS.slice(0, 6).map((chain) => (
+                            {RHINO_SUPPORTED_EVM_CHAINS.slice(0, VISIBLE_EVM_CHAINS).map((chain) => (
                                 <ChainChip key={chain.name} chainName={chain.name} chainSymbol={chain.logoUrl} />
                             ))}
-                            <ChainChip
-                                chainName={'+4 EVM'}
-                                logo="plus"
-                                logoClassName="bg-black rounded-full text-white"
-                            />
+                            {overflowEvmCount > 0 && (
+                                <ChainChip
+                                    chainName={`+${overflowEvmCount} EVM`}
+                                    logo="plus"
+                                    logoClassName="bg-black rounded-full text-white"
+                                />
+                            )}
                         </div>
                     </div>
 

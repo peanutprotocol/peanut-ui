@@ -174,6 +174,9 @@ export interface RainCardDetailsResponse {
     expiryYear: number
     last4: string
     network: string
+    /** Registered cardholder name from Rain. Best-effort on the backend, so it
+     *  may be absent if the Rain user lookup failed. */
+    cardholderName?: string
 }
 
 export type RainLimitFrequency = 'perAuthorization' | 'per24HourPeriod' | 'per30DayPeriod' | 'perAllTime'

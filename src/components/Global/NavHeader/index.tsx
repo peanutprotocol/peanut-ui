@@ -32,7 +32,7 @@ const NavHeader = ({
         <div className="relative flex w-full flex-row items-center justify-between md:block">
             {!onPrev ? (
                 <Link href={href ?? '/home'} className="md:hidden">
-                    <Button variant="stroke" className="h-7 w-7 p-0">
+                    <Button variant="stroke" className="h-7 w-7 p-0" data-testid="nav-back">
                         <Icon
                             name={icon}
                             size={20}
@@ -41,7 +41,13 @@ const NavHeader = ({
                     </Button>
                 </Link>
             ) : (
-                <Button variant="stroke" className="h-7 w-7 p-0" onClick={onPrev} disabled={disableBackBtn}>
+                <Button
+                    variant="stroke"
+                    className="h-7 w-7 p-0"
+                    onClick={onPrev}
+                    disabled={disableBackBtn}
+                    data-testid="nav-back"
+                >
                     <Icon
                         name={icon}
                         size={20}

@@ -8,11 +8,7 @@ import InfoCard from '@/components/Global/InfoCard'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import {
-    PEANUT_WALLET_CHAIN,
-    PEANUT_WALLET_TOKEN_SYMBOL,
-    PEANUT_WALLET_TOKEN_DECIMALS,
-} from '@/constants/zerodev.consts'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
@@ -24,8 +20,9 @@ import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
+import { INSUFFICIENT_BALANCE_MESSAGE, isAmountWithinBalance } from '@/utils/balance.utils'
 import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
-import { getOfframpCurrencyConfig, getCountryFromPath, railJurisdictionForBank } from '@/utils/bridge.utils'
+import { getOfframpConfigFromAccount, getCountryFromPath, railJurisdictionForBank } from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
 import { useAuth } from '@/context/authContext'
 import { useTosGuard } from '@/hooks/useTosGuard'
@@ -33,6 +30,8 @@ import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
+import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
+import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -41,7 +40,6 @@ import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/count
 import { isBridgeSupportedCountry, getRegionIntent } from '@/utils/regions.utils'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
-import { parseUnits } from 'viem'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawCountryUrl } from '@/utils/native-routes'
@@ -92,6 +90,18 @@ export default function WithdrawBankPage() {
     const bankCountry = useMemo(() => railJurisdictionForBank(getCountryFromPath(country)?.id), [country])
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     const sumsubFlow = useMultiPhaseKycFlow({})
+    // A ready bank rail can still carry a future-dated requirement (the gate's
+    // `advisory`). Offer it as a skippable pre-empt before the withdrawal.
+    const advisory = gate.kind === 'ready' ? gate.advisory : undefined
+    const { intercept: advisoryIntercept, modalProps: advisoryModalProps } = useAdvisoryPreempt({
+        advisory,
+        isLoading: sumsubFlow.isLoading,
+        // Route through the self-heal resubmit path (reheal-tagged action) so the
+        // completed submission round-trips to Bridge. start-action mints a plain
+        // token whose webhook completion has no Bridge relay → answers are dropped.
+        onCompleteNow: () =>
+            advisory ? sumsubFlow.handleSelfHealResubmit('BRIDGE', advisory.requirementKey) : Promise.resolve(),
+    })
     const [showKycModal, setShowKycModal] = useState(false)
     const { setIsSupportModalOpen } = useModalsContext()
 
@@ -146,32 +156,17 @@ export default function WithdrawBankPage() {
     }, [bankAccount, router, amountToWithdraw, country, view])
 
     const destinationDetails = (account: Account) => {
-        let countryId: string
-
-        switch (account.type) {
-            case AccountType.US:
-                countryId = 'US'
-                break
-            case AccountType.IBAN:
-                // Default to a European country that uses EUR/SEPA
-                countryId = 'DE' // Germany as default EU country
-                break
-            case AccountType.CLABE:
-                countryId = 'MX'
-                break
-            case AccountType.GB:
-                countryId = 'GB'
-                break
-            default:
-                return {
-                    currency: '',
-                    paymentRail: '',
-                    externalAccountId: null,
-                }
-        }
-
-        const { currency, paymentRail } = getOfframpCurrencyConfig(countryId)
-
+        // Derive currency + rail from the account's actual type (GB→GBP, IBAN→EUR,
+        // US→USD, CLABE→MXN) rather than re-deriving from a country switch whose
+        // `default` returned an empty currency/rail. A UK account that arrived typed
+        // anything but GB (the pre-BANK_GB BE mistype, or a Prisma-shaped 'BANK_GB'
+        // string) fell through that default → empty payload → "External account ID
+        // is missing.". getOfframpConfigFromAccount tolerates both the projected
+        // ('gb') and Prisma-shaped ('BANK_GB') strings and keeps this flow
+        // consistent with the Claim flow (BankFlowManager). Manteca accounts never
+        // reach this Bridge page (separate /withdraw/manteca route), so its throw
+        // cannot fire here.
+        const { currency, paymentRail } = getOfframpConfigFromAccount(account)
         return {
             currency,
             paymentRail,
@@ -193,7 +188,7 @@ export default function WithdrawBankPage() {
         return 'N/A'
     }
 
-    const handleCreateAndInitiateOfframp = async () => {
+    const proceedWithOfframp = async () => {
         if (gate.kind !== 'ready') {
             // Loading and waiting-on-provider both mean "user has no action to
             // take" — silently no-op instead of bouncing them through Sumsub.
@@ -327,6 +322,11 @@ export default function WithdrawBankPage() {
         }
     }
 
+    // Offer the skippable advisory pre-empt once, then run the offramp. When the
+    // gate isn't `ready` (or nothing is future-dated) this is a no-op and
+    // proceedWithOfframp runs straight away (it handles the not-ready cases).
+    const handleCreateAndInitiateOfframp = () => advisoryIntercept(() => void proceedWithOfframp())
+
     const countryCodeForFlag = () => {
         if (!bankAccount?.details?.countryCode) return ''
         const code =
@@ -351,12 +351,9 @@ export default function WithdrawBankPage() {
             return
         }
 
-        const withdrawAmount = parseUnits(amountToWithdraw, PEANUT_WALLET_TOKEN_DECIMALS)
-        if (withdrawAmount > balance) {
-            setBalanceErrorMessage('Not enough balance to complete withdrawal.')
-        } else {
-            setBalanceErrorMessage(null)
-        }
+        // gate on the displayed total; an in-transit shortfall passes here and
+        // fails late with the settling message at execution.
+        setBalanceErrorMessage(isAmountWithinBalance(amountToWithdraw, balance) ? null : INSUFFICIENT_BALANCE_MESSAGE)
     }, [amountToWithdraw, balance, hasPendingTransactions, isLoading])
 
     if (!bankAccount) {
@@ -550,6 +547,7 @@ export default function WithdrawBankPage() {
                 providerMessage={getGateUserMessage(gate)}
                 regionName={getCountryFromPath(country)?.title}
             />
+            <AdvisoryPreemptModal {...advisoryModalProps} />
             <SumsubKycModals flow={sumsubFlow} />
         </div>
     )

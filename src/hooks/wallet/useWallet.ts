@@ -14,7 +14,12 @@ import { useBalance } from './useBalance'
 import { useSendMoney as useSendMoneyMutation } from './useSendMoney'
 import { formatCurrency } from '@/utils/general.utils'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '../useRainCardOverview'
-import { computeAvailableSpendable, computeDisplaySpendable, rainCentsToUsdcUnits } from '@/utils/balance.utils'
+import {
+    computeAvailableSpendable,
+    computeDisplaySpendable,
+    rainCentsToUsdcUnits,
+    isAmountWithinBalance,
+} from '@/utils/balance.utils'
 import { useSpendBundle, type SpendStrategy } from './useSpendBundle'
 import type { RainCollateralKind } from '@/services/rain'
 
@@ -200,19 +205,14 @@ export const useWallet = () => {
     // consider balance as fetching until: address is validated and query has resolved
     const isBalanceLoading = !isAddressReady || isFetchingBalance
 
-    // Two flavours of "spendable", both summing the smart-account balance with
-    // Rain collateral. See docs §4.5 and §6 in peanut-api-ts/docs/rain-card-test-summary.md
-    // and the card design spec. `rainOverview` is declared above so `sendTransactions`
-    // can consult it too.
-    //   • availableSpendableBalance — smart + LANDED collateral. What can actually
-    //     be spent right now; backs the affordability gate + spend routing.
-    //   • rawSpendableBalance (display) — also adds collateral top-ups still in
-    //     transit, so the unified balance doesn't crater to 0 during the ~10–45s
-    //     smart→collateral auto-balance handoff.
-    const availableSpendableBalance = useMemo(() => {
-        if (balance === undefined) return undefined
-        return computeAvailableSpendable(balance, rainOverview?.balance?.spendingPower)
-    }, [balance, rainOverview?.balance?.spendingPower])
+    // Total spendable balance: smart-account balance + Rain collateral (landed +
+    // in-transit). Display AND the affordability gate both run on THIS number.
+    // DISPLAY spendable (smart + landed + in-transit collateral). What we show,
+    // and what the fail-late flows (send-link, qr-pay, withdraw) gate on directly
+    // via isAmountWithinBalance: the FE balance is only ~30s-polled while the live
+    // spend routing reads the chain at submit, so blocking an in-transit amount at
+    // input would reject funds that would actually succeed — it fails late with a
+    // "settling, try again" message + a refetch instead.
     const rawSpendableBalance = useMemo(() => {
         if (balance === undefined) return undefined
         return computeDisplaySpendable(
@@ -221,6 +221,16 @@ export const useWallet = () => {
             rainOverview?.balance?.inTransitToCollateralCents
         )
     }, [balance, rainOverview?.balance?.spendingPower, rainOverview?.balance?.inTransitToCollateralCents])
+
+    // AVAILABLE-NOW spendable (smart + LANDED collateral, NO in-transit). What
+    // useSpendBundle can route this instant, and what hasSufficientSpendableBalance
+    // gates on — for flows that take an irreversible step BEFORE the spend (the
+    // features/payments flows createCharge first), so an in-transit amount is
+    // blocked at input rather than leaving an orphan charge when it fails late.
+    const availableSpendableBalance = useMemo(() => {
+        if (balance === undefined) return undefined
+        return computeAvailableSpendable(balance, rainOverview?.balance?.spendingPower)
+    }, [balance, rainOverview?.balance?.spendingPower])
 
     // The two inputs (smart-account + rain overview) refresh independently.
     // When both change at once (e.g. auto-balancer deposit: smart goes down,
@@ -252,35 +262,27 @@ export const useWallet = () => {
         return formatCurrency(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
     }, [balance])
 
-    // Total spendable (smart + Rain collateral) formatted for display.
-    // Payment-input forms (request-pay, direct-send, contribute-pot) should
-    // show THIS rather than the smart-only number — otherwise a user with
-    // funds split across smart and collateral sees a smaller balance than
-    // they actually have and the "insufficient balance" gate trips even
-    // though useSpendBundle would route through collateral just fine
-    // (2026-05-08 jotest097 report TASK-19573).
-    // NOTE: derived from `spendableBalance`, which includes in-transit collateral
-    // top-ups, so during the ~10–45s smart→collateral handoff this can read
-    // higher than `hasSufficientSpendableBalance` allows (gate is on available-now,
-    // by design — those funds aren't routable until they land). Self-heals in seconds.
+    // Total spendable (smart + Rain collateral) formatted for display. All
+    // payment-input forms show THIS rather than the smart-only number — otherwise
+    // a user with funds split across smart and collateral sees a smaller balance
+    // than they actually have (2026-05-08 jotest097 report TASK-19573). Note the
+    // gate may be stricter than the display: the features/payments flows gate on
+    // available-now (see hasSufficientSpendableBalance) while still showing this
+    // full total, so during the brief in-transit window display can exceed what
+    // they can spend — by design, it reconciles in seconds.
     const formattedSpendableBalance = useMemo(() => {
         if (spendableBalance === undefined) return '0.00'
         return formatCurrency(formatUnits(spendableBalance, PEANUT_WALLET_TOKEN_DECIMALS))
     }, [spendableBalance])
 
-    // Check if the user has enough spendable to cover a USD amount. Gates on
-    // available-now (smart + LANDED collateral) — NOT the displayed total, which
-    // includes in-transit top-ups that can't be routed until they land. Using the
-    // real figure avoids green-lighting a send that would fail at execution during
-    // the brief top-up window.
+    // STRICT affordability gate on AVAILABLE-NOW (excludes in-transit). Used by
+    // the features/payments flows, which createCharge before spending — an
+    // in-transit amount must be blocked here, not green-lit into an orphan charge.
+    // Fail-late flows (send-link, qr-pay, withdraw) instead gate on the displayed
+    // `spendableBalance` directly via isAmountWithinBalance. Logic is the pure,
+    // unit-tested isAmountWithinBalance.
     const hasSufficientSpendableBalance = useCallback(
-        (amountUsd: string | number): boolean => {
-            if (availableSpendableBalance === undefined) return false
-            const amount = typeof amountUsd === 'string' ? parseFloat(amountUsd) : amountUsd
-            if (isNaN(amount) || amount < 0) return false
-            const amountInBaseUnits = BigInt(Math.floor(amount * 10 ** PEANUT_WALLET_TOKEN_DECIMALS))
-            return availableSpendableBalance >= amountInBaseUnits
-        },
+        (amountUsd: string | number): boolean => isAmountWithinBalance(amountUsd, availableSpendableBalance),
         [availableSpendableBalance]
     )
 

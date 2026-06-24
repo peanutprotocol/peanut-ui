@@ -209,6 +209,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 // fallback to the previous method if we can't find the new account
                 // this can happen if the user object is not updated immediately
                 const newAccountFromResponse = result.data as Account
+                // The freshly-added account hasn't surfaced in the user refetch yet.
+                // The add-bank-account response is the projected wire shape, so it
+                // already carries bridgeAccountId + the legacy `type`. Guard: without
+                // a bridgeAccountId the confirm step dead-ends on "Bank account is
+                // missing", so surface a retryable error rather than navigating.
+                if (!newAccountFromResponse?.bridgeAccountId) {
+                    return { error: 'Your bank account is still being set up. Please try again in a moment.' }
+                }
                 // ensure details has accountOwnerName for confirmation page display
                 newAccountFromResponse.details = {
                     ...(newAccountFromResponse.details || {}),

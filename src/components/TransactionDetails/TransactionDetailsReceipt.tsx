@@ -49,9 +49,11 @@ import {
     isPerkReward as isPerkRewardTransaction,
     isRequestEntry,
     isSendLinkEntry,
+    isSplittable,
     usesCompletedTimestampLabel,
 } from './transaction-predicates'
 import { useReceiptViewModel } from './useReceiptViewModel'
+import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
 import { LocalRailNudge } from './provider-rows/LocalRailNudge'
 import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
@@ -316,7 +318,10 @@ export const TransactionDetailsReceipt = ({
                 isAvatarClickable={isAvatarClickable}
                 showProgessBar={transaction.isRequestPotLink}
                 goal={Number(transaction.amount)}
-                progress={Number(formattedTotalAmountCollected)}
+                // Use the raw numeric field, NOT formattedTotalAmountCollected — the
+                // latter is comma-grouped ("1,234.56"), so Number() → NaN for any pot
+                // that has collected ≥ $1,000, blanking the progress bar.
+                progress={Number(transaction.totalAmountCollected)}
                 isRequestPotTransaction={transaction.isRequestPotLink}
                 isTransactionClosed={transaction.status === 'closed'}
                 convertedAmount={convertedAmount ?? undefined}
@@ -739,11 +744,9 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
-            {!isPublic && isQRPayment && transaction.status !== 'refunded' && (
+            {!isPublic && isSplittable(transaction) && (
                 <Button
-                    onClick={() => {
-                        router.push(`/request?amount=${transaction.amount}&merchant=${transaction.userName}`)
-                    }}
+                    onClick={() => router.push(buildSplitBillRequestUrl(transaction.amount, transaction.userName))}
                     icon="split"
                     shadowSize="4"
                 >

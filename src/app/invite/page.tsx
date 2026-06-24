@@ -3,6 +3,7 @@ import getOrigin from '@/lib/hosting/get-origin'
 import { type Metadata } from 'next'
 import { validateInviteCode } from '../actions/invites'
 import { BASE_URL } from '@/constants/general.consts'
+import { buildOgImageUrl } from '@/utils/og.utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,14 +47,10 @@ export async function generateMetadata({
         description =
             'Join Peanut to send and receive money instantly, shop with merchants, and move funds across borders.'
 
-        const ogUrl = new URL(`${siteUrl}/api/og`)
-        ogUrl.searchParams.set('isInvite', 'true')
-        ogUrl.searchParams.set('username', inviteCodeData.username)
-
         if (!siteUrl) {
             console.error('Error: Unable to determine site origin')
         } else {
-            ogImageUrl = ogUrl.toString()
+            ogImageUrl = buildOgImageUrl({ username: inviteCodeData.username, isInvite: true }, siteUrl)
         }
     }
 

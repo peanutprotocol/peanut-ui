@@ -5,7 +5,12 @@ import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
 import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
-import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
+import {
+    rainCentsToUsdcUnits,
+    INSUFFICIENT_BALANCE_MESSAGE,
+    BALANCE_SETTLING_MESSAGE,
+    isAmountWithinBalance,
+} from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -22,11 +27,11 @@ import { loadingStateContext } from '@/context/loadingStates.context'
 import { countryData } from '@/components/AddMoney/consts'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Image from 'next/image'
-import { formatAmount, formatNumberForDisplay } from '@/utils/general.utils'
+import { formatNumberForDisplay } from '@/utils/general.utils'
 import { validateCbuCvuAlias, validatePixKey, normalizePixInput, isPixEmvcoQr } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import AmountInput from '@/components/Global/AmountInput'
-import { formatUnits, parseUnits } from 'viem'
+import { parseUnits } from 'viem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useModalsContext } from '@/context/ModalsContext'
 import Select from '@/components/Global/Select'
@@ -105,7 +110,7 @@ function MantecaBankWithdrawFlow() {
     const [priceLock, setPriceLock] = useState<WithdrawPriceLock | null>(null)
     const [isLockingPrice, setIsLockingPrice] = useState(false)
     const router = useRouter()
-    const { spendableBalance: balance } = useWallet()
+    const { spendableBalance: balance, formattedSpendableBalance } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
@@ -358,7 +363,7 @@ function MantecaBankWithdrawFlow() {
             } catch (error) {
                 const rainMsg = rainCollateralErrorMessage(error)
                 if (error instanceof InsufficientSpendableError) {
-                    setErrorMessage('Not enough USDC in your wallet or card to cover this withdrawal.')
+                    setErrorMessage(BALANCE_SETTLING_MESSAGE)
                 } else if (error instanceof SessionKeyGrantRequiredError) {
                     // Grant prompt was attempted inside signSpend and failed.
                     // Telling the user "you'll be asked" is misleading — they
@@ -496,8 +501,10 @@ function MantecaBankWithdrawFlow() {
         // only check min amount and balance here - max amount is handled by limits validation
         if (paymentAmount < parseUnits(MIN_MANTECA_WITHDRAW_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
             setBalanceErrorMessage(`Withdraw amount must be at least $${MIN_MANTECA_WITHDRAW_AMOUNT}`)
-        } else if (paymentAmount > balance) {
-            setBalanceErrorMessage('Not enough balance to complete withdrawal.')
+        } else if (!isAmountWithinBalance(usdAmount, balance)) {
+            // gate on the displayed total; an in-transit shortfall passes here and
+            // fails late with the settling message at execution.
+            setBalanceErrorMessage(INSUFFICIENT_BALANCE_MESSAGE)
         } else {
             setBalanceErrorMessage(null)
         }
@@ -687,9 +694,7 @@ function MantecaBankWithdrawFlow() {
                             price: 1,
                             decimals: 2,
                         }}
-                        walletBalance={
-                            balance ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : undefined
-                        }
+                        walletBalance={balance !== undefined ? formattedSpendableBalance : undefined}
                     />
 
                     {/* limits warning/error card - uses centralized helper for props */}
@@ -895,7 +900,8 @@ function MantecaBankWithdrawFlow() {
                         icon="arrow-up"
                         onClick={handleWithdraw}
                         loading={isLoading}
-                        disabled={!!errorMessage || isLoading}
+                        // settling failure is retryable — don't dead-end the button on it
+                        disabled={(!!errorMessage && errorMessage !== BALANCE_SETTLING_MESSAGE) || isLoading}
                         shadowSize="4"
                     >
                         {isLoading ? loadingState : 'Withdraw'}

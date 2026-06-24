@@ -216,6 +216,14 @@ const AmountInput = ({
         }
     }, [displayValue])
 
+    // Autofocus the amount field on mount (desktop only). Done explicitly via the
+    // ref instead of React's `autoFocus` prop, which only fires at the exact moment
+    // of mount and silently no-ops when the input mounts after a client-side
+    // navigation/step transition (the add-money amount screen regressed this way).
+    useEffect(() => {
+        if (shouldAutoFocus) inputRef.current?.focus()
+    }, [shouldAutoFocus])
+
     return (
         <form
             className={`relative cursor-text rounded-sm border border-n-1 bg-white p-4 dark:border-white ${className}`}
@@ -229,7 +237,6 @@ const AmountInput = ({
                     {/* Input with fake caret */}
                     <div className="relative">
                         <input
-                            autoFocus={shouldAutoFocus}
                             className={`h-12 max-w-80 bg-transparent text-6xl font-black text-black caret-primary-1 outline-none transition-colors placeholder:text-h1 placeholder:text-gray-1 focus:border-primary-1 disabled:opacity-100 disabled:[-webkit-text-fill-color:black] dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1 dark:disabled:[-webkit-text-fill-color:white]`}
                             placeholder={'0.00'}
                             onChange={(e) => {

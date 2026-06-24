@@ -989,12 +989,14 @@ describe('GROUP 1: Landing / Method Selection', () => {
         expect(screen.getByText('Select your country')).toBeInTheDocument()
     })
 
-    test('selecting a country from list navigates to country page', () => {
+    test('selecting a country (already in bank flow) navigates straight to the bank step', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('country-argentina'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/argentina')
+        // Method was already chosen ('bank'), so skip the redundant per-country
+        // method picker and go straight to the bank step.
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/argentina/bank')
     })
 
     test('back from method selection navigates to /home', () => {

@@ -10,7 +10,7 @@ import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
-import { printableUsdc } from '@/utils/balance.utils'
+import { INSUFFICIENT_BALANCE_MESSAGE, isAmountWithinBalance } from '@/utils/balance.utils'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
@@ -38,17 +38,29 @@ const LinkSendInitialView = () => {
 
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
 
-    const { fetchBalance, spendableBalance: balance } = useWallet()
+    const { fetchBalance, spendableBalance: balance, formattedSpendableBalance } = useWallet()
     const queryClient = useQueryClient()
     const { hasPendingTransactions } = usePendingTransactions()
 
+    // Displayed total spendable (smart + collateral), single-sourced + formatted
+    // by the hook. Empty while loading so we don't flash "$0.00".
     const peanutWalletBalance = useMemo(() => {
-        return balance !== undefined ? printableUsdc(balance) : ''
-    }, [balance])
+        return balance === undefined ? '' : formattedSpendableBalance
+    }, [balance, formattedSpendableBalance])
 
     const handleOnNext = useCallback(async () => {
         try {
             if (isLoading || !tokenValue) return
+
+            // Re-check affordability at submit too: the Retry button isn't disabled
+            // on a balance error (unlike the other flows), so without this a blocked
+            // amount could reach createLink. Only when the balance has loaded — else
+            // a tap before the query resolves would false-reject. Gates on the
+            // displayed total; an in-transit shortfall fails late with the settling copy.
+            if (balance !== undefined && !isAmountWithinBalance(tokenValue, balance)) {
+                setErrorState({ showError: true, errorMessage: INSUFFICIENT_BALANCE_MESSAGE })
+                return
+            }
 
             setLoadingState('Loading')
 
@@ -118,6 +130,7 @@ const LinkSendInitialView = () => {
         setLink,
         setView,
         setErrorState,
+        balance,
     ])
 
     useEffect(() => {
@@ -133,15 +146,25 @@ const LinkSendInitialView = () => {
             setErrorState({ showError: false, errorMessage: '' })
             return
         }
-        if (
-            parseUnits(peanutWalletBalance, PEANUT_WALLET_TOKEN_DECIMALS) <
-            parseUnits(tokenValue, PEANUT_WALLET_TOKEN_DECIMALS)
-        ) {
-            setErrorState({ showError: true, errorMessage: 'Insufficient balance' })
-        } else {
+        // Gate on the displayed total: block only a true shortfall. An in-transit
+        // amount passes and fails late (settling message + refetch) — the FE balance
+        // is ~30s-polled, so blocking it here would over-reject routable funds.
+        if (!isAmountWithinBalance(tokenValue, balance)) {
+            setErrorState({ showError: true, errorMessage: INSUFFICIENT_BALANCE_MESSAGE })
+        } else if (errorState?.errorMessage === INSUFFICIENT_BALANCE_MESSAGE) {
+            // only clear OUR balance-gate error — never wipe a submit-time failure
+            // message (e.g. the settling copy) that handleOnNext set on a late failure.
             setErrorState({ showError: false, errorMessage: '' })
         }
-    }, [peanutWalletBalance, tokenValue, setErrorState, hasPendingTransactions, isLoading])
+    }, [
+        peanutWalletBalance,
+        balance,
+        tokenValue,
+        setErrorState,
+        hasPendingTransactions,
+        isLoading,
+        errorState?.errorMessage,
+    ])
 
     return (
         <div className="w-full space-y-4">

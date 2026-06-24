@@ -138,7 +138,7 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
     default: (props: any) => (
-        <div data-testid="amount-input" data-disabled={props.disabled}>
+        <div data-testid="amount-input" data-disabled={props.disabled} data-wallet-balance={props.walletBalance}>
             <input
                 data-testid="amount-field"
                 value={props.initialAmount ?? ''}
@@ -282,9 +282,42 @@ jest.mock('@/context/loadingStates.context', () => {
     return { loadingStateContext }
 })
 
+// DirectRequestInitialView deps — only this view uses them (PayRequestLink does
+// not), so stubbing them globally is safe. Defaults resolve to a logged-in user
+// viewing a valid recipient, so the main form (incl. AmountInput) renders.
+const mockUseUserStore = jest.fn(() => ({ user: { user: { userId: 'user-1', username: 'me' } } }))
+jest.mock('@/redux/hooks', () => ({
+    useUserStore: () => mockUseUserStore(),
+}))
+
+const mockUseUserByUsername = jest.fn(() => ({
+    user: { userId: 'recip-1', username: 'test-user', fullName: 'Test User', isVerified: false },
+    isLoading: false,
+    error: undefined,
+}))
+jest.mock('@/hooks/useUserByUsername', () => ({
+    useUserByUsername: () => mockUseUserByUsername(),
+}))
+
+const mockUseUserInteractions = jest.fn(() => ({ interactions: {} }))
+jest.mock('@/hooks/useUserInteractions', () => ({
+    useUserInteractions: () => mockUseUserInteractions(),
+}))
+
+jest.mock('@/components/Global/PeanutLoading', () => ({
+    __esModule: true,
+    default: () => <div data-testid="peanut-loading" />,
+}))
+
+jest.mock('@/components/User/UserCard', () => ({
+    __esModule: true,
+    default: () => <div data-testid="user-card" />,
+}))
+
 // ---------- import components under test AFTER all mocks ----------
 import { CreateRequestLinkView } from '../link/views/Create.request.link.view'
 import { PayRequestLink } from '../Pay/Pay'
+import DirectRequestInitialView from '../direct-request/views/Initial.direct.request.view'
 
 // ---------- helpers ----------
 
@@ -319,6 +352,16 @@ function renderPayRequest(params: Record<string, string> = {}) {
     return render(
         <QueryClientProvider client={queryClient}>
             <PayRequestLink />
+        </QueryClientProvider>
+    )
+}
+
+function renderDirectRequest() {
+    const queryClient = createQueryClient()
+
+    return render(
+        <QueryClientProvider client={queryClient}>
+            <DirectRequestInitialView username="test-user" />
         </QueryClientProvider>
     )
 }
@@ -409,6 +452,41 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockSearchParams.clear()
     applyDefaults()
+})
+
+// ============================================================
+// GROUP 0: Balance affordance — spendable (smart + card collateral)
+// ============================================================
+describe('GROUP 0: Balance affordance', () => {
+    // Regression for the report where /request read lower than /home: both entry
+    // views must show the spendable total (smart + card collateral), sourced from
+    // the hook's `formattedSpendableBalance` — NOT the smart-only `formattedBalance`.
+    // Distinct sentinels prove which field reaches the AmountInput's walletBalance.
+    const SPENDABLE = '250.00 (spendable)'
+    const SMART_ONLY = '100.00 (smart-only)'
+    const walletWithSplit = {
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        isConnected: true,
+        spendableBalance: BigInt(250_000_000), // defined → not the loading branch
+        formattedSpendableBalance: SPENDABLE,
+        formattedBalance: SMART_ONLY,
+    }
+
+    test('create-request shows the spendable balance, not smart-only', () => {
+        mockUseWallet.mockReturnValue(walletWithSplit)
+
+        renderCreateRequest()
+
+        expect(screen.getByTestId('amount-input')).toHaveAttribute('data-wallet-balance', SPENDABLE)
+    })
+
+    test('direct-request shows the spendable balance, not smart-only', () => {
+        mockUseWallet.mockReturnValue(walletWithSplit)
+
+        renderDirectRequest()
+
+        expect(screen.getByTestId('amount-input')).toHaveAttribute('data-wallet-balance', SPENDABLE)
+    })
 })
 
 // ============================================================
