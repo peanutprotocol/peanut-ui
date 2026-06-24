@@ -82,6 +82,37 @@ export const getOfframpCurrencyConfig = (countryId: string): CurrencyConfig => {
 }
 
 /**
+ * Derive the offramp destination currency + payment rail from the bank
+ * account's actual `type`, falling back to country only when the type is
+ * unknown.
+ *
+ * Why: `getOfframpCurrencyConfig(country)` defaults *any* unknown country to
+ * EUR+SEPA. Pairing that default with a GBP/UK account caused Bridge to 400
+ * with "country is not supported for SEPA" (PEANUT-API-5P/5M/5N, 2026-06-02
+ * 21:24 UTC) — Bridge can't SEPA-credit a GBP account. The bank account's
+ * `type` already carries the right answer for every Bridge destination we
+ * support (`us`/`gb`/`clabe`/`iban`), so derive from it directly.
+ *
+ * Manteca-type accounts use a non-Bridge rail; the caller must NOT route
+ * those through this helper. We throw rather than silently misclassify.
+ */
+export const getOfframpConfigFromAccount = (account: {
+    type?: string | AccountType | null
+    country?: string | null
+}): CurrencyConfig => {
+    const t = account.type?.toString().toLowerCase()
+    if (t === AccountType.US || t?.endsWith('ach') || t?.endsWith('us')) return getCurrencyConfig('US', 'offramp')
+    if (t === AccountType.GB || t?.endsWith('gb')) return getCurrencyConfig('GB', 'offramp')
+    if (t === AccountType.CLABE || t?.endsWith('clabe')) return getCurrencyConfig('MX', 'offramp')
+    if (t === AccountType.IBAN || t?.endsWith('iban')) return getCurrencyConfig('EU', 'offramp')
+    if (t === AccountType.MANTECA || t?.endsWith('manteca')) {
+        throw new Error('Manteca accounts route through a separate offramp path, not Bridge.')
+    }
+    // type missing / unknown — fall back to country, preserving prior behavior.
+    return getOfframpCurrencyConfig(account.country ?? 'EU')
+}
+
+/**
  * Map ISO fiat currency → Bridge bank AccountType. Used by onramp quote
  * + exchange-rate callers that only have the currency string in hand.
  */
