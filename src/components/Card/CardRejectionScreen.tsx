@@ -78,22 +78,22 @@ const CardRejectionScreen: FC<Props> = ({
 
     const handleAppeal = async (): Promise<void> => {
         const caption = pickRejectionCaption()
+        // Text-only appeal: opens the X composer with the caption (which tags
+        // @joinpeanut). The image doesn't attach via the intent URL, but the
+        // tag — the point of the appeal — still goes out.
+        const tweetIntent = (method: string): void => {
+            posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, { source: 'rejection-appeal', method })
+            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(caption)}`, '_blank', 'noopener')
+        }
+
         setSharing(true)
         try {
-            if (!canShareImageFiles()) {
-                posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, {
-                    source: 'rejection-appeal',
-                    method: 'twitter-intent-fallback',
-                })
-                window.open(
-                    `https://twitter.com/intent/tweet?text=${encodeURIComponent(caption)}`,
-                    '_blank',
-                    'noopener'
-                )
-                return
-            }
+            // Desktop / no file-share support, or the asset hasn't rendered yet
+            // (an unmeasured ref is not an error) → text-only intent.
+            if (!canShareImageFiles()) return tweetIntent('twitter-intent-fallback')
             const node = captureRef.current
-            if (!node) throw new Error('rejection asset not yet rendered — try again in a moment')
+            if (!node) return tweetIntent('twitter-intent-unmeasured')
+
             const blob = await captureShareAsset(node)
             const file = new File([blob], 'peanut-not-tonight.png', { type: 'image/png' })
             await navigator.share({ text: caption, files: [file] })
@@ -103,17 +103,12 @@ const CardRejectionScreen: FC<Props> = ({
             })
         } catch (err) {
             if (err instanceof Error && err.name === 'AbortError') return
-            // Capture/native-share failed (e.g. html-to-image error or an OS
-            // share-sheet refusal). The appeal is the whole point of this
-            // screen — don't drop it silently. Fall back to a text-only tweet
-            // so the @joinpeanut tag still goes out.
+            // Capture/native-share genuinely failed (html-to-image error or an
+            // OS share-sheet refusal). The appeal is the whole point of this
+            // screen — don't drop it silently; fall back to the text-only tweet.
             console.error('[card-rejection] appeal share failed; falling back to intent', err)
             Sentry.captureException(err, { tags: { feature: 'rejection-asset', action: 'appeal' } })
-            posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, {
-                source: 'rejection-appeal',
-                method: 'twitter-intent-error-fallback',
-            })
-            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(caption)}`, '_blank', 'noopener')
+            tweetIntent('twitter-intent-error-fallback')
         } finally {
             setSharing(false)
         }

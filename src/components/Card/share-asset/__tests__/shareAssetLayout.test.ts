@@ -126,15 +126,31 @@ describe('placeStamps', () => {
         expect(placed[0].badge.iconUrl).toBeTruthy()
     })
 
-    // Light overlap is fine for the collage, but the blue-noise placer must
-    // never let two stickers pile up. Across the realistic range (1..10) and
-    // many seeds, every pair of centres must stay at least this fraction of
-    // the sticker size apart — i.e. no "heavy" overlap. (At absurd counts the
-    // ring saturates and this loosens; that's the stress regime, not tested.)
-    it('never places two stickers in heavy overlap (counts 1..10)', () => {
-        const seeds = ['kkonrad', 'hugo', 'asfsfsf', 'a', 'longusername', '0', 'seed-42', 'zzz', 'mara', '🥜']
+    // Light overlap is fine for the collage, but the force-directed placer must
+    // never let two stickers pile up. Across the realistic range (2..12) and a
+    // BROAD seed sweep, every pair of centres must stay at least this fraction
+    // of the sticker size apart — i.e. no "heavy" overlap. The sweep is wide on
+    // purpose: a bottom-right "corner trap" (edge + pill keep-out deadlocking
+    // pairwise separation) only surfaced on specific numeric seeds that a small
+    // hand-picked seed list missed — the final separation pass fixes it, and
+    // this sweep guards the regression.
+    it('never places two stickers in heavy overlap (broad seed sweep)', () => {
+        const seeds = [
+            'kkonrad',
+            'hugo',
+            'asfsfsf',
+            'a',
+            'longusername',
+            '0',
+            'seed-42',
+            'zzz',
+            'mara',
+            '🥜',
+            // numeric sweep — exercises the corner-trap regime the named seeds miss
+            ...Array.from({ length: 150 }, (_, i) => `seed${i}`),
+        ]
         const MIN_CENTER_GAP = 0.4 // × size; below this is a heavy pile-up
-        for (let n = 2; n <= 10; n++) {
+        for (let n = 2; n <= 12; n++) {
             const badges = Array.from({ length: n }, (_, i) => badge(`B${i}`))
             for (const seed of seeds) {
                 const placed = placeStamps(badges, new SeededRandom(seed))
