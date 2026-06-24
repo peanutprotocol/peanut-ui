@@ -398,6 +398,7 @@ export default function ShareBuilderPage() {
                                     seedOverride,
                                     heroMessage,
                                     usernameStyle,
+                                    hideUsername,
                                     animate,
                                 },
                                 null,

@@ -117,7 +117,7 @@ export interface StampPlacement {
 
 // Sticker size shrinks as the badge count grows, but stays large enough that
 // the repulsion packs them across the whole field (not a thin scatter). Past
-// the table it eases down a 2300/count curve with a legibility floor.
+// the table it eases down a 2700/count curve with a legibility floor.
 // Stickers are square (raw badge art, no frame).
 const STICKER_SIZE_BY_COUNT: readonly number[] = [
     520, // 1 — single hero sticker slapped on the card

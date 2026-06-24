@@ -264,7 +264,7 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                         textTransform: 'lowercase',
                         boxShadow: '0.375rem 0.375rem 0 #000',
                         whiteSpace: 'nowrap',
-                        maxWidth: 780,
+                        maxWidth: PILL_MAX_W,
                         overflow: 'hidden',
                         lineHeight: 1.05,
                         transform: 'rotate(-3deg)',
