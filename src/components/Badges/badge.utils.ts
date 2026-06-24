@@ -62,9 +62,20 @@ export const BADGES: Record<string, BadgeMeta> = {
         path: '/badges/arbiverse_devconnect.svg',
         description: 'They found the Arbiverse booth. We found them. Mutual onboarding achieved.',
     },
+    // Rebranded from "Card Pioneer" to "Founding Pioneer". Backend still emits the
+    // CARD_PIONEER code (it also gates grandfathered card access + cashback), so we
+    // keep the code and only repoint the FE asset/copy/name. Existing holders now
+    // render the Founding Pioneer badge. (Same pattern as SUPPORT_SURVIVOR below.)
     CARD_PIONEER: {
-        path: '/badges/peanut-pioneer.png',
-        description: 'A true Card Pioneer. Among the first to pay everywhere with Peanut.',
+        path: '/badges/founding_pioneer.svg',
+        description: 'You built Peanut before it had a launch.',
+        displayName: 'Founding Pioneer',
+    },
+    // New invite-activated community badge for the early crew (invite code "founding").
+    FOUNDING_PIONEER: {
+        path: '/badges/founding_pioneer.svg',
+        description: 'You built Peanut before it had a launch.',
+        displayName: 'Founding Pioneer',
     },
     FOUNDER_HOUSE: {
         path: '/badges/founder_house.svg',
