@@ -151,10 +151,20 @@ const LinkSendInitialView = () => {
         // is ~30s-polled, so blocking it here would over-reject routable funds.
         if (!isAmountWithinBalance(tokenValue, balance)) {
             setErrorState({ showError: true, errorMessage: INSUFFICIENT_BALANCE_MESSAGE })
-        } else {
+        } else if (errorState?.errorMessage === INSUFFICIENT_BALANCE_MESSAGE) {
+            // only clear OUR balance-gate error — never wipe a submit-time failure
+            // message (e.g. the settling copy) that handleOnNext set on a late failure.
             setErrorState({ showError: false, errorMessage: '' })
         }
-    }, [peanutWalletBalance, balance, tokenValue, setErrorState, hasPendingTransactions, isLoading])
+    }, [
+        peanutWalletBalance,
+        balance,
+        tokenValue,
+        setErrorState,
+        hasPendingTransactions,
+        isLoading,
+        errorState?.errorMessage,
+    ])
 
     return (
         <div className="w-full space-y-4">

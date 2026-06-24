@@ -347,8 +347,10 @@ export default function WithdrawPage() {
         const usdEq = (selectedTokenData?.price ?? 1) * numericAmount
         if (usdEq < minUsdAmount) return true // below country-specific minimum
 
-        return numericAmount > maxDecimalAmount || error.showError
-    }, [rawTokenAmount, maxDecimalAmount, error.showError, selectedTokenData?.price, minUsdAmount])
+        // only apply the balance ceiling once it has loaded (maxDecimalAmount is 0
+        // while spendableBalance is undefined) — else Continue is disabled during load
+        return (balance !== undefined && numericAmount > maxDecimalAmount) || error.showError
+    }, [rawTokenAmount, balance, maxDecimalAmount, error.showError, selectedTokenData?.price, minUsdAmount])
 
     // native app: render country-specific views when ?country= is present
     const viewFromQuery = searchParams.get('view')
