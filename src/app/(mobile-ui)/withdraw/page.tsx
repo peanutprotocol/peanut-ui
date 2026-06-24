@@ -191,7 +191,11 @@ export default function WithdrawPage() {
             const price = selectedTokenData?.price ?? 0 // 0 for safety; will fail below
             const usdEquivalent = price ? amount * price : amount // if no price assume token pegged 1 USD
 
-            if (usdEquivalent >= minUsdAmount && amount <= maxDecimalAmount) {
+            // While the balance is still loading, maxDecimalAmount is 0 — skip the
+            // balance check so a pre-filled amount isn't false-blocked; the effect
+            // re-validates once it lands (validateAmount is in its deps).
+            const balanceLoaded = balance !== undefined
+            if (usdEquivalent >= minUsdAmount && (!balanceLoaded || amount <= maxDecimalAmount)) {
                 setError({ showError: false, errorMessage: '' })
                 return true
             }
@@ -203,7 +207,7 @@ export default function WithdrawPage() {
                 message = isFromSendFlow
                     ? `Minimum send amount is ${minDisplay}.`
                     : `Minimum withdrawal is ${minDisplay}.`
-            } else if (amount > maxDecimalAmount) {
+            } else if (balanceLoaded && amount > maxDecimalAmount) {
                 message = INSUFFICIENT_BALANCE_MESSAGE
             } else {
                 message = 'Please enter a valid amount.'
@@ -211,7 +215,7 @@ export default function WithdrawPage() {
             setError({ showError: true, errorMessage: message })
             return false
         },
-        [maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow, minUsdAmount]
+        [balance, maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow, minUsdAmount]
     )
 
     const handleTokenAmountChange = useCallback(

@@ -1,7 +1,7 @@
 import {
     computeAvailableSpendable,
     computeDisplaySpendable,
-    isDisplayBalanceSufficient,
+    isAmountWithinBalance,
     printableUsdc,
     rainCentsToUsdcUnits,
 } from '../balance.utils'
@@ -107,7 +107,7 @@ describe('balance utils', () => {
         )
     })
 
-    describe('isDisplayBalanceSufficient (input affordability gate)', () => {
+    describe('isAmountWithinBalance (input affordability gate)', () => {
         const balance = 100_000_000n // $100 displayed spendable (6dp)
 
         it.each([
@@ -119,39 +119,39 @@ describe('balance utils', () => {
             ['100.01', false], // a cent over
             ['250', false],
         ])('gates amount %s against $100 → %s', (amount, expected) => {
-            expect(isDisplayBalanceSufficient(amount, balance)).toBe(expected)
+            expect(isAmountWithinBalance(amount, balance)).toBe(expected)
         })
 
         it('accepts a numeric amount as well as a string', () => {
-            expect(isDisplayBalanceSufficient(100, balance)).toBe(true)
-            expect(isDisplayBalanceSufficient(100.01, balance)).toBe(false)
+            expect(isAmountWithinBalance(100, balance)).toBe(true)
+            expect(isAmountWithinBalance(100.01, balance)).toBe(false)
         })
 
         it('returns false while the balance is still loading (undefined) — never a false-positive', () => {
-            expect(isDisplayBalanceSufficient('1', undefined)).toBe(false)
+            expect(isAmountWithinBalance('1', undefined)).toBe(false)
         })
 
         it.each([['abc'], ['-5'], [Number.NaN], [-1]])('returns false for invalid/negative amount (%s)', (amount) => {
-            expect(isDisplayBalanceSufficient(amount, balance)).toBe(false)
+            expect(isAmountWithinBalance(amount, balance)).toBe(false)
         })
 
         it.each([[Number.POSITIVE_INFINITY], [Number.NEGATIVE_INFINITY], ['1e999'], ['Infinity']])(
             'never throws on non-finite / overflowing amount (%s) — returns false, not a RangeError',
             (amount) => {
-                expect(() => isDisplayBalanceSufficient(amount, balance)).not.toThrow()
-                expect(isDisplayBalanceSufficient(amount, balance)).toBe(false)
+                expect(() => isAmountWithinBalance(amount, balance)).not.toThrow()
+                expect(isAmountWithinBalance(amount, balance)).toBe(false)
             }
         )
 
         it('a zero balance covers only a zero amount', () => {
-            expect(isDisplayBalanceSufficient('0', 0n)).toBe(true)
-            expect(isDisplayBalanceSufficient('0.01', 0n)).toBe(false)
+            expect(isAmountWithinBalance('0', 0n)).toBe(true)
+            expect(isAmountWithinBalance('0.01', 0n)).toBe(false)
         })
 
         it('gates on the DISPLAYED total incl. in-transit (the contract this PR locks in)', () => {
             // smart 0, no landed collateral, $500 in transit → display $500
             const display = computeDisplaySpendable(0n, 0, 50_000)
-            expect(isDisplayBalanceSufficient('500', display)).toBe(true)
+            expect(isAmountWithinBalance('500', display)).toBe(true)
             // available-now is $0 here, but the gate must NOT block — it fails late instead
             expect(computeAvailableSpendable(0n, 0)).toBe(0n)
         })

@@ -137,9 +137,10 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
 }))
 
 jest.mock('@/utils/balance.utils', () => ({
+    // keep the real isAmountWithinBalance / messages so the gate is genuinely
+    // exercised; only stub the Rain widening helper.
+    ...jest.requireActual('@/utils/balance.utils'),
     rainCentsToUsdcUnits: jest.fn(() => 0n),
-    INSUFFICIENT_BALANCE_MESSAGE: 'Not enough balance. Add funds to continue.',
-    BALANCE_SETTLING_MESSAGE: "Your balance isn't fully available yet. Please try again in a few seconds.",
 }))
 
 const mockUseTransactionDetailsDrawer = jest.fn()

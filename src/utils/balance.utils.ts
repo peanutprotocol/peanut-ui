@@ -1,5 +1,23 @@
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { formatUnits } from 'viem'
+import { formatUnits, parseUnits } from 'viem'
+
+/**
+ * Parse a USD amount (string or number) to token base units PRECISELY — the same
+ * `parseUnits` the spend itself uses, so the gate verifies exactly what execution
+ * will require (no float `Math.floor` divergence at the boundary). Returns null
+ * for anything invalid — empty, NaN, negative, locale comma, >decimals fraction,
+ * scientific/overflow/Infinity — so the gate fails closed and NEVER throws.
+ */
+export const parseUsdAmountToUnits = (amountUsd: string | number): bigint | null => {
+    try {
+        const s = (typeof amountUsd === 'number' ? amountUsd.toString() : amountUsd).trim()
+        if (!s) return null
+        const units = parseUnits(s, PEANUT_WALLET_TOKEN_DECIMALS)
+        return units < 0n ? null : units
+    } catch {
+        return null
+    }
+}
 
 export const printableUsdc = (balance: bigint): string => {
     // For 6 decimals, we want 2 decimal places in output
@@ -29,25 +47,24 @@ export const INSUFFICIENT_BALANCE_MESSAGE = 'Not enough balance. Add funds to co
 export const BALANCE_SETTLING_MESSAGE = "Your balance isn't fully available yet. Please try again in a few seconds."
 
 /**
- * Affordability gate for money-flows: can `amountUsd` be spent against the
- * DISPLAYED spendable balance (smart + all collateral, incl. in-transit)?
- * Gating on the displayed total — not an available-now subset — is deliberate:
- * the live spend routing reads the chain at submit, so a too-strict input gate
- * would block routable funds; a pass that can't be routed yet fails late.
- * Returns false while the balance is still loading (undefined). Pure + exported
- * so the gate contract is unit-tested independent of the `useWallet` hook.
+ * Pure affordability check: does `balanceUnits` cover `amountUsd`? Parses the
+ * amount the same way the spend does (parseUnits — precise, no float drift) and
+ * fails closed on invalid/loading input (returns false, never throws).
+ *
+ * The CALLER chooses which balance to pass, and that choice is the gate policy:
+ *  - DISPLAYED total (smart + landed + in-transit) for fail-late flows that take
+ *    no irreversible step before spending (send-link, qr-pay, withdraw) — an
+ *    in-transit amount passes and, if not yet routable, fails late.
+ *  - AVAILABLE-NOW (smart + landed) for flows that do something irreversible
+ *    BEFORE the spend — the features/payments flows `createCharge` first, so an
+ *    in-transit amount must be blocked at input or it leaves an orphan charge.
+ * Exported so the gate contract is unit-tested independent of `useWallet`.
  */
-export const isDisplayBalanceSufficient = (
-    amountUsd: string | number,
-    spendableBalance: bigint | undefined
-): boolean => {
-    if (spendableBalance === undefined) return false
-    const amount = typeof amountUsd === 'string' ? parseFloat(amountUsd) : amountUsd
-    // `Number.isFinite` rejects NaN, Infinity and -Infinity — the last is critical:
-    // `BigInt(Math.floor(Infinity * 1e6))` is `BigInt(Infinity)`, which THROWS a
-    // RangeError. A pasted/oversized amount must fail the gate, never crash it.
-    if (!Number.isFinite(amount) || amount < 0) return false
-    return spendableBalance >= BigInt(Math.floor(amount * 10 ** PEANUT_WALLET_TOKEN_DECIMALS))
+export const isAmountWithinBalance = (amountUsd: string | number, balanceUnits: bigint | undefined): boolean => {
+    if (balanceUnits === undefined) return false
+    const units = parseUsdAmountToUnits(amountUsd)
+    if (units === null) return false
+    return balanceUnits >= units
 }
 
 /**
@@ -73,7 +90,7 @@ export const rainCentsToUsdcUnits = (spendingPowerCents: number | null | undefin
  * what `useSpendBundle` can actually route through right now. It is the base of
  * `computeDisplaySpendable` (which adds in-transit on top); it does NOT back the
  * input affordability gate — that gates on the displayed total via
- * `isDisplayBalanceSufficient` (see `useWallet`).
+ * `isAmountWithinBalance` (see `useWallet`).
  */
 export const computeAvailableSpendable = (
     smartBalance: bigint,
