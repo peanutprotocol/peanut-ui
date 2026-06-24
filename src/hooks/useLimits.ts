@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { UserLimitsResponse } from '@/interfaces'
 import { LIMITS } from '@/constants/query.consts'
 import { serverFetch } from '@/utils/api-fetch'
+import { isDemoMode } from '@/utils/demo'
 
 interface UseLimitsOptions {
     enabled?: boolean
@@ -19,8 +20,10 @@ export function useLimits(options: UseLimitsOptions = {}) {
     const { enabled = true } = options
 
     const fetchLimits = async (): Promise<UserLimitsResponse> => {
+        // Demo has no JWT but should still show limits — let the request through
+        // to the demo interceptor (which returns DEMO_LIMITS) instead of bailing.
         const token = getAuthToken()
-        if (!token) {
+        if (!token && !isDemoMode()) {
             return { manteca: null, bridge: null }
         }
 

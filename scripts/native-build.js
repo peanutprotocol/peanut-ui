@@ -67,12 +67,16 @@ const P0_TRANSFORMS = [
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAuthToken } from '@/utils/auth-token'
+import { isDemoMode } from '@/utils/demo'
 
 export default function RootRedirect() {
     const router = useRouter()
     useEffect(() => {
         const token = getAuthToken()
-        router.replace(token ? '/home' : '/setup')
+        // Demo has no JWT — without the isDemoMode() check a demo user who hits
+        // the root (e.g. bounced from a web-only route) lands on /setup, whose
+        // landing screen disables demo and dumps them at Log In.
+        router.replace(token || isDemoMode() ? '/home' : '/setup')
     }, [router])
     return null
 }
