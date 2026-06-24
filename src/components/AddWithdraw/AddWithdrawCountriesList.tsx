@@ -76,7 +76,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             // AddMoneyBankDetails (deposit-instructions display).
             if (flow === 'add') {
                 const countrySlug = currentCountry?.path
-                router.push(countrySlug ? `/add-money/${countrySlug}/bank` : '/add-money')
+                // rewriteMethodPath → native: /add-money?country=<slug>&view=bank
+                router.push(countrySlug ? rewriteMethodPath(`/add-money/${countrySlug}/bank`) : '/add-money')
                 return
             }
             setView('form')

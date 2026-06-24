@@ -22,6 +22,8 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import ContactsView from './Contacts.view'
 import { ValidatedUsernameWrapper } from '@/components/Username/ValidatedUsernameWrapper'
 import { DirectSendPageWrapper } from '@/features/payments/flows/direct-send/DirectSendPageWrapper'
+import { SemanticRequestPageWrapper } from '@/features/payments/flows/semantic-request/SemanticRequestPageWrapper'
+import { isAddress } from 'viem'
 
 export const SendRouterView = () => {
     const router = useRouter()
@@ -196,8 +198,21 @@ export const SendRouterView = () => {
         return [peanutContactsOption, ...geoFilteredMethods]
     }, [geoFilteredMethods])
 
-    // direct send to a specific recipient (native app uses /send?recipient=username)
+    // direct send to a specific recipient (native app uses /send?recipient=...).
+    // Mirrors the web [...recipient] dispatch: an EVM address / ENS / a recipient
+    // carrying a chain (@) or amount segment (/) goes to the semantic-request flow
+    // (token + chain selection, cross-chain); a plain username goes to direct send.
     if (recipientUsername) {
+        const segments = recipientUsername.split('/')
+        const firstSegment = segments[0]
+        const identifier = firstSegment.includes('@') ? firstSegment.split('@')[0] : firstSegment
+        const isSemanticRecipient =
+            isAddress(identifier) || identifier.endsWith('.eth') || segments.length > 1 || firstSegment.includes('@')
+
+        if (isSemanticRecipient) {
+            return <SemanticRequestPageWrapper recipient={segments} />
+        }
+
         return (
             <ValidatedUsernameWrapper username={recipientUsername}>
                 <DirectSendPageWrapper username={recipientUsername} />

@@ -488,6 +488,8 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'POST', pattern: '/rhino/reset-status/:depositAddress', handler: () => ({ status: 'pending' }) },
 
     // misc
+    // ENS resolves to the demo wallet so address/ENS sends complete in demo.
+    { method: 'GET', pattern: '/ens/:name', handler: () => ({ address: DEMO_ADDRESS }) },
     { method: 'POST', pattern: '/is-valid-bic', handler: () => ({ isValid: true }) },
     { method: 'POST', pattern: '/validate-bank-account-number', handler: () => ({ valid: true }) },
 ]
