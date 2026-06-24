@@ -52,6 +52,15 @@ const LinkSendInitialView = () => {
         try {
             if (isLoading || !tokenValue) return
 
+            // Re-check affordability at submit too: the Retry button isn't disabled
+            // on a balance error (unlike the other flows), so without this a blocked
+            // amount could reach createLink and fail at execution instead of here.
+            const block = spendBlockReason(tokenValue)
+            if (block) {
+                setErrorState({ showError: true, errorMessage: SPEND_BLOCK_MESSAGE[block] })
+                return
+            }
+
             setLoadingState('Loading')
 
             // clear any previous errors
@@ -120,6 +129,7 @@ const LinkSendInitialView = () => {
         setLink,
         setView,
         setErrorState,
+        spendBlockReason,
     ])
 
     useEffect(() => {

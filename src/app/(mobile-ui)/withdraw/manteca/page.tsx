@@ -688,7 +688,7 @@ function MantecaBankWithdrawFlow() {
                             price: 1,
                             decimals: 2,
                         }}
-                        walletBalance={balance ? formattedSpendableBalance : undefined}
+                        walletBalance={balance !== undefined ? formattedSpendableBalance : undefined}
                     />
 
                     {/* limits warning/error card - uses centralized helper for props */}
