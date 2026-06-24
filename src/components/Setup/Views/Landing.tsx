@@ -10,13 +10,12 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useEffect } from 'react'
 import { disableDemoMode } from '@/utils/demo'
-import { useModalsContext } from '@/context/ModalsContext'
+import DocsLink from '@/components/Global/DocsLink'
 
 const LandingStep = () => {
     const { handleNext } = useSetupFlow()
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
-    const { openSupportWithMessage } = useModalsContext()
 
     // The auth landing is a "real auth" surface. Demo mode persists in
     // localStorage, so without this a prior demo session would make Log In /
@@ -63,13 +62,12 @@ const LandingStep = () => {
                     Log In
                 </Button>
                 <div className="pt-2 text-center">
-                    <button
-                        type="button"
-                        onClick={() => openSupportWithMessage('I need help recovering my Peanut wallet: ')}
+                    <DocsLink
+                        href="/en/help/account-recovery"
                         className="text-xs text-grey-1 underline underline-offset-2"
                     >
                         Need to recover your Peanut wallet?
-                    </button>
+                    </DocsLink>
                 </div>
             </Card.Content>
         </Card>
