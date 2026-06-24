@@ -17,6 +17,7 @@ import {
     chargePayUrl,
     requestPotUrl,
     addMoneyCountryUrl,
+    addMoneyBankUrl,
     withdrawCountryUrl,
     withdrawBankUrl,
     rewriteMethodPath,
@@ -65,6 +66,12 @@ describe('native-routes', () => {
         describe('addMoneyCountryUrl', () => {
             it('should return /add-money with country query param', () => {
                 expect(addMoneyCountryUrl('belgium')).toBe('/add-money?country=belgium')
+            })
+        })
+
+        describe('addMoneyBankUrl', () => {
+            it('should return /add-money with country + view=bank (skips the method picker)', () => {
+                expect(addMoneyBankUrl('belgium')).toBe('/add-money?country=belgium&view=bank')
             })
         })
 
@@ -196,6 +203,12 @@ describe('native-routes', () => {
         describe('qrSuccessUrl', () => {
             it('should return /qr/{code}/success path', () => {
                 expect(qrSuccessUrl('abc123')).toBe('/qr/abc123/success')
+            })
+        })
+
+        describe('addMoneyBankUrl', () => {
+            it('should return /add-money/{country}/bank path (skips the method picker)', () => {
+                expect(addMoneyBankUrl('belgium')).toBe('/add-money/belgium/bank')
             })
         })
 
