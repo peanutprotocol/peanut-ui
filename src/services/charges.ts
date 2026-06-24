@@ -18,7 +18,8 @@ export const chargesApi = {
         // demo module out of this service's module graph on web/tests.
         if (isDemoMode()) {
             const { demoRespond } = await import('@/utils/demo-api')
-            return (await demoRespond('/charges', { method: 'POST' })).json()
+            // pass the charge data so the demo store captures the real amount.
+            return (await demoRespond('/charges', { method: 'POST', body: JSON.stringify(data) })).json()
         }
 
         const formData = new FormData()
