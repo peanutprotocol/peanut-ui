@@ -248,13 +248,11 @@ function applyDefaults() {
     mockWithdrawFlow.selectedBankAccount = null
 
     mockUseWallet.mockReturnValue({
-        // component destructures `spendableBalance` (display) + `availableSpendableBalance`
-        // (the spend ceiling that backs maxDecimalAmount). Same value here: no in-transit.
+        // component gates on the displayed `spendableBalance` (= maxDecimalAmount).
         spendableBalance: parseUnits('100', 6),
-        availableSpendableBalance: parseUnits('100', 6),
         formattedSpendableBalance: '100.00',
-        // amount-aware so over-$100 entries classify as a real shortfall
-        spendBlockReason: (amt: string | number) => (Number(amt) > 100 ? 'insufficient' : null),
+        // amount-aware: over-$100 entries are a true shortfall
+        hasSufficientSpendableBalance: (amt: string | number) => Number(amt) <= 100,
     })
 
     mockUseGetExchangeRate.mockReturnValue({
@@ -499,9 +497,8 @@ describe('GROUP 6: Continue never dead-buttons', () => {
 
         mockUseWallet.mockReturnValue({
             spendableBalance: parseUnits('100', 6),
-            availableSpendableBalance: parseUnits('100', 6),
             formattedSpendableBalance: '100.00',
-            spendBlockReason: (amt: string | number) => (Number(amt) > 100 ? 'insufficient' : null),
+            hasSufficientSpendableBalance: (amt: string | number) => Number(amt) <= 100,
         })
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
         mockWithdrawFlow.selectedBankAccount = { type: 'iban', details: { countryName: '', countryCode: '' } }
@@ -525,9 +522,8 @@ describe('GROUP 6: Continue never dead-buttons', () => {
         // /withdraw/manteca rather than the Bridge bank page (or the throw).
         mockUseWallet.mockReturnValue({
             spendableBalance: parseUnits('100', 6),
-            availableSpendableBalance: parseUnits('100', 6),
             formattedSpendableBalance: '100.00',
-            spendBlockReason: (amt: string | number) => (Number(amt) > 100 ? 'insufficient' : null),
+            hasSufficientSpendableBalance: (amt: string | number) => Number(amt) <= 100,
         })
         mockWithdrawFlow.selectedMethod = { type: 'manteca', countryPath: 'argentina', title: 'Bank Transfer' }
         mockWithdrawFlow.selectedBankAccount = { type: 'manteca', details: { countryName: 'argentina' } }

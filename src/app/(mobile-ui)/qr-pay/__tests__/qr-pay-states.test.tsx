@@ -138,10 +138,8 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
 
 jest.mock('@/utils/balance.utils', () => ({
     rainCentsToUsdcUnits: jest.fn(() => 0n),
-    SPEND_BLOCK_MESSAGE: {
-        settling: 'Your balance is updating. Try again in a few seconds.',
-        insufficient: 'Not enough balance. Add funds to continue.',
-    },
+    INSUFFICIENT_BALANCE_MESSAGE: 'Not enough balance. Add funds to continue.',
+    BALANCE_SETTLING_MESSAGE: "Your balance isn't fully available yet. Please try again in a few seconds.",
 }))
 
 const mockUseTransactionDetailsDrawer = jest.fn()
@@ -565,7 +563,7 @@ function applyDefaults() {
     mockUseWallet.mockReturnValue({
         balance: parseUnits('100', 6), // $100 USDC
         spendableBalance: parseUnits('100', 6),
-        spendBlockReason: () => null, // affordable by default
+        hasSufficientSpendableBalance: () => true, // affordable by default
         sendMoney: jest.fn(),
     })
 
@@ -787,14 +785,13 @@ describe('GROUP 2: Payment Form States', () => {
     })
 
     test('Insufficient balance shows pay button disabled + error', async () => {
-        // Payment needs ~$18.4 but the available-now spendable is only $5, so the
-        // gate (spendBlockReason) returns 'insufficient'. Revived from skip once the
-        // gate moved off the raw display balance onto the shared hook classifier
-        // (the original mock-shape drift this test hit).
+        // Payment needs ~$18.4 but the displayed spendable is only $5, so the gate
+        // (hasSufficientSpendableBalance) returns false. Revived from skip once the
+        // gate moved onto the shared hook predicate (the original mock-shape drift).
         mockUseWallet.mockReturnValue({
             balance: parseUnits('5', 6),
             spendableBalance: parseUnits('5', 6),
-            spendBlockReason: () => 'insufficient',
+            hasSufficientSpendableBalance: () => false,
             sendMoney: jest.fn(),
         })
 

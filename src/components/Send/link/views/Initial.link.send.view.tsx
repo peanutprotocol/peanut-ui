@@ -10,7 +10,7 @@ import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
-import { SPEND_BLOCK_MESSAGE } from '@/utils/balance.utils'
+import { INSUFFICIENT_BALANCE_MESSAGE } from '@/utils/balance.utils'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
@@ -38,7 +38,12 @@ const LinkSendInitialView = () => {
 
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
 
-    const { fetchBalance, spendableBalance: balance, formattedSpendableBalance, spendBlockReason } = useWallet()
+    const {
+        fetchBalance,
+        spendableBalance: balance,
+        formattedSpendableBalance,
+        hasSufficientSpendableBalance,
+    } = useWallet()
     const queryClient = useQueryClient()
     const { hasPendingTransactions } = usePendingTransactions()
 
@@ -54,10 +59,10 @@ const LinkSendInitialView = () => {
 
             // Re-check affordability at submit too: the Retry button isn't disabled
             // on a balance error (unlike the other flows), so without this a blocked
-            // amount could reach createLink and fail at execution instead of here.
-            const block = spendBlockReason(tokenValue)
-            if (block) {
-                setErrorState({ showError: true, errorMessage: SPEND_BLOCK_MESSAGE[block] })
+            // amount could reach createLink. Gates on the displayed total — an
+            // in-transit shortfall passes here and fails late with the settling copy.
+            if (!hasSufficientSpendableBalance(tokenValue)) {
+                setErrorState({ showError: true, errorMessage: INSUFFICIENT_BALANCE_MESSAGE })
                 return
             }
 
@@ -129,7 +134,7 @@ const LinkSendInitialView = () => {
         setLink,
         setView,
         setErrorState,
-        spendBlockReason,
+        hasSufficientSpendableBalance,
     ])
 
     useEffect(() => {
@@ -145,16 +150,22 @@ const LinkSendInitialView = () => {
             setErrorState({ showError: false, errorMessage: '' })
             return
         }
-        // Classify against available-now vs the displayed total: the ~10–45s
-        // post-top-up window shows the generic "updating" copy instead of a misleading
-        // "insufficient" that would contradict the balance on screen.
-        const block = spendBlockReason(tokenValue)
-        if (block) {
-            setErrorState({ showError: true, errorMessage: SPEND_BLOCK_MESSAGE[block] })
+        // Gate on the displayed total: block only a true shortfall. An in-transit
+        // amount passes and fails late (settling message + refetch) — the FE balance
+        // is ~30s-polled, so blocking it here would over-reject routable funds.
+        if (!hasSufficientSpendableBalance(tokenValue)) {
+            setErrorState({ showError: true, errorMessage: INSUFFICIENT_BALANCE_MESSAGE })
         } else {
             setErrorState({ showError: false, errorMessage: '' })
         }
-    }, [peanutWalletBalance, tokenValue, setErrorState, hasPendingTransactions, isLoading, spendBlockReason])
+    }, [
+        peanutWalletBalance,
+        tokenValue,
+        setErrorState,
+        hasPendingTransactions,
+        isLoading,
+        hasSufficientSpendableBalance,
+    ])
 
     return (
         <div className="w-full space-y-4">

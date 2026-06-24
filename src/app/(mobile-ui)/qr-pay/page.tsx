@@ -22,7 +22,7 @@ import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
 import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
-import { rainCentsToUsdcUnits, SPEND_BLOCK_MESSAGE } from '@/utils/balance.utils'
+import { rainCentsToUsdcUnits, INSUFFICIENT_BALANCE_MESSAGE, BALANCE_SETTLING_MESSAGE } from '@/utils/balance.utils'
 import { isTxReverted, saveRedirectUrl, formatNumberForDisplay } from '@/utils/general.utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
 import {
@@ -98,7 +98,7 @@ export default function QRPayPage() {
     const qrCode = decodeURIComponent(searchParams.get('qrCode') || '')
     const timestamp = searchParams.get('t')
     const qrType = searchParams.get('type')
-    const { spendableBalance: balance, spendBlockReason } = useWallet()
+    const { spendableBalance: balance, hasSufficientSpendableBalance } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
@@ -628,7 +628,7 @@ export default function QRPayPage() {
         } catch (error) {
             const rainMsg = rainCollateralErrorMessage(error)
             if (error instanceof InsufficientSpendableError) {
-                setErrorMessage('Not enough USDC in your wallet or card to cover this payment.')
+                setErrorMessage(BALANCE_SETTLING_MESSAGE)
             } else if (error instanceof SessionKeyGrantRequiredError) {
                 setErrorMessage("One-time card authorization needed. You'll be asked to confirm once.")
             } else if (rainMsg) {
@@ -937,13 +937,14 @@ export default function QRPayPage() {
             setBalanceErrorMessage(`QR payment amount exceeds maximum limit of $${MAX_QR_PAYMENT_AMOUNT}`)
         } else if (paymentAmount < parseUnits(MIN_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
             setBalanceErrorMessage(`QR payment amount must be at least $${MIN_QR_PAYMENT_AMOUNT}`)
+        } else if (!hasSufficientSpendableBalance(usdAmount)) {
+            // gate on the displayed total; an in-transit shortfall passes here and
+            // fails late with the settling message at execution.
+            setBalanceErrorMessage(INSUFFICIENT_BALANCE_MESSAGE)
         } else {
-            // available-now gate; 'settling' covers the brief card top-up window
-            // where the displayed balance reads higher than what's routable.
-            const block = spendBlockReason(usdAmount)
-            setBalanceErrorMessage(block ? SPEND_BLOCK_MESSAGE[block] : null)
+            setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, spendBlockReason, paymentProcessor, currency?.code, currencyAmount])
+    }, [usdAmount, balance, hasSufficientSpendableBalance, paymentProcessor, currency?.code, currencyAmount])
 
     // Use points confetti hook for animation - must be called unconditionally
     usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)

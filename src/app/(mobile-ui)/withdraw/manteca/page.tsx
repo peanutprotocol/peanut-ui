@@ -5,7 +5,7 @@ import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
 import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
-import { rainCentsToUsdcUnits, SPEND_BLOCK_MESSAGE } from '@/utils/balance.utils'
+import { rainCentsToUsdcUnits, INSUFFICIENT_BALANCE_MESSAGE, BALANCE_SETTLING_MESSAGE } from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -105,7 +105,7 @@ function MantecaBankWithdrawFlow() {
     const [priceLock, setPriceLock] = useState<WithdrawPriceLock | null>(null)
     const [isLockingPrice, setIsLockingPrice] = useState(false)
     const router = useRouter()
-    const { spendableBalance: balance, formattedSpendableBalance, spendBlockReason } = useWallet()
+    const { spendableBalance: balance, formattedSpendableBalance, hasSufficientSpendableBalance } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
@@ -358,7 +358,7 @@ function MantecaBankWithdrawFlow() {
             } catch (error) {
                 const rainMsg = rainCollateralErrorMessage(error)
                 if (error instanceof InsufficientSpendableError) {
-                    setErrorMessage('Not enough USDC in your wallet or card to cover this withdrawal.')
+                    setErrorMessage(BALANCE_SETTLING_MESSAGE)
                 } else if (error instanceof SessionKeyGrantRequiredError) {
                     // Grant prompt was attempted inside signSpend and failed.
                     // Telling the user "you'll be asked" is misleading — they
@@ -496,13 +496,14 @@ function MantecaBankWithdrawFlow() {
         // only check min amount and balance here - max amount is handled by limits validation
         if (paymentAmount < parseUnits(MIN_MANTECA_WITHDRAW_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
             setBalanceErrorMessage(`Withdraw amount must be at least $${MIN_MANTECA_WITHDRAW_AMOUNT}`)
+        } else if (!hasSufficientSpendableBalance(usdAmount)) {
+            // gate on the displayed total; an in-transit shortfall passes here and
+            // fails late with the settling message at execution.
+            setBalanceErrorMessage(INSUFFICIENT_BALANCE_MESSAGE)
         } else {
-            // available-now gate; 'settling' covers the brief card top-up window
-            // where the displayed balance reads higher than what's routable.
-            const block = spendBlockReason(usdAmount)
-            setBalanceErrorMessage(block ? SPEND_BLOCK_MESSAGE[block] : null)
+            setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, spendBlockReason, hasPendingTransactions, isLoading])
+    }, [usdAmount, balance, hasSufficientSpendableBalance, hasPendingTransactions, isLoading])
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // Use flowId as uniqueId to prevent cache collisions between different withdrawal flows

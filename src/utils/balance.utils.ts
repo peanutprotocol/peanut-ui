@@ -11,27 +11,20 @@ export const printableUsdc = (balance: bigint): string => {
 }
 
 /**
- * Why a would-be spend can't go through right now:
- *   • 'settling'     — covered by the displayed balance, but part is in-transit
- *                      card collateral that hasn't landed yet (≤ display, > available-now).
- *   • 'insufficient' — exceeds the displayed balance too (a real shortfall).
- * Returned by `useWallet().spendBlockReason(amount)`; `null` means it's fine.
+ * Single source of truth for money-flow balance copy across send / pay / withdraw.
+ *
+ * Two distinct moments:
+ *  - INSUFFICIENT — input-time gate, when the entered amount exceeds the full
+ *    displayed balance (a real shortfall). Gates run on the DISPLAYED balance so
+ *    we never block funds the live spend could actually route — see `useWallet`.
+ *  - SETTLING — failure-time, when a spend that passed the gate can't be routed
+ *    yet (the smart→collateral rebalance hasn't landed, or the ~30s-polled FE
+ *    balance was momentarily ahead of chain). Deliberately generic — it must NOT
+ *    expose the card-collateral mechanic — and it nudges a retry, since the FE
+ *    balance is refetched on this failure and the spend usually succeeds shortly.
  */
-export type SpendBlockReason = 'settling' | 'insufficient'
-
-/**
- * Single source of truth for affordability-gate copy across every money-flow
- * (send, pay, withdraw). The 'settling' string explains the ~10–45s window after
- * a card top-up where the displayed balance briefly exceeds what's routable —
- * so the user isn't told "insufficient" while the screen shows enough.
- */
-export const SPEND_BLOCK_MESSAGE: Record<SpendBlockReason, string> = {
-    // Deliberately generic — it must NOT expose the card-collateral mechanic.
-    // Only seen in the rare ~10-45s window where funds are mid-rebalance; the
-    // full balance is already on screen, this just says "give it a second".
-    settling: 'Your balance is updating. Try again in a few seconds.',
-    insufficient: 'Not enough balance. Add funds to continue.',
-}
+export const INSUFFICIENT_BALANCE_MESSAGE = 'Not enough balance. Add funds to continue.'
+export const BALANCE_SETTLING_MESSAGE = "Your balance isn't fully available yet. Please try again in a few seconds."
 
 /**
  * Widen a Rain balance figure from integer cents (2 decimals) to a USDC

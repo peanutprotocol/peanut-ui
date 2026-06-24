@@ -9,7 +9,7 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import { SPEND_BLOCK_MESSAGE } from '@/utils/balance.utils'
+import { INSUFFICIENT_BALANCE_MESSAGE } from '@/utils/balance.utils'
 import { getCountryFromAccount, getCountryFromPath, getMinimumAmount } from '@/utils/bridge.utils'
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { AccountType } from '@/interfaces'
@@ -81,21 +81,14 @@ export default function WithdrawPage() {
     // raw amount currently typed in the input
     const [rawTokenAmount, setRawTokenAmount] = useState<string>(amountFromContext || '')
 
-    const {
-        spendableBalance: balance,
-        availableSpendableBalance,
-        formattedSpendableBalance,
-        spendBlockReason,
-    } = useWallet()
+    const { spendableBalance: balance, formattedSpendableBalance } = useWallet()
 
-    // Spend CEILING — gates the entered amount. Use available-now (smart + LANDED
-    // collateral); the displayed balance below includes in-transit top-ups that
-    // can't be withdrawn until they land.
+    // Spend ceiling = the displayed total spendable. We gate on display (not an
+    // available-now subset) so we never block funds the live withdraw could route;
+    // an in-transit shortfall fails late with a settling message. See useWallet.
     const maxDecimalAmount = useMemo(() => {
-        return availableSpendableBalance !== undefined
-            ? Number(formatUnits(availableSpendableBalance, PEANUT_WALLET_TOKEN_DECIMALS))
-            : 0
-    }, [availableSpendableBalance])
+        return balance !== undefined ? Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : 0
+    }, [balance])
 
     // Displayed total spendable (smart + collateral), single-sourced + formatted
     // by the hook. Empty while loading so we don't flash "$0.00".
@@ -210,17 +203,15 @@ export default function WithdrawPage() {
                 message = isFromSendFlow
                     ? `Minimum send amount is ${minDisplay}.`
                     : `Minimum withdrawal is ${minDisplay}.`
+            } else if (amount > maxDecimalAmount) {
+                message = INSUFFICIENT_BALANCE_MESSAGE
             } else {
-                // amount > available-now: distinguish "settling" (funds briefly
-                // mid-rebalance) from a true shortfall; generic prompt is a
-                // defensive fallback that shouldn't normally be reached.
-                const block = spendBlockReason(usdEquivalent)
-                message = block ? SPEND_BLOCK_MESSAGE[block] : 'Please enter a valid amount.'
+                message = 'Please enter a valid amount.'
             }
             setError({ showError: true, errorMessage: message })
             return false
         },
-        [maxDecimalAmount, spendBlockReason, setError, selectedTokenData?.price, isFromSendFlow, minUsdAmount]
+        [maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow, minUsdAmount]
     )
 
     const handleTokenAmountChange = useCallback(

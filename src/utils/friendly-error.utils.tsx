@@ -1,3 +1,5 @@
+import { BALANCE_SETTLING_MESSAGE } from '@/utils/balance.utils'
+
 /** Safely extract a string-form of an unknown error + its `.message` if any.
  *  Lets the matchers below use `string` methods without unsafe property access
  *  while still accepting whatever shape callers throw (Error, string, object). */
@@ -45,6 +47,9 @@ export const ErrorHandler = (error: unknown): string => {
     // on the cooldown case). Covers every spend path that touches Rain.
     const rainMsg = rainCollateralErrorMessage(error)
     if (rainMsg) return rainMsg
+    // Spend passed the displayed-balance gate but couldn't be routed yet
+    // (in-transit collateral not landed) — nudge a retry rather than "add funds".
+    if (text.includes('Insufficient spendable balance')) return BALANCE_SETTLING_MESSAGE
     if (text.includes('insufficient funds')) return "You don't have enough funds."
     if (text.includes('user rejected transaction')) return 'Please confirm the transaction in your wallet.'
     if (text.includes('not deployed on chain')) return 'Bulk is not able on this chain, please try another chain.'
