@@ -17,6 +17,7 @@
 import { useMemo, useState } from 'react'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import ShareAssetD3 from '@/components/Card/share-asset/ShareAssetD3'
 import type { HeroVariant, UsernameBg } from '@/components/Card/share-asset/shareAsset.types'
 import { BADGE_CODES, getBadgeDisplayName } from '@/components/Badges/badge.utils'
@@ -40,6 +41,7 @@ export default function ShareBuilderPage() {
     const [animate, setAnimate] = useState(true)
     const [seedNonce, setSeedNonce] = useState(0)
     const [previewScale, setPreviewScale] = useState(0.8)
+    const [hideUsername, setHideUsername] = useState(false)
 
     // ─── Hero "I got in" message sticker ─────────────────────────────────
     const [heroVariant, setHeroVariant] = useState<HeroVariant | 'none'>('burst')
@@ -358,10 +360,32 @@ export default function ShareBuilderPage() {
                                     seedOverride={seedOverride}
                                     heroMessage={heroMessage}
                                     usernameStyle={usernameStyle}
+                                    hideUsername={hideUsername}
                                     animate={animate}
                                 />
                             </div>
                         </div>
+                    </div>
+
+                    {/* Faithful "in the share flow" strip — mirrors how the asset,
+                        the anti-dox toggle, and the share buttons stack in
+                        BadgeSkipCelebration / CardUnlockDrawer. */}
+                    <div className="mx-auto flex w-full max-w-md flex-col gap-3 rounded-sm border-2 border-dashed border-grey-1 bg-white p-4">
+                        <div className="text-center text-[10px] font-bold uppercase tracking-wider text-grey-1">
+                            ↑ asset · how it stacks in the real flow ↓
+                        </div>
+                        <Checkbox
+                            className="self-center"
+                            label="Hide username"
+                            value={hideUsername}
+                            onChange={(e) => setHideUsername(e.target.checked)}
+                        />
+                        <Button variant="purple" shadowSize="4" className="w-full">
+                            Share
+                        </Button>
+                        <Button variant="stroke" className="w-full">
+                            Save image
+                        </Button>
                     </div>
 
                     <div className="space-y-2 rounded-sm border border-n-1 bg-white p-4 text-xs">

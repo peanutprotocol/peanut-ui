@@ -88,6 +88,11 @@ export interface ShareAssetD3Props {
      *  auto-fit sizing. */
     usernameStyle?: UsernameStyle
 
+    /** Hide the "peanut.me/<handle>" pill entirely (anti-dox toggle). When
+     *  true the pill doesn't render and badges reclaim the bottom-right
+     *  corner it would have kept clear. */
+    hideUsername?: boolean
+
     /**
      * Override the username-derived seed. Used by the /dev/share-builder
      * "reroll" button to dice-roll positions without changing user input.

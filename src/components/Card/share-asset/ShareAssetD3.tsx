@@ -98,6 +98,7 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
     seedOverride,
     heroMessage,
     usernameStyle,
+    hideUsername = false,
     animate = true,
 }) => {
     const safeUsername = (username || '').trim() || 'anon'
@@ -120,6 +121,9 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
     // off the *whole* pill (its width varies with the handle + typography), not
     // just its right edge. Mirrors the pill's render geometry below.
     const pillBox = useMemo(() => {
+        // Pill hidden → push the keep-out off-canvas so badges reclaim the
+        // bottom-right corner the pill would have reserved.
+        if (hideUsername) return { x0: CANVAS_W + 1000, y0: CANVAS_H + 1000 }
         const PREFIX_CHARS = 'peanut.me/'.length
         const PAD_X = 80 // 40px horizontal padding each side
         const BORDER = 10 // 5px border each side
@@ -128,7 +132,7 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
         const pillW = Math.min(PILL_MAX_W, prefixW + handleW + PAD_X + BORDER)
         const pillH = uHandleSize * 1.1 + 30
         return pillKeepoutBox(pillW, pillH)
-    }, [safeUsername, uPrefixSize, uHandleSize, uTracking])
+    }, [hideUsername, safeUsername, uPrefixSize, uHandleSize, uTracking])
 
     const stickers = useMemo(() => {
         const extraKeepouts: KeepoutEllipse[] = []
@@ -234,37 +238,40 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
             {/* ─── @username pill — the sharer's own handle, the asset's
                 "this is ME" anchor. Sits below the stickers (z-index 4) so a
                 sticker that lands over it reads as slapped on top; the pill's
-                repulsion keep-out keeps it mostly clear regardless. ─── */}
-            <div
-                className="absolute flex flex-col items-end"
-                style={{
-                    bottom: 48,
-                    right: 56,
-                    zIndex: 3,
-                    animation: animate ? `fadeUp 600ms ease-out ${ANIM_ATTRIBUTION_DELAY}ms both` : 'none',
-                }}
-            >
-                <span
-                    className="inline-flex items-baseline rounded-full border-[5px] border-black"
+                repulsion keep-out keeps it mostly clear regardless. Hidden via
+                the anti-dox "hide username" toggle. ─── */}
+            {!hideUsername && (
+                <div
+                    className="absolute flex flex-col items-end"
                     style={{
-                        backgroundColor: uBg,
-                        padding: '10px 40px',
-                        textTransform: 'lowercase',
-                        boxShadow: '0.375rem 0.375rem 0 #000',
-                        whiteSpace: 'nowrap',
-                        maxWidth: 780,
-                        overflow: 'hidden',
-                        lineHeight: 1.05,
-                        transform: 'rotate(-3deg)',
-                        gap: 1,
+                        bottom: 48,
+                        right: 56,
+                        zIndex: 3,
+                        animation: animate ? `fadeUp 600ms ease-out ${ANIM_ATTRIBUTION_DELAY}ms both` : 'none',
                     }}
                 >
-                    <span style={{ fontSize: uPrefixSize, fontWeight: 800 }}>peanut.me/</span>
-                    <span style={{ fontSize: uHandleSize, fontWeight: 1000, letterSpacing: `${uTracking}em` }}>
-                        {safeUsername}
+                    <span
+                        className="inline-flex items-baseline rounded-full border-[5px] border-black"
+                        style={{
+                            backgroundColor: uBg,
+                            padding: '10px 40px',
+                            textTransform: 'lowercase',
+                            boxShadow: '0.375rem 0.375rem 0 #000',
+                            whiteSpace: 'nowrap',
+                            maxWidth: 780,
+                            overflow: 'hidden',
+                            lineHeight: 1.05,
+                            transform: 'rotate(-3deg)',
+                            gap: 1,
+                        }}
+                    >
+                        <span style={{ fontSize: uPrefixSize, fontWeight: 800 }}>peanut.me/</span>
+                        <span style={{ fontSize: uHandleSize, fontWeight: 1000, letterSpacing: `${uTracking}em` }}>
+                            {safeUsername}
+                        </span>
                     </span>
-                </span>
-            </div>
+                </div>
+            )}
 
             {/* ─── Hero "I got in" message sticker (top, z-index 5 — above the
                 collage). Its keep-out (computed above) keeps badges clear. ─── */}
