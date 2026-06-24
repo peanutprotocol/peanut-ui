@@ -117,6 +117,12 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
                 queryClient.setQueryData(['balance', address], context.previousBalance)
             }
 
+            // The spend may have read a fresh live balance mid-flight (useSpendBundle's
+            // fetchLiveSmartUsdcBalance) that the rollback above just discarded —
+            // refetch so the displayed balance settles on on-chain truth, not the
+            // pre-tap cached value.
+            queryClient.invalidateQueries({ queryKey: ['balance', address] })
+
             console.error('[useSendMoney] Transaction failed, rolled back balance:', error)
 
             if (error instanceof InsufficientSpendableError) {

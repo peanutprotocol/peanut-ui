@@ -14,7 +14,7 @@ import { useBalance } from './useBalance'
 import { useSendMoney as useSendMoneyMutation } from './useSendMoney'
 import { formatCurrency } from '@/utils/general.utils'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '../useRainCardOverview'
-import { computeDisplaySpendable, rainCentsToUsdcUnits } from '@/utils/balance.utils'
+import { computeDisplaySpendable, rainCentsToUsdcUnits, isDisplayBalanceSufficient } from '@/utils/balance.utils'
 import { useSpendBundle, type SpendStrategy } from './useSpendBundle'
 import type { RainCollateralKind } from '@/services/rain'
 
@@ -253,11 +253,9 @@ export const useWallet = () => {
     // funds split across smart and collateral sees a smaller balance than
     // they actually have and the "insufficient balance" gate trips even
     // though useSpendBundle would route through collateral just fine
-    // (2026-05-08 jotest097 report TASK-19573).
-    // NOTE: derived from `spendableBalance`, which includes in-transit collateral
-    // top-ups, so during the ~10–45s smart→collateral handoff this can read
-    // higher than `hasSufficientSpendableBalance` allows (gate is on available-now,
-    // by design — those funds aren't routable until they land). Self-heals in seconds.
+    // (2026-05-08 jotest097 report TASK-19573). The input gate runs on this same
+    // displayed total, so display and gate agree; a spend that isn't routable yet
+    // fails late rather than being blocked at input.
     const formattedSpendableBalance = useMemo(() => {
         if (spendableBalance === undefined) return '0.00'
         return formatCurrency(formatUnits(spendableBalance, PEANUT_WALLET_TOKEN_DECIMALS))
@@ -267,14 +265,9 @@ export const useWallet = () => {
     // total (smart + all collateral, incl. in-transit) — see the rawSpendableBalance
     // note above for why we gate on display, not available-now. A spend that passes
     // here but can't be routed yet fails late with the settling message + a refetch.
+    // Logic lives in the pure, unit-tested `isDisplayBalanceSufficient`.
     const hasSufficientSpendableBalance = useCallback(
-        (amountUsd: string | number): boolean => {
-            if (spendableBalance === undefined) return false
-            const amount = typeof amountUsd === 'string' ? parseFloat(amountUsd) : amountUsd
-            if (isNaN(amount) || amount < 0) return false
-            const amountInBaseUnits = BigInt(Math.floor(amount * 10 ** PEANUT_WALLET_TOKEN_DECIMALS))
-            return spendableBalance >= amountInBaseUnits
-        },
+        (amountUsd: string | number): boolean => isDisplayBalanceSufficient(amountUsd, spendableBalance),
         [spendableBalance]
     )
 

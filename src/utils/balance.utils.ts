@@ -11,7 +11,9 @@ export const printableUsdc = (balance: bigint): string => {
 }
 
 /**
- * Single source of truth for money-flow balance copy across send / pay / withdraw.
+ * Shared balance copy for the send-link, qr-pay and withdraw flows. (The
+ * features/payments flows — direct-send/semantic-request/contribute-pot — keep
+ * their own in-context wording.)
  *
  * Two distinct moments:
  *  - INSUFFICIENT — input-time gate, when the entered amount exceeds the full
@@ -25,6 +27,25 @@ export const printableUsdc = (balance: bigint): string => {
  */
 export const INSUFFICIENT_BALANCE_MESSAGE = 'Not enough balance. Add funds to continue.'
 export const BALANCE_SETTLING_MESSAGE = "Your balance isn't fully available yet. Please try again in a few seconds."
+
+/**
+ * Affordability gate for money-flows: can `amountUsd` be spent against the
+ * DISPLAYED spendable balance (smart + all collateral, incl. in-transit)?
+ * Gating on the displayed total — not an available-now subset — is deliberate:
+ * the live spend routing reads the chain at submit, so a too-strict input gate
+ * would block routable funds; a pass that can't be routed yet fails late.
+ * Returns false while the balance is still loading (undefined). Pure + exported
+ * so the gate contract is unit-tested independent of the `useWallet` hook.
+ */
+export const isDisplayBalanceSufficient = (
+    amountUsd: string | number,
+    spendableBalance: bigint | undefined
+): boolean => {
+    if (spendableBalance === undefined) return false
+    const amount = typeof amountUsd === 'string' ? parseFloat(amountUsd) : amountUsd
+    if (isNaN(amount) || amount < 0) return false
+    return spendableBalance >= BigInt(Math.floor(amount * 10 ** PEANUT_WALLET_TOKEN_DECIMALS))
+}
 
 /**
  * Widen a Rain balance figure from integer cents (2 decimals) to a USDC
@@ -46,9 +67,10 @@ export const rainCentsToUsdcUnits = (spendingPowerCents: number | null | undefin
 /**
  * Available-now spendable balance, as a USDC base-unit bigint (6dp) — the
  * smart-account balance plus landed Rain collateral `spendingPower`. This is
- * what the user can actually spend right now (`useSpendBundle` routes through
- * the smart account and landed collateral), so it backs the affordability gate
- * and spend routing.
+ * what `useSpendBundle` can actually route through right now. It is the base of
+ * `computeDisplaySpendable` (which adds in-transit on top); it does NOT back the
+ * input affordability gate — that gates on the displayed total via
+ * `isDisplayBalanceSufficient` (see `useWallet`).
  */
 export const computeAvailableSpendable = (
     smartBalance: bigint,
@@ -65,10 +87,11 @@ export const computeAvailableSpendable = (
  * (from the backend's `inTransitToCollateralCents`) keeps the unified balance
  * steady through the handoff.
  *
- * In-transit funds aren't spendable until they land, so they are deliberately
- * EXCLUDED from `computeAvailableSpendable` (gate + routing). During the window
- * the displayed total therefore exceeds spendable-now by the in-flight amount —
- * by design — and reconciles within seconds once collateral lands.
+ * In-transit funds aren't routable until they land, so they are excluded from
+ * `computeAvailableSpendable` (what spend routing can actually use). The input
+ * gate, by contrast, runs on THIS displayed total — a spend that can't be
+ * routed yet fails late rather than being blocked at input. The displayed total
+ * reconciles within seconds once collateral lands.
  */
 export const computeDisplaySpendable = (
     smartBalance: bigint,

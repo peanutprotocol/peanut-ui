@@ -59,9 +59,10 @@ const LinkSendInitialView = () => {
 
             // Re-check affordability at submit too: the Retry button isn't disabled
             // on a balance error (unlike the other flows), so without this a blocked
-            // amount could reach createLink. Gates on the displayed total — an
-            // in-transit shortfall passes here and fails late with the settling copy.
-            if (!hasSufficientSpendableBalance(tokenValue)) {
+            // amount could reach createLink. Only when the balance has loaded — else
+            // a tap before the query resolves would false-reject. Gates on the
+            // displayed total; an in-transit shortfall fails late with the settling copy.
+            if (balance !== undefined && !hasSufficientSpendableBalance(tokenValue)) {
                 setErrorState({ showError: true, errorMessage: INSUFFICIENT_BALANCE_MESSAGE })
                 return
             }
@@ -134,6 +135,7 @@ const LinkSendInitialView = () => {
         setLink,
         setView,
         setErrorState,
+        balance,
         hasSufficientSpendableBalance,
     ])
 
