@@ -135,6 +135,14 @@ describe('balance utils', () => {
             expect(isDisplayBalanceSufficient(amount, balance)).toBe(false)
         })
 
+        it.each([[Number.POSITIVE_INFINITY], [Number.NEGATIVE_INFINITY], ['1e999'], ['Infinity']])(
+            'never throws on non-finite / overflowing amount (%s) — returns false, not a RangeError',
+            (amount) => {
+                expect(() => isDisplayBalanceSufficient(amount, balance)).not.toThrow()
+                expect(isDisplayBalanceSufficient(amount, balance)).toBe(false)
+            }
+        )
+
         it('a zero balance covers only a zero amount', () => {
             expect(isDisplayBalanceSufficient('0', 0n)).toBe(true)
             expect(isDisplayBalanceSufficient('0.01', 0n)).toBe(false)

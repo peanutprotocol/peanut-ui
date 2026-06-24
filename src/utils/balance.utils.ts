@@ -43,7 +43,10 @@ export const isDisplayBalanceSufficient = (
 ): boolean => {
     if (spendableBalance === undefined) return false
     const amount = typeof amountUsd === 'string' ? parseFloat(amountUsd) : amountUsd
-    if (isNaN(amount) || amount < 0) return false
+    // `Number.isFinite` rejects NaN, Infinity and -Infinity — the last is critical:
+    // `BigInt(Math.floor(Infinity * 1e6))` is `BigInt(Infinity)`, which THROWS a
+    // RangeError. A pasted/oversized amount must fail the gate, never crash it.
+    if (!Number.isFinite(amount) || amount < 0) return false
     return spendableBalance >= BigInt(Math.floor(amount * 10 ** PEANUT_WALLET_TOKEN_DECIMALS))
 }
 
