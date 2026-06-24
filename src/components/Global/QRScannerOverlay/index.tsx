@@ -15,6 +15,7 @@ import { BASE_URL } from '@/constants/general.consts'
 import { serverFetch } from '@/utils/api-fetch'
 import { openExternalUrl } from '@/utils/capacitor'
 import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
+import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
 import * as Sentry from '@sentry/nextjs'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
@@ -218,6 +219,14 @@ export default function QRScannerOverlay() {
         }
         posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: recognized, data: getLogData() })
         if (!recognized) {
+            // Pasted text is often prose with an address embedded ("...0xabc... is
+            // the Arbitrum address..."). Pull a valid EVM address out and re-process
+            // it as a clean value before giving up. One level of recursion only —
+            // the extracted value is a bare address, which recognizeQr matches.
+            const embeddedAddress = extractPaymentValue(data, 'evmAddress')
+            if (embeddedAddress && embeddedAddress.toLowerCase() !== normalized) {
+                return processQRCode(embeddedAddress)
+            }
             showModal(EModalType.UNRECOGNIZED)
             return { success: true }
         }
