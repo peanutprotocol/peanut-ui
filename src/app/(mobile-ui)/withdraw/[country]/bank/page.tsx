@@ -8,11 +8,7 @@ import InfoCard from '@/components/Global/InfoCard'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import {
-    PEANUT_WALLET_CHAIN,
-    PEANUT_WALLET_TOKEN_SYMBOL,
-    PEANUT_WALLET_TOKEN_DECIMALS,
-} from '@/constants/zerodev.consts'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
@@ -24,6 +20,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
+import { INSUFFICIENT_BALANCE_MESSAGE, isAmountWithinBalance } from '@/utils/balance.utils'
 import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
 import { getOfframpConfigFromAccount, getCountryFromPath, railJurisdictionForBank } from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
@@ -43,7 +40,6 @@ import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/count
 import { isBridgeSupportedCountry, getRegionIntent } from '@/utils/regions.utils'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
-import { parseUnits } from 'viem'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawCountryUrl } from '@/utils/native-routes'
@@ -355,12 +351,9 @@ export default function WithdrawBankPage() {
             return
         }
 
-        const withdrawAmount = parseUnits(amountToWithdraw, PEANUT_WALLET_TOKEN_DECIMALS)
-        if (withdrawAmount > balance) {
-            setBalanceErrorMessage('Not enough balance to complete withdrawal.')
-        } else {
-            setBalanceErrorMessage(null)
-        }
+        // gate on the displayed total; an in-transit shortfall passes here and
+        // fails late with the settling message at execution.
+        setBalanceErrorMessage(isAmountWithinBalance(amountToWithdraw, balance) ? null : INSUFFICIENT_BALANCE_MESSAGE)
     }, [amountToWithdraw, balance, hasPendingTransactions, isLoading])
 
     if (!bankAccount) {

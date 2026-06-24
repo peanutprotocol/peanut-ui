@@ -179,6 +179,32 @@ describe('useSendMoney', () => {
                 expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [TRANSACTIONS] })
             })
         })
+
+        it('should refetch balance on failure so the rolled-back stale value cannot linger', async () => {
+            // The rollback restores the pre-tap snapshot, which can discard a fresh
+            // live balance the spend read mid-flight — onError must invalidate to refetch.
+            const initialBalance = parseUnits('100', PEANUT_WALLET_TOKEN_DECIMALS)
+            queryClient.setQueryData(['balance', mockAddress], initialBalance)
+            mockSmartBalance = initialBalance
+            mockSpend.mockRejectedValue(new Error('Transaction failed'))
+
+            const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries')
+
+            const { result } = renderHook(() => useSendMoney({ address: mockAddress }), { wrapper })
+
+            try {
+                await result.current.mutateAsync({
+                    toAddress: '0x9999999999999999999999999999999999999999' as `0x${string}`,
+                    amountInUsd: '10',
+                })
+            } catch {
+                // expected
+            }
+
+            await waitFor(() => {
+                expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['balance', mockAddress] })
+            })
+        })
     })
 
     describe('Edge Cases', () => {

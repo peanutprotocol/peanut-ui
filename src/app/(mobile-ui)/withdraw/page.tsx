@@ -9,7 +9,7 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import { formatAmount } from '@/utils/general.utils'
+import { INSUFFICIENT_BALANCE_MESSAGE } from '@/utils/balance.utils'
 import { getCountryFromAccount, getCountryFromPath, getMinimumAmount } from '@/utils/bridge.utils'
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { AccountType } from '@/interfaces'
@@ -81,15 +81,20 @@ export default function WithdrawPage() {
     // raw amount currently typed in the input
     const [rawTokenAmount, setRawTokenAmount] = useState<string>(amountFromContext || '')
 
-    const { spendableBalance: balance } = useWallet()
+    const { spendableBalance: balance, formattedSpendableBalance } = useWallet()
 
+    // Spend ceiling = the displayed total spendable. We gate on display (not an
+    // available-now subset) so we never block funds the live withdraw could route;
+    // an in-transit shortfall fails late with a settling message. See useWallet.
     const maxDecimalAmount = useMemo(() => {
         return balance !== undefined ? Number(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : 0
     }, [balance])
 
+    // Displayed total spendable (smart + collateral), single-sourced + formatted
+    // by the hook. Empty while loading so we don't flash "$0.00".
     const peanutWalletBalance = useMemo(() => {
-        return balance !== undefined ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : ''
-    }, [balance])
+        return balance === undefined ? '' : formattedSpendableBalance
+    }, [balance, formattedSpendableBalance])
 
     // derive country and account type for minimum amount validation
     const { countryIso2, rateAccountType } = useMemo(() => {
@@ -186,7 +191,11 @@ export default function WithdrawPage() {
             const price = selectedTokenData?.price ?? 0 // 0 for safety; will fail below
             const usdEquivalent = price ? amount * price : amount // if no price assume token pegged 1 USD
 
-            if (usdEquivalent >= minUsdAmount && amount <= maxDecimalAmount) {
+            // While the balance is still loading, maxDecimalAmount is 0 — skip the
+            // balance check so a pre-filled amount isn't false-blocked; the effect
+            // re-validates once it lands (validateAmount is in its deps).
+            const balanceLoaded = balance !== undefined
+            if (usdEquivalent >= minUsdAmount && (!balanceLoaded || amount <= maxDecimalAmount)) {
                 setError({ showError: false, errorMessage: '' })
                 return true
             }
@@ -198,15 +207,15 @@ export default function WithdrawPage() {
                 message = isFromSendFlow
                     ? `Minimum send amount is ${minDisplay}.`
                     : `Minimum withdrawal is ${minDisplay}.`
-            } else if (amount > maxDecimalAmount) {
-                message = 'Amount exceeds your wallet balance.'
+            } else if (balanceLoaded && amount > maxDecimalAmount) {
+                message = INSUFFICIENT_BALANCE_MESSAGE
             } else {
                 message = 'Please enter a valid amount.'
             }
             setError({ showError: true, errorMessage: message })
             return false
         },
-        [maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow, minUsdAmount]
+        [balance, maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow, minUsdAmount]
     )
 
     const handleTokenAmountChange = useCallback(
@@ -338,8 +347,10 @@ export default function WithdrawPage() {
         const usdEq = (selectedTokenData?.price ?? 1) * numericAmount
         if (usdEq < minUsdAmount) return true // below country-specific minimum
 
-        return numericAmount > maxDecimalAmount || error.showError
-    }, [rawTokenAmount, maxDecimalAmount, error.showError, selectedTokenData?.price, minUsdAmount])
+        // only apply the balance ceiling once it has loaded (maxDecimalAmount is 0
+        // while spendableBalance is undefined) — else Continue is disabled during load
+        return (balance !== undefined && numericAmount > maxDecimalAmount) || error.showError
+    }, [rawTokenAmount, balance, maxDecimalAmount, error.showError, selectedTokenData?.price, minUsdAmount])
 
     // native app: render country-specific views when ?country= is present
     const viewFromQuery = searchParams.get('view')
