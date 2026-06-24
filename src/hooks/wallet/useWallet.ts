@@ -18,7 +18,7 @@ import { computeAvailableSpendable, computeDisplaySpendable, rainCentsToUsdcUnit
 import { useSpendBundle, type SpendStrategy } from './useSpendBundle'
 import type { RainCollateralKind } from '@/services/rain'
 import { isDemoMode } from '@/utils/demo'
-import { DEMO_BALANCE_UNITS } from '@/constants/demo-data'
+import { useDemoBalanceUnits } from '@/utils/demo-balance'
 
 type SendTransactionsOptions = {
     chainId?: string
@@ -191,12 +191,15 @@ export const useWallet = () => {
         await refetchBalance()
     }, [isAddressReady, refetchBalance])
 
-    // demo mode: fixed balance overlay (constants/demo-data.ts).
+    // demo mode: mutable, persisted balance overlay (utils/demo-balance.ts) —
+    // debited on each simulated send so the displayed balance updates and
+    // survives relaunch.
     const demoMode = isDemoMode()
+    const demoBalanceUnits = useDemoBalanceUnits()
 
     // Use balance from query if available, otherwise fall back to Redux
     const balance = demoMode
-        ? DEMO_BALANCE_UNITS
+        ? demoBalanceUnits
         : balanceFromQuery !== undefined
           ? balanceFromQuery
           : reduxBalance !== undefined

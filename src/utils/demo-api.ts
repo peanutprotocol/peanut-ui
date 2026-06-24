@@ -106,46 +106,66 @@ const demoRequest = (uuid: string, options?: RequestInit) => {
     }
 }
 
-const demoCharge = () => ({
-    data: { id: 'demo-charge', code: 'DEMO', hosted_url: '', created_at: CREATED_AT, status: 'NEW' },
-    warnings: [],
-})
+// Stateful demo charge store so a freshly-created charge's real amount, time,
+// and a random tx hash flow through to the receipt (instead of $0 / fixed date /
+// 0xdede). Keyed by the generated charge id; in-memory is enough for the
+// post-send receipt (same session).
+const demoCharges = new Map<string, { amount: string; createdAt: string; txHash: string }>()
 
-const demoPayment = (chargeUuid: string) => ({
-    uuid: 'demo-payment',
-    paidTokenAddress: PEANUT_WALLET_TOKEN,
-    payerChainId: CHAIN_ID,
-    payerTransactionHash: '0xdede',
-    createdAt: CREATED_AT,
-    requestCharge: {
-        uuid: chargeUuid,
+const randomHex = (n: number) =>
+    Array.from({ length: n }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('')
+const randomTxHash = () => `0x${randomHex(64)}`
+
+const createDemoCharge = (options?: RequestInit) => {
+    const body = parseBody(options)
+    const amount = String(body.requestProps?.tokenAmount ?? body.tokenAmount ?? body.local_price?.amount ?? '0')
+    const id = `demo-charge-${randomHex(12)}`
+    demoCharges.set(id, { amount, createdAt: new Date().toISOString(), txHash: randomTxHash() })
+    return { data: { id, code: 'DEMO', hosted_url: '', created_at: new Date().toISOString(), status: 'NEW' }, warnings: [] }
+}
+
+const demoPayment = (chargeUuid: string) => {
+    const stored = demoCharges.get(chargeUuid)
+    return {
+        uuid: 'demo-payment',
+        paidTokenAddress: PEANUT_WALLET_TOKEN,
+        payerChainId: CHAIN_ID,
+        payerTransactionHash: stored?.txHash ?? randomTxHash(),
+        createdAt: stored?.createdAt ?? new Date().toISOString(),
+        requestCharge: {
+            uuid: chargeUuid,
+            chainId: CHAIN_ID,
+            createdAt: stored?.createdAt ?? new Date().toISOString(),
+            tokenAddress: PEANUT_WALLET_TOKEN,
+            tokenAmount: stored?.amount ?? '0',
+            tokenDecimals: PEANUT_WALLET_TOKEN_DECIMALS,
+            requestLink: { recipientAddress: DEMO_ADDRESS },
+        },
+    }
+}
+
+const demoRequestCharge = (id: string) => {
+    const stored = demoCharges.get(id)
+    const amount = stored?.amount ?? '0'
+    const createdAt = stored?.createdAt ?? new Date().toISOString()
+    return {
+        uuid: id,
+        createdAt,
+        link: '',
         chainId: CHAIN_ID,
-        createdAt: CREATED_AT,
+        tokenAmount: amount,
         tokenAddress: PEANUT_WALLET_TOKEN,
-        tokenAmount: '0',
         tokenDecimals: PEANUT_WALLET_TOKEN_DECIMALS,
-        requestLink: { recipientAddress: DEMO_ADDRESS },
-    },
-})
-
-const demoRequestCharge = (id: string) => ({
-    uuid: id,
-    createdAt: CREATED_AT,
-    link: '',
-    chainId: CHAIN_ID,
-    tokenAmount: '0',
-    tokenAddress: PEANUT_WALLET_TOKEN,
-    tokenDecimals: PEANUT_WALLET_TOKEN_DECIMALS,
-    tokenType: 'erc20',
-    tokenSymbol: PEANUT_WALLET_TOKEN_SYMBOL,
-    transactionType: 'WITHDRAW',
-    updatedAt: CREATED_AT,
-    payments: [],
-    fulfillmentPayment: null,
-    currencyCode: 'USD',
-    currencyAmount: '0',
-    timeline: [],
-    requestLink: {
+        tokenType: 'erc20',
+        tokenSymbol: PEANUT_WALLET_TOKEN_SYMBOL,
+        transactionType: 'WITHDRAW',
+        updatedAt: createdAt,
+        payments: [],
+        fulfillmentPayment: null,
+        currencyCode: 'USD',
+        currencyAmount: amount,
+        timeline: [],
+        requestLink: {
         uuid: 'demo-request',
         recipientAddress: DEMO_ADDRESS,
         reference: null,
@@ -157,8 +177,9 @@ const demoRequestCharge = (id: string) => ({
             type: 'peanut-wallet',
             user: { username: 'demo' },
         },
-    },
-})
+        },
+    }
+}
 
 const demoDepositAddress = () => ({
     depositAddress: DEMO_ADDRESS,
@@ -310,7 +331,7 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'PATCH', pattern: '/send-links/:pubKey', handler: ({ params }) => demoSendLink(params.pubKey) },
 
     // charges
-    { method: 'POST', pattern: '/charges', handler: () => demoCharge() },
+    { method: 'POST', pattern: '/charges', handler: ({ options }) => createDemoCharge(options) },
     { method: 'POST', pattern: '/charges/:chargeId/payments', handler: ({ params }) => demoPayment(params.chargeId) },
     { method: 'GET', pattern: '/charges/:chargeId/payments', handler: () => [] },
     { method: 'GET', pattern: '/charges/:id', handler: () => ({}) },

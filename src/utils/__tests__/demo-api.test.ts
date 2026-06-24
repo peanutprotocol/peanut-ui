@@ -113,6 +113,28 @@ describe('demoRespond — shape-aware fallback (never throws on undefined.map)',
         const { data } = await body('/ens/vitalik.eth')
         expect(data.address).toMatch(/^0x[a-fA-F0-9]{40}$/)
     })
+
+    it('charge store carries the real amount + a random tx hash through to the receipt', async () => {
+        // create a charge for $10 (as the send flow does)
+        const { data: charge } = await body('/charges', {
+            method: 'POST',
+            body: JSON.stringify({ local_price: { amount: '10', currency: 'USD' }, requestProps: { tokenAmount: '10' } }),
+        })
+        const id = charge.data.id
+        expect(id).toBeTruthy()
+
+        // receipt fetches the charge → real amount, not 0; not the fixed 2026-01-01 date
+        const { data: rc } = await body(`/request-charges/${id}`)
+        expect(rc.tokenAmount).toBe('10')
+        expect(rc.currencyAmount).toBe('10')
+        expect(rc.createdAt).not.toBe('2026-01-01T00:00:00.000Z')
+
+        // payment record → random tx hash (not 0xdede), and same amount
+        const { data: pay } = await body(`/charges/${id}/payments`, { method: 'POST' })
+        expect(pay.payerTransactionHash).toMatch(/^0x[a-f0-9]{64}$/)
+        expect(pay.payerTransactionHash).not.toBe('0xdede')
+        expect(pay.requestCharge.tokenAmount).toBe('10')
+    })
 })
 
 describe('demo mode is web-safe', () => {
