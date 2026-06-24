@@ -52,6 +52,11 @@ const DEFAULT_BG = '#0a0b0f' // near-black, faint cold-blue tint
 
 const ANIM_HEADLINE_DELAY = 150
 const ANIM_MASCOT_DELAY = 350
+const ANIM_HANDLE_DELAY = 550
+
+// The growth tag, baked into the pixels (not just the caption) so it survives
+// an image-only re-post. @ + handle so it reads as a taggable mention.
+const HANDLE = '@joinpeanut'
 
 const RejectionAssetD3: FC<RejectionAssetProps> = ({
     username,
@@ -185,6 +190,23 @@ const RejectionAssetD3: FC<RejectionAssetProps> = ({
                 >
                     {safeUsername}
                 </span>
+            </div>
+
+            {/* ─── @joinpeanut — baked-in growth tag (survives image-only re-posts) ─── */}
+            <div
+                className="absolute"
+                style={{
+                    bottom: 44,
+                    right: 56,
+                    zIndex: 5,
+                    color: 'rgba(255,255,255,0.5)',
+                    fontWeight: 800,
+                    fontSize: 30,
+                    letterSpacing: '0.01em',
+                    animation: animate ? `riseIn 600ms ease-out ${ANIM_HANDLE_DELAY}ms both` : 'none',
+                }}
+            >
+                {HANDLE}
             </div>
         </div>
     )
