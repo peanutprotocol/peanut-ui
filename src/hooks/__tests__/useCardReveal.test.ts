@@ -1,5 +1,7 @@
 import { renderHook, act, waitFor } from '@testing-library/react'
+import posthog from 'posthog-js'
 import { useCardReveal } from '@/hooks/useCardReveal'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { rainApi, RainCardRateLimitError, type RainCardDetailsResponse } from '@/services/rain'
 
 jest.mock('@/services/rain', () => {
@@ -77,16 +79,28 @@ describe('useCardReveal', () => {
         expect(result.current.revealed).toBeNull()
     })
 
-    it('surfaces generic errors', async () => {
-        mockedGetCardDetails.mockRejectedValueOnce(new Error('boom'))
+    it('shows a friendly message and reports only a bounded slice of the raw error', async () => {
+        const captureSpy = jest.spyOn(posthog, 'capture')
+        // A real backend 500 forwards the upstream Rain body — long and detailed.
+        const rawError =
+            'Rain API error 500 on GET /v1/issuing/cards/abc/secrets: ' +
+            '{"message":"We had an issue with your request","error":"InternalServerError","correlationId":"deadbeef-cafe"}'
+        mockedGetCardDetails.mockRejectedValueOnce(new Error(rawError))
         const { result } = renderHook(() => useCardReveal({ cardId: 'c1', autoMaskMs: 0 }))
 
         await act(async () => {
             await result.current.reveal()
         })
 
-        expect(result.current.error).toBe('boom')
+        // The user never sees the raw upstream/internal error text.
+        expect(result.current.error).toBe('Could not load card details. Please try again or contact support.')
         expect(result.current.isRateLimited).toBe(false)
+        // Telemetry gets a bounded slice — enough to segment, but the full
+        // upstream body (correlationId etc.) never reaches client analytics.
+        expect(captureSpy).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_PAN_FAILED, {
+            error_message: rawError.slice(0, 120),
+        })
+        expect(captureSpy.mock.calls.at(-1)?.[1]?.error_message).not.toContain('correlationId')
     })
 
     it('auto-masks after the configured timeout', async () => {
