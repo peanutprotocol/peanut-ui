@@ -4,10 +4,8 @@
  * The waitlist rejection screen lets a turned-away user "Tweet to appeal" —
  * the share fires with a RANDOM caption from this pool so the timeline
  * doesn't fill with one identical tweet. Every caption tags @joinpeanut so
- * the rejection itself markets the door's exclusivity.
- *
- * The @joinpeanut handle is also baked into the asset image, so the tag
- * survives even when the PNG is re-posted with no caption.
+ * the rejection itself markets the door's exclusivity — the handle rides the
+ * caption (it is intentionally not drawn on the asset image).
  */
 
 export const REJECTION_CAPTIONS: readonly string[] = [

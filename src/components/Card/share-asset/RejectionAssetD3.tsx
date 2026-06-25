@@ -4,14 +4,14 @@
  * Shown to a user who passed the eligibility hold but doesn't hold a card-
  * access badge: instead of the celebration collage, they get a Berghain-
  * style door rejection they can share. The rejection markets the door's
- * exclusivity, and the share tags @joinpeanut (baked into the image + the
- * caption — see rejectionCaptions.ts).
+ * exclusivity, and the share tags @joinpeanut via the caption (every caption
+ * in rejectionCaptions.ts carries the handle).
  *
- * Visual: stark, near-black field. "not tonight, <username>" in big white,
- * an optional smug peanut mascot on the left (the bouncer, mocking you),
- * and the @joinpeanut handle baked in so the tag survives image-only
- * re-posts. The scarcity tally ("applicants tonight…") lives in the screen
- * HTML around the asset, NOT on the image.
+ * Visual: stark, near-black field. "not tonight, <username>" in big white and
+ * an optional smug peanut mascot on the left (the bouncer, mocking you). The
+ * @joinpeanut tag is intentionally NOT drawn on the asset — it rides the
+ * caption, not the pixels. The scarcity tally ("applicants tonight…") also
+ * lives in the screen HTML around the asset, NOT on the image.
  *
  * Authored at native 1200×900 (same frame as the win asset) so it flows
  * through the same capture/share pipeline.
@@ -52,11 +52,6 @@ const DEFAULT_BG = '#0a0b0f' // near-black, faint cold-blue tint
 
 const ANIM_HEADLINE_DELAY = 150
 const ANIM_MASCOT_DELAY = 350
-const ANIM_HANDLE_DELAY = 550
-
-// The growth tag, baked into the pixels (not just the caption) so it survives
-// an image-only re-post. @ + handle so it reads as a taggable mention.
-const HANDLE = '@joinpeanut'
 
 const RejectionAssetD3: FC<RejectionAssetProps> = ({
     username,
@@ -190,23 +185,6 @@ const RejectionAssetD3: FC<RejectionAssetProps> = ({
                 >
                     {safeUsername}
                 </span>
-            </div>
-
-            {/* ─── @joinpeanut — baked-in growth tag (survives image-only re-posts) ─── */}
-            <div
-                className="absolute"
-                style={{
-                    bottom: 44,
-                    right: 56,
-                    zIndex: 5,
-                    color: 'rgba(255,255,255,0.5)',
-                    fontWeight: 800,
-                    fontSize: 30,
-                    letterSpacing: '0.01em',
-                    animation: animate ? `riseIn 600ms ease-out ${ANIM_HANDLE_DELAY}ms both` : 'none',
-                }}
-            >
-                {HANDLE}
             </div>
         </div>
     )
