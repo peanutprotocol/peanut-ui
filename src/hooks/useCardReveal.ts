@@ -71,11 +71,14 @@ export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: Use
                 // Never surface the raw error to the UI: the backend forwards
                 // internal/upstream detail in its message (e.g. a raw Rain 500
                 // body), and CardFace renders the error string verbatim on the
-                // card. Show a friendly, actionable message instead — the raw
-                // text still goes to telemetry so we don't lose diagnostics.
-                const rawMessage = e instanceof Error ? e.message : 'Failed to load card details'
+                // card. Show a friendly, actionable message instead.
                 setError('Could not load card details. Please try again or contact support.')
-                posthog.capture(ANALYTICS_EVENTS.CARD_PAN_FAILED, { error_message: rawMessage })
+                // Telemetry gets a bounded slice for segmenting failures — not the
+                // full message, to keep raw upstream error bodies out of client
+                // analytics. The complete, sanitized detail is already in Sentry
+                // via fetchWithSentry.
+                const errorMessage = e instanceof Error ? e.message : 'Failed to load card details'
+                posthog.capture(ANALYTICS_EVENTS.CARD_PAN_FAILED, { error_message: errorMessage.slice(0, 120) })
             }
         } finally {
             setIsLoading(false)

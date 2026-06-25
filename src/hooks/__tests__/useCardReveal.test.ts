@@ -79,9 +79,13 @@ describe('useCardReveal', () => {
         expect(result.current.revealed).toBeNull()
     })
 
-    it('surfaces a friendly message for generic errors but reports the raw error', async () => {
+    it('shows a friendly message and reports only a bounded slice of the raw error', async () => {
         const captureSpy = jest.spyOn(posthog, 'capture')
-        mockedGetCardDetails.mockRejectedValueOnce(new Error('Rain API error 500 on GET /v1/issuing/cards/x/secrets'))
+        // A real backend 500 forwards the upstream Rain body — long and detailed.
+        const rawError =
+            'Rain API error 500 on GET /v1/issuing/cards/abc/secrets: ' +
+            '{"message":"We had an issue with your request","error":"InternalServerError","correlationId":"deadbeef-cafe"}'
+        mockedGetCardDetails.mockRejectedValueOnce(new Error(rawError))
         const { result } = renderHook(() => useCardReveal({ cardId: 'c1', autoMaskMs: 0 }))
 
         await act(async () => {
@@ -91,10 +95,12 @@ describe('useCardReveal', () => {
         // The user never sees the raw upstream/internal error text.
         expect(result.current.error).toBe('Could not load card details. Please try again or contact support.')
         expect(result.current.isRateLimited).toBe(false)
-        // ...but the raw message is still captured for diagnostics.
+        // Telemetry gets a bounded slice — enough to segment, but the full
+        // upstream body (correlationId etc.) never reaches client analytics.
         expect(captureSpy).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_PAN_FAILED, {
-            error_message: 'Rain API error 500 on GET /v1/issuing/cards/x/secrets',
+            error_message: rawError.slice(0, 120),
         })
+        expect(captureSpy.mock.calls.at(-1)?.[1]?.error_message).not.toContain('correlationId')
     })
 
     it('auto-masks after the configured timeout', async () => {
