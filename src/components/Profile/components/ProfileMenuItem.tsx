@@ -6,9 +6,11 @@ import NavigationArrow from '@/components/Global/NavigationArrow'
 import { Tooltip } from '@/components/Tooltip'
 import Link from 'next/link'
 import React from 'react'
+import { type SVGProps } from 'react'
 
 interface ProfileMenuItemProps {
     icon: IconName | React.ReactNode
+    iconClassName?: SVGProps<SVGSVGElement>['className']
     label: string
     href?: string
     onClick?: () => void
@@ -25,6 +27,7 @@ interface ProfileMenuItemProps {
 
 const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
     icon,
+    iconClassName,
     label,
     href,
     onClick,
@@ -42,7 +45,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
         <div className="flex items-center justify-between py-1">
             <div className="flex items-center gap-2">
                 {typeof icon === 'string' ? (
-                    <Icon name={icon as IconName} size={20} fill="black" />
+                    <Icon name={icon as IconName} size={20} fill="black" className={iconClassName} />
                 ) : (
                     <div className="flex items-center justify-center" style={{ width: 20, height: 20 }}>
                         {icon}

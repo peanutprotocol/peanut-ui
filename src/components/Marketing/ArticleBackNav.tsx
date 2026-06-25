@@ -75,7 +75,7 @@ export function ArticleBackNav({ parentLabel, parentHref, backToTemplate, curren
                 {open && (
                     <ul
                         role="listbox"
-                        className="absolute right-0 z-10 mt-1 flex flex-col overflow-hidden rounded-sm border border-n-1 bg-white shadow-[2px_2px_0_0_#000]"
+                        className="absolute right-0 z-20 mt-1 flex flex-col overflow-hidden rounded-sm border border-n-1 bg-white shadow-[2px_2px_0_0_#000]"
                     >
                         {LOCALE_ORDER.map((loc) => {
                             const meta = LOCALE_META[loc]
