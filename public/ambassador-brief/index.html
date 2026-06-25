@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peanut Card · Ambassador Brief</title>
+<style>
+  :root{
+    --pink:#FF90E8; --blue:#90A8ED; --blue-deep:#6E8BEF; --yellow:#FFC900;
+    --green:#98E9AB; --ink:#0a0b0f; --paper:#FBF7EF; --line:#000;
+    --grey:#6b6b6b;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--paper); color:#111;
+    font-family:'Roboto',system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.5;
+  }
+  .wrap{max-width:980px; margin:0 auto; padding:0 20px}
+  section{padding:60px 0; border-bottom:2px solid var(--line)}
+  section:last-child{border-bottom:0}
+  .kicker{font-size:13px; font-weight:900; letter-spacing:.16em; text-transform:uppercase; color:var(--grey); margin:0 0 10px}
+  h1{font-size:clamp(34px,6vw,58px); line-height:1.02; font-weight:1000; letter-spacing:-.02em; margin:0 0 14px}
+  h2{font-size:clamp(26px,4vw,38px); line-height:1.05; font-weight:1000; letter-spacing:-.02em; margin:0 0 16px}
+  h3{font-size:20px; font-weight:900; margin:26px 0 10px}
+  p{margin:0 0 14px; font-size:17px}
+  .lead{font-size:19px; max-width:680px}
+  a{color:#111}
+  .hero{background:var(--blue); border-bottom:2px solid var(--line);
+    background-image:radial-gradient(circle, rgba(255,144,232,.45) 1px, transparent 1.5px); background-size:40px 40px}
+  .hero .wrap{padding-top:74px; padding-bottom:74px}
+  .hero h1{color:#111}
+  .pill-tag{display:inline-block; background:#111; color:#fff; font-weight:900; font-size:12px;
+    letter-spacing:.14em; text-transform:uppercase; padding:7px 14px; border-radius:999px; margin-bottom:22px}
+  .card{background:#fff; border:2px solid var(--line); border-radius:8px; box-shadow:6px 6px 0 #000; padding:24px}
+  .grid{display:grid; gap:20px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:760px){.g2,.g3{grid-template-columns:1fr}}
+  .tag{display:inline-block; font-size:12px; font-weight:900; letter-spacing:.08em; text-transform:uppercase;
+    padding:4px 10px; border:2px solid #000; border-radius:999px; background:var(--yellow)}
+  .tag.pink{background:var(--pink)} .tag.green{background:var(--green)} .tag.blue{background:var(--blue)}
+  .tag.dark{background:#111; color:#fff; border-color:#111}
+  .step{display:flex; gap:18px; align-items:flex-start; padding:18px 0; border-top:2px dashed #cfc8b8}
+  .step:first-child{border-top:0}
+  .num{flex:0 0 auto; width:46px; height:46px; border-radius:999px; background:#111; color:#fff;
+    display:grid; place-items:center; font-weight:1000; font-size:20px}
+  .step h3{margin:2px 0 6px}
+  .step p{margin:0 0 6px; font-size:16px}
+  .muted{color:var(--grey); font-size:14px}
+  .phones{display:flex; gap:30px; flex-wrap:wrap; justify-content:center}
+  .phone{width:300px; border:3px solid #000; border-radius:30px; background:#fff; overflow:hidden; box-shadow:8px 8px 0 #000}
+  .phone .bar{height:26px; background:#fff; border-bottom:2px solid #000; display:flex; align-items:center; padding:0 14px; font-size:11px; font-weight:900; color:var(--grey)}
+  .phone .screen{padding:14px}
+  .nav{font-size:13px; font-weight:900; text-align:center; color:#111; padding:4px 0 12px}
+  .assetimg{width:100%; aspect-ratio:4/3; border:2px solid #000; border-radius:6px; object-fit:cover; display:block}
+  .screencopy{text-align:center; padding:12px 4px 6px}
+  .screencopy .big{font-weight:1000; font-size:18px; color:#111}
+  .screencopy .sub{font-size:13px; color:var(--grey); margin-top:2px}
+  .btn{display:block; width:100%; text-align:center; font-weight:900; font-size:14px; padding:11px 0; border:2px solid #000; border-radius:6px; margin-top:8px}
+  .btn.purple{background:var(--pink); box-shadow:3px 3px 0 #000}
+  .btn.stroke{background:#fff}
+  .caps{columns:2; column-gap:18px}
+  @media(max-width:760px){.caps{columns:1}}
+  .caps .c{break-inside:avoid; background:#fff; border:2px solid #000; border-radius:6px; padding:9px 12px; margin:0 0 10px; font-size:14px; box-shadow:2px 2px 0 #000}
+  ul.clean{list-style:none; padding:0; margin:0}
+  ul.clean li{padding:9px 0 9px 26px; position:relative; font-size:16px; border-top:1px solid #e7e0d0}
+  ul.clean li:first-child{border-top:0}
+  ul.clean li:before{content:"🥜"; position:absolute; left:0; top:8px; font-size:14px}
+  .do li:before{content:"✅"} .dont li:before{content:"⛔"}
+  .pair{display:grid; grid-template-columns:1fr 1fr; gap:0; border:2px solid #000; border-radius:8px; overflow:hidden}
+  @media(max-width:760px){.pair{grid-template-columns:1fr}}
+  .pair>div{padding:18px 20px}
+  .pair .do{background:#eafff0} .pair .dont{background:#fff0f0; border-left:2px solid #000}
+  @media(max-width:760px){.pair .dont{border-left:0; border-top:2px solid #000}}
+  .callout{border:2px solid #000; border-left:10px solid var(--yellow); background:#fff; border-radius:6px; padding:16px 18px; margin:18px 0; box-shadow:4px 4px 0 #000}
+  .callout.pink{border-left-color:var(--pink)}
+  .toc{display:flex; flex-wrap:wrap; gap:8px; margin-top:18px}
+  .toc a{font-size:13px; font-weight:900; padding:6px 12px; border:2px solid #000; border-radius:999px; text-decoration:none; background:#fff}
+  .foot{font-size:13px; color:var(--grey); padding:26px 0 60px; text-align:center}
+  .legend{font-size:12px; color:var(--grey); text-align:center; margin-top:8px; font-style:italic}
+  .pairlabel{font-weight:900; font-size:14px; margin:18px 0 12px; text-align:center}
+  .pairlabel .arrow{display:block; font-size:18px; color:var(--grey); margin-bottom:2px}
+</style>
+</head>
+<body>
+
+<!-- ───────────────────────── HERO ───────────────────────── -->
+<header class="hero">
+  <div class="wrap">
+    <span class="pill-tag">Card Closed Beta · push Mon 29 Jun</span>
+    <h1>Ambassador<br>Playbook.</h1>
+    <p class="lead">The link, the flow, the assets, the captions. Read once, then post Monday.</p>
+    <div class="toc">
+      <a href="#what">What Peanut is</a>
+      <a href="#campaign">The campaign</a>
+      <a href="#flow">The flow</a>
+      <a href="#post">What to post</a>
+    </div>
+  </div>
+</header>
+
+<!-- ───────────────────────── WHAT PEANUT IS ───────────────────────── -->
+<section id="what">
+  <div class="wrap">
+    <h2>What Peanut is.</h2>
+    <p class="lead">Peanut is a <strong>global cash app</strong>. Send money to anyone, pay like a local wherever you go. You probably remember us from <strong>Devconnect</strong>. We went a bit quiet to bring a big thing: a <strong>(very pink) platinum card</strong>, so you can go anywhere.</p>
+  </div>
+</section>
+
+<!-- ───────────────────────── THE CAMPAIGN ───────────────────────── -->
+<section id="campaign" style="background:#f3eddf">
+  <div class="wrap">
+    <h2>The Card Closed Beta.</h2>
+    <p class="lead">The card is the first time a Peanut balance works <em>anywhere</em>, not just Brazil and Argentina. We're letting the early crew in first — if you were at <strong>Devconnect BA or you're an OG, you skip the waitlist</strong>. Early users get paid back for being early. Your job: go through the flow, grab the asset, post.</p>
+
+    <div class="grid g3" style="margin-top:26px">
+      <div class="card">
+        <span class="tag green">Get in</span>
+        <h3 style="margin-top:14px">You qualify</h3>
+        <p style="font-size:15px">Devconnect / OG badge holders skip the line straight to the <strong>"I'm in"</strong> moment.</p>
+      </div>
+      <div class="card">
+        <span class="tag dark">Turned away</span>
+        <h3 style="margin-top:14px">You don't</h3>
+        <p style="font-size:15px">No badge → the Berghain-style <strong>"not tonight"</strong> door. Still yours to post — and funnier.</p>
+      </div>
+      <div class="card">
+        <span class="tag pink">Either way</span>
+        <h3 style="margin-top:14px">You post</h3>
+        <p style="font-size:15px">Win or rejection, it's content. Celebrate, or rage. Both pull people in.</p>
+      </div>
+    </div>
+
+    <div class="callout pink">
+      <strong>The hook every post carries:</strong> "Were you at Devconnect BA, or an OG? You can get the Peanut card right now — no waitlist." Tag <strong>@joinpeanut</strong>.
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────── THE FLOW ───────────────────────── -->
+<section id="flow">
+  <div class="wrap">
+    <h2>The flow.</h2>
+
+    <div class="card" style="margin-top:18px">
+      <div class="step">
+        <div class="num">1</div>
+        <div>
+          <h3>Get your link</h3>
+          <p><strong>peanut.me/shhhhh</strong> — live now, you can open it today. <strong>Add a calendar reminder for Monday</strong> so you post when the whole launch fires together.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <div>
+          <h3>Sign up / log in</h3>
+          <p>Open the link → Face ID / fingerprint sign-up, ~2 min. Returning? Just log into your old account.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <div>
+          <h3>Press &amp; hold "see if you qualify"</h3>
+          <p>The card flow puts up a pixelated card and a hold button — "we're looking you up." Hold it; we check your badges.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">4</div>
+        <div>
+          <h3>The reveal</h3>
+          <p><span class="tag green">Badge</span> the <strong>"I'M IN!"</strong> asset lands with confetti. <span class="tag dark" style="margin-left:6px">No badge</span> the dark <strong>"not tonight, &lt;you&gt;"</strong> door. Both shown below.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">5</div>
+        <div>
+          <h3>Tap Share</h3>
+          <p>Share (or Save image) fires the share sheet with the asset <em>and</em> a caption pre-filled. <strong>Rewrite the caption in your voice</strong> — the auto one is just a starting point.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">6</div>
+        <div>
+          <h3>Post on X</h3>
+          <p>Tag <strong>@joinpeanut</strong>. Got in → <strong>celebrate</strong>. Turned away → <strong>flame, rage, beef</strong>. Pretend to be furious at the door. Drama is the point.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">7</div>
+        <div>
+          <h3>The reward</h3>
+          <p>Early users get paid back for being early. <strong>We send it to you directly after launch</strong> — nothing to claim, no tab to check. It lands in your account.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────── WHAT TO POST ───────────────────────── -->
+<section id="post" style="background:#f3eddf">
+  <div class="wrap">
+    <h2>What to post.</h2>
+    <p class="lead">Tap <strong>Share</strong> and the asset posts with a caption already filled in. <strong>The asset is the image; the caption is the text that goes with it.</strong> Keep the <strong>@joinpeanut</strong> tag — rewrite the words in your own voice.</p>
+
+    <div class="grid g2" style="margin-top:28px; align-items:start">
+
+      <!-- GET IN -->
+      <div>
+        <span class="tag green">If you get in</span>
+        <div class="phone" style="margin:16px auto 0">
+          <div class="bar">9:41 · peanut.me</div>
+          <div class="screen">
+            <div class="nav">Welcome in</div>
+            <div class="screencopy" style="padding-top:0">
+              <div class="big">Devconnect crew. You skipped the line.</div>
+            </div>
+            <img class="assetimg" src="assets/win-asset.png" alt="I'm in share asset">
+            <a class="btn purple">Share</a>
+            <a class="btn stroke">Save image</a>
+          </div>
+        </div>
+        <p class="pairlabel"><span class="arrow">↓ post the image with this text ↓</span>pick one, make it yours</p>
+        <div class="caps" style="columns:1">
+          <div class="c">yay! i got in 🎉</div>
+          <div class="c">shhhh, i'm in.</div>
+          <div class="c">i got in. holy shhh.</div>
+          <div class="c">i got in, will you?</div>
+          <div class="c">remember peanut from devconnect? they're back.</div>
+          <div class="c">met peanut at devconnect. now i've got the card.</div>
+          <div class="c">devconnect was just the start — peanut card is here.</div>
+          <div class="c">can't talk — got the peanut card 🤫</div>
+          <div class="c">broke up with my bank. it's a peanut now.</div>
+        </div>
+      </div>
+
+      <!-- TURNED AWAY -->
+      <div>
+        <span class="tag dark">If you're turned away</span>
+        <div class="phone" style="margin:16px auto 0">
+          <div class="bar">9:41 · peanut.me</div>
+          <div class="screen">
+            <div class="nav">Peanut Card</div>
+            <img class="assetimg" src="assets/reject-asset.png" alt="Not tonight share asset">
+            <div class="screencopy">
+              <div class="big">the door's tight tonight.</div>
+              <div class="sub"><strong>213</strong> tried · <strong>7</strong> got in. tweet and tag <strong>@joinpeanut</strong> to appeal.</div>
+            </div>
+            <a class="btn purple">Tweet to appeal</a>
+          </div>
+        </div>
+        <p class="pairlabel"><span class="arrow">↓ post the image with this text ↓</span>rage encouraged — keep @joinpeanut</p>
+        <div class="caps" style="columns:1">
+          <div class="c">rejected by @joinpeanut 🚫 the door policy is insane. i WILL be back.</div>
+          <div class="c">@joinpeanut told me i'm not on the list 💀 the AUDACITY</div>
+          <div class="c">the @joinpeanut bouncer said come back when i'm somebody. ok bet.</div>
+          <div class="c">officially rejected by @joinpeanut. honestly an honor 🥜🚫</div>
+          <div class="c">turned away from @joinpeanut 💀 most exclusive door in crypto fr</div>
+          <div class="c">@joinpeanut said NOT TONIGHT. guess i'll fix my whole life and come back</div>
+          <div class="c">213 tried, 7 got in. @joinpeanut said not me. yet.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <p class="legend">Real in-app assets. The win asset slaps your actual earned badges around the card; the reject asset auto-sizes to your username. The @joinpeanut tag rides in the caption — keep it when you post.</p>
+
+    <h3 style="margin-top:34px">💡 Other ideas</h3>
+    <div class="grid g2">
+      <div class="card">
+        <span class="tag">Devconnect nostalgia</span>
+        <p style="font-size:14px; margin-top:12px">Call back the booth, the swag, the BA energy. "saw peanut at Devconnect BA and slept on it. not making that mistake twice 👇"</p>
+      </div>
+      <div class="card">
+        <span class="tag pink">Guess who's back</span>
+        <p style="font-size:14px; margin-top:12px">Lean into the comeback. "peanut went quiet for months… turns out they were cooking. guess who's back 🤫"</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>The one rule that matters:</strong> win or rejection, <u>everybody posts</u>. The reject isn't a dead end — it's the funnier post. Lean into the FOMO either direction.
+    </div>
+  </div>
+</section>
+
+<div class="foot wrap">
+  Peanut · Card Closed Beta · push Mon 29 Jun 2026 · internal ambassador enablement
+</div>
+
+</body>
+</html>

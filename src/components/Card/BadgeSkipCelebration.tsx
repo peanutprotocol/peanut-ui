@@ -19,6 +19,7 @@
 import { type FC, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import NavHeader from '@/components/Global/NavHeader'
 import { ScaledShareAsset } from '@/components/Card/share-asset/ScaledShareAsset'
 import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
@@ -59,6 +60,7 @@ type Phase = 'looking-up' | 'shaking' | 'revealed'
 
 const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, tier, pointsBalance, onContinue }) => {
     const [phase, setPhase] = useState<Phase>('looking-up')
+    const [hideUsername, setHideUsername] = useState(false)
     const { triggerHaptic } = useHaptic()
     const captureRef = useRef<HTMLDivElement | null>(null)
     const hasBadge = !!badgeCode
@@ -161,6 +163,7 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
                                 tier={tier ?? 0}
                                 pointsBalance={pointsBalance ?? 0}
                                 cardLast4="0420"
+                                hideUsername={hideUsername}
                                 animate={phase === 'revealed'}
                             />
                         </motion.div>
@@ -174,11 +177,14 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
                 animate={{ opacity: phase === 'revealed' ? 1 : 0, y: phase === 'revealed' ? 0 : 12 }}
                 transition={{ duration: 0.3, ease: 'easeOut', delay: phase === 'revealed' ? 0.1 : 0 }}
             >
-                <ShareAssetActions
-                    captureRef={captureRef}
-                    source="celebration"
-                    shareText="I got my Peanut card. shhhh."
+                {/* Anti-dox toggle — hides the peanut.me/<handle> pill on the asset */}
+                <Checkbox
+                    className="self-center"
+                    label="Hide username"
+                    value={hideUsername}
+                    onChange={(e) => setHideUsername(e.target.checked)}
                 />
+                <ShareAssetActions captureRef={captureRef} source="celebration" />
                 <Button onClick={onContinue} variant="stroke" className="w-full">
                     Continue to your card
                 </Button>
