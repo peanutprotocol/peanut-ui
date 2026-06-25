@@ -14,6 +14,7 @@ export const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
     touched_grass: 'TOUCHED_GRASS',
     survivor: 'SUPPORT_SURVIVOR',
     notsoshhh: 'NOT_SO_SHHHH',
+    festajunina: 'FESTA_JUNINA_2025',
 }
 
 // Map inbound `utm_campaign` values to the badge codes the backend whitelists.
@@ -26,6 +27,7 @@ export const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
     ethfloripa: 'ETHFLORIPA_HUB',
     alumni: 'EVENT_ALUMNI',
     'touched-grass': 'TOUCHED_GRASS',
+    'festa-junina': 'FESTA_JUNINA_2025',
 }
 
 // Bare ?campaign= links (no invite code) that are claimable without an invite —

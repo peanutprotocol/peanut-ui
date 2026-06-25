@@ -182,6 +182,11 @@ export const BADGES: Record<string, BadgeMeta> = {
         path: '/badges/token_nation_2026.svg',
         description: 'São Paulo, baby. They came, they claimed, they tagged the wall.',
     },
+    FESTA_JUNINA_2025: {
+        path: '/badges/festa_junina_2025.svg',
+        description: 'You danced the quadrilha with us. Arraiá unlocked.',
+        displayName: 'Arraiá Approved',
+    },
     TOUCHED_GRASS: {
         path: '/badges/touched_grass.svg',
         description: 'You logged off and touched real grass with Peanut.',
