@@ -68,9 +68,14 @@ export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: Use
                 setError(e.message)
                 posthog.capture(ANALYTICS_EVENTS.CARD_PAN_RATE_LIMITED)
             } else {
-                const message = e instanceof Error ? e.message : 'Failed to load card details'
-                setError(message)
-                posthog.capture(ANALYTICS_EVENTS.CARD_PAN_FAILED, { error_message: message })
+                // Never surface the raw error to the UI: the backend forwards
+                // internal/upstream detail in its message (e.g. a raw Rain 500
+                // body), and CardFace renders the error string verbatim on the
+                // card. Show a friendly, actionable message instead — the raw
+                // text still goes to telemetry so we don't lose diagnostics.
+                const rawMessage = e instanceof Error ? e.message : 'Failed to load card details'
+                setError('Could not load card details. Please try again or contact support.')
+                posthog.capture(ANALYTICS_EVENTS.CARD_PAN_FAILED, { error_message: rawMessage })
             }
         } finally {
             setIsLoading(false)

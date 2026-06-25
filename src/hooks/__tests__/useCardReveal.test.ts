@@ -1,5 +1,7 @@
 import { renderHook, act, waitFor } from '@testing-library/react'
+import posthog from 'posthog-js'
 import { useCardReveal } from '@/hooks/useCardReveal'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { rainApi, RainCardRateLimitError, type RainCardDetailsResponse } from '@/services/rain'
 
 jest.mock('@/services/rain', () => {
@@ -77,16 +79,22 @@ describe('useCardReveal', () => {
         expect(result.current.revealed).toBeNull()
     })
 
-    it('surfaces generic errors', async () => {
-        mockedGetCardDetails.mockRejectedValueOnce(new Error('boom'))
+    it('surfaces a friendly message for generic errors but reports the raw error', async () => {
+        const captureSpy = jest.spyOn(posthog, 'capture')
+        mockedGetCardDetails.mockRejectedValueOnce(new Error('Rain API error 500 on GET /v1/issuing/cards/x/secrets'))
         const { result } = renderHook(() => useCardReveal({ cardId: 'c1', autoMaskMs: 0 }))
 
         await act(async () => {
             await result.current.reveal()
         })
 
-        expect(result.current.error).toBe('boom')
+        // The user never sees the raw upstream/internal error text.
+        expect(result.current.error).toBe('Could not load card details. Please try again or contact support.')
         expect(result.current.isRateLimited).toBe(false)
+        // ...but the raw message is still captured for diagnostics.
+        expect(captureSpy).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_PAN_FAILED, {
+            error_message: 'Rain API error 500 on GET /v1/issuing/cards/x/secrets',
+        })
     })
 
     it('auto-masks after the configured timeout', async () => {
