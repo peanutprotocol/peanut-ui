@@ -17,6 +17,7 @@ import type {
     TRequestResponse,
 } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
+import { isWithdrawFeeDisproportionate } from '@/utils/cross-chain-fee.utils'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -437,6 +438,15 @@ export default function WithdrawCryptoPage() {
     // bridge-fee in USD — no slippage distinction.
     const networkFee = useMemo<number>(() => feeUsd ?? 0, [feeUsd])
 
+    // Hard-stop: block the withdrawal when the bridge fee is disproportionate to
+    // the amount (flat mainnet gas dominating a small withdraw). See
+    // cross-chain-fee.utils.ts — this is the guard against the "$4 fee on a $5
+    // withdraw" case that originally got cross-chain withdraw disabled.
+    const feeTooHigh = useMemo<boolean>(
+        () => isCrossChainWithdrawal && isWithdrawFeeDisproportionate(networkFee, parseFloat(usdAmount)),
+        [isCrossChainWithdrawal, networkFee, usdAmount]
+    )
+
     if (!amountToWithdraw && currentView !== 'STATUS') {
         // Redirect to main withdraw page for amount input
         // Guard against STATUS view: resetWithdrawFlow() clears amountToWithdraw,
@@ -470,6 +480,7 @@ export default function WithdrawCryptoPage() {
                     isCrossChain={isCrossChainWithdrawal}
                     isCalculating={isCalculating}
                     receiveAmount={receiveAmount}
+                    feeTooHigh={feeTooHigh}
                 />
             )}
 

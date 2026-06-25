@@ -36,6 +36,11 @@ interface WithdrawConfirmViewProps {
      * "they'll receive X" number.
      */
     receiveAmount?: string | null
+    /**
+     * True when the bridge fee is disproportionate to the amount (e.g. a small
+     * withdraw to Ethereum mainnet where flat gas dominates). Blocks the CTA.
+     */
+    feeTooHigh?: boolean
 }
 
 export default function ConfirmWithdrawView({
@@ -52,6 +57,7 @@ export default function ConfirmWithdrawView({
     isCrossChain = false,
     isCalculating = false,
     receiveAmount,
+    feeTooHigh = false,
 }: WithdrawConfirmViewProps) {
     const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
         chainId: chain.chainId,
@@ -64,16 +70,23 @@ export default function ConfirmWithdrawView({
         return isStableCoin(resolvedTokenSymbol) ? `$ ${receiveAmount}` : `${receiveAmount} ${resolvedTokenSymbol}`
     }, [isCrossChain, receiveAmount, resolvedTokenSymbol])
 
-    const networkFeeDisplay = useMemo<string | React.ReactNode>(() => {
-        if (networkFee < 0.01) return 'Sponsored by Peanut!'
-        return (
-            <>
-                <span className="line-through">$ {networkFee.toFixed(2)}</span>
-                {' – '}
-                <span className="font-medium text-gray-500">Sponsored by Peanut!</span>
-            </>
-        )
-    }, [networkFee])
+    // Honest bridge fee. The Rhino fee (destination gas + 0.07%) is paid by the
+    // user on top of the amount — it is NOT sponsored. Only the kernel execution
+    // gas is sponsored by Peanut's paymaster (the "Peanut fee" row below). For
+    // same-chain (no bridge) there's no Rhino fee, so it stays sponsored.
+    const networkFeeDisplay = useMemo<string>(() => {
+        if (!isCrossChain || networkFee <= 0) return 'Sponsored by Peanut!'
+        return networkFee < 0.01 ? '< $ 0.01' : `$ ${networkFee.toFixed(2)}`
+    }, [isCrossChain, networkFee])
+
+    // What actually leaves the wallet on a cross-chain withdraw: amount + fee
+    // (receive mode — the fee is taken at source). Shown so the user sees the
+    // real debit, not just the headline destination amount.
+    const totalPayDisplay = useMemo<string | null>(() => {
+        if (!isCrossChain || networkFee <= 0) return null
+        const total = parseFloat(amount) + networkFee
+        return Number.isFinite(total) ? `$ ${formatAmount(total.toString())}` : null
+    }, [isCrossChain, amount, networkFee])
 
     return (
         <div className="space-y-8">
@@ -94,7 +107,7 @@ export default function ConfirmWithdrawView({
                         <PaymentInfoRow
                             label="Recipient receives"
                             value={displayReceived}
-                            moreInfoText="Cross-chain bridging fee is deducted from the sent amount by Rhino."
+                            moreInfoText="The full amount arrives on the destination chain. The cross-chain network fee is paid on top — see below."
                         />
                     )}
                     <PaymentInfoRow
@@ -133,9 +146,18 @@ export default function ConfirmWithdrawView({
                         label="To"
                         value={<AddressLink isLink={false} address={toAddress} className="text-black no-underline" />}
                     />
-                    <PaymentInfoRow label="Max network fee" value={networkFeeDisplay} />
+                    <PaymentInfoRow
+                        label="Network fee"
+                        value={networkFeeDisplay}
+                        moreInfoText="Cross-chain bridge fee (destination gas + Rhino's 0.07%). Paid on top of the amount withdrawn."
+                    />
+                    {totalPayDisplay && <PaymentInfoRow label="You pay" value={totalPayDisplay} />}
                     <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$ ${peanutFee}`} />
                 </Card>
+
+                {feeTooHigh && (
+                    <ErrorAlert description="The network fee is too high relative to this amount. Try withdrawing a larger amount or choosing a cheaper network." />
+                )}
 
                 {error ? (
                     <Button
@@ -160,7 +182,7 @@ export default function ConfirmWithdrawView({
                         variant="purple"
                         shadowSize="4"
                         onClick={onConfirm}
-                        disabled={isProcessing || isCalculating}
+                        disabled={isProcessing || isCalculating || feeTooHigh}
                         loading={isProcessing}
                         className="w-full"
                     >
