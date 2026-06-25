@@ -67,12 +67,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     // combined flag for any cross-chain disabled state
     const isCrossChainDisabled = isXchainWithdrawDisabled || isXchainSendDisabled
 
-    // Cross-chain withdraw is re-enabled for stablecoins only — the non-stable
-    // bridge path (ETH/WETH) still discards the Rhino fee and books no ledger
-    // entry, so keep it out of the destination list until that path is fixed.
-    // Claim / req_pay stay fully locked via isXchainSendDisabled above.
-    const restrictToStablecoins = viewType === 'withdraw' && !isXchainWithdrawDisabled
-
     // state to track content height
     const contentRef = useRef<HTMLDivElement>(null)
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -272,13 +266,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             const uniqueTokens = Array.from(
                 new Map(tokens.map((t) => [`${t.address.toLowerCase()}-${t.chainId}`, t])).values()
             )
-            // Withdraw is stablecoin-only for now (see restrictToStablecoins) —
-            // drop native/non-stable destinations so the unfixed bridge path
-            // can't be reached.
-            const scoped = restrictToStablecoins
-                ? uniqueTokens.filter((t) => ['USDC', 'USDT'].includes(t.symbol.toUpperCase()))
-                : uniqueTokens
-            return sortTokensByPriority(scoped)
+            return sortTokensByPriority(uniqueTokens)
         }
 
         if (searchValue) {
@@ -292,14 +280,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         // default: popular tokens on popular chains
         const popularChainIds = popularChainsForButtons.map((pc) => pc.chainId)
         return buildTokensForChainArray(popularChainIds)
-    }, [
-        searchValue,
-        selectedChainID,
-        supportedChainsAndTokens,
-        popularChainsForButtons,
-        isCrossChainDisabled,
-        restrictToStablecoins,
-    ])
+    }, [searchValue, selectedChainID, supportedChainsAndTokens, popularChainsForButtons, isCrossChainDisabled])
 
     // filter popular tokens by search
     const filteredPopularTokensToDisplay = useMemo(() => {

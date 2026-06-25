@@ -37,10 +37,11 @@ interface WithdrawConfirmViewProps {
      */
     receiveAmount?: string | null
     /**
-     * True when the bridge fee is disproportionate to the amount (e.g. a small
-     * withdraw to Ethereum mainnet where flat gas dominates). Blocks the CTA.
+     * True when the bridge fee is a large share of the amount (e.g. a small
+     * withdraw to Ethereum mainnet where the flat gas floor dominates). Shows a
+     * non-blocking heads-up — the user can still proceed; the fee is honest.
      */
-    feeTooHigh?: boolean
+    showHighFeeWarning?: boolean
 }
 
 export default function ConfirmWithdrawView({
@@ -57,7 +58,7 @@ export default function ConfirmWithdrawView({
     isCrossChain = false,
     isCalculating = false,
     receiveAmount,
-    feeTooHigh = false,
+    showHighFeeWarning = false,
 }: WithdrawConfirmViewProps) {
     const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
         chainId: chain.chainId,
@@ -155,8 +156,12 @@ export default function ConfirmWithdrawView({
                     <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$ ${peanutFee}`} />
                 </Card>
 
-                {feeTooHigh && (
-                    <ErrorAlert description="The network fee is too high relative to this amount. Try withdrawing a larger amount or choosing a cheaper network." />
+                {showHighFeeWarning && (
+                    <ErrorAlert
+                        description="Heads up: the network fee is a large share of this withdrawal. Withdrawing a larger amount or choosing a cheaper network reduces it."
+                        className="text-grey-1"
+                        iconClassName="text-grey-1"
+                    />
                 )}
 
                 {error ? (
@@ -182,7 +187,7 @@ export default function ConfirmWithdrawView({
                         variant="purple"
                         shadowSize="4"
                         onClick={onConfirm}
-                        disabled={isProcessing || isCalculating || feeTooHigh}
+                        disabled={isProcessing || isCalculating}
                         loading={isProcessing}
                         className="w-full"
                     >

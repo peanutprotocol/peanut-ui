@@ -438,11 +438,11 @@ export default function WithdrawCryptoPage() {
     // bridge-fee in USD — no slippage distinction.
     const networkFee = useMemo<number>(() => feeUsd ?? 0, [feeUsd])
 
-    // Hard-stop: block the withdrawal when the bridge fee is disproportionate to
-    // the amount (flat mainnet gas dominating a small withdraw). See
-    // cross-chain-fee.utils.ts — this is the guard against the "$4 fee on a $5
-    // withdraw" case that originally got cross-chain withdraw disabled.
-    const feeTooHigh = useMemo<boolean>(
+    // Non-blocking heads-up when the bridge fee is a large share of the amount
+    // (flat mainnet gas dominating a small withdraw). The user can still proceed
+    // — the fee is shown honestly; we just flag it so a tiny mainnet withdrawal
+    // isn't a silent footgun. See cross-chain-fee.utils.ts.
+    const showHighFeeWarning = useMemo<boolean>(
         () => isCrossChainWithdrawal && isWithdrawFeeDisproportionate(networkFee, parseFloat(usdAmount)),
         [isCrossChainWithdrawal, networkFee, usdAmount]
     )
@@ -480,7 +480,7 @@ export default function WithdrawCryptoPage() {
                     isCrossChain={isCrossChainWithdrawal}
                     isCalculating={isCalculating}
                     receiveAmount={receiveAmount}
-                    feeTooHigh={feeTooHigh}
+                    showHighFeeWarning={showHighFeeWarning}
                 />
             )}
 
