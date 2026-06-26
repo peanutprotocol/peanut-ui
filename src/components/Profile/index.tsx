@@ -13,6 +13,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import Card from '../Global/Card'
+import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
 import ShowNameToggle from './components/ShowNameToggle'
 import InviteFriendsModal from '../Global/InviteFriendsModal'
 import { STAR_STRAIGHT_ICON } from '@/assets'
@@ -119,8 +120,8 @@ export const Profile = () => {
                         position="single"
                         iconClassName="size-4"
                     />
-                    {/* Logout Button */}
-                    <div className="w-full pb-10">
+                    {/* Logout + Delete account */}
+                    <div className="w-full space-y-3 pb-10">
                         <Button
                             loading={isLoggingOut}
                             disabled={isLoggingOut}
@@ -132,6 +133,7 @@ export const Profile = () => {
                             <Icon name="logout" size={20} fill="black" />
                             <span className="font-bold">Log out</span>
                         </Button>
+                        <DeleteAccountButton />
                     </div>
                 </div>
             </div>
