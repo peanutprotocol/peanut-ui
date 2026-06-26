@@ -82,10 +82,12 @@ export default function ConfirmWithdrawView({
 
     // What actually leaves the wallet on a cross-chain withdraw: amount + fee
     // (receive mode — the fee is taken at source). Shown so the user sees the
-    // real debit, not just the headline destination amount.
+    // real debit, not just the headline destination amount. Sum the SAME
+    // 2-decimal fee shown in the "Network fee" row so the displayed numbers add
+    // up (full-precision fee could differ from the rounded display by a cent).
     const totalPayDisplay = useMemo<string | null>(() => {
         if (!isCrossChain || networkFee <= 0) return null
-        const total = parseFloat(amount) + networkFee
+        const total = parseFloat(amount) + Number(networkFee.toFixed(2))
         return Number.isFinite(total) ? `$ ${formatAmount(total.toString())}` : null
     }, [isCrossChain, amount, networkFee])
 
