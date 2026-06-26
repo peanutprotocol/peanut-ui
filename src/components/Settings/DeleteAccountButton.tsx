@@ -7,35 +7,33 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
 import { useAuth } from '@/context/authContext'
-import { accountApi } from '@/services/account'
+import { usersApi } from '@/services/users'
 
-type Phase = 'confirm' | 'done'
+type ModalState = 'closed' | 'confirm' | 'done'
 
 const DeleteAccountButton: FC = () => {
     const { logoutUser } = useAuth()
     const toast = useToast()
-    const [isOpen, setIsOpen] = useState(false)
-    const [phase, setPhase] = useState<Phase>('confirm')
+    const [modalState, setModalState] = useState<ModalState>('closed')
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const open = () => {
-        setPhase('confirm')
-        setIsOpen(true)
+        setModalState('confirm')
         posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_INITIATED)
     }
 
     const close = () => {
         if (isSubmitting) return
-        setIsOpen(false)
+        setModalState('closed')
     }
 
     const confirmDelete = async () => {
         setIsSubmitting(true)
         posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_CONFIRMED)
         try {
-            await accountApi.requestDeletion()
-            setPhase('done')
-        } catch (error) {
+            await usersApi.requestDeletion()
+            setModalState('done')
+        } catch {
             posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_FAILED)
             toast.error('Could not delete your account. Please try again.')
         } finally {
@@ -48,6 +46,10 @@ const DeleteAccountButton: FC = () => {
     const finish = () => {
         logoutUser({ skipBackendCall: true })
     }
+
+    // Once submitting (or on the final notice) the modal can't be dismissed —
+    // the user must complete the flow through the CTA.
+    const lockModal = isSubmitting || modalState === 'done'
 
     const confirmCtas: ActionModalButtonProps[] = [
         {
@@ -82,19 +84,19 @@ const DeleteAccountButton: FC = () => {
             </Button>
 
             <ActionModal
-                visible={isOpen}
+                visible={modalState !== 'closed'}
                 onClose={close}
-                preventClose={isSubmitting || phase === 'done'}
-                hideModalCloseButton={isSubmitting || phase === 'done'}
+                preventClose={lockModal}
+                hideModalCloseButton={lockModal}
                 icon="alert"
                 iconContainerClassName="bg-yellow-1"
-                title={phase === 'confirm' ? 'Delete your account?' : 'Account deletion requested'}
+                title={modalState === 'done' ? 'Account deletion requested' : 'Delete your account?'}
                 description={
-                    phase === 'confirm'
-                        ? 'This action is irreversible. Your account will be disabled now and your data deleted within 30 days.'
-                        : 'Your account and data will be deleted within 30 days. You will now be signed out.'
+                    modalState === 'done'
+                        ? 'Your account and data will be deleted within 30 days. You will now be signed out.'
+                        : 'This action is irreversible. Your account will be disabled now and your data deleted within 30 days.'
                 }
-                ctas={phase === 'confirm' ? confirmCtas : doneCtas}
+                ctas={modalState === 'done' ? doneCtas : confirmCtas}
             />
         </>
     )
