@@ -70,6 +70,7 @@ const DeleteAccountButton: FC = () => {
         {
             text: "Never mind, I'll stay",
             variant: 'stroke',
+            shadowSize: '4',
             disabled: isSubmitting,
             onClick: close,
         },
