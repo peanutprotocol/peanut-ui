@@ -500,9 +500,16 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     }
 
     // parse the amount from the usdamount string in extradata
-    const amount = entry.extraData?.usdAmount
+    const baseAmount = entry.extraData?.usdAmount
         ? parseFloat(String(entry.extraData.usdAmount).replace(/[^\d.-]/g, ''))
         : 0
+    // Bake the cross-chain network fee into the displayed amount (product
+    // convention: fees are part of the amount, never a separate line — see the
+    // `fee: undefined` note below). The BE only sets `networkFeeUsd` for a
+    // CRYPTO_WITHDRAW whose kernel actually debited principal + fee (SDA path),
+    // so this shows the true amount deducted instead of just the principal.
+    const networkFeeUsd = typeof entry.extraData?.networkFeeUsd === 'number' ? entry.extraData.networkFeeUsd : 0
+    const amount = baseAmount + networkFeeUsd
 
     const { explorerUrlWithTx, addressExplorerUrl, tokenDisplayDetails, rewardData } = computeDerivedFields(entry)
 
