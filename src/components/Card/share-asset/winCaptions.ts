@@ -26,6 +26,8 @@ export const WIN_CAPTIONS: readonly string[] = [
     'banked by @joinpeanut. unbothered.',
     "who needs a bank? i've got @joinpeanut.",
     "broke up with my bank. it's @joinpeanut now.",
+    "remember @joinpeanut from argentina? they're global now. just got into their closed beta",
+    "saw @joinpeanut in argentina. they went global — and i'm in the closed beta.",
 ]
 
 /** Pick a random caption. Browser-only (Math.random) — fine at share time. */
