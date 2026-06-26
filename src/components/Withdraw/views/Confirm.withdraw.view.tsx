@@ -84,7 +84,7 @@ export default function ConfirmWithdrawView({
 
     const displayReceived = useMemo<string | null>(() => {
         if (!isCrossChain || !receiveAmount || !resolvedTokenSymbol) return null
-        return isStableCoin(resolvedTokenSymbol) ? `$ ${receiveAmount}` : `${receiveAmount} ${resolvedTokenSymbol}`
+        return isStableCoin(resolvedTokenSymbol) ? `$${receiveAmount}` : `${receiveAmount} ${resolvedTokenSymbol}`
     }, [isCrossChain, receiveAmount, resolvedTokenSymbol])
 
     // Honest bridge fee. The Rhino fee (destination gas + 0.07%) is paid by the
@@ -93,7 +93,7 @@ export default function ConfirmWithdrawView({
     // same-chain (no bridge) there's no Rhino fee, so it stays sponsored.
     const networkFeeDisplay = useMemo<string>(() => {
         if (!isCrossChain || networkFee <= 0) return 'Sponsored by Peanut!'
-        return networkFee < 0.01 ? '< $ 0.01' : `$ ${networkFee.toFixed(2)}`
+        return networkFee < 0.01 ? '< $0.01' : `$${networkFee.toFixed(2)}`
     }, [isCrossChain, networkFee])
 
     // What actually leaves the wallet on a cross-chain withdraw — the exact USDC
@@ -105,7 +105,7 @@ export default function ConfirmWithdrawView({
     const totalPayDisplay = useMemo<string | null>(() => {
         if (!isCrossChain || !payAmount) return null
         const parsed = parseFloat(payAmount)
-        return Number.isFinite(parsed) ? `$ ${formatAmount(payAmount)}` : null
+        return Number.isFinite(parsed) ? `$${formatAmount(payAmount)}` : null
     }, [isCrossChain, payAmount])
 
     return (
@@ -176,14 +176,14 @@ export default function ConfirmWithdrawView({
                     {isCrossChain && (isCalculating || totalPayDisplay) && (
                         <PaymentInfoRow label="You pay" value={totalPayDisplay} loading={isCalculating} />
                     )}
-                    <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$ ${peanutFee}`} />
+                    <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$${peanutFee}`} />
                 </Card>
 
                 {showHighFeeWarning && (
                     <InfoCard
                         variant="info"
                         icon="info"
-                        description="Heads up: the network fee is a large share of this withdrawal. Withdrawing a larger amount or choosing a cheaper network reduces it."
+                        description="Note: the network fee is a large share of this withdrawal. Withdrawing a larger amount or choosing a cheaper network reduces it."
                     />
                 )}
 
