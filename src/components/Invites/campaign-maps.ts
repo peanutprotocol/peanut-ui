@@ -15,6 +15,7 @@ export const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
     survivor: 'SUPPORT_SURVIVOR',
     notsoshhh: 'NOT_SO_SHHHH',
     festajunina: 'FESTA_JUNINA_2026',
+    cardalpha: 'CARD_ALPHA',
 }
 
 // Map inbound `utm_campaign` values to the badge codes the backend whitelists.
@@ -28,6 +29,7 @@ export const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
     alumni: 'EVENT_ALUMNI',
     'touched-grass': 'TOUCHED_GRASS',
     'festa-junina': 'FESTA_JUNINA_2026',
+    'card-alpha': 'CARD_ALPHA',
 }
 
 // Bare ?campaign= links (no invite code) that are claimable without an invite —
@@ -42,7 +44,7 @@ export const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
 //    bare link, but `/invite` shows generic badge-claim copy (not "skip").
 export const SKIP_CAMPAIGN = 'skip'
 export const WAITLIST_SKIP_CAMPAIGNS: ReadonlySet<string> = new Set([SKIP_CAMPAIGN, 'event_alumni'])
-export const BARE_VANITY_CAMPAIGNS: ReadonlySet<string> = new Set(['touched_grass', 'festa_junina_2026'])
+export const BARE_VANITY_CAMPAIGNS: ReadonlySet<string> = new Set(['touched_grass', 'card_alpha', 'festa_junina_2026'])
 
 export type CampaignClassification = {
     /** Claimable from a bare link with no invite code (auto-claim + gate bypass). */

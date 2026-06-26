@@ -169,6 +169,11 @@ export const BADGES: Record<string, BadgeMeta> = {
         description: 'IYKYK. They were testing the card before you knew it existed.',
         displayName: 'Closed Beta',
     },
+    CARD_ALPHA: {
+        path: '/badges/card_alpha.svg',
+        description: 'You tested the Card while it was still held together with tape and hope.',
+        displayName: 'Closed Alpha Tester',
+    },
     // ── community (link-granted) ────────────────────────────────────────────
     ARBITRUM: {
         path: '/badges/arbitrum.svg',
