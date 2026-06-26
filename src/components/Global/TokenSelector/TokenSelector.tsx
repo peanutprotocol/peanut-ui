@@ -28,6 +28,7 @@ import ScrollableList from './Components/ScrollableList'
 import SearchInput from './Components/SearchInput'
 import TokenListItem from './Components/TokenListItem'
 import {
+    RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN,
     TOKEN_SELECTOR_COMING_SOON_NETWORKS,
     TOKEN_SELECTOR_POPULAR_NETWORK_IDS,
     TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS,
@@ -66,6 +67,17 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         (viewType === 'claim' || viewType === 'req_pay') && underMaintenanceConfig.disableXchainSend
     // combined flag for any cross-chain disabled state
     const isCrossChainDisabled = isXchainWithdrawDisabled || isXchainSendDisabled
+
+    // When cross-chain withdraw is live, restrict destinations to what Rhino
+    // actually supports — the Squid-era selector lists chains/tokens Rhino
+    // rejects (e.g. USDC on Scroll → "SCROLL is disabled"). See
+    // RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN.
+    const restrictToRhino = viewType === 'withdraw' && !isXchainWithdrawDisabled
+    const isRhinoSupported = useCallback(
+        (chainId: string, tokenSymbol: string) =>
+            RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN[chainId]?.includes(tokenSymbol.toUpperCase()) ?? false,
+        []
+    )
 
     // state to track content height
     const contentRef = useRef<HTMLDivElement>(null)
@@ -157,7 +169,15 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         }
     }
 
-    const allowedChainIds = useMemo(() => new Set(TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS), [])
+    const allowedChainIds = useMemo(
+        () =>
+            new Set(
+                restrictToRhino
+                    ? TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS.filter((id) => RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN[id])
+                    : TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS
+            ),
+        [restrictToRhino]
+    )
 
     const popularChainsForButtons = useMemo(() => {
         if (!supportedChainsAndTokens) return []
@@ -165,6 +185,8 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             const chain = supportedChainsAndTokens[popularNetwork.chainId]
             // skip if the chain ID isn't in supportedChainsAndTokens
             if (!chain) return null
+            // for withdraw, only surface chains Rhino can deliver to
+            if (restrictToRhino && !RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN[chain.chainId]) return null
 
             return {
                 chainId: chain.chainId,
@@ -172,7 +194,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 iconURI: chain.chainIconURI || '',
             }
         }).filter((chain): chain is { chainId: string; name: string; iconURI: string } => Boolean(chain)) // type guard filter nulls
-    }, [supportedChainsAndTokens])
+    }, [supportedChainsAndTokens, restrictToRhino])
 
     // build list of popular tokens (usdc, usdt, native) for display
     const popularTokensList = useMemo(() => {
@@ -243,6 +265,9 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 const chainData = supportedChainsAndTokens[chainId]
                 if (chainData?.tokens) {
                     const processToken = (token: IToken) => {
+                        // withdraw: drop tokens Rhino can't deliver on this chain
+                        // (e.g. native POL/xDAI, any token on a disabled chain).
+                        if (restrictToRhino && !isRhinoSupported(chainId, token.symbol)) return
                         if (filterSymbol) {
                             if (
                                 token.symbol.toUpperCase() === filterSymbol.toUpperCase() ||
@@ -280,7 +305,15 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         // default: popular tokens on popular chains
         const popularChainIds = popularChainsForButtons.map((pc) => pc.chainId)
         return buildTokensForChainArray(popularChainIds)
-    }, [searchValue, selectedChainID, supportedChainsAndTokens, popularChainsForButtons, isCrossChainDisabled])
+    }, [
+        searchValue,
+        selectedChainID,
+        supportedChainsAndTokens,
+        popularChainsForButtons,
+        isCrossChainDisabled,
+        restrictToRhino,
+        isRhinoSupported,
+    ])
 
     // filter popular tokens by search
     const filteredPopularTokensToDisplay = useMemo(() => {
