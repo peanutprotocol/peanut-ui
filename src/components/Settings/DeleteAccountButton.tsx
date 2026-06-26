@@ -91,7 +91,7 @@ const DeleteAccountButton: FC = () => {
             <button
                 type="button"
                 onClick={open}
-                className="w-full text-center text-sm font-semibold text-red underline underline-offset-2"
+                className="w-full text-center text-sm font-semibold text-error underline underline-offset-2"
             >
                 Delete My Account
             </button>
