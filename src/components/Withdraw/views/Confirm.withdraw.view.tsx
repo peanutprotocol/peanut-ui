@@ -5,6 +5,7 @@ import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import ErrorAlert from '@/components/Global/ErrorAlert'
+import InfoCard from '@/components/Global/InfoCard'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -163,10 +164,10 @@ export default function ConfirmWithdrawView({
                 </Card>
 
                 {showHighFeeWarning && (
-                    <ErrorAlert
+                    <InfoCard
+                        variant="info"
+                        icon="info"
                         description="Heads up: the network fee is a large share of this withdrawal. Withdrawing a larger amount or choosing a cheaper network reduces it."
-                        className="text-grey-1"
-                        iconClassName="text-grey-1"
                     />
                 )}
 
