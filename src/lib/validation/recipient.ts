@@ -77,11 +77,15 @@ export const getRecipientType = (recipient: string, isWithdrawal: boolean = fals
     return 'USERNAME'
 }
 
-// utility function to check if a handle is a valid peanut username
+// utility function to check if a handle is a valid, reachable peanut username
+// (profile / send / request recipient validation). Uses GET, not HEAD: the GET
+// route filters out deactivated (deletion-requested) accounts and 404s for them,
+// whereas HEAD still reports them as existing to keep their username reserved
+// (prevents reuse). Signup's availability check is a separate HEAD call.
 export const verifyPeanutUsername = async (username: string): Promise<boolean> => {
     try {
         const res = await serverFetch(`/users/username/${username}`, {
-            method: 'HEAD',
+            method: 'GET',
         })
         const isValidPeanutUsername = res.status === 200
         return isValidPeanutUsername
