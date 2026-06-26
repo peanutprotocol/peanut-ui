@@ -5,7 +5,6 @@ import Image from 'next/image'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { PeanutSad, PeanutCrying } from '@/assets/mascot'
-import { Button } from '@/components/0_Bruddle/Button'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
 import { useAuth } from '@/context/authContext'
@@ -89,9 +88,13 @@ const DeleteAccountButton: FC = () => {
 
     return (
         <>
-            <Button variant="stroke" className="w-full" onClick={open}>
+            <button
+                type="button"
+                onClick={open}
+                className="w-full text-center text-sm font-semibold text-red underline underline-offset-2"
+            >
                 Delete My Account
-            </Button>
+            </button>
 
             <ActionModal
                 visible={modalState !== 'closed'}
