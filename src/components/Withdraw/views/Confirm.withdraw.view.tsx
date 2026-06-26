@@ -106,10 +106,11 @@ export default function ConfirmWithdrawView({
                 />
 
                 <Card className="rounded-sm">
-                    {displayReceived && (
+                    {isCrossChain && (isCalculating || displayReceived) && (
                         <PaymentInfoRow
                             label="Recipient receives"
                             value={displayReceived}
+                            loading={isCalculating}
                             moreInfoText="The full amount arrives on the destination chain. The cross-chain network fee is paid on top — see below."
                         />
                     )}
@@ -152,9 +153,12 @@ export default function ConfirmWithdrawView({
                     <PaymentInfoRow
                         label="Network fee"
                         value={networkFeeDisplay}
+                        loading={isCrossChain && isCalculating}
                         moreInfoText="Cross-chain bridge fee (destination gas + Rhino's 0.07%). Paid on top of the amount withdrawn."
                     />
-                    {totalPayDisplay && <PaymentInfoRow label="You pay" value={totalPayDisplay} />}
+                    {isCrossChain && (isCalculating || totalPayDisplay) && (
+                        <PaymentInfoRow label="You pay" value={totalPayDisplay} loading={isCalculating} />
+                    )}
                     <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$ ${peanutFee}`} />
                 </Card>
 
