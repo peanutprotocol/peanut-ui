@@ -84,7 +84,7 @@ export const getRecipientType = (recipient: string, isWithdrawal: boolean = fals
 // (prevents reuse). Signup's availability check is a separate HEAD call.
 export const verifyPeanutUsername = async (username: string): Promise<boolean> => {
     try {
-        const res = await serverFetch(`/users/username/${username}`, {
+        const res = await serverFetch(`/users/username/${encodeURIComponent(username)}`, {
             method: 'GET',
         })
         const isValidPeanutUsername = res.status === 200
