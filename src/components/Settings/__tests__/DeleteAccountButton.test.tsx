@@ -21,12 +21,18 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: un
 jest.mock('@/assets/mascot', () => ({ PeanutSad: { src: 'sad' }, PeanutCrying: { src: 'cry' } }))
 jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
 
-// Minimal ActionModal: render title + CTAs as buttons when visible.
+// Minimal ActionModal: render title + CTAs as buttons when visible, and surface
+// the lock props (preventClose / hideModalCloseButton) as data-attributes so we
+// can assert the dismissal wiring without rendering the real modal.
 jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,
-    default: ({ visible, title, ctas }: any) =>
+    default: ({ visible, title, ctas, preventClose, hideModalCloseButton }: any) =>
         visible ? (
-            <div>
+            <div
+                data-testid="modal"
+                data-prevent-close={String(!!preventClose)}
+                data-hide-close={String(!!hideModalCloseButton)}
+            >
                 <h1>{title}</h1>
                 {ctas?.map((c: any, i: number) => (
                     <button key={i} disabled={c.disabled} onClick={c.onClick}>
@@ -75,6 +81,28 @@ describe('DeleteAccountButton', () => {
         // still on the confirm step, not signed out
         expect(screen.getByText("Aw, you're leaving?")).toBeInTheDocument()
         expect(mockLogout).not.toHaveBeenCalled()
+    })
+
+    it('locks the modal (preventClose + hidden close) during submit and on the done step', async () => {
+        let resolveDeletion!: () => void
+        mockRequestDeletion.mockReturnValueOnce(new Promise<void>((r) => (resolveDeletion = () => r())))
+        render(<DeleteAccountButton />)
+
+        fireEvent.click(screen.getByText('Delete My Account'))
+        // confirm step is dismissible
+        expect(screen.getByTestId('modal').dataset.preventClose).toBe('false')
+        expect(screen.getByTestId('modal').dataset.hideClose).toBe('false')
+
+        fireEvent.click(screen.getByText('Yes, delete it'))
+        // during submit → locked
+        await waitFor(() => expect(screen.getByTestId('modal').dataset.preventClose).toBe('true'))
+        expect(screen.getByTestId('modal').dataset.hideClose).toBe('true')
+
+        resolveDeletion()
+        // done step → still locked (user must complete via "Goodbye")
+        await waitFor(() => expect(screen.getByText("We'll miss you")).toBeInTheDocument())
+        expect(screen.getByTestId('modal').dataset.preventClose).toBe('true')
+        expect(screen.getByTestId('modal').dataset.hideClose).toBe('true')
     })
 
     it('cancel closes the modal without calling the API', () => {
