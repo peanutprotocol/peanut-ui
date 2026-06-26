@@ -18,6 +18,7 @@ import type {
 } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { isWithdrawFeeDisproportionate } from '@/utils/cross-chain-fee.utils'
+import { isAmountWithinBalance } from '@/utils/balance.utils'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -40,7 +41,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 export default function WithdrawCryptoPage() {
     const router = useRouter()
     const onBack = useSafeBack('/withdraw')
-    const { isConnected: isPeanutWallet, address, sendTransactions, sendMoney } = useWallet()
+    const { isConnected: isPeanutWallet, address, sendTransactions, sendMoney, spendableBalance } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
     const {
         amountToWithdraw,
@@ -447,6 +448,23 @@ export default function WithdrawCryptoPage() {
         [isCrossChainWithdrawal, networkFee, usdAmount]
     )
 
+    // Pre-sign affordability gate for cross-chain. The input-time gate only
+    // checked the principal, but the kernel must spend principal + bridge fee
+    // (`payAmount`), so a withdraw that fit the balance at input can fall short
+    // here once the fee is known — and the send would surface the misleading
+    // "balance isn't fully available yet" (settling) error instead of an honest
+    // "not enough balance". Block it here with the right message. Only once the
+    // quote has resolved `payAmount` (skipped while calculating; CTA is disabled
+    // by isCalculating anyway).
+    const insufficientForFee = useMemo<boolean>(
+        () =>
+            isCrossChainWithdrawal &&
+            payAmount != null &&
+            spendableBalance !== undefined &&
+            !isAmountWithinBalance(payAmount, spendableBalance),
+        [isCrossChainWithdrawal, payAmount, spendableBalance]
+    )
+
     if (!amountToWithdraw && currentView !== 'STATUS') {
         // Redirect to main withdraw page for amount input
         // Guard against STATUS view: resetWithdrawFlow() clears amountToWithdraw,
@@ -480,7 +498,9 @@ export default function WithdrawCryptoPage() {
                     isCrossChain={isCrossChainWithdrawal}
                     isCalculating={isCalculating}
                     receiveAmount={receiveAmount}
+                    payAmount={payAmount}
                     showHighFeeWarning={showHighFeeWarning}
+                    insufficientBalance={insufficientForFee}
                 />
             )}
 

@@ -12,6 +12,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { type ITokenPriceData } from '@/interfaces'
 import { formatAmount, isStableCoin } from '@/utils/general.utils'
+import { INSUFFICIENT_BALANCE_MESSAGE } from '@/utils/balance.utils'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { useMemo } from 'react'
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
@@ -38,11 +39,23 @@ interface WithdrawConfirmViewProps {
      */
     receiveAmount?: string | null
     /**
+     * The exact USDC the kernel spends (decimal string) — the honest "You pay".
+     * SDA (receive mode) = principal + fee; bridge (pay mode) = principal (the
+     * fee comes out of what the recipient receives). Nullable while calculating.
+     */
+    payAmount?: string | null
+    /**
      * True when the bridge fee is a large share of the amount (e.g. a small
      * withdraw to Ethereum mainnet where the flat gas floor dominates). Shows a
      * non-blocking heads-up — the user can still proceed; the fee is honest.
      */
     showHighFeeWarning?: boolean
+    /**
+     * True when the balance can't cover amount + cross-chain fee. Blocks the CTA
+     * with an honest "not enough balance" message instead of letting the user
+     * sign into the misleading "balance still settling" send error.
+     */
+    insufficientBalance?: boolean
 }
 
 export default function ConfirmWithdrawView({
@@ -59,7 +72,9 @@ export default function ConfirmWithdrawView({
     isCrossChain = false,
     isCalculating = false,
     receiveAmount,
+    payAmount,
     showHighFeeWarning = false,
+    insufficientBalance = false,
 }: WithdrawConfirmViewProps) {
     const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
         chainId: chain.chainId,
@@ -81,16 +96,17 @@ export default function ConfirmWithdrawView({
         return networkFee < 0.01 ? '< $ 0.01' : `$ ${networkFee.toFixed(2)}`
     }, [isCrossChain, networkFee])
 
-    // What actually leaves the wallet on a cross-chain withdraw: amount + fee
-    // (receive mode — the fee is taken at source). Shown so the user sees the
-    // real debit, not just the headline destination amount. Sum the SAME
-    // 2-decimal fee shown in the "Network fee" row so the displayed numbers add
-    // up (full-precision fee could differ from the rounded display by a cent).
+    // What actually leaves the wallet on a cross-chain withdraw — the exact USDC
+    // the kernel spends (`payAmount`). This is authoritative for BOTH paths and
+    // avoids guessing: SDA (receive mode) = principal + fee, bridge (pay mode) =
+    // principal (the fee comes out of the recipient's amount, not on top). Using
+    // amount + fee would over-state the bridge path (showing principal + fee when
+    // the user only pays the principal).
     const totalPayDisplay = useMemo<string | null>(() => {
-        if (!isCrossChain || networkFee <= 0) return null
-        const total = parseFloat(amount) + Number(networkFee.toFixed(2))
-        return Number.isFinite(total) ? `$ ${formatAmount(total.toString())}` : null
-    }, [isCrossChain, amount, networkFee])
+        if (!isCrossChain || !payAmount) return null
+        const parsed = parseFloat(payAmount)
+        return Number.isFinite(parsed) ? `$ ${formatAmount(payAmount)}` : null
+    }, [isCrossChain, payAmount])
 
     return (
         <div className="space-y-8">
@@ -194,7 +210,7 @@ export default function ConfirmWithdrawView({
                         variant="purple"
                         shadowSize="4"
                         onClick={onConfirm}
-                        disabled={isProcessing || isCalculating}
+                        disabled={isProcessing || isCalculating || insufficientBalance}
                         loading={isProcessing}
                         className="w-full"
                     >
@@ -202,6 +218,7 @@ export default function ConfirmWithdrawView({
                     </Button>
                 )}
 
+                {insufficientBalance && !error && <ErrorAlert description={INSUFFICIENT_BALANCE_MESSAGE} />}
                 {error && <ErrorAlert description={error} />}
             </div>
         </div>
