@@ -11788,6 +11788,10 @@
 											},
 											{
 												"type": "string",
+												"enum": ["CARD_ALPHA"]
+											},
+											{
+												"type": "string",
 												"enum": ["TOKEN_NATION_SP_2026"]
 											},
 											{
