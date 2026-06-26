@@ -38,19 +38,25 @@ export async function validateAndResolveRecipient(
                 resolvedAddress: recipient,
             }
 
-        case 'USERNAME':
+        case 'USERNAME': {
             recipient = recipient.toLowerCase()
-            const isValidPeanutUsername = await verifyPeanutUsername(recipient)
-            if (!isValidPeanutUsername) {
+            // Single source of truth: getByUsername (GET /users/username/:username)
+            // is the same resource the old verifyPeanutUsername pre-check hit, and it
+            // 404s for unknown AND deactivated (deletion-requested) usernames — so one
+            // fetch validates and resolves, avoiding a duplicate round-trip.
+            let user
+            try {
+                user = await usersApi.getByUsername(recipient)
+            } catch {
                 throw new RecipientValidationError('Invalid Peanut username')
             }
-            const user = await usersApi.getByUsername(recipient)
             const address = user.accounts.find((account) => account.type === AccountType.PEANUT_WALLET)?.identifier
             return {
                 identifier: recipient,
                 recipientType,
                 resolvedAddress: address!,
             }
+        }
 
         default:
             throw new RecipientValidationError('Recipient is not a valid ENS, address, or Peanut Username')
