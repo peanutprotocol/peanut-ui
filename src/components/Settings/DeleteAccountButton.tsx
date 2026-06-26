@@ -78,7 +78,7 @@ const DeleteAccountButton: FC = () => {
 
     const doneCtas: ActionModalButtonProps[] = [
         {
-            text: 'Goodbye 👋',
+            text: 'Goodbye',
             variant: 'purple',
             shadowSize: '4',
             onClick: finish,
@@ -110,7 +110,7 @@ const DeleteAccountButton: FC = () => {
                     )
                 }
                 iconContainerClassName="size-32 rounded-none bg-transparent"
-                title={isDone ? "We'll miss you 🥜" : "Aw, you're leaving? 🥜"}
+                title={isDone ? "We'll miss you" : "Aw, you're leaving?"}
                 description={
                     isDone
                         ? 'Your account is off and your data will be gone within 30 days. Thanks for cracking open Peanut with us — take care out there!'
