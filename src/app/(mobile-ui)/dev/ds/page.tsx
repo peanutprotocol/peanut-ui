@@ -29,6 +29,13 @@ const sections = [
         count: 9,
     },
     {
+        title: 'Audit',
+        description: 'Live consolidation inventory — every component with its real usage count; dead items flagged',
+        href: '/dev/ds/audit',
+        icon: 'docs' as const,
+        count: 428,
+    },
+    {
         title: 'Playground',
         description: 'Interactive test harnesses: shake animations, haptics, confetti, perk flows',
         href: '/dev/ds/playground',
@@ -50,9 +57,9 @@ export default function DesignSystemPage() {
             {/* Quick stats */}
             <div className="grid grid-cols-3 gap-2">
                 {[
-                    { label: 'Primitives', value: '9' },
-                    { label: 'Global', value: '70+' },
-                    { label: 'Icons', value: '85+' },
+                    { label: 'Inventoried', value: '428' },
+                    { label: 'Flagged dead', value: '68' },
+                    { label: 'Merge clusters', value: '104' },
                 ].map((stat) => (
                     <div key={stat.label} className="rounded-sm border border-n-1 p-3 text-center">
                         <p className="text-2xl font-bold">{stat.value}</p>
