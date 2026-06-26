@@ -1,0 +1,125 @@
+'use client'
+
+import { type FC, useState } from 'react'
+import Image from 'next/image'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { PeanutSad, PeanutCrying } from '@/assets/mascot'
+import { useToast } from '@/components/0_Bruddle/Toast'
+import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
+import { useAuth } from '@/context/authContext'
+import { usersApi } from '@/services/users'
+
+type ModalState = 'closed' | 'confirm' | 'done'
+
+// A big animated mascot at the top of the modal instead of the tiny alert icon.
+// `unoptimized` keeps the animated WebP playing (Next's optimizer flattens it).
+const Mascot: FC<{ src: string; alt: string }> = ({ src, alt }) => (
+    <Image src={src} alt={alt} width={128} height={128} unoptimized className="size-32 object-contain" />
+)
+
+const DeleteAccountButton: FC = () => {
+    const { logoutUser } = useAuth()
+    const toast = useToast()
+    const [modalState, setModalState] = useState<ModalState>('closed')
+    const [isSubmitting, setIsSubmitting] = useState(false)
+
+    const open = () => {
+        setModalState('confirm')
+        posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_INITIATED)
+    }
+
+    const close = () => {
+        if (isSubmitting) return
+        setModalState('closed')
+    }
+
+    const confirmDelete = async () => {
+        setIsSubmitting(true)
+        posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_CONFIRMED)
+        try {
+            await usersApi.requestDeletion()
+            setModalState('done')
+        } catch {
+            posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_FAILED)
+            toast.error('Could not delete your account. Please try again.')
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    // After the user reads the notice, clear local session and redirect — they
+    // can no longer log back in (login is blocked server-side).
+    const finish = () => {
+        logoutUser({ skipBackendCall: true })
+    }
+
+    // Once submitting (or on the final notice) the modal can't be dismissed —
+    // the user must complete the flow through the CTA.
+    const lockModal = isSubmitting || modalState === 'done'
+
+    const confirmCtas: ActionModalButtonProps[] = [
+        {
+            text: 'Yes, delete it',
+            variant: 'purple',
+            shadowSize: '4',
+            loading: isSubmitting,
+            disabled: isSubmitting,
+            onClick: confirmDelete,
+        },
+        {
+            text: "Never mind, I'll stay",
+            variant: 'stroke',
+            shadowSize: '4',
+            disabled: isSubmitting,
+            onClick: close,
+        },
+    ]
+
+    const doneCtas: ActionModalButtonProps[] = [
+        {
+            text: 'Goodbye',
+            variant: 'purple',
+            shadowSize: '4',
+            onClick: finish,
+        },
+    ]
+
+    const isDone = modalState === 'done'
+
+    return (
+        <>
+            <button
+                type="button"
+                onClick={open}
+                className="w-full text-center text-sm font-semibold text-error underline underline-offset-2"
+            >
+                Delete My Account
+            </button>
+
+            <ActionModal
+                visible={modalState !== 'closed'}
+                onClose={close}
+                preventClose={lockModal}
+                hideModalCloseButton={lockModal}
+                icon={
+                    isDone ? (
+                        <Mascot src={PeanutCrying.src} alt="Crying peanut" />
+                    ) : (
+                        <Mascot src={PeanutSad.src} alt="Sad peanut" />
+                    )
+                }
+                iconContainerClassName="size-32 rounded-none bg-transparent"
+                title={isDone ? "We'll miss you" : "Aw, you're leaving?"}
+                description={
+                    isDone
+                        ? 'Your account is off and your data will be gone within 30 days. Thanks for cracking open Peanut with us — take care out there!'
+                        : "Deleting your account is permanent. We'll switch it off right away and wipe your data within 30 days. This little guy would really rather you stayed."
+                }
+                ctas={isDone ? doneCtas : confirmCtas}
+            />
+        </>
+    )
+}
+
+export default DeleteAccountButton
