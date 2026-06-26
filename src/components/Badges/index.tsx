@@ -98,15 +98,15 @@ export const Badges = () => {
                 <ActionModal
                     icon={
                         <Image
-                            height={120}
-                            width={120}
+                            height={240}
+                            width={240}
                             src={selectedBadge.logo}
                             alt={selectedBadge.title}
-                            className="w-30 object-contain"
+                            className="w-60 object-contain"
                             unoptimized
                         />
                     }
-                    iconContainerClassName="bg-transparent min-w-30 h-auto"
+                    iconContainerClassName="bg-transparent min-w-60 h-auto"
                     modalPanelClassName="m-0"
                     visible={isBadgeModalOpen}
                     onClose={() => {
