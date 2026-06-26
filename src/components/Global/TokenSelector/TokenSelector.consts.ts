@@ -87,9 +87,10 @@ export const TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS = networks
  *
  * Notes:
  * - Scroll (534352) is intentionally absent — Rhino has it disabled.
- * - Native gas tokens Rhino doesn't bridge are omitted: Polygon (POL) and Gnosis
- *   (xDAI) keep only USDC/USDT; Arbitrum/Ethereum/Optimism native is ETH; BNB on
- *   BNB Chain is supported.
+ * - Gnosis (100) is omitted: our token data only has native xDAI for it (no
+ *   USDC/USDT), so it has nothing offerable even though Rhino supports stables.
+ * - Native gas tokens Rhino doesn't bridge are omitted: Polygon (POL) keeps only
+ *   USDC/USDT; Arbitrum/Ethereum/Optimism native is ETH; BNB on BNB Chain is supported.
  * - EVM only (the withdraw flow uses 0x addresses); matches the current
  *   selectable chain set rather than every Rhino chain.
  */
@@ -98,6 +99,5 @@ export const RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN: Record<string, readonly s
     '1': ['ETH', 'USDC', 'USDT'], // Ethereum
     '10': ['ETH', 'USDC', 'USDT'], // Optimism
     '137': ['USDC', 'USDT'], // Polygon (native POL not bridged by Rhino)
-    '100': ['USDC', 'USDT'], // Gnosis (native xDAI not bridged by Rhino)
     '56': ['BNB', 'USDC', 'USDT'], // BNB Chain
 }

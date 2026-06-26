@@ -288,9 +288,20 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                     chainData.tokens.forEach(processToken)
                 }
             })
-            const uniqueTokens = Array.from(
-                new Map(tokens.map((t) => [`${t.address.toLowerCase()}-${t.chainId}`, t])).values()
-            )
+            // Dedupe by address normally; for the Rhino-restricted withdraw list
+            // collapse per (symbol, chain) so chains with two same-symbol variants
+            // (e.g. native USDC + bridged USDC.e on Optimism) show a single entry —
+            // Rhino resolves the token by symbol anyway. Keep the FIRST occurrence
+            // (token data lists the native/canonical token before bridged variants).
+            const seenKeys = new Set<string>()
+            const uniqueTokens = tokens.filter((t) => {
+                const key = restrictToRhino
+                    ? `${t.symbol.toUpperCase()}-${t.chainId}`
+                    : `${t.address.toLowerCase()}-${t.chainId}`
+                if (seenKeys.has(key)) return false
+                seenKeys.add(key)
+                return true
+            })
             return sortTokensByPriority(uniqueTokens)
         }
 
