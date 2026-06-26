@@ -1,8 +1,10 @@
 'use client'
 
 import { type FC, useState } from 'react'
+import Image from 'next/image'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { PeanutSad, PeanutCrying } from '@/assets/mascot'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
@@ -10,6 +12,12 @@ import { useAuth } from '@/context/authContext'
 import { usersApi } from '@/services/users'
 
 type ModalState = 'closed' | 'confirm' | 'done'
+
+// A big animated mascot at the top of the modal instead of the tiny alert icon.
+// `unoptimized` keeps the animated WebP playing (Next's optimizer flattens it).
+const Mascot: FC<{ src: string; alt: string }> = ({ src, alt }) => (
+    <Image src={src} alt={alt} width={128} height={128} unoptimized className="size-32 object-contain" />
+)
 
 const DeleteAccountButton: FC = () => {
     const { logoutUser } = useAuth()
@@ -53,7 +61,7 @@ const DeleteAccountButton: FC = () => {
 
     const confirmCtas: ActionModalButtonProps[] = [
         {
-            text: 'Delete My Account',
+            text: 'Yes, delete it',
             variant: 'purple',
             shadowSize: '4',
             loading: isSubmitting,
@@ -61,7 +69,7 @@ const DeleteAccountButton: FC = () => {
             onClick: confirmDelete,
         },
         {
-            text: 'Cancel',
+            text: "Never mind, I'll stay",
             variant: 'stroke',
             disabled: isSubmitting,
             onClick: close,
@@ -70,12 +78,14 @@ const DeleteAccountButton: FC = () => {
 
     const doneCtas: ActionModalButtonProps[] = [
         {
-            text: 'Got it',
+            text: 'Goodbye 👋',
             variant: 'purple',
             shadowSize: '4',
             onClick: finish,
         },
     ]
+
+    const isDone = modalState === 'done'
 
     return (
         <>
@@ -88,15 +98,21 @@ const DeleteAccountButton: FC = () => {
                 onClose={close}
                 preventClose={lockModal}
                 hideModalCloseButton={lockModal}
-                icon="alert"
-                iconContainerClassName="bg-yellow-1"
-                title={modalState === 'done' ? 'Account deletion requested' : 'Delete your account?'}
-                description={
-                    modalState === 'done'
-                        ? 'Your account and data will be deleted within 30 days. You will now be signed out.'
-                        : 'This action is irreversible. Your account will be disabled now and your data deleted within 30 days.'
+                icon={
+                    isDone ? (
+                        <Mascot src={PeanutCrying.src} alt="Crying peanut" />
+                    ) : (
+                        <Mascot src={PeanutSad.src} alt="Sad peanut" />
+                    )
                 }
-                ctas={modalState === 'done' ? doneCtas : confirmCtas}
+                iconContainerClassName="size-32 rounded-none bg-transparent"
+                title={isDone ? "We'll miss you 🥜" : "Aw, you're leaving? 🥜"}
+                description={
+                    isDone
+                        ? 'Your account is off and your data will be gone within 30 days. Thanks for cracking open Peanut with us — take care out there!'
+                        : "Deleting your account is permanent. We'll switch it off right away and wipe your data within 30 days. This little guy would really rather you stayed."
+                }
+                ctas={isDone ? doneCtas : confirmCtas}
             />
         </>
     )
