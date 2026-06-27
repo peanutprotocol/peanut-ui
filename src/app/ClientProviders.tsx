@@ -8,6 +8,7 @@
  */
 import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
 import RainCooldownIntroModal from '@/components/Global/RainCooldown/IntroModal'
+import BadgeReceiptCelebration from '@/components/Badges/BadgeReceiptCelebration'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
 import { PeanutProvider } from '@/config'
@@ -45,6 +46,10 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                                 explainer also covers public pay/send/request pages —
                                 the rain:cooldown event fires on every spend path. */}
                             <RainCooldownIntroModal />
+                            {/* Fullscreen "badge unlocked!" moment — fires once per
+                                freshly-earned badge (TASK-19791). Globally mounted so it
+                                covers whatever route the user lands on after earning. */}
+                            <BadgeReceiptCelebration />
                             {HarnessBootstrap && (
                                 <Suspense fallback={null}>
                                     <HarnessBootstrap />

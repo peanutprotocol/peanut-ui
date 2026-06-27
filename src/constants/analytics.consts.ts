@@ -165,6 +165,10 @@ export const ANALYTICS_EVENTS = {
     // rejection). Lets the funnel distinguish "users not tapping share"
     // from "users tapping share but it silently fails".
     CARD_SHARE_ASSET_FAILED: 'card_share_asset_failed',
+    // Fullscreen badge-receipt celebration (TASK-19791) — fires once per
+    // freshly-earned badge, globally, separate from the card skip flow.
+    BADGE_CELEBRATION_SHOWN: 'badge_celebration_shown',
+    BADGE_CELEBRATION_DISMISSED: 'badge_celebration_dismissed',
     // Admin wave release (BE event, mirrored here so FE doesn't accidentally
     // step on the namespace).
     CARD_WAITLIST_RELEASED: 'card_waitlist_released',
