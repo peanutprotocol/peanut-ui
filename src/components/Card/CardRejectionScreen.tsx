@@ -194,7 +194,7 @@ const CardRejectionScreen: FC<Props> = ({
                     Tweet to appeal
                 </Button>
                 {alreadyJoined ? (
-                    <div className="flex items-center justify-center gap-2 py-2 text-sm font-bold text-n-1">
+                    <div className="flex h-13 items-center justify-center gap-2 text-center text-sm font-bold text-n-1">
                         <Icon name="check-circle" size={18} />
                         You&apos;re on the list — we&apos;ll holler when it&apos;s your turn
                     </div>
