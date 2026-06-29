@@ -5,8 +5,14 @@ import { Button } from '@/components/0_Bruddle/Button'
 import type { IconName } from '@/components/Global/Icons/Icon'
 
 // this component shows the identity-verification status when more action is needed
-// from the user. Displays a friendly actionMessage when present, otherwise the
-// normalized reject labels (e.g. bad photo quality, expired doc).
+// from the user. Prefers the per-label copy when reject labels are present (e.g.
+// DUPLICATE_EMAIL → "Email already in use, sign in to that account or contact
+// support") and only falls back to the backend's generic actionMessage when there
+// are none. The backend (identity.ts → actionMessageFor) sends a fixed, generic
+// "resubmit your documents" message for every action_required state — it is never
+// label-specific — so checking it first would mask the actionable per-label copy.
+// RejectLabelsList already renders its own generic fallback for empty labels, so
+// the no-labels-no-actionMessage case lands there safely.
 export const KycActionRequired = ({
     onResume,
     isLoading,
@@ -22,7 +28,7 @@ export const KycActionRequired = ({
         <div className="space-y-4 p-1">
             <KYCStatusDrawerItem status="pending" customText="Action needed" />
 
-            {actionMessage ? (
+            {!rejectLabels?.length && actionMessage ? (
                 <InfoCard variant="info" icon="alert" description={actionMessage} />
             ) : (
                 <RejectLabelsList rejectLabels={rejectLabels} />
