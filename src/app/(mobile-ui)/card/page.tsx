@@ -477,6 +477,8 @@ const CardPage: FC = () => {
                 return (
                     <CardRejectionScreen
                         username={user?.user?.username ?? undefined}
+                        waitlistTotal={cardInfo!.waitlistTotal}
+                        admittedTotal={cardInfo!.admittedTotal}
                         alreadyJoined={!!cardInfo!.waitlistJoinedAt}
                         onPrev={onBack}
                         onJoined={refetchCardInfo}

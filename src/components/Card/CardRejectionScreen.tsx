@@ -26,15 +26,19 @@ import { ScaledRejectionAsset } from '@/components/Card/share-asset/ScaledReject
 import { captureShareAsset, canShareImageFiles } from '@/components/Card/share-asset/captureShareAsset'
 import { pickRejectionCaption } from '@/components/Card/share-asset/rejectionCaptions'
 import type { RejectionMascot } from '@/components/Card/share-asset/shareAsset.types'
+import { computeDoorTally } from '@/components/Card/doorTally.utils'
 import { cardApi } from '@/services/card'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 interface Props {
     username?: string
-    /** Door tally — scarcity flex, rendered as screen copy (not on the asset). */
-    applicants?: number
-    admitted?: number
+    /** Real waitlist size (total who joined). The screen inflates this for the
+     *  FOMO "tried" tally — mirrors the /shhhhh ScarcityCounter flex. Undefined
+     *  while /card is still loading → a sane floor renders. */
+    waitlistTotal?: number
+    /** Real number admitted (released/granted). Shown verbatim as "got in". */
+    admittedTotal?: number
     /** Which smug mascot the asset shows. */
     mascot?: RejectionMascot
     /** True once the user is already on the waitlist — swaps the "Join anyway"
@@ -48,13 +52,16 @@ interface Props {
 
 const CardRejectionScreen: FC<Props> = ({
     username,
-    applicants = 213,
-    admitted = 7,
+    waitlistTotal,
+    admittedTotal,
     mascot = 'cool',
     alreadyJoined = false,
     onPrev,
     onJoined,
 }) => {
+    // "tried" = real waitlist size, inflated for FOMO; "got in" = real admitted.
+    // Deterministic (pure fn of the counts) so it never jitters between renders.
+    const { applicants, admitted } = computeDoorTally(waitlistTotal, admittedTotal)
     const captureRef = useRef<HTMLDivElement | null>(null)
     const [sharing, setSharing] = useState(false)
     const [joining, setJoining] = useState(false)

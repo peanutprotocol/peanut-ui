@@ -35,6 +35,12 @@ export interface CardInfoResponse {
     waitlistReleasedAt: string | null
     /** Skip-badge codes the user holds (subset of SKIP_BADGE_CODES on BE). */
     skipBadges: string[]
+    /** Global door-tally counts (same for every user) — power the Berghain
+     *  rejection screen. `waitlistTotal` = total who joined the waitlist (the FE
+     *  inflates it for the FOMO "tried"); `admittedTotal` = total released/granted
+     *  (shown verbatim as "got in"). */
+    waitlistTotal: number
+    admittedTotal: number
 }
 
 export interface WaitlistStateResponse {
