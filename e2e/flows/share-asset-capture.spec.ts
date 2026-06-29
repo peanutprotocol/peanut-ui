@@ -15,17 +15,18 @@
  *      Share/Save buttons use).
  *   2. Save stays disabled until the card face signals ready — we wait for it
  *      to enable (proves the gate releases only after the canvas mounts).
- *   3. We click Save, intercept the downloaded PNG, decode it, and sample a
- *      region in the CENTRE of the card — the hand's territory, away from the
- *      top-left logo and bottom-left card number. If that region is ENTIRELY
- *      the card pink (#FF90E8) the hand never rendered → the blank-card bug.
- *      We assert it contains non-background pixels (the hand was captured).
+ *   3. We click Save, intercept the downloaded PNG, decode it IN-BROWSER (an
+ *      <img> + <canvas>.getImageData — no extra Node dep), and sample a region
+ *      in the CENTRE of the card — the hand's territory, away from the top-left
+ *      logo and bottom-left card number. If that region is ENTIRELY the card
+ *      pink (#FF90E8) the hand never rendered → the blank-card bug. We assert
+ *      it contains non-background pixels (the hand was captured).
  *
  * No harness auth needed — /dev/share-builder is a pure client-render dev page.
  */
 
 import { test, expect } from '@playwright/test'
-import sharp from 'sharp'
+import { readFileSync } from 'fs'
 
 // Asset + card geometry — mirror of shareAssetLayout.ts (CANVAS_W/H, CARD_*).
 // Hardcoded (not imported) to match the e2e convention of not pulling app code
@@ -33,10 +34,10 @@ import sharp from 'sharp'
 const CANVAS_W = 1200
 const CANVAS_H = 900
 
-// Card-pink (PixelatedCardFace background) and asset-blue (ShareAssetD3 bg).
-// "Background" = either of these; the hand is neither.
-const CARD_PINK = { r: 0xff, g: 0x90, b: 0xe8 }
-const ASSET_BLUE = { r: 0x90, g: 0xa8, b: 0xed }
+// Card-pink (PixelatedCardFace background) and asset-blue (ShareAssetD3 bg) as
+// [r,g,b]. "Background" = either of these; the hand is neither.
+const CARD_PINK: [number, number, number] = [0xff, 0x90, 0xe8]
+const ASSET_BLUE: [number, number, number] = [0x90, 0xa8, 0xed]
 const COLOR_TOL = 12
 
 // Central card region in 1200×900 canvas coords. The card is centred
@@ -47,12 +48,7 @@ const COLOR_TOL = 12
 // present → many non-background pixels. Small enough that the card's -8°
 // final rotation can't rotate any background (blue) into it.
 const REGION = { x0: 430, y0: 330, x1: 770, y1: 570 }
-
-function isBackground(r: number, g: number, b: number): boolean {
-    const near = (c: { r: number; g: number; b: number }): boolean =>
-        Math.abs(r - c.r) <= COLOR_TOL && Math.abs(g - c.g) <= COLOR_TOL && Math.abs(b - c.b) <= COLOR_TOL
-    return near(CARD_PINK) || near(ASSET_BLUE)
-}
+const SAMPLE_STEP = 6 // sample every 6th canvas-px → a dense grid
 
 test.describe('Share-asset capture (card face is not blank)', () => {
     test('captured PNG card region contains the hand, not just background', async ({ page }, testInfo) => {
@@ -79,36 +75,71 @@ test.describe('Share-asset capture (card face is not blank)', () => {
         const pngPath = testInfo.outputPath('share-asset-capture.png')
         await download.saveAs(pngPath)
 
-        // Decode the captured PNG to raw RGBA and sample the central card window.
-        const { data, info } = await sharp(pngPath).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
-        const { width, height, channels } = info
+        // Decode + sample IN-BROWSER: load the PNG into an <img>, paint it to a
+        // <canvas>, read it back with getImageData, and count non-background
+        // pixels in the central card window. Done in the page (not Node) so we
+        // need no PNG-decoder dependency.
+        const base64 = readFileSync(pngPath).toString('base64')
+        const result = await page.evaluate(
+            async ({ b64, canvasW, canvasH, region, pink, blue, tol, step }) => {
+                const img = new Image()
+                img.src = `data:image/png;base64,${b64}`
+                await img.decode()
 
-        // Output is captured at pixelRatio 2 (≈2400×1800) — scale canvas coords
-        // into output pixels.
-        const sx = width / CANVAS_W
-        const sy = height / CANVAS_H
+                const cv = document.createElement('canvas')
+                cv.width = img.naturalWidth
+                cv.height = img.naturalHeight
+                const ctx = cv.getContext('2d')
+                if (!ctx) throw new Error('no 2d context')
+                ctx.drawImage(img, 0, 0)
 
-        let sampled = 0
-        let nonBackground = 0
-        const STEP = 6 // sample every 6th canvas-px → a dense grid, fast decode
-        for (let cy = REGION.y0; cy <= REGION.y1; cy += STEP) {
-            for (let cx = REGION.x0; cx <= REGION.x1; cx += STEP) {
-                const px = Math.min(width - 1, Math.round(cx * sx))
-                const py = Math.min(height - 1, Math.round(cy * sy))
-                const idx = (py * width + px) * channels
-                sampled++
-                if (!isBackground(data[idx], data[idx + 1], data[idx + 2])) nonBackground++
+                const width = cv.width
+                const height = cv.height
+                const buf = ctx.getImageData(0, 0, width, height).data
+
+                // Output is captured at pixelRatio 2 (≈2400×1800) — scale canvas
+                // coords into output pixels.
+                const sx = width / canvasW
+                const sy = height / canvasH
+                const near = (r: number, g: number, b: number, c: number[]): boolean =>
+                    Math.abs(r - c[0]) <= tol && Math.abs(g - c[1]) <= tol && Math.abs(b - c[2]) <= tol
+
+                let sampled = 0
+                let nonBackground = 0
+                for (let cy = region.y0; cy <= region.y1; cy += step) {
+                    for (let cx = region.x0; cx <= region.x1; cx += step) {
+                        const px = Math.min(width - 1, Math.round(cx * sx))
+                        const py = Math.min(height - 1, Math.round(cy * sy))
+                        const idx = (py * width + px) * 4
+                        const r = buf[idx]
+                        const g = buf[idx + 1]
+                        const b = buf[idx + 2]
+                        sampled++
+                        if (!(near(r, g, b, pink) || near(r, g, b, blue))) nonBackground++
+                    }
+                }
+                return { width, height, sampled, nonBackground }
+            },
+            {
+                b64: base64,
+                canvasW: CANVAS_W,
+                canvasH: CANVAS_H,
+                region: REGION,
+                pink: CARD_PINK as number[],
+                blue: ASSET_BLUE as number[],
+                tol: COLOR_TOL,
+                step: SAMPLE_STEP,
             }
-        }
+        )
 
-        const fraction = nonBackground / sampled
+        const fraction = result.nonBackground / result.sampled
         // Blank card → fraction ≈ 0 (pure pink). Hand present → a large chunk of
         // the centre is non-pink. A 2% floor cleanly separates the two while
         // staying far below the hand's real coverage (avoids flake).
         expect(
             fraction,
             `card centre is ${(fraction * 100).toFixed(1)}% non-background ` +
-                `(${nonBackground}/${sampled} px; output ${width}×${height}). ` +
+                `(${result.nonBackground}/${result.sampled} px; output ${result.width}×${result.height}). ` +
                 `≈0% means the pixelated hand never rendered — the blank-card capture bug.`
         ).toBeGreaterThan(0.02)
     })
