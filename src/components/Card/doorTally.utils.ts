@@ -11,8 +11,13 @@
  * frames. No randomness on purpose.
  */
 
-/** FOMO inflation factor applied to the real waitlist size for "tried". */
-export const DOOR_TALLY_FOMO_MULTIPLIER = 3
+/**
+ * FOMO inflation factor applied to the real waitlist size for "tried". ×5 (not
+ * ×3) so the real number clears the 213 floor at the current prod waitlist size
+ * (~55 → 55×5 = 275 > 213) — otherwise the floor masks the real count and the
+ * tally looks frozen at 213.
+ */
+export const DOOR_TALLY_FOMO_MULTIPLIER = 5
 
 /**
  * Minimum "tried" — keeps the door looking busy when the real waitlist is
