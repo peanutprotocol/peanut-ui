@@ -28,24 +28,34 @@ describe('useBadgeEarnToast', () => {
     it('surfaces all freshly-earned badges, newest first', () => {
         setUser('user-a', [
             {
-                code: 'BETA_TESTER',
-                name: 'Beta',
+                code: 'EVENT_ALUMNI',
+                name: 'Alumni',
                 description: null,
                 earnedAt: new Date(Date.now() - 1000).toISOString(),
             },
             { code: 'SHHHHH', name: 'Shhh', description: null, earnedAt: freshIso() },
         ])
         const { result } = renderHook(() => useBadgeEarnToast())
-        expect(result.current.pending.map((b) => b.code)).toEqual(['SHHHHH', 'BETA_TESTER'])
+        expect(result.current.pending.map((b) => b.code)).toEqual(['SHHHHH', 'EVENT_ALUMNI'])
+    })
+
+    it('excludes universal/bespoke badges (BETA_TESTER, WAITLIST_SKIP)', () => {
+        setUser('user-a', [
+            { code: 'BETA_TESTER', name: 'Beta', description: null, earnedAt: freshIso() },
+            { code: 'WAITLIST_SKIP', name: 'Skip', description: null, earnedAt: freshIso() },
+            { code: 'SHHHHH', name: 'Shhh', description: null, earnedAt: freshIso() },
+        ])
+        const { result } = renderHook(() => useBadgeEarnToast())
+        expect(result.current.pending.map((b) => b.code)).toEqual(['SHHHHH'])
     })
 
     it('markSeen persists the codes and clears them from pending', () => {
         setUser('user-a', [
             { code: 'SHHHHH', name: 'Shhh', description: null, earnedAt: freshIso() },
-            { code: 'BETA_TESTER', name: 'Beta', description: null, earnedAt: freshIso() },
+            { code: 'EVENT_ALUMNI', name: 'Alumni', description: null, earnedAt: freshIso() },
         ])
         const { result } = renderHook(() => useBadgeEarnToast())
-        act(() => result.current.markSeen(['SHHHHH', 'BETA_TESTER']))
+        act(() => result.current.markSeen(['SHHHHH', 'EVENT_ALUMNI']))
         expect(result.current.pending).toEqual([])
         expect(window.localStorage.getItem(celebrationStorageKey('user-a'))).toContain('SHHHHH')
     })

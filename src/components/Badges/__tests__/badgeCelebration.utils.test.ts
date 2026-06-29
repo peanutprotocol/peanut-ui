@@ -43,9 +43,10 @@ describe('badgeCelebration.utils', () => {
             const badges = [badge({ code: 'OLDER', earnedAt: iso(1000) }), badge({ code: 'NEWER', earnedAt: iso(100) })]
             expect(pickCelebrationBadges(badges, new Set(), NOW).map((b) => b.code)).toEqual(['NEWER', 'OLDER'])
         })
-        it('excludes WAITLIST_SKIP (it has its own card-flow celebration)', () => {
+        it('excludes WAITLIST_SKIP (card celebration) and BETA_TESTER (universal)', () => {
             const badges = [
                 badge({ code: 'WAITLIST_SKIP', earnedAt: iso(0) }),
+                badge({ code: 'BETA_TESTER', earnedAt: iso(0) }),
                 badge({ code: 'SHHHHH', earnedAt: iso(0) }),
             ]
             expect(pickCelebrationBadges(badges, new Set(), NOW).map((b) => b.code)).toEqual(['SHHHHH'])

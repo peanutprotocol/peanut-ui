@@ -24,11 +24,12 @@ export type CelebrationBadge = {
 // badge never re-toasts on a new device.
 export const FRESHNESS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 
-// WAITLIST_SKIP keeps its bespoke card-flow celebration (BadgeSkipCelebration),
-// so it's excluded here to avoid a double-surface. Other card-access "skip"
-// badges (OG/Devconnect/Arbiverse) are historical — the freshness window
-// already keeps them out.
-const EXCLUDED_CODES = new Set<string>(['WAITLIST_SKIP'])
+// Badges that should NOT trigger the toast:
+//  - WAITLIST_SKIP keeps its bespoke card-flow celebration (BadgeSkipCelebration).
+//  - BETA_TESTER is awarded to every signup — too universal to be worth surfacing.
+// Other card-access "skip" badges (OG/Devconnect/Arbiverse) are historical, so
+// the freshness window already keeps them out.
+const EXCLUDED_CODES = new Set<string>(['WAITLIST_SKIP', 'BETA_TESTER'])
 
 const STORAGE_PREFIX = 'badge_earn_toast_seen'
 
