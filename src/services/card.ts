@@ -38,9 +38,13 @@ export interface CardInfoResponse {
     /** Global door-tally counts (same for every user) — power the Berghain
      *  rejection screen. `waitlistTotal` = total who joined the waitlist (the FE
      *  inflates it for the FOMO "tried"); `admittedTotal` = total released/granted
-     *  (shown verbatim as "got in"). */
-    waitlistTotal: number
-    admittedTotal: number
+     *  (shown verbatim as "got in").
+     *
+     *  OPTIONAL on purpose: the BE that returns these (peanut-api-ts) deploys
+     *  first, but during the rollout window — and for any older API — the FE
+     *  must tolerate `undefined`. `computeDoorTally` falls back to 213 / 7. */
+    waitlistTotal?: number
+    admittedTotal?: number
 }
 
 export interface WaitlistStateResponse {
