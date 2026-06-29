@@ -32,6 +32,7 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
+import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -89,9 +90,14 @@ export default function WithdrawBankPage() {
     const { gateFor } = useCapabilities()
     const bankCountry = useMemo(() => railJurisdictionForBank(getCountryFromPath(country)?.id), [country])
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
-    const sumsubFlow = useMultiPhaseKycFlow({})
-    // A ready bank rail can still carry a future-dated requirement (the gate's
-    // `advisory`). Offer it as a skippable pre-empt before the withdrawal.
+    // EEA-uplift funnel events (PostHog): started on launch, completed on KYC
+    // success. trackCompleted no-ops unless an uplift was started this session.
+    const { trackStarted: trackUpliftStarted, trackCompleted: trackUpliftCompleted } = useEeaUpliftFunnel('withdraw')
+
+    const sumsubFlow = useMultiPhaseKycFlow({ onKycSuccess: () => trackUpliftCompleted() })
+    // A ready bank rail can still carry a pending Bridge requirement (the gate's
+    // `advisory`). Enforce it as a mandatory, non-skippable pre-empt before the
+    // withdrawal — the offramp cannot proceed until it's completed.
     const advisory = gate.kind === 'ready' ? gate.advisory : undefined
     const { intercept: advisoryIntercept, modalProps: advisoryModalProps } = useAdvisoryPreempt({
         advisory,
@@ -99,8 +105,11 @@ export default function WithdrawBankPage() {
         // Route through the self-heal resubmit path (reheal-tagged action) so the
         // completed submission round-trips to Bridge. start-action mints a plain
         // token whose webhook completion has no Bridge relay → answers are dropped.
-        onCompleteNow: () =>
-            advisory ? sumsubFlow.handleSelfHealResubmit('BRIDGE', advisory.requirementKey) : Promise.resolve(),
+        onCompleteNow: () => {
+            if (!advisory) return Promise.resolve()
+            trackUpliftStarted(advisory)
+            return sumsubFlow.handleSelfHealResubmit('BRIDGE', advisory.requirementKey)
+        },
     })
     const [showKycModal, setShowKycModal] = useState(false)
     const { setIsSupportModalOpen } = useModalsContext()
@@ -322,8 +331,8 @@ export default function WithdrawBankPage() {
         }
     }
 
-    // Offer the skippable advisory pre-empt once, then run the offramp. When the
-    // gate isn't `ready` (or nothing is future-dated) this is a no-op and
+    // Enforce the mandatory verification pre-empt, then run the offramp. When the
+    // gate isn't `ready` (or there's no pending requirement) this is a no-op and
     // proceedWithOfframp runs straight away (it handles the not-ready cases).
     const handleCreateAndInitiateOfframp = () => advisoryIntercept(() => void proceedWithOfframp())
 
