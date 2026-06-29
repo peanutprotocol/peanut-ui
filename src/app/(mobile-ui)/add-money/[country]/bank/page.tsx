@@ -88,8 +88,11 @@ export default function OnrampBankPage() {
     } = useEeaUpliftFunnel('deposit')
 
     const sumsubFlow = useMultiPhaseKycFlow({
+        // Fire completed at Sumsub approval (verification submitted), not at
+        // end-of-flow — so it isn't lost if the user drops during the
+        // post-approval ToS / preparing steps.
+        onKycApproved: () => trackUpliftCompleted(),
         onKycSuccess: () => {
-            trackUpliftCompleted()
             setUrlState({ step: 'inputAmount' })
         },
         // Abandoned attempt: clear the pending start so a later unrelated KYC

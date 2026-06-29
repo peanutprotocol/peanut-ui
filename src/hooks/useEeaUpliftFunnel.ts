@@ -24,13 +24,16 @@ export function useEeaUpliftFunnel(channel: UpliftChannel) {
     const startedRef = useRef<GateAdvisory | null>(null)
 
     const trackStarted = useCallback(
-        (advisory: GateAdvisory | undefined) => {
-            startedRef.current = advisory ?? null
+        // `advisory` is required: callers gate on it before launching, and the
+        // funnel contract needs requirement_key / action_key / effective_date
+        // always present on the event.
+        (advisory: GateAdvisory) => {
+            startedRef.current = advisory
             posthog.capture(ANALYTICS_EVENTS.EEA_UPLIFT_STARTED, {
                 channel,
-                requirement_key: advisory?.requirementKey,
-                action_key: advisory?.actionKey,
-                effective_date: advisory?.effectiveDate,
+                requirement_key: advisory.requirementKey,
+                action_key: advisory.actionKey,
+                effective_date: advisory.effectiveDate,
             })
         },
         [channel]

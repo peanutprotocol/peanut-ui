@@ -75,6 +75,14 @@ export async function confirmBridgeTosAndAwaitRails(fetchUser: () => Promise<IUs
 
 interface UseMultiPhaseKycFlowOptions {
     onKycSuccess?: () => void
+    /**
+     * Fired the moment Sumsub reports approval (the verification was submitted),
+     * BEFORE the post-approval ToS / rail-preparing steps. Use this for
+     * "completed the verification" signals so they aren't lost when the user
+     * drops during those follow-up steps. `onKycSuccess` still fires later, once
+     * the whole flow settles.
+     */
+    onKycApproved?: () => void
     onManualClose?: () => void
     regionIntent?: KYCRegionIntent
 }
@@ -87,7 +95,12 @@ interface UseMultiPhaseKycFlowOptions {
  * use this hook anywhere kyc is initiated. pair with SumsubKycModals
  * for the modal rendering.
  */
-export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: UseMultiPhaseKycFlowOptions) => {
+export const useMultiPhaseKycFlow = ({
+    onKycSuccess,
+    onKycApproved,
+    onManualClose,
+    regionIntent,
+}: UseMultiPhaseKycFlowOptions) => {
     const { fetchUser, user } = useAuth()
     const acquisitionSource = user?.invitedBy ? 'referred' : 'organic'
 
@@ -163,6 +176,11 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
         // the next route mount / window focus. See useSubmissionWindow.
         markSubmitted()
 
+        // Sumsub approved the submission — the verification flow is done from the
+        // user's side. Fire here (not in completeFlow) so a "completed" signal
+        // survives a drop during the post-approval ToS / preparing steps.
+        onKycApproved?.()
+
         // for real-time flow, optimistically show "Identity verified!" while we check rails
         if (isRealtimeFlowRef.current) {
             setModalPhase('preparing')
@@ -192,7 +210,7 @@ export const useMultiPhaseKycFlow = ({ onKycSuccess, onManualClose, regionIntent
 
         // all settled — done
         completeFlow()
-    }, [fetchUser, startTracking, clearPreparingTimer, completeFlow])
+    }, [fetchUser, startTracking, clearPreparingTimer, completeFlow, onKycApproved])
 
     const {
         isLoading,

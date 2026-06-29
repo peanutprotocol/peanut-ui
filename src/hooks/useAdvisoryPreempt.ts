@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GateAdvisory } from '@/utils/capability-gate'
 
 interface UseAdvisoryPreemptArgs {
@@ -27,6 +27,13 @@ export function useAdvisoryPreempt({ advisory, onCompleteNow, isLoading = false 
     // would otherwise launch duplicate requests.
     const completingRef = useRef(false)
 
+    // Keep the modal in sync with the requirement: if the backend clears the
+    // advisory (requirement resolved) while the modal is open, auto-close it so
+    // the gate doesn't linger over an already-unblocked transfer.
+    useEffect(() => {
+        if (!advisory) setVisible(false)
+    }, [advisory])
+
     const intercept = useCallback(
         (proceed: () => void) => {
             // Hard gate: a pending requirement blocks the transfer outright. The
@@ -47,6 +54,11 @@ export function useAdvisoryPreempt({ advisory, onCompleteNow, isLoading = false 
         setVisible(false)
         try {
             await onCompleteNow()
+        } catch (error) {
+            // Launch failed — re-show the gate so the user isn't left with a
+            // silently dismissed mandatory step and a still-pending requirement.
+            setVisible(true)
+            throw error
         } finally {
             completingRef.current = false
         }

@@ -99,7 +99,10 @@ export default function WithdrawBankPage() {
     } = useEeaUpliftFunnel('withdraw')
 
     const sumsubFlow = useMultiPhaseKycFlow({
-        onKycSuccess: () => trackUpliftCompleted(),
+        // Fire completed at Sumsub approval (verification submitted), not at
+        // end-of-flow — so it isn't lost if the user drops during the
+        // post-approval ToS / preparing steps.
+        onKycApproved: () => trackUpliftCompleted(),
         // Abandoned attempt: clear the pending start so a later unrelated KYC
         // success on this page can't mis-fire eea_uplift_completed.
         onManualClose: resetUpliftFunnel,

@@ -88,4 +88,32 @@ describe('useAdvisoryPreempt', () => {
         act(() => result.current.intercept(proceed))
         expect(proceed).toHaveBeenCalledTimes(1)
     })
+
+    test('auto-closes the modal when the advisory clears while it is open', () => {
+        const onCompleteNow = jest.fn()
+        const { result, rerender } = renderHook(
+            ({ adv }: { adv: GateAdvisory | undefined }) => useAdvisoryPreempt({ advisory: adv, onCompleteNow }),
+            { initialProps: { adv: advisory as GateAdvisory | undefined } }
+        )
+
+        act(() => result.current.intercept(jest.fn()))
+        expect(result.current.modalProps.visible).toBe(true)
+
+        // backend cleared the requirement while the modal was open
+        rerender({ adv: undefined })
+        expect(result.current.modalProps.visible).toBe(false)
+    })
+
+    test('re-shows the modal if the launch (onCompleteNow) fails', async () => {
+        const onCompleteNow = jest.fn().mockRejectedValue(new Error('launch failed'))
+        const { result } = renderHook(() => useAdvisoryPreempt({ advisory, onCompleteNow }))
+
+        act(() => result.current.intercept(jest.fn()))
+        await act(async () => {
+            await expect(result.current.modalProps.onCompleteNow()).rejects.toThrow('launch failed')
+        })
+
+        // hard gate must not silently vanish on a failed launch
+        expect(result.current.modalProps.visible).toBe(true)
+    })
 })
