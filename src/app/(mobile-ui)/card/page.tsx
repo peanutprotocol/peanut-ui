@@ -562,17 +562,14 @@ const CardPage: FC = () => {
                 //
                 // Surface the specific, vetted rejection reason from the
                 // capabilities read-model (`rail.reason.userMessage` — e.g.
-                // "Peanut cards aren't available in your state yet."), falling
-                // back to the screen's generic body when capabilities haven't
-                // resolved. Wait for capabilities so the reason never flashes in.
-                if (capabilitiesLoading) {
-                    return (
-                        <div className="flex min-h-[inherit] w-full items-center justify-center">
-                            <Loading />
-                        </div>
-                    )
-                }
-                const cardRailReason = railsForProvider('rain')[0]?.reason?.userMessage
+                // "Peanut cards aren't available in your state yet."). Render
+                // immediately rather than spinner-gating: unlike requires-info
+                // (meaningless without its reason), the rejected screen is useful
+                // on its own (reassurance + support CTA), so show it now and let
+                // the reason fill in once capabilities resolve.
+                const cardRailReason = capabilitiesLoading
+                    ? undefined
+                    : railsForProvider('rain')[0]?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
                         variant="rejected"

@@ -34,15 +34,20 @@ describe('ApplicationStatusScreen — rejected', () => {
             />
         )
         expect(screen.getByText("We couldn't issue you a card")).toBeInTheDocument()
-        expect(screen.getByText("Peanut cards aren't available in your state yet.")).toBeInTheDocument()
-        expect(screen.getByText(REASSURANCE)).toBeInTheDocument()
+        const reason = screen.getByText("Peanut cards aren't available in your state yet.")
+        const body = screen.getByText(REASSURANCE)
+        // Contract: the specific reason renders ABOVE the reassurance body.
+        expect(reason.compareDocumentPosition(body) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        // Both paragraphs live in the same copy block (reason + body).
+        expect(body.parentElement?.querySelectorAll('p')).toHaveLength(2)
     })
 
     it('falls back to the reassurance body alone when no reason is provided', () => {
         render(<ApplicationStatusScreen variant="rejected" onContactSupport={jest.fn()} />)
-        expect(screen.getByText(REASSURANCE)).toBeInTheDocument()
-        // No phantom reason paragraph — only the generic body shows.
-        expect(screen.queryByText(/available in your/i)).not.toBeInTheDocument()
+        const body = screen.getByText(REASSURANCE)
+        expect(body).toBeInTheDocument()
+        // No phantom reason paragraph — the copy block holds only the body <p>.
+        expect(body.parentElement?.querySelectorAll('p')).toHaveLength(1)
     })
 
     it('keeps the Contact support action', () => {
