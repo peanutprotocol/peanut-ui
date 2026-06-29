@@ -40,6 +40,11 @@
  *    - does NOT block deposits — the option stays usable (warn-only)
  *    - set to false when PIX deposits are stable again
  *
+ * 8. disableCardLaunchCTA: delays the in-app card LAUNCH CTA (the "mysterious" home nudge)
+ *    - hides BOTH the activation-funnel card step and the activated-base home splash
+ *    - the /card flow, /shhhhh door, and waitlist pill stay reachable — this only mutes the proactive in-app nudge
+ *    - set to false (~2-3 days post-launch) to start converting the in-app base
+ *
  * note: if either mode is enabled, the maintenance banner will show everywhere
  *
  * I HOPE WE NEVER NEED TO USE THIS...
@@ -55,6 +60,7 @@ interface MaintenanceConfig {
     disableXchainWithdraw: boolean
     disableXchainSend: boolean
     disableCardPioneers: boolean
+    disableCardLaunchCTA: boolean
     pixBrazilOnrampMaintenance: boolean
 }
 
@@ -65,6 +71,7 @@ const underMaintenanceConfig: MaintenanceConfig = {
     disableXchainWithdraw: false, // cross-chain withdrawals re-enabled (stables via SDA + non-stables via swaps, fee shown honestly); set true to lock to USDC on Arbitrum
     disableXchainSend: true, // set to true to disable cross-chain sends (claim, request payments - only allows USDC on Arbitrum)
     disableCardPioneers: true, // set to false to enable the Card Pioneers waitlist feature
+    disableCardLaunchCTA: true, // launch-day buzz delay: mutes the in-app "mysterious" card CTA (funnel card step + activated home splash); /card flow + /shhhhh door + waitlist stay reachable. Set false ~2-3 days post-launch to start in-app conversion.
     pixBrazilOnrampMaintenance: true, // set to false when BRL-via-PIX deposits are stable again
 }
 

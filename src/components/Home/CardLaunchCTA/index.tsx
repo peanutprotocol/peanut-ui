@@ -61,7 +61,8 @@ export default function CardLaunchCTA() {
         isEligible === true &&
         !hasActiveCard &&
         !isOnWaitlist &&
-        !underMaintenanceConfig.disableCardPioneers
+        !underMaintenanceConfig.disableCardPioneers &&
+        !underMaintenanceConfig.disableCardLaunchCTA
 
     // Fire "viewed" exactly once, when the banner first becomes visible.
     const viewedRef = useRef(false)
