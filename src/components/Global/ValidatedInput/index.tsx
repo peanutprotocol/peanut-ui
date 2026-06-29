@@ -1,7 +1,9 @@
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { createSmartPasteHandler, type PasteFieldKind } from '@/utils/clipboard-extract.utils'
+import { useClipboardSuggestion } from '@/hooks/useClipboardSuggestion'
 import { useDebounce } from '@/hooks/useDebounce'
+import { AnimatePresence, motion } from 'framer-motion'
 import * as Sentry from '@sentry/nextjs'
 import { type ChangeEvent, useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -50,6 +52,11 @@ const ValidatedInput = ({
     const [isValid, setIsValid] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
     const debouncedValue = useDebounce(value, debounceTime)
+    const { suggestion, check: checkClipboard, dismiss: dismissSuggestion } = useClipboardSuggestion(
+        smartPasteKind ?? 'recipient',
+        value,
+        !!smartPasteKind
+    )
     const previousValueRef = useRef(value)
     const currentValueRef = useRef(value)
     const listId = useRef(`datalist-${Math.random().toString(36).substr(2, 9)}`)
@@ -161,6 +168,7 @@ const ValidatedInput = ({
     }
 
     return (
+        <div className="w-full">
         <div
             className={twMerge(
                 'relative w-full rounded-sm border border-n-1 bg-white focus:border-primary-1 dark:border-white',
@@ -183,11 +191,13 @@ const ValidatedInput = ({
                     type="text"
                     value={formatDisplayValue ? formatDisplayValue(value) : value}
                     onChange={handleChange}
+                    onFocus={smartPasteKind ? () => checkClipboard() : undefined}
                     onPaste={
                         smartPasteKind
-                            ? createSmartPasteHandler(smartPasteKind, (v) =>
+                            ? createSmartPasteHandler(smartPasteKind, (v) => {
+                                  dismissSuggestion()
                                   onUpdate({ value: v, isValid: false, isChanging: true })
-                              )
+                              })
                             : undefined
                     }
                     className={twMerge(
@@ -242,6 +252,32 @@ const ValidatedInput = ({
                     </div>
                 )}
             </div>
+        </div>
+        <AnimatePresence initial={false}>
+            {smartPasteKind && suggestion && !value && (
+                <motion.div
+                    initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                    animate={{ height: 'auto', opacity: 1, marginTop: 4 }}
+                    exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                    className="overflow-hidden"
+                >
+                    <button
+                        type="button"
+                        onClick={() => {
+                            dismissSuggestion()
+                            onUpdate({ value: suggestion, isValid: false, isChanging: true })
+                        }}
+                        className="flex w-full items-start gap-1.5 rounded-sm border border-n-1 bg-white px-3 py-2 text-left text-xs font-medium text-n-1 transition-colors hover:bg-n-3 dark:border-white dark:bg-n-1 dark:text-white dark:hover:bg-n-2"
+                    >
+                        <Icon name="paste" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <span className="break-all">
+                            Paste <span className="notranslate">{suggestion}</span>
+                        </span>
+                    </button>
+                </motion.div>
+            )}
+        </AnimatePresence>
         </div>
     )
 }
