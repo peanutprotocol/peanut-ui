@@ -12,7 +12,7 @@ import { pollUntilApplyAdvances, pollUntilReady } from '@/components/Card/cardAp
 import AddCardEntryScreen from '@/components/Card/AddCardEntryScreen'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 import CardTermsScreen from '@/components/Card/CardTermsScreen'
-import CardWaitlistScreen from '@/components/Card/CardWaitlistScreen'
+import CardRejectionScreen from '@/components/Card/CardRejectionScreen'
 import CardWaitlistJoinedScreen from '@/components/Card/CardWaitlistJoinedScreen'
 import BadgeSkipCelebration from '@/components/Card/BadgeSkipCelebration'
 import CardEligibilityCheckScreen from '@/components/Card/CardEligibilityCheckScreen'
@@ -471,13 +471,21 @@ const CardPage: FC = () => {
                 )
             case 'waitlist': {
                 // Joined vs not-joined are two distinct screens — keeps each
-                // tight to its own purpose (let-down + CTA vs confirmation +
-                // exit). The skip-badge gallery was dropped per design: the
-                // not-joined view is a conversion moment, not a hunt prompt.
+                // tight to its own purpose. Not-joined is the Berghain-style
+                // "not tonight" rejection: a shareable door let-down (tags
+                // @joinpeanut) that doubles as the waitlist-join CTA. Once
+                // they join, the state machine flips to the friendly
+                // <CardWaitlistJoinedScreen /> cooldown.
                 if (cardInfo!.waitlistJoinedAt) {
                     return <CardWaitlistJoinedScreen onPrev={onBack} />
                 }
-                return <CardWaitlistScreen cardInfo={cardInfo!} onPrev={onBack} onJoined={refetchCardInfo} />
+                return (
+                    <CardRejectionScreen
+                        username={user?.user?.username ?? undefined}
+                        onPrev={onBack}
+                        onJoined={refetchCardInfo}
+                    />
+                )
             }
             case 'waitlist-skip-celebration': {
                 // Pick the freshest skip badge for the celebration headline.

@@ -1,25 +1,27 @@
 'use client'
 
 /**
- * /dev/share-builder — iterator for the D3 card-waitlist share asset.
+ * /dev/share-builder — iterator for the card share asset (sticker collage).
  *
  * Controls feed `<ShareAssetD3 />` so we can stress-test edge cases:
- * - 0 → 9 badges
- * - usernames 2 → 20+ chars
- * - missing / zero stats
- * - tier 0 → 3
+ * - 0 → all badges (sticker count drives the force-directed layout)
+ * - usernames 2 → 20+ chars (the @username pill auto-shrinks)
  *
- * The "reroll seed" button forces a new layout for the same user (the
- * component is otherwise deterministic from username).
+ * The asset is now a pure sticker collage — card in the middle, badges
+ * slapped around it, @username pill. There are no stats / tier / points /
+ * card-number inputs anymore; the layout is driven entirely by the badge
+ * set + username seed. "Reroll seed" forces a new force-directed layout for
+ * the same user (otherwise deterministic from username).
  */
 
 import { useMemo, useState } from 'react'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import ShareAssetD3 from '@/components/Card/share-asset/ShareAssetD3'
+import type { HeroVariant, UsernameBg } from '@/components/Card/share-asset/shareAsset.types'
 import { BADGE_CODES, getBadgeDisplayName } from '@/components/Badges/badge.utils'
 import { CANVAS_W, CANVAS_H } from '@/components/Card/share-asset/shareAssetLayout'
-import type { TierLevel } from '@/components/Card/share-asset/shareAsset.types'
 
 const ALL_CODES = BADGE_CODES
 
@@ -36,37 +38,42 @@ export default function ShareBuilderPage() {
             'SUPPORT_SURVIVOR',
         ])
     )
-    const [tier, setTier] = useState<TierLevel>(3)
-    const [points, setPoints] = useState(1247)
-    const [last4, setLast4] = useState('5695')
-    const [joinedAt, setJoinedAt] = useState('2025-10-12')
-    const [movedUsd, setMovedUsd] = useState(4287)
-    const [txns, setTxns] = useState(142)
-    const [invited, setInvited] = useState(12)
     const [animate, setAnimate] = useState(true)
     const [seedNonce, setSeedNonce] = useState(0)
     const [previewScale, setPreviewScale] = useState(0.8)
+    const [hideUsername, setHideUsername] = useState(false)
 
-    // Derived props — memoized so ShareAssetD3's `useMemo(...,[badges,stats])` doesn't
-    // re-run on every parent render (it would, otherwise, because object/array literals
+    // ─── Hero "I got in" message sticker ─────────────────────────────────
+    const [heroVariant, setHeroVariant] = useState<HeroVariant | 'none'>('burst')
+    const [heroText, setHeroText] = useState("I'M IN!")
+    const [heroScale, setHeroScale] = useState(1.15)
+    const [heroTilt, setHeroTilt] = useState(5)
+    const heroMessage =
+        heroVariant === 'none' ? null : { text: heroText, variant: heroVariant, scale: heroScale, tilt: heroTilt }
+
+    // ─── Username pill colour + typography ───────────────────────────────
+    const [unameBg, setUnameBg] = useState<UsernameBg>('white')
+    const [unamePrefix, setUnamePrefix] = useState(0.5)
+    const [unameScale, setUnameScale] = useState(1)
+    const [unameTracking, setUnameTracking] = useState(0)
+    const usernameStyle = {
+        bg: unameBg,
+        prefixRatio: unamePrefix,
+        scale: unameScale,
+        letterSpacing: unameTracking,
+    }
+
+    // Derived props — memoized so ShareAssetD3's `useMemo(...,[badges])` doesn't
+    // re-run on every parent render (it would, otherwise, because array literals
     // are fresh references each render).
     const badgesArray = useMemo(
         () =>
             [...selectedBadges].map((code, i) => ({
                 code,
-                // Stagger earnedAt so sorting is stable + variety in stamp year denominations.
+                // Stagger earnedAt so the most-recent-first sort is stable.
                 earnedAt: new Date(2024 + (i % 3), i % 12, 1).toISOString(),
             })),
         [selectedBadges]
-    )
-    const statsProp = useMemo(
-        () => ({
-            joinedAt: joinedAt || null,
-            totalMovedUsd: movedUsd,
-            totalTxns: txns,
-            invitedCount: invited,
-        }),
-        [joinedAt, movedUsd, txns, invited]
     )
 
     const toggleBadge = (code: string) => {
@@ -87,6 +94,64 @@ export default function ShareBuilderPage() {
             <div className="flex flex-1 flex-col gap-8 px-6 py-6 lg:flex-row">
                 {/* ─── LEFT: Controls ──────────────────────────────────── */}
                 <aside className="flex flex-col gap-6 lg:w-[360px] lg:flex-shrink-0">
+                    <Section title="Hero message (I got in)">
+                        <Field label="Sticker type">
+                            <div className="flex flex-wrap gap-2">
+                                {(['none', 'burst', 'pill', 'banner'] as const).map((v) => (
+                                    <button
+                                        key={v}
+                                        onClick={() => setHeroVariant(v)}
+                                        className={`rounded-full border-2 border-black px-3 py-1 text-xs font-bold transition-colors ${
+                                            heroVariant === v
+                                                ? 'bg-primary-1 text-n-1'
+                                                : 'bg-white text-grey-1 hover:bg-grey-2'
+                                        }`}
+                                    >
+                                        {v}
+                                    </button>
+                                ))}
+                            </div>
+                        </Field>
+                        <Field label="Copy">
+                            <input
+                                type="text"
+                                value={heroText}
+                                maxLength={28}
+                                onChange={(e) => setHeroText(e.target.value)}
+                                className="custom-input"
+                                placeholder="I'M IN"
+                            />
+                        </Field>
+                        <div className="flex flex-wrap gap-2">
+                            <PresetButton onClick={() => setHeroText("I'M IN")}>I&apos;M IN</PresetButton>
+                            <PresetButton onClick={() => setHeroText("shhhh, i'm in")}>shhhh, i&apos;m in</PresetButton>
+                            <PresetButton onClick={() => setHeroText('ACCESS GRANTED')}>ACCESS GRANTED</PresetButton>
+                            <PresetButton onClick={() => setHeroText('I GOT THE CARD')}>I GOT THE CARD</PresetButton>
+                        </div>
+                        <Field label={`Size (${heroScale.toFixed(2)}×)`}>
+                            <input
+                                type="range"
+                                min={0.6}
+                                max={1.6}
+                                step={0.05}
+                                value={heroScale}
+                                onChange={(e) => setHeroScale(Number(e.target.value))}
+                                className="w-full"
+                            />
+                        </Field>
+                        <Field label={`Tilt (${heroTilt}°)`}>
+                            <input
+                                type="range"
+                                min={-20}
+                                max={20}
+                                step={1}
+                                value={heroTilt}
+                                onChange={(e) => setHeroTilt(Number(e.target.value))}
+                                className="w-full"
+                            />
+                        </Field>
+                    </Section>
+
                     <Section title="Identity">
                         <Field label={`Username (${username.length} / 12)`}>
                             <input
@@ -98,14 +163,63 @@ export default function ShareBuilderPage() {
                                 placeholder="kkonrad"
                             />
                         </Field>
-                        <Field label="Card last 4">
+                        {username.length > 12 && (
+                            <p className="text-[10px] font-bold leading-snug text-red">
+                                ⚠️ Username &gt; 12 chars · production caps at 12. The @username pill shrinks
+                                defensively, but check the input gate in your caller.
+                            </p>
+                        )}
+                    </Section>
+
+                    <Section title="Username pill">
+                        <Field label="Background">
+                            <div className="flex flex-wrap gap-2">
+                                {(['white', 'pink', 'blue'] as const).map((c) => (
+                                    <button
+                                        key={c}
+                                        onClick={() => setUnameBg(c)}
+                                        className={`rounded-full border-2 border-black px-3 py-1 text-xs font-bold transition-colors ${
+                                            unameBg === c
+                                                ? 'bg-primary-1 text-n-1'
+                                                : 'bg-white text-grey-1 hover:bg-grey-2'
+                                        }`}
+                                    >
+                                        {c}
+                                    </button>
+                                ))}
+                            </div>
+                        </Field>
+                        <Field label={`"peanut.me/" size (${unamePrefix.toFixed(2)}× of handle)`}>
                             <input
-                                type="text"
-                                value={last4}
-                                maxLength={4}
-                                onChange={(e) => setLast4(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                                className="custom-input"
-                                placeholder="5695"
+                                type="range"
+                                min={0.2}
+                                max={0.7}
+                                step={0.02}
+                                value={unamePrefix}
+                                onChange={(e) => setUnamePrefix(Number(e.target.value))}
+                                className="w-full"
+                            />
+                        </Field>
+                        <Field label={`Handle size (${unameScale.toFixed(2)}×)`}>
+                            <input
+                                type="range"
+                                min={0.6}
+                                max={1.5}
+                                step={0.05}
+                                value={unameScale}
+                                onChange={(e) => setUnameScale(Number(e.target.value))}
+                                className="w-full"
+                            />
+                        </Field>
+                        <Field label={`Handle letter-spacing (${unameTracking.toFixed(3)}em)`}>
+                            <input
+                                type="range"
+                                min={-0.06}
+                                max={0.12}
+                                step={0.005}
+                                value={unameTracking}
+                                onChange={(e) => setUnameTracking(Number(e.target.value))}
+                                className="w-full"
                             />
                         </Field>
                     </Section>
@@ -139,83 +253,32 @@ export default function ShareBuilderPage() {
                             >
                                 3
                             </PresetButton>
+                            <PresetButton
+                                onClick={() =>
+                                    setSelectedBadges(
+                                        new Set([
+                                            'OG_2025_10_12',
+                                            'DEVCONNECT_BA_2025',
+                                            'CARD_PIONEER',
+                                            'BETA_TESTER',
+                                            'SUPPORT_SURVIVOR',
+                                            'ARBIVERSE_DEVCONNECT_BA_2025',
+                                            'NOT_SO_SHHHH',
+                                            'CARD_FIRST_SWIPE',
+                                            'DOUBLE_DIGITS',
+                                            'VERIFIED',
+                                            'CARD_SPENT_1K',
+                                            'MINI_INFLUENCER',
+                                        ])
+                                    )
+                                }
+                            >
+                                12
+                            </PresetButton>
                             <PresetButton onClick={() => setSelectedBadges(new Set(ALL_CODES))}>
                                 all {ALL_CODES.length}
                             </PresetButton>
                         </div>
-                    </Section>
-
-                    <Section title="Tier + points">
-                        <Field label="Tier">
-                            <div className="flex gap-2">
-                                {[0, 1, 2, 3].map((t) => (
-                                    <button
-                                        key={t}
-                                        onClick={() => setTier(t as TierLevel)}
-                                        className={`flex-1 rounded-sm border-2 border-black py-2 font-bold transition-colors ${
-                                            tier === t ? 'bg-primary-1' : 'bg-white hover:bg-grey-2'
-                                        }`}
-                                    >
-                                        T{t}
-                                    </button>
-                                ))}
-                            </div>
-                        </Field>
-                        <Field label={`Points balance (${points.toLocaleString('en-US')})`}>
-                            <input
-                                type="range"
-                                min={0}
-                                max={10000}
-                                step={50}
-                                value={points}
-                                onChange={(e) => setPoints(Number(e.target.value))}
-                                className="w-full"
-                            />
-                        </Field>
-                    </Section>
-
-                    <Section title="Stats (hide when 0)">
-                        <Field label="Joined date (blank = hide)">
-                            <input
-                                type="date"
-                                value={joinedAt}
-                                onChange={(e) => setJoinedAt(e.target.value)}
-                                className="custom-input"
-                            />
-                        </Field>
-                        <Field label={`USD moved ($${movedUsd.toLocaleString('en-US')})`}>
-                            <input
-                                type="range"
-                                min={0}
-                                max={50000}
-                                step={50}
-                                value={movedUsd}
-                                onChange={(e) => setMovedUsd(Number(e.target.value))}
-                                className="w-full"
-                            />
-                        </Field>
-                        <Field label={`Total txns (${txns})`}>
-                            <input
-                                type="range"
-                                min={0}
-                                max={500}
-                                step={1}
-                                value={txns}
-                                onChange={(e) => setTxns(Number(e.target.value))}
-                                className="w-full"
-                            />
-                        </Field>
-                        <Field label={`Invited (${invited})`}>
-                            <input
-                                type="range"
-                                min={0}
-                                max={50}
-                                step={1}
-                                value={invited}
-                                onChange={(e) => setInvited(Number(e.target.value))}
-                                className="w-full"
-                            />
-                        </Field>
                     </Section>
 
                     <Section title="Layout">
@@ -250,53 +313,13 @@ export default function ShareBuilderPage() {
                         </div>
                     </Section>
 
-                    <Section title="Edge-case shortcuts">
+                    <Section title="Username length shortcuts">
                         <div className="grid grid-cols-2 gap-2 text-xs">
                             <PresetButton onClick={() => setUsername('me')}>2-char user</PresetButton>
                             <PresetButton onClick={() => setUsername('twelvechars1')}>12 chars (max)</PresetButton>
                             <PresetButton onClick={() => setUsername('thisistwentyplus_chars')}>20+ chars</PresetButton>
-                            <PresetButton
-                                onClick={() => {
-                                    setMovedUsd(0)
-                                    setTxns(0)
-                                    setInvited(0)
-                                    setJoinedAt('')
-                                }}
-                            >
-                                Zero stats
-                            </PresetButton>
-                            <PresetButton
-                                onClick={() => {
-                                    setMovedUsd(0)
-                                    setTxns(0)
-                                    setInvited(0)
-                                    setJoinedAt('')
-                                    setSelectedBadges(new Set())
-                                    setTier(0)
-                                    setPoints(0)
-                                }}
-                            >
-                                Brand-new user
-                            </PresetButton>
-                            <PresetButton
-                                onClick={() => {
-                                    setMovedUsd(1_500_000)
-                                    setTxns(9999)
-                                    setInvited(50)
-                                    setPoints(9999)
-                                    setTier(3)
-                                    setSelectedBadges(new Set(ALL_CODES))
-                                }}
-                            >
-                                Whale user
-                            </PresetButton>
+                            <PresetButton onClick={() => setUsername('kkonrad')}>reset</PresetButton>
                         </div>
-                        {username.length > 12 && (
-                            <p className="mt-2 text-[10px] font-bold leading-snug text-red">
-                                ⚠️ Username &gt; 12 chars · production caps at 12. The asset shrinks the @username pill
-                                defensively, but check the input gate in your caller.
-                            </p>
-                        )}
                     </Section>
                 </aside>
 
@@ -334,15 +357,35 @@ export default function ShareBuilderPage() {
                                     key={`${seedNonce}-${animate}`}
                                     username={username || 'anon'}
                                     badges={badgesArray}
-                                    stats={statsProp}
-                                    tier={tier}
-                                    pointsBalance={points}
-                                    cardLast4={last4}
                                     seedOverride={seedOverride}
+                                    heroMessage={heroMessage}
+                                    usernameStyle={usernameStyle}
+                                    hideUsername={hideUsername}
                                     animate={animate}
                                 />
                             </div>
                         </div>
+                    </div>
+
+                    {/* Faithful "in the share flow" strip — mirrors how the asset,
+                        the anti-dox toggle, and the share buttons stack in
+                        BadgeSkipCelebration / CardUnlockDrawer. */}
+                    <div className="mx-auto flex w-full max-w-md flex-col gap-3 rounded-sm border-2 border-dashed border-grey-1 bg-white p-4">
+                        <div className="text-center text-[10px] font-bold uppercase tracking-wider text-grey-1">
+                            ↑ asset · how it stacks in the real flow ↓
+                        </div>
+                        <Checkbox
+                            className="self-center"
+                            label="Hide username"
+                            value={hideUsername}
+                            onChange={(e) => setHideUsername(e.target.checked)}
+                        />
+                        <Button variant="purple" shadowSize="4" className="w-full">
+                            Share
+                        </Button>
+                        <Button variant="stroke" className="w-full">
+                            Save image
+                        </Button>
                     </div>
 
                     <div className="space-y-2 rounded-sm border border-n-1 bg-white p-4 text-xs">
@@ -352,11 +395,11 @@ export default function ShareBuilderPage() {
                                 {
                                     username,
                                     badges: badgesArray.map((b) => b.code),
-                                    stats: statsProp,
-                                    tier,
-                                    pointsBalance: points,
-                                    cardLast4: last4,
                                     seedOverride,
+                                    heroMessage,
+                                    usernameStyle,
+                                    hideUsername,
+                                    animate,
                                 },
                                 null,
                                 2

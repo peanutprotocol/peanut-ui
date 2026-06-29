@@ -12,7 +12,7 @@
  *
  * On hold-complete the parent state machine decides the next view:
  *   - has card access → BadgeSkipCelebration (share-asset reveal)
- *   - no card access  → CardWaitlistScreen
+ *   - no card access  → CardRejectionScreen ("not tonight" door rejection)
  */
 
 import { type FC, useEffect, useState } from 'react'
