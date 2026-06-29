@@ -33,6 +33,9 @@ interface Props {
 export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, badges }) => {
     const captureRef = useRef<HTMLDivElement | null>(null)
     const [hideUsername, setHideUsername] = useState(false)
+    // Gate the Share/Save buttons until the card face's async hand <canvas>
+    // mounts — otherwise an early capture snapshots a blank card.
+    const [assetReady, setAssetReady] = useState(false)
 
     useEffect(() => {
         if (!isOpen) return
@@ -68,6 +71,7 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
                             cardLast4="0420"
                             hideUsername={hideUsername}
                             animate={false}
+                            onReady={() => setAssetReady(true)}
                         />
                     </div>
                     <div className="mx-auto flex w-full max-w-md flex-col gap-2">
@@ -78,7 +82,7 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
                             value={hideUsername}
                             onChange={(e) => setHideUsername(e.target.checked)}
                         />
-                        <ShareAssetActions captureRef={captureRef} source="history-replay" />
+                        <ShareAssetActions captureRef={captureRef} source="history-replay" ready={assetReady} />
                     </div>
                 </div>
             </DrawerContent>
