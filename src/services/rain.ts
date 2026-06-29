@@ -392,12 +392,23 @@ export const rainApi = {
      * Submit a prepared withdrawal with the user's admin signature. Backend
      * verifies via ERC-1271 against the user's kernel and broadcasts the
      * coordinator call through the shared admin relayer.
+     *
+     * `/submit` is SYNCHRONOUS: it broadcasts AND awaits on-chain confirmation
+     * (`waitForUserOperationReceipt` + `confirmIntentByTxHash`) before
+     * responding, and for a request/charge it settles the charge in the same
+     * call. That round-trip routinely exceeds the default 10s fetch budget, so
+     * pass 120s — the same budget the verified-withdrawal path already uses for
+     * this exact reason (see line ~525). With the 10s default the FE aborts
+     * while the tx still lands + the charge settles: the user sees an error on a
+     * payment that actually succeeded, retries, and double-sends. (#2245 routed
+     * request payments through this path for the first time → the regression.)
      */
     submitWithdrawal: async (input: SubmitRainWithdrawalInput): Promise<SubmitRainWithdrawalResponse> => {
         return rainRequest<SubmitRainWithdrawalResponse>({
             method: 'POST',
             path: '/rain/cards/withdraw/submit',
             body: input,
+            timeoutMs: 120_000,
         })
     },
 

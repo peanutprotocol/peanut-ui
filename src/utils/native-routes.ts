@@ -39,15 +39,6 @@ export function addMoneyCountryUrl(countryPath: string): string {
     return isCapacitor() ? `/add-money?country=${encodeURIComponent(countryPath)}` : `/add-money/${countryPath}`
 }
 
-// Straight to the bank step, skipping the redundant per-country method picker —
-// mirrors withdrawBankUrl. Used when the user already chose "Bank Transfer" up
-// front, so re-showing the method list on the country page is a double-select.
-export function addMoneyBankUrl(countryPath: string): string {
-    return isCapacitor()
-        ? `/add-money?country=${encodeURIComponent(countryPath)}&view=bank`
-        : `/add-money/${countryPath}/bank`
-}
-
 export function withdrawCountryUrl(countryPath: string, queryParams?: string): string {
     if (isCapacitor()) {
         const qs = queryParams ? `&${queryParams.replace('?', '')}` : ''

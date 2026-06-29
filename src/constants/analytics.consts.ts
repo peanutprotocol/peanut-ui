@@ -165,6 +165,10 @@ export const ANALYTICS_EVENTS = {
     // rejection). Lets the funnel distinguish "users not tapping share"
     // from "users tapping share but it silently fails".
     CARD_SHARE_ASSET_FAILED: 'card_share_asset_failed',
+    // Non-intrusive badge-earn toast on /home (TASK-19791) — coalesced; tap
+    // opens the badge detail modal (or the badges list for several).
+    BADGE_EARN_TOAST_SHOWN: 'badge_earn_toast_shown',
+    BADGE_EARN_TOAST_TAPPED: 'badge_earn_toast_tapped',
     // Admin wave release (BE event, mirrored here so FE doesn't accidentally
     // step on the namespace).
     CARD_WAITLIST_RELEASED: 'card_waitlist_released',

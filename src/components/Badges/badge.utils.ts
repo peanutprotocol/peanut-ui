@@ -180,6 +180,11 @@ export const BADGES: Record<string, BadgeMeta> = {
         description: 'IYKYK. They were testing the card before you knew it existed.',
         displayName: 'Closed Beta',
     },
+    CARD_ALPHA: {
+        path: '/badges/card_alpha.svg',
+        description: 'You tested the Card while it was still held together with tape and hope.',
+        displayName: 'Closed Alpha Tester',
+    },
     // ── community (link-granted) ────────────────────────────────────────────
     ARBITRUM: {
         path: '/badges/arbitrum.svg',
@@ -192,6 +197,11 @@ export const BADGES: Record<string, BadgeMeta> = {
     TOKEN_NATION_SP_2026: {
         path: '/badges/token_nation_2026.svg',
         description: 'São Paulo, baby. They came, they claimed, they tagged the wall.',
+    },
+    FESTA_JUNINA_2026: {
+        path: '/badges/festa_junina_2026.svg',
+        description: 'You danced the quadrilha with us. Arraiá unlocked.',
+        displayName: 'Arraiá Approved',
     },
     TOUCHED_GRASS: {
         path: '/badges/touched_grass.svg',
