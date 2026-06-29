@@ -27,6 +27,7 @@ export default function RejectionBuilderPage() {
     const [mascot, setMascot] = useState<RejectionMascot>('cool')
     const [applicants, setApplicants] = useState(213)
     const [admitted, setAdmitted] = useState(7)
+    const [alreadyJoined, setAlreadyJoined] = useState(false)
 
     return (
         <div className="flex min-h-screen flex-col">
@@ -117,6 +118,21 @@ export default function RejectionBuilderPage() {
                             </PresetButton>
                         </div>
                     </Section>
+
+                    <Section title="Waitlist state">
+                        <button
+                            onClick={() => setAlreadyJoined((v) => !v)}
+                            className={`rounded-full border-2 border-black px-3 py-1 text-xs font-bold transition-colors ${
+                                alreadyJoined ? 'bg-primary-1 text-n-1' : 'bg-white text-grey-1 hover:bg-grey-2'
+                            }`}
+                        >
+                            {alreadyJoined ? 'already joined ✓' : 'not joined yet'}
+                        </button>
+                        <p className="text-[11px] leading-snug text-grey-1">
+                            Toggles the post-join state: “Join anyway” becomes an “on the list” confirmation while the
+                            asset + “Tweet to appeal” stay.
+                        </p>
+                    </Section>
                 </aside>
 
                 {/* ─── RIGHT: Phone-frame preview of the whole screen ──── */}
@@ -134,7 +150,8 @@ export default function RejectionBuilderPage() {
                                 mascot={mascot}
                                 applicants={applicants}
                                 admitted={admitted}
-                                onJoined={() => alert('→ joined: would advance to the friendly waitlist-joined screen')}
+                                alreadyJoined={alreadyJoined}
+                                onJoined={() => setAlreadyJoined(true)}
                             />
                         </div>
                     </div>

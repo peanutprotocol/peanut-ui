@@ -13,7 +13,6 @@ import AddCardEntryScreen from '@/components/Card/AddCardEntryScreen'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 import CardTermsScreen from '@/components/Card/CardTermsScreen'
 import CardRejectionScreen from '@/components/Card/CardRejectionScreen'
-import CardWaitlistJoinedScreen from '@/components/Card/CardWaitlistJoinedScreen'
 import BadgeSkipCelebration from '@/components/Card/BadgeSkipCelebration'
 import CardEligibilityCheckScreen from '@/components/Card/CardEligibilityCheckScreen'
 import YourCardScreen from '@/components/Card/YourCardScreen'
@@ -470,18 +469,15 @@ const CardPage: FC = () => {
                     />
                 )
             case 'waitlist': {
-                // Joined vs not-joined are two distinct screens — keeps each
-                // tight to its own purpose. Not-joined is the Berghain-style
-                // "not tonight" rejection: a shareable door let-down (tags
-                // @joinpeanut) that doubles as the waitlist-join CTA. Once
-                // they join, the state machine flips to the friendly
-                // <CardWaitlistJoinedScreen /> cooldown.
-                if (cardInfo!.waitlistJoinedAt) {
-                    return <CardWaitlistJoinedScreen onPrev={onBack} />
-                }
+                // The Berghain-style "not tonight" rejection is the TERMINAL
+                // waitlist screen — a shareable door let-down (tags @joinpeanut)
+                // that doubles as the waitlist-join CTA. Once they join we keep
+                // them here (`alreadyJoined`) so the asset + "Tweet to appeal"
+                // stay grabbable — no separate cooldown screen to dead-end on.
                 return (
                     <CardRejectionScreen
                         username={user?.user?.username ?? undefined}
+                        alreadyJoined={!!cardInfo!.waitlistJoinedAt}
                         onPrev={onBack}
                         onJoined={refetchCardInfo}
                     />
