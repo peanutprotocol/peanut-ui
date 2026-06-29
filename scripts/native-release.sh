@@ -41,7 +41,7 @@ fi
 
 # 1. static export  → 2. copy web assets + plugins into android/  → 3. signed bundle
 node scripts/native-build.js
-npx cap sync android
+pnpm exec cap sync android
 ( cd android && ./gradlew :app:bundleRelease )
 
 AAB="android/app/build/outputs/bundle/release/app-release.aab"

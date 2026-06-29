@@ -519,7 +519,7 @@ async function main() {
 
         console.log('\n🏗️  Building static export...\n')
         try {
-            execSync('NATIVE_BUILD=true npx next build --webpack', {
+            execSync('NATIVE_BUILD=true pnpm exec next build --webpack', {
                 stdio: 'inherit',
                 cwd: configDir,
                 env: { ...process.env, NATIVE_BUILD: 'true' },
