@@ -12,7 +12,7 @@ import { PixelatedCardFace } from '@/components/Card/share-asset/PixelatedCardFa
 import { Sparkle, Star } from '@/assets/illustrations'
 import { cardApi } from '@/services/card'
 import { invitesApi } from '@/services/invites'
-import { saveToCookie, getFromCookie, removeFromCookie } from '@/utils/general.utils'
+import { saveToCookie } from '@/utils/general.utils'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const marqueeMessages = ['IYKYK', 'WORD TRAVELS', 'CLOSED BETA', 'SHHHH', 'PEANUT CLUB']
@@ -174,11 +174,14 @@ export default function ShhhhhLandingPage() {
         setCtaBusy(true)
         setJoinError(false)
         try {
-            // The door actually OPENS for users who already hold card access
-            // (skip badge / admin grant) — telling them "you're on the
-            // waitlist" would be wrong, and joinWaitlist no-ops for them.
+            // The door OPENS to /card for access-holders (skip badge / admin
+            // grant) AND, post-launch, for everyone: /card runs the press-and-hold
+            // eligibility moment → the celebration (access) or the Berghain "not
+            // tonight" rejection (no access), and that rejection screen is where a
+            // no-access user joins the waitlist. Only PRE-launch (when /card 404s
+            // for no-access users) do we join inline here.
             const info = await cardApi.getInfo()
-            if (info.hasCardAccess) {
+            if (info.hasCardAccess || info.isPublicLaunched) {
                 router.push('/card')
                 return
             }
@@ -193,14 +196,23 @@ export default function ShhhhhLandingPage() {
         }
     }, [router])
 
-    // Post-signup return: a signed-out door press saved this cookie and routed
-    // through signup back to /shhhhh. Now the account exists — finish the join.
+    // On mount (signed in), reflect existing waitlist membership: a returning
+    // user who already joined sees the inline "you're on the waitlist" pill
+    // instead of the door. New / not-joined users keep the door, which routes to
+    // /card for the Berghain moment (see handleCTA) rather than joining inline.
     useEffect(() => {
         if (!user) return
-        if (getFromCookie('joinWaitlistAfterSignup') !== '1') return
-        removeFromCookie('joinWaitlistAfterSignup')
-        void joinWaitlist()
-    }, [user, joinWaitlist])
+        let cancelled = false
+        void cardApi
+            .getInfo()
+            .then((info) => {
+                if (!cancelled && info.waitlistJoinedAt) setJoinedPosition(info.waitlistPosition)
+            })
+            .catch(() => {})
+        return () => {
+            cancelled = true
+        }
+    }, [user])
 
     const handleCTA = async () => {
         // /shhhhh?campaign=skip → Skip Pass (awards the badge). A bare press is
@@ -239,11 +251,13 @@ export default function ShhhhhLandingPage() {
             return
         }
 
-        // Bare door → JOIN THE WAITLIST. No flow-early-access stamp, no /card
-        // detour, no badge — visiting /shhhhh is not a bypass (Hugo 2026-06-07).
+        // Bare door, signed-out → sign up, then land on /card: post-launch the
+        // press-and-hold eligibility → Berghain "not tonight" rejection IS the
+        // join moment (no inline auto-join, no flow-early-access stamp — still not
+        // a bypass; /card does the real gating). Signed-in users route via
+        // joinWaitlist() above, which sends them to /card too post-launch.
         if (!user) {
-            saveToCookie('joinWaitlistAfterSignup', '1')
-            router.push(`/setup?redirect_uri=${encodeURIComponent('/shhhhh')}`)
+            router.push(`/setup?redirect_uri=${encodeURIComponent('/card')}`)
             return
         }
         await joinWaitlist()
