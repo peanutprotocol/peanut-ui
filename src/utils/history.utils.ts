@@ -109,6 +109,10 @@ export interface HistoryEntryExtraData {
     fulfillmentType?: 'bridge' | 'wallet'
     bridgeTransferId?: string
     usdAmount?: string
+    /** Cross-chain (Rhino) bridge fee in USD the user paid on top of the
+     *  principal — set only for CRYPTO_WITHDRAW that booked a matching FEE
+     *  entry (SDA path). Baked into the displayed amount in the transformer. */
+    networkFeeUsd?: number | null
     haveSentMoneyToUser?: boolean
     /** Token-transfer block number — `string` from indexer, sometimes `number`
      *  from on-chain webhooks. Treated as a presence signal, not parsed. */

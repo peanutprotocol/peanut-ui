@@ -1295,6 +1295,20 @@
                 "logoURI": "https://gnosisscan.io/token/images/gnosans_32.png"
             },
             {
+                "address": "0x2a22f9c3b484c3629090feed35f17ff8f88f76f0",
+                "name": "USD Coin",
+                "symbol": "USDC",
+                "decimals": 6,
+                "logoURI": "https://market-data-images.s3.us-east-1.amazonaws.com/tokenImages/0x10ca7e698fab4eb287d4d33b3886ae17a6d078fbda455cdd673cfec0ca8ef413.png"
+            },
+            {
+                "address": "0x4ecaba5870353805a9f068101a40e0f32ed605c6",
+                "name": "Tether USD",
+                "symbol": "USDT",
+                "decimals": 6,
+                "logoURI": "https://market-data-images.s3.us-east-1.amazonaws.com/tokenImages/0x63adcb79842ad73769d6f2350d9cab2c8b8e0d37f6071dee9418cbd53319543d.png"
+            },
+            {
                 "address": "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1",
                 "decimals": 18,
                 "name": "Wrapped Ether",

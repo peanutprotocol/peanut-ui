@@ -39,6 +39,13 @@ export default function DevToolsPage() {
             path: '/dev/debug',
             icon: 'dollar',
         },
+        {
+            name: 'Home CTAs',
+            description:
+                'Force-renders every home-screen CTA in isolation (card launch banner, carousel CTAs, activation steps) ignoring auth/state/launch gating.',
+            path: '/dev/home-ctas',
+            icon: 'credit-card',
+        },
     ]
 
     return (

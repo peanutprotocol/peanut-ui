@@ -16,6 +16,8 @@ export const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
     notsoshhh: 'NOT_SO_SHHHH',
     festajunina: 'FESTA_JUNINA_2026',
     cardalpha: 'CARD_ALPHA',
+    psyops: 'PSYOPS_DIVISION',
+    founding: 'FOUNDING_PIONEER',
 }
 
 // Map inbound `utm_campaign` values to the badge codes the backend whitelists.

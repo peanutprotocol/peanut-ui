@@ -28,6 +28,39 @@ export interface ShareAssetStats {
 
 export type TierLevel = 0 | 1 | 2 | 3
 
+/** Visual treatment for the hero "I got in" message sticker at the top. */
+export type HeroVariant = 'burst' | 'pill' | 'banner'
+
+export interface HeroMessage {
+    /** The headline copy, e.g. "I'M IN" or "shhhh, i'm in". */
+    text: string
+    /** Sticker shape/treatment. */
+    variant: HeroVariant
+    /** Size multiplier (1 = default). The builder exposes this as a slider. */
+    scale?: number
+    /** Tilt in degrees (clockwise). Defaults to a small per-variant lean. */
+    tilt?: number
+}
+
+/** Which smug peanut mascot to slap on the rejection ("not tonight") asset.
+ *  'none' hides it. cool = pixel-shades flex, mock = grinning point-and-laugh,
+ *  chill = whistling "whatever". */
+export type RejectionMascot = 'none' | 'cool' | 'mock' | 'chill'
+
+/** Background colour for the username pill. */
+export type UsernameBg = 'white' | 'pink' | 'blue'
+
+/** Typography + colour controls for the `peanut.me/<handle>` pill. */
+export interface UsernameStyle {
+    bg: UsernameBg
+    /** "peanut.me/" prefix size as a fraction of the handle font size (~0.2–0.7). */
+    prefixRatio?: number
+    /** Handle font-size multiplier (1 = the auto-fit default). */
+    scale?: number
+    /** Handle letter spacing, in em. */
+    letterSpacing?: number
+}
+
 export interface ShareAssetD3Props {
     /** Lowercase username, max 12 chars per current peanut constraint. */
     username: string
@@ -46,6 +79,19 @@ export interface ShareAssetD3Props {
 
     /** Last 4 of card PAN — rendered on the card face. */
     cardLast4?: string
+
+    /** Optional hero "I got in" message sticker at the top.
+     *  Omitted (`undefined`) = the shipped default hero; `null` = no hero. */
+    heroMessage?: HeroMessage | null
+
+    /** Username pill colour + typography. Defaults to a white pill with
+     *  auto-fit sizing. */
+    usernameStyle?: UsernameStyle
+
+    /** Hide the "peanut.me/<handle>" pill entirely (anti-dox toggle). When
+     *  true the pill doesn't render and badges reclaim the bottom-right
+     *  corner it would have kept clear. */
+    hideUsername?: boolean
 
     /**
      * Override the username-derived seed. Used by the /dev/share-builder

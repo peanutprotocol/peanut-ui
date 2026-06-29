@@ -12,7 +12,7 @@ import { PixelatedCardFace } from '@/components/Card/share-asset/PixelatedCardFa
 import { Sparkle, Star } from '@/assets/illustrations'
 import { cardApi } from '@/services/card'
 import { invitesApi } from '@/services/invites'
-import { saveToCookie, getFromCookie, removeFromCookie } from '@/utils/general.utils'
+import { saveToCookie } from '@/utils/general.utils'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const marqueeMessages = ['IYKYK', 'WORD TRAVELS', 'CLOSED BETA', 'SHHHH', 'PEANUT CLUB']
@@ -24,16 +24,26 @@ const SKIP_CAMPAIGN = 'skip'
 
 // Inline "you're on the waitlist" confirmation shown in place of the door CTA
 // once the user joins (pre-launch, non-skip path). `dark` = on the black §7.
-function WaitlistJoined({ position, dark = false }: { position: number | null; dark?: boolean }) {
+function WaitlistJoined({
+    position,
+    dark = false,
+    onClick,
+}: {
+    position: number | null
+    dark?: boolean
+    onClick?: () => void
+}) {
     return (
         <div className="flex flex-col items-center gap-3 md:items-start">
-            <div
-                className={`font-roboto-flex-extrabold inline-flex items-center gap-2 border-2 border-n-1 px-6 py-3 text-base font-extraBlack uppercase shadow-[4px_4px_0_#000] md:text-lg ${
+            <button
+                type="button"
+                onClick={onClick}
+                className={`font-roboto-flex-extrabold inline-flex items-center gap-2 border-2 border-n-1 px-6 py-3 text-base font-extraBlack uppercase shadow-[4px_4px_0_#000] transition-transform hover:-translate-y-0.5 md:text-lg ${
                     dark ? 'bg-secondary-1 text-n-1' : 'bg-white text-n-1'
                 }`}
             >
                 ✓ You&apos;re on the waitlist{typeof position === 'number' ? ` · #${position}` : ''}
-            </div>
+            </button>
             <p className={`font-roboto-flex text-sm font-bold ${dark ? 'text-white/90' : ''}`}>
                 We&apos;ll holler when your turn comes up.
             </p>
@@ -174,11 +184,14 @@ export default function ShhhhhLandingPage() {
         setCtaBusy(true)
         setJoinError(false)
         try {
-            // The door actually OPENS for users who already hold card access
-            // (skip badge / admin grant) — telling them "you're on the
-            // waitlist" would be wrong, and joinWaitlist no-ops for them.
+            // The door OPENS to /card for access-holders (skip badge / admin
+            // grant) AND, post-launch, for everyone: /card runs the press-and-hold
+            // eligibility moment → the celebration (access) or the Berghain "not
+            // tonight" rejection (no access), and that rejection screen is where a
+            // no-access user joins the waitlist. Only PRE-launch (when /card 404s
+            // for no-access users) do we join inline here.
             const info = await cardApi.getInfo()
-            if (info.hasCardAccess) {
+            if (info.hasCardAccess || info.isPublicLaunched) {
                 router.push('/card')
                 return
             }
@@ -193,14 +206,23 @@ export default function ShhhhhLandingPage() {
         }
     }, [router])
 
-    // Post-signup return: a signed-out door press saved this cookie and routed
-    // through signup back to /shhhhh. Now the account exists — finish the join.
+    // On mount (signed in), reflect existing waitlist membership: a returning
+    // user who already joined sees the inline "you're on the waitlist" pill
+    // instead of the door. New / not-joined users keep the door, which routes to
+    // /card for the Berghain moment (see handleCTA) rather than joining inline.
     useEffect(() => {
         if (!user) return
-        if (getFromCookie('joinWaitlistAfterSignup') !== '1') return
-        removeFromCookie('joinWaitlistAfterSignup')
-        void joinWaitlist()
-    }, [user, joinWaitlist])
+        let cancelled = false
+        void cardApi
+            .getInfo()
+            .then((info) => {
+                if (!cancelled && info.waitlistJoinedAt) setJoinedPosition(info.waitlistPosition)
+            })
+            .catch(() => {})
+        return () => {
+            cancelled = true
+        }
+    }, [user])
 
     const handleCTA = async () => {
         // /shhhhh?campaign=skip → Skip Pass (awards the badge). A bare press is
@@ -239,11 +261,13 @@ export default function ShhhhhLandingPage() {
             return
         }
 
-        // Bare door → JOIN THE WAITLIST. No flow-early-access stamp, no /card
-        // detour, no badge — visiting /shhhhh is not a bypass (Hugo 2026-06-07).
+        // Bare door, signed-out → sign up, then land on /card: post-launch the
+        // press-and-hold eligibility → Berghain "not tonight" rejection IS the
+        // join moment (no inline auto-join, no flow-early-access stamp — still not
+        // a bypass; /card does the real gating). Signed-in users route via
+        // joinWaitlist() above, which sends them to /card too post-launch.
         if (!user) {
-            saveToCookie('joinWaitlistAfterSignup', '1')
-            router.push(`/setup?redirect_uri=${encodeURIComponent('/shhhhh')}`)
+            router.push(`/setup?redirect_uri=${encodeURIComponent('/card')}`)
             return
         }
         await joinWaitlist()
@@ -297,7 +321,10 @@ export default function ShhhhhLandingPage() {
                         </p>
                         {isJoined ? (
                             <div className="mt-8 flex justify-center md:justify-start">
-                                <WaitlistJoined position={joinedPosition ?? null} />
+                                <WaitlistJoined
+                                    position={joinedPosition ?? null}
+                                    onClick={() => router.push('/card')}
+                                />
                             </div>
                         ) : (
                             <div className="mt-8 flex flex-col items-center gap-5 md:flex-row md:items-center md:gap-6">
@@ -337,7 +364,7 @@ export default function ShhhhhLandingPage() {
                             </p>
                         )}
                     </div>
-                    <div className="flex min-w-0 justify-center md:justify-end">
+                    <div className="flex min-w-0 justify-center pb-16 md:justify-end md:pb-0">
                         {/* Match ShareAssetD3 pixelation: same PixelatedCardFace component
                             scaled into the hero column. Native dims are 760×479 (shared
                             CARD_W/CARD_H); the inner absolute-positioned layout scales
@@ -564,7 +591,11 @@ export default function ShhhhhLandingPage() {
                     </p>
                     <div className="mt-10 flex justify-center">
                         {isJoined ? (
-                            <WaitlistJoined position={joinedPosition ?? null} dark />
+                            <WaitlistJoined
+                                position={joinedPosition ?? null}
+                                dark
+                                onClick={() => router.push('/card')}
+                            />
                         ) : (
                             <Button
                                 shadowSize="4"

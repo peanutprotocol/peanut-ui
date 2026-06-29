@@ -148,6 +148,12 @@ export const ANALYTICS_EVENTS = {
     CARD_FLOW_EARLY_ACCESS_GRANTED: 'card_flow_early_access_granted',
     // Outer-gate fail: user landed on /card without /shhhhh early access pre-launch.
     CARD_FLOW_GATED: 'card_flow_gated',
+    // Home launch CTA (shown to everyone post-public-launch who has no active card).
+    // viewed = banner became visible; clicked = tapped through to /card;
+    // dismissed = tapped the X. Click and dismiss both hide it permanently.
+    CARD_LAUNCH_CTA_VIEWED: 'card_launch_cta_viewed',
+    CARD_LAUNCH_CTA_CLICKED: 'card_launch_cta_clicked',
+    CARD_LAUNCH_CTA_DISMISSED: 'card_launch_cta_dismissed',
     // Eligibility-check screen — press-and-hold gate between /shhhhh and the
     // celebration/waitlist verdict.
     CARD_ELIGIBILITY_CHECK_VIEWED: 'card_eligibility_check_viewed',
@@ -165,6 +171,10 @@ export const ANALYTICS_EVENTS = {
     // rejection). Lets the funnel distinguish "users not tapping share"
     // from "users tapping share but it silently fails".
     CARD_SHARE_ASSET_FAILED: 'card_share_asset_failed',
+    // Non-intrusive badge-earn toast on /home (TASK-19791) — coalesced; tap
+    // opens the badge detail modal (or the badges list for several).
+    BADGE_EARN_TOAST_SHOWN: 'badge_earn_toast_shown',
+    BADGE_EARN_TOAST_TAPPED: 'badge_earn_toast_tapped',
     // Admin wave release (BE event, mirrored here so FE doesn't accidentally
     // step on the namespace).
     CARD_WAITLIST_RELEASED: 'card_waitlist_released',

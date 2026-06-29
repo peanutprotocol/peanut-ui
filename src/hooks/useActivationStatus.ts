@@ -7,6 +7,7 @@ import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useQuery } from '@tanstack/react-query'
 import { cardApi, type CardInfoResponse } from '@/services/card'
 import { findActiveCard } from '@/components/Card/cardState.utils'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 export type ActivationStep = 'verify' | 'deposit' | 'card' | 'outbound' | 'completed'
@@ -118,7 +119,11 @@ export function useActivationStatus(): ActivationStatus {
         // never took the card (the funnel would otherwise be `completed`).
         const hasCardAccess = cardInfo?.hasCardAccess ?? false
         const hasCard = !!findActiveCard(overview)
-        if (hasCardAccess && !hasCard && !cardDismissed) {
+        // The in-app card CTA is delay-gated for launch (see disableCardLaunchCTA):
+        // muted now, flipped on a few days post-launch. While muted, badge/access
+        // users fall through to the normal verify → deposit → outbound funnel;
+        // /card itself stays reachable (door, waitlist pill, direct link).
+        if (hasCardAccess && !hasCard && !cardDismissed && !underMaintenanceConfig.disableCardLaunchCTA) {
             activationStep = 'card'
         }
 

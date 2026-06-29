@@ -33,6 +33,15 @@ export interface SdaTransferRequest {
     destinationAddress: Address
     tokenOut: RhinoSupportedToken
     senderPeanutWalletAddress?: Address
+    /**
+     * Rhino quote economics from the immediately-preceding /preview, echoed so
+     * the backend persists them onto the charge intent and books the bridge
+     * FEE ledger entry at settlement. Omitted for claim-xchain (no charge).
+     * `payAmount`/`receiveAmount` are destination-token decimal strings.
+     */
+    feeUsd?: number
+    payAmount?: string
+    receiveAmount?: string
 }
 
 export interface SdaTransferResult {
