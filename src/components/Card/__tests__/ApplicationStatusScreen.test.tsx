@@ -18,6 +18,7 @@ jest.mock('@/context/authContext', () => ({
 // next/image → plain img so jsdom doesn't choke on the optimizer.
 jest.mock('next/image', () => ({
     __esModule: true,
+    // eslint-disable-next-line @next/next/no-img-element -- test stub, not real markup
     default: (props: Record<string, unknown>) => <img alt={String(props.alt ?? '')} />,
 }))
 
