@@ -39,7 +39,7 @@ export default function CardLaunchCTABanner({ onTryDoor, onDismiss }: CardLaunch
             role="button"
             tabIndex={0}
             onClick={handleTryDoor}
-            className="relative cursor-pointer overflow-hidden rounded-sm border-2 border-n-1 bg-primary-1 p-5 shadow-[4px_4px_0_#000]"
+            className="relative mb-3 cursor-pointer overflow-hidden rounded-sm border-2 border-n-1 bg-primary-1 p-5 shadow-[4px_4px_0_#000]"
         >
             <button
                 type="button"
