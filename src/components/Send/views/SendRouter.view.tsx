@@ -229,7 +229,7 @@ export const SendRouterView = () => {
                                 <div className="text-sm font-medium">No account needed to receive.</div>
                             </div>
                         </div>
-                        <Button shadowSize="4" icon="link" iconSize={10} onClick={handleLinkCtaClick}>
+                        <Button shadowSize="4" icon="link" iconSize={12} onClick={handleLinkCtaClick}>
                             Send via link
                         </Button>
                     </div>

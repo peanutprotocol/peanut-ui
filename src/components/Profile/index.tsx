@@ -117,6 +117,7 @@ export const Profile = () => {
                         label="Exchange rates and fees"
                         href="/profile/exchange-rate"
                         position="single"
+                        iconClassName="size-4"
                     />
                     {/* Logout Button */}
                     <div className="w-full pb-10">

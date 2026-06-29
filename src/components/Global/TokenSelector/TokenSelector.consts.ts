@@ -75,3 +75,29 @@ const networksToExclude: readonly number[] = [celo.id, linea.id, worldchain.id] 
 export const TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS = networks
     .filter((network) => !networksToExclude.includes(Number(network.id)))
     .map((network) => network.id.toString())
+
+/**
+ * Rhino-supported withdrawal destinations: chainId → token symbols Rhino can
+ * actually deliver. Cross-chain withdraw routes through Rhino (stables via SDA,
+ * ETH/native via swaps), and Rhino supports a different, smaller set than the
+ * Squid-era token selector — and toggles chains over time (it has Scroll
+ * disabled, which 400s `SCROLL is disabled` on preview). Derived from Rhino's
+ * live SDA + bridge config (2026-06-26); update when Rhino enables/disables a
+ * chain or token.
+ *
+ * Notes:
+ * - Scroll (534352) is intentionally absent — Rhino has it disabled.
+ * - Native gas tokens Rhino doesn't bridge are omitted: Polygon (POL) and Gnosis
+ *   (xDAI) keep only USDC/USDT; Arbitrum/Ethereum/Optimism native is ETH; BNB on
+ *   BNB Chain is supported.
+ * - EVM only (the withdraw flow uses 0x addresses); matches the current
+ *   selectable chain set rather than every Rhino chain.
+ */
+export const RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN: Record<string, readonly string[]> = {
+    '42161': ['ETH', 'USDC', 'USDT'], // Arbitrum
+    '1': ['ETH', 'USDC', 'USDT'], // Ethereum
+    '10': ['ETH', 'USDC', 'USDT'], // Optimism
+    '137': ['USDC', 'USDT'], // Polygon (native POL not bridged by Rhino)
+    '100': ['USDC', 'USDT'], // Gnosis (native xDAI not bridged by Rhino)
+    '56': ['BNB', 'USDC', 'USDT'], // BNB Chain
+}
