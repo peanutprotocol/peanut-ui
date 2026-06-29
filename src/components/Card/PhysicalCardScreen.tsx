@@ -76,8 +76,7 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
                     <Image src={PeanutWalking} unoptimized alt="" aria-hidden className="h-32 w-auto" />
                     <h1 className="text-xl font-extrabold">You are on the list!</h1>
                     <p className="text-sm text-grey-1">
-                        You are #{data.position} on the list. We&apos;ll let you know when cards are ready to be
-                        shipped.
+                        {`You are #${data.position} on the list. We'll let you know when cards are ready to be shipped.`}
                     </p>
                 </div>
             ) : (
