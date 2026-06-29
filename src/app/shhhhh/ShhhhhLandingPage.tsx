@@ -24,16 +24,26 @@ const SKIP_CAMPAIGN = 'skip'
 
 // Inline "you're on the waitlist" confirmation shown in place of the door CTA
 // once the user joins (pre-launch, non-skip path). `dark` = on the black §7.
-function WaitlistJoined({ position, dark = false }: { position: number | null; dark?: boolean }) {
+function WaitlistJoined({
+    position,
+    dark = false,
+    onClick,
+}: {
+    position: number | null
+    dark?: boolean
+    onClick?: () => void
+}) {
     return (
         <div className="flex flex-col items-center gap-3 md:items-start">
-            <div
-                className={`font-roboto-flex-extrabold inline-flex items-center gap-2 border-2 border-n-1 px-6 py-3 text-base font-extraBlack uppercase shadow-[4px_4px_0_#000] md:text-lg ${
+            <button
+                type="button"
+                onClick={onClick}
+                className={`font-roboto-flex-extrabold inline-flex items-center gap-2 border-2 border-n-1 px-6 py-3 text-base font-extraBlack uppercase shadow-[4px_4px_0_#000] transition-transform hover:-translate-y-0.5 md:text-lg ${
                     dark ? 'bg-secondary-1 text-n-1' : 'bg-white text-n-1'
                 }`}
             >
                 ✓ You&apos;re on the waitlist{typeof position === 'number' ? ` · #${position}` : ''}
-            </div>
+            </button>
             <p className={`font-roboto-flex text-sm font-bold ${dark ? 'text-white/90' : ''}`}>
                 We&apos;ll holler when your turn comes up.
             </p>
@@ -311,7 +321,10 @@ export default function ShhhhhLandingPage() {
                         </p>
                         {isJoined ? (
                             <div className="mt-8 flex justify-center md:justify-start">
-                                <WaitlistJoined position={joinedPosition ?? null} />
+                                <WaitlistJoined
+                                    position={joinedPosition ?? null}
+                                    onClick={() => router.push('/card')}
+                                />
                             </div>
                         ) : (
                             <div className="mt-8 flex flex-col items-center gap-5 md:flex-row md:items-center md:gap-6">
@@ -578,7 +591,11 @@ export default function ShhhhhLandingPage() {
                     </p>
                     <div className="mt-10 flex justify-center">
                         {isJoined ? (
-                            <WaitlistJoined position={joinedPosition ?? null} dark />
+                            <WaitlistJoined
+                                position={joinedPosition ?? null}
+                                dark
+                                onClick={() => router.push('/card')}
+                            />
                         ) : (
                             <Button
                                 shadowSize="4"
