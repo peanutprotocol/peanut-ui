@@ -82,6 +82,15 @@ export const chargesApi = {
         sourceTokenAddress?: string
         sourceTokenSymbol?: string
     }): Promise<PaymentCreationResponse> => {
+        // NOTE: called AFTER the on-chain payment tx already mined. A timeout
+        // here is NOT safe to blindly retry from the wallet side (re-running
+        // the parent handler would re-fire sendMoney and double-pay). Bump
+        // well above the 10s default so the BE has time to write the payment
+        // row + run notifications. Matches the offramp `confirmOfframp`
+        // pattern (peanut-ui #2147). Callers MUST additionally render a
+        // post-on-chain "processing" state instead of a Retry button —
+        // realised via the flow-context `txHash` (set BEFORE this call by
+        // each flow's `setTxHash`), consumed by every input/confirm view.
         const response = await apiFetch(`/charges/${chargeId}/payments`, {
             method: 'POST',
             body: JSON.stringify({
@@ -93,6 +102,7 @@ export const chargesApi = {
                 sourceTokenAddress,
                 sourceTokenSymbol,
             }),
+            timeoutMs: 60_000,
         })
 
         if (!response.ok) {

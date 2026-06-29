@@ -45,10 +45,18 @@ export function SemanticRequestInputView() {
         isLoading,
         isLoggedIn,
         isConnected,
+        txHash,
         setAmount,
         handlePayment,
         setCurrentView,
     } = useSemanticRequestFlow()
+
+    // `txHash` is the post-on-chain gate (see useSemanticRequestFlow). While
+    // set, BOTH pay paths must be disabled — re-firing handlePayment (Peanut
+    // wallet) would double-pay on-chain, and opening the external-wallet view
+    // for the same charge would let the user pay it again from their EOA.
+    // Sentry PEANUT-UI-QH9 / 2026-06-01.
+    const isPostOnChain = !!txHash
 
     // token selector context for setting initial values from url
     const {
@@ -90,13 +98,13 @@ export function SemanticRequestInputView() {
 
     // handle submit
     const handleSubmit = () => {
-        if (canProceed && !isLoading) {
+        if (canProceed && !isLoading && !isPostOnChain) {
             handlePayment()
         }
     }
 
     const handleOpenExternalWalletFlow = async () => {
-        if (canProceed && !isLoading) {
+        if (canProceed && !isLoading && !isPostOnChain) {
             const res = await handlePayment(true, true) // return after creating charge
             // Proceed only if charge is created successfully
             if (res && res.success) {
@@ -105,8 +113,10 @@ export function SemanticRequestInputView() {
         }
     }
 
-    // determine button state
-    const isButtonDisabled = !canProceed || isLoading
+    // determine button state — `isPostOnChain` keeps the button disabled
+    // after sendMoney has fired so a recordPayment timeout can't lead to a
+    // second click → second on-chain tx.
+    const isButtonDisabled = !canProceed || isLoading || isPostOnChain
     const isAmountEntered = !!amount && parseFloat(amount) > 0
 
     // get display name for recipient
@@ -192,7 +202,11 @@ export function SemanticRequestInputView() {
                     <SendWithPeanutCta
                         onClick={handleSubmit}
                         disabled={isButtonDisabled}
-                        loading={isLoading}
+                        // OR in `isPostOnChain` so the button keeps its
+                        // spinner after sendMoney fired — without it the
+                        // user sees a disabled button + error toast with
+                        // no signal that funds are processing BE-side.
+                        loading={isLoading || isPostOnChain}
                         insufficientBalance={isInsufficientBalance}
                     />
                     {isInsufficientBalance && (

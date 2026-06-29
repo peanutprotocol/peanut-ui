@@ -113,6 +113,15 @@ export function useDirectSendFlow() {
             return
         }
 
+        // Post-on-chain safety gate: once sendMoney has set txHash on the
+        // flow context, do NOT re-run this handler — re-firing sendMoney
+        // would produce a second on-chain tx attributed to the same charge
+        // (Sentry PEANUT-UI-QH9 / 2026-06-01 — Konrad's offramp shape; same
+        // shape exists in this flow). Using context state (not local hook
+        // state) is what makes the gate survive view-transitions; see
+        // the gate-altitude rationale in DirectSendFlowContext.
+        if (txHash) return
+
         setIsLoading(true)
         clearError()
 
@@ -175,6 +184,7 @@ export function useDirectSendFlow() {
         usdAmount,
         attachment,
         walletAddress,
+        txHash,
         createCharge,
         sendMoney,
         recordPayment,
@@ -197,6 +207,10 @@ export function useDirectSendFlow() {
         attachment,
         charge,
         payment,
+        // txHash is the post-on-chain gate — truthy iff sendMoney already
+        // fired. Consumers MUST disable pay buttons (and not offer a
+        // retryable error UX) when this is set; re-running would call
+        // sendMoney again and double-pay.
         txHash,
         error,
         isLoading: isLoading || isCreatingCharge || isRecording,
