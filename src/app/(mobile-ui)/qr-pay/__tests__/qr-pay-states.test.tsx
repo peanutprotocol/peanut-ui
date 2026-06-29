@@ -871,8 +871,8 @@ describe('GROUP 2: Payment Form States', () => {
     })
 
     test('Provider maintenance shows maintenance banner', async () => {
-        const maintenanceConfig = require('@/config/underMaintenance.config').default
-        maintenanceConfig.disabledPaymentProviders = ['MANTECA']
+        const underMaintenanceConfig = require('@/config/underMaintenance.config').default
+        underMaintenanceConfig.disabledPaymentProviders = ['MANTECA']
 
         setupMantecaPayment()
 
@@ -883,7 +883,7 @@ describe('GROUP 2: Payment Form States', () => {
         })
 
         // Clean up
-        maintenanceConfig.disabledPaymentProviders = []
+        underMaintenanceConfig.disabledPaymentProviders = []
     })
 })
 

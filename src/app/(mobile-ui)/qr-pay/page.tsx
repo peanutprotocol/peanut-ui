@@ -66,7 +66,7 @@ import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useModalsContext } from '@/context/ModalsContext'
-import maintenanceConfig from '@/config/underMaintenance.config'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 import PointsCard from '@/components/Common/PointsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
@@ -146,7 +146,7 @@ export default function QRPayPage() {
 
     // Check if this payment provider is under maintenance
     const isProviderDisabled = useMemo(() => {
-        return paymentProcessor ? maintenanceConfig.disabledPaymentProviders.includes(paymentProcessor) : false
+        return paymentProcessor ? underMaintenanceConfig.disabledPaymentProviders.includes(paymentProcessor) : false
     }, [paymentProcessor])
 
     // MIGRATION-REVIEW: QR-pay KYC gate, formerly useQrKycGate + useKycStatus.

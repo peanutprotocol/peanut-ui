@@ -3,6 +3,12 @@
  *
  * to enable maintenance mode, simply toggle one or both of these keys:
  *
+ * naming convention — read the verb, not just the value:
+ *   - enable<Behavior>: true = turn that maintenance behavior ON (block / redirect / warn)
+ *   - disable<Feature>: true = turn that product feature OFF
+ *   `enableX: true` makes X happen; `disableY: true` makes Y stop. New flags MUST follow
+ *   one of these two shapes so the polarity is always obvious from the name.
+ *
  * 1. enableFullMaintenance: redirects ALL pages to /maintenance page
  *    - landing page (/) and support page (/support) remain accessible
  *    - maintenance banner shows on all pages (including landing and support)
@@ -34,11 +40,11 @@
  *    - card pioneer modal, carousel cta, and perk rewards hidden from home
  *    - set to false to enable the feature
  *
- * 7. pixBrazilOnrampMaintenance: warn-only flag for the BRL-via-PIX onramp (Manteca Brazil deposit)
+ * 7. enablePixOnrampMaintenanceWarning: warn-only flag for the PIX onramp (Manteca Brazil deposit)
  *    - shows a "Maintenance" tag on the Pix option in /add-money/brazil
  *    - shows a warning banner inside the deposit flow (/add-money/brazil/manteca)
  *    - does NOT block deposits — the option stays usable (warn-only)
- *    - set to false when PIX deposits are stable again
+ *    - set to true when PIX deposits degrade again
  *
  * note: if either mode is enabled, the maintenance banner will show everywhere
  *
@@ -55,7 +61,7 @@ interface MaintenanceConfig {
     disableXchainWithdraw: boolean
     disableXchainSend: boolean
     disableCardPioneers: boolean
-    pixBrazilOnrampMaintenance: boolean
+    enablePixOnrampMaintenanceWarning: boolean
 }
 
 const underMaintenanceConfig: MaintenanceConfig = {
@@ -65,16 +71,16 @@ const underMaintenanceConfig: MaintenanceConfig = {
     disableXchainWithdraw: true, // set to true to disable cross-chain withdrawals (only allows USDC on Arbitrum)
     disableXchainSend: true, // set to true to disable cross-chain sends (claim, request payments - only allows USDC on Arbitrum)
     disableCardPioneers: true, // set to false to enable the Card Pioneers waitlist feature
-    pixBrazilOnrampMaintenance: true, // set to false when BRL-via-PIX deposits are stable again
+    enablePixOnrampMaintenanceWarning: false, // set to true when PIX (Manteca Brazil) deposits degrade again
 }
 
 // shared user-facing copy for cross-chain disabled paths — keep wording aligned with TokenSelector banner
 export const CROSS_CHAIN_DISABLED_MESSAGE =
     'Cross-chain claims are temporarily unavailable. Try claiming to an external wallet on the same chain as the link, or try again later.'
 
-// shared user-facing copy for the BRL-via-PIX onramp maintenance warning — keep the list tag and
+// shared user-facing copy for the PIX onramp maintenance warning — keep the list tag and
 // the in-flow banner aligned
-export const PIX_BRAZIL_ONRAMP_MAINTENANCE = {
+export const PIX_ONRAMP_MAINTENANCE_COPY = {
     badge: 'Maintenance',
     title: 'PIX deposits are under maintenance',
     description:
