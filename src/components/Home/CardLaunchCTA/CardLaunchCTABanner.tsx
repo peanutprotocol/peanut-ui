@@ -51,9 +51,6 @@ export default function CardLaunchCTABanner({ onTryDoor, onDismiss }: CardLaunch
             </button>
 
             <div className="relative z-[1] flex flex-col gap-3 pr-6">
-                <span className="font-roboto-flex-extrabold text-[11px] font-extraBlack uppercase tracking-[0.22em] text-n-1 opacity-60">
-                    shhhhh · it&apos;s out
-                </span>
                 <h3 className="font-roboto-flex-extrabold text-2xl font-extraBlack uppercase leading-[1.02] text-n-1">
                     The card is out.
                     <br />
