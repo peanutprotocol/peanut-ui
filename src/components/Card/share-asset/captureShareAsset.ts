@@ -40,8 +40,48 @@ export class ShareAssetCaptureError extends Error {
     }
 }
 
+/**
+ * Wait for the asset's content to be painted before we snapshot.
+ *
+ * The pink card + its drop-shadow are synchronous, but the card's pixelated
+ * hand is drawn into a <canvas> that PixelatedCardFace appends ASYNCHRONOUSLY
+ * (new Image() → onload → appendChild — see rasterImg / PixelatedHand). Unlike
+ * an <img>, html-to-image cannot wait for a not-yet-mounted <canvas>, so
+ * capturing too early yields a blank card — just the pink box + its floating
+ * shadow (the launch-day "blank share asset" bug; silent — capture succeeds,
+ * so nothing reaches Sentry). Gate on:
+ *   - document.fonts.ready (the hero/username use a web font)
+ *   - every <img> decoded (badge stickers + the card's small logo)
+ *   - the async hand <canvas> being mounted
+ * bounded by a timeout so a genuinely-stuck asset still captures (never hangs).
+ */
+const CAPTURE_READY_TIMEOUT_MS = 2500
+
+async function waitForAssetReady(node: HTMLElement): Promise<void> {
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+        try {
+            await document.fonts.ready
+        } catch {
+            // fonts.ready can reject in odd states — capture anyway.
+        }
+    }
+    await Promise.all(
+        Array.from(node.querySelectorAll('img')).map((img) =>
+            typeof img.decode === 'function' ? img.decode().catch(() => undefined) : Promise.resolve()
+        )
+    )
+    // Poll for the async hand canvas to mount (it's appended on image.onload,
+    // outside React's tree, so html-to-image can't wait for it on its own).
+    const start = typeof performance !== 'undefined' ? performance.now() : 0
+    const elapsed = (): number => (typeof performance !== 'undefined' ? performance.now() : Infinity) - start
+    while (!node.querySelector('canvas') && elapsed() < CAPTURE_READY_TIMEOUT_MS) {
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+    }
+}
+
 export async function captureShareAsset(node: HTMLElement): Promise<Blob> {
     try {
+        await waitForAssetReady(node)
         const blob = await toBlob(node, {
             width: CANVAS_W,
             height: CANVAS_H,
