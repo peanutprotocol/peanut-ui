@@ -1,4 +1,5 @@
 import { render, screen, act } from '@testing-library/react'
+import type { ComponentProps } from 'react'
 import BadgeEarnToast from '@/components/Badges/BadgeEarnToast'
 
 // next/navigation — mutable pathname so we can exercise the /home gate; stable
@@ -13,10 +14,9 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('next/image', () => ({
     __esModule: true,
-    default: (props: any) => {
-        const { unoptimized, fill, ...rest } = props
-        return <img {...rest} />
-    },
+    default: ({ unoptimized, fill, ...rest }: ComponentProps<'img'> & { unoptimized?: boolean; fill?: boolean }) => (
+        <img {...rest} />
+    ),
 }))
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
@@ -35,7 +35,8 @@ jest.mock('@/components/Badges/useBadgeEarnToast', () => ({
 
 // Minimal stub: surface the title so we can assert the detail modal opened.
 jest.mock('@/components/Badges/BadgeDetailModal', () => ({
-    BadgeDetailModal: ({ isOpen, title }: any) => (isOpen ? <div data-testid="badge-detail-modal">{title}</div> : null),
+    BadgeDetailModal: ({ isOpen, title }: { isOpen: boolean; title: string }) =>
+        isOpen ? <div data-testid="badge-detail-modal">{title}</div> : null,
 }))
 
 import posthog from 'posthog-js'
@@ -73,13 +74,14 @@ describe('BadgeEarnToast', () => {
         render(<BadgeEarnToast />)
 
         expect(mockToast).toHaveBeenCalledTimes(1)
+        expect(mockToast.mock.calls[0][0].id).toBe('badge-earn:PRODUCT_HUNT')
         expect(mockMarkSeen).toHaveBeenCalledWith(['PRODUCT_HUNT'])
         expect(captureMock).toHaveBeenCalledWith('badge_earn_toast_shown', { count: 1 })
 
         const content = mockToast.mock.calls[0][0].content
         act(() => content.props.onClick())
 
-        expect(mockDismissToast).toHaveBeenCalledWith('badge-earn')
+        expect(mockDismissToast).toHaveBeenCalledWith('badge-earn:PRODUCT_HUNT')
         expect(captureMock).toHaveBeenCalledWith('badge_earn_toast_tapped', { count: 1 })
         expect(screen.getByTestId('badge-detail-modal')).toHaveTextContent('Product Hunt')
         expect(mockRouterPush).not.toHaveBeenCalled()
@@ -99,5 +101,15 @@ describe('BadgeEarnToast', () => {
         act(() => content.props.onClick())
         expect(mockRouterPush).toHaveBeenCalledWith('/badges')
         expect(screen.queryByTestId('badge-detail-modal')).not.toBeInTheDocument()
+    })
+
+    it('dismisses the live toast when the user navigates away from /home', () => {
+        mockPending = [badge('PRODUCT_HUNT', 'Product Hunt')]
+        const { rerender } = render(<BadgeEarnToast />)
+        expect(mockToast).toHaveBeenCalledTimes(1)
+
+        mockPathname = '/send'
+        rerender(<BadgeEarnToast />)
+        expect(mockDismissToast).toHaveBeenCalledWith('badge-earn:PRODUCT_HUNT')
     })
 })

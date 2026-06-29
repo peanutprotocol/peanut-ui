@@ -33,31 +33,46 @@ const EXCLUDED_CODES = new Set<string>(['WAITLIST_SKIP', 'BETA_TESTER'])
 
 const STORAGE_PREFIX = 'badge_earn_toast_seen'
 
+// In-memory fallback for environments where localStorage can't persist
+// (Safari/iOS private mode, quota exhausted). Without it, a swallowed write
+// meant the seen-set re-hydrated empty every launch and the toast re-fired on
+// EVERY /home visit for the whole freshness window. Memory keeps it alive for
+// the session (lost on reload — one re-show per session, not an infinite nag).
+// Only consulted when the localStorage read misses, so a working localStorage
+// stays the source of truth.
+const memoryFallback = new Map<string, Set<string>>()
+
 // Per-user key so a shared browser doesn't leak one account's seen-set onto another.
 export function celebrationStorageKey(userId: string): string {
     return `${STORAGE_PREFIX}:${userId}`
 }
 
 export function loadSeenCodes(userId: string): Set<string> {
-    if (typeof window === 'undefined') return new Set()
-    try {
-        const raw = window.localStorage.getItem(celebrationStorageKey(userId))
-        if (!raw) return new Set()
-        const parsed: unknown = JSON.parse(raw)
-        if (!Array.isArray(parsed)) return new Set()
-        return new Set(parsed.filter((c): c is string => typeof c === 'string'))
-    } catch {
-        return new Set()
+    if (typeof window !== 'undefined') {
+        try {
+            const raw = window.localStorage.getItem(celebrationStorageKey(userId))
+            if (raw) {
+                const parsed: unknown = JSON.parse(raw)
+                if (Array.isArray(parsed)) return new Set(parsed.filter((c): c is string => typeof c === 'string'))
+            }
+        } catch {
+            // fall through to the in-memory fallback
+        }
     }
+    return new Set(memoryFallback.get(userId))
 }
 
 export function persistSeenCodes(userId: string, codes: ReadonlySet<string>): void {
-    if (typeof window === 'undefined') return
     try {
+        if (typeof window === 'undefined') throw new Error('no window')
         window.localStorage.setItem(celebrationStorageKey(userId), JSON.stringify([...codes]))
+        // localStorage is the source of truth when it works — drop any stale
+        // in-memory copy so it can't shadow a later real read.
+        memoryFallback.delete(userId)
     } catch {
-        // localStorage can throw (private mode / quota). A missed write just
-        // means the toast may re-show — never block the UI on it.
+        // localStorage unavailable (private mode / quota / SSR) — hold the
+        // seen-set in memory so the toast doesn't re-nag this session.
+        memoryFallback.set(userId, new Set(codes))
     }
 }
 

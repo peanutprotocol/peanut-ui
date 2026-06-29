@@ -79,4 +79,18 @@ describe('badgeCelebration.utils', () => {
             expect(loadSeenCodes('user-a')).toEqual(new Set())
         })
     })
+
+    describe('localStorage-failure fallback (private mode)', () => {
+        afterEach(() => jest.restoreAllMocks())
+
+        it('holds the seen-set in memory when writes throw, so it does not re-nag', () => {
+            jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+                throw new Error('QuotaExceeded')
+            })
+            persistSeenCodes('pm-user', new Set(['SHHHHH']))
+            // The localStorage write failed, but the in-memory fallback keeps the
+            // badge seen for the session so the toast doesn't re-fire every visit.
+            expect(loadSeenCodes('pm-user')).toEqual(new Set(['SHHHHH']))
+        })
+    })
 })

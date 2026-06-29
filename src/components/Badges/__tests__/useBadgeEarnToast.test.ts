@@ -25,6 +25,18 @@ describe('useBadgeEarnToast', () => {
         expect(result.current.pending).toEqual([])
     })
 
+    it('reads seen synchronously when the user resolves after mount (no cold-start re-fire)', () => {
+        window.localStorage.setItem(celebrationStorageKey('user-a'), JSON.stringify(['SHHHHH']))
+        setUser(undefined, [])
+        const { result, rerender } = renderHook(() => useBadgeEarnToast())
+        expect(result.current.pending).toEqual([])
+        // user loads async: on the first render with a userId, seen must already
+        // reflect localStorage — not lag a render behind (which re-fired the toast).
+        setUser('user-a', [{ code: 'SHHHHH', name: 'Shhh', description: null, earnedAt: freshIso() }])
+        rerender()
+        expect(result.current.pending).toEqual([])
+    })
+
     it('surfaces all freshly-earned badges, newest first', () => {
         setUser('user-a', [
             {
