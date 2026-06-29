@@ -59,10 +59,16 @@ const CardRejectionScreen: FC<Props> = ({
     const [sharing, setSharing] = useState(false)
     const [joining, setJoining] = useState(false)
     const [joinError, setJoinError] = useState<string | null>(null)
+    // Local "just joined" override so the CTA swaps to the on-the-list state
+    // immediately on a confirmed join, without waiting for the parent's /card
+    // refetch (CodeRabbit). OR'd with the `alreadyJoined` prop.
+    const [locallyJoined, setLocallyJoined] = useState(false)
+    const showJoined = alreadyJoined || locallyJoined
     const safeUsername = (username || '').trim() || 'anon'
 
     useEffect(() => {
-        posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_VIEWED, { already_joined: false })
+        posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_VIEWED, { already_joined: alreadyJoined })
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- fire once on mount with the entry state
     }, [])
 
     const handleJoin = async (): Promise<void> => {
@@ -71,6 +77,7 @@ const CardRejectionScreen: FC<Props> = ({
         try {
             const res = await cardApi.joinWaitlist()
             posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_JOINED, { position: res.position })
+            setLocallyJoined(true)
             onJoined?.()
         } catch (e) {
             // Keep the user-facing message generic; raw BE text can leak
@@ -86,6 +93,9 @@ const CardRejectionScreen: FC<Props> = ({
     }
 
     const handleAppeal = async (): Promise<void> => {
+        // Clear any stale "failed to join" error from an earlier handleJoin so
+        // the success state can't render alongside it (CodeRabbit).
+        setJoinError(null)
         const caption = pickRejectionCaption()
 
         // Appeal = tweet AND join the waitlist. Joining is NOT access — release
@@ -100,6 +110,7 @@ const CardRejectionScreen: FC<Props> = ({
             .joinWaitlist()
             .then((res) => {
                 posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_JOINED, { position: res.position, source: 'appeal' })
+                setLocallyJoined(true)
             })
             .catch((e) => {
                 // Non-fatal: the tweet still goes out, and the CARD_SHARE_ASSET_SHARED
@@ -193,7 +204,7 @@ const CardRejectionScreen: FC<Props> = ({
                 >
                     Tweet to appeal
                 </Button>
-                {alreadyJoined ? (
+                {showJoined ? (
                     <div className="flex h-13 items-center justify-center gap-2 text-center text-sm font-bold text-n-1">
                         <Icon name="check-circle" size={18} />
                         You&apos;re on the list — we&apos;ll holler when it&apos;s your turn
