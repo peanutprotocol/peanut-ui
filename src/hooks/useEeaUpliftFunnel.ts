@@ -15,6 +15,10 @@ type UpliftChannel = 'deposit' | 'withdraw'
  * `startedRef` guard stops a generic success from mis-firing the completed
  * event. The advisory snapshot is captured at start time because the gate's
  * `advisory` clears once the requirement resolves, so it's gone by completion.
+ *
+ * `reset` clears the pending start on abandonment (KYC modal closed without
+ * success). Without it the latch would survive an abandoned attempt, and a later
+ * unrelated KYC success on the same mounted page could mis-fire `completed`.
  */
 export function useEeaUpliftFunnel(channel: UpliftChannel) {
     const startedRef = useRef<GateAdvisory | null>(null)
@@ -44,5 +48,9 @@ export function useEeaUpliftFunnel(channel: UpliftChannel) {
         })
     }, [channel])
 
-    return { trackStarted, trackCompleted }
+    const reset = useCallback(() => {
+        startedRef.current = null
+    }, [])
+
+    return { trackStarted, trackCompleted, reset }
 }

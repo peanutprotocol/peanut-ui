@@ -92,9 +92,18 @@ export default function WithdrawBankPage() {
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     // EEA-uplift funnel events (PostHog): started on launch, completed on KYC
     // success. trackCompleted no-ops unless an uplift was started this session.
-    const { trackStarted: trackUpliftStarted, trackCompleted: trackUpliftCompleted } = useEeaUpliftFunnel('withdraw')
+    const {
+        trackStarted: trackUpliftStarted,
+        trackCompleted: trackUpliftCompleted,
+        reset: resetUpliftFunnel,
+    } = useEeaUpliftFunnel('withdraw')
 
-    const sumsubFlow = useMultiPhaseKycFlow({ onKycSuccess: () => trackUpliftCompleted() })
+    const sumsubFlow = useMultiPhaseKycFlow({
+        onKycSuccess: () => trackUpliftCompleted(),
+        // Abandoned attempt: clear the pending start so a later unrelated KYC
+        // success on this page can't mis-fire eea_uplift_completed.
+        onManualClose: resetUpliftFunnel,
+    })
     // A ready bank rail can still carry a pending Bridge requirement (the gate's
     // `advisory`). Enforce it as a mandatory, non-skippable pre-empt before the
     // withdrawal — the offramp cannot proceed until it's completed.

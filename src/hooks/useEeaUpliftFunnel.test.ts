@@ -59,4 +59,15 @@ describe('useEeaUpliftFunnel', () => {
         act(() => result.current.trackCompleted())
         expect(capture).toHaveBeenCalledTimes(1)
     })
+
+    test('reset clears a pending start so a later success cannot mis-fire completed', () => {
+        const { result } = renderHook(() => useEeaUpliftFunnel('deposit'))
+        act(() => result.current.trackStarted(advisory))
+        capture.mockClear()
+
+        // user abandoned the flow → reset, then an unrelated KYC success fires
+        act(() => result.current.reset())
+        act(() => result.current.trackCompleted())
+        expect(capture).not.toHaveBeenCalled()
+    })
 })

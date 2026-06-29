@@ -81,13 +81,20 @@ export default function OnrampBankPage() {
     // (e.g. /add-money/usa → NA → bridge-requirements).
     // EEA-uplift funnel events (PostHog): started on launch, completed on KYC
     // success. trackCompleted no-ops unless an uplift was started this session.
-    const { trackStarted: trackUpliftStarted, trackCompleted: trackUpliftCompleted } = useEeaUpliftFunnel('deposit')
+    const {
+        trackStarted: trackUpliftStarted,
+        trackCompleted: trackUpliftCompleted,
+        reset: resetUpliftFunnel,
+    } = useEeaUpliftFunnel('deposit')
 
     const sumsubFlow = useMultiPhaseKycFlow({
         onKycSuccess: () => {
             trackUpliftCompleted()
             setUrlState({ step: 'inputAmount' })
         },
+        // Abandoned attempt: clear the pending start so a later unrelated KYC
+        // success on this page can't mis-fire eea_uplift_completed.
+        onManualClose: resetUpliftFunnel,
     })
 
     // read country from path params (web) or query params (native/capacitor)
