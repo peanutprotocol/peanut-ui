@@ -39,7 +39,7 @@ export default function CardLaunchCTABanner({ onTryDoor, onDismiss }: CardLaunch
             role="button"
             tabIndex={0}
             onClick={handleTryDoor}
-            className="relative mb-3 cursor-pointer overflow-hidden rounded-sm border-2 border-n-1 bg-white p-5"
+            className="relative mb-3 cursor-pointer overflow-hidden rounded-sm border border-n-1 bg-white p-5"
         >
             <button
                 type="button"
@@ -51,7 +51,7 @@ export default function CardLaunchCTABanner({ onTryDoor, onDismiss }: CardLaunch
             </button>
 
             <div className="relative z-[1] flex flex-col gap-3 pr-6">
-                <h3 className="font-roboto-flex-extrabold text-4xl font-extraBlack leading-[1.02] text-n-1">shhh</h3>
+                <h3 className="font-roboto-flex-extrabold text-4xl font-extraBlack leading-[1.02] text-n-1">shhhh</h3>
                 <p className="text-sm font-bold leading-snug text-n-1">Tap to find out if you&apos;re in</p>
                 <Button
                     variant="purple"
