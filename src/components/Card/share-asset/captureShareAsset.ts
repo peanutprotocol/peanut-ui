@@ -55,9 +55,14 @@ export class ShareAssetCaptureError extends Error {
  *   - the async hand <canvas> being mounted
  * bounded by a timeout so a genuinely-stuck asset still captures (never hangs).
  */
-const CAPTURE_READY_TIMEOUT_MS = 2500
+export const CAPTURE_READY_TIMEOUT_MS = 2500
 
-async function waitForAssetReady(node: HTMLElement): Promise<void> {
+// Exported for unit tests. `timeoutMs` is injectable so the bounded-wait
+// behaviour can be asserted without a 2.5s test.
+export async function waitForAssetReady(
+    node: HTMLElement,
+    timeoutMs: number = CAPTURE_READY_TIMEOUT_MS
+): Promise<void> {
     if (typeof document !== 'undefined' && document.fonts?.ready) {
         try {
             await document.fonts.ready
@@ -74,7 +79,7 @@ async function waitForAssetReady(node: HTMLElement): Promise<void> {
     // outside React's tree, so html-to-image can't wait for it on its own).
     const start = typeof performance !== 'undefined' ? performance.now() : 0
     const elapsed = (): number => (typeof performance !== 'undefined' ? performance.now() : Infinity) - start
-    while (!node.querySelector('canvas') && elapsed() < CAPTURE_READY_TIMEOUT_MS) {
+    while (!node.querySelector('canvas') && elapsed() < timeoutMs) {
         await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
     }
 }
