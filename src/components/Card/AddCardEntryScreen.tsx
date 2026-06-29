@@ -12,7 +12,7 @@ interface Props {
     applyError?: string | null
 }
 
-const FEATURES = ['No separate card balance', 'Instant from your wallet', 'Works online & contactless'] as const
+const FEATURES = ['One unified balance', 'Under your control', 'Works online & contactless'] as const
 
 const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
     const [isApplying, setIsApplying] = useState(false)
@@ -37,7 +37,7 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
 
             <div className="flex flex-col gap-2">
                 <h1 className="text-2xl font-extrabold text-n-1">Spend anywhere Visa is accepted</h1>
-                <p className="text-grey-1">Use your balance at 140M+ merchants. Online, contactless.</p>
+                <p className="text-grey-1">Use your balance at 150M+ merchants. Online, contactless, yours.</p>
             </div>
 
             <ul className="flex flex-col gap-2 rounded-sm bg-primary-3 p-4 text-n-1">

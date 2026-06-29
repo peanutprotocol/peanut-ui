@@ -6,6 +6,7 @@ import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import Card from '../Global/Card'
+import CardLaunchCTABanner from '@/components/Home/CardLaunchCTA/CardLaunchCTABanner'
 import { useEffect, useMemo, useRef } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -51,7 +52,7 @@ const STEPS: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = {
         icon: 'credit-card',
         iconBg: 'bg-yellow-1',
         title: 'Spend anywhere Visa is accepted',
-        description: 'Use your balance at 40m+ merchants. Online, contactless.',
+        description: 'Use your balance at 150M+ merchants. Online, contactless.',
         ctaLabel: 'Get your card',
         href: '/card',
         dismissable: true,
@@ -158,6 +159,22 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     ])
 
     if (!step) return null
+
+    // The card step renders the mysterious /shhhhh-tone launch banner (#2295's
+    // CardLaunchCTABanner) instead of the plain funnel card — so non-activated
+    // card-eligible users get the same CTA as the activated launch splash.
+    // Keeps the funnel's /card routing + the "Maybe later" dismissal.
+    if (activationStep === 'card') {
+        return (
+            <CardLaunchCTABanner
+                onTryDoor={() => {
+                    posthog.capture(ANALYTICS_EVENTS.CARD_LAUNCH_CTA_CLICKED)
+                    router.push('/card')
+                }}
+                onDismiss={() => onDismissCard?.()}
+            />
+        )
+    }
 
     return (
         <Card position="single" className="p-0">
