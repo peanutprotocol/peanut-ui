@@ -21,6 +21,7 @@ import { PeanutWhistling } from '@/assets/mascot'
 import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { pickRejectionCaption } from '@/components/Card/share-asset/rejectionCaptions'
 
 interface Props {
     onPrev?: () => void
@@ -32,6 +33,18 @@ const CardWaitlistJoinedScreen: FC<Props> = ({ onPrev }) => {
     useEffect(() => {
         posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_VIEWED, { already_joined: true })
     }, [])
+
+    // Beg to jump the queue — the same appeal as the rejection screen, minus the
+    // waitlist-join (they're already on the list). Text-only X intent tagging
+    // @joinpeanut; no asset to capture on the friendly cooldown screen.
+    const handleAppeal = (): void => {
+        const caption = pickRejectionCaption()
+        posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, {
+            source: 'waitlist-cooldown',
+            method: 'twitter-intent',
+        })
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(caption)}`, '_blank', 'noopener')
+    }
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-6">
@@ -59,9 +72,14 @@ const CardWaitlistJoinedScreen: FC<Props> = ({ onPrev }) => {
                 </Card>
             </div>
 
-            <Button onClick={() => router.push('/home')} variant="purple" shadowSize="4" className="w-full">
-                Back to home
-            </Button>
+            <div className="flex flex-col gap-3">
+                <Button onClick={handleAppeal} variant="purple" shadowSize="4" className="w-full">
+                    Tweet to appeal
+                </Button>
+                <Button onClick={() => router.push('/home')} variant="stroke" className="w-full">
+                    Back to home
+                </Button>
+            </div>
         </div>
     )
 }
