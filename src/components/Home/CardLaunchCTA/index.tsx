@@ -34,12 +34,13 @@ export default function CardLaunchCTA() {
     const router = useRouter()
     const { user } = useAuth()
     const { isPublicLaunched, isEligible, cardInfo, isLoading } = useCardInfo()
-    const { overview } = useRainCardOverview()
+    const { overview, isLoading: isOverviewLoading } = useRainCardOverview()
     const { isActivated } = useActivationStatus()
 
     // Read the permanent dismissal after mount to avoid a hydration mismatch —
-    // localStorage is client-only. Mirrors useActivationStatus.dismissCardStep.
-    const [dismissed, setDismissed] = useState(false)
+    // localStorage is client-only. Starts null (unknown) so a dismissed user
+    // never flashes the banner / fires VIEWED before hydration resolves.
+    const [dismissed, setDismissed] = useState<boolean | null>(null)
     useEffect(() => {
         setDismissed(isCardLaunchCTADismissed())
     }, [])
@@ -53,12 +54,13 @@ export default function CardLaunchCTA() {
     const visible =
         !!user &&
         !isLoading &&
+        !isOverviewLoading &&
+        dismissed === false &&
         isPublicLaunched === true &&
         isActivated &&
         isEligible === true &&
         !hasActiveCard &&
         !isOnWaitlist &&
-        !dismissed &&
         !underMaintenanceConfig.disableCardPioneers
 
     // Fire "viewed" exactly once, when the banner first becomes visible.

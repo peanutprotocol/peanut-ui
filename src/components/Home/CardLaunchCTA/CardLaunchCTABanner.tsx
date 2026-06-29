@@ -77,6 +77,7 @@ export default function CardLaunchCTABanner({ onTryDoor, onDismiss }: CardLaunch
                     variant="dark"
                     shadowSize="4"
                     className="mt-1 w-full"
+                    disableHaptics
                     onClick={(e) => {
                         e.stopPropagation()
                         handleTryDoor()
