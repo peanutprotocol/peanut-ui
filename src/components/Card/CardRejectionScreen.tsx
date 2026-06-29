@@ -8,8 +8,12 @@
  * a shareable door rejection: a dark "not tonight, <username>" asset with a
  * smug peanut bouncer, the scarcity tally as screen copy, and a primary
  * "Tweet to appeal" CTA that shares the asset (random caption tagging
- * @joinpeanut). The friendly waitlist-joined screen is the cooldown AFTER
- * they share, so they don't rage-quit.
+ * @joinpeanut).
+ *
+ * This is the TERMINAL waitlist screen (no separate cooldown): once the user
+ * has joined (`alreadyJoined`) the secondary "Join anyway" button becomes an
+ * "on the list" confirmation, but the shareable asset + "Tweet to appeal"
+ * stay so they can keep appealing / re-grab the asset.
  */
 
 import { type FC, useEffect, useRef, useState } from 'react'
@@ -17,6 +21,7 @@ import * as Sentry from '@sentry/nextjs'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import ErrorAlert from '@/components/Global/ErrorAlert'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { ScaledRejectionAsset } from '@/components/Card/share-asset/ScaledRejectionAsset'
 import { captureShareAsset, canShareImageFiles } from '@/components/Card/share-asset/captureShareAsset'
 import { pickRejectionCaption } from '@/components/Card/share-asset/rejectionCaptions'
@@ -32,9 +37,12 @@ interface Props {
     admitted?: number
     /** Which smug mascot the asset shows. */
     mascot?: RejectionMascot
+    /** True once the user is already on the waitlist — swaps the "Join anyway"
+     *  button for an "on the list" confirmation while keeping the asset + appeal. */
+    alreadyJoined?: boolean
     onPrev?: () => void
-    /** Called after the user joins the waitlist. Parent should refetch /card,
-     *  which flips the state machine to <CardWaitlistJoinedScreen /> (cooldown). */
+    /** Called after the user joins the waitlist. Parent refetches /card; the
+     *  user stays on this screen, now in its `alreadyJoined` state. */
     onJoined?: () => void
 }
 
@@ -43,6 +51,7 @@ const CardRejectionScreen: FC<Props> = ({
     applicants = 213,
     admitted = 7,
     mascot = 'cool',
+    alreadyJoined = false,
     onPrev,
     onJoined,
 }) => {
@@ -184,15 +193,22 @@ const CardRejectionScreen: FC<Props> = ({
                 >
                     Tweet to appeal
                 </Button>
-                <Button
-                    onClick={handleJoin}
-                    loading={joining}
-                    disabled={joining || sharing}
-                    variant="stroke"
-                    className="w-full"
-                >
-                    Join the waitlist anyway
-                </Button>
+                {alreadyJoined ? (
+                    <div className="flex items-center justify-center gap-2 py-2 text-sm font-bold text-n-1">
+                        <Icon name="check-circle" size={18} />
+                        You&apos;re on the list — we&apos;ll holler when it&apos;s your turn
+                    </div>
+                ) : (
+                    <Button
+                        onClick={handleJoin}
+                        loading={joining}
+                        disabled={joining || sharing}
+                        variant="stroke"
+                        className="w-full"
+                    >
+                        Join the waitlist anyway
+                    </Button>
+                )}
             </div>
         </div>
     )
