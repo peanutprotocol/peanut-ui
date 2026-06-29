@@ -79,7 +79,9 @@ export default function CardLaunchCTA() {
         dismissCardLaunchCTA()
         setDismissed(true)
         posthog.capture(ANALYTICS_EVENTS.CARD_LAUNCH_CTA_CLICKED)
-        router.push('/card')
+        // Route to /shhhhh, not /card: the landing page explains the feature and
+        // funnels into the canonical flow (Konrad — /card alone is confusing).
+        router.push('/shhhhh')
     }
 
     const handleDismiss = () => {

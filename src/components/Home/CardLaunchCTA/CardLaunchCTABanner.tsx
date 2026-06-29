@@ -51,14 +51,8 @@ export default function CardLaunchCTABanner({ onTryDoor, onDismiss }: CardLaunch
             </button>
 
             <div className="relative z-[1] flex flex-col gap-3 pr-6">
-                <h3 className="font-roboto-flex-extrabold text-2xl font-extraBlack uppercase leading-[1.02] text-n-1">
-                    The card is out.
-                    <br />
-                    For you? Maybe.
-                </h3>
-                <p className="text-sm font-bold leading-snug text-n-1">
-                    We opened the door to everyone. Tap to find out if you&apos;re in.
-                </p>
+                <h3 className="font-roboto-flex-extrabold text-4xl font-extraBlack leading-[1.02] text-n-1">shhh</h3>
+                <p className="text-sm font-bold leading-snug text-n-1">Tap to find out if you&apos;re in</p>
                 <Button
                     variant="dark"
                     shadowSize="4"

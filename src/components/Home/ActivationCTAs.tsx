@@ -169,7 +169,9 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             <CardLaunchCTABanner
                 onTryDoor={() => {
                     posthog.capture(ANALYTICS_EVENTS.CARD_LAUNCH_CTA_CLICKED)
-                    router.push('/card')
+                    // /shhhhh (not /card): the landing page explains the feature
+                    // and funnels into the canonical flow — /card alone is confusing.
+                    router.push('/shhhhh')
                 }}
                 onDismiss={() => onDismissCard?.()}
             />
