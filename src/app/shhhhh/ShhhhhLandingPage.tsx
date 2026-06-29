@@ -364,7 +364,7 @@ export default function ShhhhhLandingPage() {
                             </p>
                         )}
                     </div>
-                    <div className="flex min-w-0 justify-center md:justify-end">
+                    <div className="flex min-w-0 justify-center pb-16 md:justify-end md:pb-0">
                         {/* Match ShareAssetD3 pixelation: same PixelatedCardFace component
                             scaled into the hero column. Native dims are 760×479 (shared
                             CARD_W/CARD_H); the inner absolute-positioned layout scales
