@@ -61,6 +61,9 @@ type Phase = 'looking-up' | 'shaking' | 'revealed'
 const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, tier, pointsBalance, onContinue }) => {
     const [phase, setPhase] = useState<Phase>('looking-up')
     const [hideUsername, setHideUsername] = useState(false)
+    // Gate the Share/Save buttons until the card face's async hand <canvas>
+    // mounts — otherwise an early capture snapshots a blank card.
+    const [assetReady, setAssetReady] = useState(false)
     const { triggerHaptic } = useHaptic()
     const captureRef = useRef<HTMLDivElement | null>(null)
     const hasBadge = !!badgeCode
@@ -165,6 +168,7 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
                                 cardLast4="0420"
                                 hideUsername={hideUsername}
                                 animate={phase === 'revealed'}
+                                onReady={() => setAssetReady(true)}
                             />
                         </motion.div>
                     )}
@@ -184,7 +188,7 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
                     value={hideUsername}
                     onChange={(e) => setHideUsername(e.target.checked)}
                 />
-                <ShareAssetActions captureRef={captureRef} source="celebration" />
+                <ShareAssetActions captureRef={captureRef} source="celebration" ready={assetReady} />
                 <Button onClick={onContinue} variant="stroke" className="w-full">
                     Continue to your card
                 </Button>

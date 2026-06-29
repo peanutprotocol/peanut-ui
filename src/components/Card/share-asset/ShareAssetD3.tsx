@@ -100,6 +100,7 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
     usernameStyle,
     hideUsername = false,
     animate = true,
+    onReady,
 }) => {
     const safeUsername = (username || '').trim() || 'anon'
     const safeLast4 = (cardLast4 || '').trim().padStart(4, '•').slice(-4) || '5695'
@@ -219,7 +220,7 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                         : 'none',
                 }}
             >
-                <PixelatedCardFace last4={safeLast4} hideVisa />
+                <PixelatedCardFace last4={safeLast4} hideVisa onReady={onReady} />
             </div>
 
             {/* ─── Stickers (z-index 4) — raw badge art collaged ON TOP of the
@@ -256,26 +257,36 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                     animation: animate ? `fadeUp 600ms ease-out ${ANIM_ATTRIBUTION_DELAY}ms both` : 'none',
                 }}
             >
-                <span
-                    className="inline-flex items-baseline rounded-full border-[5px] border-black"
-                    style={{
-                        backgroundColor: uBg,
-                        padding: '10px 40px',
-                        textTransform: 'lowercase',
-                        boxShadow: '0.375rem 0.375rem 0 #000',
-                        whiteSpace: 'nowrap',
-                        maxWidth: PILL_MAX_W,
-                        overflow: 'hidden',
-                        lineHeight: 1.05,
-                        transform: 'rotate(-3deg)',
-                        gap: 1,
-                    }}
-                >
-                    <span style={{ fontSize: uPrefixSize, fontWeight: 800 }}>peanut.me/</span>
-                    <span style={{ fontSize: uHandleSize, fontWeight: 1000, letterSpacing: `${uTracking}em` }}>
-                        {safeUsername}
+                {/* The pill's drop-shadow is an offset sibling, NOT a CSS
+                    box-shadow: html-to-image renders box-shadow on a `rounded-full`
+                    element as a SQUARE block, so the captured PNG showed a square
+                    shadow behind the rounded pill. The rotation lives on the
+                    wrapper so the black rounded shadow tracks the pill's tilt. */}
+                <div className="relative inline-flex" style={{ transform: 'rotate(-3deg)', maxWidth: PILL_MAX_W }}>
+                    <div
+                        aria-hidden
+                        className="pointer-events-none absolute rounded-full"
+                        style={{ inset: 0, background: '#000', transform: 'translate(0.375rem, 0.375rem)' }}
+                    />
+                    <span
+                        className="relative inline-flex items-baseline rounded-full border-[5px] border-black"
+                        style={{
+                            backgroundColor: uBg,
+                            padding: '10px 40px',
+                            textTransform: 'lowercase',
+                            whiteSpace: 'nowrap',
+                            maxWidth: PILL_MAX_W,
+                            overflow: 'hidden',
+                            lineHeight: 1.05,
+                            gap: 1,
+                        }}
+                    >
+                        <span style={{ fontSize: uPrefixSize, fontWeight: 800 }}>peanut.me/</span>
+                        <span style={{ fontSize: uHandleSize, fontWeight: 1000, letterSpacing: `${uTracking}em` }}>
+                            {safeUsername}
+                        </span>
                     </span>
-                </span>
+                </div>
             </div>
 
             {/* ─── Hero "I got in" message sticker (top, z-index 5 — above the
