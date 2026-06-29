@@ -13,9 +13,16 @@ import { rainCoordinatorAbi } from '@/constants/rain.consts'
 import { toPermissionValidator } from '@zerodev/permissions'
 import { toCallPolicy, CallPolicyVersion, ParamCondition } from '@zerodev/permissions/policies'
 import { toECDSASigner } from '@zerodev/permissions/signers'
-import { createKernelAccount } from '@zerodev/sdk'
+import { createKernelAccount, getPluginsEnableTypedData } from '@zerodev/sdk'
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { serializePermissionAccount } from '@zerodev/permissions'
+
+/** Kernel v3 validator-enable epoch. The permission's enable approval is signed
+ *  over this value; the kernel rejects the enable with `InvalidNonce` if the
+ *  signed value ≠ the account's live `currentNonce`. */
+const CURRENT_NONCE_ABI = [
+    { type: 'function', name: 'currentNonce', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint32' }] },
+] as const
 import { peanutPublicClient } from '@/app/actions/clients'
 import { rainApi } from '@/services/rain'
 
@@ -159,17 +166,49 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
         // natural counterfactual of `createKernelAccount({sudo: newValidator})`
         // is a different, never-funded address. Forcing the address here makes
         // the grant work for both legacy and post-migration users.
+        const sudoValidator = (kernelClient.account as any).kernelPluginManager.sudoValidator
         const sessionKernelAccount = await createKernelAccount(peanutPublicClient, {
             address: kernelClient.account!.address,
             entryPoint: getEntryPoint('0.7'),
             kernelVersion: KERNEL_V3_1,
             plugins: {
-                sudo: (kernelClient.account as any).kernelPluginManager.sudoValidator,
+                sudo: sudoValidator,
                 regular: permissionPlugin,
             },
         })
 
-        const serialized = await serializePermissionAccount(sessionKernelAccount)
+        // The session-key permission installs on-chain via an "enable" approval
+        // the passkey signs here, bound to the account's `currentNonce`. We read
+        // that nonce EXPLICITLY and let the read throw on failure: the SDK's
+        // internal `getKernelV3Nonce` silently falls back to `1` on a read error,
+        // which produces an approval frozen to nonce 1. That only mismatches
+        // accounts whose live nonce ≠ 1 (e.g. any account migrated / with a
+        // sudo-validator change), and the grant still "succeeds" — so the card
+        // then declines forever because the enable reverts `AA23 InvalidNonce`
+        // on every auto-balance. Binding the enable to the verified live nonce
+        // (and failing loudly if we can't read it) is the fix.
+        const validatorNonce = Number(
+            await peanutPublicClient.readContract({
+                address: sessionKernelAccount.address,
+                abi: CURRENT_NONCE_ABI,
+                functionName: 'currentNonce',
+            })
+        )
+        const pm = (sessionKernelAccount as any).kernelPluginManager
+        const enableTypedData = await getPluginsEnableTypedData({
+            accountAddress: sessionKernelAccount.address,
+            chainId: PEANUT_WALLET_CHAIN.id,
+            kernelVersion: KERNEL_V3_1,
+            action: pm.getAction(),
+            hook: pm.hook,
+            validator: permissionPlugin,
+            validatorNonce,
+        } as any)
+        // Same sudo validator + signing path the SDK uses internally, so for
+        // healthy nonce=1 accounts this yields an identical approval.
+        const enableSignature = (await sudoValidator.signTypedData(enableTypedData)) as Hex
+
+        const serialized = await serializePermissionAccount(sessionKernelAccount, undefined, enableSignature)
         return { ok: true, serialized }
     }, [overview, getClientForChain])
 
