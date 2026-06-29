@@ -1,20 +1,21 @@
 /**
  * Share-asset capture regression — the card face must NOT be blank.
  *
- * The launch-day bug: <PixelatedCardFace /> paints its pixelated hand into a
- * <canvas> appended ASYNCHRONOUSLY (new Image() → onload → appendChild). If a
- * capture fired before that canvas mounted, html-to-image snapshotted a blank
- * pink card — and the capture SUCCEEDED, so nothing reached Sentry.
+ * The launch-day bug: <PixelatedCardFace /> painted its pixelated hand into a
+ * runtime <canvas>, which html-to-image silently dropped when it couldn't
+ * serialise it (toDataURL() returns empty on iOS Safari for an SVG-sourced
+ * canvas) → blank pink card, and the capture SUCCEEDED so nothing reached Sentry.
  *
- * The deterministic fix gates the Save/Share buttons on PixelatedCardFace's
- * `onReady` (the hand canvas mounting), so a capture can never fire early.
+ * The fix renders the hand as a plain pre-pixelated <img> (the same reliable
+ * path the badge stickers take), and still gates Save/Share on PixelatedCardFace's
+ * `onReady` (the hand <img> loading) so a capture can't fire before it's ready.
  *
  * This spec proves the guard end-to-end against the real html-to-image path:
  *   1. /dev/share-builder renders <ShareAssetD3 /> and wires "Save image" to
  *      captureShareAsset + downloadBlob (the same capture code the in-app
  *      Share/Save buttons use).
  *   2. Save stays disabled until the card face signals ready — we wait for it
- *      to enable (proves the gate releases only after the canvas mounts).
+ *      to enable (proves the gate releases only after the hand <img> loads).
  *   3. We click Save, intercept the downloaded PNG, decode it IN-BROWSER (an
  *      <img> + <canvas>.getImageData — no extra Node dep), and sample a region
  *      in the CENTRE of the card — the hand's territory, away from the top-left
@@ -56,9 +57,9 @@ test.describe('Share-asset capture (card face is not blank)', () => {
 
         const saveBtn = page.getByTestId('save-image')
 
-        // The readiness gate: Save is disabled until the card face's async hand
-        // <canvas> mounts (onReady). If it never enables, the gate is broken OR
-        // the card never painted — both are failures this spec must catch.
+        // The readiness gate: Save is disabled until the card face's hand <img>
+        // loads (onReady). If it never enables, the gate is broken OR the card
+        // never painted — both are failures this spec must catch.
         await expect(saveBtn, 'Save must enable once the card face signals ready').toBeEnabled({ timeout: 60_000 })
 
         // Let the card-slide / sticker-drop animations settle to their final

@@ -43,26 +43,17 @@ export class ShareAssetCaptureError extends Error {
 /**
  * Wait for the asset's content to be painted before we snapshot.
  *
- * The pink card + its drop-shadow are synchronous, but the card's pixelated
- * hand is drawn into a <canvas> that PixelatedCardFace appends ASYNCHRONOUSLY
- * (new Image() → onload → appendChild — see rasterImg / PixelatedHand). Unlike
- * an <img>, html-to-image cannot wait for a not-yet-mounted <canvas>, so
- * capturing too early yields a blank card — just the pink box + its floating
- * shadow (the launch-day "blank share asset" bug; silent — capture succeeds,
- * so nothing reaches Sentry). Gate on:
+ * Every visible element of the asset is a plain <img> now — badge stickers, the
+ * card logos, AND the card's pixelated hand (see PixelatedCardFace). The hand
+ * used to be a runtime <canvas>, which html-to-image silently dropped when it
+ * couldn't serialise it (canvas.toDataURL() returns empty on iOS Safari for an
+ * SVG-sourced canvas → blank card, no error: the launch-day "blank share asset"
+ * bug). With everything as <img>, readiness is simply:
  *   - document.fonts.ready (the hero/username use a web font)
- *   - every <img> decoded (badge stickers + the card's small logo)
- *   - the async hand <canvas> being mounted
- * bounded by a timeout so a genuinely-stuck asset still captures (never hangs).
+ *   - every <img> decoded (badges, logos, the hand)
+ * so the snapshot only fires once the bitmaps are actually ready.
  */
-export const CAPTURE_READY_TIMEOUT_MS = 2500
-
-// Exported for unit tests. `timeoutMs` is injectable so the bounded-wait
-// behaviour can be asserted without a 2.5s test.
-export async function waitForAssetReady(
-    node: HTMLElement,
-    timeoutMs: number = CAPTURE_READY_TIMEOUT_MS
-): Promise<void> {
+export async function waitForAssetReady(node: HTMLElement): Promise<void> {
     if (typeof document !== 'undefined' && document.fonts?.ready) {
         try {
             await document.fonts.ready
@@ -75,13 +66,6 @@ export async function waitForAssetReady(
             typeof img.decode === 'function' ? img.decode().catch(() => undefined) : Promise.resolve()
         )
     )
-    // Poll for the async hand canvas to mount (it's appended on image.onload,
-    // outside React's tree, so html-to-image can't wait for it on its own).
-    const start = typeof performance !== 'undefined' ? performance.now() : 0
-    const elapsed = (): number => (typeof performance !== 'undefined' ? performance.now() : Infinity) - start
-    while (!node.querySelector('canvas') && elapsed() < timeoutMs) {
-        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-    }
 }
 
 export async function captureShareAsset(node: HTMLElement): Promise<Blob> {
