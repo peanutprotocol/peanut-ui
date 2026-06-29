@@ -36,6 +36,7 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
+import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
@@ -78,10 +79,25 @@ export default function OnrampBankPage() {
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
     // intent is passed at call time, derived from the destination country
     // (e.g. /add-money/usa → NA → bridge-requirements).
+    // EEA-uplift funnel events (PostHog): started on launch, completed on KYC
+    // success. trackCompleted no-ops unless an uplift was started this session.
+    const {
+        trackStarted: trackUpliftStarted,
+        trackCompleted: trackUpliftCompleted,
+        reset: resetUpliftFunnel,
+    } = useEeaUpliftFunnel('deposit')
+
     const sumsubFlow = useMultiPhaseKycFlow({
+        // Fire completed at Sumsub approval (verification submitted), not at
+        // end-of-flow — so it isn't lost if the user drops during the
+        // post-approval ToS / preparing steps.
+        onKycApproved: () => trackUpliftCompleted(),
         onKycSuccess: () => {
             setUrlState({ step: 'inputAmount' })
         },
+        // Abandoned attempt: clear the pending start so a later unrelated KYC
+        // success on this page can't mis-fire eea_uplift_completed.
+        onManualClose: resetUpliftFunnel,
     })
 
     // read country from path params (web) or query params (native/capacitor)
@@ -115,8 +131,9 @@ export default function OnrampBankPage() {
     const { gateFor } = useCapabilities()
     const bankCountry = useMemo(() => railJurisdictionForBank(selectedCountry?.id), [selectedCountry?.id])
     const gate = useMemo(() => gateFor('deposit', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
-    // A ready bank rail can still carry a future-dated requirement (the gate's
-    // `advisory`). Offer it as a skippable pre-empt at the proceed step.
+    // A ready bank rail can still carry a pending Bridge requirement (the gate's
+    // `advisory`). Enforce it as a mandatory, non-skippable pre-empt at the
+    // proceed step — the deposit cannot continue until it's completed.
     const advisory = gate.kind === 'ready' ? gate.advisory : undefined
     const { intercept: advisoryIntercept, modalProps: advisoryModalProps } = useAdvisoryPreempt({
         advisory,
@@ -124,8 +141,11 @@ export default function OnrampBankPage() {
         // Route through the self-heal resubmit path (reheal-tagged action) so the
         // completed submission round-trips to Bridge. start-action mints a plain
         // token whose webhook completion has no Bridge relay → answers are dropped.
-        onCompleteNow: () =>
-            advisory ? sumsubFlow.handleSelfHealResubmit('BRIDGE', advisory.requirementKey) : Promise.resolve(),
+        onCompleteNow: () => {
+            if (!advisory) return Promise.resolve()
+            trackUpliftStarted(advisory)
+            return sumsubFlow.handleSelfHealResubmit('BRIDGE', advisory.requirementKey)
+        },
     })
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const { setIsSupportModalOpen } = useModalsContext()
@@ -247,10 +267,10 @@ export default function OnrampBankPage() {
             return
         }
 
-        // ready — offer the skippable advisory pre-empt once; on proceed (now, or
-        // after "Not now") record the amount-entered event and open the
-        // confirmation modal. Firing inside the proceed avoids double-counting if
-        // the user dismisses the advisory and re-clicks.
+        // ready — enforce the mandatory verification pre-empt. The proceed body
+        // (record the amount-entered event, open the confirmation modal) only
+        // runs once there's no pending requirement; while one exists the modal
+        // blocks and this never fires, so the event can't double-count.
         advisoryIntercept(() => {
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_AMOUNT_ENTERED, {
                 amount_usd: usdEquivalent,
