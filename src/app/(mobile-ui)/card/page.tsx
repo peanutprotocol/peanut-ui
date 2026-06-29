@@ -553,19 +553,35 @@ const CardPage: FC = () => {
                         onPrev={onBack}
                     />
                 )
-            case 'rejected':
+            case 'rejected': {
                 // No retry CTA: Rain denials are terminal on our side. The
                 // only path forward is support reviewing the case manually
                 // (PEP / sanctions / fraud-pattern flags need a human in the
                 // loop on Rain's end). Open Crisp directly — sending the user
                 // to /support's FAQ first adds a step for no upside.
+                //
+                // Surface the specific, vetted rejection reason from the
+                // capabilities read-model (`rail.reason.userMessage` — e.g.
+                // "Peanut cards aren't available in your state yet."), falling
+                // back to the screen's generic body when capabilities haven't
+                // resolved. Wait for capabilities so the reason never flashes in.
+                if (capabilitiesLoading) {
+                    return (
+                        <div className="flex min-h-[inherit] w-full items-center justify-center">
+                            <Loading />
+                        </div>
+                    )
+                }
+                const cardRailReason = railsForProvider('rain')[0]?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
                         variant="rejected"
+                        reasonMessage={cardRailReason}
                         onContactSupport={() => setIsSupportModalOpen(true)}
                         onPrev={onBack}
                     />
                 )
+            }
             case 'active': {
                 const card = findActiveCard(overview)!
                 return <YourCardScreen overview={overview!} card={card} onPrev={onBack} />
