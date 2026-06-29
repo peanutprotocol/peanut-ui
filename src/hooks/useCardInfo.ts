@@ -30,6 +30,7 @@ export const useCardInfo = () => {
         isEligible: query.isLoading ? undefined : (query.data?.isEligible ?? false),
         hasCardAccess: query.isLoading ? undefined : (query.data?.hasCardAccess ?? false),
         flowEarlyAccess: query.isLoading ? undefined : (query.data?.flowEarlyAccess ?? false),
+        isPublicLaunched: query.isLoading ? undefined : (query.data?.isPublicLaunched ?? false),
         skipBadges: query.data?.skipBadges ?? [],
     }
 }

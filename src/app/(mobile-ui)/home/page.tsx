@@ -26,6 +26,7 @@ import { useNotifications } from '@/hooks/useNotifications'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
+import CardLaunchCTA from '@/components/Home/CardLaunchCTA'
 import EnableAutoBalanceBanner from '@/components/Home/EnableAutoBalanceBanner'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import NavigationArrow from '@/components/Global/NavigationArrow'
@@ -208,6 +209,11 @@ export default function Home() {
 
                 <div className="space-y-2">
                     <EnableAutoBalanceBanner />
+                    {/* Public-launch splash. Self-gating (see CardLaunchCTA): shows post-
+                        launch to activated, geo-eligible, card-less, non-waitlisted users;
+                        dismiss/click hides it forever. Rendered above the carousel/activation
+                        CTAs so it leads the home stack on launch day. */}
+                    <CardLaunchCTA />
                     {isActivated ? (
                         <HomeCarouselCTA />
                     ) : (

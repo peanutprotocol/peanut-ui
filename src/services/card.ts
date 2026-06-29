@@ -25,6 +25,11 @@ export interface CardInfoResponse {
     /** Outer gate. True iff user can ENTER the /card flow (via /shhhhh
      *  early access or post-public-launch). */
     flowEarlyAccess: boolean
+    /** True once the card flow is public for EVERYONE (now >= CARD_PUBLIC_LAUNCH_DATE).
+     *  Unlike `flowEarlyAccess`, this is NOT true pre-launch for /shhhhh-stamped or
+     *  badge-holding users — it flips for all users at the same instant. Drives the
+     *  home launch CTA. */
+    isPublicLaunched: boolean
     waitlistJoinedAt: string | null
     waitlistPosition: number | null
     waitlistReleasedAt: string | null
