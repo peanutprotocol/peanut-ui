@@ -58,3 +58,18 @@ export function computeDoorTally(waitlistTotal?: number, admittedTotal?: number)
             : DOOR_TALLY_ADMITTED_FALLBACK
     return { applicants: inflateApplicants(waitlistTotal), admitted }
 }
+
+/**
+ * Inflate a user's REAL waitlist position onto the same FOMO scale as the door
+ * tally's "tried" count (×DOOR_TALLY_FOMO_MULTIPLIER), so /shhhhh's "you're #N"
+ * matches the in-app "{tried} tried · {got in} got in" instead of leaking the
+ * real (small) queue size — the two surfaces otherwise disagree (#56 on /shhhhh
+ * vs "275 tried" in-app). No floor: a low position is a GOOD signal (near the
+ * front), so we only scale it; non-positive / invalid input is returned as-is.
+ */
+export function inflateWaitlistPosition(position: number): number {
+    if (typeof position !== 'number' || !Number.isFinite(position) || position <= 0) {
+        return position
+    }
+    return Math.round(position * DOOR_TALLY_FOMO_MULTIPLIER)
+}

@@ -1,6 +1,7 @@
 import {
     inflateApplicants,
     computeDoorTally,
+    inflateWaitlistPosition,
     DOOR_TALLY_APPLICANTS_FLOOR,
     DOOR_TALLY_ADMITTED_FALLBACK,
     DOOR_TALLY_FOMO_MULTIPLIER,
@@ -53,5 +54,24 @@ describe('computeDoorTally', () => {
 
     test('admitted=0 is real and shown as 0 (not the fallback)', () => {
         expect(computeDoorTally(1000, 0).admitted).toBe(0)
+    })
+})
+
+describe('inflateWaitlistPosition', () => {
+    test('scales the real position by the same FOMO factor as the tally', () => {
+        // #56 on /shhhhh → #280, consistent with the in-app "{tried} tried".
+        expect(inflateWaitlistPosition(56)).toBe(56 * DOOR_TALLY_FOMO_MULTIPLIER)
+    })
+
+    test('no floor — a low (good) position scales straight, not clamped to 213', () => {
+        expect(inflateWaitlistPosition(3)).toBe(15)
+    })
+
+    test('returns a whole number', () => {
+        expect(Number.isInteger(inflateWaitlistPosition(7))).toBe(true)
+    })
+
+    test.each([0, -5, NaN, Infinity])('returns non-positive / invalid input unchanged (%p)', (input) => {
+        expect(inflateWaitlistPosition(input as number)).toBe(input)
     })
 })

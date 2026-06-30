@@ -9,6 +9,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Marquee } from '@/components/LandingPage'
 import { useAuth } from '@/context/authContext'
 import { PixelatedCardFace } from '@/components/Card/share-asset/PixelatedCardFace'
+import { inflateWaitlistPosition } from '@/components/Card/doorTally.utils'
 import { Sparkle, Star } from '@/assets/illustrations'
 import { cardApi } from '@/services/card'
 import { invitesApi } from '@/services/invites'
@@ -42,7 +43,8 @@ function WaitlistJoined({
                     dark ? 'bg-secondary-1 text-n-1' : 'bg-white text-n-1'
                 }`}
             >
-                ✓ You&apos;re on the waitlist{typeof position === 'number' ? ` · #${position}` : ''}
+                ✓ You&apos;re on the waitlist
+                {typeof position === 'number' ? ` · #${inflateWaitlistPosition(position)}` : ''}
             </button>
             <p className={`font-roboto-flex text-sm font-bold ${dark ? 'text-white/90' : ''}`}>
                 We&apos;ll holler when your turn comes up.
