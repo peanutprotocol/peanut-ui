@@ -55,6 +55,19 @@ export interface MantecaDepositResponseData {
     updatedAt: string
 }
 
+/**
+ * BRL dynamic PIX QR deposit response (from POST /manteca/deposit when currency=BRL).
+ * Discriminated from the ramp-on shape by `type: 'QR'`. The amount + currency are
+ * embedded in `code` (the EMVCo "copia e cola" BR Code).
+ */
+export interface MantecaPixDepositData {
+    type: 'QR'
+    code: string
+    url: string
+    bankId: string
+    expiresAt: string
+}
+
 export enum MercadoPagoStep {
     DETAILS = 'details',
     REVIEW = 'review',
