@@ -1,5 +1,6 @@
 import {
     type MantecaDepositResponseData,
+    type MantecaPixDepositData,
     type MantecaWithdrawData,
     type MantecaWithdrawResponse,
     type CreateMantecaOnrampParams,
@@ -253,7 +254,7 @@ export const mantecaApi = {
 
     deposit: async (
         params: CreateMantecaOnrampParams
-    ): Promise<{ data?: MantecaDepositResponseData; error?: string }> => {
+    ): Promise<{ data?: MantecaDepositResponseData | MantecaPixDepositData; error?: string }> => {
         try {
             const response = await serverFetch('/manteca/deposit', {
                 method: 'POST',
@@ -280,6 +281,19 @@ export const mantecaApi = {
                 return { error: error.message }
             }
             return { error: 'An unexpected error occurred.' }
+        }
+    },
+
+    getDepositStatus: async (depositId: string): Promise<{ data?: { id: string; status: string }; error?: string }> => {
+        try {
+            const response = await serverFetch(`/manteca/deposit/${depositId}/status`)
+            const data = await response.json()
+            if (!response.ok) {
+                return { error: data.error || 'Failed to fetch deposit status.' }
+            }
+            return { data }
+        } catch (error) {
+            return { error: error instanceof Error ? error.message : 'An unexpected error occurred.' }
         }
     },
 
