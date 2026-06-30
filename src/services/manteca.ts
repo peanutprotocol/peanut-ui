@@ -1,6 +1,5 @@
 import {
     type MantecaDepositResponseData,
-    type MantecaPixDepositData,
     type MantecaWithdrawData,
     type MantecaWithdrawResponse,
     type CreateMantecaOnrampParams,
@@ -254,7 +253,7 @@ export const mantecaApi = {
 
     deposit: async (
         params: CreateMantecaOnrampParams
-    ): Promise<{ data?: MantecaDepositResponseData | MantecaPixDepositData; error?: string }> => {
+    ): Promise<{ data?: MantecaDepositResponseData; error?: string }> => {
         try {
             const response = await serverFetch('/manteca/deposit', {
                 method: 'POST',

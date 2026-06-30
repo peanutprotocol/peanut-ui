@@ -1,9 +1,10 @@
 /**
  * MantecaPixQrDeposit — the BRL dynamic-PIX-QR screen.
  *
- * One `code` string drives both the QR and the copy button; a live countdown is
- * derived from `expiresAt`; polling flips the screen to a success state. Nested
- * primitives are stubbed so only this component's own logic is under test.
+ * One `details.qr` string drives both the QR and the copy button; a live
+ * countdown is derived from `details.priceExpireAt`; polling flips the screen to
+ * a success state. Nested primitives are stubbed so only this component's own
+ * logic is under test.
  */
 import React from 'react'
 import { render, screen } from '@testing-library/react'
@@ -34,13 +35,17 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 // eslint-disable-next-line import/first -- must come after jest.mock
 import MantecaPixQrDeposit from '../MantecaPixQrDeposit'
 
-const basePix = {
-    type: 'QR' as const,
-    code: '00020126-COPIA-E-COLA',
-    url: 'https://widget-qa.manteca.dev/qr?code=x',
-    bankId: 'bank-1',
-    expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(), // 5 min out
-}
+const baseDeposit = {
+    id: 'syn-1',
+    type: 'RAMP_OPERATION' as const,
+    details: {
+        qr: '00020126-COPIA-E-COLA',
+        priceExpireAt: new Date(Date.now() + 5 * 60_000).toISOString(), // 5 min out
+        depositAddress: '',
+        depositAlias: '',
+    },
+    stages: {},
+} as unknown as import('@/types/manteca.types').MantecaDepositResponseData
 
 beforeEach(() => {
     mockUseMantecaDepositPolling.mockReset()
@@ -48,19 +53,27 @@ beforeEach(() => {
 })
 
 describe('MantecaPixQrDeposit', () => {
-    it('renders the QR + copy from the same `code`, the amount, and a live countdown', () => {
+    it('renders the QR + copy from the same `details.qr`, the amount, and a live countdown', () => {
         render(
-            <MantecaPixQrDeposit pixDeposit={basePix} currencyAmount="10" onBack={jest.fn()} onComplete={jest.fn()} />
+            <MantecaPixQrDeposit
+                depositDetails={baseDeposit}
+                currencyAmount="10"
+                onBack={jest.fn()}
+                onComplete={jest.fn()}
+            />
         )
-        expect(screen.getByTestId('qr')).toHaveAttribute('data-url', basePix.code)
-        expect(screen.getByTestId('copy')).toHaveAttribute('data-text', basePix.code)
+        expect(screen.getByTestId('qr')).toHaveAttribute('data-url', baseDeposit.details.qr)
+        expect(screen.getByTestId('copy')).toHaveAttribute('data-text', baseDeposit.details.qr)
         expect(screen.getByText('R$ 10')).toBeInTheDocument()
         expect(screen.getByText(/Expires in/)).toBeInTheDocument()
     })
 
-    it('shows the expired state (QR disabled, no countdown) once expiresAt has passed', () => {
-        const expired = { ...basePix, expiresAt: new Date(Date.now() - 1000).toISOString() }
-        render(<MantecaPixQrDeposit pixDeposit={expired} onBack={jest.fn()} onComplete={jest.fn()} />)
+    it('shows the expired state (QR disabled, no countdown) once priceExpireAt has passed', () => {
+        const expired = {
+            ...baseDeposit,
+            details: { ...baseDeposit.details, priceExpireAt: new Date(Date.now() - 1000).toISOString() },
+        }
+        render(<MantecaPixQrDeposit depositDetails={expired} onBack={jest.fn()} onComplete={jest.fn()} />)
 
         expect(screen.getByText(/expired/i)).toBeInTheDocument()
         expect(screen.getByTestId('qr')).toHaveAttribute('data-disabled', 'true')
@@ -69,7 +82,7 @@ describe('MantecaPixQrDeposit', () => {
 
     it('shows the success state when the deposit completes', () => {
         mockUseMantecaDepositPolling.mockReturnValue({ status: 'completed' })
-        render(<MantecaPixQrDeposit pixDeposit={basePix} onBack={jest.fn()} onComplete={jest.fn()} />)
+        render(<MantecaPixQrDeposit depositDetails={baseDeposit} onBack={jest.fn()} onComplete={jest.fn()} />)
 
         expect(screen.getByText('Deposit received!')).toBeInTheDocument()
         expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
