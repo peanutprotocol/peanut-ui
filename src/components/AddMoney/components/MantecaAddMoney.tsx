@@ -7,7 +7,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { type CountryData, countryData } from '@/components/AddMoney/consts'
-import { type MantecaDepositResponseData, type MantecaPixDepositData } from '@/types/manteca.types'
+import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useCurrency } from '@/hooks/useCurrency'
 import { mantecaApi } from '@/services/manteca'
 import { parseUnits } from 'viem'
@@ -26,8 +26,6 @@ import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import InfoCard from '@/components/Global/InfoCard'
-import underMaintenanceConfig, { PIX_BRAZIL_ONRAMP_MAINTENANCE } from '@/config/underMaintenance.config'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails' | 'showQR'
@@ -68,7 +66,6 @@ const MantecaAddMoney: FC = () => {
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [depositDetails, setDepositDetails] = useState<MantecaDepositResponseData>()
-    const [pixDeposit, setPixDeposit] = useState<MantecaPixDepositData>()
 
     // path params (web) or query params (native static export)
     const selectedCountryPath = (params.country as string) || searchParams.get('country') || ''
@@ -76,9 +73,6 @@ const MantecaAddMoney: FC = () => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
     const onBack = useSafeBack(addMoneyCountryUrl(selectedCountryPath))
-    // BRL-via-PIX onramp warn-only maintenance flag (see underMaintenance.config.ts).
-    // Brazil-scoped so the Argentina/ARS Manteca onramp is unaffected.
-    const showPixMaintenance = selectedCountry?.id === 'BR' && underMaintenanceConfig.pixBrazilOnrampMaintenance
     // The pool→full upgrade gate asks "did the user clear ID verification?",
     // not "do they have an enabled rail elsewhere?" — read the identity
     // signal directly (Sumsub-cleared the human) instead of the old
@@ -201,14 +195,13 @@ const MantecaAddMoney: FC = () => {
                 method_type: 'manteca',
                 country: selectedCountryPath,
             })
-            // BRL deposits return a dynamic PIX QR (type: 'QR') → show the QR step.
-            // ARS/others return the static ramp-on shape → show deposit details.
+            // BRL deposits carry the dynamic PIX QR in the ramp-on synthetic's
+            // details → show the QR step. ARS/others show deposit details.
             const data = depositData.data
-            if (data?.type === 'QR') {
-                setPixDeposit(data)
+            setDepositDetails(data)
+            if (selectedCountry?.currency === 'BRL') {
                 setUrlState({ step: 'showQR' })
             } else {
-                setDepositDetails(data)
                 setUrlState({ step: 'depositDetails' })
             }
         } catch (error) {
@@ -238,10 +231,10 @@ const MantecaAddMoney: FC = () => {
         if (step === 'depositDetails' && !depositDetails) {
             setUrlState({ step: 'inputAmount' })
         }
-        if (step === 'showQR' && !pixDeposit) {
+        if (step === 'showQR' && !depositDetails) {
             setUrlState({ step: 'inputAmount' })
         }
-    }, [step, depositDetails, pixDeposit, setUrlState])
+    }, [step, depositDetails, setUrlState])
 
     if (!selectedCountry) return null
 
@@ -299,16 +292,6 @@ const MantecaAddMoney: FC = () => {
                     limitsValidation={limitsValidation}
                     limitsCurrency={limitsValidation.currency}
                     onBack={onBack}
-                    maintenanceBanner={
-                        showPixMaintenance ? (
-                            <InfoCard
-                                variant="warning"
-                                icon="alert"
-                                title={PIX_BRAZIL_ONRAMP_MAINTENANCE.title}
-                                description={PIX_BRAZIL_ONRAMP_MAINTENANCE.description}
-                            />
-                        ) : undefined
-                    }
                 />
             </>
         )
@@ -329,12 +312,12 @@ const MantecaAddMoney: FC = () => {
     }
 
     if (step === 'showQR') {
-        if (!pixDeposit) {
+        if (!depositDetails) {
             return null
         }
         return (
             <MantecaPixQrDeposit
-                pixDeposit={pixDeposit}
+                depositDetails={depositDetails}
                 currencyAmount={localCurrencyAmount}
                 onBack={() => setUrlState({ step: 'inputAmount' })}
                 onComplete={() => queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })}

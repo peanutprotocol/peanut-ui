@@ -6,23 +6,29 @@ import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
-import { type MantecaPixDepositData } from '@/types/manteca.types'
+import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useMantecaDepositPolling } from '@/components/AddMoney/hooks/useMantecaDepositPolling'
 
 const MantecaPixQrDeposit: FC<{
-    pixDeposit: MantecaPixDepositData
+    depositDetails: MantecaDepositResponseData
     currencyAmount?: string
     // Parent owns step navigation — usually setUrlState({ step: 'inputAmount' }).
     onBack: () => void
     // Fired once when the deposit settles (parent refreshes balance/history).
     onComplete: () => void
-}> = ({ pixDeposit, currencyAmount, onBack, onComplete }) => {
-    const { status } = useMantecaDepositPolling(pixDeposit.bankId, onComplete)
+}> = ({ depositDetails, currencyAmount, onBack, onComplete }) => {
+    // The dynamic PIX QR (EMVCo copia-e-cola) rides in the ramp-on synthetic's details.
+    const qr = depositDetails.details.qr
+    // Poll by the real synthetic id (unchanged polling contract).
+    const { status } = useMantecaDepositPolling(depositDetails.id, onComplete)
 
-    // QR expiry countdown. `expiresAt` carries a tz offset, so Date parses it
+    // QR expiry countdown. `priceExpireAt` carries a tz offset, so Date parses it
     // directly. We tick once a second and stop once the QR is paid or has lapsed
     // (the effect re-runs when isExpired flips and clears the interval).
-    const expiresAtMs = useMemo(() => new Date(pixDeposit.expiresAt).getTime(), [pixDeposit.expiresAt])
+    const expiresAtMs = useMemo(
+        () => new Date(depositDetails.details.priceExpireAt).getTime(),
+        [depositDetails.details.priceExpireAt]
+    )
     const [nowMs, setNowMs] = useState(() => Date.now())
 
     const remainingMs = expiresAtMs - nowMs
@@ -64,29 +70,32 @@ const MantecaPixQrDeposit: FC<{
                     {currencyAmount && <p className="text-2xl font-bold text-n-1">R$ {currencyAmount}</p>}
                 </div>
 
-                <QRCodeWrapper
-                    url={pixDeposit.code}
-                    isBlurred={isExpired}
-                    disabled={isExpired}
-                    className="max-w-[280px]"
-                />
-
-                {countdownLabel && <p className="text-center text-sm text-grey-1">Expires in {countdownLabel}</p>}
-
-                {isExpired ? (
-                    <div className="flex flex-col gap-3 text-center">
-                        <p className="text-sm text-grey-1">This QR code has expired.</p>
-                        <Button variant="stroke" className="w-full" onClick={onBack}>
-                            Go back
-                        </Button>
-                    </div>
+                {!qr ? (
+                    <p className="text-center text-sm text-grey-1">Preparing your PIX QR…</p>
                 ) : (
-                    <div className="flex flex-col gap-3">
-                        <p className="text-center text-sm text-grey-1">
-                            Scan with your bank app, or copy the PIX code.
-                        </p>
-                        <CopyToClipboard textToCopy={pixDeposit.code} type="button" className="w-full" />
-                    </div>
+                    <>
+                        <QRCodeWrapper url={qr} isBlurred={isExpired} disabled={isExpired} className="max-w-[280px]" />
+
+                        {countdownLabel && (
+                            <p className="text-center text-sm text-grey-1">Expires in {countdownLabel}</p>
+                        )}
+
+                        {isExpired ? (
+                            <div className="flex flex-col gap-3 text-center">
+                                <p className="text-sm text-grey-1">This QR code has expired.</p>
+                                <Button variant="stroke" className="w-full" onClick={onBack}>
+                                    Go back
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-3">
+                                <p className="text-center text-sm text-grey-1">
+                                    Scan with your bank app, or copy the PIX code.
+                                </p>
+                                <CopyToClipboard textToCopy={qr} type="button" className="w-full" />
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>
