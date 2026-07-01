@@ -12,7 +12,7 @@ export const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
     founderhaus: 'FOUNDER_HOUSE',
     alumni: 'EVENT_ALUMNI',
     touched_grass: 'TOUCHED_GRASS',
-    floripacoffee: 'FLORIPA_COFFEE',
+    irl_nomads: 'IRL_NOMADS',
     survivor: 'SUPPORT_SURVIVOR',
     notsoshhh: 'NOT_SO_SHHHH',
     festajunina: 'FESTA_JUNINA_2026',
@@ -33,7 +33,7 @@ export const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
     'touched-grass': 'TOUCHED_GRASS',
     'festa-junina': 'FESTA_JUNINA_2026',
     'card-alpha': 'CARD_ALPHA',
-    'floripa-coffee': 'FLORIPA_COFFEE',
+    'irl-nomads': 'IRL_NOMADS',
 }
 
 // Bare ?campaign= links (no invite code) that are claimable without an invite —
@@ -52,7 +52,7 @@ export const BARE_VANITY_CAMPAIGNS: ReadonlySet<string> = new Set([
     'touched_grass',
     'card_alpha',
     'festa_junina_2026',
-    'floripa_coffee',
+    'irl_nomads',
 ])
 
 export type CampaignClassification = {
