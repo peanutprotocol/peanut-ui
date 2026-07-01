@@ -191,7 +191,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     userInitiatedRef.current = false
                     if (crossRegion) prevStatusRef.current = savedPrevStatus
                     setError(response.error)
-                    return
+                    return false
                 }
 
                 // cross-region into a region no first-party bank provider serves (ROW).
@@ -209,7 +209,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     setError(
                         "Bank deposits aren't available in your region yet. We'll let you know as soon as they go live."
                     )
-                    return
+                    return false
                 }
 
                 // sync status from api response, but skip when a token is returned
@@ -234,7 +234,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     setIsActionFlow(false)
                     setIsVerificationProgressModalOpen(true)
                     onKycSuccess?.()
-                    return
+                    return false
                 }
 
                 // if already approved (or reverifying) and no token returned, kyc is done.
@@ -244,7 +244,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if ((status === 'APPROVED' || status === 'REVERIFYING') && !response.data?.token) {
                     prevStatusRef.current = status
                     onKycSuccess?.()
-                    return
+                    return false
                 }
 
                 if (response.data?.token) {
@@ -255,7 +255,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                             if (!SNSMobileSDK) {
                                 userInitiatedRef.current = false
                                 setError('KYC SDK not available. Please update the app.')
-                                return
+                                return false
                             }
                             const effectiveRegionIntent = overrideIntent ?? regionIntent
                             const sdk = SNSMobileSDK.init(response.data.token, async () => {
@@ -290,22 +290,28 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                             console.error('[useSumsubKycFlow] native SDK error:', nativeErr)
                             userInitiatedRef.current = false
                             setError('Verification failed. Please try again.')
+                            return false
                         }
-                        return
+                        // native SDK ran to completion (approved / closed) — nothing
+                        // left for the web resume path to reopen.
+                        return false
                     }
 
                     setAccessToken(response.data.token)
                     setIsActionFlow(!!response.data.actionType)
                     setShowWrapper(true)
+                    return true
                 } else {
                     userInitiatedRef.current = false
                     setError('Could not initiate verification. Please try again.')
+                    return false
                 }
             } catch (e: unknown) {
                 userInitiatedRef.current = false
                 if (crossRegion) prevStatusRef.current = savedPrevStatus
                 const message = e instanceof Error ? e.message : 'An unexpected error occurred'
                 setError(message)
+                return false
             } finally {
                 setIsLoading(false)
                 initiatingRef.current = false

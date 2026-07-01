@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useAuth } from '@/context/authContext'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
+import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { deriveGate } from '@/utils/capability-gate'
@@ -259,13 +260,18 @@ export const useMultiPhaseKycFlow = ({
         }
     }, [originalHandleSdkComplete, handleSumsubApproved, isActionFlow, regionIntent])
 
+    // true only while a PWA-reload resume drives handleInitiateKyc, so the
+    // analytics event can distinguish a resume from a genuine new initiation
+    // (a resume otherwise looks identical and inflates "initiated" counts).
+    const resumingRef = useRef(false)
+
     // wrap handleInitiateKyc to reset state for new attempts
     const handleInitiateKyc = useCallback(
         async (overrideIntent?: KYCRegionIntent, levelName?: string, crossRegion?: boolean, targetCountry?: string) => {
             const intent = overrideIntent ?? regionIntent
             posthog.capture(
                 intent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_INITIATED : ANALYTICS_EVENTS.KYC_INITIATED,
-                { region_intent: intent, acquisition_source: acquisitionSource }
+                { region_intent: intent, acquisition_source: acquisitionSource, resumed: resumingRef.current }
             )
 
             setModalPhase('verifying')
@@ -277,10 +283,41 @@ export const useMultiPhaseKycFlow = ({
             isRealtimeFlowRef.current = false
             clearPreparingTimer()
 
-            await originalHandleInitiateKyc(overrideIntent, levelName, crossRegion, targetCountry)
+            return originalHandleInitiateKyc(overrideIntent, levelName, crossRegion, targetCountry)
         },
         [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource]
     )
+
+    // PWA-reload resume (see useSumsubReloadResume). When true, SumsubKycWrapper
+    // skips StartVerificationView and launches straight into the SDK — the user
+    // already consented before the reload. Armed ONLY for the resume-triggered
+    // open, never for a fresh/retry/self-heal open in the same session.
+    const [sdkAutoStart, setSdkAutoStart] = useState(false)
+    useSumsubReloadResume(showWrapper, async () => {
+        // re-initiate: mints a fresh token for the existing applicant and
+        // reopens the SDK. Returns whether the SDK actually opened — a resume
+        // that resolves without opening (already-approved user, or a
+        // remediation flow a bare initiate can't reconstruct) clears the flag
+        // instead of falling back to the standard level.
+        setSdkAutoStart(true)
+        resumingRef.current = true
+        const opened = await handleInitiateKyc()
+        resumingRef.current = false
+        // failed resume never opened the SDK — disarm so it can't skip the
+        // start view on a later genuine reopen this session.
+        if (!opened) setSdkAutoStart(false)
+        return opened
+    })
+
+    // Disarm autoStart once the resumed SDK session ends (falling edge of
+    // showWrapper). Without this, a later genuine reopen — retry after
+    // rejection, self-heal resubmit, start-action, restart-identity — would
+    // also skip StartVerificationView. Only the reload-resume should skip it.
+    const prevShowWrapperRef = useRef(showWrapper)
+    useEffect(() => {
+        if (prevShowWrapperRef.current && !showWrapper) setSdkAutoStart(false)
+        prevShowWrapperRef.current = showWrapper
+    }, [showWrapper])
 
     // 30s timeout for preparing phase + elapsed time counter for progressive copy
     useEffect(() => {
@@ -422,6 +459,7 @@ export const useMultiPhaseKycFlow = ({
 
         // SDK wrapper
         showWrapper,
+        sdkAutoStart,
         accessToken,
         handleSdkClose: handleClose,
         handleSdkComplete,
