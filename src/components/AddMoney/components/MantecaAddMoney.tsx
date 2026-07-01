@@ -2,6 +2,7 @@
 import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import MantecaPixQrDeposit from '@/components/AddMoney/components/MantecaPixQrDeposit'
+import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { useParams, useSearchParams } from 'next/navigation'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
@@ -56,7 +57,6 @@ const MantecaAddMoney: FC = () => {
     const step: MantecaStep = urlState.step ?? 'inputAmount'
     // Amount from URL - this is in the denomination specified by `currency`
     const displayedAmount = urlState.amount ?? ''
-    const currentDenomination = urlState.currency ?? 'USD'
 
     // Local UI state for tracking both amounts (needed for API call and validation)
     const [usdAmount, setUsdAmount] = useState<string>('')
@@ -72,6 +72,9 @@ const MantecaAddMoney: FC = () => {
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
+    // Default the input denomination to the country's local currency (Brazil→BRL,
+    // Argentina→ARS) instead of USD — you deposit in your local currency.
+    const currentDenomination = urlState.currency ?? (selectedCountry?.currency as CurrencyDenomination) ?? 'USD'
     const onBack = useSafeBack(addMoneyCountryUrl(selectedCountryPath))
     // The pool→full upgrade gate asks "did the user clear ID verification?",
     // not "do they have an enabled rail elsewhere?" — read the identity
@@ -237,6 +240,16 @@ const MantecaAddMoney: FC = () => {
     }, [step, depositDetails, setUrlState])
 
     if (!selectedCountry) return null
+
+    // While the BRL PIX deposit request is in flight (the QR is being generated),
+    // show the branded processing screen — same as when a PIX payment is processing.
+    if (isCreatingDeposit && selectedCountry.currency === 'BRL') {
+        return (
+            <div className="my-auto flex min-h-[inherit] flex-col justify-center">
+                <CyclingLoading />
+            </div>
+        )
+    }
 
     if (step === 'inputAmount') {
         return (
