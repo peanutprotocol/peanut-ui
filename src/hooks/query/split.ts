@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
 	getRoom,
 	getCurrencies,
+	getRate,
 	createRoom,
 	addMember,
 	addExpense,
@@ -22,6 +23,16 @@ const roomKey = (slug: string) => ['split-room', slug] as const
 
 export function useCurrenciesQuery() {
 	return useQuery({ queryKey: ['split-currencies'], queryFn: getCurrencies, staleTime: Infinity, gcTime: Infinity })
+}
+
+/** Indicative rate for a live foreign→base estimate while entering an expense. */
+export function useRateQuery(from: string, to: string, enabled: boolean) {
+	return useQuery({
+		queryKey: ['split-rate', from, to],
+		queryFn: () => getRate(from, to),
+		enabled: enabled && from !== to,
+		staleTime: 5 * 60 * 1000,
+	})
 }
 
 export function useRoomQuery(slug: string) {

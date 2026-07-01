@@ -23,6 +23,10 @@ export async function getCurrencies(): Promise<CurrencyInfo[]> {
 	return unwrap(await apiFetch('/split/currencies', { method: 'GET' }))
 }
 
+export async function getRate(from: string, to: string): Promise<{ rate: number; source: string }> {
+	return unwrap(await apiFetch(`/split/rate?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, { method: 'GET' }))
+}
+
 export async function getRoom(slug: string): Promise<RoomState> {
 	return unwrap(await apiFetch(`/split/rooms/${slug}`, { method: 'GET' }))
 }

@@ -6,7 +6,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '
 import { Button } from '@/components/0_Bruddle/Button'
 import { BaseInput } from '@/components/0_Bruddle/BaseInput'
 import { MemberAvatar } from './MemberAvatar'
-import { useAddExpense, useUpdateExpense } from '@/hooks/query/split'
+import { useAddExpense, useUpdateExpense, useRateQuery } from '@/hooks/query/split'
 import { toMinorString, formatMoney, type CurrencyMap } from '@/utils/split-format'
 import type { RoomState, CurrencyInfo, SplitKind, SplitExpense } from '@/services/split.types'
 
@@ -97,6 +97,15 @@ export function AddExpenseDrawer({ open, onOpenChange, room, meMemberId, currenc
 	const decimals = currencyMap[currency]?.decimals ?? 2
 	const totalMinor = BigInt(toMinorString(amount, decimals))
 
+	// Live estimated base-currency total for a foreign expense (display only).
+	const foreign = currency !== room.baseCurrency
+	const rateQ = useRateQuery(currency, room.baseCurrency, foreign && totalMinor > 0n)
+	const baseDecimals = currencyMap[room.baseCurrency]?.decimals ?? 2
+	const baseTotalMinor =
+		rateQ.data && foreign && totalMinor > 0n
+			? BigInt(Math.round((Number(totalMinor) / 10 ** decimals) * rateQ.data.rate * 10 ** baseDecimals))
+			: null
+
 	const exactSumMinor = useMemo(
 		() =>
 			room.members.reduce((sum, m) => {
@@ -184,12 +193,11 @@ export function AddExpenseDrawer({ open, onOpenChange, room, meMemberId, currenc
 							))}
 						</select>
 					</div>
-					{currency !== room.baseCurrency && totalMinor > 0n && (
+					{foreign && totalMinor > 0n && (
 						<div className="-mt-2 text-sm text-grey-1">
-							Balances in {room.baseCurrency} at an indicative rate
-							{editing &&
-								` (${currencyMap[currency]?.symbol ?? currency}1 ≈ ${currencyMap[room.baseCurrency]?.symbol ?? ''}${Number(editing.fxRate).toPrecision(3)})`}
-							.
+							{baseTotalMinor != null
+								? `≈ ${formatMoney(baseTotalMinor.toString(), room.baseCurrency, currencyMap)} · balances use ${room.baseCurrency} at an indicative rate`
+								: `Balances use ${room.baseCurrency} at an indicative rate`}
 						</div>
 					)}
 
