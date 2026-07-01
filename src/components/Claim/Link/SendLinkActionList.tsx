@@ -25,10 +25,10 @@ import { useContext, useMemo, useState } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import Divider from '../../0_Bruddle/Divider'
 import { Button } from '@/components/0_Bruddle/Button'
-import { PEANUT_LOGO_BLACK } from '@/assets/illustrations'
+import { PEANUT_LOGO_BLACK } from '@/assets/logos'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { PEANUTMAN_LOGO } from '@/assets/mascot'
+import { PEANUTMAN } from '@/assets/mascot'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { tokenSelectorContext } from '@/context'
@@ -237,7 +237,7 @@ export default function SendLinkActionList({
                 >
                     {showDevconnectMethod ? <div>Claim on</div> : <div>Continue with </div>}
                     <div className="flex items-center gap-1">
-                        <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
+                        <Image src={PEANUTMAN} alt="Peanut Logo" className="size-5" />
                         <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
                     </div>
                 </Button>
