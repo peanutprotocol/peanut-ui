@@ -155,8 +155,15 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                 toast.error('Clipboard is empty')
             }
         } catch (err) {
-            console.error('Failed to read clipboard:', err)
-            toast.error('Could not access clipboard. Please check your browser permissions.')
+            // Android rejects with "There is no data on the clipboard" instead of
+            // resolving with an empty value
+            const message = err instanceof Error ? err.message : String(err)
+            if (message.toLowerCase().includes('no data on the clipboard')) {
+                toast.error('Clipboard is empty')
+            } else {
+                console.error('Failed to read clipboard:', err)
+                toast.error('Could not access clipboard')
+            }
         }
     }
 
