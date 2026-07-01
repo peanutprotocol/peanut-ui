@@ -43,21 +43,21 @@ jobs:
         # Protect with required reviewers in repo Settings → Environments → Production.
         environment: Production
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
               with:
                   submodules: recursive
                   token: ${{ secrets.SUBMODULE_TOKEN }}
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@v6
               with:
                   version: 10
 
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@v6
               with:
                   node-version: '22' # @sentry/profiling-node has no Node 25 binary; project targets 22
                   cache: 'pnpm'
 
-            - uses: actions/setup-java@v4
+            - uses: actions/setup-java@v5
               with:
                   distribution: 'temurin'
                   java-version: '21' # Capacitor 8's capacitor-android compiles at source 21
@@ -132,14 +132,14 @@ jobs:
                   serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
                   packageName: me.peanut.wallet
                   releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
-                  track: ${{ github.event.inputs.track || 'internal' }}
+                  tracks: ${{ github.event.inputs.track || 'internal' }}
                   status: completed
                   # Staged production rollout: set status: inProgress + userFraction: 0.1,
                   # then promote in Play Console once crash/error rates look clean.
 
             - name: Upload AAB as build artifact
               if: always()
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: app-release-aab
                   path: android/app/build/outputs/bundle/release/app-release.aab
