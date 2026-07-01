@@ -315,6 +315,7 @@ export function RoomView({ slug }: { slug: string }) {
                         className="flex-1"
                         onClick={() => {
                             setEditing(null)
+                            roomQ.refetch() // fresh member list so a just-joined person isn't left out of the split
                             setAddOpen(true)
                         }}
                     >
