@@ -1,6 +1,7 @@
 'use client'
 import { type FC, useCallback, useEffect, useRef, useState } from 'react'
 import { notFound } from 'next/navigation'
+import { useQueryState, parseAsBoolean } from 'nuqs'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -75,6 +76,13 @@ const CardPage: FC = () => {
     // Sumsub card-application token — populated when POST /rain/cards reports
     // the user still needs to complete the rain-card-application level.
     const [sumsubToken, setSumsubToken] = useState<string | null>(null)
+    // Mirror "SDK is open" to the URL so it survives a PWA reload. Android
+    // evicts backgrounded standalone PWAs from memory (opening camera/gallery
+    // mid-KYC is the common trigger); on return the page cold-reloads and
+    // sumsubToken — being useState — resets to null, dropping the user out of
+    // Sumsub back to the card screen. With the flag in the URL, a reload can
+    // re-acquire a fresh token for the same applicant and reopen the SDK.
+    const [kycInProgress, setKycInProgress] = useQueryState('kyc', parseAsBoolean.withDefault(false))
     const [applyError, setApplyError] = useState<string | null>(null)
     // When backend returns status:'terms-required', we capture it here so
     // the dispatcher can render the terms screen between Sumsub and submit.
@@ -401,6 +409,45 @@ const CardPage: FC = () => {
         }
         return ''
     }, [invalidateOverview])
+
+    // PWA-reload resume. If the URL says we were mid-Sumsub (see kycInProgress),
+    // re-apply to mint a fresh token for the same in-progress applicant and
+    // reopen the SDK where the user left off — same idempotent call the
+    // token-refresh path uses. Runs once on mount.
+    const didAttemptKycResumeRef = useRef(false)
+    useEffect(() => {
+        if (didAttemptKycResumeRef.current) return
+        didAttemptKycResumeRef.current = true
+        if (!kycInProgress || sumsubToken !== null) return
+        void (async () => {
+            try {
+                const res = await rainApi.applyForCard({ termsAccepted: false })
+                if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
+                    setSumsubToken(res.sumsubAccessToken)
+                    posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+                } else {
+                    // user advanced past Sumsub while backgrounded — route normally
+                    void setKycInProgress(false)
+                    advanceFromApplyResponse(res)
+                }
+            } catch {
+                void setKycInProgress(false)
+            }
+        })()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    // Keep the URL flag in sync with the SDK's open state. Skip the first run
+    // so the mount-time resume above can read the persisted flag before we
+    // touch it. Clearing to the `false` default removes the param from the URL.
+    const kycSyncSkipRef = useRef(true)
+    useEffect(() => {
+        if (kycSyncSkipRef.current) {
+            kycSyncSkipRef.current = false
+            return
+        }
+        void setKycInProgress(sumsubToken !== null)
+    }, [sumsubToken, setKycInProgress])
 
     // Outer-gate fail — the useEffect above fires notFound() to render the
     // 404 boundary; render nothing here so the page doesn't flash for the
