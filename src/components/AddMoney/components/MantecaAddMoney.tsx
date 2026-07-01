@@ -72,9 +72,10 @@ const MantecaAddMoney: FC = () => {
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
-    // Default the input denomination to the country's local currency (Brazil→BRL,
-    // Argentina→ARS) instead of USD — you deposit in your local currency.
-    const currentDenomination = urlState.currency ?? (selectedCountry?.currency as CurrencyDenomination) ?? 'USD'
+    // Default the input denomination to BRL for Brazil (PIX is in BRL); every other
+    // country keeps the USD default.
+    const currentDenomination: CurrencyDenomination =
+        urlState.currency ?? (selectedCountry?.currency === 'BRL' ? 'BRL' : 'USD')
     const onBack = useSafeBack(addMoneyCountryUrl(selectedCountryPath))
     // The pool→full upgrade gate asks "did the user clear ID verification?",
     // not "do they have an enabled rail elsewhere?" — read the identity

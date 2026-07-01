@@ -8,8 +8,10 @@ const POLLING_INTERVAL = 5000
 
 // Terminal TransactionIntentStatus values returned by GET /manteca/deposit/:id/status.
 const TERMINAL_STATUSES = ['COMPLETED', 'FAILED', 'CANCELLED', 'REFUNDED']
+// Non-terminal states that mean "payment detected, settling" — show a processing screen.
+const PROCESSING_STATUSES = ['PROCESSING', 'AWAITING_SETTLEMENT']
 
-type MantecaDepositPollStatus = 'pending' | 'completed' | 'failed'
+type MantecaDepositPollStatus = 'pending' | 'processing' | 'completed' | 'failed'
 
 /**
  * Poll a BRL PIX deposit intent until it settles. Read-only: the webhook/poller
@@ -34,6 +36,7 @@ export function useMantecaDepositPolling(depositId: string | undefined, onComple
         const s = data?.data?.status
         if (s === 'COMPLETED') return 'completed'
         if (s && TERMINAL_STATUSES.includes(s)) return 'failed'
+        if (s && PROCESSING_STATUSES.includes(s)) return 'processing'
         return 'pending'
     }, [data])
 

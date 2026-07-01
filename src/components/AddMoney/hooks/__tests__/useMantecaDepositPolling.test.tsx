@@ -53,6 +53,13 @@ describe('useMantecaDepositPolling', () => {
         await waitFor(() => expect(result.current.status).toBe('failed'))
     })
 
+    it('reports "processing" for an intermediate settling status', async () => {
+        mockGetDepositStatus.mockResolvedValue({ data: { id: 'dep-4', status: 'PROCESSING' } })
+        const { result } = renderHook(() => useMantecaDepositPolling('dep-4', jest.fn()), { wrapper })
+
+        await waitFor(() => expect(result.current.status).toBe('processing'))
+    })
+
     it('does not query when depositId is undefined', () => {
         const { result } = renderHook(() => useMantecaDepositPolling(undefined, jest.fn()), { wrapper })
 

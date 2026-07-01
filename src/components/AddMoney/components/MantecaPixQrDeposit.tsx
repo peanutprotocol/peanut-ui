@@ -39,7 +39,7 @@ const MantecaPixQrDeposit: FC<{
     const countdownLabel = isExpired ? null : `${minutes}:${String(seconds).padStart(2, '0')}`
 
     useEffect(() => {
-        if (status === 'completed' || isExpired) return
+        if (status === 'completed' || status === 'processing' || isExpired) return
         const interval = setInterval(() => setNowMs(Date.now()), 1000)
         return () => clearInterval(interval)
     }, [status, isExpired])
@@ -57,6 +57,18 @@ const MantecaPixQrDeposit: FC<{
                     <Button variant="purple" shadowSize="4" className="w-full" onClick={onBack}>
                         Done
                     </Button>
+                </div>
+            </div>
+        )
+    }
+
+    // Payment detected, settling — show the branded processing screen (same as PIX payments).
+    if (status === 'processing') {
+        return (
+            <div className="flex min-h-[inherit] flex-col gap-8">
+                <NavHeader title="Add Money" onPrev={onBack} />
+                <div className="my-auto flex flex-col justify-center">
+                    <CyclingLoading />
                 </div>
             </div>
         )
