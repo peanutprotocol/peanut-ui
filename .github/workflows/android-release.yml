@@ -120,12 +120,13 @@ jobs:
 
             - name: Build signed AAB
               env:
+                  ANDROID_VERSION_NAME: ${{ github.event.inputs.versionName || '' }}
+              run: |
                   # Monotonic (run_number always increases). +10000 clears legacy
                   # codes already on Play from earlier manual/local uploads (small
                   # console codes plus git-commit-count builds up to ~8600).
-                  ANDROID_VERSION_CODE: ${{ github.run_number + 10000 }}
-                  ANDROID_VERSION_NAME: ${{ github.event.inputs.versionName || '' }}
-              run: pnpm native:release
+                  export ANDROID_VERSION_CODE=$((10000 + GITHUB_RUN_NUMBER))
+                  pnpm native:release
 
             - name: Upload to Google Play
               uses: r0adkll/upload-google-play@v1
