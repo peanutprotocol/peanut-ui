@@ -44,8 +44,11 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
         { label: 'Cards (Global)', icon: 'docs', href: '/dev/ds/patterns/cards-global' },
         { label: 'AmountInput', icon: 'dollar', href: '/dev/ds/patterns/amount-input' },
     ],
+    // Playground items are standalone harnesses that live under /dev (not /dev/ds), so
+    // clicking one leaves the doc-site chrome. The /dev/ds/playground index links to them.
     playground: [
-        { label: 'Shake & Confetti', icon: 'gift', href: '/dev/ds/playground/shake-test' },
-        { label: 'Perk Success', icon: 'check-circle', href: '/dev/ds/playground/perk-success' },
+        { label: 'Shake & Confetti', icon: 'gift', href: '/dev/shake-test' },
+        { label: 'Perk Success', icon: 'check-circle', href: '/dev/perk-success-test' },
+        { label: 'Share Builder', icon: 'copy', href: '/dev/share-builder' },
     ],
 }
