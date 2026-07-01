@@ -120,9 +120,10 @@ jobs:
 
             - name: Build signed AAB
               env:
-                  # Monotonic, always-increments-even-on-rerun. Play requires each
-                  # upload's versionCode to exceed the last.
-                  ANDROID_VERSION_CODE: ${{ github.run_number }}
+                  # Monotonic (run_number always increases). +10000 clears legacy
+                  # codes already on Play from earlier manual/local uploads (small
+                  # console codes plus git-commit-count builds up to ~8600).
+                  ANDROID_VERSION_CODE: ${{ github.run_number + 10000 }}
                   ANDROID_VERSION_NAME: ${{ github.event.inputs.versionName || '' }}
               run: pnpm native:release
 
