@@ -151,6 +151,17 @@ let nextConfig = {
                     source: '/passkeys/:path*',
                     destination: `${process.env.NEXT_PUBLIC_PEANUT_API_URL || 'https://api.peanut.me'}/passkeys/:path*`,
                 },
+                // Same-origin proxy for the anonymous split-rooms API. The split UI
+                // runs on whatever origin served the page (localhost:3051 in the
+                // devcontainer, a Vercel preview, or peanut.me). Calling the API
+                // directly forces the browser to also reach a SECOND origin
+                // (localhost:5051) that isn't forwarded in a devcontainer/preview —
+                // the page loads but every call silently fails. Proxying keeps the
+                // browser on one origin; Next reaches the API server-side.
+                {
+                    source: '/_split/:path*',
+                    destination: `${process.env.PEANUT_API_URL || process.env.NEXT_PUBLIC_PEANUT_API_URL || 'https://api.peanut.me'}/split/:path*`,
+                },
             ],
         }
     },
