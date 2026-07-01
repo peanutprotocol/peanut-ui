@@ -285,7 +285,8 @@ export const useMultiPhaseKycFlow = ({
 
     // PWA-reload resume (see useSumsubReloadResume). When true, SumsubKycWrapper
     // skips StartVerificationView and launches straight into the SDK — the user
-    // already consented before the reload.
+    // already consented before the reload. Armed ONLY for the resume-triggered
+    // open, never for a fresh/retry/self-heal open in the same session.
     const [sdkAutoStart, setSdkAutoStart] = useState(false)
     useSumsubReloadResume(showWrapper, async () => {
         // re-initiate: mints a fresh token for the existing applicant and
@@ -294,8 +295,22 @@ export const useMultiPhaseKycFlow = ({
         // remediation flow a bare initiate can't reconstruct) clears the flag
         // instead of falling back to the standard level.
         setSdkAutoStart(true)
-        return handleInitiateKyc()
+        const opened = await handleInitiateKyc()
+        // failed resume never opened the SDK — disarm so it can't skip the
+        // start view on a later genuine reopen this session.
+        if (!opened) setSdkAutoStart(false)
+        return opened
     })
+
+    // Disarm autoStart once the resumed SDK session ends (falling edge of
+    // showWrapper). Without this, a later genuine reopen — retry after
+    // rejection, self-heal resubmit, start-action, restart-identity — would
+    // also skip StartVerificationView. Only the reload-resume should skip it.
+    const prevShowWrapperRef = useRef(showWrapper)
+    useEffect(() => {
+        if (prevShowWrapperRef.current && !showWrapper) setSdkAutoStart(false)
+        prevShowWrapperRef.current = showWrapper
+    }, [showWrapper])
 
     // 30s timeout for preparing phase + elapsed time counter for progressive copy
     useEffect(() => {
