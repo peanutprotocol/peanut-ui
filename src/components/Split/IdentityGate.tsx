@@ -25,10 +25,10 @@ export function IdentityGate({ room, onPicked }: { room: RoomState; onPicked: (m
 	const handleAdd = async () => {
 		const trimmed = name.trim()
 		if (!trimmed || addMember.isPending) return
-		const prevIds = new Set(room.members.map((m) => m.id))
-		const state = await addMember.mutateAsync(trimmed)
-		const created = state.members.find((m) => !prevIds.has(m.id)) ?? state.members.find((m) => m.displayName === trimmed)
-		if (created) pick(created.id)
+		// Use the id the server hands back — never diff the members array (racy
+		// when several people tap Join at the same instant).
+		const res = await addMember.mutateAsync(trimmed)
+		pick(res.createdMemberId)
 	}
 
 	return (

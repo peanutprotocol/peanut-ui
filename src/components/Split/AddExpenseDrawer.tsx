@@ -1,14 +1,14 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/Global/Drawer'
 import { Button } from '@/components/0_Bruddle/Button'
 import { BaseInput } from '@/components/0_Bruddle/BaseInput'
 import { MemberAvatar } from './MemberAvatar'
-import { useAddExpense } from '@/hooks/query/split'
+import { useAddExpense, useUpdateExpense } from '@/hooks/query/split'
 import { toMinorString, formatMoney, type CurrencyMap } from '@/utils/split-format'
-import type { RoomState, CurrencyInfo, SplitKind } from '@/services/split.types'
+import type { RoomState, CurrencyInfo, SplitKind, SplitExpense } from '@/services/split.types'
 
 interface Props {
 	open: boolean
@@ -17,10 +17,23 @@ interface Props {
 	meMemberId: string
 	currencies: CurrencyInfo[]
 	currencyMap: CurrencyMap
+	/** When set, the drawer edits this expense (PATCH) instead of adding a new one. */
+	editing?: SplitExpense | null
 }
 
-export function AddExpenseDrawer({ open, onOpenChange, room, meMemberId, currencies, currencyMap }: Props) {
+const FIELD = 'h-14' // one control height across the whole form
+
+function minorToMajor(minor: string, decimals: number): string {
+	const n = Number(minor) / 10 ** decimals
+	return Number.isFinite(n) ? String(n) : '0'
+}
+
+export function AddExpenseDrawer({ open, onOpenChange, room, meMemberId, currencies, currencyMap, editing }: Props) {
 	const addExpense = useAddExpense(room.slug)
+	const updateExpense = useUpdateExpense(room.slug)
+	const busy = addExpense.isPending || updateExpense.isPending
+	const isError = addExpense.isError || updateExpense.isError
+
 	const [description, setDescription] = useState('')
 	const [amount, setAmount] = useState('')
 	const [currency, setCurrency] = useState(room.baseCurrency)
@@ -28,6 +41,39 @@ export function AddExpenseDrawer({ open, onOpenChange, room, meMemberId, currenc
 	const [kind, setKind] = useState<SplitKind>('EQUAL')
 	const [participants, setParticipants] = useState<Set<string>>(new Set(room.members.map((m) => m.id)))
 	const [exact, setExact] = useState<Record<string, string>>({})
+
+	// (Re)initialize whenever the drawer opens — pre-fill in edit mode, reset otherwise.
+	useEffect(() => {
+		if (!open) return
+		if (editing) {
+			const dec = currencyMap[editing.currency]?.decimals ?? 2
+			const baseDec = currencyMap[room.baseCurrency]?.decimals ?? 2
+			const rate = Number(editing.fxRate) || 1
+			setDescription(editing.description)
+			setAmount(minorToMajor(editing.amountMinor, dec))
+			setCurrency(editing.currency)
+			setPaidBy(editing.paidByMemberId)
+			setKind(editing.splitKind)
+			setParticipants(new Set(editing.shares.map((s) => s.memberId)))
+			if (editing.splitKind === 'EXACT') {
+				const ex: Record<string, string> = {}
+				for (const s of editing.shares) {
+					const baseMajor = Number(s.amountMinor) / 10 ** baseDec
+					ex[s.memberId] = String(Number((baseMajor / rate).toFixed(dec)))
+				}
+				setExact(ex)
+			} else setExact({})
+		} else {
+			setDescription('')
+			setAmount('')
+			setCurrency(room.baseCurrency)
+			setPaidBy(meMemberId)
+			setKind('EQUAL')
+			setParticipants(new Set(room.members.map((m) => m.id)))
+			setExact({})
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [open, editing])
 
 	const decimals = currencyMap[currency]?.decimals ?? 2
 	const totalMinor = BigInt(toMinorString(amount, decimals))
@@ -44,46 +90,30 @@ export function AddExpenseDrawer({ open, onOpenChange, room, meMemberId, currenc
 
 	const canSubmit =
 		totalMinor > 0n &&
-		!addExpense.isPending &&
+		!busy &&
 		(kind === 'EQUAL' ? participants.size > 0 : exactSumMinor > 0n && exactRemaining === 0n)
-
-	const reset = () => {
-		setDescription('')
-		setAmount('')
-		setCurrency(room.baseCurrency)
-		setPaidBy(meMemberId)
-		setKind('EQUAL')
-		setParticipants(new Set(room.members.map((m) => m.id)))
-		setExact({})
-	}
 
 	const submit = async () => {
 		if (!canSubmit) return
-		if (kind === 'EQUAL') {
-			await addExpense.mutateAsync({
-				description: description.trim() || 'Expense',
-				amountMinor: totalMinor.toString(),
-				currency,
-				paidByMemberId: paidBy,
-				splitKind: 'EQUAL',
-				participantMemberIds: [...participants],
-				createdByMemberId: meMemberId,
-			})
-		} else {
-			const exactShares = room.members
-				.filter((m) => exact[m.id] && BigInt(toMinorString(exact[m.id], decimals)) > 0n)
-				.map((m) => ({ memberId: m.id, amountMinor: toMinorString(exact[m.id], decimals) }))
-			await addExpense.mutateAsync({
-				description: description.trim() || 'Expense',
-				amountMinor: totalMinor.toString(),
-				currency,
-				paidByMemberId: paidBy,
-				splitKind: 'EXACT',
-				exactShares,
-				createdByMemberId: meMemberId,
-			})
+		const base = {
+			description: description.trim() || 'Expense',
+			amountMinor: totalMinor.toString(),
+			currency,
+			paidByMemberId: paidBy,
+			createdByMemberId: meMemberId,
 		}
-		reset()
+		const input =
+			kind === 'EQUAL'
+				? { ...base, splitKind: 'EQUAL' as const, participantMemberIds: [...participants] }
+				: {
+						...base,
+						splitKind: 'EXACT' as const,
+						exactShares: room.members
+							.filter((m) => exact[m.id] && BigInt(toMinorString(exact[m.id], decimals)) > 0n)
+							.map((m) => ({ memberId: m.id, amountMinor: toMinorString(exact[m.id], decimals) })),
+					}
+		if (editing) await updateExpense.mutateAsync({ expenseId: editing.id, input })
+		else await addExpense.mutateAsync(input)
 		onOpenChange(false)
 	}
 
@@ -94,16 +124,20 @@ export function AddExpenseDrawer({ open, onOpenChange, room, meMemberId, currenc
 			return next
 		})
 	}
+	const allSelected = participants.size === room.members.length
 
 	return (
 		<Drawer open={open} onOpenChange={onOpenChange}>
 			<DrawerContent>
 				<DrawerHeader>
-					<DrawerTitle className="text-xl font-extrabold text-n-1">Add expense</DrawerTitle>
+					<DrawerTitle className="text-xl font-extrabold text-n-1">
+						{editing ? 'Edit expense' : 'Add expense'}
+					</DrawerTitle>
 				</DrawerHeader>
 
 				<div className="flex flex-col gap-4 px-4 pb-2">
 					<BaseInput
+						className={FIELD}
 						placeholder="What was it for?"
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
@@ -112,14 +146,15 @@ export function AddExpenseDrawer({ open, onOpenChange, room, meMemberId, currenc
 
 					<div className="flex gap-2">
 						<BaseInput
-							className="flex-1"
+							className={twMerge(FIELD, 'flex-1')}
 							placeholder="0.00"
 							inputMode="decimal"
+							maxLength={15}
 							value={amount}
 							onChange={(e) => setAmount(e.target.value)}
 						/>
 						<select
-							className="input h-16 w-28 px-3"
+							className={twMerge('input px-3', FIELD, 'w-24')}
 							value={currency}
 							onChange={(e) => setCurrency(e.target.value)}
 						>
@@ -131,12 +166,14 @@ export function AddExpenseDrawer({ open, onOpenChange, room, meMemberId, currenc
 						</select>
 					</div>
 					{currency !== room.baseCurrency && totalMinor > 0n && (
-						<div className="-mt-2 text-sm text-grey-1">Balances shown in {room.baseCurrency} at today’s rate.</div>
+						<div className="-mt-2 text-sm text-grey-1">
+							Balances shown in {room.baseCurrency} at an indicative rate.
+						</div>
 					)}
 
 					<label className="flex flex-col gap-1">
 						<span className="text-sm font-semibold text-grey-1">Paid by</span>
-						<select className="input h-12 px-3" value={paidBy} onChange={(e) => setPaidBy(e.target.value)}>
+						<select className={twMerge('input px-3', FIELD)} value={paidBy} onChange={(e) => setPaidBy(e.target.value)}>
 							{room.members.map((m) => (
 								<option key={m.id} value={m.id}>
 									{m.displayName}
@@ -162,10 +199,23 @@ export function AddExpenseDrawer({ open, onOpenChange, room, meMemberId, currenc
 					</div>
 
 					<div className="flex flex-col gap-1">
+						{kind === 'EQUAL' && (
+							<div className="flex items-center justify-between pb-1">
+								<span className="text-sm text-grey-1">Split between</span>
+								<button
+									className="text-sm font-semibold text-black underline"
+									onClick={() =>
+										setParticipants(allSelected ? new Set() : new Set(room.members.map((m) => m.id)))
+									}
+								>
+									{allSelected ? 'Deselect all' : 'Select all'}
+								</button>
+							</div>
+						)}
 						{room.members.map((m) => (
 							<div key={m.id} className="flex items-center gap-3 py-1">
 								<MemberAvatar name={m.displayName} colorSeed={m.colorSeed} size={30} />
-								<span className="flex-1 text-n-1">{m.displayName}</span>
+								<span className="flex-1 truncate text-n-1">{m.displayName}</span>
 								{kind === 'EQUAL' ? (
 									<input
 										type="checkbox"
@@ -177,6 +227,7 @@ export function AddExpenseDrawer({ open, onOpenChange, room, meMemberId, currenc
 									<input
 										className="input h-10 w-28 px-3 text-right"
 										inputMode="decimal"
+										maxLength={15}
 										placeholder="0.00"
 										value={exact[m.id] ?? ''}
 										onChange={(e) => setExact((prev) => ({ ...prev, [m.id]: e.target.value }))}
@@ -188,19 +239,20 @@ export function AddExpenseDrawer({ open, onOpenChange, room, meMemberId, currenc
 
 					{kind === 'EXACT' && totalMinor > 0n && exactRemaining !== 0n && (
 						<div className="text-sm text-red">
-							{exactRemaining > 0n ? 'Unassigned' : 'Over by'} {formatMoney(
+							{exactRemaining > 0n ? 'Unassigned' : 'Over by'}{' '}
+							{formatMoney(
 								(exactRemaining < 0n ? -exactRemaining : exactRemaining).toString(),
 								currency,
 								currencyMap
 							)}
 						</div>
 					)}
-					{addExpense.isError && <div className="text-sm text-red">Couldn’t add the expense — check the amounts.</div>}
+					{isError && <div className="text-sm text-red">Couldn’t save the expense — check the amounts.</div>}
 				</div>
 
 				<DrawerFooter>
-					<Button variant="purple" shadowSize="4" className="w-full" loading={addExpense.isPending} disabled={!canSubmit} onClick={submit}>
-						Add expense
+					<Button variant="purple" shadowSize="4" className="w-full" loading={busy} disabled={!canSubmit} onClick={submit}>
+						{editing ? 'Save changes' : 'Add expense'}
 					</Button>
 				</DrawerFooter>
 			</DrawerContent>

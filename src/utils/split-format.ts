@@ -24,15 +24,23 @@ export function formatMoney(minor: string | number | bigint, code: string, curre
 	return `${negative ? '-' : ''}${symbol}${wholeStr}${fracStr}`
 }
 
-/** Parse a user-typed major amount ("12.34") into minor-unit string for a currency. */
+/** Parse a user-typed major amount ("12.34") into a minor-unit string.
+ *  Strict: only digits + one optional decimal point. Rejects '', '-' (no
+ *  negatives), scientific notation ('1e3'), hex ('0x10') and 'Infinity' — all
+ *  of which Number() would accept and then blow up BigInt() downstream. */
 export function toMinorString(input: string, decimals: number): string {
 	const cleaned = input.trim().replace(/,/g, '')
-	if (cleaned === '' || isNaN(Number(cleaned))) return '0'
+	if (cleaned === '' || cleaned === '.' || !/^\d*\.?\d*$/.test(cleaned)) return '0'
 	const [whole = '0', frac = ''] = cleaned.split('.')
 	const fracPadded = (frac + '0'.repeat(decimals)).slice(0, decimals)
 	const digits = `${whole}${fracPadded}`.replace(/^0+(?=\d)/, '')
 	return digits || '0'
 }
+
+/** Readable green for credit amounts. `green-1` (#98E9AB) is a pastel fill and
+ *  fails contrast as text, so balances use this darker green instead. */
+export const CREDIT_GREEN = '#1f9d55'
+export const DEBT_RED = '#e11900'
 
 const MEMBER_COLORS = [
 	'#FF90E8', // peanut pink

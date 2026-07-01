@@ -1,12 +1,19 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
-import { useRoomQuery, useCurrenciesQuery, useDeleteExpense } from '@/hooks/query/split'
+import {
+	useRoomQuery,
+	useCurrenciesQuery,
+	useDeleteExpense,
+	useRestoreExpense,
+	useDeleteSettlement,
+} from '@/hooks/query/split'
 import { getStoredMemberId, rememberRoom } from '@/utils/split-identity'
-import { toCurrencyMap, formatMoney } from '@/utils/split-format'
+import { toCurrencyMap, formatMoney, CREDIT_GREEN, DEBT_RED } from '@/utils/split-format'
+import type { SplitExpense } from '@/services/split.types'
 import { IdentityGate } from './IdentityGate'
 import { AddExpenseDrawer } from './AddExpenseDrawer'
 import { SettleUpDrawer } from './SettleUpDrawer'
@@ -24,18 +31,23 @@ export function RoomView({ slug }: { slug: string }) {
 	const roomQ = useRoomQuery(slug)
 	const currenciesQ = useCurrenciesQuery()
 	const deleteExpense = useDeleteExpense(slug)
+	const restoreExpense = useRestoreExpense(slug)
+	const deleteSettlement = useDeleteSettlement(slug)
 
 	const [meId, setMeId] = useState<string | null>(null)
 	const [addOpen, setAddOpen] = useState(false)
+	const [editing, setEditing] = useState<SplitExpense | null>(null)
 	const [settleOpen, setSettleOpen] = useState(false)
 	const [copied, setCopied] = useState(false)
+	const [undo, setUndo] = useState<{ message: string; expenseId: string } | null>(null)
+	const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
 	useEffect(() => setMeId(getStoredMemberId(slug)), [slug])
-
 	const room = roomQ.data
 	useEffect(() => {
 		if (room) rememberRoom(room.slug, room.title)
 	}, [room])
+	useEffect(() => () => void (undoTimer.current && clearTimeout(undoTimer.current)), [])
 
 	const currencies = currenciesQ.data ?? []
 	const currencyMap = useMemo(() => toCurrencyMap(currencies), [currencies])
@@ -53,9 +65,12 @@ export function RoomView({ slug }: { slug: string }) {
 	if (roomQ.isError || !room) {
 		return (
 			<Shell>
-				<div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
+				<div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
 					<div className="text-2xl font-extrabold text-n-1">Room not found</div>
 					<div className="text-grey-1">This link may be wrong or the room was removed.</div>
+					<a href="/room" className="text-black underline">
+						Start a new room
+					</a>
 				</div>
 			</Shell>
 		)
@@ -72,6 +87,15 @@ export function RoomView({ slug }: { slug: string }) {
 
 	const myNet = BigInt(room.balances.find((b) => b.memberId === meId)?.netMinor ?? '0')
 
+	// Signed relationship to ME from the simplified graph: + they owe me, − I owe them.
+	const relToMe = new Map<string, bigint>()
+	for (const t of room.suggestedTransfers) {
+		if (t.toMemberId === meId) relToMe.set(t.fromMemberId, (relToMe.get(t.fromMemberId) ?? 0n) + BigInt(t.amountMinor))
+		if (t.fromMemberId === meId) relToMe.set(t.toMemberId, (relToMe.get(t.toMemberId) ?? 0n) - BigInt(t.amountMinor))
+	}
+
+	const fmt = (minor: bigint) => formatMoney((minor < 0n ? -minor : minor).toString(), room.baseCurrency, currencyMap)
+
 	const share = async () => {
 		try {
 			await navigator.clipboard.writeText(window.location.href)
@@ -82,22 +106,36 @@ export function RoomView({ slug }: { slug: string }) {
 		}
 	}
 
+	const removeExpense = (e: SplitExpense) => {
+		deleteExpense.mutate(e.id)
+		if (undoTimer.current) clearTimeout(undoTimer.current)
+		setUndo({ message: `Deleted “${e.description}”`, expenseId: e.id })
+		undoTimer.current = setTimeout(() => setUndo(null), 6000)
+	}
+	const doUndo = () => {
+		if (undo) restoreExpense.mutate(undo.expenseId)
+		if (undoTimer.current) clearTimeout(undoTimer.current)
+		setUndo(null)
+	}
+
 	return (
 		<Shell>
 			{/* header */}
-			<div className="flex items-center justify-between gap-2 border-b border-n-1 p-4">
-				<div className="min-w-0">
-					<div className="truncate text-xl font-extrabold text-n-1">{room.title || 'Split room'}</div>
-					<div className="text-sm text-grey-1">
+			<div className="flex items-start justify-between gap-3 border-b border-n-1 p-4">
+				<div className="min-w-0 flex-1">
+					<div className="line-clamp-2 break-words text-xl font-extrabold leading-tight text-n-1">
+						{room.title || 'Split room'}
+					</div>
+					<div className="mt-0.5 text-sm text-grey-1">
 						{room.members.length} {room.members.length === 1 ? 'person' : 'people'} · {room.baseCurrency}
 					</div>
 				</div>
-				<Button variant="stroke" size="medium" onClick={share}>
+				<Button variant="stroke" size="medium" className="w-auto shrink-0 px-4" onClick={share}>
 					{copied ? 'Copied!' : 'Share'}
 				</Button>
 			</div>
 
-			<div className="flex flex-1 flex-col gap-5 overflow-auto p-4 pb-40">
+			<div className="flex flex-1 flex-col gap-5 overflow-auto p-4 pb-44">
 				{/* your balance hero */}
 				<div className="rounded-sm border border-n-1 bg-white p-5 text-center shadow-[4px_4px_0_0_#000]">
 					{myNet === 0n ? (
@@ -105,28 +143,37 @@ export function RoomView({ slug }: { slug: string }) {
 					) : (
 						<>
 							<div className="text-sm font-semibold text-grey-1">{myNet > 0n ? 'You are owed' : 'You owe'}</div>
-							<div className={twMerge('text-3xl font-extrabold', myNet > 0n ? 'text-n-1' : 'text-n-1')}>
-								{formatMoney((myNet < 0n ? -myNet : myNet).toString(), room.baseCurrency, currencyMap)}
+							<div className="text-3xl font-extrabold" style={{ color: myNet > 0n ? CREDIT_GREEN : DEBT_RED }}>
+								{fmt(myNet)}
 							</div>
 						</>
 					)}
 				</div>
 
-				{/* members + balances */}
+				{/* balances — relationship to YOU */}
 				<div className="flex flex-col gap-1">
 					<div className="text-sm font-semibold text-grey-1">Balances</div>
 					{room.members.map((m) => {
-						const net = BigInt(room.balances.find((b) => b.memberId === m.id)?.netMinor ?? '0')
+						const isMe = m.id === meId
+						const rel = relToMe.get(m.id) ?? 0n
 						return (
-							<div key={m.id} className="flex items-center gap-3 py-1.5">
+							<div key={m.id} className="flex items-center gap-3 py-2.5">
 								<MemberAvatar name={m.displayName} colorSeed={m.colorSeed} size={32} />
-								<span className="flex-1 text-n-1">
-									{m.displayName}
-									{m.id === meId ? ' (you)' : ''}
-								</span>
-								<span className={twMerge('font-bold', net > 0n ? 'text-green-1' : net < 0n ? 'text-red' : 'text-grey-1')}>
-									{net === 0n ? 'settled' : (net > 0n ? '+' : '−') + formatMoney((net < 0n ? -net : net).toString(), room.baseCurrency, currencyMap).replace(/^-/, '')}
-								</span>
+								<span className="flex-1 truncate text-n-1">{isMe ? 'You' : m.displayName}</span>
+								{isMe ? (
+									<span
+										className="text-sm font-bold"
+										style={{ color: myNet > 0n ? CREDIT_GREEN : myNet < 0n ? DEBT_RED : undefined }}
+									>
+										{myNet === 0n ? 'settled' : `${myNet > 0n ? 'you are owed' : 'you owe'} ${fmt(myNet)}`}
+									</span>
+								) : rel === 0n ? (
+									<span className="text-sm text-grey-1">settled up</span>
+								) : (
+									<span className="text-sm font-bold" style={{ color: rel > 0n ? CREDIT_GREEN : DEBT_RED }}>
+										{rel > 0n ? 'owes you' : 'you owe'} {fmt(rel)}
+									</span>
+								)}
 							</div>
 						)
 					})}
@@ -145,17 +192,23 @@ export function RoomView({ slug }: { slug: string }) {
 							const converted = e.currency !== room.baseCurrency
 							return (
 								<div key={e.id} className="flex items-center gap-3 rounded-sm border border-n-1 bg-white p-3">
-									<div className="min-w-0 flex-1">
+									<button
+										onClick={() => {
+											setEditing(e)
+											setAddOpen(true)
+										}}
+										className="min-w-0 flex-1 text-left"
+										aria-label={`Edit ${e.description}`}
+									>
 										<div className="truncate font-semibold text-n-1">{e.description}</div>
 										<div className="text-sm text-grey-1">
-											{payer ? payer.displayName : 'someone'} paid{' '}
-											{formatMoney(e.amountMinor, e.currency, currencyMap)}
+											{payer ? payer.displayName : 'someone'} paid {formatMoney(e.amountMinor, e.currency, currencyMap)}
 											{converted && ` · ${formatMoney(e.baseAmountMinor, room.baseCurrency, currencyMap)}`}
 										</div>
-									</div>
+									</button>
 									<button
-										onClick={() => deleteExpense.mutate(e.id)}
-										className="px-2 text-grey-1 hover:text-red"
+										onClick={() => removeExpense(e)}
+										className="flex size-9 shrink-0 items-center justify-center rounded-sm text-grey-1 hover:text-red"
 										aria-label="Delete expense"
 									>
 										✕
@@ -165,12 +218,61 @@ export function RoomView({ slug }: { slug: string }) {
 						})
 					)}
 				</div>
+
+				{/* settlements — visible record, undoable */}
+				{room.settlements.length > 0 && (
+					<div className="flex flex-col gap-2">
+						<div className="text-sm font-semibold text-grey-1">Settled up</div>
+						{room.settlements.map((s) => {
+							const from = byId[s.fromMemberId]
+							const to = byId[s.toMemberId]
+							return (
+								<div
+									key={s.id}
+									className="flex items-center gap-2 rounded-sm border border-dashed border-grey-1 bg-white/60 p-3"
+								>
+									<span className="flex-1 text-sm text-n-1">
+										✓ {from ? from.displayName : 'someone'} paid {to ? to.displayName : 'someone'}{' '}
+										<span className="font-bold">{formatMoney(s.amountMinor, room.baseCurrency, currencyMap)}</span>
+									</span>
+									<button
+										onClick={() => deleteSettlement.mutate(s.id)}
+										className="flex size-8 shrink-0 items-center justify-center rounded-sm text-grey-1 hover:text-red"
+										aria-label="Undo settlement"
+									>
+										✕
+									</button>
+								</div>
+							)
+						})}
+					</div>
+				)}
 			</div>
 
+			{/* undo snackbar */}
+			{undo && (
+				<div className="fixed inset-x-0 bottom-24 z-40 mx-auto flex w-full max-w-xl px-4">
+					<div className="flex w-full items-center gap-3 rounded-sm bg-n-1 px-4 py-3 text-white shadow-[4px_4px_0_0_#000]">
+						<span className="flex-1 truncate text-sm">{undo.message}</span>
+						<button onClick={doUndo} className="font-bold underline">
+							Undo
+						</button>
+					</div>
+				</div>
+			)}
+
 			{/* sticky actions */}
-			<div className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-xl border-t border-n-1 bg-white p-4">
+			<div className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-xl border-t border-n-1 bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
 				<div className="flex gap-2">
-					<Button variant="purple" shadowSize="4" className="flex-1" onClick={() => setAddOpen(true)}>
+					<Button
+						variant="purple"
+						shadowSize="4"
+						className="flex-1"
+						onClick={() => {
+							setEditing(null)
+							setAddOpen(true)
+						}}
+					>
 						Add expense
 					</Button>
 					<Button variant="stroke" className="flex-1" onClick={() => setSettleOpen(true)}>
@@ -181,11 +283,15 @@ export function RoomView({ slug }: { slug: string }) {
 
 			<AddExpenseDrawer
 				open={addOpen}
-				onOpenChange={setAddOpen}
+				onOpenChange={(o) => {
+					setAddOpen(o)
+					if (!o) setEditing(null)
+				}}
 				room={room}
 				meMemberId={meId!}
 				currencies={currencies}
 				currencyMap={currencyMap}
+				editing={editing}
 			/>
 			<SettleUpDrawer open={settleOpen} onOpenChange={setSettleOpen} room={room} currencyMap={currencyMap} />
 		</Shell>

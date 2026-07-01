@@ -69,6 +69,13 @@ export interface CurrencyInfo {
 	decimals: number
 }
 
+/** POST /members returns the created member's id explicitly (store it directly
+ *  — diffing the members array is racy under concurrent joins). */
+export interface MemberCreatedResponse {
+	createdMemberId: string
+	room: RoomState
+}
+
 export interface NewExpenseInput {
 	description: string
 	amountMinor: string

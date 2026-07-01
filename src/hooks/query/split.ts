@@ -10,8 +10,11 @@ import {
 	createRoom,
 	addMember,
 	addExpense,
+	updateExpense,
 	deleteExpense,
+	restoreExpense,
 	recordSettlement,
+	deleteSettlement,
 } from '@/services/split'
 import type { RoomState, NewExpenseInput, NewSettlementInput } from '@/services/split.types'
 
@@ -47,7 +50,10 @@ export function useCreateRoom() {
 
 export function useAddMember(slug: string) {
 	const qc = useQueryClient()
-	return useMutation({ mutationFn: (displayName: string) => addMember(slug, displayName), onSuccess: seedCache(qc, slug) })
+	return useMutation({
+		mutationFn: (displayName: string) => addMember(slug, displayName),
+		onSuccess: (res) => qc.setQueryData(roomKey(slug), res.room),
+	})
 }
 
 export function useAddExpense(slug: string) {
@@ -55,12 +61,30 @@ export function useAddExpense(slug: string) {
 	return useMutation({ mutationFn: (input: NewExpenseInput) => addExpense(slug, input), onSuccess: seedCache(qc, slug) })
 }
 
+export function useUpdateExpense(slug: string) {
+	const qc = useQueryClient()
+	return useMutation({
+		mutationFn: (args: { expenseId: string; input: NewExpenseInput }) => updateExpense(slug, args.expenseId, args.input),
+		onSuccess: seedCache(qc, slug),
+	})
+}
+
 export function useDeleteExpense(slug: string) {
 	const qc = useQueryClient()
 	return useMutation({ mutationFn: (expenseId: string) => deleteExpense(slug, expenseId), onSuccess: seedCache(qc, slug) })
 }
 
+export function useRestoreExpense(slug: string) {
+	const qc = useQueryClient()
+	return useMutation({ mutationFn: (expenseId: string) => restoreExpense(slug, expenseId), onSuccess: seedCache(qc, slug) })
+}
+
 export function useRecordSettlement(slug: string) {
 	const qc = useQueryClient()
 	return useMutation({ mutationFn: (input: NewSettlementInput) => recordSettlement(slug, input), onSuccess: seedCache(qc, slug) })
+}
+
+export function useDeleteSettlement(slug: string) {
+	const qc = useQueryClient()
+	return useMutation({ mutationFn: (settlementId: string) => deleteSettlement(slug, settlementId), onSuccess: seedCache(qc, slug) })
 }
