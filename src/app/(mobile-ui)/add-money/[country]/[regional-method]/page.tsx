@@ -16,8 +16,9 @@ export default function AddMoneyRegionalMethodPage() {
     const countryDetails: CountryData | undefined = countryData.find((c) => c.path === country)
 
     if (isMantecaSupportedCountryCode(countryDetails?.id) && method === 'manteca') {
-        // Manteca provider outage kill-switch — block the onramp with a clear message.
-        if (underMaintenanceConfig.disableMantecaTransfers) {
+        // Manteca provider outage — block the onramp only for currencies still down.
+        const currency = countryDetails?.currency?.toUpperCase() ?? ''
+        if ((underMaintenanceConfig.disabledMantecaCurrencies as string[]).includes(currency)) {
             return <MantecaTransfersMaintenanceView action="deposits" />
         }
         return <MantecaAddMoney />

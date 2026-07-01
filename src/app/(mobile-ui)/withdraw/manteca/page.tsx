@@ -88,10 +88,11 @@ export default function MantecaWithdrawFlow() {
     if (searchParams.get('country') === 'brazil' && searchParams.get('method') === 'pix') {
         return <PixKeySendView destinationParam={searchParams.get('destination')} />
     }
-    // Manteca provider outage kill-switch — block the offramp with a clear
-    // message. Placed AFTER the Brazil-PIX delegation so PIX-over-QR sends
-    // (which ride the QR-payment endpoint, not Manteca offramp) stay open.
-    if (underMaintenanceConfig.disableMantecaTransfers) {
+    // Manteca provider outage — block the offramp only for currencies still
+    // down. Placed AFTER the Brazil-PIX delegation so PIX-over-QR sends (which
+    // ride the QR-payment endpoint, not Manteca offramp) stay open.
+    const withdrawCurrency = countryData.find((c) => c.path === searchParams.get('country'))?.currency?.toUpperCase()
+    if (withdrawCurrency && (underMaintenanceConfig.disabledMantecaCurrencies as string[]).includes(withdrawCurrency)) {
         return <MantecaTransfersMaintenanceView action="withdrawals" />
     }
     return <MantecaBankWithdrawFlow />
