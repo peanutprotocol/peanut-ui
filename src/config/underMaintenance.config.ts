@@ -45,6 +45,12 @@
  *    - the /card flow, /shhhhh page, and waitlist pill stay reachable regardless — this only mutes the proactive in-app nudge
  *    - currently false (CTA live, routes to /shhhhh); set true to dial down in-app load without touching the flow
  *
+ * 9. disableMantecaTransfers: kill-switch for the Manteca add-money (onramp) and withdraw (offramp) flows
+ *    - blocks entry to /add-money/<country>/manteca and /withdraw/manteca with a "temporarily unavailable" screen
+ *    - use during a Manteca provider outage so users see a clear message instead of a mid-flow failure
+ *    - does NOT touch QR payments (Manteca QR / Brazil PIX-over-QR stay open) — that is disabledPaymentProviders
+ *    - set to false when Manteca transfers are restored
+ *
  * note: if either mode is enabled, the maintenance banner will show everywhere
  *
  * I HOPE WE NEVER NEED TO USE THIS...
@@ -62,6 +68,7 @@ interface MaintenanceConfig {
     disableCardPioneers: boolean
     disableCardLaunchCTA: boolean
     pixBrazilOnrampMaintenance: boolean
+    disableMantecaTransfers: boolean
 }
 
 const underMaintenanceConfig: MaintenanceConfig = {
@@ -73,6 +80,7 @@ const underMaintenanceConfig: MaintenanceConfig = {
     disableCardPioneers: true, // set to false to enable the Card Pioneers waitlist feature
     disableCardLaunchCTA: false, // kill-switch for the in-app "shhh" card CTA (funnel card step + activated home splash). Set true to mute it (dial down in-app load); /card flow + /shhhhh + waitlist stay reachable regardless.
     pixBrazilOnrampMaintenance: true, // set to false when BRL-via-PIX deposits are stable again
+    disableMantecaTransfers: true, // Manteca provider outage — add-money + withdraw blocked with a maintenance screen; set to false when restored
 }
 
 // shared user-facing copy for cross-chain disabled paths — keep wording aligned with TokenSelector banner

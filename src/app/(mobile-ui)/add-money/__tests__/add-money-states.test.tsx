@@ -618,6 +618,15 @@ jest.mock('@/components/AddMoney/components/MantecaAddMoney', () => ({
     default: () => <div data-testid="manteca-add-money">Manteca Add Money</div>,
 }))
 
+// MantecaTransfersMaintenanceView — the outage screen shown when the
+// disableMantecaTransfers kill-switch is on. Mocked to a testid so GROUP 7 can
+// assert which branch the regional-method route renders without pulling the
+// real NavHeader/Card tree.
+jest.mock('@/components/Global/Banner/MantecaTransfersMaintenanceView', () => ({
+    __esModule: true,
+    MantecaTransfersMaintenanceView: () => <div data-testid="manteca-transfers-maintenance">Manteca Maintenance</div>,
+}))
+
 // AddMoneyBankDetails (for US bank page and bank details step)
 jest.mock('@/components/AddMoney/components/AddMoneyBankDetails', () => ({
     __esModule: true,
@@ -716,6 +725,7 @@ import OnrampBankPage from '../[country]/bank/page'
 import AddMoneyRegionalMethodPage from '../[country]/[regional-method]/page'
 import AddMoneyCountryPage from '../[country]/page'
 import CryptoDepositView from '@/components/AddMoney/views/CryptoDeposit.view'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 // ---------- helpers ----------
 
@@ -1412,11 +1422,26 @@ describe('GROUP 6: US Bank Page', () => {
 // GROUP 7: Manteca Deposit (AR, BR)
 // ============================================================
 describe('GROUP 7: Manteca Deposit (Regional Method)', () => {
-    test('AR + manteca renders MantecaAddMoney', () => {
+    afterEach(() => {
+        // reset the outage kill-switch so its default value can't leak between tests
+        underMaintenanceConfig.disableMantecaTransfers = false
+    })
+
+    test('AR + manteca renders MantecaAddMoney when transfers are enabled', () => {
+        underMaintenanceConfig.disableMantecaTransfers = false
         setParams({ country: 'argentina', 'regional-method': 'manteca' })
         renderWithProviders(<AddMoneyRegionalMethodPage />)
 
         expect(screen.getByTestId('manteca-add-money')).toBeInTheDocument()
+    })
+
+    test('AR + manteca shows the outage screen when transfers are disabled', () => {
+        underMaintenanceConfig.disableMantecaTransfers = true
+        setParams({ country: 'argentina', 'regional-method': 'manteca' })
+        renderWithProviders(<AddMoneyRegionalMethodPage />)
+
+        expect(screen.getByTestId('manteca-transfers-maintenance')).toBeInTheDocument()
+        expect(screen.queryByTestId('manteca-add-money')).not.toBeInTheDocument()
     })
 
     test('unsupported country + manteca renders nothing', () => {
