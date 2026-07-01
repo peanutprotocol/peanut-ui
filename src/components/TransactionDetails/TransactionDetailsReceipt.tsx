@@ -56,6 +56,7 @@ import { useReceiptViewModel } from './useReceiptViewModel'
 import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
 import { LocalRailNudge } from './provider-rows/LocalRailNudge'
+import { CardForeignCurrencyNotice } from './provider-rows/CardForeignCurrencyNotice'
 import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
 import { BridgeDepositInstructions } from './provider-rows/BridgeDepositInstructions'
 import { CancelDepositActions } from './provider-actions/CancelDepositActions'
@@ -646,6 +647,11 @@ export const TransactionDetailsReceipt = ({
                 nothing for other countries / non-card-spend transactions.
                 Hidden on public receipts (same rule as the referral nudge). */}
             {!isPublic && <LocalRailNudge transaction={transaction} />}
+
+            {/* Non-USD card spend outside AR/BR: the card settles in USD, so a
+                currency conversion applied. Suppressed where LocalRailNudge
+                already fires. */}
+            {!isPublic && <CardForeignCurrencyNotice transaction={transaction} />}
 
             {/* share and cancel buttons section (only if qr is shown) */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (

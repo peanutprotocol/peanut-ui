@@ -17,7 +17,7 @@ import { CARD_FX_MARKUP_BY_CURRENCY } from '@/constants/payment.consts'
  * `currency` drives the shared `useCardMarkupRate` lookup so this nudge stays
  * in sync with the QR-pay confirm/success surfaces.
  */
-const LOCAL_RAIL_BY_COUNTRY: Record<string, { countryName: string; rail: string; currency: string }> = {
+export const LOCAL_RAIL_BY_COUNTRY: Record<string, { countryName: string; rail: string; currency: string }> = {
     AR: { countryName: 'Argentina', rail: 'QR', currency: 'ARS' },
     BR: { countryName: 'Brazil', rail: 'Pix', currency: 'BRL' },
 }
