@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { useQueryState, parseAsBoolean } from 'nuqs'
 import { useAuth } from '@/context/authContext'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
+import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { deriveGate } from '@/utils/capability-gate'
@@ -278,49 +278,24 @@ export const useMultiPhaseKycFlow = ({
             isRealtimeFlowRef.current = false
             clearPreparingTimer()
 
-            await originalHandleInitiateKyc(overrideIntent, levelName, crossRegion, targetCountry)
+            return originalHandleInitiateKyc(overrideIntent, levelName, crossRegion, targetCountry)
         },
         [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource]
     )
 
-    // --- PWA-reload resume ---
-    // Android evicts backgrounded standalone PWAs from memory — opening the
-    // camera/gallery mid-KYC (the exact thing the flow pushes users toward) is
-    // the common trigger. On return the page cold-reloads, `showWrapper`
-    // (useState) resets to false, and the SDK vanishes, dropping the user back
-    // to the underlying page. Mirror "SDK is open" to the URL so a reload can
-    // re-initiate and reopen the SDK for the same in-progress applicant.
-    const [kycInProgress, setKycInProgress] = useQueryState('kyc', parseAsBoolean.withDefault(false))
-    // when true, SumsubKycWrapper skips StartVerificationView and launches
-    // straight into the SDK — the user already consented before the reload.
+    // PWA-reload resume (see useSumsubReloadResume). When true, SumsubKycWrapper
+    // skips StartVerificationView and launches straight into the SDK — the user
+    // already consented before the reload.
     const [sdkAutoStart, setSdkAutoStart] = useState(false)
-
-    const didAttemptResumeRef = useRef(false)
-    useEffect(() => {
-        if (didAttemptResumeRef.current) return
-        didAttemptResumeRef.current = true
-        if (!kycInProgress || showWrapper) return
+    useSumsubReloadResume(showWrapper, async () => {
         // re-initiate: mints a fresh token for the existing applicant and
-        // reopens the SDK. If the user finished while backgrounded, the BE
-        // returns APPROVED with no token and handleInitiateKyc resolves the
-        // flow instead — showWrapper stays false and the sync effect clears
-        // the URL flag.
+        // reopens the SDK. Returns whether the SDK actually opened — a resume
+        // that resolves without opening (already-approved user, or a
+        // remediation flow a bare initiate can't reconstruct) clears the flag
+        // instead of falling back to the standard level.
         setSdkAutoStart(true)
-        void handleInitiateKyc()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-
-    // keep the URL flag in sync with the SDK's open state. skip the first run
-    // so the mount-time resume reads the persisted flag before we touch it.
-    // clearing to the `false` default removes the param from the URL.
-    const kycSyncSkipRef = useRef(true)
-    useEffect(() => {
-        if (kycSyncSkipRef.current) {
-            kycSyncSkipRef.current = false
-            return
-        }
-        void setKycInProgress(showWrapper)
-    }, [showWrapper, setKycInProgress])
+        return handleInitiateKyc()
+    })
 
     // 30s timeout for preparing phase + elapsed time counter for progressive copy
     useEffect(() => {
