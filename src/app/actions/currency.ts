@@ -33,9 +33,14 @@ const fetchCurrencyPrice = async (currencyCode: string): Promise<{ buy: number; 
 
     if (MANTECA_CURRENCIES.includes(currencyCode)) {
         const response = await mantecaApi.getPrices({ asset: 'USDC', against: currencyCode })
+        // Manteca moved the effective rate under `effectivePrice.{buy,sell}` on 2026-07-01
+        // (previously top-level `effectiveBuy`/`effectiveSell`). Read the new shape first and
+        // fall back to the legacy fields so a provider rollback can't re-break pricing.
+        const effectiveBuy = response.effectivePrice?.buy ?? response.effectiveBuy
+        const effectiveSell = response.effectivePrice?.sell ?? response.effectiveSell
         return {
-            buy: assertPositiveRate('buy', Number(response.effectiveBuy)),
-            sell: assertPositiveRate('sell', Number(response.effectiveSell)),
+            buy: assertPositiveRate('buy', Number(effectiveBuy)),
+            sell: assertPositiveRate('sell', Number(effectiveSell)),
         }
     }
 

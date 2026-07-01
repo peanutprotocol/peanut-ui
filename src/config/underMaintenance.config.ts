@@ -85,7 +85,7 @@ const underMaintenanceConfig: MaintenanceConfig = {
     disableCardPioneers: true, // set to false to enable the Card Pioneers waitlist feature
     disableCardLaunchCTA: false, // kill-switch for the in-app "shhh" card CTA (funnel card step + activated home splash). Set true to mute it (dial down in-app load); /card flow + /shhhhh + waitlist stay reachable regardless.
     pixBrazilOnrampMaintenance: true, // set to false when BRL-via-PIX deposits are stable again
-    disabledMantecaCurrencies: ['BRL'], // Manteca partial outage — ARS recovered (live); BRL still down. Empty the array when all restored.
+    disabledMantecaCurrencies: [], // Manteca restored (ARS + BRL live). Add a currency here to block it during a future outage.
 }
 
 // shared user-facing copy for cross-chain disabled paths — keep wording aligned with TokenSelector banner

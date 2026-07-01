@@ -61,6 +61,28 @@ describe('getCurrencyPrice (uncached, commit-path)', () => {
         await expect(getCurrencyPrice('ARS')).resolves.toEqual({ buy: 1200, sell: 1180 })
     })
 
+    it('reads the current Manteca shape where the effective rate is nested under effectivePrice', async () => {
+        // Manteca moved effectiveBuy/effectiveSell under effectivePrice on 2026-07-01;
+        // reading the old top-level fields yielded NaN → "Invalid buy rate from provider".
+        mantecaGetPrices.mockResolvedValue({
+            buy: '1596.90',
+            sell: '1541.96',
+            effectivePrice: { buy: '1596.900', sell: '1541.960' },
+        })
+        const { getCurrencyPrice } = loadModule()
+        await expect(getCurrencyPrice('ARS')).resolves.toEqual({ buy: 1596.9, sell: 1541.96 })
+    })
+
+    it('prefers effectivePrice over the legacy top-level fields when both are present', async () => {
+        mantecaGetPrices.mockResolvedValue({
+            effectiveBuy: '1',
+            effectiveSell: '1',
+            effectivePrice: { buy: '1200', sell: '1180' },
+        })
+        const { getCurrencyPrice } = loadModule()
+        await expect(getCurrencyPrice('ARS')).resolves.toEqual({ buy: 1200, sell: 1180 })
+    })
+
     it('throws on unknown currency code', async () => {
         const { getCurrencyPrice } = loadModule()
         await expect(getCurrencyPrice('XYZ')).rejects.toThrow('Invalid currency code')
