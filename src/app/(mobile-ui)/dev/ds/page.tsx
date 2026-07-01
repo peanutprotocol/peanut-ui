@@ -30,10 +30,11 @@ const sections = [
     },
     {
         title: 'Audit',
-        description: 'Live consolidation inventory — every component with its real usage count; dead items flagged',
+        description:
+            'Three lenses: Code Audit (DRY consolidation) · App Divergences (live vs showcase-only vs dead in product) · Big Components (modals, drawers, lists)',
         href: '/dev/ds/audit',
-        icon: 'docs' as const,
-        count: 428,
+        icon: 'search' as const,
+        count: 3,
     },
     {
         title: 'Playground',
@@ -51,7 +52,7 @@ export default function DesignSystemPage() {
             <div className="rounded-sm border border-n-1 bg-purple-1 p-6">
                 <Title text="PEANUT" />
                 <p className="mt-2 text-base font-bold text-n-1">Design System</p>
-                <p className="mt-1 text-sm text-n-1/70">Foundations → Primitives → Patterns → Playground</p>
+                <p className="mt-1 text-sm text-n-1/70">Foundations → Primitives → Patterns → Audit → Playground</p>
             </div>
 
             {/* Quick stats */}
