@@ -10,6 +10,7 @@ export const TIERS = [
     { label: 'Foundations', href: '/dev/ds/foundations', icon: 'bulb' as IconName },
     { label: 'Primitives', href: '/dev/ds/primitives', icon: 'switch' as IconName },
     { label: 'Patterns', href: '/dev/ds/patterns', icon: 'docs' as IconName },
+    { label: 'Audit', href: '/dev/ds/audit', icon: 'search' as IconName },
     { label: 'Playground', href: '/dev/ds/playground', icon: 'bulb' as IconName },
 ]
 
@@ -43,6 +44,11 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
         { label: 'Layouts', icon: 'switch', href: '/dev/ds/patterns/layouts' },
         { label: 'Cards (Global)', icon: 'docs', href: '/dev/ds/patterns/cards-global' },
         { label: 'AmountInput', icon: 'dollar', href: '/dev/ds/patterns/amount-input' },
+    ],
+    audit: [
+        { label: 'Code Audit', icon: 'docs', href: '/dev/ds/audit' },
+        { label: 'App Divergences', icon: 'search', href: '/dev/ds/audit/app' },
+        { label: 'Big Components', icon: 'switch', href: '/dev/ds/audit/components' },
     ],
     playground: [
         { label: 'Shake & Confetti', icon: 'gift', href: '/dev/ds/playground/shake-test' },

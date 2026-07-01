@@ -70,11 +70,12 @@ export default function PrimitivesPage() {
                 />
                 <CatalogCard
                     title="Title"
-                    description="Knerd display font with filled/outline double-render effect"
+                    description="Knerd display font with filled/outline double-render effect. DEAD IN PRODUCT — only rendered by MarketingHero (marketing pages); the wallet app never uses it."
                     href="/dev/ds/primitives/title"
                     icon="docs"
-                    status="production"
+                    status="unused"
                     quality={3}
+                    usages={1}
                 />
                 <CatalogCard
                     title="PageContainer"

@@ -17,9 +17,11 @@ export function DocSidebar() {
           ? 'primitives'
           : pathname?.includes('/patterns')
             ? 'patterns'
-            : pathname?.includes('/playground')
-              ? 'playground'
-              : null
+            : pathname?.includes('/audit')
+              ? 'audit'
+              : pathname?.includes('/playground')
+                ? 'playground'
+                : null
 
     const items = tier ? SIDEBAR_CONFIG[tier] : []
 

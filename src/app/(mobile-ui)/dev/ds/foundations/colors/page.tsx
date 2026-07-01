@@ -109,11 +109,23 @@ export default function ColorsPage() {
 
             {/* Background patterns */}
             <DocSection title="Background Patterns">
-                <div className="space-y-2">
+                <DesignNote type="warning">
+                    DEAD IN PRODUCT —{' '}
+                    <code className="rounded bg-white px-1 font-mono text-[10px]">bg-peanut-repeat-*</code> (normal /
+                    large / small) are defined in the Tailwind theme but rendered on{' '}
+                    <span className="underline">zero</span> real app screens (0 non-dev, non-test call-sites).
+                    Don&rsquo;t treat these as design-system tokens — they&rsquo;re delete-candidates. See{' '}
+                    <a href="/dev/ds/audit/app" className="underline">
+                        App Divergences →
+                    </a>
+                </DesignNote>
+                <div className="space-y-2 opacity-60">
                     {BACKGROUNDS.map((bg) => (
                         <button key={bg.name} onClick={() => copyClass(bg.name)} className="w-full text-left">
-                            <div className={`${bg.name} h-20 rounded-sm border border-n-1 bg-primary-3 p-2`}>
-                                <span className="font-mono text-[10px]">.{bg.name}</span>
+                            <div
+                                className={`${bg.name} h-20 rounded-sm border border-dashed border-n-1 bg-primary-3 p-2`}
+                            >
+                                <span className="font-mono text-[10px]">.{bg.name} · unused</span>
                             </div>
                         </button>
                     ))}

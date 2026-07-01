@@ -29,6 +29,14 @@ const sections = [
         count: 9,
     },
     {
+        title: 'Audit',
+        description:
+            'Three lenses: Code Audit (DRY consolidation) · App Divergences (live vs showcase-only vs dead in product) · Big Components (modals, drawers, lists)',
+        href: '/dev/ds/audit',
+        icon: 'search' as const,
+        count: 3,
+    },
+    {
         title: 'Playground',
         description: 'Interactive test harnesses: shake animations, haptics, confetti, perk flows',
         href: '/dev/ds/playground',
@@ -44,15 +52,15 @@ export default function DesignSystemPage() {
             <div className="rounded-sm border border-n-1 bg-purple-1 p-6">
                 <Title text="PEANUT" />
                 <p className="mt-2 text-base font-bold text-n-1">Design System</p>
-                <p className="mt-1 text-sm text-n-1/70">Foundations → Primitives → Patterns → Playground</p>
+                <p className="mt-1 text-sm text-n-1/70">Foundations → Primitives → Patterns → Audit → Playground</p>
             </div>
 
             {/* Quick stats */}
             <div className="grid grid-cols-3 gap-2">
                 {[
-                    { label: 'Primitives', value: '9' },
-                    { label: 'Global', value: '70+' },
-                    { label: 'Icons', value: '85+' },
+                    { label: 'Inventoried', value: '428' },
+                    { label: 'Flagged dead', value: '68' },
+                    { label: 'Merge clusters', value: '104' },
                 ].map((stat) => (
                     <div key={stat.label} className="rounded-sm border border-n-1 p-3 text-center">
                         <p className="text-2xl font-bold">{stat.value}</p>
