@@ -260,13 +260,18 @@ export const useMultiPhaseKycFlow = ({
         }
     }, [originalHandleSdkComplete, handleSumsubApproved, isActionFlow, regionIntent])
 
+    // true only while a PWA-reload resume drives handleInitiateKyc, so the
+    // analytics event can distinguish a resume from a genuine new initiation
+    // (a resume otherwise looks identical and inflates "initiated" counts).
+    const resumingRef = useRef(false)
+
     // wrap handleInitiateKyc to reset state for new attempts
     const handleInitiateKyc = useCallback(
         async (overrideIntent?: KYCRegionIntent, levelName?: string, crossRegion?: boolean, targetCountry?: string) => {
             const intent = overrideIntent ?? regionIntent
             posthog.capture(
                 intent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_INITIATED : ANALYTICS_EVENTS.KYC_INITIATED,
-                { region_intent: intent, acquisition_source: acquisitionSource }
+                { region_intent: intent, acquisition_source: acquisitionSource, resumed: resumingRef.current }
             )
 
             setModalPhase('verifying')
@@ -295,7 +300,9 @@ export const useMultiPhaseKycFlow = ({
         // remediation flow a bare initiate can't reconstruct) clears the flag
         // instead of falling back to the standard level.
         setSdkAutoStart(true)
+        resumingRef.current = true
         const opened = await handleInitiateKyc()
+        resumingRef.current = false
         // failed resume never opened the SDK — disarm so it can't skip the
         // start view on a later genuine reopen this session.
         if (!opened) setSdkAutoStart(false)
