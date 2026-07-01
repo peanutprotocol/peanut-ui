@@ -3,6 +3,7 @@ import CARD_GRADIENT_5 from './Cart Gradient 5.png'
 import CARD_GRADIENT_9 from './Cart Gradient 9.svg'
 import CARD_GRADIENT_10 from './Cart Gradient 10.svg'
 import VISA_BRAND_MARK from './visa-brand-mark.png'
+import VISA_PLATINUM from './visa-platinum.svg'
 import PEANUT_CARD_HAND from './peanut-card-hand.svg'
 
 import APPLE_STEP_1 from './wallet-steps/apple-step-1.png'
@@ -20,6 +21,7 @@ export {
     CARD_GRADIENT_9,
     CARD_GRADIENT_10,
     VISA_BRAND_MARK,
+    VISA_PLATINUM,
     PEANUT_CARD_HAND,
 }
 
