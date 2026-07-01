@@ -97,12 +97,23 @@ export function RoomView({ slug }: { slug: string }) {
 	const fmt = (minor: bigint) => formatMoney((minor < 0n ? -minor : minor).toString(), room.baseCurrency, currencyMap)
 
 	const share = async () => {
+		const url = window.location.href
+		// Native share sheet on mobile (the primary invite path); fall back to
+		// clipboard, then to a manual prompt so it never silently no-ops.
+		if (typeof navigator !== 'undefined' && navigator.share) {
+			try {
+				await navigator.share({ title: room.title || 'Split room', url })
+				return
+			} catch {
+				return // user dismissed the sheet
+			}
+		}
 		try {
-			await navigator.clipboard.writeText(window.location.href)
+			await navigator.clipboard.writeText(url)
 			setCopied(true)
 			setTimeout(() => setCopied(false), 1500)
 		} catch {
-			/* clipboard blocked — user can copy from the address bar */
+			window.prompt('Copy this link to invite people', url)
 		}
 	}
 
@@ -135,11 +146,13 @@ export function RoomView({ slug }: { slug: string }) {
 				</Button>
 			</div>
 
-			<div className="flex flex-1 flex-col gap-5 overflow-auto p-4 pb-44">
+			<div className="flex flex-1 flex-col gap-5 overflow-auto p-4 pb-48">
 				{/* your balance hero */}
 				<div className="rounded-sm border border-n-1 bg-white p-5 text-center shadow-[4px_4px_0_0_#000]">
 					{myNet === 0n ? (
-						<div className="text-lg font-bold text-n-1">You’re all settled up 🥜</div>
+						<div className="text-lg font-bold text-n-1">
+							{room.expenses.length === 0 ? 'Add your first expense to get started 🥜' : 'You’re all settled up 🥜'}
+						</div>
 					) : (
 						<>
 							<div className="text-sm font-semibold text-grey-1">{myNet > 0n ? 'You are owed' : 'You owe'}</div>
@@ -150,34 +163,30 @@ export function RoomView({ slug }: { slug: string }) {
 					)}
 				</div>
 
-				{/* balances — relationship to YOU */}
-				<div className="flex flex-col gap-1">
-					<div className="text-sm font-semibold text-grey-1">Balances</div>
-					{room.members.map((m) => {
-						const isMe = m.id === meId
-						const rel = relToMe.get(m.id) ?? 0n
-						return (
-							<div key={m.id} className="flex items-center gap-3 py-2.5">
-								<MemberAvatar name={m.displayName} colorSeed={m.colorSeed} size={32} />
-								<span className="flex-1 truncate text-n-1">{isMe ? 'You' : m.displayName}</span>
-								{isMe ? (
-									<span
-										className="text-sm font-bold"
-										style={{ color: myNet > 0n ? CREDIT_GREEN : myNet < 0n ? DEBT_RED : undefined }}
-									>
-										{myNet === 0n ? 'settled' : `${myNet > 0n ? 'you are owed' : 'you owe'} ${fmt(myNet)}`}
-									</span>
-								) : rel === 0n ? (
-									<span className="text-sm text-grey-1">settled up</span>
-								) : (
-									<span className="text-sm font-bold" style={{ color: rel > 0n ? CREDIT_GREEN : DEBT_RED }}>
-										{rel > 0n ? 'owes you' : 'you owe'} {fmt(rel)}
-									</span>
-								)}
-							</div>
-						)
-					})}
-				</div>
+				{/* balances — everyone else, relative to YOU */}
+				{room.members.some((m) => m.id !== meId) && (
+					<div className="flex flex-col gap-1">
+						<div className="text-sm font-semibold text-grey-1">Balances</div>
+						{room.members
+							.filter((m) => m.id !== meId)
+							.map((m) => {
+								const rel = relToMe.get(m.id) ?? 0n
+								return (
+									<div key={m.id} className="flex items-center gap-3 py-2.5">
+										<MemberAvatar name={m.displayName} colorSeed={m.colorSeed} size={32} />
+										<span className="flex-1 truncate text-n-1">{m.displayName}</span>
+										{rel === 0n ? (
+											<span className="text-sm text-grey-1">settled up</span>
+										) : (
+											<span className="text-sm font-bold" style={{ color: rel > 0n ? CREDIT_GREEN : DEBT_RED }}>
+												{rel > 0n ? 'owes you' : 'you owe'} {fmt(rel)}
+											</span>
+										)}
+									</div>
+								)
+							})}
+					</div>
+				)}
 
 				{/* expenses feed */}
 				<div className="flex flex-col gap-2">
@@ -208,7 +217,7 @@ export function RoomView({ slug }: { slug: string }) {
 									</button>
 									<button
 										onClick={() => removeExpense(e)}
-										className="flex size-9 shrink-0 items-center justify-center rounded-sm text-grey-1 hover:text-red"
+										className="flex size-11 shrink-0 items-center justify-center rounded-sm text-grey-1 hover:text-red"
 										aria-label="Delete expense"
 									>
 										✕
@@ -237,7 +246,7 @@ export function RoomView({ slug }: { slug: string }) {
 									</span>
 									<button
 										onClick={() => deleteSettlement.mutate(s.id)}
-										className="flex size-8 shrink-0 items-center justify-center rounded-sm text-grey-1 hover:text-red"
+										className="flex size-10 shrink-0 items-center justify-center rounded-sm text-grey-1 hover:text-red"
 										aria-label="Undo settlement"
 									>
 										✕

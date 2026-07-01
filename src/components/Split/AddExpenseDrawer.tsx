@@ -23,9 +23,15 @@ interface Props {
 
 const FIELD = 'h-14' // one control height across the whole form
 
+/** BigInt-safe minor→major (avoids Number float artifacts on money). */
 function minorToMajor(minor: string, decimals: number): string {
-	const n = Number(minor) / 10 ** decimals
-	return Number.isFinite(n) ? String(n) : '0'
+	const neg = minor.startsWith('-')
+	const abs = (neg ? minor.slice(1) : minor).replace(/^0+(?=\d)/, '') || '0'
+	if (decimals === 0) return (neg ? '-' : '') + abs
+	const padded = abs.padStart(decimals + 1, '0')
+	const whole = padded.slice(0, -decimals)
+	const frac = padded.slice(-decimals).replace(/0+$/, '')
+	return (neg ? '-' : '') + whole + (frac ? '.' + frac : '')
 }
 
 export function AddExpenseDrawer({ open, onOpenChange, room, meMemberId, currencies, currencyMap, editing }: Props) {
@@ -50,19 +56,27 @@ export function AddExpenseDrawer({ open, onOpenChange, room, meMemberId, currenc
 			const baseDec = currencyMap[room.baseCurrency]?.decimals ?? 2
 			const rate = Number(editing.fxRate) || 1
 			setDescription(editing.description)
-			setAmount(minorToMajor(editing.amountMinor, dec))
 			setCurrency(editing.currency)
 			setPaidBy(editing.paidByMemberId)
 			setKind(editing.splitKind)
 			setParticipants(new Set(editing.shares.map((s) => s.memberId)))
 			if (editing.splitKind === 'EXACT') {
 				const ex: Record<string, string> = {}
+				let sumMinor = 0n
 				for (const s of editing.shares) {
-					const baseMajor = Number(s.amountMinor) / 10 ** baseDec
-					ex[s.memberId] = String(Number((baseMajor / rate).toFixed(dec)))
+					// base minor -> expense-currency minor (indicative back-conversion)
+					const curMinor = BigInt(Math.round((Number(s.amountMinor) / 10 ** baseDec / rate) * 10 ** dec))
+					ex[s.memberId] = minorToMajor(curMinor.toString(), dec)
+					sumMinor += curMinor
 				}
 				setExact(ex)
-			} else setExact({})
+				// Total = sum of the reconstructed parts (foreign back-conversion is
+				// lossy) so the "must add up" guard can never wedge an unedited save.
+				setAmount(minorToMajor(sumMinor.toString(), dec))
+			} else {
+				setExact({})
+				setAmount(minorToMajor(editing.amountMinor, dec))
+			}
 		} else {
 			setDescription('')
 			setAmount('')
@@ -167,7 +181,10 @@ export function AddExpenseDrawer({ open, onOpenChange, room, meMemberId, currenc
 					</div>
 					{currency !== room.baseCurrency && totalMinor > 0n && (
 						<div className="-mt-2 text-sm text-grey-1">
-							Balances shown in {room.baseCurrency} at an indicative rate.
+							Balances in {room.baseCurrency} at an indicative rate
+							{editing &&
+								` (${currencyMap[currency]?.symbol ?? currency}1 ≈ ${currencyMap[room.baseCurrency]?.symbol ?? ''}${Number(editing.fxRate).toPrecision(3)})`}
+							.
 						</div>
 					)}
 
@@ -197,6 +214,12 @@ export function AddExpenseDrawer({ open, onOpenChange, room, meMemberId, currenc
 							</button>
 						))}
 					</div>
+
+					{kind === 'EQUAL' && totalMinor > 0n && participants.size > 0 && (
+						<div className="-mt-1 text-center text-sm font-semibold text-grey-1">
+							{formatMoney((totalMinor / BigInt(participants.size)).toString(), currency, currencyMap)} each
+						</div>
+					)}
 
 					<div className="flex flex-col gap-1">
 						{kind === 'EQUAL' && (

@@ -50,29 +50,25 @@ export function SettleUpDrawer({ open, onOpenChange, room, currencyMap }: Props)
 												{formatMoney(t.amountMinor, room.baseCurrency, currencyMap)}
 											</span>
 										</div>
-										<div className="flex gap-2">
-											<Button variant="stroke" className="flex-1" disabled title="Coming soon">
-												Pay with Peanut · soon
-											</Button>
-											<Button
-												variant="dark"
-												className="flex-1"
-												loading={settle.isPending}
-												onClick={() =>
-													settle.mutate({
-														fromMemberId: t.fromMemberId,
-														toMemberId: t.toMemberId,
-														amountMinor: t.amountMinor,
-														method: 'MANUAL',
-													})
-												}
-											>
-												Mark as paid
-											</Button>
-										</div>
+										<Button
+											variant="dark"
+											className="w-full"
+											loading={settle.isPending}
+											onClick={() =>
+												settle.mutate({
+													fromMemberId: t.fromMemberId,
+													toMemberId: t.toMemberId,
+													amountMinor: t.amountMinor,
+													method: 'MANUAL',
+												})
+											}
+										>
+											Mark as paid
+										</Button>
 									</div>
 								)
 							})}
+							<p className="pt-1 text-center text-sm text-grey-1">⚡ Instant pay with Peanut — coming soon</p>
 						</>
 					)}
 				</div>
