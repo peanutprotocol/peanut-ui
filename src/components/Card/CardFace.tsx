@@ -1,9 +1,10 @@
 'use client'
 import { type FC, useState } from 'react'
 import Image from 'next/image'
+import { motion } from 'framer-motion'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { PEANUT_CARD_HAND, VISA_BRAND_MARK } from '@/assets/cards'
+import { PEANUT_CARD_HAND, VISA_PLATINUM } from '@/assets/cards'
 import { PEANUTMAN_LOGO } from '@/assets/mascot'
 
 export interface RevealedCardDetails {
@@ -72,22 +73,27 @@ const CardFace: FC<Props> = ({
             )}
         >
             {/* Hand + yellow stripe artwork. Decorative — sits behind content.
-             * Rotated counterclockwise so the arm sweeps up from the bottom,
-             * leaving the top-right (Visa) and bottom-right (eye toggle)
-             * corners clear. */}
-            <Image
-                src={PEANUT_CARD_HAND}
-                alt=""
+             * On mount the arm swings up into frame, pivoting from its
+             * bottom-right "shoulder", then settles at -15deg — leaving the
+             * top-right (Visa) and bottom-right (eye toggle) corners clear. */}
+            <motion.div
                 aria-hidden
-                className="pointer-events-none absolute -inset-y-10 -right-5 h-full w-auto origin-center -rotate-[15deg] select-none"
-                priority
-            />
+                className="pointer-events-none absolute -inset-y-10 -right-5 select-none"
+                style={{ transformOrigin: '78% 88%' }}
+                initial={{ rotate: 55, x: 28, y: 90, opacity: 0 }}
+                animate={{ rotate: -15, x: 0, y: 0, opacity: 1 }}
+                transition={{ duration: 0.9, ease: [0.34, 1.4, 0.5, 1] }}
+            >
+                <Image src={PEANUT_CARD_HAND} alt="" aria-hidden className="h-full w-auto" priority />
+            </motion.div>
 
             <div className="relative flex h-full w-full flex-col p-4">
-                {/* Top row: peanut icon (no wordmark) + Visa */}
+                {/* Top row: peanut icon + dark Visa Platinum lockup — matches the
+                 * finalised card art sent to Rain (previously an inverted white
+                 * Visa brand mark with no Platinum tier). */}
                 <div className="flex items-start justify-between">
                     <Image src={PEANUTMAN_LOGO} alt="" aria-hidden className="h-10 w-auto" />
-                    <Image src={VISA_BRAND_MARK} alt="Visa" className="h-6 w-auto brightness-0 invert" />
+                    <Image src={VISA_PLATINUM} alt="Visa Platinum" className="h-9 w-auto" />
                 </div>
 
                 {/* Bottom block — PAN sits at the very bottom (in the slot the
