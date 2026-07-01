@@ -19,6 +19,8 @@ export interface MantecaDepositResponseData {
         withdrawCostInAsset: string
         price: string
         priceExpireAt: string
+        // STUB: dynamic PIX QR (EMVCo copia-e-cola) Manteca will add to BRL ramp-on details — exact field name TBC when they ship it (Slack 2026-06-30).
+        qr?: string
     }
     currentStage: number
     stages: {

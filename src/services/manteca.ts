@@ -283,6 +283,19 @@ export const mantecaApi = {
         }
     },
 
+    getDepositStatus: async (depositId: string): Promise<{ data?: { id: string; status: string }; error?: string }> => {
+        try {
+            const response = await serverFetch(`/manteca/deposit/${depositId}/status`)
+            const data = await response.json()
+            if (!response.ok) {
+                return { error: data.error || 'Failed to fetch deposit status.' }
+            }
+            return { data }
+        } catch (error) {
+            return { error: error instanceof Error ? error.message : 'An unexpected error occurred.' }
+        }
+    },
+
     cancelDeposit: async (depositId: string): Promise<{ data?: MantecaDepositResponseData; error?: string }> => {
         try {
             const response = await serverFetch(`/manteca/deposit/${depositId}/cancel`, {
