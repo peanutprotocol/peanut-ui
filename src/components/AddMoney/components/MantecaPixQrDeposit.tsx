@@ -8,6 +8,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useMantecaDepositPolling } from '@/components/AddMoney/hooks/useMantecaDepositPolling'
+import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
 
 const MantecaPixQrDeposit: FC<{
     depositDetails: MantecaDepositResponseData
@@ -71,7 +72,7 @@ const MantecaPixQrDeposit: FC<{
                 </div>
 
                 {!qr ? (
-                    <p className="text-center text-sm text-grey-1">Preparing your PIX QR…</p>
+                    <CyclingLoading />
                 ) : (
                     <>
                         <QRCodeWrapper url={qr} isBlurred={isExpired} disabled={isExpired} className="max-w-[280px]" />
