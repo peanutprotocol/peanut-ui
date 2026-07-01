@@ -618,10 +618,9 @@ jest.mock('@/components/AddMoney/components/MantecaAddMoney', () => ({
     default: () => <div data-testid="manteca-add-money">Manteca Add Money</div>,
 }))
 
-// MantecaTransfersMaintenanceView — the outage screen shown when the
-// disableMantecaTransfers kill-switch is on. Mocked to a testid so GROUP 7 can
-// assert which branch the regional-method route renders without pulling the
-// real NavHeader/Card tree.
+// MantecaTransfersMaintenanceView — the outage screen shown when a currency is
+// in disabledMantecaCurrencies. Mocked to a testid so GROUP 7 can assert which
+// branch the regional-method route renders without pulling the real Card tree.
 jest.mock('@/components/Global/Banner/MantecaTransfersMaintenanceView', () => ({
     __esModule: true,
     MantecaTransfersMaintenanceView: () => <div data-testid="manteca-transfers-maintenance">Manteca Maintenance</div>,
@@ -1423,20 +1422,20 @@ describe('GROUP 6: US Bank Page', () => {
 // ============================================================
 describe('GROUP 7: Manteca Deposit (Regional Method)', () => {
     afterEach(() => {
-        // reset the outage kill-switch so its default value can't leak between tests
-        underMaintenanceConfig.disableMantecaTransfers = false
+        // reset the per-currency outage list so its default value can't leak between tests
+        underMaintenanceConfig.disabledMantecaCurrencies = []
     })
 
-    test('AR + manteca renders MantecaAddMoney when transfers are enabled', () => {
-        underMaintenanceConfig.disableMantecaTransfers = false
+    test('AR + manteca renders MantecaAddMoney when its currency (ARS) is live', () => {
+        underMaintenanceConfig.disabledMantecaCurrencies = ['BRL'] // BRL down, ARS live
         setParams({ country: 'argentina', 'regional-method': 'manteca' })
         renderWithProviders(<AddMoneyRegionalMethodPage />)
 
         expect(screen.getByTestId('manteca-add-money')).toBeInTheDocument()
     })
 
-    test('AR + manteca shows the outage screen when transfers are disabled', () => {
-        underMaintenanceConfig.disableMantecaTransfers = true
+    test('AR + manteca shows the outage screen when ARS is in the disabled list', () => {
+        underMaintenanceConfig.disabledMantecaCurrencies = ['ARS']
         setParams({ country: 'argentina', 'regional-method': 'manteca' })
         renderWithProviders(<AddMoneyRegionalMethodPage />)
 
