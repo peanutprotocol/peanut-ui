@@ -108,10 +108,11 @@ export const RESERVED_ROUTES: readonly string[] = [...DEDICATED_ROUTES, ...STATI
 export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|qr|dev\/payment-graph)/
 
 /**
- * Regex for dev-only public routes (dev index, gift-test, shake-test)
- * Only matched when IS_DEV is true
+ * Regex for dev-only public routes (dev index, gift-test, shake-test, ds playground harnesses)
+ * Only matched when IS_DEV is true (or on non-production deploys)
  */
-export const DEV_ONLY_PUBLIC_ROUTES_REGEX = /^\/(dev$|dev\/gift-test|dev\/shake-test|dev\/ds|dev\/components)/
+export const DEV_ONLY_PUBLIC_ROUTES_REGEX =
+    /^\/(dev$|dev\/gift-test|dev\/shake-test|dev\/perk-success-test|dev\/share-builder|dev\/ds|dev\/components)/
 
 /**
  * Matches locale tags with a required subtag to avoid false-positives on short

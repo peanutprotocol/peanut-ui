@@ -38,10 +38,10 @@ const sections = [
     },
     {
         title: 'Playground',
-        description: 'Interactive test harnesses: shake animations, haptics, confetti, perk flows',
+        description: 'Interactive test harnesses: shake & confetti, perk success, share-asset builder',
         href: '/dev/ds/playground',
         icon: 'bulb' as const,
-        count: 2,
+        count: 3,
     },
 ]
 

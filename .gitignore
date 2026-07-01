@@ -56,6 +56,8 @@ next-env.d.ts
 
 # local files
 playground/
+# ...except the design-system doc-site Playground route, which is a real tracked route
+!src/app/(mobile-ui)/dev/ds/playground/
 
 # yarn and npm lockfiles
 package-lock.json
