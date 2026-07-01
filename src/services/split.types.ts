@@ -14,6 +14,8 @@ export interface SplitMember {
 export interface SplitShare {
 	memberId: string
 	amountMinor: string
+	/** EXACT splits: the amount as typed in the expense currency (minor units); null for EQUAL. */
+	enteredAmountMinor: string | null
 }
 
 export interface SplitExpense {

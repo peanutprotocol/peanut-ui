@@ -64,8 +64,13 @@ export function AddExpenseDrawer({ open, onOpenChange, room, meMemberId, currenc
 				const ex: Record<string, string> = {}
 				let sumMinor = 0n
 				for (const s of editing.shares) {
-					// base minor -> expense-currency minor (indicative back-conversion)
-					const curMinor = BigInt(Math.round((Number(s.amountMinor) / 10 ** baseDec / rate) * 10 ** dec))
+					// Prefer the originally-typed amount (exact round-trip, no drift);
+					// fall back to back-converting from base for rows created before
+					// enteredAmountMinor existed.
+					const curMinor =
+						s.enteredAmountMinor != null
+							? BigInt(s.enteredAmountMinor)
+							: BigInt(Math.round((Number(s.amountMinor) / 10 ** baseDec / rate) * 10 ** dec))
 					ex[s.memberId] = minorToMajor(curMinor.toString(), dec)
 					sumMinor += curMinor
 				}
