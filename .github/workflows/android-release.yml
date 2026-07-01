@@ -136,6 +136,9 @@ jobs:
                   releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
                   tracks: ${{ github.event.inputs.track || 'internal' }}
                   status: completed
+                  # First releases have no reviewed base, so Play can't auto-submit
+                  # for review; commit the edit and review from the Console instead.
+                  changesNotSentForReview: true
                   # Staged production rollout: set status: inProgress + userFraction: 0.1,
                   # then promote in Play Console once crash/error rates look clean.
 
