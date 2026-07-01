@@ -17,7 +17,9 @@ const LAYERS = ['tokens', 'styles', 'primitives', 'components', 'patterns', 'tem
 function StatusChip({ status }: { status: AuditStatus }) {
     const m = STATUS_META[status]
     return (
-        <span className={`inline-block whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${m.cls}`}>
+        <span
+            className={`inline-block whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${m.cls}`}
+        >
             {m.label}
         </span>
     )
@@ -40,7 +42,10 @@ export default function DesignSystemAuditPage() {
             (i) =>
                 (layer === 'all' || i.layer === layer) &&
                 (status === 'all' || i.status === status) &&
-                (!ql || i.name.toLowerCase().includes(ql) || i.catLabel.toLowerCase().includes(ql) || i.notes.toLowerCase().includes(ql))
+                (!ql ||
+                    i.name.toLowerCase().includes(ql) ||
+                    i.catLabel.toLowerCase().includes(ql) ||
+                    i.notes.toLowerCase().includes(ql))
         ).sort((a, b) => b.usages - a.usages)
     }, [layer, status, q])
 
@@ -55,7 +60,10 @@ export default function DesignSystemAuditPage() {
         return AUDIT_CLUSTERS.filter(
             (c) =>
                 (layer === 'all' || c.layer === layer) &&
-                (!ql || c.name.toLowerCase().includes(ql) || c.rec.toLowerCase().includes(ql) || c.collapses.join(' ').toLowerCase().includes(ql))
+                (!ql ||
+                    c.name.toLowerCase().includes(ql) ||
+                    c.rec.toLowerCase().includes(ql) ||
+                    c.collapses.join(' ').toLowerCase().includes(ql))
         ).sort((a, b) => b.from - a.from)
     }, [layer, q])
 
@@ -181,7 +189,9 @@ export default function DesignSystemAuditPage() {
                                 <div
                                     key={cat + idx}
                                     className={`rounded-sm border p-3 ${
-                                        i.status === 'dead' ? 'border-dashed border-grey-1 bg-grey-3/40' : 'border-grey-2 bg-white'
+                                        i.status === 'dead'
+                                            ? 'border-dashed border-grey-1 bg-grey-3/40'
+                                            : 'border-grey-2 bg-white'
                                     }`}
                                 >
                                     <div className="flex items-start justify-between gap-2">
@@ -194,8 +204,12 @@ export default function DesignSystemAuditPage() {
                                         <StatusChip status={i.status} />
                                         {i.role && <span className="text-[11px] text-grey-1">{i.role}</span>}
                                     </div>
-                                    {i.notes && <p className="mt-1.5 text-[11px] leading-snug text-grey-1">{i.notes}</p>}
-                                    {i.source && <p className="mt-1 truncate font-mono text-[10px] text-grey-1/80">{i.source}</p>}
+                                    {i.notes && (
+                                        <p className="mt-1.5 text-[11px] leading-snug text-grey-1">{i.notes}</p>
+                                    )}
+                                    {i.source && (
+                                        <p className="mt-1 truncate font-mono text-[10px] text-grey-1/80">{i.source}</p>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -225,8 +239,8 @@ export default function DesignSystemAuditPage() {
                 ))}
 
             <div className="rounded-sm border border-dashed border-grey-1 p-3 text-[11px] text-grey-1">
-                Counts are call-site greps over <code>src/</code> (all usages, incl. some dev/test). “DEAD” = a
-                delete-<em>candidate</em> to confirm, not an auto-delete — two items were re-classified live after manual
+                Counts are call-site greps over <code>src/</code> (all usages, incl. some dev/test). “DEAD” = a delete-
+                <em>candidate</em> to confirm, not an auto-delete — two items were re-classified live after manual
                 re-grep. Full methodology + per-layer detail: <code>inbox/ds-consolidation-audit/</code>.
             </div>
         </DocPage>
