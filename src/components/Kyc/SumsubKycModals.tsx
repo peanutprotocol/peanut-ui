@@ -24,7 +24,7 @@ export const SumsubKycModals = ({ flow, autoStartSdk }: SumsubKycModalsProps) =>
                 onClose={flow.handleSdkClose}
                 onComplete={flow.handleSdkComplete}
                 onRefreshToken={flow.refreshToken}
-                autoStart={autoStartSdk}
+                autoStart={autoStartSdk || flow.sdkAutoStart}
                 isMultiLevel={flow.isMultiLevel}
             />
 
