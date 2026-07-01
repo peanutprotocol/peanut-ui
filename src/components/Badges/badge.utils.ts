@@ -9,7 +9,7 @@
 // Codes here must match the backend registry (peanut-api-ts
 // src/acknowledgments/seed-definitions.ts). How the whole system works + how to
 // add a badge: peanut-api-ts/docs/BADGES.md.
-import { PEANUTMAN_LOGO } from '@/assets/mascot'
+import { PEANUTMAN } from '@/assets/mascot'
 
 export type BadgeMeta = {
     path: string
@@ -236,7 +236,7 @@ export const BADGE_CODES: readonly string[] = Object.keys(BADGES)
 export function getBadgeIcon(code?: string): string {
     // .src: the svg import is StaticImageData (typed `any` by the module shim, so the
     // annotation alone can't enforce this) — raw <img src> consumers need a string URL.
-    return (code && BADGES[code]?.path) || PEANUTMAN_LOGO.src
+    return (code && BADGES[code]?.path) || PEANUTMAN.src
 }
 
 // returns the public-facing description for a badge code (third-person perspective)

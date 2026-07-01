@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { PEANUT_CARD_HAND, VISA_BRAND_MARK } from '@/assets/cards'
-import { PEANUTMAN_LOGO } from '@/assets/mascot'
+import { PEANUTMAN } from '@/assets/mascot'
 
 export interface RevealedCardDetails {
     pan: string
@@ -86,7 +86,7 @@ const CardFace: FC<Props> = ({
             <div className="relative flex h-full w-full flex-col p-4">
                 {/* Top row: peanut icon (no wordmark) + Visa */}
                 <div className="flex items-start justify-between">
-                    <Image src={PEANUTMAN_LOGO} alt="" aria-hidden className="h-10 w-auto" />
+                    <Image src={PEANUTMAN} alt="" aria-hidden className="h-10 w-auto" />
                     <Image src={VISA_BRAND_MARK} alt="Visa" className="h-6 w-auto brightness-0 invert" />
                 </div>
 
