@@ -1,6 +1,6 @@
 {
     "name": "peanut-ui",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "private": true,
     "engines": {
         "node": ">=21.1.0 <22.0.0 || ^20.9.0"
