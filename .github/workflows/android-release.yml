@@ -6,7 +6,7 @@ name: Android Release (Play)
 #
 # Trigger: push a tag `vX.Y.Z`, or run manually (workflow_dispatch) and pick a track.
 # Prereq: fix/native-build-reliability must be merged (card-comparison static-export
-#         fix + Java 17 force) or `native:release` will fail to build.
+#         fix) or `native:release` will fail to build.
 #
 # Required repo secrets (see docs/NATIVE-RELEASE.md §Ops):
 #   ANDROID_KEYSTORE_BASE64      base64 of the upload keystore
@@ -60,7 +60,7 @@ jobs:
             - uses: actions/setup-java@v4
               with:
                   distribution: 'temurin'
-                  java-version: '17' # matches the Java 17 force in android/build.gradle
+                  java-version: '21' # Capacitor 8's capacitor-android compiles at source 21
 
             - name: Install dependencies
               run: pnpm install
