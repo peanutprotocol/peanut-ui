@@ -95,6 +95,40 @@ try {
 	check('after settle: no suggested transfers', st.suggestedTransfers.length === 0)
 	check('settlements recorded', st.settlements.length >= 1, `${st.settlements.length}`)
 
+	// --- regression: re-saving a foreign EXACT expense must not drift balances ---
+	const req = (method, path, body) =>
+		new Promise((res, rej) => {
+			const data = body ? JSON.stringify(body) : null
+			const r = http.request(
+				{ host: '127.0.0.1', port: 5051, path, method, headers: data ? { 'Content-Type': 'application/json' } : {} },
+				(x) => {
+					let b = ''
+					x.on('data', (c) => (b += c))
+					x.on('end', () => res(JSON.parse(b)))
+				}
+			)
+			r.on('error', rej)
+			if (data) r.write(data)
+			r.end()
+		})
+	const dr = await req('POST', '/split/rooms', { baseCurrency: 'EUR', title: 'drift' })
+	const dal = (await req('POST', `/split/rooms/${dr.slug}/members`, { displayName: 'Al' })).createdMemberId
+	const dbo = (await req('POST', `/split/rooms/${dr.slug}/members`, { displayName: 'Bo' })).createdMemberId
+	const made = await req('POST', `/split/rooms/${dr.slug}/expenses`, {
+		description: 'Fuel', amountMinor: '300000', currency: 'THB', paidByMemberId: dal, splitKind: 'EXACT',
+		exactShares: [{ memberId: dal, amountMinor: '200000' }, { memberId: dbo, amountMinor: '100000' }],
+	})
+	const eid = made.expenses[0].id
+	const balBefore = JSON.stringify(made.balances)
+	const entered = Object.fromEntries(made.expenses[0].shares.map((s) => [s.memberId, s.enteredAmountMinor]))
+	check('foreign EXACT entered amounts round-trip', entered[dal] === '200000' && entered[dbo] === '100000', JSON.stringify(entered))
+	// edit the title only, re-sending the round-tripped entered amounts (what the UI does)
+	const edited = await req('PATCH', `/split/rooms/${dr.slug}/expenses/${eid}`, {
+		description: 'Fuel v2', amountMinor: '300000', currency: 'THB', paidByMemberId: dal, splitKind: 'EXACT',
+		exactShares: [{ memberId: dal, amountMinor: entered[dal] }, { memberId: dbo, amountMinor: entered[dbo] }],
+	})
+	check('foreign EXACT re-save: no balance drift', JSON.stringify(edited.balances) === balBefore)
+
 	console.log(`\nRESULT: ${fails === 0 ? 'ALL PASS' : fails + ' FAILED'}`)
 } catch (e) {
 	console.log('E2E ERROR:', e.message)
