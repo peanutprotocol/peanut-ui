@@ -7,6 +7,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import ProfileMenuItem from '@/components/Profile/components/ProfileMenuItem'
 import { Icon } from '@/components/Global/Icons/Icon'
+import InfoCard from '@/components/Global/InfoCard'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CardFace from '@/components/Card/CardFace'
 import CancelCardModal from '@/components/Card/CancelCardModal'
@@ -86,6 +87,13 @@ const YourCardScreen: FC<Props> = ({ card, onPrev }) => {
                     </button>
                 </div>
             )}
+
+            <InfoCard
+                variant="info"
+                icon="credit-card"
+                title="Pay as credit"
+                description="When a terminal asks debit or credit, choose credit — your Peanut card runs on the credit network."
+            />
 
             <div className="flex flex-col gap-2">
                 <h2 className="text-base font-bold text-n-1">Card management</h2>
