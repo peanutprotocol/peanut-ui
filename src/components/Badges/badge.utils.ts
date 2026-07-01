@@ -221,6 +221,11 @@ export const BADGES: Record<string, BadgeMeta> = {
         description: 'Ilha da Magia, baby. Coconuts and consensus.',
         displayName: 'Ethereum Hub Floripa',
     },
+    FLORIPA_COFFEE: {
+        path: '/badges/floripa_coffee.svg',
+        description: 'You showed up for the coffee and stayed for the nomads — Floripa style.',
+        displayName: 'Floripa Fuel',
+    },
     // Skip Pass — friends-of-Peanut who bypassed the waitlist via /invite?campaign=skip.
     // Awarded by the backend /badge/award endpoint, which also flips hasAppAccess.
     WAITLIST_SKIP: {
