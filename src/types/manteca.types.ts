@@ -11,10 +11,23 @@ export interface MantecaDepositResponseData {
     type: 'RAMP_OPERATION'
     details: {
         depositAddresses: {
-            BANK_TRANSFER: string
+            BANK_TRANSFER?: string
+            // dynamic BRL PIX QR — confirmed against prod 2026-07-02
+            // (mono ops/scripts/manteca/probe-brl-rampon-qr.ts)
+            PIX?: {
+                type: 'QR'
+                // EMVCo "copia e cola" string — QR-encode it and offer copy
+                code: string
+                // Manteca-hosted QR page (unused by us, kept for parity)
+                url: string
+                // QR string validity (~3 days) — NOT the price lock expiry
+                expiresAt: string
+                bankId: string
+            }
         }
-        depositAddress: string
-        depositAlias: string
+        // absent for BRL — PIX deposits are QR-only since Manteca's med-2.0 switch
+        depositAddress?: string
+        depositAlias?: string
         withdrawCostInAgainst: string
         withdrawCostInAsset: string
         price: string

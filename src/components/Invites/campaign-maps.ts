@@ -12,6 +12,7 @@ export const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
     founderhaus: 'FOUNDER_HOUSE',
     alumni: 'EVENT_ALUMNI',
     touched_grass: 'TOUCHED_GRASS',
+    offramp: 'OFFRAMP_USER',
     irl_nomads: 'IRL_NOMADS',
     survivor: 'SUPPORT_SURVIVOR',
     notsoshhh: 'NOT_SO_SHHHH',
@@ -31,6 +32,7 @@ export const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
     ethfloripa: 'ETHFLORIPA_HUB',
     alumni: 'EVENT_ALUMNI',
     'touched-grass': 'TOUCHED_GRASS',
+    offramp: 'OFFRAMP_USER',
     'festa-junina': 'FESTA_JUNINA_2026',
     'card-alpha': 'CARD_ALPHA',
     'irl-nomads': 'IRL_NOMADS',
@@ -53,6 +55,7 @@ export const BARE_VANITY_CAMPAIGNS: ReadonlySet<string> = new Set([
     'card_alpha',
     'festa_junina_2026',
     'irl_nomads',
+    'offramp_user',
 ])
 
 export type CampaignClassification = {

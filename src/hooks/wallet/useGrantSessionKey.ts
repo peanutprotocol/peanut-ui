@@ -6,6 +6,7 @@ import { pad, parseAbi, toFunctionSelector } from 'viem'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useKernelClient } from '@/context/kernelClient.context'
+import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import { useQueryClient } from '@tanstack/react-query'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
@@ -66,8 +67,12 @@ export type GrantSessionKeyError =
 
 export interface GrantSessionKeyResult {
     /** Full grant: passkey tap + POST to `/session-approve`. Requires an
-     *  active card; use for the lazy "first collateral spend" flow. */
-    grant: () => Promise<{ ok: true } | { ok: false; error: GrantSessionKeyError }>
+     *  active card; use for the lazy "first collateral spend" flow.
+     *  `overviewFresh` is false when the grant itself succeeded but the
+     *  follow-up overview refetch failed (react-query refetch resolves with
+     *  an error state instead of throwing) — consumers must NOT read the
+     *  still-stale `hasWithdrawApproval` as a lockout signal in that case. */
+    grant: () => Promise<{ ok: true; overviewFresh: boolean } | { ok: false; error: GrantSessionKeyError }>
     /** Passkey tap only — returns the serialized approval string without
      *  submitting it. Use when the card doesn't exist yet (issuance) and
      *  another endpoint stores the string (e.g. `POST /rain/cards`). */
@@ -217,7 +222,7 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
 
     const grant = useCallback<GrantSessionKeyResult['grant']>(async () => {
         const result = await wrap(async () => {
-            const card = overview?.cards?.[0]
+            const card = findActiveCard(overview)
             if (!card) return { ok: false, error: { kind: 'no-card' } as const }
 
             const r = await runSerialize()
@@ -230,11 +235,14 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
             }
 
             // Flip the `hasWithdrawApproval` flag in UI by refetching overview.
-            await refetch()
+            // refetch() resolves (never throws) with an error state on network
+            // failure — surface that so the caller can tell "flag is stale"
+            // apart from "flag genuinely didn't flip".
+            const refetchResult = await refetch()
             queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
-            return { ok: true as const }
+            return { ok: true as const, value: refetchResult.isSuccess }
         })
-        if (result.ok) return { ok: true }
+        if (result.ok) return { ok: true, overviewFresh: result.value === true }
         return result
     }, [wrap, runSerialize, overview, refetch, queryClient])
 

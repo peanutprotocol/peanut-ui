@@ -287,6 +287,22 @@ export const mantecaApi = {
         }
     },
 
+    getDepositStatus: async (
+        depositId: string
+        // stage: 1 = QR live awaiting fiat, >= 2 = fiat received (settling), null = no snapshot
+    ): Promise<{ data?: { id: string; status: string; stage?: number | null }; error?: string }> => {
+        try {
+            const response = await serverFetch(`/manteca/deposit/${depositId}/status`)
+            const data = await response.json()
+            if (!response.ok) {
+                return { error: data.error || 'Failed to fetch deposit status.' }
+            }
+            return { data }
+        } catch (error) {
+            return { error: error instanceof Error ? error.message : 'An unexpected error occurred.' }
+        }
+    },
+
     cancelDeposit: async (depositId: string): Promise<{ data?: MantecaDepositResponseData; error?: string }> => {
         try {
             const response = await serverFetch(`/manteca/deposit/${depositId}/cancel`, {

@@ -1,11 +1,15 @@
 'use client'
 
+import type { ReactNode } from 'react'
+
 export type FAQsProps = {
     heading: string
     questions: Array<{
         id: string
         question: string
         answer: string
+        /** Rich JSX answer body — rendered instead of `answer`, which still feeds SEO schemas */
+        answerContent?: ReactNode
         redirectUrl?: string
         redirectText?: string
         calModal?: boolean
@@ -54,7 +58,7 @@ export function FAQsPanel({ heading, questions }: FAQsProps) {
                                 </span>
                             </summary>
                             <div className="mt-4 text-lg font-semibold leading-6 text-n-1 md:text-xl">
-                                <p className="whitespace-pre-line">{linkifyText(faq.answer)}</p>
+                                {faq.answerContent ?? <p className="whitespace-pre-line">{linkifyText(faq.answer)}</p>}
                                 {faq.calModal && (
                                     <a
                                         data-cal-link="kkonrad+hugo0/15min?duration=30"
