@@ -230,3 +230,141 @@ describe('useSumsubKycFlow — terminal-error exits clear the user-initiated gua
         await waitFor(() => expect(onKycSuccess).toHaveBeenCalledTimes(1))
     })
 })
+
+// Incident 2026-07-02: while the verification-progress modal was open, this hook
+// fired initiateSumsubKyc — a MUTATING endpoint — on a fixed 5s setInterval for
+// the entire modal-open, re-running provider submissions for approved-LATAM
+// self-recovery users (86 in 20 min for one user). The poll now backs off on a
+// time-escalating schedule (5s for the first minute, then 10s → 20s → 60s) and
+// stops entirely after a ~15 min cap. Backoff is time-based, not error-based:
+// the poll returns HTTP 200 even when the backend reprocess fails.
+describe('useSumsubKycFlow — verification-progress poll backoff', () => {
+    beforeEach(() => {
+        jest.useFakeTimers()
+        mockInitiate.mockReset()
+        // PENDING is a keep-open status (the transition effect only closes on a
+        // terminal non-APPROVED state), so the modal stays open across polls and
+        // every recorded call is attributable to the poll timer.
+        mockInitiate.mockResolvedValue({ data: { token: null, applicantId: 'poll', status: 'PENDING' } })
+        mockWs.handler = undefined
+    })
+    afterEach(() => {
+        jest.clearAllTimers()
+        jest.useRealTimers()
+    })
+
+    // Open the modal via handleSdkComplete (the SDK-submitted path): it flips
+    // isVerificationProgressModalOpen without itself calling initiateSumsubKyc.
+    // regionIntent is left undefined so the mount-time status fetch short-circuits.
+    const openModal = () => {
+        const view = renderHook(() => useSumsubKycFlow({}))
+        act(() => {
+            view.result.current.handleSdkComplete()
+        })
+        return view
+    }
+
+    it('escalates the poll cadence 5s → 10s → 20s as the modal stays open', async () => {
+        openModal()
+
+        // setInterval-parity: nothing fires immediately, the first poll is one delay out.
+        expect(mockInitiate).toHaveBeenCalledTimes(0)
+
+        // first ~1 min: 5s cadence → 12 polls by t=60s.
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(60_000)
+        })
+        expect(mockInitiate).toHaveBeenCalledTimes(12)
+
+        // the next poll is now 10s out, not 5s: +5s yields nothing, +5s more yields one.
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(5_000)
+        })
+        expect(mockInitiate).toHaveBeenCalledTimes(12)
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(5_000)
+        })
+        expect(mockInitiate).toHaveBeenCalledTimes(13)
+
+        // 60–120s band holds the 10s cadence → 18 polls by t=120s.
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(50_000)
+        })
+        expect(mockInitiate).toHaveBeenCalledTimes(18)
+
+        // 120–180s band escalates to 20s: +19s nothing, +1s one.
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(19_000)
+        })
+        expect(mockInitiate).toHaveBeenCalledTimes(18)
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(1_000)
+        })
+        expect(mockInitiate).toHaveBeenCalledTimes(19)
+    })
+
+    it('stops polling entirely after the ~15 min cap', async () => {
+        openModal()
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(15 * 60_000)
+        })
+        const countAtCap = mockInitiate.mock.calls.length
+        // escalation kept this far below a fixed-5s cadence (~180 calls over 15 min).
+        expect(countAtCap).toBeGreaterThan(0)
+        expect(countAtCap).toBeLessThan(40)
+
+        // past the cap the chain is not rescheduled — no further calls, ever.
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(30 * 60_000)
+        })
+        expect(mockInitiate).toHaveBeenCalledTimes(countAtCap)
+    })
+
+    it('cancels the pending timer when the modal closes', async () => {
+        const { result } = openModal()
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(5_000)
+        })
+        expect(mockInitiate).toHaveBeenCalledTimes(1)
+
+        act(() => {
+            result.current.closeVerificationProgressModal()
+        })
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(60_000)
+        })
+        expect(mockInitiate).toHaveBeenCalledTimes(1)
+    })
+
+    it('cancels the pending timer on unmount', async () => {
+        const { unmount } = openModal()
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(5_000)
+        })
+        expect(mockInitiate).toHaveBeenCalledTimes(1)
+
+        unmount()
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(60_000)
+        })
+        expect(mockInitiate).toHaveBeenCalledTimes(1)
+    })
+
+    it('polls initiateSumsubKyc with the same region/level/country args as before', async () => {
+        openModal()
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(5_000)
+        })
+        expect(mockInitiate).toHaveBeenCalledWith({
+            regionIntent: undefined,
+            levelName: undefined,
+            targetCountry: undefined,
+        })
+    })
+})
