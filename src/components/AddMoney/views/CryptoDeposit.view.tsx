@@ -17,6 +17,7 @@ import {
     SUPPORTED_EVM_CHAINS,
     NETWORK_LABELS,
     NETWORK_LOGOS,
+    TOKEN_LOGOS,
     getSupportedTokens,
 } from '@/constants/rhino.consts'
 import type {
@@ -35,6 +36,9 @@ interface CryptoDepositViewProps {
     isLoading: boolean
     onSuccess: (amount: number, statusData?: DepositAddressStatusResponse) => void
     onBack: () => void
+    // offramp migration: same rhino EVM SDA (funds land on arbitrum) but with the
+    // multi-chain / multi-token picker stripped to a single arbitrum + usdc surface.
+    variant?: 'default' | 'offramp'
 }
 
 const TOOLTIP_TEXT: Record<RhinoChainType, string> = {
@@ -43,23 +47,32 @@ const TOOLTIP_TEXT: Record<RhinoChainType, string> = {
     TRON: 'Your Tron deposit address. Deposits are bridged to Arbitrum (±0.1% variance).',
 }
 
-const CryptoDepositView = ({ network, depositAddressData, isLoading, onSuccess, onBack }: CryptoDepositViewProps) => {
+const CryptoDepositView = ({
+    network,
+    depositAddressData,
+    isLoading,
+    onSuccess,
+    onBack,
+    variant = 'default',
+}: CryptoDepositViewProps) => {
     const [showHowToDeposit, setShowHowToDeposit] = useState(false)
     const [showSupportedNetworks, setShowSupportedNetworks] = useState(false)
     const { status, resetStatus, isResetting } = useCryptoDepositPolling(depositAddressData?.depositAddress, onSuccess)
 
     const networkLabel = NETWORK_LABELS[network]
     const isEvm = network === 'EVM'
+    const isOfframp = variant === 'offramp'
 
     const supportedTokens = getSupportedTokens(network)
 
-    const amountLimitsLabel = isEvm ? 'EVM networks' : networkLabel
+    const amountLimitsLabel = isOfframp ? 'Arbitrum' : isEvm ? 'EVM networks' : networkLabel
+    const headerTitle = isOfframp ? 'Migrate from Offramp' : 'Deposit Crypto'
 
     // failed state
     if (status === 'failed') {
         return (
             <div className="flex min-h-[inherit] w-full flex-col justify-start gap-8 pb-5 md:pb-0">
-                <NavHeader title="Deposit Crypto" onPrev={onBack} />
+                <NavHeader title={headerTitle} onPrev={onBack} />
                 <div className="flex h-full min-h-[60vh] flex-col items-center justify-center gap-4">
                     <Card>
                         <div className="flex w-full flex-col items-center justify-center gap-2">
@@ -85,12 +98,20 @@ const CryptoDepositView = ({ network, depositAddressData, isLoading, onSuccess, 
 
     return (
         <div className="flex min-h-[inherit] w-full flex-col gap-8 pb-5 md:pb-0">
-            <NavHeader title="Deposit Crypto" onPrev={onBack} />
+            <NavHeader title={headerTitle} onPrev={onBack} />
 
             <div className="my-auto flex w-full flex-col gap-4">
                 {/* subtitle */}
                 <p className="text-center text-sm text-grey-1">
-                    Send tokens to this <span className="font-bold text-n-1">{networkLabel}</span> address
+                    {isOfframp ? (
+                        <>
+                            Send <span className="font-bold text-n-1">USDC on Arbitrum</span> to migrate your balance
+                        </>
+                    ) : (
+                        <>
+                            Send tokens to this <span className="font-bold text-n-1">{networkLabel}</span> address
+                        </>
+                    )}
                 </p>
 
                 {/* loading state */}
@@ -106,7 +127,7 @@ const CryptoDepositView = ({ network, depositAddressData, isLoading, onSuccess, 
                         <div className="flex items-center justify-center">
                             <QRCodeWrapper
                                 url={depositAddressData.depositAddress}
-                                centerImage={NETWORK_LOGOS[network]}
+                                centerImage={isOfframp ? CHAIN_LOGOS.ARBITRUM : NETWORK_LOGOS[network]}
                             />
                         </div>
 
@@ -115,14 +136,18 @@ const CryptoDepositView = ({ network, depositAddressData, isLoading, onSuccess, 
                             {/* address section */}
                             <div className="flex flex-col gap-2 p-4">
                                 <div className="flex items-center gap-1">
-                                    <Tooltip content={TOOLTIP_TEXT[network]} position="bottom">
-                                        <span className="flex items-center gap-1">
-                                            <span className="text-sm font-bold">
-                                                {isEvm ? 'Universal Deposit Address' : 'Deposit Address'}
+                                    {isOfframp ? (
+                                        <span className="text-sm font-bold">Your Arbitrum address</span>
+                                    ) : (
+                                        <Tooltip content={TOOLTIP_TEXT[network]} position="bottom">
+                                            <span className="flex items-center gap-1">
+                                                <span className="text-sm font-bold">
+                                                    {isEvm ? 'Universal Deposit Address' : 'Deposit Address'}
+                                                </span>
+                                                <Icon name="info" size={18} className="text-grey-1" />
                                             </span>
-                                            <Icon name="info" size={18} className="text-grey-1" />
-                                        </span>
-                                    </Tooltip>
+                                        </Tooltip>
+                                    )}
                                 </div>
                                 <div className="flex items-start justify-between gap-2">
                                     <p className="break-all text-sm">
@@ -145,16 +170,20 @@ const CryptoDepositView = ({ network, depositAddressData, isLoading, onSuccess, 
                             {/* supported networks section */}
                             <div
                                 onClick={() => {
-                                    if (isEvm) {
+                                    if (isEvm && !isOfframp) {
                                         setShowSupportedNetworks(true)
                                     }
                                 }}
-                                className={`border-t border-black p-4 ${isEvm ? 'cursor-pointer' : ''}`}
+                                className={`border-t border-black p-4 ${isEvm && !isOfframp ? 'cursor-pointer' : ''}`}
                             >
-                                <p className="mb-2 text-sm font-bold">Supported Networks:</p>
+                                <p className="mb-2 text-sm font-bold">
+                                    {isOfframp ? 'Network:' : 'Supported Networks:'}
+                                </p>
                                 <div className="flex items-center gap-2">
                                     <div className="flex flex-wrap gap-2">
-                                        {isEvm ? (
+                                        {isOfframp ? (
+                                            <ChainChip chainName="Arbitrum" chainSymbol={CHAIN_LOGOS.ARBITRUM} />
+                                        ) : isEvm ? (
                                             <>
                                                 {SUPPORTED_EVM_CHAINS.map((chain) => (
                                                     <Image
@@ -174,7 +203,7 @@ const CryptoDepositView = ({ network, depositAddressData, isLoading, onSuccess, 
                                             />
                                         )}
                                     </div>
-                                    {isEvm && (
+                                    {isEvm && !isOfframp && (
                                         <Button
                                             shadowSize="4"
                                             size="small"
@@ -190,15 +219,17 @@ const CryptoDepositView = ({ network, depositAddressData, isLoading, onSuccess, 
 
                             {/* supported tokens section */}
                             <div className="border-t border-black p-4">
-                                <p className="mb-2 text-sm font-bold">Supported Tokens:</p>
+                                <p className="mb-2 text-sm font-bold">{isOfframp ? 'Token:' : 'Supported Tokens:'}</p>
                                 <div className="flex flex-wrap gap-1.5">
-                                    {supportedTokens.map((token) => (
-                                        <ChainChip
-                                            key={token.name}
-                                            chainName={token.name}
-                                            chainSymbol={token.logoUrl}
-                                        />
-                                    ))}
+                                    {(isOfframp ? [{ name: 'USDC', logoUrl: TOKEN_LOGOS.USDC }] : supportedTokens).map(
+                                        (token) => (
+                                            <ChainChip
+                                                key={token.name}
+                                                chainName={token.name}
+                                                chainSymbol={token.logoUrl}
+                                            />
+                                        )
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -207,8 +238,12 @@ const CryptoDepositView = ({ network, depositAddressData, isLoading, onSuccess, 
                         <InfoCard
                             variant="warning"
                             icon="alert"
-                            title="Send to supported networks only"
-                            description="Wrong token or network may cause permanent loss."
+                            title={isOfframp ? 'Send USDC on Arbitrum only' : 'Send to supported networks only'}
+                            description={
+                                isOfframp
+                                    ? 'Other tokens or networks may cause permanent loss.'
+                                    : 'Wrong token or network may cause permanent loss.'
+                            }
                         />
 
                         {/* min/max limits */}

@@ -29,6 +29,9 @@ const AddMoneyCryptoPage = () => {
         'network',
         parseAsStringEnum<RhinoChainType>(['EVM', 'SOL', 'TRON']).withDefault('EVM')
     )
+    // offramp migration deep-link: strips the chain/token picker down to arbitrum + usdc
+    const [source] = useQueryState('source', parseAsStringEnum(['offramp']))
+    const isOfframp = source === 'offramp'
     const [showSuccessView, setShowSuccessView] = useState(false)
     const [depositResult, setDepositResult] = useState<DepositAddressStatusResponse | null>(null)
 
@@ -45,13 +48,13 @@ const AddMoneyCryptoPage = () => {
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_COMPLETED, {
                 amount,
                 chain_type: network,
-                method_type: 'crypto',
+                method_type: isOfframp ? 'offramp_migration' : 'crypto',
                 acquisition_source: user?.invitedBy ? 'referred' : 'organic',
             })
             setDepositResult(statusData ?? { status: 'completed', amount })
             setShowSuccessView(true)
         },
-        [network, user?.invitedBy]
+        [network, user?.invitedBy, isOfframp]
     )
 
     // build minimal transaction details for the receipt drawer
@@ -123,6 +126,7 @@ const AddMoneyCryptoPage = () => {
             isLoading={isLoading}
             onSuccess={handleSuccess}
             onBack={onBack}
+            variant={isOfframp ? 'offramp' : 'default'}
         />
     )
 }
