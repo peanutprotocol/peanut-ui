@@ -56,11 +56,11 @@ const SUPPORTED_RAILS_QUESTION = {
     answer: SUPPORTED_RAILS_FAQ_ANSWER,
 }
 
-// Insert before the last content question, which is the "My question is not
-// here → help center" catch-all by convention.
+// Insert right after the "What is Peanut?" question (falls back to the end).
 function withSupportedRails(questions: LandingContent['faqData']['questions']) {
-    if (questions.length === 0) return [SUPPORTED_RAILS_QUESTION]
-    return [...questions.slice(0, -1), SUPPORTED_RAILS_QUESTION, ...questions.slice(-1)]
+    const idx = questions.findIndex((q) => /what is peanut\??/i.test(q.question))
+    const at = idx === -1 ? questions.length : idx + 1
+    return [...questions.slice(0, at), SUPPORTED_RAILS_QUESTION, ...questions.slice(at)]
 }
 
 export function getLandingContent(locale: Locale = 'en'): LandingContent {
