@@ -147,18 +147,19 @@ jobs:
                   </plist>
                   EOF
 
-                  # Flip Automatic → manual signing via command-line build settings (the
-                  # project default is Automatic; these override it for this archive only).
+                  # Manual signing lives in the App target's Release build config
+                  # (CODE_SIGN_STYLE=Manual, DEVELOPMENT_TEAM, CODE_SIGN_IDENTITY,
+                  # PROVISIONING_PROFILE_SPECIFIER="Peanut Wallet App Store"). It is NOT
+                  # passed on the command line: global build settings leak onto the SwiftPM
+                  # dependency targets (Alamofire, ZIPFoundation, …), which reject a
+                  # provisioning profile and fail the archive. Only version numbers, which
+                  # are harmless to inherit, are overridden here.
                   xcodebuild \
                       -project ios/App/App.xcodeproj \
                       -scheme App \
                       -configuration Release \
                       -destination 'generic/platform=iOS' \
                       -archivePath build/ios/App.xcarchive \
-                      CODE_SIGN_STYLE=Manual \
-                      DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-                      CODE_SIGN_IDENTITY="Apple Distribution" \
-                      PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
                       CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER" \
                       "${MARKETING_ARG[@]}" \
                       archive
