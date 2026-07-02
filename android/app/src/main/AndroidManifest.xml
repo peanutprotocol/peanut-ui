@@ -25,6 +25,41 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- App Links for peanut.me. Scoped to in-app routes via exact path +
+                 trailing-slash prefix so web-only siblings (e.g. /send-money-to,
+                 /pay-with) and marketing/help/locale pages still open in the browser.
+                 Requires https://peanut.me/.well-known/assetlinks.json to verify. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="https" android:host="peanut.me" />
+
+                <data android:path="/home" />
+                <data android:pathPrefix="/home/" />
+                <data android:path="/card" />
+                <data android:pathPrefix="/card/" />
+                <data android:path="/claim" />
+                <data android:pathPrefix="/claim/" />
+                <data android:path="/pay" />
+                <data android:pathPrefix="/pay/" />
+                <data android:path="/pay-request" />
+                <data android:pathPrefix="/pay-request/" />
+                <data android:path="/send" />
+                <data android:pathPrefix="/send/" />
+                <data android:path="/request" />
+                <data android:pathPrefix="/request/" />
+                <data android:path="/qr" />
+                <data android:pathPrefix="/qr/" />
+                <data android:path="/add-money" />
+                <data android:pathPrefix="/add-money/" />
+                <data android:path="/withdraw" />
+                <data android:pathPrefix="/withdraw/" />
+                <data android:path="/receipt" />
+                <data android:pathPrefix="/receipt/" />
+            </intent-filter>
+
         </activity>
 
         <provider
