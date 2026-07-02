@@ -37,6 +37,7 @@ import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
 import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
+import { eeaUpliftReasonCode, isEeaUpliftAdvisory } from '@/utils/eea-uplift.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
@@ -141,9 +142,10 @@ export default function OnrampBankPage() {
         // Route through the self-heal resubmit path (reheal-tagged action) so the
         // completed submission round-trips to Bridge. start-action mints a plain
         // token whose webhook completion has no Bridge relay → answers are dropped.
+        // NB: eea_uplift_started is fired at modal-open (handleAmountContinue),
+        // not here, so abandoners are captured too.
         onCompleteNow: () => {
             if (!advisory) return Promise.resolve()
-            trackUpliftStarted(advisory)
             return sumsubFlow.handleSelfHealResubmit('BRIDGE', advisory.requirementKey)
         },
     })
@@ -262,6 +264,12 @@ export default function OnrampBankPage() {
             if (gate.kind === 'accept-tos') {
                 guardWithTos()
             } else {
+                // urgent (post-cliff) EEA uplift lands here as a fixable-rejection —
+                // fire the funnel event as this KYC modal opens.
+                const upliftCode = eeaUpliftReasonCode(gate)
+                if (upliftCode) {
+                    trackUpliftStarted({ requirementKey: upliftCode, source: 'blocking' })
+                }
                 setShowKycModal(true)
             }
             return
@@ -271,6 +279,16 @@ export default function OnrampBankPage() {
         // (record the amount-entered event, open the confirmation modal) only
         // runs once there's no pending requirement; while one exists the modal
         // blocks and this never fires, so the event can't double-count.
+        // Upcoming (future-dated) EEA uplift opens the advisory modal here — fire
+        // the funnel event as it opens.
+        if (isEeaUpliftAdvisory(advisory)) {
+            trackUpliftStarted({
+                requirementKey: advisory?.requirementKey,
+                actionKey: advisory?.actionKey,
+                effectiveDate: advisory?.effectiveDate,
+                source: 'advisory',
+            })
+        }
         advisoryIntercept(() => {
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_AMOUNT_ENTERED, {
                 amount_usd: usdEquivalent,
