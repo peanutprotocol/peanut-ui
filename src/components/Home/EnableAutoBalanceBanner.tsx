@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import * as Sentry from '@sentry/nextjs'
+import { captureMessage } from '@sentry/nextjs'
 import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -48,6 +48,11 @@ export default function EnableAutoBalanceBanner() {
     // for — keyed by identity so a later re-issued card never inherits the
     // stuck signal from an old card's grant.
     const [grantSucceededFor, setGrantSucceededFor] = useState<string | null>(null)
+    // Card id of the last grant attempt that RESOLVED (ok or failed). Gates
+    // `lastError` below: the hook's error state isn't card-scoped, so without
+    // this a failure on card A would leak "Try again" copy and the escape
+    // hatch into a re-issued card B's first-ever prompt.
+    const [lastAttemptFor, setLastAttemptFor] = useState<string | null>(null)
 
     const card = findActiveCard(overview)
     const shouldShow =
@@ -56,10 +61,16 @@ export default function EnableAutoBalanceBanner() {
         !!overview?.status?.contractAddress &&
         !!overview?.status?.coordinatorAddress
 
+    // Only honor the hook's error if the attempt it came from was for THIS
+    // card. `lastAttemptFor === null` (error with no recorded attempt) can't
+    // occur in real flows but defaults to honoring the error — an unearned
+    // escape beats an unearned trap.
+    const errorForThisCard = !!lastError && (lastAttemptFor === null || lastAttemptFor === card?.id)
+
     // `user-cancelled` just means the passkey sheet was dismissed — not a real
     // error, the user simply taps Continue again. Any other failure gets a
     // recoverable message.
-    const hardError = !!lastError && lastError.kind !== 'user-cancelled'
+    const hardError = errorForThisCard && lastError!.kind !== 'user-cancelled'
 
     // Loop signal: grant() resolved ok with a FRESH overview, yet the SAME
     // card still lacks the approval. That is the dup-card lockout shape —
@@ -76,7 +87,7 @@ export default function EnableAutoBalanceBanner() {
             console.warn(
                 '[EnableAutoBalanceBanner] grant succeeded but the active card still lacks hasWithdrawApproval — duplicate-card lockout shape'
             )
-            Sentry.captureMessage('card session-key grant succeeded but hasWithdrawApproval never flipped', {
+            captureMessage('card session-key grant succeeded but hasWithdrawApproval never flipped', {
                 level: 'error',
                 extra: { cardId: card.id },
             })
@@ -92,6 +103,7 @@ export default function EnableAutoBalanceBanner() {
             onClick: () => {
                 const grantedCardId = card?.id ?? null
                 void grant().then((result) => {
+                    setLastAttemptFor(grantedCardId)
                     // A failed refetch means the flag is merely STALE, not
                     // stuck — treating it as success would fire a false
                     // Sentry page on any flaky connection.
@@ -103,7 +115,7 @@ export default function EnableAutoBalanceBanner() {
     // Escape hatch, shown once a grant has failed — or "succeeded" without
     // clearing the modal — so the user is never trapped behind this
     // non-dismissible modal.
-    if (lastError || stuckAfterSuccess) {
+    if (errorForThisCard || stuckAfterSuccess) {
         ctas.push({
             text: 'Skip for now',
             variant: 'stroke',

@@ -200,4 +200,28 @@ describe('EnableAutoBalanceBanner', () => {
         expect(Sentry.captureMessage).not.toHaveBeenCalled()
         warnSpy.mockRestore()
     })
+    it("card A's failure does not leak error copy or the escape into a re-issued card B's first prompt", async () => {
+        // Grant fails hard for card A → error copy + escape for A.
+        mockGrant.mockResolvedValue({ ok: false })
+        mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: false }]
+        const { rerender } = render(<EnableAutoBalanceBanner />)
+        await act(async () => {
+            fireEvent.click(screen.getByText('Continue'))
+        })
+        mockLastError = { kind: 'unexpected', message: 'boom' }
+        rerender(<EnableAutoBalanceBanner />)
+        expect(screen.getByText('Try again')).toBeInTheDocument()
+        expect(screen.getByText('Skip for now')).toBeInTheDocument()
+
+        // A is canceled, B issued — the hook's lastError is still set, but B
+        // has never been attempted: fresh Continue, no error copy, no escape.
+        mockCards = [
+            { id: 'card-a', status: 'CANCELED', hasWithdrawApproval: false },
+            { id: 'card-b', status: 'ACTIVE', hasWithdrawApproval: false },
+        ]
+        rerender(<EnableAutoBalanceBanner />)
+        expect(screen.getByText('Continue')).toBeInTheDocument()
+        expect(screen.queryByText('Try again')).not.toBeInTheDocument()
+        expect(screen.queryByText('Skip for now')).not.toBeInTheDocument()
+    })
 })
