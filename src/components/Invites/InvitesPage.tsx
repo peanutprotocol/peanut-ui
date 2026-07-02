@@ -34,7 +34,11 @@ function InvitePageContent() {
     // resolution order: explicit campaign / campaignTag query param wins, then
     // mapped invite code, then mapped utm_campaign. utm_campaign comes last so
     // an explicit ?campaign= can still override on links that carry both.
+    // A lowercase vanity tag in the explicit param (e.g. ?campaign=offramp) is
+    // resolved through the UTM map to its badge code — otherwise it reaches
+    // /badge/award raw and 400s, since the backend matches the badge code.
     const campaign =
+        (campaignParam && UTM_CAMPAIGN_TO_BADGE_MAP[campaignParam.toLowerCase()]) ||
         campaignParam ||
         (inviteCode ? INVITE_CODE_TO_CAMPAIGN_MAP[inviteCode] : undefined) ||
         (utmCampaignParam ? UTM_CAMPAIGN_TO_BADGE_MAP[utmCampaignParam] : undefined)
