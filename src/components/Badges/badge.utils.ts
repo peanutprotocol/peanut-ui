@@ -207,6 +207,10 @@ export const BADGES: Record<string, BadgeMeta> = {
         path: '/badges/touched_grass.svg',
         description: 'You logged off and touched real grass with Peanut.',
     },
+    OFFRAMP_USER: {
+        path: '/badges/offramp_user.png',
+        description: 'You migrated to Peanut. We welcomed you.',
+    },
     PSYOPS_DIVISION: {
         path: '/badges/psyops_division.svg',
         description: 'Enlisted in the Psyops Division. Welcome to the influence game.',
