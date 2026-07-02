@@ -35,6 +35,16 @@ export interface CardInfoResponse {
     waitlistReleasedAt: string | null
     /** Skip-badge codes the user holds (subset of SKIP_BADGE_CODES on BE). */
     skipBadges: string[]
+    /** Global door-tally counts (same for every user) — power the Berghain
+     *  rejection screen. `waitlistTotal` = total who joined the waitlist (the FE
+     *  inflates it for the FOMO "tried"); `admittedTotal` = total released/granted
+     *  (shown verbatim as "got in").
+     *
+     *  OPTIONAL on purpose: the BE that returns these (peanut-api-ts) deploys
+     *  first, but during the rollout window — and for any older API — the FE
+     *  must tolerate `undefined`. `computeDoorTally` falls back to 213 / 7. */
+    waitlistTotal?: number
+    admittedTotal?: number
 }
 
 export interface WaitlistStateResponse {

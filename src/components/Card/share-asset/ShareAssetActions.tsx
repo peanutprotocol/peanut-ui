@@ -69,9 +69,14 @@ interface Props {
     source: string
     /** Optional filename for the downloaded PNG. */
     filename?: string
+    /** Whether the share asset has finished painting its card face (the async
+     *  hand <canvas> has mounted — see PixelatedCardFace.onReady). Until then,
+     *  capturing would snapshot a blank card, so both buttons stay disabled.
+     *  Defaults to true so callers that don't wire the signal aren't blocked. */
+    ready?: boolean
 }
 
-export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'peanut-card.png' }) => {
+export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'peanut-card.png', ready = true }) => {
     const [isSharing, setIsSharing] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -163,7 +168,7 @@ export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'p
                 shadowSize="4"
                 className="w-full"
                 loading={isSharing}
-                disabled={isSharing || isSaving}
+                disabled={isSharing || isSaving || !ready}
                 icon={<Icon name="share" size={18} />}
             >
                 Share
@@ -173,7 +178,7 @@ export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'p
                 variant="stroke"
                 className="w-full"
                 loading={isSaving}
-                disabled={isSharing || isSaving}
+                disabled={isSharing || isSaving || !ready}
                 icon={<Icon name="download" size={18} />}
             >
                 Save image

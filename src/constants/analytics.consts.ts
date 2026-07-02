@@ -33,6 +33,14 @@ export const ANALYTICS_EVENTS = {
     KYC_REJECTED: 'kyc_rejected',
     KYC_ABANDONED: 'kyc_abandoned',
 
+    // ── EEA uplift (Bridge endorsement re-verification) ──
+    // Dedicated funnel events for the mandatory EEA-uplift gate so the flow can
+    // be filtered directly in PostHog. `started` = user launched the
+    // verification from the gate; `completed` = the KYC flow succeeded for that
+    // same uplift attempt.
+    EEA_UPLIFT_STARTED: 'eea_uplift_started',
+    EEA_UPLIFT_COMPLETED: 'eea_uplift_completed',
+
     // ── KYC (Manteca) ──
     MANTECA_KYC_INITIATED: 'manteca_kyc_initiated',
     MANTECA_KYC_COMPLETED: 'manteca_kyc_completed',

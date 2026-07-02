@@ -17,9 +17,9 @@ interface CardLaunchCTABannerProps {
  * Presentational only — gating + persistence live in the `CardLaunchCTA`
  * container so this can be force-rendered in the /dev/home-ctas preview.
  *
- * Tone matches the /shhhhh teaser: pink, hard black border + shadow, extra-black
- * uppercase headline, provocative "maybe it's for you" framing. The whole card
- * is a tap target (parity with CarouselCTA); the X stops propagation.
+ * In line with the other activation CTAs: white card, black border, no drop
+ * shadow, standard purple primary CTA. The whole card is a tap target (parity
+ * with CarouselCTA); the X stops propagation.
  */
 export default function CardLaunchCTABanner({ onTryDoor, onDismiss }: CardLaunchCTABannerProps) {
     const { triggerHaptic } = useHaptic()
@@ -39,7 +39,7 @@ export default function CardLaunchCTABanner({ onTryDoor, onDismiss }: CardLaunch
             role="button"
             tabIndex={0}
             onClick={handleTryDoor}
-            className="relative mb-3 cursor-pointer overflow-hidden rounded-sm border-2 border-n-1 bg-primary-1 p-5 shadow-[4px_4px_0_#000]"
+            className="relative mb-3 cursor-pointer overflow-hidden rounded-sm border border-n-1 bg-white p-5"
         >
             <button
                 type="button"
@@ -51,10 +51,10 @@ export default function CardLaunchCTABanner({ onTryDoor, onDismiss }: CardLaunch
             </button>
 
             <div className="relative z-[1] flex flex-col gap-3 pr-6">
-                <h3 className="font-roboto-flex-extrabold text-4xl font-extraBlack leading-[1.02] text-n-1">shhh</h3>
+                <h3 className="font-roboto-flex-extrabold text-4xl font-extraBlack leading-[1.02] text-n-1">shhhh</h3>
                 <p className="text-sm font-bold leading-snug text-n-1">Tap to find out if you&apos;re in</p>
                 <Button
-                    variant="dark"
+                    variant="purple"
                     shadowSize="4"
                     className="mt-1 w-full"
                     disableHaptics
