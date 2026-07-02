@@ -38,7 +38,7 @@ jobs:
         # Protect with required reviewers in repo Settings → Environments → Production.
         environment: Production
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
               with:
                   submodules: recursive
                   token: ${{ secrets.SUBMODULE_TOKEN }}
@@ -47,11 +47,11 @@ jobs:
               with:
                   xcode-version: latest-stable
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@v6
               with:
                   version: 10
 
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@v6
               with:
                   node-version: '22' # @sentry/profiling-node has no Node 25 binary; project targets 22
                   cache: 'pnpm'
@@ -89,7 +89,7 @@ jobs:
                   if [ -f scripts/native-ios-postsync.js ]; then node scripts/native-ios-postsync.js; fi
 
             - name: Install Apple distribution certificate
-              uses: apple-actions/import-codesign-certs@v3
+              uses: apple-actions/import-codesign-certs@v7
               with:
                   p12-file-base64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
                   p12-password: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
@@ -150,7 +150,7 @@ jobs:
                   # Flip Automatic → manual signing via command-line build settings (the
                   # project default is Automatic; these override it for this archive only).
                   xcodebuild \
-                      -workspace ios/App/App.xcworkspace \
+                      -project ios/App/App.xcodeproj \
                       -scheme App \
                       -configuration Release \
                       -destination 'generic/platform=iOS' \
@@ -170,7 +170,7 @@ jobs:
                       -exportOptionsPlist /tmp/ExportOptions.plist
 
             - name: Upload to TestFlight
-              uses: apple-actions/upload-testflight-build@v3
+              uses: apple-actions/upload-testflight-build@v5
               with:
                   app-path: build/ios/App.ipa
                   issuer-id: ${{ secrets.ASC_ISSUER_ID }}
@@ -179,7 +179,7 @@ jobs:
 
             - name: Upload IPA as build artifact
               if: always()
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: app-store-ipa
                   path: build/ios/*.ipa
