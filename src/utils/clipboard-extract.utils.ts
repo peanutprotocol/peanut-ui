@@ -44,8 +44,20 @@ const digitGroups = (text: string): string[] => text.match(/\d+/g) ?? []
 export function extractPaymentValue(text: string, kind: PasteFieldKind): string | null {
     switch (kind) {
         case 'evmAddress':
-        case 'recipient':
             return firstMatch(text, /0x[a-fA-F0-9]{40}/g, (c) => (isAddress(c) ? c : null))
+
+        case 'recipient': {
+            const evm = firstMatch(text, /0x[a-fA-F0-9]{40}/g, (c) => (isAddress(c) ? c : null))
+            if (evm) return evm
+            return firstMatch(text, /[A-Za-z]{2}\d{2}[A-Za-z0-9 ]{11,}/g, (c) => {
+                const cleaned = c.replace(/\s+/g, '').toUpperCase()
+                for (let len = Math.min(cleaned.length, 34); len >= 15; len--) {
+                    const prefix = cleaned.slice(0, len)
+                    if (isIBAN(prefix)) return prefix
+                }
+                return null
+            })
+        }
 
         case 'iban':
             return firstMatch(text, /[A-Za-z]{2}\d{2}[A-Za-z0-9 ]{11,}/g, (c) => {
