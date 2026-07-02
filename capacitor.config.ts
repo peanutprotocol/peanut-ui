@@ -25,7 +25,10 @@ const config: CapacitorConfig = {
     },
     plugins: {
         CapacitorUpdater: {
-            autoUpdate: true,
+            // autoUpdate:false → the plugin no longer polls getLatest on every
+            // foreground, which was hammering Capgo's cloud rate limit (429s in
+            // Sentry). initCapgoUpdater() does one guarded check per launch instead.
+            autoUpdate: false,
             appReadyTimeout: 15000,
             responseTimeout: 30,
             autoDeleteFailed: true,
