@@ -921,7 +921,6 @@ function applyDefaults() {
     mockUseCreateOnramp.mockReturnValue({
         createOnramp: jest.fn(),
         isLoading: false,
-        error: null,
     })
 
     mockUseLimitsValidation.mockReturnValue({
@@ -1309,7 +1308,6 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         mockUseCreateOnramp.mockReturnValue({
             createOnramp: mockCreateOnramp,
             isLoading: false,
-            error: null,
         })
         resetQueryState({ step: 'inputAmount', amount: '100' })
 
@@ -1331,13 +1329,11 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 
     test('onramp error displays ErrorAlert', async () => {
         const mockCreateOnramp = jest.fn().mockRejectedValue(new Error('Service unavailable'))
-        // error: null reproduces the first-attempt reality — the hook's error
-        // state hasn't flushed when the page's catch runs, so the page must
-        // surface the caught message itself, not read the hook state.
+        // the page must surface the caught error's message directly — the hook
+        // exposes no error state to read (that channel was the stale-closure trap).
         mockUseCreateOnramp.mockReturnValue({
             createOnramp: mockCreateOnramp,
             isLoading: false,
-            error: null,
         })
         resetQueryState({ step: 'inputAmount', amount: '100' })
 
@@ -1366,7 +1362,6 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         mockUseCreateOnramp.mockReturnValue({
             createOnramp: mockCreateOnramp,
             isLoading: false,
-            error: null,
         })
         resetQueryState({ step: 'inputAmount', amount: '100' })
 
