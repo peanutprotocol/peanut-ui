@@ -23,8 +23,13 @@ export const useCurrency = (currencyCode: string | null) => {
     const [symbol, setSymbol] = useState<string | null>(null)
     const [price, setPrice] = useState<{ buy: number; sell: number } | null>(null)
     const [isLoading, setIsLoading] = useState<boolean>(true)
+    // Surfaces a failed FX fetch so consumers can render an error instead of
+    // dereferencing a null price (which crashes the render). See useCurrency
+    // consumers in the add-money / withdraw flows.
+    const [isError, setIsError] = useState<boolean>(false)
 
     useEffect(() => {
+        setIsError(false)
         if (!code) {
             setIsLoading(false)
             return
@@ -52,6 +57,7 @@ export const useCurrency = (currencyCode: string | null) => {
             })
             .catch((err) => {
                 console.error(err)
+                setIsError(true)
                 setIsLoading(false)
             })
     }, [code])
@@ -61,5 +67,6 @@ export const useCurrency = (currencyCode: string | null) => {
         symbol,
         price,
         isLoading,
+        isError,
     }
 }
