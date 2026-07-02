@@ -1,10 +1,10 @@
-import { eeaUpliftReasonCode, isEeaUpliftAdvisory, EEA_UPLIFT_REQUIREMENT_KEYS } from './eea-uplift.utils'
+import { upliftTriggerFromGate, upliftTriggerFromAdvisory, EEA_UPLIFT_REQUIREMENT_KEYS } from './eea-uplift.utils'
 import type { GateState, GateAdvisory } from '@/utils/capability-gate'
 
-describe('eeaUpliftReasonCode (blocking path)', () => {
-    test('returns the code for an eea_uplift fixable-rejection', () => {
+describe('upliftTriggerFromGate (blocking path)', () => {
+    test('returns a blocking trigger for an eea_uplift fixable-rejection', () => {
         const gate = { kind: 'fixable-rejection', userMessage: 'x', reason: { code: 'eea_uplift', userMessage: 'x' } }
-        expect(eeaUpliftReasonCode(gate as GateState)).toBe('eea_uplift')
+        expect(upliftTriggerFromGate(gate as GateState)).toEqual({ requirementKey: 'eea_uplift', source: 'blocking' })
     })
 
     test('matches the eea_uplift_with_tin variant', () => {
@@ -13,41 +13,46 @@ describe('eeaUpliftReasonCode (blocking path)', () => {
             userMessage: 'x',
             reason: { code: 'eea_uplift_with_tin', userMessage: 'x' },
         }
-        expect(eeaUpliftReasonCode(gate as GateState)).toBe('eea_uplift_with_tin')
+        expect(upliftTriggerFromGate(gate as GateState)?.requirementKey).toBe('eea_uplift_with_tin')
     })
 
-    test('returns undefined for a non-uplift rejection', () => {
+    test('returns null for a non-uplift rejection', () => {
         const gate = {
             kind: 'fixable-rejection',
             userMessage: 'x',
             reason: { code: 'document_rejected', userMessage: 'x' },
         }
-        expect(eeaUpliftReasonCode(gate as GateState)).toBeUndefined()
+        expect(upliftTriggerFromGate(gate as GateState)).toBeNull()
     })
 
-    test('returns undefined for a gate variant without a reason', () => {
-        expect(eeaUpliftReasonCode({ kind: 'ready' } as GateState)).toBeUndefined()
-        expect(eeaUpliftReasonCode({ kind: 'needs-identity' } as GateState)).toBeUndefined()
+    test('returns null for a gate variant without a reason', () => {
+        expect(upliftTriggerFromGate({ kind: 'ready' } as GateState)).toBeNull()
+        expect(upliftTriggerFromGate({ kind: 'needs-identity' } as GateState)).toBeNull()
     })
 })
 
-describe('isEeaUpliftAdvisory (advisory path)', () => {
-    test.each([...EEA_UPLIFT_REQUIREMENT_KEYS])('matches uplift requirement key: %s', (requirementKey) => {
+describe('upliftTriggerFromAdvisory (advisory path)', () => {
+    test.each([...EEA_UPLIFT_REQUIREMENT_KEYS])('builds an advisory trigger for uplift key: %s', (requirementKey) => {
         const advisory: GateAdvisory = { effectiveDate: '2026-12-31', actionKey: 'k', requirementKey }
-        expect(isEeaUpliftAdvisory(advisory)).toBe(true)
+        expect(upliftTriggerFromAdvisory(advisory)).toEqual({
+            requirementKey,
+            actionKey: 'k',
+            effectiveDate: '2026-12-31',
+            source: 'advisory',
+        })
     })
 
-    test('does not match a co-occurring non-uplift key (proof_of_address / gov-id)', () => {
+    test('returns null for a co-occurring non-uplift key (proof_of_address / gov-id)', () => {
         const advisory: GateAdvisory = {
             effectiveDate: '2026-06-29',
             actionKey: 'k',
             requirementKey: 'proof_of_address_document',
         }
-        expect(isEeaUpliftAdvisory(advisory)).toBe(false)
+        expect(upliftTriggerFromAdvisory(advisory)).toBeNull()
     })
 
     test('is safe for undefined / keyless advisory', () => {
-        expect(isEeaUpliftAdvisory(undefined)).toBe(false)
-        expect(isEeaUpliftAdvisory({ effectiveDate: '2026-12-31', actionKey: 'k' })).toBe(false)
+        expect(upliftTriggerFromAdvisory(undefined)).toBeNull()
+        expect(upliftTriggerFromAdvisory({ effectiveDate: '2026-12-31', actionKey: 'k' })).toBeNull()
     })
 })

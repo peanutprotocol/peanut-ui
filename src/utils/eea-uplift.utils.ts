@@ -16,6 +16,11 @@ import type { GateAdvisory, GateState } from '@/utils/capability-gate'
  * co-occur on the same cliff but are separate remediation (cluster `null`), so
  * they're deliberately excluded — keying PoA→eea would over-fire on ordinary
  * document rejections for non-EEA users.
+ *
+ * KNOWN LIMITATION: both signals mirror BE-owned strings (the resolver's cluster
+ * codes and requirement keys). If the BE adds/renames an uplift key or reason
+ * code, that segment silently drops out of the funnel until this file follows —
+ * accepted tradeoff for keeping this FE-only.
  */
 export const EEA_UPLIFT_REQUIREMENT_KEYS = new Set<string>([
     'sof_individual_primary_purpose',
@@ -25,15 +30,37 @@ export const EEA_UPLIFT_REQUIREMENT_KEYS = new Set<string>([
 ])
 
 /**
- * Blocking path: the gate's reason code IS the `eea_uplift*` cluster. Returns
- * the code when it's an uplift remediation (truthy → track it), else undefined.
+ * The uplift attempt being started. `source` distinguishes the two remediation
+ * paths and — since blocking = the effective date has already passed — doubles
+ * as the urgency signal: `blocking` = urgent post-cliff, `advisory` = upcoming.
  */
-export function eeaUpliftReasonCode(gate: GateState): string | undefined {
-    const code = (gate as { reason?: { code?: string } }).reason?.code
-    return code?.startsWith('eea_uplift') ? code : undefined
+export type UpliftStartTrigger = {
+    requirementKey?: string
+    actionKey?: string
+    effectiveDate?: string
+    source: 'advisory' | 'blocking'
 }
 
-/** Advisory path: the future-dated requirement key belongs to the uplift set. */
-export function isEeaUpliftAdvisory(advisory: GateAdvisory | undefined): boolean {
-    return !!advisory?.requirementKey && EEA_UPLIFT_REQUIREMENT_KEYS.has(advisory.requirementKey)
+/**
+ * Blocking path: the gate's reason code IS the `eea_uplift*` cluster. Returns a
+ * ready-to-fire trigger when it's an uplift remediation, else null.
+ */
+export function upliftTriggerFromGate(gate: GateState): UpliftStartTrigger | null {
+    const code = (gate as { reason?: { code?: string } }).reason?.code
+    if (!code?.startsWith('eea_uplift')) return null
+    return { requirementKey: code, source: 'blocking' }
+}
+
+/**
+ * Advisory path: the future-dated requirement key belongs to the uplift set.
+ * Returns a ready-to-fire trigger, else null.
+ */
+export function upliftTriggerFromAdvisory(advisory: GateAdvisory | undefined): UpliftStartTrigger | null {
+    if (!advisory?.requirementKey || !EEA_UPLIFT_REQUIREMENT_KEYS.has(advisory.requirementKey)) return null
+    return {
+        requirementKey: advisory.requirementKey,
+        actionKey: advisory.actionKey,
+        effectiveDate: advisory.effectiveDate,
+        source: 'advisory',
+    }
 }
