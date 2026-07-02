@@ -9,7 +9,7 @@ import { notificationsApi, type InAppItem } from '@/services/notifications'
 import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
-import { PEANUTMAN_LOGO } from '@/assets'
+import { PEANUTMAN } from '@/assets'
 import Link from 'next/link'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -172,7 +172,7 @@ export default function NotificationsPage() {
                                                     onClick={() => handleNotificationClick(notif.id)}
                                                 >
                                                     <Image
-                                                        src={notif.iconUrl ?? PEANUTMAN_LOGO}
+                                                        src={notif.iconUrl ?? PEANUTMAN}
                                                         alt="icon"
                                                         width={32}
                                                         height={32}

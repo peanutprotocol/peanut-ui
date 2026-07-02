@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom'
 import { Button } from '@/components/0_Bruddle/Button'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
-import { PEANUTMAN_LOGO } from '@/assets/mascot'
+import { PEANUTMAN } from '@/assets/mascot'
 import { ETHEREUM_ICON } from '@/assets/icons'
 import Image from 'next/image'
 import { Icon } from '../Icons/Icon'
@@ -14,7 +14,7 @@ import CameraPermissionModal from './CameraPermissionModal'
 // ============================================================================
 
 const PAYMENT_METHODS = [
-    { src: PEANUTMAN_LOGO, alt: 'Peanut', name: 'Peanut' },
+    { src: PEANUTMAN, alt: 'Peanut', name: 'Peanut' },
     { src: MERCADO_PAGO, alt: 'Mercado Pago', name: 'Mercado Pago' },
     { src: PIX, alt: 'PIX', name: 'PIX' },
     { src: ETHEREUM_ICON, alt: 'Ethereum and EVMs', name: 'ETH & EVMs' },
