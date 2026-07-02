@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react'
-import { useCreateOnramp } from '@/hooks/useCreateOnramp'
+import { useCreateOnramp, GENERIC_ONRAMP_ERROR } from '@/hooks/useCreateOnramp'
 import { type CountryData } from '@/components/AddMoney/consts'
 
 // regression test for the eea-uplift silent-failure incident: the backend
@@ -31,9 +31,10 @@ describe('useCreateOnramp', () => {
         jest.restoreAllMocks()
     })
 
-    it('surfaces the backend error body on a non-ok response', async () => {
+    it('throws the backend error body on a 4xx response', async () => {
         apiFetchMock.mockResolvedValue({
             ok: false,
+            status: 400,
             json: async () => ({ error: 'Could not create transfer: customer is under review' }),
         })
         const { result } = renderHook(() => useCreateOnramp())
@@ -43,12 +44,26 @@ describe('useCreateOnramp', () => {
                 'Could not create transfer: customer is under review'
             )
         })
-        expect(result.current.error).toBe('Could not create transfer: customer is under review')
     })
 
-    it('falls back to the generic message when the error body is unparseable', async () => {
+    // the leak guard: a 500's body carries raw internal text (the BE global
+    // handler only sanitizes Prisma), so it must NOT be surfaced — the user
+    // gets the generic string and the body is never even read.
+    it('does not surface a 5xx error body, uses the generic message', async () => {
+        const jsonSpy = jest.fn(async () => ({ error: 'Request failed with status code 401 at /internal/bridge' }))
+        apiFetchMock.mockResolvedValue({ ok: false, status: 500, json: jsonSpy })
+        const { result } = renderHook(() => useCreateOnramp())
+
+        await act(async () => {
+            await expect(result.current.createOnramp({ amount: '100', country })).rejects.toThrow(GENERIC_ONRAMP_ERROR)
+        })
+        expect(jsonSpy).not.toHaveBeenCalled()
+    })
+
+    it('falls back to the generic message when a 4xx body is unparseable', async () => {
         apiFetchMock.mockResolvedValue({
             ok: false,
+            status: 400,
             json: async () => {
                 throw new Error('not json')
             },
@@ -56,16 +71,13 @@ describe('useCreateOnramp', () => {
         const { result } = renderHook(() => useCreateOnramp())
 
         await act(async () => {
-            await expect(result.current.createOnramp({ amount: '100', country })).rejects.toThrow(
-                'Failed to create bank transfer. Please try again or contact support.'
-            )
+            await expect(result.current.createOnramp({ amount: '100', country })).rejects.toThrow(GENERIC_ONRAMP_ERROR)
         })
-        expect(result.current.error).toBe('Failed to create bank transfer. Please try again or contact support.')
     })
 
     it('returns the onramp data on success', async () => {
         const data = { transferId: 't-1', depositInstructions: { amount: '100', currency: 'eur' } }
-        apiFetchMock.mockResolvedValue({ ok: true, json: async () => data })
+        apiFetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => data })
         const { result } = renderHook(() => useCreateOnramp())
 
         let response: unknown
@@ -73,6 +85,5 @@ describe('useCreateOnramp', () => {
             response = await result.current.createOnramp({ amount: '100', country })
         })
         expect(response).toEqual(data)
-        expect(result.current.error).toBeNull()
     })
 })

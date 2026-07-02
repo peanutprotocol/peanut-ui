@@ -13,7 +13,7 @@ import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
-import { useCreateOnramp } from '@/hooks/useCreateOnramp'
+import { useCreateOnramp, GENERIC_ONRAMP_ERROR } from '@/hooks/useCreateOnramp'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
@@ -261,9 +261,12 @@ export default function OnrampBankPage() {
             // reviewing eea-uplift docs) — tell them to wait instead of a dead
             // button or a doomed transfer attempt with no feedback.
             if (gate.kind === 'waiting-on-provider') {
+                // prefer the backend's specific review copy (via the gate reason)
+                // and fall back to generic wait text.
                 setError({
                     showError: true,
                     errorMessage:
+                        gate.userMessage ??
                         'Your verification details are being reviewed. This usually takes a few minutes — please try again soon.',
                 })
                 return
@@ -323,17 +326,15 @@ export default function OnrampBankPage() {
             }
         } catch (error) {
             setShowWarningModal(false)
-            const errorMessage =
-                error instanceof Error
-                    ? error.message
-                    : 'Failed to create bank transfer. Please try again or contact support.'
+            const isError = error instanceof Error
+            const errorMessage = isError ? error.message : GENERIC_ONRAMP_ERROR
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_FAILED, {
                 method_type: 'bank',
-                error_message: errorMessage,
+                // keep the distinct label for truly-unexpected non-Error throws
+                error_message: isError ? errorMessage : 'Unknown error',
             })
-            // show the caught message directly — the hook's error state hasn't
-            // flushed yet in this synchronous catch, so reading it here always
-            // sees the previous render's value (null on first attempt).
+            // show the caught message directly — createOnramp carries the specific
+            // reason on the thrown Error, so we don't read any hook state here.
             setError({
                 showError: true,
                 errorMessage,
