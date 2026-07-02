@@ -9,6 +9,7 @@
  */
 
 import { useState } from 'react'
+import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -18,7 +19,7 @@ export default function CardSessionApprovePage() {
     const { grant, isGranting } = useGrantSessionKey()
     const [status, setStatus] = useState<string>('')
 
-    const card = overview?.cards?.[0]
+    const card = findActiveCard(overview)
 
     const handleClick = async () => {
         setStatus('Waiting for passkey tap…')

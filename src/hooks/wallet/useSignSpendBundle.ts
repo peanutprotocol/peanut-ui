@@ -15,6 +15,7 @@ import {
     rainWithdrawEip712Types,
 } from '@/constants/rain.consts'
 import { rainApi, type RainCollateralKind } from '@/services/rain'
+import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey, type GrantSessionKeyError } from './useGrantSessionKey'
 import { useSignUserOp, type SignedUserOpData } from './useSignUserOp'
@@ -162,7 +163,7 @@ export const useSignSpendBundle = () => {
                 if (!overview) {
                     throw new SessionKeyGrantRequiredError({ kind: 'unexpected' } as GrantSessionKeyError)
                 }
-                const card = overview.cards?.[0]
+                const card = findActiveCard(overview)
                 if (card && !card.hasWithdrawApproval) {
                     onGrantRequired?.()
                     const grantResult = await grant()
