@@ -56,7 +56,7 @@ import { useReceiptViewModel } from './useReceiptViewModel'
 import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
 import { LocalRailNudge } from './provider-rows/LocalRailNudge'
-import { CardForeignCurrencyNotice } from './provider-rows/CardForeignCurrencyNotice'
+import { CardUsdAbroadNotice } from './provider-rows/CardUsdAbroadNotice'
 import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
 import { BridgeDepositInstructions } from './provider-rows/BridgeDepositInstructions'
 import { CancelDepositActions } from './provider-actions/CancelDepositActions'
@@ -648,10 +648,11 @@ export const TransactionDetailsReceipt = ({
                 Hidden on public receipts (same rule as the referral nudge). */}
             {!isPublic && <LocalRailNudge transaction={transaction} />}
 
-            {/* Non-USD card spend outside AR/BR: the card settles in USD, so a
-                currency conversion applied. Suppressed where LocalRailNudge
-                already fires. */}
-            {!isPublic && <CardForeignCurrencyNotice transaction={transaction} />}
+            {/* DCC trap: a spend abroad billed in USD (the terminal's "pay in
+                dollars?" option) gets a worse rate than paying local. Nudge the
+                user to pick local currency next time. Suppressed in AR/BR where
+                LocalRailNudge already fires. */}
+            {!isPublic && <CardUsdAbroadNotice transaction={transaction} />}
 
             {/* share and cancel buttons section (only if qr is shown) */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
