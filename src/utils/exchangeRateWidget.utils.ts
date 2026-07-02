@@ -1,4 +1,5 @@
 import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
+import { addMoneyCountryUrl, withdrawCountryUrl } from '@/utils/native-routes'
 
 export const getExchangeRateWidgetRedirectRoute = (
     sourceCurrency: string,
@@ -41,10 +42,11 @@ export const getExchangeRateWidgetRedirectRoute = (
     }
 
     if (!countryPath) {
-        const redirectRoute = `${route}?currencyCode=EUR`
-        return redirectRoute
-    } else {
-        const redirectRoute = `${route}/${countryPath}`
-        return redirectRoute
+        return `${route}?currencyCode=EUR`
     }
+    // Route via the native-safe helpers: on web these return `/withdraw/{path}`,
+    // but in the Capacitor static export the `[country]` dynamic routes are
+    // stripped (scripts/native-build.js), so a path-segment URL lands on a
+    // non-existent route and the app hangs. The helpers emit `?country=` there.
+    return route === '/withdraw' ? withdrawCountryUrl(countryPath) : addMoneyCountryUrl(countryPath)
 }
