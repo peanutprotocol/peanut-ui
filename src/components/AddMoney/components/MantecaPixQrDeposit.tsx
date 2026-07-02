@@ -18,8 +18,9 @@ const MantecaPixQrDeposit: FC<{
     // Fired once when the deposit settles (parent refreshes balance/history).
     onComplete: () => void
 }> = ({ depositDetails, currencyAmount, onBack, onComplete }) => {
-    // The dynamic PIX QR (EMVCo copia-e-cola) rides in the ramp-on synthetic's details.
-    const qr = depositDetails.details.qr
+    // The dynamic PIX QR (EMVCo copia-e-cola) rides in the ramp-on synthetic's
+    // details.depositAddresses.PIX (confirmed against prod 2026-07-02).
+    const qr = depositDetails.details.depositAddresses?.PIX?.code
     // Poll by the real synthetic id (unchanged polling contract).
     const { status } = useMantecaDepositPolling(depositDetails.id, onComplete)
 

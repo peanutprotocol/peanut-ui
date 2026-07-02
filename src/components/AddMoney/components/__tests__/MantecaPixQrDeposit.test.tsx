@@ -1,10 +1,10 @@
 /**
  * MantecaPixQrDeposit — the BRL dynamic-PIX-QR screen.
  *
- * One `details.qr` string drives both the QR and the copy button; a live
- * countdown is derived from `details.priceExpireAt`; polling flips the screen to
- * a success state. Nested primitives are stubbed so only this component's own
- * logic is under test.
+ * One `details.depositAddresses.PIX.code` string (EMVCo copia-e-cola) drives
+ * both the QR and the copy button; a live countdown is derived from
+ * `details.priceExpireAt`; polling flips the screen to a success state. Nested
+ * primitives are stubbed so only this component's own logic is under test.
  */
 import React from 'react'
 import { render, screen } from '@testing-library/react'
@@ -35,14 +35,22 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 // eslint-disable-next-line import/first -- must come after jest.mock
 import MantecaPixQrDeposit from '../MantecaPixQrDeposit'
 
+const PIX_CODE = '00020126-COPIA-E-COLA'
 const baseDeposit = {
     id: 'syn-1',
     type: 'RAMP_OPERATION' as const,
     details: {
-        qr: '00020126-COPIA-E-COLA',
+        // prod shape confirmed 2026-07-02 — the QR rides in depositAddresses.PIX
+        depositAddresses: {
+            PIX: {
+                type: 'QR',
+                code: PIX_CODE,
+                url: `https://widget.manteca.dev/qr?code=${PIX_CODE}`,
+                expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60_000).toISOString(), // ~3 days out
+                bankId: 'bank-1',
+            },
+        },
         priceExpireAt: new Date(Date.now() + 5 * 60_000).toISOString(), // 5 min out
-        depositAddress: '',
-        depositAlias: '',
     },
     stages: {},
 } as unknown as import('@/types/manteca.types').MantecaDepositResponseData
@@ -53,7 +61,7 @@ beforeEach(() => {
 })
 
 describe('MantecaPixQrDeposit', () => {
-    it('renders the QR + copy from the same `details.qr`, the amount, and a live countdown', () => {
+    it('renders the QR + copy from the same PIX copia-e-cola code, the amount, and a live countdown', () => {
         render(
             <MantecaPixQrDeposit
                 depositDetails={baseDeposit}
@@ -62,8 +70,8 @@ describe('MantecaPixQrDeposit', () => {
                 onComplete={jest.fn()}
             />
         )
-        expect(screen.getByTestId('qr')).toHaveAttribute('data-url', baseDeposit.details.qr)
-        expect(screen.getByTestId('copy')).toHaveAttribute('data-text', baseDeposit.details.qr)
+        expect(screen.getByTestId('qr')).toHaveAttribute('data-url', PIX_CODE)
+        expect(screen.getByTestId('copy')).toHaveAttribute('data-text', PIX_CODE)
         expect(screen.getByText('R$ 10')).toBeInTheDocument()
         expect(screen.getByText(/Expires in/)).toBeInTheDocument()
     })

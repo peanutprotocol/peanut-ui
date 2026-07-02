@@ -238,18 +238,24 @@ describe('AddWithdrawCountriesList — bank gate', () => {
 })
 
 /**
- * BRL-via-PIX onramp is unstable, so the Pix option is flagged "under maintenance"
- * (config: pixBrazilOnrampMaintenance) — warn-only: it stays visible and clickable.
+ * When the BRL-via-PIX onramp degrades, the Pix option gets flagged "under
+ * maintenance" (config: pixBrazilOnrampMaintenance) — warn-only: it stays
+ * visible and clickable.
  */
 describe('AddWithdrawCountriesList — PIX onramp maintenance tag', () => {
+    // snapshot/restore the shipped flag so each test can flip it without leaking
+    // state — and without coupling the restore to the committed default
+    let originalPixMaintenance: boolean
+
     beforeEach(() => {
         mockPush.mockClear()
         // a ready gate so a click can navigate — proving the option is not blocked
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+        originalPixMaintenance = underMaintenanceConfig.pixBrazilOnrampMaintenance
     })
 
     afterEach(() => {
-        underMaintenanceConfig.pixBrazilOnrampMaintenance = true
+        underMaintenanceConfig.pixBrazilOnrampMaintenance = originalPixMaintenance
     })
 
     it('tags the Pix option "Maintenance" but keeps it clickable (warn-only)', () => {
