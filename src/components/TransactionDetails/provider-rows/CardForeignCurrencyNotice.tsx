@@ -3,7 +3,7 @@
 import InfoCard from '@/components/Global/InfoCard'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { extractMerchantIso2 } from '@/components/TransactionDetails/transaction-details.utils'
-import { LOCAL_RAIL_BY_COUNTRY } from '@/components/TransactionDetails/provider-rows/LocalRailNudge'
+import { LOCAL_RAIL_BY_COUNTRY } from '@/components/TransactionDetails/provider-rows/local-rail-countries'
 
 /**
  * Informational notice on a card-spend receipt: the Peanut card settles in

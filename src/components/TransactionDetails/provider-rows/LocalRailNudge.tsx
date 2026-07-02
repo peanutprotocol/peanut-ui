@@ -3,23 +3,9 @@
 import InfoCard from '@/components/Global/InfoCard'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { extractMerchantIso2 } from '@/components/TransactionDetails/transaction-details.utils'
+import { LOCAL_RAIL_BY_COUNTRY } from '@/components/TransactionDetails/provider-rows/local-rail-countries'
 import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import { CARD_FX_MARKUP_BY_CURRENCY } from '@/constants/payment.consts'
-
-/**
- * Countries where Peanut has a first-party local payment rail that's cheaper
- * than spending on the Rain card. A card spend whose merchant sits in one of
- * these countries gets nudged toward the local rail. Add a country here to
- * light up the nudge for it — mirrors MANTECA_GEO_RAIL_MAP in peanut-api-ts.
- *
- * `rail` is the printable, user-facing rail name (reads as "pay with {rail}").
- * `currency` drives the shared `useCardMarkupRate` lookup so this nudge stays
- * in sync with the QR-pay confirm/success surfaces.
- */
-export const LOCAL_RAIL_BY_COUNTRY: Record<string, { countryName: string; rail: string; currency: string }> = {
-    AR: { countryName: 'Argentina', rail: 'QR', currency: 'ARS' },
-    BR: { countryName: 'Brazil', rail: 'Pix', currency: 'BRL' },
-}
 
 /**
  * Informational nudge on a card-spend receipt: when the merchant is in a
