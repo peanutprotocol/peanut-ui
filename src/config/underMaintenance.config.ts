@@ -36,9 +36,8 @@
  *
  * 7. pixBrazilOnrampMaintenance: warn-only flag for the BRL-via-PIX onramp (Manteca Brazil deposit)
  *    - shows a "Maintenance" tag on the Pix option in /add-money/brazil
- *    - shows a warning banner inside the deposit flow (/add-money/brazil/manteca)
  *    - does NOT block deposits — the option stays usable (warn-only)
- *    - set to false when PIX deposits are stable again
+ *    - set to true if the PIX onramp degrades again
  *
  * 8. disableCardLaunchCTA: kill-switch for the in-app "shhh" card CTA (the home nudge)
  *    - true hides BOTH the activation-funnel card step and the activated-base home splash
@@ -84,7 +83,7 @@ const underMaintenanceConfig: MaintenanceConfig = {
     disableXchainSend: true, // set to true to disable cross-chain sends (claim, request payments - only allows USDC on Arbitrum)
     disableCardPioneers: true, // set to false to enable the Card Pioneers waitlist feature
     disableCardLaunchCTA: false, // kill-switch for the in-app "shhh" card CTA (funnel card step + activated home splash). Set true to mute it (dial down in-app load); /card flow + /shhhhh + waitlist stay reachable regardless.
-    pixBrazilOnrampMaintenance: true, // set to false when BRL-via-PIX deposits are stable again
+    pixBrazilOnrampMaintenance: false, // BRL deposits restored via dynamic PIX QR (2026-07-02). Set true if the onramp degrades again.
     disabledMantecaCurrencies: [], // Manteca restored (ARS + BRL live). Add a currency here to block it during a future outage.
 }
 
@@ -92,13 +91,10 @@ const underMaintenanceConfig: MaintenanceConfig = {
 export const CROSS_CHAIN_DISABLED_MESSAGE =
     'Cross-chain claims are temporarily unavailable. Try claiming to an external wallet on the same chain as the link, or try again later.'
 
-// shared user-facing copy for the BRL-via-PIX onramp maintenance warning — keep the list tag and
-// the in-flow banner aligned
+// user-facing copy for the BRL-via-PIX onramp maintenance tag (the in-flow banner was
+// retired when the dynamic-QR deposit flow shipped — the tag is the remaining surface)
 export const PIX_BRAZIL_ONRAMP_MAINTENANCE = {
     badge: 'Maintenance',
-    title: 'PIX deposits are under maintenance',
-    description:
-        'PIX deposits are currently unstable and may be delayed or fail. You can still continue, but service may be unreliable until this is resolved.',
 }
 
 export default underMaintenanceConfig
