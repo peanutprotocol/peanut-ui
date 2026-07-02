@@ -306,8 +306,7 @@ export const getWebSocketInstance = (username?: string): PeanutWebSocket | null 
     }
 
     if (!websocketInstance) {
-        let wsUrl =
-            process.env.NEXT_PUBLIC_PEANUT_WS_URL || apiUrlToWsUrl(process.env.NEXT_PUBLIC_PEANUT_API_URL || '')
+        let wsUrl = process.env.NEXT_PUBLIC_PEANUT_WS_URL || apiUrlToWsUrl(process.env.NEXT_PUBLIC_PEANUT_API_URL || '')
         const path = `/ws/charges/${username}`
 
         // Downgrade to ws:// only for local dev against a localhost WS server. Native
@@ -321,7 +320,9 @@ export const getWebSocketInstance = (username?: string): PeanutWebSocket | null 
         // connect and the reconnect loop pegs the main thread (freeze → crash). Bail out —
         // callers already treat null as "socket unavailable".
         if (!isValidWsUrl(wsUrl)) {
-            console.warn('WebSocket disabled: no valid WS URL from NEXT_PUBLIC_PEANUT_WS_URL / NEXT_PUBLIC_PEANUT_API_URL')
+            console.warn(
+                'WebSocket disabled: no valid WS URL from NEXT_PUBLIC_PEANUT_WS_URL / NEXT_PUBLIC_PEANUT_API_URL'
+            )
             return null
         }
 

@@ -2,9 +2,9 @@ import { extractPaymentValue } from './clipboard-extract.utils'
 
 describe('extractPaymentValue', () => {
     it('extracts an EVM address from surrounding text', () => {
-        expect(
-            extractPaymentValue('send to 0xaf88d065e77c8cC2239327C5EDb3A432268e5831 pls', 'evmAddress')
-        ).toBe('0xaf88d065e77c8cC2239327C5EDb3A432268e5831')
+        expect(extractPaymentValue('send to 0xaf88d065e77c8cC2239327C5EDb3A432268e5831 pls', 'evmAddress')).toBe(
+            '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
+        )
         expect(extractPaymentValue('send to 0xaf88d065e77c8cC2239327C5EDb3A432268e5831 pls', 'recipient')).toBe(
             '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
         )

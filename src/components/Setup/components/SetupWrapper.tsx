@@ -214,10 +214,7 @@ export const SetupWrapper = memo(function SetupWrapper({
     // Slide the white panel up on first paint for a native bottom-sheet feel.
     // Mobile + landing only; read synchronously so the offset is correct on mount.
     const [slideUpPanel] = useState(
-        () =>
-            screenId === 'landing' &&
-            typeof window !== 'undefined' &&
-            window.matchMedia('(max-width: 767px)').matches
+        () => screenId === 'landing' && typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
     )
     const animatePanelIn = slideUpPanel && !prefersReducedMotion
 

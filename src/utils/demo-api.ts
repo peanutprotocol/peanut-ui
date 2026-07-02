@@ -121,7 +121,10 @@ const createDemoCharge = (options?: RequestInit) => {
     const amount = String(body.requestProps?.tokenAmount ?? body.tokenAmount ?? body.local_price?.amount ?? '0')
     const id = `demo-charge-${randomHex(12)}`
     demoCharges.set(id, { amount, createdAt: new Date().toISOString(), txHash: randomTxHash() })
-    return { data: { id, code: 'DEMO', hosted_url: '', created_at: new Date().toISOString(), status: 'NEW' }, warnings: [] }
+    return {
+        data: { id, code: 'DEMO', hosted_url: '', created_at: new Date().toISOString(), status: 'NEW' },
+        warnings: [],
+    }
 }
 
 const demoPayment = (chargeUuid: string) => {
@@ -166,17 +169,17 @@ const demoRequestCharge = (id: string) => {
         currencyAmount: amount,
         timeline: [],
         requestLink: {
-        uuid: 'demo-request',
-        recipientAddress: DEMO_ADDRESS,
-        reference: null,
-        attachmentUrl: null,
-        trackId: null,
-        recipientAccount: {
-            userId: 'demo-user',
-            identifier: DEMO_ADDRESS,
-            type: 'peanut-wallet',
-            user: { username: 'demo' },
-        },
+            uuid: 'demo-request',
+            recipientAddress: DEMO_ADDRESS,
+            reference: null,
+            attachmentUrl: null,
+            trackId: null,
+            recipientAccount: {
+                userId: 'demo-user',
+                identifier: DEMO_ADDRESS,
+                type: 'peanut-wallet',
+                user: { username: 'demo' },
+            },
         },
     }
 }
@@ -300,7 +303,11 @@ const demoMantecaWithdraw = () => ({
 const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // user
     { method: 'GET', pattern: '/users/me', handler: () => DEMO_USER },
-    { method: 'GET', pattern: '/users/contacts', handler: () => ({ contacts: DEMO_CONTACTS, total: DEMO_CONTACTS.length, hasMore: false }) },
+    {
+        method: 'GET',
+        pattern: '/users/contacts',
+        handler: () => ({ contacts: DEMO_CONTACTS, total: DEMO_CONTACTS.length, hasMore: false }),
+    },
     { method: 'GET', pattern: '/users/limits', handler: () => DEMO_LIMITS },
     { method: 'GET', pattern: '/users/history', handler: () => ({ entries: DEMO_HISTORY_ENTRIES, hasMore: false }) },
     { method: 'GET', pattern: '/users/bridge-tos-link', handler: () => ({ tosLink: '' }) },
@@ -311,7 +318,11 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'GET', pattern: '/users/username/:username', handler: ({ params }) => demoApiUser(params.username) },
     { method: 'GET', pattern: '/users/:userId/rewards', handler: () => [] },
     { method: 'GET', pattern: '/users/:userId', handler: ({ params }) => demoCounterparty(params.userId) },
-    { method: 'POST', pattern: '/update-user', handler: ({ options }) => demoApiUser(parseBody(options).username ?? 'demo') },
+    {
+        method: 'POST',
+        pattern: '/update-user',
+        handler: ({ options }) => demoApiUser(parseBody(options).username ?? 'demo'),
+    },
 
     // history detail
     { method: 'GET', pattern: '/history/:entryId', handler: () => DEMO_HISTORY_ENTRIES[0] },
@@ -320,7 +331,11 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'GET', pattern: '/requests', handler: () => json({ error: 'not found' }, 404) },
     { method: 'POST', pattern: '/requests', handler: ({ options }) => demoRequest('demo-request', options) },
     { method: 'GET', pattern: '/requests/:uuid', handler: ({ params }) => demoRequest(params.uuid) },
-    { method: 'PATCH', pattern: '/requests/:uuid', handler: ({ params, options }) => demoRequest(params.uuid, options) },
+    {
+        method: 'PATCH',
+        pattern: '/requests/:uuid',
+        handler: ({ params, options }) => demoRequest(params.uuid, options),
+    },
     { method: 'DELETE', pattern: '/requests/:uuid', handler: ({ params }) => demoRequest(params.uuid) },
 
     // send links
@@ -341,7 +356,14 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     {
         method: 'GET',
         pattern: '/bridge/exchange-rate',
-        handler: () => ({ from: 'USD', to: 'USD', midmarket_rate: '1', buy_rate: '1', sell_rate: '1', updated_at: CREATED_AT }),
+        handler: () => ({
+            from: 'USD',
+            to: 'USD',
+            midmarket_rate: '1',
+            buy_rate: '1',
+            sell_rate: '1',
+            updated_at: CREATED_AT,
+        }),
     },
     { method: 'POST', pattern: '/bridge/onramp/create', handler: () => ({ success: true }) },
     { method: 'POST', pattern: '/bridge/onramp/create-for-guest', handler: () => ({ success: true }) },
@@ -349,12 +371,18 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     {
         method: 'POST',
         pattern: '/bridge/offramp/create',
-        handler: () => ({ transferId: 'demo-transfer', depositInstructions: { toAddress: DEMO_ADDRESS, blockchainMemo: '' } }),
+        handler: () => ({
+            transferId: 'demo-transfer',
+            depositInstructions: { toAddress: DEMO_ADDRESS, blockchainMemo: '' },
+        }),
     },
     {
         method: 'POST',
         pattern: '/bridge/offramp/create-for-guest',
-        handler: () => ({ transferId: 'demo-transfer', depositInstructions: { toAddress: DEMO_ADDRESS, blockchainMemo: '' } }),
+        handler: () => ({
+            transferId: 'demo-transfer',
+            depositInstructions: { toAddress: DEMO_ADDRESS, blockchainMemo: '' },
+        }),
     },
     { method: 'POST', pattern: '/bridge/transfers/:transferId/confirm', handler: () => ({ success: true }) },
     { method: 'GET', pattern: '/bridge/customers/:customerId/external-accounts', handler: () => [] },
@@ -376,7 +404,18 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     },
     { method: 'POST', pattern: '/manteca/deposit', handler: () => demoMantecaDeposit() },
     { method: 'PATCH', pattern: '/manteca/deposit/:depositId/cancel', handler: () => demoMantecaDeposit() },
-    { method: 'POST', pattern: '/manteca/withdraw/init', handler: () => ({ priceLockCode: 'demo-lock', price: '1000', expiresAt: soon(), usdAmount: '0', fiatAmount: '0', currency: 'ARS' }) },
+    {
+        method: 'POST',
+        pattern: '/manteca/withdraw/init',
+        handler: () => ({
+            priceLockCode: 'demo-lock',
+            price: '1000',
+            expiresAt: soon(),
+            usdAmount: '0',
+            fiatAmount: '0',
+            currency: 'ARS',
+        }),
+    },
     { method: 'POST', pattern: '/manteca/withdraw/complete-with-signed-tx', handler: () => demoMantecaWithdraw() },
     { method: 'POST', pattern: '/manteca/withdraw', handler: () => demoMantecaWithdraw() },
     { method: 'POST', pattern: '/manteca/initiate-onboarding', handler: () => ({ url: '' }) },
@@ -441,7 +480,11 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         }),
     },
     { method: 'POST', pattern: '/points/calculate', handler: () => ({ estimatedPoints: 10 }) },
-    { method: 'GET', pattern: '/points/time-leaderboard', handler: () => ({ leaderboard: [], since: CREATED_AT, limit: 10 }) },
+    {
+        method: 'GET',
+        pattern: '/points/time-leaderboard',
+        handler: () => ({ leaderboard: [], since: CREATED_AT, limit: 10 }),
+    },
     {
         method: 'GET',
         pattern: '/points/cash-status',
@@ -453,7 +496,11 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         }),
     },
     { method: 'GET', pattern: '/perks/pending', handler: () => ({ success: true, perks: [] }) },
-    { method: 'POST', pattern: '/perks/claim', handler: () => ({ success: true, perk: { sponsored: false, amountSponsored: 0, discountPercentage: 0 } }) },
+    {
+        method: 'POST',
+        pattern: '/perks/claim',
+        handler: () => ({ success: true, perk: { sponsored: false, amountSponsored: 0, discountPercentage: 0 } }),
+    },
 
     // invites / quests / badges
     { method: 'POST', pattern: '/invites/validate', handler: () => ({ success: true, username: 'demo' }) },
@@ -463,8 +510,16 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // .nodes.length, so an array/empty value would crash the rewards screen.
     { method: 'GET', pattern: '/invites/user-graph', handler: () => EMPTY_GRAPH },
     { method: 'GET', pattern: '/invites/graph', handler: () => EMPTY_GRAPH },
-    { method: 'GET', pattern: '/invites/graph/external', handler: () => ({ nodes: [], stats: { total: 0, byType: { WALLET: 0, BANK: 0, MERCHANT: 0 } } }) },
-    { method: 'GET', pattern: '/points/invites', handler: () => ({ invitees: [], summary: { totalInvited: 0, totalPointsEarned: 0 } }) },
+    {
+        method: 'GET',
+        pattern: '/invites/graph/external',
+        handler: () => ({ nodes: [], stats: { total: 0, byType: { WALLET: 0, BANK: 0, MERCHANT: 0 } } }),
+    },
+    {
+        method: 'GET',
+        pattern: '/points/invites',
+        handler: () => ({ invitees: [], summary: { totalInvited: 0, totalPointsEarned: 0 } }),
+    },
 
     // notifications
     { method: 'GET', pattern: '/notifications', handler: () => ({ items: [], nextCursor: null }) },
