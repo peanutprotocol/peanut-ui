@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { PEANUTMAN_LOGO } from '@/assets/mascot'
@@ -9,6 +10,8 @@ import { useQRScanner, type QRScanHandler } from './useQRScanner'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CameraPermissionModal from './CameraPermissionModal'
 import { Clipboard } from '@capacitor/clipboard'
+import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
+import { printableAddress } from '@/utils/general.utils'
 
 // ============================================================================
 // Configuration
@@ -89,7 +92,15 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
     )
 }
 
-function ScanRegionOverlay({ onPaste }: { onPaste: () => void }) {
+function ScanRegionOverlay({
+    onPaste,
+    detectedAddress,
+    onUseDetected,
+}: {
+    onPaste: () => void
+    detectedAddress: string | null
+    onUseDetected: () => void
+}) {
     return (
         <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">
             {/* Darkened background with transparent scan region */}
@@ -114,6 +125,15 @@ function ScanRegionOverlay({ onPaste }: { onPaste: () => void }) {
                     <Icon name="paste" fill="white" height={16} width={16} />
                     <span className="text-sm">Click to paste</span>
                 </button>
+                {detectedAddress && (
+                    <button
+                        onClick={onUseDetected}
+                        className="mx-auto mt-3 flex items-center gap-1.5 rounded-full border border-white/40 px-3 py-1.5 text-white"
+                    >
+                        <Icon name="wallet" fill="white" height={16} width={16} />
+                        <span className="text-sm font-semibold">{printableAddress(detectedAddress)}</span>
+                    </button>
+                )}
             </div>
         </div>
     )
@@ -141,6 +161,28 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         isOpen
     )
     const toast = useToast()
+    const [detectedAddress, setDetectedAddress] = useState<string | null>(null)
+
+    // When the scanner opens, surface an EVM address already on the clipboard so the
+    // user can pay it in one tap without scanning. (Reading here trips Android's
+    // "pasted from clipboard" toast — the tradeoff for the shortcut.)
+    useEffect(() => {
+        if (!isScanning) {
+            setDetectedAddress(null)
+            return
+        }
+        let cancelled = false
+        Clipboard.read()
+            .then(({ value }) => {
+                if (!cancelled) setDetectedAddress(extractPaymentValue((value ?? '').trim(), 'evmAddress'))
+            })
+            .catch(() => {
+                if (!cancelled) setDetectedAddress(null)
+            })
+        return () => {
+            cancelled = true
+        }
+    }, [isScanning])
 
     const handlePaste = async () => {
         try {
@@ -187,7 +229,11 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                         muted
                     />
                     <ScannerControls onClose={close} onToggleCamera={toggleCamera} />
-                    <ScanRegionOverlay onPaste={handlePaste} />
+                    <ScanRegionOverlay
+                        onPaste={handlePaste}
+                        detectedAddress={detectedAddress}
+                        onUseDetected={() => onScan(detectedAddress!)}
+                    />
                 </>
             )}
         </div>,
