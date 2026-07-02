@@ -1,7 +1,7 @@
 'use client'
 
 import { useFooterVisibility } from '@/context/footerVisibility'
-import { Suspense, useEffect, useState, useRef, useCallback, type ReactNode } from 'react'
+import { Suspense, useEffect, useMemo, useState, useRef, useCallback, type ReactNode } from 'react'
 import { DropLink, FAQs, Hero, Marquee, NoFees, CardPioneers } from '@/components/LandingPage'
 import { SupportedRailsFaqAnswer } from '@/components/LandingPage/SupportedRailsFaqAnswer'
 import { SUPPORTED_RAILS_FAQ_ID } from '@/constants/faq.consts'
@@ -53,6 +53,17 @@ export function LandingPageClient({
     footerSlot,
 }: LandingPageClientProps) {
     const { isFooterVisible } = useFooterVisibility()
+
+    // Memoized: this component re-renders per scroll frame during the button
+    // animation — don't rebuild the FAQ array + rich answer element each time.
+    const faqQuestions = useMemo(
+        () =>
+            faqData.questions.map((q) =>
+                q.id === SUPPORTED_RAILS_FAQ_ID ? { ...q, answerContent: <SupportedRailsFaqAnswer /> } : q
+            ),
+        [faqData.questions]
+    )
+
     const [buttonVisible, setButtonVisible] = useState(true)
     const [isScrollFrozen, setIsScrollFrozen] = useState(false)
     const [buttonScale, setButtonScale] = useState(1)
@@ -217,13 +228,7 @@ export function LandingPageClient({
                 <NoFees />
             </Suspense>
             <Marquee {...marqueeProps} />
-            <FAQs
-                heading={faqData.heading}
-                questions={faqData.questions.map((q) =>
-                    q.id === SUPPORTED_RAILS_FAQ_ID ? { ...q, answerContent: <SupportedRailsFaqAnswer /> } : q
-                )}
-                marquee={faqData.marquee}
-            />
+            <FAQs heading={faqData.heading} questions={faqQuestions} marquee={faqData.marquee} />
             <Marquee {...marqueeProps} />
             {footerSlot}
             <StickyMobileCTA />

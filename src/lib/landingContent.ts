@@ -64,12 +64,13 @@ function withSupportedRails(questions: LandingContent['faqData']['questions']) {
 }
 
 export function getLandingContent(locale: Locale = 'en'): LandingContent {
+    const base = readLandingContent(locale)
+    return { ...base, faqData: { ...base.faqData, questions: withSupportedRails(base.faqData.questions) } }
+}
+
+function readLandingContent(locale: Locale): LandingContent {
     const content = readSingletonContentLocalized<LandingFrontmatter>('landing', locale)
-    if (!content)
-        return {
-            ...DEFAULTS,
-            faqData: { ...DEFAULTS.faqData, questions: withSupportedRails(DEFAULTS.faqData.questions) },
-        }
+    if (!content) return DEFAULTS
 
     const fm = content.frontmatter
     return {
@@ -84,14 +85,12 @@ export function getLandingContent(locale: Locale = 'en'): LandingContent {
             heading: fm.faqs?.heading ?? DEFAULTS.faqData.heading,
             // Authored frontmatter — drop malformed entries so a null/partial
             // item can't crash the .map() in the landing page.
-            questions: withSupportedRails(
-                (fm.faqs?.questions ?? []).filter(
-                    (q): q is { id: string; question: string; answer: string } =>
-                        q != null &&
-                        typeof q.id === 'string' &&
-                        typeof q.question === 'string' &&
-                        typeof q.answer === 'string'
-                )
+            questions: (fm.faqs?.questions ?? []).filter(
+                (q): q is { id: string; question: string; answer: string } =>
+                    q != null &&
+                    typeof q.id === 'string' &&
+                    typeof q.question === 'string' &&
+                    typeof q.answer === 'string'
             ),
             marquee:
                 fm.faqs?.marquee && typeof fm.faqs.marquee.message === 'string'

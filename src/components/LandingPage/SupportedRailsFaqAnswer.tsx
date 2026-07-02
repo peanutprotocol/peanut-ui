@@ -1,22 +1,15 @@
 'use client'
 
 import ChainChip from '@/components/AddMoney/components/ChainChip'
-import { CHAIN_LOGOS, SUPPORTED_EVM_CHAINS, getSupportedTokens, TOKEN_LOGOS } from '@/constants/rhino.consts'
-import { chainDisplayName } from '@/constants/faq.consts'
-
-const FIAT_RAILS = [
-    { flag: '🇺🇸', name: 'ACH & Wire', detail: 'USD · United States' },
-    { flag: '🇪🇺', name: 'SEPA', detail: 'EUR · 36 countries' },
-    { flag: '🇬🇧', name: 'Faster Payments', detail: 'GBP · United Kingdom' },
-    { flag: '🇲🇽', name: 'SPEI', detail: 'MXN · Mexico' },
-    { flag: '🇦🇷', name: 'Mercado Pago', detail: 'ARS · Argentina' },
-    { flag: '🇧🇷', name: 'Pix', detail: 'BRL · Brazil' },
-] as const
+import { CHAIN_LOGOS, OTHER_SUPPORTED_CHAINS, SUPPORTED_EVM_CHAINS, getSupportedTokens } from '@/constants/rhino.consts'
+import { FIAT_RAILS } from '@/constants/faq.consts'
+import { chainDisplayName } from '@/utils/chain-display.utils'
 
 /**
  * Rich answer body for the "which networks, tokens and banks?" landing FAQ item.
  * Renders from the same rhino.consts constants as the add-money Choose Network
- * drawer, so the FAQ always advertises exactly what the app supports.
+ * drawer (and FIAT_RAILS shared with the plain-text SEO answer), so the FAQ
+ * always advertises exactly what the app supports.
  */
 export function SupportedRailsFaqAnswer() {
     return (
@@ -27,18 +20,16 @@ export function SupportedRailsFaqAnswer() {
                     Tron:
                 </p>
                 <div className="flex flex-wrap gap-1 rounded-sm border border-n-1 bg-white p-2">
-                    {SUPPORTED_EVM_CHAINS.map((chain) => (
+                    {[...SUPPORTED_EVM_CHAINS, ...OTHER_SUPPORTED_CHAINS].map((chain) => (
                         <ChainChip key={chain} chainName={chainDisplayName(chain)} chainSymbol={CHAIN_LOGOS[chain]} />
                     ))}
-                    <ChainChip chainName="Solana" chainSymbol={CHAIN_LOGOS.SOLANA} />
-                    <ChainChip chainName="Tron" chainSymbol={CHAIN_LOGOS.TRON} />
                 </div>
             </div>
             <div>
                 <p className="mb-2">Tokens:</p>
                 <div className="flex flex-wrap gap-1 rounded-sm border border-n-1 bg-white p-2">
                     {getSupportedTokens('EVM').map((token) => (
-                        <ChainChip key={token.name} chainName={token.name} chainSymbol={TOKEN_LOGOS[token.name]} />
+                        <ChainChip key={token.name} chainName={token.name} chainSymbol={token.logoUrl} />
                     ))}
                 </div>
                 <p className="mt-2 text-base text-grey-1">
@@ -52,7 +43,9 @@ export function SupportedRailsFaqAnswer() {
                         <li key={rail.name} className="flex items-baseline gap-2">
                             <span>{rail.flag}</span>
                             <span>{rail.name}</span>
-                            <span className="text-base text-grey-1">{rail.detail}</span>
+                            <span className="text-base text-grey-1">
+                                {rail.currency} · {rail.region}
+                            </span>
                         </li>
                     ))}
                 </ul>
