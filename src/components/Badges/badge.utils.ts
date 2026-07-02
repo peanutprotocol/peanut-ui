@@ -221,6 +221,11 @@ export const BADGES: Record<string, BadgeMeta> = {
         description: 'Ilha da Magia, baby. Coconuts and consensus.',
         displayName: 'Ethereum Hub Floripa',
     },
+    IRL_NOMADS: {
+        path: '/badges/irl_nomads.svg',
+        description: 'No fixed address, just good coffee and better wifi. Certified Nomad.',
+        displayName: 'Nomad Mode',
+    },
     // Skip Pass — friends-of-Peanut who bypassed the waitlist via /invite?campaign=skip.
     // Awarded by the backend /badge/award endpoint, which also flips hasAppAccess.
     WAITLIST_SKIP: {
