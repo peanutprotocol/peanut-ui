@@ -422,14 +422,18 @@ export default function WithdrawCryptoPage() {
         setChargeDetails(null)
     }, [setCurrentView, clearErrors, setChargeDetails])
 
-    // reset withdraw flow when this component unmounts
+    // reset withdraw flow when this component unmounts. Resetting on unmount (rather
+    // than in the success view's onComplete) avoids a race: a synchronous reset clears
+    // amountToWithdraw and flips currentView off STATUS, which re-triggers the guard
+    // below and pushes '/withdraw' over the '/home' navigation from "Back to home".
     useEffect(() => {
         return () => {
             resetRouteCalculation()
             resetPaymentRecorder()
             resetTokenContextProvider() // reset token selector context to make sure previously selected token is not cached
+            resetWithdrawFlow()
         }
-    }, [resetRouteCalculation, resetPaymentRecorder, resetTokenContextProvider])
+    }, [resetRouteCalculation, resetPaymentRecorder, resetTokenContextProvider, resetWithdrawFlow])
 
     // Display payment errors first (user actions), then route errors (system limitations)
     const displayError = paymentError
@@ -492,9 +496,6 @@ export default function WithdrawCryptoPage() {
                                 address={withdrawData.address}
                             />
                         }
-                        onComplete={() => {
-                            resetWithdrawFlow()
-                        }}
                     />
                 </>
             )}
