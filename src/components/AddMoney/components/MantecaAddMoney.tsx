@@ -1,6 +1,8 @@
 'use client'
 import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
+import MantecaPixQrDeposit from '@/components/AddMoney/components/MantecaPixQrDeposit'
+import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { useParams, useSearchParams } from 'next/navigation'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
@@ -25,11 +27,9 @@ import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import InfoCard from '@/components/Global/InfoCard'
-import underMaintenanceConfig, { PIX_BRAZIL_ONRAMP_MAINTENANCE } from '@/config/underMaintenance.config'
 
 // Step type for URL state
-type MantecaStep = 'inputAmount' | 'depositDetails'
+type MantecaStep = 'inputAmount' | 'depositDetails' | 'showQR'
 
 // Currency denomination type for URL state
 type CurrencyDenomination = 'USD' | 'ARS' | 'BRL' | 'MXN' | 'EUR'
@@ -48,7 +48,7 @@ const MantecaAddMoney: FC = () => {
     // amounts of this same screen instead of leaving it. The URL stays shareable either
     // way. Enforced by the no-restricted-syntax guard in eslint.config.js.
     const [urlState, setUrlState] = useQueryStates({
-        step: parseAsStringEnum<MantecaStep>(['inputAmount', 'depositDetails']),
+        step: parseAsStringEnum<MantecaStep>(['inputAmount', 'depositDetails', 'showQR']),
         amount: parseAsString,
         currency: parseAsStringEnum<CurrencyDenomination>(['USD', 'ARS', 'BRL', 'MXN', 'EUR']),
     })
@@ -57,7 +57,6 @@ const MantecaAddMoney: FC = () => {
     const step: MantecaStep = urlState.step ?? 'inputAmount'
     // Amount from URL - this is in the denomination specified by `currency`
     const displayedAmount = urlState.amount ?? ''
-    const currentDenomination = urlState.currency ?? 'USD'
 
     // Local UI state for tracking both amounts (needed for API call and validation)
     const [usdAmount, setUsdAmount] = useState<string>('')
@@ -73,10 +72,11 @@ const MantecaAddMoney: FC = () => {
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
+    // Default the input denomination to BRL for Brazil (PIX is in BRL); every other
+    // country keeps the USD default.
+    const currentDenomination: CurrencyDenomination =
+        urlState.currency ?? (selectedCountry?.currency === 'BRL' ? 'BRL' : 'USD')
     const onBack = useSafeBack(addMoneyCountryUrl(selectedCountryPath))
-    // BRL-via-PIX onramp warn-only maintenance flag (see underMaintenance.config.ts).
-    // Brazil-scoped so the Argentina/ARS Manteca onramp is unaffected.
-    const showPixMaintenance = selectedCountry?.id === 'BR' && underMaintenanceConfig.pixBrazilOnrampMaintenance
     // The pool→full upgrade gate asks "did the user clear ID verification?",
     // not "do they have an enabled rail elsewhere?" — read the identity
     // signal directly (Sumsub-cleared the human) instead of the old
@@ -194,14 +194,20 @@ const MantecaAddMoney: FC = () => {
                 setError(depositData.error)
                 return
             }
-            setDepositDetails(depositData.data)
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_CONFIRMED, {
                 amount_usd: usdAmount,
                 method_type: 'manteca',
                 country: selectedCountryPath,
             })
-            // Update URL state to show deposit details step
-            setUrlState({ step: 'depositDetails' })
+            // BRL deposits carry the dynamic PIX QR in the ramp-on synthetic's
+            // details → show the QR step. ARS/others show deposit details.
+            const data = depositData.data
+            setDepositDetails(data)
+            if (selectedCountry?.currency === 'BRL') {
+                setUrlState({ step: 'showQR' })
+            } else {
+                setUrlState({ step: 'depositDetails' })
+            }
         } catch (error) {
             console.log(error)
             const errorMessage = error instanceof Error ? error.message : String(error)
@@ -229,9 +235,22 @@ const MantecaAddMoney: FC = () => {
         if (step === 'depositDetails' && !depositDetails) {
             setUrlState({ step: 'inputAmount' })
         }
+        if (step === 'showQR' && !depositDetails) {
+            setUrlState({ step: 'inputAmount' })
+        }
     }, [step, depositDetails, setUrlState])
 
     if (!selectedCountry) return null
+
+    // While the BRL PIX deposit request is in flight (the QR is being generated),
+    // show the branded processing screen — same as when a PIX payment is processing.
+    if (isCreatingDeposit && selectedCountry.currency === 'BRL') {
+        return (
+            <div className="my-auto flex min-h-[inherit] flex-col justify-center">
+                <CyclingLoading />
+            </div>
+        )
+    }
 
     if (step === 'inputAmount') {
         return (
@@ -287,16 +306,6 @@ const MantecaAddMoney: FC = () => {
                     limitsValidation={limitsValidation}
                     limitsCurrency={limitsValidation.currency}
                     onBack={onBack}
-                    maintenanceBanner={
-                        showPixMaintenance ? (
-                            <InfoCard
-                                variant="warning"
-                                icon="alert"
-                                title={PIX_BRAZIL_ONRAMP_MAINTENANCE.title}
-                                description={PIX_BRAZIL_ONRAMP_MAINTENANCE.description}
-                            />
-                        ) : undefined
-                    }
                 />
             </>
         )
@@ -312,6 +321,20 @@ const MantecaAddMoney: FC = () => {
                 depositDetails={depositDetails}
                 currencyAmount={localCurrencyAmount}
                 onBack={() => setUrlState({ step: 'inputAmount' })}
+            />
+        )
+    }
+
+    if (step === 'showQR') {
+        if (!depositDetails) {
+            return null
+        }
+        return (
+            <MantecaPixQrDeposit
+                depositDetails={depositDetails}
+                currencyAmount={localCurrencyAmount}
+                onBack={() => setUrlState({ step: 'inputAmount' })}
+                onComplete={() => queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })}
             />
         )
     }

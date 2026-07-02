@@ -11,6 +11,8 @@ interface QRCodeWrapperProps {
     disabled?: boolean
     isBlurred?: boolean
     centerImage?: string
+    /** Merged onto the root — pass a `max-w-*` to override the default 160px width. */
+    className?: string
 }
 
 const QRCodeWrapper = ({
@@ -19,6 +21,7 @@ const QRCodeWrapper = ({
     disabled = false,
     isBlurred = false,
     centerImage,
+    className,
 }: QRCodeWrapperProps) => {
     const [qrRendered, setQrRendered] = useState(false)
 
@@ -39,7 +42,7 @@ const QRCodeWrapper = ({
     const showLoading = isLoading || !qrRendered || !url
 
     return (
-        <div className="relative mx-auto h-auto w-full max-w-[160px]">
+        <div className={twMerge('relative mx-auto h-auto w-full max-w-[160px]', className)}>
             {/* Container with black border and rounded corners */}
             <div
                 className={twMerge(
