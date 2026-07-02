@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import posthog from 'posthog-js'
-import { useEeaUpliftFunnel, type UpliftStartTrigger } from './useEeaUpliftFunnel'
+import { useEeaUpliftFunnel } from './useEeaUpliftFunnel'
+import type { UpliftStartTrigger } from '@/utils/eea-uplift.utils'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
@@ -46,6 +47,25 @@ describe('useEeaUpliftFunnel', () => {
             ANALYTICS_EVENTS.EEA_UPLIFT_STARTED,
             expect.objectContaining({ source: 'blocking', urgent: true, requirement_key: 'eea_uplift' })
         )
+    })
+
+    test('trackStarted is idempotent per armed attempt (repeat clicks do not re-emit)', () => {
+        const { result } = renderHook(() => useEeaUpliftFunnel('deposit'))
+        act(() => result.current.trackStarted(blockingTrigger))
+        act(() => result.current.trackStarted(blockingTrigger))
+        expect(capture).toHaveBeenCalledTimes(1)
+
+        // a genuinely different requirement re-arms and fires again
+        act(() => result.current.trackStarted(advisoryTrigger))
+        expect(capture).toHaveBeenCalledTimes(2)
+    })
+
+    test('after reset, the same trigger fires again (a new attempt)', () => {
+        const { result } = renderHook(() => useEeaUpliftFunnel('deposit'))
+        act(() => result.current.trackStarted(blockingTrigger))
+        act(() => result.current.reset())
+        act(() => result.current.trackStarted(blockingTrigger))
+        expect(capture).toHaveBeenCalledTimes(2)
     })
 
     test('trackCompleted fires eea_uplift_completed only after a start, echoing the trigger', () => {

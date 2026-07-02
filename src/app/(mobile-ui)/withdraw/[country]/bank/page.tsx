@@ -33,7 +33,7 @@ import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
 import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
-import { eeaUpliftReasonCode, isEeaUpliftAdvisory } from '@/utils/eea-uplift.utils'
+import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -118,8 +118,8 @@ export default function WithdrawBankPage() {
         // Route through the self-heal resubmit path (reheal-tagged action) so the
         // completed submission round-trips to Bridge. start-action mints a plain
         // token whose webhook completion has no Bridge relay → answers are dropped.
-        // NB: eea_uplift_started is fired at modal-open (the handlers below), not
-        // here, so abandoners are captured too.
+        // note: eea_uplift_started is fired at modal-open (the handlers below),
+        // not here, so abandoners are captured too.
         onCompleteNow: () => {
             if (!advisory) return Promise.resolve()
             return sumsubFlow.handleSelfHealResubmit('BRIDGE', advisory.requirementKey)
@@ -219,12 +219,10 @@ export default function WithdrawBankPage() {
             if (gate.kind === 'accept-tos') {
                 guardWithTos()
             } else {
-                // urgent (post-cliff) EEA uplift lands here as a fixable-rejection —
+                // urgent (post-cliff) eea uplift lands here as a fixable-rejection —
                 // fire the funnel event as this KYC modal opens.
-                const upliftCode = eeaUpliftReasonCode(gate)
-                if (upliftCode) {
-                    trackUpliftStarted({ requirementKey: upliftCode, source: 'blocking' })
-                }
+                const upliftTrigger = upliftTriggerFromGate(gate)
+                if (upliftTrigger) trackUpliftStarted(upliftTrigger)
                 setShowKycModal(true)
             }
             return
@@ -354,17 +352,11 @@ export default function WithdrawBankPage() {
     // Enforce the mandatory verification pre-empt, then run the offramp. When the
     // gate isn't `ready` (or there's no pending requirement) this is a no-op and
     // proceedWithOfframp runs straight away (it handles the not-ready cases).
-    // Upcoming (future-dated) EEA uplift opens the advisory modal here — fire the
+    // upcoming (future-dated) eea uplift opens the advisory modal here — fire the
     // funnel event as it opens.
     const handleCreateAndInitiateOfframp = () => {
-        if (isEeaUpliftAdvisory(advisory)) {
-            trackUpliftStarted({
-                requirementKey: advisory?.requirementKey,
-                actionKey: advisory?.actionKey,
-                effectiveDate: advisory?.effectiveDate,
-                source: 'advisory',
-            })
-        }
+        const advisoryTrigger = upliftTriggerFromAdvisory(advisory)
+        if (advisoryTrigger) trackUpliftStarted(advisoryTrigger)
         advisoryIntercept(() => void proceedWithOfframp())
     }
 
@@ -563,7 +555,12 @@ export default function WithdrawBankPage() {
 
             <InitiateKycModal
                 visible={showKycModal}
-                onClose={() => setShowKycModal(false)}
+                onClose={() => {
+                    // dismiss = abandon: clear the uplift latch so a later
+                    // unrelated KYC success can't mis-fire eea_uplift_completed.
+                    setShowKycModal(false)
+                    resetUpliftFunnel()
+                }}
                 onVerify={async () => {
                     if (gate.kind === 'restart-identity') {
                         await sumsubFlow.handleRestartIdentity()
@@ -580,6 +577,7 @@ export default function WithdrawBankPage() {
                 }}
                 onContactSupport={() => {
                     setShowKycModal(false)
+                    resetUpliftFunnel()
                     setIsSupportModalOpen(true)
                 }}
                 isLoading={sumsubFlow.isLoading}
