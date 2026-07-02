@@ -8,8 +8,10 @@ import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
-// placeholder — swap for the real badge code once the offramp badge PR lands.
-const OFFRAMP_BADGE_CODE = 'OFFRAMP'
+// offramp.xyz migrants get this link-granted badge at signup (peanut-api-ts
+// invite/badge routes, code `offramp` / utm `offramp`). Keep in sync with the
+// backend BADGE_CODES.OFFRAMP_USER.
+const OFFRAMP_BADGE_CODE = 'OFFRAMP_USER'
 
 interface AddMoneyMethodSelectionProps {
     onBankTransferClick: () => void
