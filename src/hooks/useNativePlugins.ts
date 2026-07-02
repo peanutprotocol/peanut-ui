@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { isCapacitor } from '@/utils/capacitor'
+import { isCapacitor, getPlatform } from '@/utils/capacitor'
 
 /**
  * initializes capacitor native plugins (back button, status bar, splash screen).
@@ -49,13 +49,17 @@ export function useNativePlugins() {
                 console.warn('failed to hide splash screen:', e)
             }
 
-            try {
-                // Resize the webview when the soft keyboard appears so inputs on
-                // amount / send / invite screens aren't hidden behind it.
-                const { Keyboard, KeyboardResize } = await import('@capacitor/keyboard')
-                await Keyboard.setResizeMode({ mode: KeyboardResize.Native })
-            } catch (e) {
-                console.warn('failed to configure keyboard:', e)
+            // Resize the webview when the soft keyboard appears so inputs on
+            // amount / send / invite screens aren't hidden behind it. setResizeMode
+            // is an iOS API — Android throws "not implemented" and handles resize via
+            // the manifest's windowSoftInputMode=adjustResize instead.
+            if (getPlatform() === 'ios-native') {
+                try {
+                    const { Keyboard, KeyboardResize } = await import('@capacitor/keyboard')
+                    await Keyboard.setResizeMode({ mode: KeyboardResize.Native })
+                } catch (e) {
+                    console.warn('failed to configure keyboard:', e)
+                }
             }
         }
 

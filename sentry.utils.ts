@@ -249,7 +249,7 @@ function isSensitiveKey(key: string): boolean {
 }
 
 function scrubObject(value: unknown, depth = 0): unknown {
-    if (depth > 10) return '[REDACTED: max depth]'
+    if (depth > 15) return '[REDACTED: max depth]'
     if (value === null || value === undefined) return value
     if (typeof value !== 'object') return value
     if (Array.isArray(value)) return value.map((item) => scrubObject(item, depth + 1))

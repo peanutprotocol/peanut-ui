@@ -32,6 +32,7 @@ import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { isTxReverted } from '@/utils/general.utils'
+import { appBaseUrl } from '@/utils/url.utils'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -205,7 +206,7 @@ export default function WithdrawCryptoPage() {
                 const chargePayload: CreateChargeRequest = {
                     pricing_type: 'fixed_price',
                     local_price: { amount: usdValue.toString(), currency: 'USD' },
-                    baseUrl: window.location.origin,
+                    baseUrl: appBaseUrl(),
                     requestId: newRequest.uuid,
                     requestProps: {
                         chainId: completeWithdrawData.chain.chainId.toString(),
@@ -421,14 +422,18 @@ export default function WithdrawCryptoPage() {
         setChargeDetails(null)
     }, [setCurrentView, clearErrors, setChargeDetails])
 
-    // reset withdraw flow when this component unmounts
+    // reset withdraw flow when this component unmounts. Resetting on unmount (rather
+    // than in the success view's onComplete) avoids a race: a synchronous reset clears
+    // amountToWithdraw and flips currentView off STATUS, which re-triggers the guard
+    // below and pushes '/withdraw' over the '/home' navigation from "Back to home".
     useEffect(() => {
         return () => {
             resetRouteCalculation()
             resetPaymentRecorder()
             resetTokenContextProvider() // reset token selector context to make sure previously selected token is not cached
+            resetWithdrawFlow()
         }
-    }, [resetRouteCalculation, resetPaymentRecorder, resetTokenContextProvider])
+    }, [resetRouteCalculation, resetPaymentRecorder, resetTokenContextProvider, resetWithdrawFlow])
 
     // Display payment errors first (user actions), then route errors (system limitations)
     const displayError = paymentError
@@ -491,9 +496,6 @@ export default function WithdrawCryptoPage() {
                                 address={withdrawData.address}
                             />
                         }
-                        onComplete={() => {
-                            resetWithdrawFlow()
-                        }}
                     />
                 </>
             )}

@@ -86,6 +86,20 @@ Watch the console for `[demo-api] unmocked` and close any gap.
 
 ## Safety / tests
 
-`src/utils/__tests__/demo-api.test.ts` covers routing, param extraction, the shape-aware
-fallback, and asserts demo mode is **web-inert** (`isDemoMode()` is `false` when
-`isCapacitor()` is false, even with the flag set). Run `pnpm test` and `pnpm typecheck`.
+Hard boundaries the demo session cannot cross:
+
+- **Web-inert.** `isDemoMode()` is `false` outside the Capacitor shell, no matter what
+  flags are set — the demo API layer is unreachable from the web app.
+- **No real funds.** Sends are simulated; UserOps are hard-stopped before signing, so
+  nothing can reach a chain.
+- **No real backend session.** Every API call short-circuits to synthetic responses;
+  no JWT exists and KYC is skipped by construction.
+- **No push / tracking identity.** `useNotifications` skips OneSignal init entirely in
+  demo mode — no subscription is created and no `external_id` login is attempted.
+- **No websocket.** Demo sessions never open a live connection; consumers must handle
+  the absent socket.
+
+`src/utils/__tests__/demo-api.test.ts` covers routing, param extraction, and the
+shape-aware fallback; `src/utils/__tests__/demo.test.ts` locks the web-inert guarantee
+(session flag, direct localStorage flag, and disable/cleanup paths). Run `pnpm test`
+and `pnpm typecheck`.

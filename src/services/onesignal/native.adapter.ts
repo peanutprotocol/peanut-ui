@@ -11,8 +11,8 @@ async function nativePermission(): Promise<NotificationPermissionState> {
 
 let initPromise: Promise<void> | null = null
 
-const permissionListeners: Array<(state: NotificationPermissionState) => void> = []
-const subscriptionListeners: Array<(optedIn: boolean) => void> = []
+const permissionListeners = new Set<(state: NotificationPermissionState) => void>()
+const subscriptionListeners = new Set<(optedIn: boolean) => void>()
 let underlyingListenersAttached = false
 
 function attachUnderlyingListeners() {
@@ -70,10 +70,12 @@ export const nativeOneSignalAdapter: OneSignalAdapter = {
     },
 
     onPermissionChange(listener) {
-        permissionListeners.push(listener)
+        permissionListeners.add(listener)
+        return () => permissionListeners.delete(listener)
     },
 
     onSubscriptionChange(listener) {
-        subscriptionListeners.push(listener)
+        subscriptionListeners.add(listener)
+        return () => subscriptionListeners.delete(listener)
     },
 }

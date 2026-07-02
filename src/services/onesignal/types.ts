@@ -14,6 +14,6 @@ export interface OneSignalAdapter {
     requestPermission(): Promise<NotificationPermissionState>
     getPermission(): Promise<NotificationPermissionState>
     isOptedIn(): Promise<boolean>
-    onPermissionChange(listener: (state: NotificationPermissionState) => void): void
-    onSubscriptionChange(listener: (optedIn: boolean) => void): void
+    onPermissionChange(listener: (state: NotificationPermissionState) => void): () => void
+    onSubscriptionChange(listener: (optedIn: boolean) => void): () => void
 }
