@@ -1,7 +1,30 @@
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type PendingPerk } from '@/services/perks'
 import { isDemoMode } from '@/utils/demo'
+import { isCapacitor } from '@/utils/capacitor'
 export type { PendingPerk }
+
+function isValidWsUrl(url: string): boolean {
+    if (!url) return false
+    try {
+        const { protocol } = new URL(url)
+        return protocol === 'ws:' || protocol === 'wss:'
+    } catch {
+        return false
+    }
+}
+
+// Native builds don't ship a dedicated WS URL — derive it from the backend API
+// origin (https://api… → wss://api…, http → ws).
+function apiUrlToWsUrl(apiUrl: string): string {
+    if (!apiUrl) return ''
+    try {
+        const { protocol, host } = new URL(apiUrl)
+        return `${protocol === 'http:' ? 'ws' : 'wss'}://${host}`
+    } catch {
+        return ''
+    }
+}
 
 export interface RailStatusUpdate {
     railId: string
@@ -69,8 +92,9 @@ export class PeanutWebSocket {
             this.socket.onclose = this.handleClose.bind(this)
             this.socket.onerror = this.handleError.bind(this)
         } catch (error) {
+            // A throw here is a bad URL / mixed-content ctor failure — permanent, so
+            // retrying only floods the main thread. Transient drops reconnect via onclose.
             console.error('WebSocket connection error:', error)
-            this.scheduleReconnect()
         }
     }
 
@@ -282,12 +306,23 @@ export const getWebSocketInstance = (username?: string): PeanutWebSocket | null 
     }
 
     if (!websocketInstance) {
-        let wsUrl = process.env.NEXT_PUBLIC_PEANUT_WS_URL || ''
+        let wsUrl =
+            process.env.NEXT_PUBLIC_PEANUT_WS_URL || apiUrlToWsUrl(process.env.NEXT_PUBLIC_PEANUT_API_URL || '')
         const path = `/ws/charges/${username}`
 
-        // use ws:// for local development to avoid SSL issues
-        if (window.location.hostname === 'localhost' && wsUrl.startsWith('wss://')) {
+        // Downgrade to ws:// only for local dev against a localhost WS server. Native
+        // builds also run at https://localhost but connect to a remote wss:// host —
+        // downgrading there is mixed content and gets blocked by the WebView.
+        if (!isCapacitor() && window.location.hostname === 'localhost' && wsUrl.startsWith('wss://')) {
             wsUrl = wsUrl.replace('wss://', 'ws://')
+        }
+
+        // Without a valid absolute ws(s):// base, `new URL(path, wsUrl)` throws on every
+        // connect and the reconnect loop pegs the main thread (freeze → crash). Bail out —
+        // callers already treat null as "socket unavailable".
+        if (!isValidWsUrl(wsUrl)) {
+            console.warn('WebSocket disabled: no valid WS URL from NEXT_PUBLIC_PEANUT_WS_URL / NEXT_PUBLIC_PEANUT_API_URL')
+            return null
         }
 
         websocketInstance = new PeanutWebSocket(wsUrl, path)

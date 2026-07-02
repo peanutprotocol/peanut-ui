@@ -3,6 +3,15 @@ import * as Sentry from '@sentry/nextjs'
 import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 
+// rrweb session replay serializes the DOM on every mutation — too heavy for low-end
+// Android WebViews. deviceMemory (GB) is Chromium-only and often absent on cheap
+// devices; treat "unknown" as low-end and skip, to protect the weakest ones.
+function nativeReplayEnabled(): boolean {
+    if (typeof navigator === 'undefined') return false
+    const nav = navigator as Navigator & { deviceMemory?: number }
+    return (nav.deviceMemory ?? 0) >= 4 && (nav.hardwareConcurrency ?? 0) >= 6
+}
+
 if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development') {
     const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com'
     const isNativeBuild = process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true'
@@ -18,6 +27,9 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development') {
         capture_pageview: true,
         capture_pageleave: true,
         autocapture: true,
+        // Leave replay sampling to the PostHog project settings (unchanged). Only extra
+        // gate: on native, skip low-end WebViews where rrweb serialization causes jank.
+        disable_session_recording: isNativeBuild && !nativeReplayEnabled(),
     })
 
     // The web build inits Sentry via sentry.client.config.ts (injected by
@@ -31,7 +43,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development') {
             release: process.env.NEXT_PUBLIC_GIT_COMMIT_HASH,
             tracesSampleRate: 0.1,
             beforeSend: beforeSendHandler,
-            integrations: [Sentry.captureConsoleIntegration({ levels: ['error', 'warn'] })],
+            integrations: [Sentry.captureConsoleIntegration({ levels: ['error'] })],
         })
     }
 
