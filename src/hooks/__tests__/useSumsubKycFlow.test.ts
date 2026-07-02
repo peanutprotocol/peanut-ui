@@ -340,7 +340,7 @@ describe('useSumsubKycFlow — verification-progress poll backoff', () => {
     })
 
     it('cancels the pending timer on unmount', async () => {
-        const { result, unmount } = openModal()
+        const { unmount } = openModal()
 
         await act(async () => {
             await jest.advanceTimersByTimeAsync(5_000)
