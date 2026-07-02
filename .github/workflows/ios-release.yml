@@ -177,6 +177,11 @@ jobs:
                   issuer-id: ${{ secrets.ASC_ISSUER_ID }}
                   api-key-id: ${{ secrets.ASC_KEY_ID }}
                   api-private-key: ${{ secrets.ASC_KEY_CONTENT }}
+                  # The upload itself is what matters; the post-upload processing
+                  # poll re-queries ASC for many minutes and fails when the API
+                  # token expires mid-wait (401 NOT_AUTHORIZED). The build is
+                  # already in App Store Connect by then, so skip the wait.
+                  wait-for-processing: 'false'
 
             - name: Upload IPA as build artifact
               if: always()
