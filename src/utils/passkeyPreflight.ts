@@ -60,7 +60,8 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
             console.warn('[PasskeyPreflight] native isSupported() check failed:', e)
             return {
                 isSupported: false,
-                warning: 'We couldn’t verify passkey support. Make sure you’re signed in to a Google account with up-to-date Google Play Services, then try again.',
+                warning:
+                    'We couldn’t verify passkey support. Make sure you’re signed in to a Google account with up-to-date Google Play Services, then try again.',
                 diagnostics,
             }
         }

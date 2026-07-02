@@ -103,8 +103,24 @@ const DEMO_CREATED_AT = '2026-01-01T00:00:00.000Z'
 // hard-stopped, so "enabled" rails can't move real money.
 const DEMO_CAPABILITIES: UserCapabilities = {
     rails: [
-        { id: 'bridge.ach_us', provider: 'bridge', method: 'ACH_US', channel: 'bank', country: 'US', currency: 'USD', status: 'enabled' },
-        { id: 'manteca.pix_br', provider: 'manteca', method: 'PIX_BR', channel: 'bank', country: 'BR', currency: 'BRL', status: 'enabled' },
+        {
+            id: 'bridge.ach_us',
+            provider: 'bridge',
+            method: 'ACH_US',
+            channel: 'bank',
+            country: 'US',
+            currency: 'USD',
+            status: 'enabled',
+        },
+        {
+            id: 'manteca.pix_br',
+            provider: 'manteca',
+            method: 'PIX_BR',
+            channel: 'bank',
+            country: 'BR',
+            currency: 'BRL',
+            status: 'enabled',
+        },
         {
             id: 'manteca.bank_transfer_ar',
             provider: 'manteca',
@@ -169,9 +185,30 @@ export const DEMO_USER: IUserProfile = {
         // Codes must match the FE badge catalog (components/Badges/badge.utils.ts)
         // so icons/descriptions resolve; otherwise the badges screen is empty.
         badges: [
-            { code: 'BETA_TESTER', name: 'Beta Tester', description: null, iconUrl: null, color: null, earnedAt: DEMO_CREATED_AT },
-            { code: 'OG_2025_10_12', name: 'OG', description: null, iconUrl: null, color: null, earnedAt: DEMO_CREATED_AT },
-            { code: 'PRODUCT_HUNT', name: 'Product Hunt', description: null, iconUrl: null, color: null, earnedAt: DEMO_CREATED_AT },
+            {
+                code: 'BETA_TESTER',
+                name: 'Beta Tester',
+                description: null,
+                iconUrl: null,
+                color: null,
+                earnedAt: DEMO_CREATED_AT,
+            },
+            {
+                code: 'OG_2025_10_12',
+                name: 'OG',
+                description: null,
+                iconUrl: null,
+                color: null,
+                earnedAt: DEMO_CREATED_AT,
+            },
+            {
+                code: 'PRODUCT_HUNT',
+                name: 'Product Hunt',
+                description: null,
+                iconUrl: null,
+                color: null,
+                earnedAt: DEMO_CREATED_AT,
+            },
         ],
     },
 }

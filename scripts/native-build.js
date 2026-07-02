@@ -240,7 +240,9 @@ function copyComponentsBeforeDisable() {
 function isCoveredByDisableList(relPath) {
     return ITEMS_TO_DISABLE.some((item) => {
         if (item.type === 'dir') {
-            return relPath === item.path || relPath.startsWith(item.path + path.sep) || relPath.startsWith(item.path + '/')
+            return (
+                relPath === item.path || relPath.startsWith(item.path + path.sep) || relPath.startsWith(item.path + '/')
+            )
         }
         return relPath === item.path
     })

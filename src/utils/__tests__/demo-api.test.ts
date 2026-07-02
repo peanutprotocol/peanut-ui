@@ -118,7 +118,10 @@ describe('demoRespond — shape-aware fallback (never throws on undefined.map)',
         // create a charge for $10 (as the send flow does)
         const { data: charge } = await body('/charges', {
             method: 'POST',
-            body: JSON.stringify({ local_price: { amount: '10', currency: 'USD' }, requestProps: { tokenAmount: '10' } }),
+            body: JSON.stringify({
+                local_price: { amount: '10', currency: 'USD' },
+                requestProps: { tokenAmount: '10' },
+            }),
         })
         const id = charge.data.id
         expect(id).toBeTruthy()

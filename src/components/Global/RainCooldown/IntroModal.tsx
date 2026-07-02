@@ -37,7 +37,10 @@ const RainCooldownIntroModal = () => {
                 },
             ]}
             footer={
-                <DocsLink href="/en/help/card-collateral" className="block pt-2 text-center text-sm text-black underline">
+                <DocsLink
+                    href="/en/help/card-collateral"
+                    className="block pt-2 text-center text-sm text-black underline"
+                >
                     Read more
                 </DocsLink>
             }

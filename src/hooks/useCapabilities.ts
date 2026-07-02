@@ -183,10 +183,7 @@ export function useCapabilities(): UseCapabilitiesResult {
     )
 
     // demo mode: present as verified so KYC walls don't block the walkthrough.
-    const isKycApproved = useMemo(
-        () => isDemoMode() || rails.some((rail) => rail.status === 'enabled'),
-        [rails]
-    )
+    const isKycApproved = useMemo(() => isDemoMode() || rails.some((rail) => rail.status === 'enabled'), [rails])
 
     const isKycInProgress = useMemo(
         () => rails.some((rail) => rail.status === 'pending' || rail.status === 'requires-info'),
