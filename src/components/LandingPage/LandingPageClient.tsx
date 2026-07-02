@@ -3,6 +3,8 @@
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { Suspense, useEffect, useState, useRef, useCallback, type ReactNode } from 'react'
 import { DropLink, FAQs, Hero, Marquee, NoFees, CardPioneers } from '@/components/LandingPage'
+import { SupportedRailsFaqAnswer } from '@/components/LandingPage/SupportedRailsFaqAnswer'
+import { SUPPORTED_RAILS_FAQ_ID } from '@/constants/faq.consts'
 import TweetCarousel from '@/components/LandingPage/TweetCarousel'
 import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -215,7 +217,13 @@ export function LandingPageClient({
                 <NoFees />
             </Suspense>
             <Marquee {...marqueeProps} />
-            <FAQs heading={faqData.heading} questions={faqData.questions} marquee={faqData.marquee} />
+            <FAQs
+                heading={faqData.heading}
+                questions={faqData.questions.map((q) =>
+                    q.id === SUPPORTED_RAILS_FAQ_ID ? { ...q, answerContent: <SupportedRailsFaqAnswer /> } : q
+                )}
+                marquee={faqData.marquee}
+            />
             <Marquee {...marqueeProps} />
             {footerSlot}
             <StickyMobileCTA />
