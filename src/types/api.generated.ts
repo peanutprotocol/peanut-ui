@@ -540,7 +540,7 @@ export interface paths {
                         showFullName?: boolean;
                         hasSeenEarlyUserModal?: boolean;
                         bridgeKycStatus?: "not_started" | "incomplete" | "under_review" | "approved" | "rejected";
-                        showKycCompletedModal?: boolean;
+                        dismissActivationCelebration?: boolean;
                     };
                 };
             };
@@ -8904,7 +8904,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         userId: string;
-                        code: "BETA_TESTER" | "DEVCONNECT_BA_2025" | "PRODUCT_HUNT" | "OG_2025_10_12" | "SEEDLING_DEVCONNECT_BA_2025" | "ARBIVERSE_DEVCONNECT_BA_2025" | "CARD_PIONEER" | "FOUNDER_HOUSE" | "BUG_WHISPERER" | "SHHHHH" | "CARD_FIRST_SWIPE" | "CARD_SPENT_1K" | "TOKEN_NATION_SP_2026" | "ETHFLORIPA_HUB" | "WAITLIST_SKIP";
+                        code: "BETA_TESTER" | "DEVCONNECT_BA_2025" | "PRODUCT_HUNT" | "OG_2025_10_12" | "SEEDLING_DEVCONNECT_BA_2025" | "ARBIVERSE_DEVCONNECT_BA_2025" | "CARD_PIONEER" | "FOUNDER_HOUSE" | "BUG_WHISPERER" | "SHHHHH" | "CARD_FIRST_SWIPE" | "CARD_SPENT_1K" | "CARD_ALPHA" | "TOKEN_NATION_SP_2026" | "ETHFLORIPA_HUB" | "WAITLIST_SKIP";
                         revoke?: boolean;
                     };
                 };

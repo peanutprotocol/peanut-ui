@@ -8,6 +8,7 @@
  */
 import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
 import RainCooldownIntroModal from '@/components/Global/RainCooldown/IntroModal'
+import BadgeEarnToast from '@/components/Badges/BadgeEarnToast'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
 import { PeanutProvider } from '@/config'
@@ -45,6 +46,9 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                                 explainer also covers public pay/send/request pages —
                                 the rain:cooldown event fires on every spend path. */}
                             <RainCooldownIntroModal />
+                            {/* Non-intrusive "badge unlocked" toast on /home (TASK-19791).
+                                Global so it surfaces wherever the user lands after earning. */}
+                            <BadgeEarnToast />
                             {HarnessBootstrap && (
                                 <Suspense fallback={null}>
                                     <HarnessBootstrap />

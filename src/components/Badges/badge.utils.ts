@@ -62,9 +62,20 @@ export const BADGES: Record<string, BadgeMeta> = {
         path: '/badges/arbiverse_devconnect.svg',
         description: 'They found the Arbiverse booth. We found them. Mutual onboarding achieved.',
     },
+    // Rebranded from "Card Pioneer" to "Founding Pioneer". Backend still emits the
+    // CARD_PIONEER code (it also gates grandfathered card access + cashback), so we
+    // keep the code and only repoint the FE asset/copy/name. Existing holders now
+    // render the Founding Pioneer badge. (Same pattern as SUPPORT_SURVIVOR below.)
     CARD_PIONEER: {
-        path: '/badges/peanut-pioneer.png',
-        description: 'A true Card Pioneer. Among the first to pay everywhere with Peanut.',
+        path: '/badges/founding_pioneer.svg',
+        description: 'You built Peanut before it had a launch.',
+        displayName: 'Founding Pioneer',
+    },
+    // New invite-activated community badge for the early crew (invite code "founding").
+    FOUNDING_PIONEER: {
+        path: '/badges/founding_pioneer.svg',
+        description: 'You built Peanut before it had a launch.',
+        displayName: 'Founding Pioneer',
     },
     FOUNDER_HOUSE: {
         path: '/badges/founder_house.svg',
@@ -169,6 +180,11 @@ export const BADGES: Record<string, BadgeMeta> = {
         description: 'IYKYK. They were testing the card before you knew it existed.',
         displayName: 'Closed Beta',
     },
+    CARD_ALPHA: {
+        path: '/badges/card_alpha.svg',
+        description: 'You tested the Card while it was still held together with tape and hope.',
+        displayName: 'Closed Alpha Tester',
+    },
     // ── community (link-granted) ────────────────────────────────────────────
     ARBITRUM: {
         path: '/badges/arbitrum.svg',
@@ -182,9 +198,23 @@ export const BADGES: Record<string, BadgeMeta> = {
         path: '/badges/token_nation_2026.svg',
         description: 'São Paulo, baby. They came, they claimed, they tagged the wall.',
     },
+    FESTA_JUNINA_2026: {
+        path: '/badges/festa_junina_2026.svg',
+        description: 'You danced the quadrilha with us. Arraiá unlocked.',
+        displayName: 'Arraiá Approved',
+    },
     TOUCHED_GRASS: {
         path: '/badges/touched_grass.svg',
         description: 'You logged off and touched real grass with Peanut.',
+    },
+    OFFRAMP_USER: {
+        path: '/badges/offramp_user.png',
+        description: 'You migrated to Peanut. We welcomed you.',
+    },
+    PSYOPS_DIVISION: {
+        path: '/badges/psyops_division.svg',
+        description: 'Enlisted in the Psyops Division. Welcome to the influence game.',
+        displayName: 'Psyops Division',
     },
     EVENT_ALUMNI: {
         path: '/badges/event_alumni.svg',
@@ -194,6 +224,11 @@ export const BADGES: Record<string, BadgeMeta> = {
         path: '/badges/ethfloripa_hub.svg',
         description: 'Ilha da Magia, baby. Coconuts and consensus.',
         displayName: 'Ethereum Hub Floripa',
+    },
+    IRL_NOMADS: {
+        path: '/badges/irl_nomads.svg',
+        description: 'No fixed address, just good coffee and better wifi. Certified Nomad.',
+        displayName: 'Nomad Mode',
     },
     // Skip Pass — friends-of-Peanut who bypassed the waitlist via /invite?campaign=skip.
     // Awarded by the backend /badge/award endpoint, which also flips hasAppAccess.

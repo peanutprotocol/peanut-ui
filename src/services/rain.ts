@@ -174,6 +174,9 @@ export interface RainCardDetailsResponse {
     expiryYear: number
     last4: string
     network: string
+    /** Registered cardholder name from Rain. Best-effort on the backend, so it
+     *  may be absent if the Rain user lookup failed. */
+    cardholderName?: string
 }
 
 export type RainLimitFrequency = 'perAuthorization' | 'per24HourPeriod' | 'per30DayPeriod' | 'perAllTime'
@@ -389,12 +392,23 @@ export const rainApi = {
      * Submit a prepared withdrawal with the user's admin signature. Backend
      * verifies via ERC-1271 against the user's kernel and broadcasts the
      * coordinator call through the shared admin relayer.
+     *
+     * `/submit` is SYNCHRONOUS: it broadcasts AND awaits on-chain confirmation
+     * (`waitForUserOperationReceipt` + `confirmIntentByTxHash`) before
+     * responding, and for a request/charge it settles the charge in the same
+     * call. That round-trip routinely exceeds the default 10s fetch budget, so
+     * pass 120s — the same budget the verified-withdrawal path already uses for
+     * this exact reason (see line ~525). With the 10s default the FE aborts
+     * while the tx still lands + the charge settles: the user sees an error on a
+     * payment that actually succeeded, retries, and double-sends. (#2245 routed
+     * request payments through this path for the first time → the regression.)
      */
     submitWithdrawal: async (input: SubmitRainWithdrawalInput): Promise<SubmitRainWithdrawalResponse> => {
         return rainRequest<SubmitRainWithdrawalResponse>({
             method: 'POST',
             path: '/rain/cards/withdraw/submit',
             body: input,
+            timeoutMs: 120_000,
         })
     },
 
@@ -471,6 +485,13 @@ export const rainApi = {
             method: 'POST',
             path: '/rain/cards',
             body,
+            // The first-time-application path runs 7 sequential Sumsub calls, a
+            // deliberate 2.5s readiness sleep, the Rain createApplication call,
+            // and an optional inline issueCard — routinely 7-13s. The default
+            // 10s fetch timeout clips that tail, aborting client-side while the
+            // backend completes (user sees a false failure on a card that was
+            // actually submitted). Give this one call generous headroom.
+            timeoutMs: 60_000,
         })
     },
 

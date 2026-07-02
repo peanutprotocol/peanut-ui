@@ -30,6 +30,8 @@ interface InputAmountStepProps {
     // required - must be provided by caller based on the payment flow's currency (ARS, BRL, USD)
     limitsCurrency: LimitCurrency
     onBack: () => void
+    // optional warning banner rendered at the top of the step (e.g. PIX-under-maintenance)
+    maintenanceBanner?: React.ReactNode
 }
 
 const InputAmountStep = ({
@@ -46,10 +48,17 @@ const InputAmountStep = ({
     limitsValidation,
     limitsCurrency,
     onBack,
+    maintenanceBanner,
 }: InputAmountStepProps) => {
     if (currencyData?.isLoading) {
         return <PeanutLoading />
     }
+
+    // FX fetch failed (e.g. provider outage): price is null but not loading.
+    // Without this guard, `currencyData.price!.buy` below derefs null and
+    // crashes the whole render (PEANUT-UI-PS7). Surface an error and block
+    // submission instead — a wrong/absent rate must never reach onramp create.
+    const rateUnavailable = !!currencyData?.isError
 
     const limitsCardProps = limitsValidation
         ? getLimitsWarningCardProps({
@@ -63,6 +72,7 @@ const InputAmountStep = ({
         <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
             <NavHeader title="Add Money" onPrev={onBack} />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
+                {maintenanceBanner}
                 <div className="text-sm font-bold">How much do you want to add?</div>
 
                 <AmountInput
@@ -73,10 +83,10 @@ const InputAmountStep = ({
                     setDisplayedAmount={setDisplayedAmount}
                     secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
                     primaryDenomination={
-                        currencyData
+                        currencyData?.price && currencyData.symbol
                             ? {
-                                  symbol: currencyData.symbol!,
-                                  price: currencyData.price!.buy,
+                                  symbol: currencyData.symbol,
+                                  price: currencyData.price.buy,
                                   decimals: 2,
                               }
                             : undefined
@@ -96,7 +106,13 @@ const InputAmountStep = ({
                     variant="purple"
                     shadowSize="4"
                     onClick={onSubmit}
-                    disabled={!!error || isLoading || !parseFloat(tokenAmount) || limitsValidation?.isBlocking}
+                    disabled={
+                        !!error ||
+                        isLoading ||
+                        !parseFloat(tokenAmount) ||
+                        limitsValidation?.isBlocking ||
+                        rateUnavailable
+                    }
                     className="w-full"
                     loading={isLoading}
                 >
@@ -104,6 +120,9 @@ const InputAmountStep = ({
                 </Button>
                 {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                 {error && !limitsValidation?.isBlocking && <ErrorAlert description={error} />}
+                {rateUnavailable && !error && !limitsValidation?.isBlocking && (
+                    <ErrorAlert description="Exchange rates are temporarily unavailable. Please try again in a moment." />
+                )}
             </div>
         </div>
     )

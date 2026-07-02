@@ -53,7 +53,9 @@ const MantecaDepositShareDetails = ({
         return MANTECA_COUNTRIES_CONFIG[currentCountryDetails.id]?.depositAddressLabel ?? 'Deposit Address'
     }, [currentCountryDetails])
 
-    const depositAddress = depositDetails.details.depositAddress
+    // BRL synthetics no longer carry these (QR-only) — but BRL routes to the QR
+    // screen, never here; the fallback just keeps the ARS/static path total.
+    const depositAddress = depositDetails.details.depositAddress ?? ''
     const shortenedAddress = depositAddress.length > 30 ? shortenStringLong(depositAddress, 10) : depositAddress
     const depositAlias = depositDetails.details.depositAlias
     const depositAmount = currencyAmount ?? depositDetails.stages['1'].thresholdAmount

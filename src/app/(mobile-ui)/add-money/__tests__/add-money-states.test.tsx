@@ -618,6 +618,14 @@ jest.mock('@/components/AddMoney/components/MantecaAddMoney', () => ({
     default: () => <div data-testid="manteca-add-money">Manteca Add Money</div>,
 }))
 
+// MantecaTransfersMaintenanceView — the outage screen shown when a currency is
+// in disabledMantecaCurrencies. Mocked to a testid so GROUP 7 can assert which
+// branch the regional-method route renders without pulling the real Card tree.
+jest.mock('@/components/Global/Banner/MantecaTransfersMaintenanceView', () => ({
+    __esModule: true,
+    MantecaTransfersMaintenanceView: () => <div data-testid="manteca-transfers-maintenance">Manteca Maintenance</div>,
+}))
+
 // AddMoneyBankDetails (for US bank page and bank details step)
 jest.mock('@/components/AddMoney/components/AddMoneyBankDetails', () => ({
     __esModule: true,
@@ -716,6 +724,7 @@ import OnrampBankPage from '../[country]/bank/page'
 import AddMoneyRegionalMethodPage from '../[country]/[regional-method]/page'
 import AddMoneyCountryPage from '../[country]/page'
 import CryptoDepositView from '@/components/AddMoney/views/CryptoDeposit.view'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 // ---------- helpers ----------
 
@@ -1412,11 +1421,26 @@ describe('GROUP 6: US Bank Page', () => {
 // GROUP 7: Manteca Deposit (AR, BR)
 // ============================================================
 describe('GROUP 7: Manteca Deposit (Regional Method)', () => {
-    test('AR + manteca renders MantecaAddMoney', () => {
+    afterEach(() => {
+        // reset the per-currency outage list so its default value can't leak between tests
+        underMaintenanceConfig.disabledMantecaCurrencies = []
+    })
+
+    test('AR + manteca renders MantecaAddMoney when its currency (ARS) is live', () => {
+        underMaintenanceConfig.disabledMantecaCurrencies = ['BRL'] // BRL down, ARS live
         setParams({ country: 'argentina', 'regional-method': 'manteca' })
         renderWithProviders(<AddMoneyRegionalMethodPage />)
 
         expect(screen.getByTestId('manteca-add-money')).toBeInTheDocument()
+    })
+
+    test('AR + manteca shows the outage screen when ARS is in the disabled list', () => {
+        underMaintenanceConfig.disabledMantecaCurrencies = ['ARS']
+        setParams({ country: 'argentina', 'regional-method': 'manteca' })
+        renderWithProviders(<AddMoneyRegionalMethodPage />)
+
+        expect(screen.getByTestId('manteca-transfers-maintenance')).toBeInTheDocument()
+        expect(screen.queryByTestId('manteca-add-money')).not.toBeInTheDocument()
     })
 
     test('unsupported country + manteca renders nothing', () => {
@@ -1500,6 +1524,27 @@ describe('GROUP 8: InputAmountStep Component', () => {
             />
         )
 
+        expect(screen.getByText('Continue')).not.toBeDisabled()
+    })
+
+    test('renders maintenanceBanner and keeps Continue enabled (warn-only)', () => {
+        renderWithProviders(
+            <InputAmountStep
+                tokenAmount="100"
+                setTokenAmount={jest.fn()}
+                onSubmit={jest.fn()}
+                isLoading={false}
+                error={null}
+                setCurrencyAmount={jest.fn()}
+                limitsValidation={{ isBlocking: false, isWarning: false, currency: 'USD' }}
+                limitsCurrency="USD"
+                onBack={jest.fn()}
+                maintenanceBanner={<div data-testid="pix-maintenance">PIX deposits are under maintenance</div>}
+            />
+        )
+
+        expect(screen.getByTestId('pix-maintenance')).toBeInTheDocument()
+        // warn-only: the banner is informational and must not block submission
         expect(screen.getByText('Continue')).not.toBeDisabled()
     })
 
@@ -1607,6 +1652,33 @@ describe('GROUP 8: InputAmountStep Component', () => {
         )
 
         expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
+    })
+
+    // Regression for PEANUT-UI-PS7: a failed FX fetch leaves price=null while
+    // isLoading=false. The old `currencyData.price!.buy` derefed null and crashed
+    // the whole render (Next.js page crash). It must now render an error and
+    // disable Continue instead of throwing.
+    test('rate fetch failure renders error and disables Continue (no crash)', () => {
+        renderWithProviders(
+            <InputAmountStep
+                tokenAmount="100"
+                setTokenAmount={jest.fn()}
+                onSubmit={jest.fn()}
+                isLoading={false}
+                error={null}
+                setCurrencyAmount={jest.fn()}
+                currencyData={{ isLoading: false, isError: true, symbol: null, price: null }}
+                limitsValidation={{ isBlocking: false, isWarning: false, currency: 'USD' }}
+                limitsCurrency="USD"
+                onBack={jest.fn()}
+            />
+        )
+
+        expect(screen.getByTestId('error-alert')).toBeInTheDocument()
+        expect(
+            screen.getByText('Exchange rates are temporarily unavailable. Please try again in a moment.')
+        ).toBeInTheDocument()
+        expect(screen.getByText('Continue')).toBeDisabled()
     })
 
     test('onSubmit called when Continue clicked', async () => {

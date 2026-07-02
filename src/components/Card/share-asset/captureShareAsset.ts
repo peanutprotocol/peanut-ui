@@ -40,8 +40,37 @@ export class ShareAssetCaptureError extends Error {
     }
 }
 
+/**
+ * Wait for the asset's content to be painted before we snapshot.
+ *
+ * Every visible element of the asset is a plain <img> now — badge stickers, the
+ * card logos, AND the card's pixelated hand (see PixelatedCardFace). The hand
+ * used to be a runtime <canvas>, which html-to-image silently dropped when it
+ * couldn't serialise it (canvas.toDataURL() returns empty on iOS Safari for an
+ * SVG-sourced canvas → blank card, no error: the launch-day "blank share asset"
+ * bug). With everything as <img>, readiness is simply:
+ *   - document.fonts.ready (the hero/username use a web font)
+ *   - every <img> decoded (badges, logos, the hand)
+ * so the snapshot only fires once the bitmaps are actually ready.
+ */
+export async function waitForAssetReady(node: HTMLElement): Promise<void> {
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+        try {
+            await document.fonts.ready
+        } catch {
+            // fonts.ready can reject in odd states — capture anyway.
+        }
+    }
+    await Promise.all(
+        Array.from(node.querySelectorAll('img')).map((img) =>
+            typeof img.decode === 'function' ? img.decode().catch(() => undefined) : Promise.resolve()
+        )
+    )
+}
+
 export async function captureShareAsset(node: HTMLElement): Promise<Blob> {
     try {
+        await waitForAssetReady(node)
         const blob = await toBlob(node, {
             width: CANVAS_W,
             height: CANVAS_H,

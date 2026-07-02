@@ -15,6 +15,7 @@ const cardInfo = (
     hasCardAccess: opts.hasCardAccess ?? false,
     isEligible: true,
     flowEarlyAccess: opts.flowEarlyAccess ?? true,
+    isPublicLaunched: true,
     waitlistJoinedAt: opts.waitlistJoinedAt ?? null,
     waitlistPosition: opts.waitlistPosition ?? null,
     waitlistReleasedAt: opts.waitlistReleasedAt ?? null,

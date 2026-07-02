@@ -739,7 +739,7 @@
 											}
 										]
 									},
-									"showKycCompletedModal": {
+									"dismissActivationCelebration": {
 										"type": "boolean"
 									}
 								},
@@ -11785,6 +11785,10 @@
 											{
 												"type": "string",
 												"enum": ["CARD_SPENT_1K"]
+											},
+											{
+												"type": "string",
+												"enum": ["CARD_ALPHA"]
 											},
 											{
 												"type": "string",

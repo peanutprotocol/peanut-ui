@@ -35,6 +35,7 @@ import { getRegionIntent } from '@/utils/regions.utils'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useModalsContext } from '@/context/ModalsContext'
+import underMaintenanceConfig, { PIX_BRAZIL_ONRAMP_MAINTENANCE } from '@/config/underMaintenance.config'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -209,6 +210,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 // fallback to the previous method if we can't find the new account
                 // this can happen if the user object is not updated immediately
                 const newAccountFromResponse = result.data as Account
+                // The freshly-added account hasn't surfaced in the user refetch yet.
+                // The add-bank-account response is the projected wire shape, so it
+                // already carries bridgeAccountId + the legacy `type`. Guard: without
+                // a bridgeAccountId the confirm step dead-ends on "Bank account is
+                // missing", so surface a retryable error rather than navigating.
+                if (!newAccountFromResponse?.bridgeAccountId) {
+                    return { error: 'Your bank account is still being set up. Please try again in a moment.' }
+                }
                 // ensure details has accountOwnerName for confirmation page display
                 newAccountFromResponse.details = {
                     ...(newAccountFromResponse.details || {}),
@@ -427,58 +436,76 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             <div className="space-y-2">
                 <h2 className="text-base font-bold">{title}</h2>
                 <div className="flex flex-col">
-                    {paymentMethods.map((method, index) => (
-                        <ActionListCard
-                            key={method.id}
-                            isDisabled={method.isSoon}
-                            title={method.title}
-                            description={method.description}
-                            descriptionClassName={'text-xs'}
-                            leftIcon={
-                                typeof method.icon === 'string' || method.icon === undefined ? (
-                                    <AvatarWithBadge
-                                        icon={method.icon as IconName}
-                                        name={method.title ?? method.id}
-                                        size="extra-small"
-                                        inlineStyle={{
-                                            backgroundColor:
-                                                method.icon === ('bank' as IconName)
-                                                    ? '#FFC900'
-                                                    : method.id === 'crypto-add' || method.id === 'crypto-withdraw'
-                                                      ? '#FFC900'
-                                                      : getColorForUsername(method.title).lightShade,
-                                            color: method.icon === ('bank' as IconName) ? 'black' : 'black',
-                                        }}
-                                    />
-                                ) : (
-                                    <Image
-                                        src={method.icon as StaticImageData}
-                                        alt={method.id}
-                                        className="h-8 w-8 rounded-full"
-                                        width={32}
-                                        height={32}
-                                    />
-                                )
-                            }
-                            rightContent={method.isSoon ? <StatusBadge status="soon" size="small" /> : null}
-                            onClick={() => {
-                                if (flow === 'withdraw') {
-                                    handleWithdrawMethodClick(method)
-                                } else if (method.path) {
-                                    handleAddMethodClick(method)
+                    {paymentMethods.map((method, index) => {
+                        // BRL-via-PIX onramp is warn-only under maintenance: tag the Pix option but
+                        // keep it clickable (do not set isDisabled).
+                        const isPixOnrampUnderMaintenance =
+                            flow === 'add' &&
+                            method.id === 'pix-add' &&
+                            underMaintenanceConfig.pixBrazilOnrampMaintenance
+                        return (
+                            <ActionListCard
+                                key={method.id}
+                                isDisabled={method.isSoon}
+                                title={method.title}
+                                description={method.description}
+                                descriptionClassName={'text-xs'}
+                                leftIcon={
+                                    typeof method.icon === 'string' || method.icon === undefined ? (
+                                        <AvatarWithBadge
+                                            icon={method.icon as IconName}
+                                            name={method.title ?? method.id}
+                                            size="extra-small"
+                                            inlineStyle={{
+                                                backgroundColor:
+                                                    method.icon === ('bank' as IconName)
+                                                        ? '#FFC900'
+                                                        : method.id === 'crypto-add' || method.id === 'crypto-withdraw'
+                                                          ? '#FFC900'
+                                                          : getColorForUsername(method.title).lightShade,
+                                                color: method.icon === ('bank' as IconName) ? 'black' : 'black',
+                                            }}
+                                        />
+                                    ) : (
+                                        <Image
+                                            src={method.icon as StaticImageData}
+                                            alt={method.id}
+                                            className="h-8 w-8 rounded-full"
+                                            width={32}
+                                            height={32}
+                                        />
+                                    )
                                 }
-                            }}
-                            position={
-                                paymentMethods.length === 1
-                                    ? 'single'
-                                    : index === 0
-                                      ? 'first'
-                                      : index === paymentMethods.length - 1
-                                        ? 'last'
-                                        : 'middle'
-                            }
-                        />
-                    ))}
+                                rightContent={
+                                    method.isSoon ? (
+                                        <StatusBadge status="soon" size="small" />
+                                    ) : isPixOnrampUnderMaintenance ? (
+                                        <StatusBadge
+                                            status="pending"
+                                            customText={PIX_BRAZIL_ONRAMP_MAINTENANCE.badge}
+                                            size="small"
+                                        />
+                                    ) : null
+                                }
+                                onClick={() => {
+                                    if (flow === 'withdraw') {
+                                        handleWithdrawMethodClick(method)
+                                    } else if (method.path) {
+                                        handleAddMethodClick(method)
+                                    }
+                                }}
+                                position={
+                                    paymentMethods.length === 1
+                                        ? 'single'
+                                        : index === 0
+                                          ? 'first'
+                                          : index === paymentMethods.length - 1
+                                            ? 'last'
+                                            : 'middle'
+                                }
+                            />
+                        )
+                    })}
                 </div>
             </div>
         )

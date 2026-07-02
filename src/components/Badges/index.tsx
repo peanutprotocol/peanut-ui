@@ -8,7 +8,7 @@ import { getBadgeDisplayName, getBadgeIcon } from './badge.utils'
 import { getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { Icon } from '../Global/Icons/Icon'
-import ActionModal from '../Global/ActionModal'
+import { BadgeDetailModal } from './BadgeDetailModal'
 import { useMemo, useState, useEffect } from 'react'
 import { useUserStore } from '@/redux/hooks'
 import { ActionListCard } from '../ActionListCard'
@@ -95,36 +95,15 @@ export const Badges = () => {
                 </div>
             </div>
             {selectedBadge && (
-                <ActionModal
-                    icon={
-                        <Image
-                            height={120}
-                            width={120}
-                            src={selectedBadge.logo}
-                            alt={selectedBadge.title}
-                            className="w-30 object-contain"
-                            unoptimized
-                        />
-                    }
-                    iconContainerClassName="bg-transparent min-w-30 h-auto"
-                    modalPanelClassName="m-0"
-                    visible={isBadgeModalOpen}
+                <BadgeDetailModal
+                    isOpen={isBadgeModalOpen}
                     onClose={() => {
                         setIsBadgeModalOpen(false)
                         setSelectedBadge(null)
                     }}
                     title={selectedBadge.title}
                     description={selectedBadge.description}
-                    ctas={[
-                        {
-                            text: 'Got it!',
-                            onClick: () => {
-                                setIsBadgeModalOpen(false)
-                                setSelectedBadge(null)
-                            },
-                            shadowSize: '4',
-                        },
-                    ]}
+                    logo={selectedBadge.logo}
                 />
             )}
         </div>

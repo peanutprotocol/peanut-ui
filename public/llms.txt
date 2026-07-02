@@ -1,27 +1,81 @@
 # Peanut
 
-> Instant global peer-to-peer payments in digital dollars.
+> Spend, send, and cash out digital dollars anywhere — pay local QR codes in Argentina and Brazil with just your passport, spend on a card, and move money across borders without a local bank account or local tax ID.
 
-Peanut is the easiest way to send digital dollars to anyone, anywhere. No banks, no borders — just fast, cheap money transfers.
+Peanut is a self-custody money app built on digital dollars (USDC). You hold dollars in an account only you control, then spend them like a local — scanning the same QR codes locals use, paying with a card, or sending a link to anyone. Verification (when needed) takes a passport and under two minutes: no DNI, no CPF, no local bank account, no residency. Core crypto features need no verification at all.
 
-## What Peanut Does
+## Pay PIX in Brazil — no CPF needed
 
-- **Send & receive money instantly** — peer-to-peer transfers powered by digital dollars (USDC)
-- **Cash out to local banks** — connect bank accounts in Argentina, Brazil, Mexico, and more
-- **No KYC required for core features** — send and receive without identity verification
-- **Self-custodied accounts** — your funds sit in your own smart account, secured by biometric passkeys
-- **Payment links** — share a link to send money to anyone, even without an account
+- Scan any merchant **PIX QR code** and pay in seconds — the same instant payment network ~150 million Brazilians use every day.
+- **No CPF (Brazilian tax ID) and no Brazilian bank account required** — normally both are mandatory to use PIX. Verify with a passport from any country instead.
+- The merchant receives BRL instantly and sees a normal PIX payment — Peanut is invisible on their end.
+- Your dollars convert to BRL at the market ("cripto dólar") rate, locked the moment you confirm. IOF (Brazil's financial-operations tax) does not apply to the conversion — saving up to ~3.5% versus cards and bank transfers on cross-border spending.
+- No Peanut fee on PIX payments. Available 24/7/365. QR scan only (the "copia e cola" paste-code flow is not supported).
+- To pay a person rather than a merchant, share a Peanut Link — they claim it and can withdraw to their own PIX instantly, no Peanut account needed.
 
-## Supported Corridors
+## Pay MercadoPago in Argentina — no DNI needed
 
-- Argentina (bank transfer, MercadoPago)
-- Brazil (PIX, bank transfer)
-- Mexico (SPEI, bank transfer)
-- Colombia, Peru, Bolivia, and more
+- Scan **MercadoPago QR codes** at 1,000,000+ merchants in Argentina and pay in pesos.
+- **No Argentine DNI, no local bank account, no CBU or CVU required** — locals need a DNI to open MercadoPago; Peanut gives you the payment network without one. Verify with a passport.
+- You get the **cripto dólar** rate — typically a few percent to ~11% more pesos per dollar than a credit card (which uses the regulated MEP rate), depending on the day and your card's fees.
+- No Peanut fee. Rate locks at payment. Merchant sees a normal MercadoPago payment.
+- Only MercadoPago QR is supported (MODO and Cuenta DNI use incompatible formats).
+
+## The Peanut Card
+
+- A **virtual Visa card** that spends your digital-dollar balance anywhere Visa is accepted.
+- Free to issue, free to top up. You pay only the exchange-rate spread when spending in another currency — no separate card fee.
+- **Available in most countries** — the US, Europe, the UK, Latin America, Africa, and more. Requires identity verification.
+- A short list of countries can't be issued the card (the issuer's restricted-region list — including China, India, Russia, Turkey, Vietnam, Iran, and Israel, among a handful of others).
+
+## Send & receive money
+
+- **Peanut Links** — put money in a shareable link or QR. The recipient claims it with no Peanut account needed; works over WhatsApp, email, or any messenger. Unclaimed links are reclaimable; claimed is final.
+- **Peanut Requests** — a collection link for splitting bills, tips, or donations; multiple people can contribute, instantly to your balance.
+- **Direct transfers** between Peanut accounts are instant and free.
+- **Direct bank transfers** — send from your balance straight to any third-party bank account (and receive into your balance) via SEPA, ACH, SPEI, or Faster Payments. No link required.
+
+## Add money (deposit)
+
+- **From crypto** — deposit USDC or USDT from any exchange (Coinbase, Binance, Kraken, Bybit, OKX, etc.) or wallet, on Solana, Arbitrum, Base, Tron, Polygon, or Ethereum. ETH is also accepted on major EVM networks and auto-converts. No verification needed. Peanut covers gas.
+- **From a bank** — SEPA (EUR, 36 European countries, ~90% under 20 min), ACH (USD, US, 1–3 business days), SPEI (MXN, Mexico, seconds, 24/7), Faster Payments (GBP, UK, seconds, 24/7), and incoming wires (USD/EUR, global).
+- All deposits are free from Peanut.
+
+## Cash out (withdraw)
+
+- **To a local bank** — SEPA, ACH, SPEI, and Faster Payments, to your own or anyone's account.
+- **To crypto** — withdraw to any wallet on any supported network; Peanut covers gas.
+- **In Argentina** — cash out to MercadoPago or a local account.
+- All withdrawals are free from Peanut (your bank may charge).
+
+## How it works (the basics)
+
+- Your balance is held in **digital dollars (USDC)** and shown in USD. It doesn't move with local exchange rates until you spend.
+- **Self-custody:** funds sit in your own smart account secured by a biometric passkey (face/fingerprint). Peanut never holds your keys and cannot freeze or move your money. If Peanut went offline, you'd still control your account.
+- **Verification:** required only for bank deposits/withdrawals and local QR payments. A passport or national ID (US driver's license also accepted for US users) — no local ID anywhere. Crypto deposits, crypto withdrawals, and browsing need no verification.
+- **Fees:** Peanut adds no per-transaction fee. Same-currency moves (USD↔USDC) are free; cross-currency conversions carry a small spread already embedded in the rate you see and confirm. Gas is always covered.
+- **Limits:** Latin America has a ~$2,000/month combined limit (raisable with more documents); the US, Europe, Mexico, and UK have no hard limit (very large transactions may be reviewed); crypto has no limits.
+
+## Where Peanut works
+
+- **Local QR spending live now:** Argentina (MercadoPago) and Brazil (PIX).
+- **Bank deposit/withdraw live:** 36 SEPA-zone European countries (EUR), United States (ACH/wire), Mexico (SPEI), United Kingdom (Faster Payments).
+- **Crypto deposit/withdraw:** available globally in all non-restricted countries.
+- **Peanut Card:** available in most countries (a short restricted list is excluded — e.g. China, India, Russia, Turkey, Vietnam).
+- **Coming soon (not live):** local QR/payment methods in many more countries — Mexico (CoDi), Colombia (Transfiya), Peru (Yape), Spain (Bizum), Portugal (MB WAY), India (UPI), and others. These are roadmap; only Argentina and Brazil have live local spending today.
+
+## Who it's for
+
+Tourists, digital nomads, expats, remote workers, freelancers, and families moving money across borders — especially anyone who wants to spend or save in dollars in Latin America without a local ID or bank account.
 
 ## Links
 
 - Website: https://peanut.me
+- Pay with PIX (Brazil): https://peanut.me/en/pay-with/pix
+- Pay with MercadoPago (Argentina): https://peanut.me/en/pay-with/mercadopago
+- Brazil guide: https://peanut.me/en/brazil
+- Argentina guide: https://peanut.me/en/argentina
+- Help center: https://peanut.me/en/help
 - Careers: https://peanut.me/careers
 - Support: https://peanut.me/support
 - Full description: https://peanut.me/llms-full.txt
