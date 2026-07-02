@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import Image from 'next/image'
-import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
+import { PEANUT_LOGO_BLACK, PEANUTMAN } from '@/assets'
 import Modal from '../Modal'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PeanutWhistling } from '@/assets/mascot'
@@ -55,7 +55,7 @@ const NoMoreJailModal = () => {
                     <Button className="w-full" shadowSize="4" variant="purple" onClick={onClose}>
                         <div>Start using</div>
                         <div className="flex items-center gap-1">
-                            <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
+                            <Image src={PEANUTMAN} alt="Peanut Logo" className="size-5" />
                             <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
                         </div>
                     </Button>

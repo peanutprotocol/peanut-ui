@@ -26,7 +26,7 @@ import { VerifiedUserLabel } from '../UserHeader'
 import { PerkIcon } from './PerkIcon'
 import { useHaptic } from 'use-haptic'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
-import { PEANUTMAN_LOGO } from '@/assets/mascot'
+import { PEANUTMAN } from '@/assets/mascot'
 import InvitesIcon from '../Home/InvitesIcon'
 
 // Lazy load transaction details drawer (~40KB) to reduce initial bundle size
@@ -167,7 +167,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                         {isTestTransaction ? (
                             <div className={'relative flex size-7 items-center justify-center rounded-full p-0.5'}>
                                 <Image
-                                    src={PEANUTMAN_LOGO}
+                                    src={PEANUTMAN}
                                     alt="Peanut Logo"
                                     className="size-8 object-contain"
                                     width={30}

@@ -1,6 +1,6 @@
 'use client'
 
-import { PEANUTMAN_LOGO } from '@/assets/mascot'
+import { PEANUTMAN } from '@/assets/mascot'
 import { PAYMENT_LOADING_WORDS } from '@/components/Global/PeanutLoading/words'
 import { useEffect, useState } from 'react'
 
@@ -41,7 +41,7 @@ export default function LoadingWordsPreview() {
                     </h2>
                     <div className="flex flex-col items-center justify-center gap-6 rounded-sm border border-n-1 bg-primary-3 px-6 py-16 shadow-[4px_4px_0_0_#000]">
                         <div className="animate-spin">
-                            <img src={PEANUTMAN_LOGO.src} alt="Peanut" className="h-10 w-10" />
+                            <img src={PEANUTMAN.src} alt="Peanut" className="h-10 w-10" />
                         </div>
                         <LoadingMessage word={WORDS[index]} className="text-base font-medium" />
                     </div>

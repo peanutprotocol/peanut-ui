@@ -1,6 +1,6 @@
 'use client'
 
-import { HandThumbsUpV2, PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
+import { HandThumbsUpV2, PEANUT_LOGO_BLACK, PEANUTMAN } from '@/assets'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -76,7 +76,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             <div>
                 {!isLoggedIn ? (
                     <div className="flex items-center gap-2 md:hidden">
-                        <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" height={24} />
+                        <Image src={PEANUTMAN} alt="Peanut mascot" height={24} />
                         <Image src={PEANUT_LOGO_BLACK} alt="Peanut Text" height={12} />
                     </div>
                 ) : (

@@ -23,11 +23,11 @@
 
 import { type FC, type CSSProperties } from 'react'
 import { CARD_W, CARD_H } from './shareAssetLayout'
-import { PEANUTMAN_LOGO } from '@/assets/mascot'
+import { PEANUTMAN } from '@/assets/mascot'
 import PEANUT_CARD_HAND_PIXEL_ASSET from '@/assets/cards/peanut-card-hand-pixel.png'
 import VISA_BRAND_MARK_ASSET from '@/assets/cards/visa-brand-mark.png'
 
-const ASSET_PEANUTMAN_LOGO = PEANUTMAN_LOGO.src
+const ASSET_PEANUTMAN = PEANUTMAN.src
 const ASSET_VISA_BRAND = VISA_BRAND_MARK_ASSET.src
 const ASSET_CARD_HAND_PIXEL = PEANUT_CARD_HAND_PIXEL_ASSET.src
 
@@ -93,9 +93,9 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
                 style={{ top: 24, left: 28, right: 28, zIndex: 2 }}
             >
                 {blurAll ? (
-                    <PixelatedImg src={ASSET_PEANUTMAN_LOGO} displayW={52} displayH={52} />
+                    <PixelatedImg src={ASSET_PEANUTMAN} displayW={52} displayH={52} />
                 ) : (
-                    <img src={ASSET_PEANUTMAN_LOGO} alt="" aria-hidden style={{ height: 52, width: 'auto' }} />
+                    <img src={ASSET_PEANUTMAN} alt="" aria-hidden style={{ height: 52, width: 'auto' }} />
                 )}
                 {!hideVisa &&
                     (blurAll ? (
