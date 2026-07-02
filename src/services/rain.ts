@@ -485,6 +485,13 @@ export const rainApi = {
             method: 'POST',
             path: '/rain/cards',
             body,
+            // The first-time-application path runs 7 sequential Sumsub calls, a
+            // deliberate 2.5s readiness sleep, the Rain createApplication call,
+            // and an optional inline issueCard — routinely 7-13s. The default
+            // 10s fetch timeout clips that tail, aborting client-side while the
+            // backend completes (user sees a false failure on a card that was
+            // actually submitted). Give this one call generous headroom.
+            timeoutMs: 60_000,
         })
     },
 

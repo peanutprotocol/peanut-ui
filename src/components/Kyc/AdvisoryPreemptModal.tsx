@@ -5,11 +5,8 @@ interface AdvisoryPreemptModalProps {
     /** ISO date the requirement becomes blocking; drives the deadline copy. */
     effectiveDate?: string
     isLoading?: boolean
-    /** Launch the verification flow early. */
+    /** Launch the verification flow. */
     onCompleteNow: () => void
-    /** Dismiss and continue with what the user was doing. */
-    onSkip: () => void
-    onClose: () => void
 }
 
 function formatEffectiveDate(iso?: string): string | null {
@@ -23,32 +20,33 @@ function formatEffectiveDate(iso?: string): string | null {
 }
 
 /**
- * Skippable pre-empt for a future-dated verification requirement on a rail that
- * still works today (the gate's `ready` + `advisory`). "Complete now" launches
- * the verification early; "Not now" lets the user carry on and resolve it later.
- * Once the effective date passes the backend reclassifies the requirement to
- * blocking and the non-skippable InitiateKycModal takes over — there is no FE
- * cutover logic here.
+ * Mandatory pre-empt for a pending Bridge verification requirement on the bank
+ * rails. Non-closable and non-skippable: the user must complete the verification
+ * before they can continue with a bank transfer. There is no "Not now" / X /
+ * backdrop dismiss — the only way forward is "Complete now".
  */
 export default function AdvisoryPreemptModal({
     visible,
     effectiveDate,
     isLoading = false,
     onCompleteNow,
-    onSkip,
-    onClose,
 }: AdvisoryPreemptModalProps) {
     const formatted = formatEffectiveDate(effectiveDate)
     return (
         <ActionModal
             visible={visible}
-            onClose={onClose}
+            // Hard gate: no dismiss. onClose is required by ActionModal but
+            // `preventClose` blocks backdrop/escape and `hideModalCloseButton`
+            // removes the X, so it is never reachable.
+            onClose={() => {}}
+            preventClose
+            hideModalCloseButton
             icon="badge"
-            title="One quick step coming up"
+            title="One quick step to continue"
             description={
                 formatted
-                    ? `To keep using bank transfers, you'll need to complete a short verification by ${formatted}. Take care of it now so nothing pauses later.`
-                    : `To keep using bank transfers, you'll need to complete a short verification soon. Take care of it now so nothing pauses later.`
+                    ? `To continue using bank transfers, please complete a short verification (required by ${formatted}). It only takes a couple of minutes.`
+                    : `To continue using bank transfers, please complete a short verification. It only takes a couple of minutes.`
             }
             ctas={[
                 {
@@ -58,7 +56,6 @@ export default function AdvisoryPreemptModal({
                     shadowSize: '4',
                     disabled: isLoading,
                 },
-                { text: 'Not now', onClick: onSkip, variant: 'stroke', disabled: isLoading },
             ]}
         />
     )

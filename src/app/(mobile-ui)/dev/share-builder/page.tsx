@@ -14,12 +14,13 @@
  * the same user (otherwise deterministic from username).
  */
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import ShareAssetD3 from '@/components/Card/share-asset/ShareAssetD3'
 import type { HeroVariant, UsernameBg } from '@/components/Card/share-asset/shareAsset.types'
+import { captureShareAsset, downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
 import { BADGE_CODES, getBadgeDisplayName } from '@/components/Badges/badge.utils'
 import { CANVAS_W, CANVAS_H } from '@/components/Card/share-asset/shareAssetLayout'
 
@@ -42,6 +43,28 @@ export default function ShareBuilderPage() {
     const [seedNonce, setSeedNonce] = useState(0)
     const [previewScale, setPreviewScale] = useState(0.8)
     const [hideUsername, setHideUsername] = useState(false)
+
+    // ─── Capture (Save image) ────────────────────────────────────────────
+    // Ref points at the native-size asset node (the pre-scale div) so the
+    // capture renders at full 1200×900 fidelity. `assetReady` flips once the
+    // card face's async hand <canvas> mounts (ShareAssetD3.onReady) — Save is
+    // disabled until then so a capture can never snapshot a blank card.
+    const assetRef = useRef<HTMLDivElement>(null)
+    const [assetReady, setAssetReady] = useState(false)
+    const [saving, setSaving] = useState(false)
+    const handleSave = async () => {
+        const node = assetRef.current
+        if (!node) return
+        setSaving(true)
+        try {
+            const blob = await captureShareAsset(node)
+            downloadBlob(blob, 'peanut-card.png')
+        } catch (err) {
+            console.error('[share-builder] save failed', err)
+        } finally {
+            setSaving(false)
+        }
+    }
 
     // ─── Hero "I got in" message sticker ─────────────────────────────────
     const [heroVariant, setHeroVariant] = useState<HeroVariant | 'none'>('burst')
@@ -298,7 +321,11 @@ export default function ShareBuilderPage() {
                                 variant="purple"
                                 shadowSize="4"
                                 className="flex-1"
-                                onClick={() => setSeedNonce((n) => n + 1)}
+                                onClick={() => {
+                                    // Remounts ShareAssetD3 (key) → card face repaints; re-gate Save.
+                                    setAssetReady(false)
+                                    setSeedNonce((n) => n + 1)
+                                }}
                             >
                                 Reroll seed
                             </Button>
@@ -306,7 +333,10 @@ export default function ShareBuilderPage() {
                                 variant="stroke"
                                 shadowSize="4"
                                 className="flex-1"
-                                onClick={() => setAnimate((a) => !a)}
+                                onClick={() => {
+                                    setAssetReady(false)
+                                    setAnimate((a) => !a)
+                                }}
                             >
                                 {animate ? '✓ Animate' : 'Animate off'}
                             </Button>
@@ -343,6 +373,7 @@ export default function ShareBuilderPage() {
                             }}
                         >
                             <div
+                                ref={assetRef}
                                 style={{
                                     width: CANVAS_W,
                                     height: CANVAS_H,
@@ -362,6 +393,7 @@ export default function ShareBuilderPage() {
                                     usernameStyle={usernameStyle}
                                     hideUsername={hideUsername}
                                     animate={animate}
+                                    onReady={() => setAssetReady(true)}
                                 />
                             </div>
                         </div>
@@ -383,7 +415,14 @@ export default function ShareBuilderPage() {
                         <Button variant="purple" shadowSize="4" className="w-full">
                             Share
                         </Button>
-                        <Button variant="stroke" className="w-full">
+                        <Button
+                            data-testid="save-image"
+                            variant="stroke"
+                            className="w-full"
+                            onClick={handleSave}
+                            loading={saving}
+                            disabled={!assetReady || saving}
+                        >
                             Save image
                         </Button>
                     </div>

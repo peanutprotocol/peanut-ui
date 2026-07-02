@@ -8,8 +8,12 @@
  * a shareable door rejection: a dark "not tonight, <username>" asset with a
  * smug peanut bouncer, the scarcity tally as screen copy, and a primary
  * "Tweet to appeal" CTA that shares the asset (random caption tagging
- * @joinpeanut). The friendly waitlist-joined screen is the cooldown AFTER
- * they share, so they don't rage-quit.
+ * @joinpeanut).
+ *
+ * This is the TERMINAL waitlist screen (no separate cooldown): once the user
+ * has joined (`alreadyJoined`) the secondary "Join anyway" button becomes an
+ * "on the list" confirmation, but the shareable asset + "Tweet to appeal"
+ * stay so they can keep appealing / re-grab the asset.
  */
 
 import { type FC, useEffect, useRef, useState } from 'react'
@@ -17,43 +21,61 @@ import * as Sentry from '@sentry/nextjs'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import ErrorAlert from '@/components/Global/ErrorAlert'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { ScaledRejectionAsset } from '@/components/Card/share-asset/ScaledRejectionAsset'
 import { captureShareAsset, canShareImageFiles } from '@/components/Card/share-asset/captureShareAsset'
 import { pickRejectionCaption } from '@/components/Card/share-asset/rejectionCaptions'
 import type { RejectionMascot } from '@/components/Card/share-asset/shareAsset.types'
+import { computeDoorTally } from '@/components/Card/doorTally.utils'
 import { cardApi } from '@/services/card'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 interface Props {
     username?: string
-    /** Door tally — scarcity flex, rendered as screen copy (not on the asset). */
-    applicants?: number
-    admitted?: number
+    /** Real waitlist size (total who joined). The screen inflates this for the
+     *  FOMO "tried" tally — mirrors the /shhhhh ScarcityCounter flex. Undefined
+     *  while /card is still loading → a sane floor renders. */
+    waitlistTotal?: number
+    /** Real number admitted (released/granted). Shown verbatim as "got in". */
+    admittedTotal?: number
     /** Which smug mascot the asset shows. */
     mascot?: RejectionMascot
+    /** True once the user is already on the waitlist — swaps the "Join anyway"
+     *  button for an "on the list" confirmation while keeping the asset + appeal. */
+    alreadyJoined?: boolean
     onPrev?: () => void
-    /** Called after the user joins the waitlist. Parent should refetch /card,
-     *  which flips the state machine to <CardWaitlistJoinedScreen /> (cooldown). */
+    /** Called after the user joins the waitlist. Parent refetches /card; the
+     *  user stays on this screen, now in its `alreadyJoined` state. */
     onJoined?: () => void
 }
 
 const CardRejectionScreen: FC<Props> = ({
     username,
-    applicants = 213,
-    admitted = 7,
+    waitlistTotal,
+    admittedTotal,
     mascot = 'cool',
+    alreadyJoined = false,
     onPrev,
     onJoined,
 }) => {
+    // "tried" = real waitlist size, inflated for FOMO; "got in" = real admitted.
+    // Deterministic (pure fn of the counts) so it never jitters between renders.
+    const { applicants, admitted } = computeDoorTally(waitlistTotal, admittedTotal)
     const captureRef = useRef<HTMLDivElement | null>(null)
     const [sharing, setSharing] = useState(false)
     const [joining, setJoining] = useState(false)
     const [joinError, setJoinError] = useState<string | null>(null)
+    // Local "just joined" override so the CTA swaps to the on-the-list state
+    // immediately on a confirmed join, without waiting for the parent's /card
+    // refetch (CodeRabbit). OR'd with the `alreadyJoined` prop.
+    const [locallyJoined, setLocallyJoined] = useState(false)
+    const showJoined = alreadyJoined || locallyJoined
     const safeUsername = (username || '').trim() || 'anon'
 
     useEffect(() => {
-        posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_VIEWED, { already_joined: false })
+        posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_VIEWED, { already_joined: alreadyJoined })
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- fire once on mount with the entry state
     }, [])
 
     const handleJoin = async (): Promise<void> => {
@@ -62,6 +84,7 @@ const CardRejectionScreen: FC<Props> = ({
         try {
             const res = await cardApi.joinWaitlist()
             posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_JOINED, { position: res.position })
+            setLocallyJoined(true)
             onJoined?.()
         } catch (e) {
             // Keep the user-facing message generic; raw BE text can leak
@@ -77,6 +100,9 @@ const CardRejectionScreen: FC<Props> = ({
     }
 
     const handleAppeal = async (): Promise<void> => {
+        // Clear any stale "failed to join" error from an earlier handleJoin so
+        // the success state can't render alongside it (CodeRabbit).
+        setJoinError(null)
         const caption = pickRejectionCaption()
 
         // Appeal = tweet AND join the waitlist. Joining is NOT access — release
@@ -91,6 +117,7 @@ const CardRejectionScreen: FC<Props> = ({
             .joinWaitlist()
             .then((res) => {
                 posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_JOINED, { position: res.position, source: 'appeal' })
+                setLocallyJoined(true)
             })
             .catch((e) => {
                 // Non-fatal: the tweet still goes out, and the CARD_SHARE_ASSET_SHARED
@@ -184,15 +211,22 @@ const CardRejectionScreen: FC<Props> = ({
                 >
                     Tweet to appeal
                 </Button>
-                <Button
-                    onClick={handleJoin}
-                    loading={joining}
-                    disabled={joining || sharing}
-                    variant="stroke"
-                    className="w-full"
-                >
-                    Join the waitlist anyway
-                </Button>
+                {showJoined ? (
+                    <div className="flex h-13 items-center justify-center gap-2 text-center text-sm font-bold text-n-1">
+                        <Icon name="check-circle" size={18} />
+                        You&apos;re on the list — we&apos;ll holler when it&apos;s your turn
+                    </div>
+                ) : (
+                    <Button
+                        onClick={handleJoin}
+                        loading={joining}
+                        disabled={joining || sharing}
+                        variant="stroke"
+                        className="w-full"
+                    >
+                        Join the waitlist anyway
+                    </Button>
+                )}
             </div>
         </div>
     )

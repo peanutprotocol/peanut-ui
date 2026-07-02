@@ -13,7 +13,6 @@ import AddCardEntryScreen from '@/components/Card/AddCardEntryScreen'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 import CardTermsScreen from '@/components/Card/CardTermsScreen'
 import CardRejectionScreen from '@/components/Card/CardRejectionScreen'
-import CardWaitlistJoinedScreen from '@/components/Card/CardWaitlistJoinedScreen'
 import BadgeSkipCelebration from '@/components/Card/BadgeSkipCelebration'
 import CardEligibilityCheckScreen from '@/components/Card/CardEligibilityCheckScreen'
 import YourCardScreen from '@/components/Card/YourCardScreen'
@@ -470,18 +469,17 @@ const CardPage: FC = () => {
                     />
                 )
             case 'waitlist': {
-                // Joined vs not-joined are two distinct screens — keeps each
-                // tight to its own purpose. Not-joined is the Berghain-style
-                // "not tonight" rejection: a shareable door let-down (tags
-                // @joinpeanut) that doubles as the waitlist-join CTA. Once
-                // they join, the state machine flips to the friendly
-                // <CardWaitlistJoinedScreen /> cooldown.
-                if (cardInfo!.waitlistJoinedAt) {
-                    return <CardWaitlistJoinedScreen onPrev={onBack} />
-                }
+                // The Berghain-style "not tonight" rejection is the TERMINAL
+                // waitlist screen — a shareable door let-down (tags @joinpeanut)
+                // that doubles as the waitlist-join CTA. Once they join we keep
+                // them here (`alreadyJoined`) so the asset + "Tweet to appeal"
+                // stay grabbable — no separate cooldown screen to dead-end on.
                 return (
                     <CardRejectionScreen
                         username={user?.user?.username ?? undefined}
+                        waitlistTotal={cardInfo!.waitlistTotal}
+                        admittedTotal={cardInfo!.admittedTotal}
+                        alreadyJoined={!!cardInfo!.waitlistJoinedAt}
                         onPrev={onBack}
                         onJoined={refetchCardInfo}
                     />
@@ -553,19 +551,32 @@ const CardPage: FC = () => {
                         onPrev={onBack}
                     />
                 )
-            case 'rejected':
+            case 'rejected': {
                 // No retry CTA: Rain denials are terminal on our side. The
                 // only path forward is support reviewing the case manually
                 // (PEP / sanctions / fraud-pattern flags need a human in the
                 // loop on Rain's end). Open Crisp directly — sending the user
                 // to /support's FAQ first adds a step for no upside.
+                //
+                // Surface the specific, vetted rejection reason from the
+                // capabilities read-model (`rail.reason.userMessage` — e.g.
+                // "Peanut cards aren't available in your state yet."). Render
+                // immediately rather than spinner-gating: unlike requires-info
+                // (meaningless without its reason), the rejected screen is useful
+                // on its own (reassurance + support CTA), so show it now and let
+                // the reason fill in once capabilities resolve.
+                const cardRailReason = capabilitiesLoading
+                    ? undefined
+                    : railsForProvider('rain')[0]?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
                         variant="rejected"
+                        reasonMessage={cardRailReason}
                         onContactSupport={() => setIsSupportModalOpen(true)}
                         onPrev={onBack}
                     />
                 )
+            }
             case 'active': {
                 const card = findActiveCard(overview)!
                 return <YourCardScreen overview={overview!} card={card} onPrev={onBack} />

@@ -1,6 +1,6 @@
 /**
- * <PixelatedCardFace /> — the pink peanut card with a runtime-pixelated
- * `peanut-card-hand.svg` overlay.
+ * <PixelatedCardFace /> — the pink peanut card with a pre-pixelated
+ * peanut-card-hand overlay.
  *
  * Renders at native 620×391 (CARD_W/CARD_H). Wrap in `transform: scale(...)`
  * if you need a smaller preview — the inner layout uses absolute pixel
@@ -8,10 +8,10 @@
  * <ScaledPixelatedCardFace />.
  *
  * When `blurAll` is true (the closed-beta tease), the visa logo, peanut
- * logo, card number, and Virtual pill all get rasterised through the
- * SAME canvas → image-rendering:pixelated pipeline as the hand, with a
- * shared CELL_PX cell size — so every detail on the card is hidden by
- * consistent chunky pixels instead of a mix of pixelation + CSS blur.
+ * logo, card number, and Virtual pill all get rasterised through a
+ * canvas → image-rendering:pixelated pipeline, with a shared CELL_PX cell
+ * size — so every detail on the card is hidden by consistent chunky pixels
+ * instead of a mix of pixelation + CSS blur.
  *
  * Shared between <ShareAssetD3 />, the eligibility-check screen, and the
  * `/shhhhh` LP hero. Keep this file the single source of truth for the
@@ -24,12 +24,12 @@
 import { type FC, type CSSProperties } from 'react'
 import { CARD_W, CARD_H } from './shareAssetLayout'
 import { PEANUTMAN_LOGO } from '@/assets/mascot'
-import PEANUT_CARD_HAND_ASSET from '@/assets/cards/peanut-card-hand.svg'
+import PEANUT_CARD_HAND_PIXEL_ASSET from '@/assets/cards/peanut-card-hand-pixel.png'
 import VISA_BRAND_MARK_ASSET from '@/assets/cards/visa-brand-mark.png'
 
 const ASSET_PEANUTMAN_LOGO = PEANUTMAN_LOGO.src
 const ASSET_VISA_BRAND = VISA_BRAND_MARK_ASSET.src
-const ASSET_CARD_HAND = PEANUT_CARD_HAND_ASSET.src
+const ASSET_CARD_HAND_PIXEL = PEANUT_CARD_HAND_PIXEL_ASSET.src
 
 // Shared pixel-cell target across every element on the card. Each
 // element rasterises to (displayPx / CELL_PX) pixels then stretches back
@@ -37,18 +37,15 @@ const ASSET_CARD_HAND = PEANUT_CARD_HAND_ASSET.src
 // uniform regardless of element size.
 const CELL_PX = 14
 
-// The hand is much bigger and benefits from a finer raster — keep it at
-// its original 36px so the silhouette stays recognisable.
-const HAND_RASTER_PX = 36
-
 export interface PixelatedCardFaceProps {
     /** Kept in the type for in-app surfaces that render the real card
      *  number — the share-asset rendering deliberately ignores this and
      *  always shows "????" so a screenshot can't leak the PAN. */
     last4?: string
-    /** Extra classes for the outer card div (the pink rounded box). */
+    /** Extra classes for the pink rounded card face. Sizing is fixed at
+     *  CARD_W×CARD_H on the wrapper — scale via <ScaledPixelatedCardFace />. */
     className?: string
-    /** Extra inline styles merged on top of the defaults (width/height/shadow). */
+    /** Extra inline styles merged onto the pink card face (e.g. background). */
     style?: CSSProperties
     /** When true, every element on the card (logos, number, pill) is run
      *  through the same canvas-rasterisation pipeline as the hand so the
@@ -58,6 +55,10 @@ export interface PixelatedCardFaceProps {
      *  display the Visa wordmark for compliance reasons (it renders crisp
      *  there since the share asset is the one surface that doesn't `blurAll`). */
     hideVisa?: boolean
+    /** Fires once the pixelated hand <img> has loaded — i.e. the card face is
+     *  fully painted. Capture surfaces gate the Share/Save buttons on this so a
+     *  snapshot can never fire before the hand is ready. */
+    onReady?: () => void
 }
 
 export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
@@ -65,39 +66,50 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
     style,
     blurAll = false,
     hideVisa = false,
+    onReady,
 }) => (
-    <div
-        className={`relative overflow-hidden rounded-3xl border-[4px] border-black ${className ?? ''}`}
-        style={{
-            background: '#FF90E8',
-            width: CARD_W,
-            height: CARD_H,
-            boxShadow: '0.625rem 0.625rem 0 #000',
-            ...style,
-        }}
-    >
-        <PixelatedHand />
+    // The drop-shadow is an offset sibling, NOT a CSS box-shadow: html-to-image
+    // renders box-shadow on a rounded element as a SQUARE block, so the captured
+    // PNG showed a square shadow behind the rounded card. A real black rounded
+    // element shifted by the shadow distance captures faithfully.
+    <div className="relative" style={{ width: CARD_W, height: CARD_H }}>
+        <div
+            aria-hidden
+            className="pointer-events-none absolute rounded-3xl"
+            style={{ inset: 0, background: '#000', transform: 'translate(0.625rem, 0.625rem)' }}
+        />
+        <div
+            className={`relative h-full w-full overflow-hidden rounded-3xl border-[4px] border-black ${className ?? ''}`}
+            style={{
+                background: '#FF90E8',
+                ...style,
+            }}
+        >
+            <PixelatedHand onReady={onReady} />
 
-        {/* Top row: peanut logo (left) + visa logo (right) */}
-        <div className="absolute flex items-start justify-between" style={{ top: 24, left: 28, right: 28, zIndex: 2 }}>
-            {blurAll ? (
-                <PixelatedImg src={ASSET_PEANUTMAN_LOGO} displayW={52} displayH={52} />
-            ) : (
-                <img src={ASSET_PEANUTMAN_LOGO} alt="" aria-hidden style={{ height: 52, width: 'auto' }} />
-            )}
-            {!hideVisa &&
-                (blurAll ? (
-                    <PixelatedImg src={ASSET_VISA_BRAND} displayW={80} displayH={32} invert />
+            {/* Top row: peanut logo (left) + visa logo (right) */}
+            <div
+                className="absolute flex items-start justify-between"
+                style={{ top: 24, left: 28, right: 28, zIndex: 2 }}
+            >
+                {blurAll ? (
+                    <PixelatedImg src={ASSET_PEANUTMAN_LOGO} displayW={52} displayH={52} />
                 ) : (
-                    <img
-                        src={ASSET_VISA_BRAND}
-                        alt="Visa"
-                        style={{ height: 32, width: 'auto', filter: 'brightness(0) invert(1)' }}
-                    />
-                ))}
-        </div>
+                    <img src={ASSET_PEANUTMAN_LOGO} alt="" aria-hidden style={{ height: 52, width: 'auto' }} />
+                )}
+                {!hideVisa &&
+                    (blurAll ? (
+                        <PixelatedImg src={ASSET_VISA_BRAND} displayW={80} displayH={32} invert />
+                    ) : (
+                        <img
+                            src={ASSET_VISA_BRAND}
+                            alt="Visa"
+                            style={{ height: 32, width: 'auto', filter: 'brightness(0) invert(1)' }}
+                        />
+                    ))}
+            </div>
 
-        {/* Bottom: card number — same `•••• ????` pattern in both modes.
+            {/* Bottom: card number — same `•••• ????` pattern in both modes.
             The share asset deliberately obscures the real PAN so a
             screenshot can't leak it; the eligibility-check tease uses
             the same string for visual continuity. (The `last4` prop is
@@ -105,28 +117,29 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
             card face — share-asset + tease callers just don't pass it.)
             Lowered toward the card edge now that the Virtual pill is
             gone — gives the layout room to breathe. */}
-        <div className="absolute" style={{ bottom: 32, left: 28, zIndex: 2 }}>
-            {blurAll ? (
-                <PixelatedText
-                    text="????"
-                    displayW={140}
-                    displayH={42}
-                    font="1000 42px Roboto, sans-serif"
-                    color="#000"
-                />
-            ) : (
-                <div
-                    style={{
-                        fontFamily: 'var(--font-roboto), sans-serif',
-                        fontWeight: 1000,
-                        letterSpacing: '0.06em',
-                        fontSize: 42,
-                        lineHeight: 1,
-                    }}
-                >
-                    ????
-                </div>
-            )}
+            <div className="absolute" style={{ bottom: 32, left: 28, zIndex: 2 }}>
+                {blurAll ? (
+                    <PixelatedText
+                        text="????"
+                        displayW={140}
+                        displayH={42}
+                        font="1000 42px Roboto, sans-serif"
+                        color="#000"
+                    />
+                ) : (
+                    <div
+                        style={{
+                            fontFamily: 'var(--font-roboto), sans-serif',
+                            fontWeight: 1000,
+                            letterSpacing: '0.06em',
+                            fontSize: 42,
+                            lineHeight: 1,
+                        }}
+                    >
+                        ????
+                    </div>
+                )}
+            </div>
         </div>
     </div>
 )
@@ -264,23 +277,27 @@ const PixelatedText: FC<PixelatedTextProps> = ({ text, displayW, displayH, font,
 }
 
 // ---------------------------------------------------------------------------
-// The hand — same algorithm, just keeps its larger 36px raster so the
-// silhouette stays recognisable.
+// The hand — a pre-pixelated PNG rendered as a plain <img>, NOT a runtime
+// <canvas>. html-to-image silently drops a live <canvas> it can't serialise
+// (canvas.toDataURL() returns empty on iOS Safari for an SVG-sourced canvas →
+// blank card, no error: the launch-day "blank share asset" bug), but inlines
+// <img> reliably — same path the badge stickers take, which never blank. The
+// PNG is authored at the 36px raster and upscaled by image-rendering:pixelated,
+// so it reads identically to the old canvas.
 // ---------------------------------------------------------------------------
 
-const PixelatedHand: FC = () => (
-    <div
-        ref={(node) => {
-            if (!node || node.firstChild) return
-            const handRatio = 560 / 471 // hand display w/h
-            const rasterW = handRatio > 1 ? HAND_RASTER_PX : Math.max(1, Math.round(HAND_RASTER_PX * handRatio))
-            const rasterH = handRatio > 1 ? Math.max(1, Math.round(HAND_RASTER_PX / handRatio)) : HAND_RASTER_PX
-            rasterImg(ASSET_CARD_HAND, rasterW, rasterH, (canvas) => {
-                canvas.style.width = '100%'
-                canvas.style.height = '100%'
-                canvas.style.imageRendering = 'pixelated'
-                node.appendChild(canvas)
-            })
+const PixelatedHand: FC<{ onReady?: () => void }> = ({ onReady }) => (
+    <img
+        src={ASSET_CARD_HAND_PIXEL}
+        alt=""
+        aria-hidden
+        draggable={false}
+        onLoad={() => onReady?.()}
+        ref={(img) => {
+            // A cached image can already be `complete` before React attaches
+            // onLoad, so the load event never fires — that would leave the
+            // capture gate stuck disabled. Fire onReady directly in that case.
+            if (img?.complete) onReady?.()
         }}
         className="pointer-events-none absolute select-none"
         style={{
@@ -290,6 +307,7 @@ const PixelatedHand: FC = () => (
             height: 471,
             transform: 'rotate(-15deg)',
             transformOrigin: 'center',
+            imageRendering: 'pixelated',
         }}
     />
 )

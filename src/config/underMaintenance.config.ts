@@ -45,6 +45,13 @@
  *    - the /card flow, /shhhhh page, and waitlist pill stay reachable regardless — this only mutes the proactive in-app nudge
  *    - currently false (CTA live, routes to /shhhhh); set true to dial down in-app load without touching the flow
  *
+ * 9. disabledMantecaCurrencies: per-currency kill-switch for the Manteca add-money (onramp) and withdraw (offramp) flows
+ *    - list the fiat currencies still down (e.g. ['BRL']) — those countries' /add-money/<country>/manteca and
+ *      /withdraw/manteca show a "temporarily unavailable" screen; currencies NOT listed stay live
+ *    - Manteca currencies are ARS (Argentina) and BRL (Brazil); empty array = all Manteca transfers enabled
+ *    - use during a partial Manteca outage so recovered currencies (e.g. ARS) come back while others stay blocked
+ *    - does NOT touch QR payments (Manteca QR / Brazil PIX-over-QR stay open) — that is disabledPaymentProviders
+ *
  * note: if either mode is enabled, the maintenance banner will show everywhere
  *
  * I HOPE WE NEVER NEED TO USE THIS...
@@ -62,7 +69,12 @@ interface MaintenanceConfig {
     disableCardPioneers: boolean
     disableCardLaunchCTA: boolean
     pixBrazilOnrampMaintenance: boolean
+    /** Manteca fiat currencies still down (e.g. ['BRL']); currencies not listed stay live. Empty = all enabled. */
+    disabledMantecaCurrencies: MantecaCurrency[]
 }
+
+// Manteca first-party bank/kyc rails currently exist only in Argentina (ARS) and Brazil (BRL).
+export type MantecaCurrency = 'ARS' | 'BRL'
 
 const underMaintenanceConfig: MaintenanceConfig = {
     enableFullMaintenance: false, // set to true to redirect all pages to /maintenance
@@ -73,6 +85,7 @@ const underMaintenanceConfig: MaintenanceConfig = {
     disableCardPioneers: true, // set to false to enable the Card Pioneers waitlist feature
     disableCardLaunchCTA: false, // kill-switch for the in-app "shhh" card CTA (funnel card step + activated home splash). Set true to mute it (dial down in-app load); /card flow + /shhhhh + waitlist stay reachable regardless.
     pixBrazilOnrampMaintenance: true, // set to false when BRL-via-PIX deposits are stable again
+    disabledMantecaCurrencies: [], // Manteca restored (ARS + BRL live). Add a currency here to block it during a future outage.
 }
 
 // shared user-facing copy for cross-chain disabled paths — keep wording aligned with TokenSelector banner

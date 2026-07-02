@@ -96,8 +96,12 @@ export type MantecaPrice = {
             daily: string
         }
     }
-    effectiveBuy: string
-    effectiveSell: string
+    // Manteca nests the effective (company) rate here as of 2026-07-01.
+    effectivePrice?: { buy: string; sell: string }
+    // Legacy top-level effective rate (pre-2026-07-01). Optional — kept only so a
+    // provider rollback stays parseable; new reads should prefer `effectivePrice`.
+    effectiveBuy?: string
+    effectiveSell?: string
 }
 
 // withdraw init response - contains locked price for withdraw flow

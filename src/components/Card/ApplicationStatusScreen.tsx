@@ -35,8 +35,11 @@ const COPY: Record<Variant, { title: string; body: string }> = {
         body: "We hit a snag while processing your card application. Our team needs to take a look — message support and we'll get you sorted.",
     },
     rejected: {
+        // The specific reason (when known) renders above via `reasonMessage`;
+        // this body stays reassuring — a declined card doesn't touch the rest
+        // of the account, so point the user back to what still works.
         title: "We couldn't issue you a card",
-        body: "Your card application wasn't approved. This might be because of duplicate attempt, incomplete documents, information mismatch, or regional restrictions.",
+        body: 'You can still use Peanut freely to deposit, withdraw, and pay with crypto.',
     },
 }
 

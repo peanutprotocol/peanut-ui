@@ -13,6 +13,7 @@
 import { useState } from 'react'
 import NavHeader from '@/components/Global/NavHeader'
 import CardRejectionScreen from '@/components/Card/CardRejectionScreen'
+import { computeDoorTally } from '@/components/Card/doorTally.utils'
 import type { RejectionMascot } from '@/components/Card/share-asset/shareAsset.types'
 
 const MASCOTS: ReadonlyArray<[RejectionMascot, string]> = [
@@ -25,8 +26,13 @@ const MASCOTS: ReadonlyArray<[RejectionMascot, string]> = [
 export default function RejectionBuilderPage() {
     const [username, setUsername] = useState('kkonrad')
     const [mascot, setMascot] = useState<RejectionMascot>('cool')
-    const [applicants, setApplicants] = useState(213)
-    const [admitted, setAdmitted] = useState(7)
+    // The REAL backend counts (waitlistTotal / admittedTotal). The screen
+    // inflates "tried" for FOMO; the readout below shows what it renders.
+    const [waitlistTotal, setWaitlistTotal] = useState(120)
+    const [admittedTotal, setAdmittedTotal] = useState(7)
+    const [alreadyJoined, setAlreadyJoined] = useState(false)
+
+    const tally = computeDoorTally(waitlistTotal, admittedTotal)
 
     return (
         <div className="flex min-h-screen flex-col">
@@ -75,47 +81,80 @@ export default function RejectionBuilderPage() {
                         </p>
                     </Section>
 
-                    <Section title="Door tally (screen copy, not on asset)">
-                        <Field label={`Applicants tonight (${applicants})`}>
+                    <Section title="Door tally — REAL backend counts">
+                        <Field label={`Waitlist size · real cardWaitlistJoinedAt count (${waitlistTotal})`}>
                             <input
                                 type="range"
-                                min={20}
+                                min={0}
                                 max={5000}
                                 step={1}
-                                value={applicants}
-                                onChange={(e) => setApplicants(Number(e.target.value))}
+                                value={waitlistTotal}
+                                onChange={(e) => setWaitlistTotal(Number(e.target.value))}
                                 className="w-full"
                             />
                         </Field>
-                        <Field label={`Admitted (${admitted})`}>
+                        <Field label={`Admitted · real cardAccessGrantedAt count (${admittedTotal})`}>
                             <input
                                 type="range"
-                                min={1}
-                                max={50}
+                                min={0}
+                                max={500}
                                 step={1}
-                                value={admitted}
-                                onChange={(e) => setAdmitted(Number(e.target.value))}
+                                value={admittedTotal}
+                                onChange={(e) => setAdmittedTotal(Number(e.target.value))}
                                 className="w-full"
                             />
                         </Field>
+                        <p className="rounded-sm border border-n-1 bg-grey-3 p-2 text-center text-xs font-bold text-n-1">
+                            renders as:{' '}
+                            <span className="text-primary-1">
+                                {tally.applicants.toLocaleString('en-US')} tried · {tally.admitted} got in
+                            </span>
+                            <br />
+                            <span className="font-normal text-grey-1">
+                                “tried” = waitlist × FOMO multiplier (floored); “got in” = real admitted
+                            </span>
+                        </p>
                         <div className="flex flex-wrap gap-2">
                             <PresetButton
                                 onClick={() => {
-                                    setApplicants(213)
-                                    setAdmitted(7)
+                                    setWaitlistTotal(0)
+                                    setAdmittedTotal(0)
                                 }}
                             >
-                                213 / 7
+                                empty (floor)
                             </PresetButton>
                             <PresetButton
                                 onClick={() => {
-                                    setApplicants(1842)
-                                    setAdmitted(11)
+                                    setWaitlistTotal(120)
+                                    setAdmittedTotal(7)
                                 }}
                             >
-                                1842 / 11
+                                early beta
+                            </PresetButton>
+                            <PresetButton
+                                onClick={() => {
+                                    setWaitlistTotal(1842)
+                                    setAdmittedTotal(140)
+                                }}
+                            >
+                                busy door
                             </PresetButton>
                         </div>
+                    </Section>
+
+                    <Section title="Waitlist state">
+                        <button
+                            onClick={() => setAlreadyJoined((v) => !v)}
+                            className={`rounded-full border-2 border-black px-3 py-1 text-xs font-bold transition-colors ${
+                                alreadyJoined ? 'bg-primary-1 text-n-1' : 'bg-white text-grey-1 hover:bg-grey-2'
+                            }`}
+                        >
+                            {alreadyJoined ? 'already joined ✓' : 'not joined yet'}
+                        </button>
+                        <p className="text-[11px] leading-snug text-grey-1">
+                            Toggles the post-join state: “Join anyway” becomes an “on the list” confirmation while the
+                            asset + “Tweet to appeal” stay.
+                        </p>
                     </Section>
                 </aside>
 
@@ -132,9 +171,10 @@ export default function RejectionBuilderPage() {
                             <CardRejectionScreen
                                 username={username || 'anon'}
                                 mascot={mascot}
-                                applicants={applicants}
-                                admitted={admitted}
-                                onJoined={() => alert('→ joined: would advance to the friendly waitlist-joined screen')}
+                                waitlistTotal={waitlistTotal}
+                                admittedTotal={admittedTotal}
+                                alreadyJoined={alreadyJoined}
+                                onJoined={() => setAlreadyJoined(true)}
                             />
                         </div>
                     </div>
