@@ -18,7 +18,7 @@ import React from 'react'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import type { GrantSessionKeyError } from '@/hooks/wallet/useGrantSessionKey'
 
-const mockGrant = jest.fn<Promise<{ ok: boolean }>, []>()
+const mockGrant = jest.fn<Promise<{ ok: boolean; overviewFresh?: boolean }>, []>()
 let mockLastError: GrantSessionKeyError | null = null
 jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({
     useGrantSessionKey: () => ({ grant: mockGrant, isGranting: false, lastError: mockLastError }),
@@ -108,7 +108,7 @@ describe('EnableAutoBalanceBanner', () => {
 
     it('a grant that "succeeds" without clearing the modal reveals the escape and pages Sentry (dup-card lockout shape)', async () => {
         const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
-        mockGrant.mockResolvedValue({ ok: true })
+        mockGrant.mockResolvedValue({ ok: true, overviewFresh: true })
         // Overview never flips hasWithdrawApproval — the lockout shape.
         render(<EnableAutoBalanceBanner />)
         expect(screen.queryByText('Skip for now')).not.toBeInTheDocument()
@@ -118,11 +118,54 @@ describe('EnableAutoBalanceBanner', () => {
         })
 
         expect(screen.getByText('Skip for now')).toBeInTheDocument()
+        // The stuck state must EXPLAIN itself — happy-path copy with an
+        // unexplained Skip button just makes users re-tap Continue forever.
+        expect(screen.getByText(/couldn't finish setting up your card/i)).toBeInTheDocument()
+        expect(screen.getByText('Try again')).toBeInTheDocument()
         expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('duplicate-card lockout shape'))
         expect(Sentry.captureMessage).toHaveBeenCalledWith(
             expect.stringContaining('hasWithdrawApproval never flipped'),
             expect.objectContaining({ level: 'error' })
         )
+        warnSpy.mockRestore()
+    })
+
+    it('a grant whose overview refetch FAILED is stale, not stuck — no escape, no Sentry page', async () => {
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+        // Grant succeeded but the follow-up refetch died (flaky network):
+        // the cached flag is stale; treating it as the lockout would false-page.
+        mockGrant.mockResolvedValue({ ok: true, overviewFresh: false })
+        render(<EnableAutoBalanceBanner />)
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Continue'))
+        })
+
+        expect(screen.queryByText('Skip for now')).not.toBeInTheDocument()
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+        warnSpy.mockRestore()
+    })
+
+    it('skipping a stuck card does NOT suppress the prompt for a different card later in the session', async () => {
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+        mockGrant.mockResolvedValue({ ok: true, overviewFresh: true })
+        mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: false }]
+        const { rerender } = render(<EnableAutoBalanceBanner />)
+
+        // Card A gets stuck; user escapes via Skip.
+        await act(async () => {
+            fireEvent.click(screen.getByText('Continue'))
+        })
+        fireEvent.click(screen.getByText('Skip for now'))
+        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+
+        // Support cancels A; ungranted card B becomes active — it must prompt.
+        mockCards = [
+            { id: 'card-a', status: 'CANCELED', hasWithdrawApproval: false },
+            { id: 'card-b', status: 'ACTIVE', hasWithdrawApproval: false },
+        ]
+        rerender(<EnableAutoBalanceBanner />)
+        expect(screen.getByTestId('modal')).toBeInTheDocument()
         warnSpy.mockRestore()
     })
 
@@ -132,7 +175,7 @@ describe('EnableAutoBalanceBanner', () => {
         // resolving, so by the time it returns ok the flag is already flipped.
         mockGrant.mockImplementation(async () => {
             mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: true }]
-            return { ok: true }
+            return { ok: true, overviewFresh: true }
         })
         mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: false }]
         const { rerender } = render(<EnableAutoBalanceBanner />)

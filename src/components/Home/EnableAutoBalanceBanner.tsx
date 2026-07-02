@@ -29,17 +29,24 @@ import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
  * `cards[0]`: in the 2026-07-02 duplicate-card incident `cards[0]` was a
  * bare duplicate while the grant landed on the other card — every tap
  * "succeeded" and the modal never dismissed. As a second belt: if a grant
- * reports success but the flag still hasn't flipped, we surface the escape
- * anyway and page Sentry — a non-dismissible modal must never depend on a
- * distributed flag flipping.
+ * reports success (with a FRESH overview — a failed refetch is just a stale
+ * flag, not a lockout) and the flag still hasn't flipped for the SAME card,
+ * we surface the escape anyway, explain the failure, and page Sentry — a
+ * non-dismissible modal must never depend on a distributed flag flipping.
+ * All the "have we been here" state (grant success, skip dismissal, Sentry
+ * dedupe) is keyed by card id, so a later re-issued card always gets its
+ * own clean setup pass.
  */
 export default function EnableAutoBalanceBanner() {
     const { overview } = useRainCardOverview()
     const { grant, isGranting, lastError } = useGrantSessionKey()
-    const [dismissed, setDismissed] = useState(false)
-    // Card id the last SUCCESSFUL grant was tapped for — keyed by identity so
-    // a later re-issued card (new id, legitimately needing its own setup pass)
-    // never inherits the stuck signal from an old card's grant.
+    // Card id the user chose "Skip for now" for — per card, so skipping a
+    // stuck card A never suppresses the prompt for a different card B that
+    // legitimately needs its own setup later in the same session.
+    const [dismissedFor, setDismissedFor] = useState<string | null>(null)
+    // Card id the last SUCCESSFUL grant (with a fresh overview) was tapped
+    // for — keyed by identity so a later re-issued card never inherits the
+    // stuck signal from an old card's grant.
     const [grantSucceededFor, setGrantSucceededFor] = useState<string | null>(null)
 
     const card = findActiveCard(overview)
@@ -54,15 +61,18 @@ export default function EnableAutoBalanceBanner() {
     // recoverable message.
     const hardError = !!lastError && lastError.kind !== 'user-cancelled'
 
-    // Loop signal: grant() resolved ok (which includes the overview refetch),
-    // yet the SAME card still lacks the approval. That is the dup-card
-    // lockout shape — warn once per card and treat it like a failure so the
-    // escape hatch renders.
+    // Loop signal: grant() resolved ok with a FRESH overview, yet the SAME
+    // card still lacks the approval. That is the dup-card lockout shape —
+    // warn once per card and treat it like a failure so the escape hatch
+    // renders with an explanation.
     const stuckAfterSuccess = !!card && grantSucceededFor !== null && grantSucceededFor === card.id && shouldShow
-    const warnedForCardRef = useRef<string | null>(null)
+    // Set of card ids already warned for — a plain "last id" ref would
+    // re-page Sentry when the active card alternates (A → B → A) during
+    // remediation.
+    const warnedCardsRef = useRef<Set<string>>(new Set())
     useEffect(() => {
-        if (stuckAfterSuccess && card && warnedForCardRef.current !== card.id) {
-            warnedForCardRef.current = card.id
+        if (stuckAfterSuccess && card && !warnedCardsRef.current.has(card.id)) {
+            warnedCardsRef.current.add(card.id)
             console.warn(
                 '[EnableAutoBalanceBanner] grant succeeded but the active card still lacks hasWithdrawApproval — duplicate-card lockout shape'
             )
@@ -75,14 +85,17 @@ export default function EnableAutoBalanceBanner() {
 
     const ctas: ActionModalButtonProps[] = [
         {
-            text: isGranting ? 'Working…' : hardError ? 'Try again' : 'Continue',
+            text: isGranting ? 'Working…' : hardError || stuckAfterSuccess ? 'Try again' : 'Continue',
             variant: 'purple',
             shadowSize: '4',
             disabled: isGranting,
             onClick: () => {
                 const grantedCardId = card?.id ?? null
                 void grant().then((result) => {
-                    if (result.ok) setGrantSucceededFor(grantedCardId)
+                    // A failed refetch means the flag is merely STALE, not
+                    // stuck — treating it as success would fire a false
+                    // Sentry page on any flaky connection.
+                    if (result.ok && result.overviewFresh) setGrantSucceededFor(grantedCardId)
                 })
             },
         },
@@ -95,9 +108,11 @@ export default function EnableAutoBalanceBanner() {
             text: 'Skip for now',
             variant: 'stroke',
             disabled: isGranting,
-            onClick: () => setDismissed(true),
+            onClick: () => setDismissedFor(card?.id ?? null),
         })
     }
+
+    const dismissed = dismissedFor !== null && dismissedFor === (card?.id ?? null)
 
     return (
         <ActionModal
@@ -109,7 +124,7 @@ export default function EnableAutoBalanceBanner() {
             iconContainerClassName="bg-yellow-1"
             title="Finish setting up your card"
             description={
-                hardError
+                hardError || stuckAfterSuccess
                     ? "We couldn't finish setting up your card. Please try again, or skip for now — we'll prompt you again on your first card payment."
                     : 'One passkey tap to start using your card.'
             }
