@@ -37,7 +37,10 @@ export default function EnableAutoBalanceBanner() {
     const { overview } = useRainCardOverview()
     const { grant, isGranting, lastError } = useGrantSessionKey()
     const [dismissed, setDismissed] = useState(false)
-    const [grantSucceeded, setGrantSucceeded] = useState(false)
+    // Card id the last SUCCESSFUL grant was tapped for — keyed by identity so
+    // a later re-issued card (new id, legitimately needing its own setup pass)
+    // never inherits the stuck signal from an old card's grant.
+    const [grantSucceededFor, setGrantSucceededFor] = useState<string | null>(null)
 
     const card = findActiveCard(overview)
     const shouldShow =
@@ -52,23 +55,23 @@ export default function EnableAutoBalanceBanner() {
     const hardError = !!lastError && lastError.kind !== 'user-cancelled'
 
     // Loop signal: grant() resolved ok (which includes the overview refetch),
-    // yet the active card still lacks the approval. That is the dup-card
-    // lockout shape — warn once and treat it like a failure so the escape
-    // hatch renders.
-    const stuckAfterSuccess = grantSucceeded && shouldShow
-    const warnedRef = useRef(false)
+    // yet the SAME card still lacks the approval. That is the dup-card
+    // lockout shape — warn once per card and treat it like a failure so the
+    // escape hatch renders.
+    const stuckAfterSuccess = !!card && grantSucceededFor !== null && grantSucceededFor === card.id && shouldShow
+    const warnedForCardRef = useRef<string | null>(null)
     useEffect(() => {
-        if (stuckAfterSuccess && !warnedRef.current) {
-            warnedRef.current = true
+        if (stuckAfterSuccess && card && warnedForCardRef.current !== card.id) {
+            warnedForCardRef.current = card.id
             console.warn(
                 '[EnableAutoBalanceBanner] grant succeeded but the active card still lacks hasWithdrawApproval — duplicate-card lockout shape'
             )
             Sentry.captureMessage('card session-key grant succeeded but hasWithdrawApproval never flipped', {
                 level: 'error',
-                extra: { cardId: card?.id },
+                extra: { cardId: card.id },
             })
         }
-    }, [stuckAfterSuccess, card?.id])
+    }, [stuckAfterSuccess, card])
 
     const ctas: ActionModalButtonProps[] = [
         {
@@ -77,8 +80,9 @@ export default function EnableAutoBalanceBanner() {
             shadowSize: '4',
             disabled: isGranting,
             onClick: () => {
+                const grantedCardId = card?.id ?? null
                 void grant().then((result) => {
-                    if (result.ok) setGrantSucceeded(true)
+                    if (result.ok) setGrantSucceededFor(grantedCardId)
                 })
             },
         },

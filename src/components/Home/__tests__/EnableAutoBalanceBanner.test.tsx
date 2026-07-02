@@ -61,7 +61,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockLastError = null
     mockGrant.mockResolvedValue({ ok: false })
-    mockCards = [{ status: 'ACTIVE', hasWithdrawApproval: false }]
+    mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: false }]
 })
 
 describe('EnableAutoBalanceBanner', () => {
@@ -90,8 +90,8 @@ describe('EnableAutoBalanceBanner', () => {
     it('keys off the ACTIVE card, not cards[0] — a CANCELED newest row with a granted older card hides the modal', () => {
         // The post-remediation nicnode shape: duplicate canceled, real card granted.
         mockCards = [
-            { status: 'CANCELED', hasWithdrawApproval: false },
-            { status: 'ACTIVE', hasWithdrawApproval: true },
+            { id: 'card-dup', status: 'CANCELED', hasWithdrawApproval: false },
+            { id: 'card-real', status: 'ACTIVE', hasWithdrawApproval: true },
         ]
         render(<EnableAutoBalanceBanner />)
         expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
@@ -99,8 +99,8 @@ describe('EnableAutoBalanceBanner', () => {
 
     it('still prompts when the ACTIVE card lacks the grant even behind a CANCELED newest row', () => {
         mockCards = [
-            { status: 'CANCELED', hasWithdrawApproval: false },
-            { status: 'ACTIVE', hasWithdrawApproval: false },
+            { id: 'card-dup', status: 'CANCELED', hasWithdrawApproval: false },
+            { id: 'card-real', status: 'ACTIVE', hasWithdrawApproval: false },
         ]
         render(<EnableAutoBalanceBanner />)
         expect(screen.getByTestId('modal')).toBeInTheDocument()
@@ -123,6 +123,38 @@ describe('EnableAutoBalanceBanner', () => {
             expect.stringContaining('hasWithdrawApproval never flipped'),
             expect.objectContaining({ level: 'error' })
         )
+        warnSpy.mockRestore()
+    })
+
+    it('a re-issued card does NOT inherit the stuck signal from an old card grant (no premature escape, no false Sentry page)', async () => {
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+        // Model the REAL happy path: grant() refetches the overview before
+        // resolving, so by the time it returns ok the flag is already flipped.
+        mockGrant.mockImplementation(async () => {
+            mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: true }]
+            return { ok: true }
+        })
+        mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: false }]
+        const { rerender } = render(<EnableAutoBalanceBanner />)
+
+        // Grant succeeds for card A and the flag flips — modal hides, all good.
+        await act(async () => {
+            fireEvent.click(screen.getByText('Continue'))
+        })
+        rerender(<EnableAutoBalanceBanner />)
+        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+
+        // Card A is replaced by card B, which legitimately needs its own setup:
+        // fresh prompt, NO escape, NO Sentry noise.
+        mockCards = [
+            { id: 'card-a', status: 'CANCELED', hasWithdrawApproval: true },
+            { id: 'card-b', status: 'ACTIVE', hasWithdrawApproval: false },
+        ]
+        rerender(<EnableAutoBalanceBanner />)
+        // findActiveCard skips CANCELED → card-b drives the modal
+        expect(screen.getByTestId('modal')).toBeInTheDocument()
+        expect(screen.queryByText('Skip for now')).not.toBeInTheDocument()
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
         warnSpy.mockRestore()
     })
 })
