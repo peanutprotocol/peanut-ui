@@ -2755,6 +2755,12 @@ countryData.forEach((country) => {
             if (method.id === 'pix-add') {
                 return countryCode === 'BR'
             }
+            // 'From Bank' is redundant for Brazil — it routes to the same Manteca flow
+            // as 'Pix' (/add-money/brazil/manteca), so hide it and show Pix only.
+            // Reversible: delete this block to restore the 'From Bank' card for Brazil.
+            if (method.id === 'bank-transfer-add' && countryCode === 'BR') {
+                return false
+            }
             return true
         }).map((m) => {
             const newMethod = { ...m }
