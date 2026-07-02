@@ -16,8 +16,8 @@ export function SupportedRailsFaqAnswer() {
         <div className="flex flex-col gap-5">
             <div>
                 <p className="mb-2">
-                    Crypto — one deposit address for all {SUPPORTED_EVM_CHAINS.length} EVM networks, plus Solana and
-                    Tron:
+                    Crypto — one deposit address for all {SUPPORTED_EVM_CHAINS.length} EVM networks, plus{' '}
+                    {OTHER_SUPPORTED_CHAINS.map(chainDisplayName).join(' and ')}:
                 </p>
                 <div className="flex flex-wrap gap-1 rounded-sm border border-n-1 bg-white p-2">
                     {[...SUPPORTED_EVM_CHAINS, ...OTHER_SUPPORTED_CHAINS].map((chain) => (
