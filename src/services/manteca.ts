@@ -287,7 +287,10 @@ export const mantecaApi = {
         }
     },
 
-    getDepositStatus: async (depositId: string): Promise<{ data?: { id: string; status: string }; error?: string }> => {
+    getDepositStatus: async (
+        depositId: string
+        // stage: 1 = QR live awaiting fiat, >= 2 = fiat received (settling), null = no snapshot
+    ): Promise<{ data?: { id: string; status: string; stage?: number | null }; error?: string }> => {
         try {
             const response = await serverFetch(`/manteca/deposit/${depositId}/status`)
             const data = await response.json()
