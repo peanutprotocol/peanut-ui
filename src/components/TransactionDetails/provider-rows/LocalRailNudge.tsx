@@ -1,7 +1,6 @@
 'use client'
 
-import Card from '@/components/Global/Card'
-import { Icon } from '@/components/Global/Icons/Icon'
+import InfoCard from '@/components/Global/InfoCard'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { extractMerchantIso2 } from '@/components/TransactionDetails/transaction-details.utils'
 import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
@@ -52,17 +51,11 @@ function LocalRailNudgeBody({ local }: { local: (typeof LOCAL_RAIL_BY_COUNTRY)[s
     if (!percent) return null
 
     return (
-        <Card position="single" className="px-4 py-4">
-            <div className="flex items-center gap-3">
-                <Icon name="info" size={20} className="shrink-0 text-grey-1" />
-                <div className="flex flex-col gap-1">
-                    <span className="font-semibold text-gray-900">Pay like a local next time</span>
-                    <span className="text-sm text-gray-600">
-                        In {local.countryName}, paying with {local.rail} costs around {percent}% less than using your
-                        card.
-                    </span>
-                </div>
-            </div>
-        </Card>
+        <InfoCard
+            variant="info"
+            icon="info"
+            title="Pay like a local next time"
+            description={`In ${local.countryName}, paying with ${local.rail} costs around ${percent}% less than using your card.`}
+        />
     )
 }
