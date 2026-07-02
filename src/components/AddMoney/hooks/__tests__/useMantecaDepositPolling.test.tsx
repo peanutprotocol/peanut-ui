@@ -53,11 +53,29 @@ describe('useMantecaDepositPolling', () => {
         await waitFor(() => expect(result.current.status).toBe('failed'))
     })
 
-    it('reports "processing" for an intermediate settling status', async () => {
-        mockGetDepositStatus.mockResolvedValue({ data: { id: 'dep-4', status: 'PROCESSING' } })
+    it('keeps "pending" on PROCESSING at stage 1 — QR live, user has NOT paid (the vanished-QR bug)', async () => {
+        // Manteca flips the synthetic ACTIVE (→ intent PROCESSING) seconds after
+        // creation; treating that as "settling" hid the QR before anyone could pay.
+        mockGetDepositStatus.mockResolvedValue({ data: { id: 'dep-4', status: 'PROCESSING', stage: 1 } })
         const { result } = renderHook(() => useMantecaDepositPolling('dep-4', jest.fn()), { wrapper })
 
+        await waitFor(() => expect(mockGetDepositStatus).toHaveBeenCalledWith('dep-4'))
+        expect(result.current.status).toBe('pending')
+    })
+
+    it('reports "processing" only once stage >= 2 (fiat received)', async () => {
+        mockGetDepositStatus.mockResolvedValue({ data: { id: 'dep-5', status: 'PROCESSING', stage: 2 } })
+        const { result } = renderHook(() => useMantecaDepositPolling('dep-5', jest.fn()), { wrapper })
+
         await waitFor(() => expect(result.current.status).toBe('processing'))
+    })
+
+    it('degrades to "pending" when stage is absent (older BE / legacy row)', async () => {
+        mockGetDepositStatus.mockResolvedValue({ data: { id: 'dep-6', status: 'PROCESSING', stage: null } })
+        const { result } = renderHook(() => useMantecaDepositPolling('dep-6', jest.fn()), { wrapper })
+
+        await waitFor(() => expect(mockGetDepositStatus).toHaveBeenCalledWith('dep-6'))
+        expect(result.current.status).toBe('pending')
     })
 
     it('does not query when depositId is undefined', () => {

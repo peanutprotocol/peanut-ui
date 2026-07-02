@@ -8,8 +8,11 @@ const POLLING_INTERVAL = 5000
 
 // Terminal TransactionIntentStatus values returned by GET /manteca/deposit/:id/status.
 const TERMINAL_STATUSES = ['COMPLETED', 'FAILED', 'CANCELLED', 'REFUNDED']
-// Non-terminal states that mean "payment detected, settling" — show a processing screen.
-const PROCESSING_STATUSES = ['PROCESSING', 'AWAITING_SETTLEMENT']
+// "Payment detected" is signalled by the synthetic's stage, NOT the intent status:
+// Manteca flips a ramp-on to ACTIVE (→ intent PROCESSING) seconds after creation,
+// while the user hasn't paid — stage 1 is DEPOSIT (QR live, awaiting fiat), and
+// only stage >= 2 (ORDER/WITHDRAW) means the fiat actually arrived.
+const PAID_STAGE = 2
 
 type MantecaDepositPollStatus = 'pending' | 'processing' | 'completed' | 'failed'
 
@@ -34,9 +37,12 @@ export function useMantecaDepositPolling(depositId: string | undefined, onComple
 
     const status: MantecaDepositPollStatus = useMemo(() => {
         const s = data?.data?.status
+        const stage = data?.data?.stage
         if (s === 'COMPLETED') return 'completed'
         if (s && TERMINAL_STATUSES.includes(s)) return 'failed'
-        if (s && PROCESSING_STATUSES.includes(s)) return 'processing'
+        // stage may be null/absent (older BE, legacy row) — then stay 'pending'
+        // so the QR keeps showing rather than stranding the user on a loader.
+        if (typeof stage === 'number' && stage >= PAID_STAGE) return 'processing'
         return 'pending'
     }, [data])
 
