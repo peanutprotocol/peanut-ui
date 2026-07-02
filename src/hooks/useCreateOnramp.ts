@@ -60,7 +60,11 @@ export const useCreateOnramp = (): UseCreateOnrampReturn => {
 
                 if (!response.ok) {
                     // parse error body from backend to get specific message
-                    let errorMessage = 'Failed to create bank transfer. Please try again or contact support.'
+                    const body = await response.json().catch(() => null)
+                    const errorMessage =
+                        body?.error ||
+                        body?.message ||
+                        'Failed to create bank transfer. Please try again or contact support.'
                     setError(errorMessage)
                     throw new Error(errorMessage)
                 }

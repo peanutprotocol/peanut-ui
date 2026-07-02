@@ -746,7 +746,14 @@ function setParams(params: Record<string, string>) {
 // then push it onto the useCapabilities mock. The page reads `gateFor(...)`,
 // so the mock returns a stub gateFor closing over the desired state; it also
 // exposes `bankRails()` for the few sites that read it directly.
-type Gate = 'ready' | 'accept-tos' | 'fixable-rejection' | 'blocked-rejection' | 'needs-identity' | 'needs-enrollment'
+type Gate =
+    | 'ready'
+    | 'accept-tos'
+    | 'fixable-rejection'
+    | 'blocked-rejection'
+    | 'needs-identity'
+    | 'needs-enrollment'
+    | 'waiting-on-provider'
 
 function setGate(kind: Gate) {
     let rails: any[] = []
@@ -832,6 +839,22 @@ function setGate(kind: Gate) {
         case 'needs-identity':
             rails = []
             gateState = { kind: 'needs-identity' }
+            break
+        case 'waiting-on-provider':
+            // provider reviewing submitted info (e.g. eea-uplift docs) — user
+            // has nothing to do but wait
+            rails = [
+                {
+                    id: 'bridge.ach_us',
+                    provider: 'bridge',
+                    method: 'ACH_US',
+                    country: 'US',
+                    currency: 'USD',
+                    status: 'requires-info',
+                    blockingActions: ['wait:bridge'],
+                },
+            ]
+            gateState = { kind: 'waiting-on-provider', reason: { code: 'bridge_processing' } }
             break
     }
 
@@ -1308,10 +1331,13 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 
     test('onramp error displays ErrorAlert', async () => {
         const mockCreateOnramp = jest.fn().mockRejectedValue(new Error('Service unavailable'))
+        // error: null reproduces the first-attempt reality — the hook's error
+        // state hasn't flushed when the page's catch runs, so the page must
+        // surface the caught message itself, not read the hook state.
         mockUseCreateOnramp.mockReturnValue({
             createOnramp: mockCreateOnramp,
             isLoading: false,
-            error: 'Service unavailable',
+            error: null,
         })
         resetQueryState({ step: 'inputAmount', amount: '100' })
 
@@ -1327,8 +1353,35 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             fireEvent.click(screen.getByTestId('confirm-onramp'))
         })
 
-        // After error, the setError should have been called
-        expect(mockOnrampFlow.setError).toHaveBeenCalled()
+        // the caught message must be shown to the user
+        expect(mockOnrampFlow.setError).toHaveBeenCalledWith({
+            showError: true,
+            errorMessage: 'Service unavailable',
+        })
+    })
+
+    test('waiting-on-provider gate shows under-review message instead of silent no-op', async () => {
+        setGate('waiting-on-provider')
+        const mockCreateOnramp = jest.fn()
+        mockUseCreateOnramp.mockReturnValue({
+            createOnramp: mockCreateOnramp,
+            isLoading: false,
+            error: null,
+        })
+        resetQueryState({ step: 'inputAmount', amount: '100' })
+
+        renderWithProviders(<OnrampBankPage />)
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Continue'))
+        })
+
+        // no transfer attempt, but the user is told why
+        expect(mockCreateOnramp).not.toHaveBeenCalled()
+        expect(mockOnrampFlow.setError).toHaveBeenCalledWith({
+            showError: true,
+            errorMessage: expect.stringContaining('being reviewed'),
+        })
     })
 
     test('limits blocking disables Continue and shows LimitsWarningCard', () => {
