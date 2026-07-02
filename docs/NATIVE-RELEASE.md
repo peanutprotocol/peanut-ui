@@ -141,8 +141,15 @@ pnpm native:release        # derive version → native-build → cap sync → bu
 - **Versioning** (`android/app/build.gradle`, zero manual edits):
   - `versionName` ← `ANDROID_VERSION_NAME` env, else `package.json` `version`.
   - `versionCode` ← `ANDROID_VERSION_CODE` env, else git commit count; floored at 2
-    (rejected first upload was code 1). CI passes `github.run_number`.
+    (rejected first upload was code 1). CI passes `10000 + github.run_number`.
+  - **CI is the only authoritative versionCode source.** Local builds derive the code
+    from git commit count, which can collide with or fall behind codes already on Play
+    (Play rejects duplicates and non-increasing codes). Never upload a locally built
+    AAB; use the workflow.
 - Overrides: `ANDROID_VERSION_NAME=1.0.0 ANDROID_VERSION_CODE=9000 pnpm native:release`.
+- **Headers note:** `vercel.json` headers (CSP, HSTS, …) apply to the Vercel web
+  deployment only — the native static export is served from the app bundle and ships
+  no HTTP headers, so nothing there affects (or protects) the WebView.
 
 ---
 
@@ -161,6 +168,12 @@ a leak is bounded by Play review + account 2FA. Still treat it as a secret.
   cert, so that SHA-256 must be in `public/.well-known/assetlinks.json` (3 fingerprints
   listed — confirm the Play App Signing one is present). **Rotating keys requires
   updating `assetlinks.json` or passkey sign-in breaks.**
+- **rpId sync set:** the passkey rpId (`peanut.me`) is hardcoded in several places that
+  must change together — a miss breaks passkey creation silently:
+  1. `capacitor.config.ts` (`CapacitorPasskey.origin` / `domains`)
+  2. `android/app/src/main/res/values/capacitor-passkey.xml` (asset-statements URL)
+  3. `.github/workflows/android-release.yml` (`NEXT_PUBLIC_NATIVE_RP_ID`)
+  4. `public/.well-known/assetlinks.json` (served from the rpId domain)
 - Local signing reads `android/keystore.properties` (gitignored):
   ```properties
   storeFile=../peanut-release.keystore
@@ -194,6 +207,11 @@ the build is reproducible, the AAB lands on a Play track.
 | `SUBMODULE_TOKEN` | read access to the `src/content` submodule |
 | `CAPGO_API_KEY` | OTA (already used by `capgo-deploy.yml`) |
 | prod `NEXT_PUBLIC_*` | the values the static export bakes in (OneSignal, Sentry, chain, …) |
+
+> Housekeeping: the secret is named `NEXT_PUBLIC_SENTRY_DSN` but a Sentry DSN is public
+> by design (it ships in every web bundle) — the `secrets.*` storage is convention, not
+> confidentiality. If renaming to `SENTRY_DSN` for clarity, update the reference in
+> `android-release.yml` in the same change or builds bake an empty DSN.
 
 > Prereq: `fix/native-build-reliability` must be merged or `native:release` won't build.
 
