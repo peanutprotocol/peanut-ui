@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import * as Sentry from '@sentry/nextjs'
 import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
+import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 
@@ -22,13 +24,22 @@ import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
  * cancelled (very common on iOS / 1Password), and a non-dismissible modal
  * whose CTA silently does nothing is a hard lockout. Skipping is safe: the
  * grant is re-prompted on the first card spend regardless.
+ *
+ * The card this modal keys off MUST be `findActiveCard(overview)`, never
+ * `cards[0]`: in the 2026-07-02 duplicate-card incident `cards[0]` was a
+ * bare duplicate while the grant landed on the other card — every tap
+ * "succeeded" and the modal never dismissed. As a second belt: if a grant
+ * reports success but the flag still hasn't flipped, we surface the escape
+ * anyway and page Sentry — a non-dismissible modal must never depend on a
+ * distributed flag flipping.
  */
 export default function EnableAutoBalanceBanner() {
     const { overview } = useRainCardOverview()
     const { grant, isGranting, lastError } = useGrantSessionKey()
     const [dismissed, setDismissed] = useState(false)
+    const [grantSucceeded, setGrantSucceeded] = useState(false)
 
-    const card = overview?.cards?.[0]
+    const card = findActiveCard(overview)
     const shouldShow =
         card?.status === 'ACTIVE' &&
         !card.hasWithdrawApproval &&
@@ -40,6 +51,25 @@ export default function EnableAutoBalanceBanner() {
     // recoverable message.
     const hardError = !!lastError && lastError.kind !== 'user-cancelled'
 
+    // Loop signal: grant() resolved ok (which includes the overview refetch),
+    // yet the active card still lacks the approval. That is the dup-card
+    // lockout shape — warn once and treat it like a failure so the escape
+    // hatch renders.
+    const stuckAfterSuccess = grantSucceeded && shouldShow
+    const warnedRef = useRef(false)
+    useEffect(() => {
+        if (stuckAfterSuccess && !warnedRef.current) {
+            warnedRef.current = true
+            console.warn(
+                '[EnableAutoBalanceBanner] grant succeeded but the active card still lacks hasWithdrawApproval — duplicate-card lockout shape'
+            )
+            Sentry.captureMessage('card session-key grant succeeded but hasWithdrawApproval never flipped', {
+                level: 'error',
+                extra: { cardId: card?.id },
+            })
+        }
+    }, [stuckAfterSuccess, card?.id])
+
     const ctas: ActionModalButtonProps[] = [
         {
             text: isGranting ? 'Working…' : hardError ? 'Try again' : 'Continue',
@@ -47,13 +77,16 @@ export default function EnableAutoBalanceBanner() {
             shadowSize: '4',
             disabled: isGranting,
             onClick: () => {
-                void grant()
+                void grant().then((result) => {
+                    if (result.ok) setGrantSucceeded(true)
+                })
             },
         },
     ]
-    // Escape hatch, shown only once a grant has failed, so the user is never
-    // trapped behind this non-dismissible modal.
-    if (lastError) {
+    // Escape hatch, shown once a grant has failed — or "succeeded" without
+    // clearing the modal — so the user is never trapped behind this
+    // non-dismissible modal.
+    if (lastError || stuckAfterSuccess) {
         ctas.push({
             text: 'Skip for now',
             variant: 'stroke',

@@ -6,6 +6,7 @@ import { pad, parseAbi, toFunctionSelector } from 'viem'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useKernelClient } from '@/context/kernelClient.context'
+import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import { useQueryClient } from '@tanstack/react-query'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
@@ -217,7 +218,7 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
 
     const grant = useCallback<GrantSessionKeyResult['grant']>(async () => {
         const result = await wrap(async () => {
-            const card = overview?.cards?.[0]
+            const card = findActiveCard(overview)
             if (!card) return { ok: false, error: { kind: 'no-card' } as const }
 
             const r = await runSerialize()

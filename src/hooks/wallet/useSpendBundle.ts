@@ -18,6 +18,7 @@ import {
 } from '@/constants/rain.consts'
 import { rainApi, type RainCollateralKind } from '@/services/rain'
 import { useZeroDev } from '@/hooks/useZeroDev'
+import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey, type GrantSessionKeyError } from './useGrantSessionKey'
 import { usdcUnitsToRainCents } from '@/utils/balance.utils'
@@ -217,7 +218,7 @@ export const useSpendBundle = () => {
                 // the one-time session-key grant. If missing, run the inline grant
                 // flow now (one extra passkey tap the FIRST time, zero after).
                 const touchesCollateral = strategy === 'collateral-only' || strategy === 'mixed'
-                const card = overview?.cards?.[0]
+                const card = findActiveCard(overview)
                 if (touchesCollateral && card && !card.hasWithdrawApproval) {
                     onGrantRequired?.()
                     const grantResult = await grant()
