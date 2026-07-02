@@ -80,10 +80,11 @@ if (pkg.includes('IdensicMobileSDK')) {
             '                "IdensicMobileSDK"\n',
     )
 
-    // (c) keep the framework dir out of the source-file glob
+    // (c) keep the framework dir out of the source-file glob.
+    // SwiftPM enforces argument order: `exclude:` must precede `publicHeadersPath:`.
     pkg = pkg.replace(
         'path: ".",\n            publicHeadersPath: "."',
-        'path: ".",\n            publicHeadersPath: ".",\n            exclude: ["Frameworks"]',
+        'path: ".",\n            exclude: ["Frameworks"],\n            publicHeadersPath: "."',
     )
 
     if (pkg === before) {
