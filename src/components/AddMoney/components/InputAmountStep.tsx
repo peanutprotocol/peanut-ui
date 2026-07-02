@@ -54,6 +54,12 @@ const InputAmountStep = ({
         return <PeanutLoading />
     }
 
+    // FX fetch failed (e.g. provider outage): price is null but not loading.
+    // Without this guard, `currencyData.price!.buy` below derefs null and
+    // crashes the whole render (PEANUT-UI-PS7). Surface an error and block
+    // submission instead — a wrong/absent rate must never reach onramp create.
+    const rateUnavailable = !!currencyData?.isError
+
     const limitsCardProps = limitsValidation
         ? getLimitsWarningCardProps({
               validation: limitsValidation,
@@ -77,10 +83,10 @@ const InputAmountStep = ({
                     setDisplayedAmount={setDisplayedAmount}
                     secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
                     primaryDenomination={
-                        currencyData
+                        currencyData?.price && currencyData.symbol
                             ? {
-                                  symbol: currencyData.symbol!,
-                                  price: currencyData.price!.buy,
+                                  symbol: currencyData.symbol,
+                                  price: currencyData.price.buy,
                                   decimals: 2,
                               }
                             : undefined
@@ -100,7 +106,13 @@ const InputAmountStep = ({
                     variant="purple"
                     shadowSize="4"
                     onClick={onSubmit}
-                    disabled={!!error || isLoading || !parseFloat(tokenAmount) || limitsValidation?.isBlocking}
+                    disabled={
+                        !!error ||
+                        isLoading ||
+                        !parseFloat(tokenAmount) ||
+                        limitsValidation?.isBlocking ||
+                        rateUnavailable
+                    }
                     className="w-full"
                     loading={isLoading}
                 >
@@ -108,6 +120,9 @@ const InputAmountStep = ({
                 </Button>
                 {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                 {error && !limitsValidation?.isBlocking && <ErrorAlert description={error} />}
+                {rateUnavailable && !error && !limitsValidation?.isBlocking && (
+                    <ErrorAlert description="Exchange rates are temporarily unavailable. Please try again in a moment." />
+                )}
             </div>
         </div>
     )

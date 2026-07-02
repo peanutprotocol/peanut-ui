@@ -1654,6 +1654,33 @@ describe('GROUP 8: InputAmountStep Component', () => {
         expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
     })
 
+    // Regression for PEANUT-UI-PS7: a failed FX fetch leaves price=null while
+    // isLoading=false. The old `currencyData.price!.buy` derefed null and crashed
+    // the whole render (Next.js page crash). It must now render an error and
+    // disable Continue instead of throwing.
+    test('rate fetch failure renders error and disables Continue (no crash)', () => {
+        renderWithProviders(
+            <InputAmountStep
+                tokenAmount="100"
+                setTokenAmount={jest.fn()}
+                onSubmit={jest.fn()}
+                isLoading={false}
+                error={null}
+                setCurrencyAmount={jest.fn()}
+                currencyData={{ isLoading: false, isError: true, symbol: null, price: null }}
+                limitsValidation={{ isBlocking: false, isWarning: false, currency: 'USD' }}
+                limitsCurrency="USD"
+                onBack={jest.fn()}
+            />
+        )
+
+        expect(screen.getByTestId('error-alert')).toBeInTheDocument()
+        expect(
+            screen.getByText('Exchange rates are temporarily unavailable. Please try again in a moment.')
+        ).toBeInTheDocument()
+        expect(screen.getByText('Continue')).toBeDisabled()
+    })
+
     test('onSubmit called when Continue clicked', async () => {
         const onSubmit = jest.fn()
         renderWithProviders(
