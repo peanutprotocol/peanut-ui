@@ -73,7 +73,7 @@ export default function OnrampBankPage() {
 
     const { balance } = useWallet()
     const { user, fetchUser } = useAuth()
-    const { createOnramp, isLoading: isCreatingOnramp, error: onrampError } = useCreateOnramp()
+    const { createOnramp, isLoading: isCreatingOnramp } = useCreateOnramp()
 
     // inline sumsub kyc flow for bridge bank onramp
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -254,11 +254,20 @@ export default function OnrampBankPage() {
         if (!validateAmount(rawTokenAmount)) return
 
         if (gate.kind !== 'ready') {
-            // capabilities still loading OR provider doing internal review —
-            // silently no-op instead of flashing a misleading needs_kyc modal.
-            // `waiting-on-provider` means the user has nothing to do; opening
-            // a KYC modal would imply otherwise.
-            if (gate.kind === 'loading' || gate.kind === 'waiting-on-provider') return
+            // capabilities still loading — silently no-op instead of flashing
+            // a misleading needs_kyc modal.
+            if (gate.kind === 'loading') return
+            // `waiting-on-provider` means the user has nothing to do (e.g. bridge
+            // reviewing eea-uplift docs) — tell them to wait instead of a dead
+            // button or a doomed transfer attempt with no feedback.
+            if (gate.kind === 'waiting-on-provider') {
+                setError({
+                    showError: true,
+                    errorMessage:
+                        'Your verification details are being reviewed. This usually takes a few minutes — please try again soon.',
+                })
+                return
+            }
             if (gate.kind === 'accept-tos') {
                 guardWithTos()
             } else {
@@ -314,17 +323,21 @@ export default function OnrampBankPage() {
             }
         } catch (error) {
             setShowWarningModal(false)
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : 'Failed to create bank transfer. Please try again or contact support.'
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_FAILED, {
                 method_type: 'bank',
                 error_message: errorMessage,
             })
-            if (onrampError) {
-                setError({
-                    showError: true,
-                    errorMessage: onrampError,
-                })
-            }
+            // show the caught message directly — the hook's error state hasn't
+            // flushed yet in this synchronous catch, so reading it here always
+            // sees the previous render's value (null on first attempt).
+            setError({
+                showError: true,
+                errorMessage,
+            })
         }
     }
 
