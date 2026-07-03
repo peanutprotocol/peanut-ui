@@ -55,7 +55,8 @@ function SetupPageContent() {
             const userInviteCode = inviteCode || inviteCodeFromCookie
             const campaignTag = getFromCookie('campaignTag')
             const skipInviteGate =
-                !!userInviteCode || classifyBareCampaign(campaignTag ?? undefined, undefined).isBareClaimCampaign
+                !!userInviteCode ||
+                classifyBareCampaign(campaignTag ?? undefined, userInviteCode ?? undefined).isBareClaimCampaign
 
             const localDeviceType = detectedDeviceType
 
