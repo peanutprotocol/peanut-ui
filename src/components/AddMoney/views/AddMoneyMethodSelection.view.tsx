@@ -3,7 +3,11 @@
 import { ActionListCard } from '@/components/ActionListCard'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import ChooseNetworkDrawer from '../components/ChooseNetworkDrawer'
+// offramp.xyz migrants get this link-granted badge at signup (peanut-api-ts
+// invite/badge routes, code `offramp` / utm `offramp`).
+import { OFFRAMP_BADGE_CODE } from '@/components/Invites/campaign-maps'
 import type { RhinoChainType } from '@/services/services.types'
+import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -13,7 +17,11 @@ interface AddMoneyMethodSelectionProps {
 
 const AddMoneyMethodSelection = ({ onBankTransferClick }: AddMoneyMethodSelectionProps) => {
     const router = useRouter()
+    const { user } = useAuth()
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+
+    // offramp migrants get a tailored, de-cluttered arbitrum deposit entry
+    const hasOfframpBadge = user?.user?.badges?.some((b) => b.code === OFFRAMP_BADGE_CODE) ?? false
 
     const handleNetworkSelect = (network: RhinoChainType) => {
         setIsDrawerOpen(false)
@@ -25,10 +33,21 @@ const AddMoneyMethodSelection = ({ onBankTransferClick }: AddMoneyMethodSelectio
             <div className="flex flex-col gap-2">
                 <h2 className="text-base font-bold">How would you like to add money?</h2>
                 <div className="flex flex-col">
+                    {hasOfframpBadge && (
+                        <ActionListCard
+                            title="Migrate from Offramp"
+                            description="Move your Offramp balance to Peanut"
+                            position="first"
+                            leftIcon={
+                                <AvatarWithBadge icon="wallet-outline" size="extra-small" className="bg-yellow-1" />
+                            }
+                            onClick={() => router.push('/add-money/crypto?network=EVM&source=offramp')}
+                        />
+                    )}
                     <ActionListCard
                         title="Crypto"
                         description="Deposit from a wallet or exchange"
-                        position="first"
+                        position={hasOfframpBadge ? 'middle' : 'first'}
                         leftIcon={<AvatarWithBadge icon="wallet-outline" size="extra-small" className="bg-yellow-1" />}
                         onClick={() => setIsDrawerOpen(true)}
                     />
