@@ -71,7 +71,6 @@ export default function OnrampBankPage() {
     // Local UI state (not URL-appropriate - transient)
     const [showWarningModal, setShowWarningModal] = useState<boolean>(false)
     const [showKycModal, setShowKycModal] = useState<boolean>(false)
-    const [isRiskAccepted, setIsRiskAccepted] = useState<boolean>(false)
     const { setError, error, setOnrampData, onrampData } = useOnrampFlow()
 
     const { balance } = useWallet()
@@ -313,7 +312,6 @@ export default function OnrampBankPage() {
         }
 
         setShowWarningModal(false)
-        setIsRiskAccepted(false)
         try {
             const onrampDataResponse = await createOnramp({
                 amount: rawTokenAmount,
@@ -354,7 +352,6 @@ export default function OnrampBankPage() {
 
     const handleWarningCancel = () => {
         setShowWarningModal(false)
-        setIsRiskAccepted(false)
     }
 
     // Redirect to inputAmount if showDetails is accessed without required data (deep link / back navigation)
