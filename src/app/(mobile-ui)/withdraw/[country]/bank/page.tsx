@@ -30,7 +30,7 @@ import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
-import { markSubmitted } from '@/hooks/useSubmissionWindow'
+import { useWaitingOnProviderModal } from '@/hooks/useWaitingOnProviderModal'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
@@ -93,6 +93,9 @@ export default function WithdrawBankPage() {
     const { gateFor } = useCapabilities()
     const bankCountry = useMemo(() => railJurisdictionForBank(getCountryFromPath(country)?.id), [country])
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
+    // bridge re-verification ("we're reviewing your details") modal for the
+    // waiting-on-provider gate — keeps the status poll alive + auto-dismisses.
+    const pendingModal = useWaitingOnProviderModal(gate)
     // EEA-uplift funnel events (PostHog): started on launch, completed on KYC
     // success. trackCompleted no-ops unless an uplift was started this session.
     const {
@@ -128,7 +131,6 @@ export default function WithdrawBankPage() {
         },
     })
     const [showKycModal, setShowKycModal] = useState(false)
-    const [showPendingModal, setShowPendingModal] = useState(false)
     const { setIsSupportModalOpen } = useModalsContext()
 
     // close kyc modal when sumsub sdk opens
@@ -223,8 +225,7 @@ export default function WithdrawBankPage() {
             // a dead button, and re-arm the capability poller so we pick up
             // bridge's latest status live and the modal auto-dismisses on clear.
             if (gate.kind === 'waiting-on-provider') {
-                markSubmitted()
-                setShowPendingModal(true)
+                pendingModal.open()
                 return
             }
             if (gate.kind === 'accept-tos') {
@@ -600,10 +601,9 @@ export default function WithdrawBankPage() {
             <AdvisoryPreemptModal {...advisoryModalProps} />
 
             <KycReverificationPendingModal
-                // auto-dismiss the moment bridge finishes re-reviewing (gate
-                // leaves waiting-on-provider via the re-armed capability poll).
-                isOpen={showPendingModal && gate.kind === 'waiting-on-provider'}
-                onClose={() => setShowPendingModal(false)}
+                isOpen={pendingModal.isOpen}
+                onClose={pendingModal.close}
+                message={pendingModal.message}
             />
             <SumsubKycModals flow={sumsubFlow} />
         </div>

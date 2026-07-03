@@ -34,7 +34,7 @@ import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
-import { markSubmitted } from '@/hooks/useSubmissionWindow'
+import { useWaitingOnProviderModal } from '@/hooks/useWaitingOnProviderModal'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
@@ -71,7 +71,6 @@ export default function OnrampBankPage() {
     // Local UI state (not URL-appropriate - transient)
     const [showWarningModal, setShowWarningModal] = useState<boolean>(false)
     const [showKycModal, setShowKycModal] = useState<boolean>(false)
-    const [showPendingModal, setShowPendingModal] = useState<boolean>(false)
     const [isRiskAccepted, setIsRiskAccepted] = useState<boolean>(false)
     const { setError, error, setOnrampData, onrampData } = useOnrampFlow()
 
@@ -135,6 +134,9 @@ export default function OnrampBankPage() {
     const { gateFor } = useCapabilities()
     const bankCountry = useMemo(() => railJurisdictionForBank(selectedCountry?.id), [selectedCountry?.id])
     const gate = useMemo(() => gateFor('deposit', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
+    // bridge re-verification ("we're reviewing your details") modal for the
+    // waiting-on-provider gate — keeps the status poll alive + auto-dismisses.
+    const pendingModal = useWaitingOnProviderModal(gate)
     // A ready bank rail can still carry a pending Bridge requirement (the gate's
     // `advisory`). Enforce it as a mandatory, non-skippable pre-empt at the
     // proceed step — the deposit cannot continue until it's completed.
@@ -268,8 +270,7 @@ export default function OnrampBankPage() {
             // the capability poller so we pick up bridge's latest status live and
             // the modal auto-dismisses the moment the gate clears.
             if (gate.kind === 'waiting-on-provider') {
-                markSubmitted()
-                setShowPendingModal(true)
+                pendingModal.open()
                 return
             }
             if (gate.kind === 'accept-tos') {
@@ -512,10 +513,9 @@ export default function OnrampBankPage() {
                 <AdvisoryPreemptModal {...advisoryModalProps} />
 
                 <KycReverificationPendingModal
-                    // auto-dismiss the moment bridge finishes re-reviewing (gate
-                    // leaves waiting-on-provider via the re-armed capability poll).
-                    isOpen={showPendingModal && gate.kind === 'waiting-on-provider'}
-                    onClose={() => setShowPendingModal(false)}
+                    isOpen={pendingModal.isOpen}
+                    onClose={pendingModal.close}
+                    message={pendingModal.message}
                 />
 
                 <SumsubKycModals flow={sumsubFlow} autoStartSdk />
