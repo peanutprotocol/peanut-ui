@@ -236,8 +236,11 @@ describe('useSumsubKycFlow — terminal-error exits clear the user-initiated gua
 // the entire modal-open, re-running provider submissions for approved-LATAM
 // self-recovery users (86 in 20 min for one user). The poll now backs off on a
 // time-escalating schedule (5s for the first minute, then 10s → 20s → 60s) and
-// stops entirely after a ~15 min cap. Backoff is time-based, not error-based:
-// the poll returns HTTP 200 even when the backend reprocess fails.
+// then holds a steady 60s cadence for as long as the modal is open — it never
+// hard-stops, so a late/missed websocket event is always eventually recovered
+// (the earlier 15-min cap stranded users on "Almost there"). Backoff is
+// time-based, not error-based: the poll returns HTTP 200 even when the backend
+// reprocess fails.
 describe('useSumsubKycFlow — verification-progress poll backoff', () => {
     beforeEach(() => {
         jest.useFakeTimers()
@@ -303,22 +306,44 @@ describe('useSumsubKycFlow — verification-progress poll backoff', () => {
         expect(mockInitiate).toHaveBeenCalledTimes(19)
     })
 
-    it('stops polling entirely after the ~15 min cap', async () => {
+    it('keeps polling past 15 min (no strand) but stays bounded at the 60s steady cadence', async () => {
         openModal()
 
         await act(async () => {
             await jest.advanceTimersByTimeAsync(15 * 60_000)
         })
-        const countAtCap = mockInitiate.mock.calls.length
-        // escalation kept this far below a fixed-5s cadence (~180 calls over 15 min).
-        expect(countAtCap).toBeGreaterThan(0)
-        expect(countAtCap).toBeLessThan(40)
+        const countAt15m = mockInitiate.mock.calls.length
+        // escalation kept the first 15 min far below a fixed-5s cadence (~180).
+        expect(countAt15m).toBeGreaterThan(0)
+        expect(countAt15m).toBeLessThan(40)
 
-        // past the cap the chain is not rescheduled — no further calls, ever.
+        // 10 more minutes at the 60s floor → ~10 further polls, NOT zero (the old
+        // cap stranded the user here) and NOT a 5s-cadence flood.
         await act(async () => {
-            await jest.advanceTimersByTimeAsync(30 * 60_000)
+            await jest.advanceTimersByTimeAsync(10 * 60_000)
         })
-        expect(mockInitiate).toHaveBeenCalledTimes(countAtCap)
+        const delta = mockInitiate.mock.calls.length - countAt15m
+        expect(delta).toBeGreaterThanOrEqual(8)
+        expect(delta).toBeLessThanOrEqual(12)
+    })
+
+    it('a status that goes APPROVED after a long wait still surfaces (no strand)', async () => {
+        const onKycSuccess = jest.fn()
+        const view = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+        act(() => {
+            view.result.current.handleSdkComplete()
+        })
+
+        // 20 minutes of "still pending" — well past the old 15-min cap.
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(20 * 60_000)
+        })
+        // Backend finally approves; the next poll picks it up.
+        mockInitiate.mockResolvedValue({ data: { token: null, applicantId: 'poll', status: 'APPROVED' } })
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(60_000)
+        })
+        expect(onKycSuccess).toHaveBeenCalled()
     })
 
     it('cancels the pending timer when the modal closes', async () => {
