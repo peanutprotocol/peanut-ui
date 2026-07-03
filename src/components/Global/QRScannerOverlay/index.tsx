@@ -27,6 +27,7 @@ enum EModalType {
     DIRECT_SEND = 'DIRECT_SEND',
     EXTERNAL_URL = 'EXTERNAL_URL',
     UNRECOGNIZED = 'UNRECOGNIZED',
+    PIX_RECURRING = 'PIX_RECURRING',
 }
 
 interface ModalContentProps {
@@ -150,8 +151,23 @@ function UnrecognizedContent({ setIsModalOpen }: ModalContentProps) {
     )
 }
 
+function PixRecurringContent({ setIsModalOpen }: ModalContentProps) {
+    return (
+        <div className="flex flex-col justify-center p-6">
+            <span className="text-sm">This QR code is for a recurring payment (PIX Automático).</span>
+            <span className="text-sm">
+                Peanut doesn't support recurring PIX payments — please ask for a regular PIX QR code instead.
+            </span>
+            <Button onClick={() => setIsModalOpen(false)} className="mt-4 w-full" shadowType="primary" shadowSize="4">
+                Okay
+            </Button>
+        </div>
+    )
+}
+
 function getModalTitle(modalContent: EModalType | undefined, qrType: EQrType | undefined): string | undefined {
     if (modalContent === EModalType.UNRECOGNIZED) return 'Unrecognized QR code'
+    if (modalContent === EModalType.PIX_RECURRING) return 'PIX Automático not supported'
     if (!modalContent || !qrType) return undefined
     switch (modalContent) {
         case EModalType.QR_NOT_SUPPORTED:
@@ -171,6 +187,7 @@ const MODAL_CONTENTS: Record<EModalType, React.ComponentType<ModalContentProps>>
     [EModalType.DIRECT_SEND]: DirectSendContent,
     [EModalType.EXTERNAL_URL]: ExternalUrlContent,
     [EModalType.UNRECOGNIZED]: UnrecognizedContent,
+    [EModalType.PIX_RECURRING]: PixRecurringContent,
 }
 
 export default function QRScannerOverlay() {
@@ -309,6 +326,10 @@ export default function QRScannerOverlay() {
                     }
                 }
                 break
+            case EQrType.PIX_RECURRING: {
+                showModal(EModalType.PIX_RECURRING)
+                return { success: true }
+            }
             case EQrType.BITCOIN_ONCHAIN:
             case EQrType.BITCOIN_INVOICE:
             case EQrType.TRON_ADDRESS:

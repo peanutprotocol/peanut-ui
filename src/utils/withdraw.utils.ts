@@ -230,6 +230,21 @@ export const isPixEmvcoQr = (pixKey: string): boolean => {
 }
 
 /**
+ * Detects a PIX Automático (recurring payment) QR code. Peanut can't process
+ * these — recurrence payloads embed a URL containing "/rec/" per the BCB spec.
+ * Recurrence-only codes may lack the currency/country fields PIX_REGEX needs,
+ * so this must not assume a full payment payload — only EMVCo shape + "/rec/".
+ * Normalizes internally (case, protocol prefix) because callers pass raw
+ * scanner data, decoded URL params, and pasted keys alike.
+ * @param code - raw scanned/pasted QR content
+ * @returns true if the code is a PIX Automático (recurring) EMV payload
+ */
+export const isPixRecurringCode = (code: string): boolean => {
+    const c = code.toLowerCase().replace(/^https?:\/\/(www\.)?/, '')
+    return isPixEmvcoQr(c) && c.includes('/rec/')
+}
+
+/**
  * Normalizes a raw PIX key as the user types: keep an EMVCo QR verbatim,
  * otherwise strip whitespace and canonicalize a phone number to its +55 form.
  * Shared by every PIX-key input so they can't drift.
@@ -297,6 +312,12 @@ export const validatePixKey = (pixKey: string): { valid: boolean; message?: stri
     }
 
     // 6. EMVCo QR Code: Full QR code string
+    // Checked before the EMVCo branch: isPixRecurringCode normalizes case and
+    // protocol prefixes that the stricter isPixEmvcoQr would fall through, so
+    // every recurring shape gets the specific message instead of the generic one.
+    if (isPixRecurringCode(trimmed)) {
+        return { valid: false, message: 'PIX Automático (recurring) codes are not supported' }
+    }
     if (isPixEmvcoQr(trimmed)) {
         if (trimmed.length < 50 || trimmed.length > 500) {
             return { valid: false, message: 'Invalid QR code length' }
