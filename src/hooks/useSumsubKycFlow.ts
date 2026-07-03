@@ -31,11 +31,15 @@ const KYC_POLL_SCHEDULE: ReadonlyArray<{ untilMs: number; delayMs: number }> = [
     { untilMs: 120_000, delayMs: 10_000 },
     { untilMs: 180_000, delayMs: 20_000 },
 ]
+// After the escalation schedule the poll settles at this steady cadence for as
+// long as the modal stays open. It does NOT stop: a missed websocket event
+// (laptop sleep, mobile background, network switch) can land at any time during
+// a long manual review, and a hard stop would strand the user on "Almost there"
+// forever with onKycSuccess never firing. The 60s floor plus the backend's own
+// self-recovery cooldown (which short-circuits repeat submissions server-side)
+// keeps the steady poll cheap — nothing like the fixed-5s battering ram this
+// schedule replaced.
 const KYC_POLL_MAX_DELAY_MS = 60_000
-// Stop polling entirely after this long per modal-open. The modal stays in its
-// long-running "Almost there" state and the websocket remains the only signal;
-// re-opening the modal restarts polling fresh.
-const KYC_POLL_CAP_MS = 15 * 60_000
 
 const getKycPollDelayMs = (elapsedMs: number): number => {
     for (const { untilMs, delayMs } of KYC_POLL_SCHEDULE) {
@@ -149,8 +153,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // (KYC_POLL_SCHEDULE) so the flow can transition even if the websocket event
     // never arrives — without hammering the mutating initiate endpoint. A
     // self-rescheduling setTimeout chain (rather than a fixed setInterval) lets
-    // the delay grow as the modal stays open; polling stops entirely once the
-    // ~15 min cap is reached, leaving the modal in its long-running state.
+    // the delay grow as the modal stays open, settling at a steady 60s cadence —
+    // it keeps polling for the whole modal-open lifetime so a late/missed
+    // websocket event is always eventually recovered.
     useEffect(() => {
         if (!isVerificationProgressModalOpen) return
 
@@ -175,9 +180,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
         const scheduleNext = () => {
             const elapsed = Date.now() - startedAt
-            // active-polling cap reached — stop rescheduling; the websocket is the
-            // only signal from here, and re-opening the modal restarts polling.
-            if (elapsed >= KYC_POLL_CAP_MS) return
             timeoutId = setTimeout(async () => {
                 await pollStatus()
                 // the modal may have closed (cleanup ran) while the poll was in
