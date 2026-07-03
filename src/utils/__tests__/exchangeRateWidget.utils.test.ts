@@ -40,4 +40,46 @@ describe('getExchangeRateWidgetRedirectRoute', () => {
             expect(getExchangeRateWidgetRedirectRoute('USD', 'MXN', 0)).toBe('/add-money?country=usa')
         })
     })
+
+    // Add-money must never route through USD→US (USD is the global settlement
+    // currency). It's driven by the user's unlocked region via the NON-USD side
+    // of the pair; a locked hint region sends the user to the generic picker.
+    describe('region-driven add-money (destination-currency hint)', () => {
+        it('lands on the non-USD country when its region is unlocked', () => {
+            // USD→MXN: hint is MXN (mexico, LATAM), not USD/US.
+            expect(getExchangeRateWidgetRedirectRoute('USD', 'MXN', 0, ['latam'])).toBe('/add-money/mexico')
+        })
+
+        it('lands on the non-USD country regardless of which side USD is on', () => {
+            expect(getExchangeRateWidgetRedirectRoute('BRL', 'USD', 0, ['latam'])).toBe('/add-money/brazil')
+        })
+
+        it('resolves a multi-country currency (EUR) to its region representative', () => {
+            expect(getExchangeRateWidgetRedirectRoute('USD', 'EUR', 0, ['europe'])).toBe('/add-money/germany')
+        })
+
+        it('never sends a USD selection to the US when that region is locked', () => {
+            // MXN hint region (LATAM) is locked; must NOT fall back to /add-money/usa.
+            const route = getExchangeRateWidgetRedirectRoute('USD', 'MXN', 0, ['north-america'])
+            expect(route).toBe('/add-money')
+            expect(route).not.toContain('usa')
+        })
+
+        it('sends to the generic picker when the hint region is locked', () => {
+            expect(getExchangeRateWidgetRedirectRoute('USD', 'EUR', 0, ['latam'])).toBe('/add-money')
+        })
+
+        it('sends to the generic picker when no regions are unlocked', () => {
+            expect(getExchangeRateWidgetRedirectRoute('USD', 'EUR', 0, [])).toBe('/add-money')
+        })
+
+        it('does not touch the withdraw path (positive balance, already verified)', () => {
+            expect(getExchangeRateWidgetRedirectRoute('USD', 'MXN', 100, ['europe'])).toBe('/withdraw/mexico')
+        })
+
+        it('native: region-driven add-money still uses ?country=', () => {
+            mockIsCapacitor.mockReturnValue(true)
+            expect(getExchangeRateWidgetRedirectRoute('USD', 'EUR', 0, ['europe'])).toBe('/add-money?country=germany')
+        })
+    })
 })
