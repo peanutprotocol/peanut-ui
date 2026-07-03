@@ -12,6 +12,7 @@ import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { getFromCookie } from '@/utils/general.utils'
+import { classifyBareCampaign } from '@/components/Invites/campaign-maps'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAuth } from '@/context/authContext'
 
@@ -42,16 +43,29 @@ function SetupPageContent() {
             setIsLoading(true)
             await new Promise((resolve) => setTimeout(resolve, 100)) // ensure other initializations can complete
 
+            // An invite code OR a bare-claim campaign (offramp, skip, event_alumni
+            // + the vanity badges — the ones /invite lets you claim WITHOUT an
+            // invite) both skip the invite-code gate and drop the user straight on
+            // signup. useZeroDev then registers a campaign-only user with no invite
+            // code, and the backend grants the badge (and app access, for
+            // skip/offramp — OFFRAMP_USER is a FULL_BYPASS badge) at registration.
+            // Keeps /setup consistent with /invite, which already shows these users
+            // a "Claim" CTA rather than an invite prompt.
+            const inviteCodeFromCookie = getFromCookie('inviteCode')
+            const userInviteCode = inviteCode || inviteCodeFromCookie
+            const campaignTag = getFromCookie('campaignTag')
+            const skipInviteGate =
+                !!userInviteCode ||
+                classifyBareCampaign(campaignTag ?? undefined, userInviteCode ?? undefined).isBareClaimCampaign
+
             const localDeviceType = detectedDeviceType
 
             // in capacitor, passkeys are handled natively — skip all browser/webview/os/pwa checks
             // and go straight to the landing (signup) flow
             if (isCapacitor()) {
                 setDeviceType(localDeviceType)
-                // check for invite code — if present, go to signup instead of landing
-                const inviteCodeFromCookie = getFromCookie('inviteCode')
-                const userInviteCode = inviteCode || inviteCodeFromCookie
-                const targetStep = userInviteCode ? 'signup' : 'landing'
+                // invite code or bare-claim campaign → straight to signup, else landing
+                const targetStep = skipInviteGate ? 'signup' : 'landing'
                 const stepIndex = steps.findIndex((s: ISetupStep) => s.screenId === targetStep)
                 if (stepIndex !== -1) {
                     dispatch(setupActions.setStep(stepIndex + 1))
@@ -140,13 +154,8 @@ function SetupPageContent() {
                 determinedSetupInitialStepId = 'pwa-install'
             }
 
-            const inviteCodeFromCookie = getFromCookie('inviteCode')
-
-            // invite code can also be store in cookies, so we need to check both
-            const userInviteCode = inviteCode || inviteCodeFromCookie
-
-            // If invite code is present, set the step to the signup screen
-            if (determinedSetupInitialStepId && userInviteCode) {
+            // If an invite code or bare-claim campaign is present, jump to signup
+            if (determinedSetupInitialStepId && skipInviteGate) {
                 const signupScreenIndex = steps.findIndex((s: ISetupStep) => s.screenId === 'signup')
                 dispatch(setupActions.setStep(signupScreenIndex + 1))
             } else if (determinedSetupInitialStepId) {
