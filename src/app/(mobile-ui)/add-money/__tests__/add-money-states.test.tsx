@@ -584,6 +584,14 @@ jest.mock('@/components/AddMoney/hooks/useCryptoDepositPolling', () => ({
     useCryptoDepositPolling: (...args: any[]) => mockUseCryptoDepositPolling(...args),
 }))
 
+// updateUserById — the offramp handle gate persists the migrant's offramp.xyz
+// username/email through this server action
+const mockUpdateUserById = jest.fn()
+jest.mock('@/app/actions/users', () => ({
+    ...jest.requireActual('@/app/actions/users'),
+    updateUserById: (...args: any[]) => mockUpdateUserById(...args),
+}))
+
 // Country list
 jest.mock('@/components/Common/CountryList', () => ({
     CountryList: (props: any) => (
@@ -1202,6 +1210,86 @@ describe('GROUP 4: Crypto Page (with success)', () => {
 
         // The component renders CryptoDepositView which shows Deposit Crypto
         expect(screen.getByText('Deposit Crypto')).toBeInTheDocument()
+    })
+})
+
+// ============================================================
+// GROUP 4b: Offramp migration — required handle gate
+// ============================================================
+describe('GROUP 4b: Offramp migration handle gate', () => {
+    const authWithHandle = (offrampHandle: string | null) => {
+        mockUseAuth.mockReturnValue({
+            user: { user: { username: 'test-user', userId: 'user-123', offrampHandle } },
+            isFetchingUser: false,
+            fetchUser: jest.fn().mockResolvedValue(null),
+        })
+    }
+
+    beforeEach(() => {
+        resetQueryState({ network: 'EVM', source: 'offramp' })
+        mockUseCryptoDepositPolling.mockReturnValue({
+            status: 'not_started',
+            resetStatus: jest.fn(),
+            isResetting: false,
+        })
+        mockRhinoApi.createDepositAddress.mockResolvedValue({
+            depositAddress: '0xDepositAddress123',
+            minDepositLimitUsd: 5,
+            maxDepositLimitUsd: 10000,
+        })
+    })
+
+    test('migrant without a stored handle must enter it before seeing the deposit address', () => {
+        authWithHandle(null)
+        renderWithProviders(<AddMoneyCryptoPage />)
+
+        expect(screen.getByPlaceholderText('Offramp username or email')).toBeInTheDocument()
+        expect(screen.queryByTestId('qr-code')).not.toBeInTheDocument()
+    })
+
+    test('submitting the handle saves it trimmed and reveals the deposit screen', async () => {
+        authWithHandle(null)
+        mockUpdateUserById.mockResolvedValue({ data: {} })
+        renderWithProviders(<AddMoneyCryptoPage />)
+
+        fireEvent.change(screen.getByPlaceholderText('Offramp username or email'), {
+            target: { value: '  alice@offramp.xyz  ' },
+        })
+        fireEvent.click(screen.getByText('Continue'))
+
+        await waitFor(() => {
+            expect(mockUpdateUserById).toHaveBeenCalledWith({
+                userId: 'user-123',
+                offrampHandle: 'alice@offramp.xyz',
+            })
+        })
+        await waitFor(() => {
+            expect(screen.queryByPlaceholderText('Offramp username or email')).not.toBeInTheDocument()
+        })
+    })
+
+    test('save failure keeps the gate up and shows an error', async () => {
+        authWithHandle(null)
+        mockUpdateUserById.mockResolvedValue({ error: 'boom' })
+        renderWithProviders(<AddMoneyCryptoPage />)
+
+        fireEvent.change(screen.getByPlaceholderText('Offramp username or email'), {
+            target: { value: 'alice@offramp.xyz' },
+        })
+        fireEvent.click(screen.getByText('Continue'))
+
+        await waitFor(() => {
+            expect(screen.getByText(/Could not save your Offramp account/)).toBeInTheDocument()
+        })
+        expect(screen.getByPlaceholderText('Offramp username or email')).toBeInTheDocument()
+    })
+
+    test('migrant with a stored handle goes straight to the deposit screen', () => {
+        authWithHandle('alice@offramp.xyz')
+        renderWithProviders(<AddMoneyCryptoPage />)
+
+        expect(screen.queryByPlaceholderText('Offramp username or email')).not.toBeInTheDocument()
+        expect(screen.getAllByText('Migrate from Offramp').length).toBeGreaterThan(0)
     })
 })
 
