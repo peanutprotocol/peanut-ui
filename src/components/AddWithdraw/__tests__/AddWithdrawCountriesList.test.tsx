@@ -160,6 +160,10 @@ jest.mock('@/components/AddWithdraw/DynamicBankAccountForm', () => ({ DynamicBan
 jest.mock('@/components/Global/TokenAndNetworkConfirmationModal', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
 jest.mock('@/components/Kyc/BridgeTosStep', () => ({ BridgeTosStep: () => null }))
+jest.mock('@/components/Kyc/ProvideEmailStep', () => ({
+    __esModule: true,
+    default: (props: any) => (props.visible ? <div data-testid="provide-email-sheet" /> : null),
+}))
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({
     InitiateKycModal: (props: any) => (props.visible ? <div data-testid="initiate-kyc-modal" /> : null),
 }))
@@ -234,6 +238,22 @@ describe('AddWithdrawCountriesList — bank gate', () => {
 
         expect(mockPush).not.toHaveBeenCalled()
         expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
+    })
+
+    // provide-email is a self-serve gate (one email unblocks the rail) — it must
+    // open the email sheet, NEVER the contact-support KYC modal. Both the click
+    // gate (checkBridgeGate) and the form-submit gate (handleFormSubmit) must
+    // route it there; a missing branch on the submit path turned self-serve
+    // recovery into a support ticket (2026-07 review finding).
+    it('an email-blocked gate opens the provide-email sheet, not the contact-support KYC modal', () => {
+        setCapabilities('provide-email', [{ status: 'blocked', channel: 'bank', country: 'US' }])
+
+        render(<AddWithdrawCountriesList flow="add" />)
+        fireEvent.click(screen.getByTestId('method-bank'))
+
+        expect(screen.getByTestId('provide-email-sheet')).toBeInTheDocument()
+        expect(screen.queryByTestId('initiate-kyc-modal')).toBeNull()
+        expect(mockPush).not.toHaveBeenCalled()
     })
 })
 
