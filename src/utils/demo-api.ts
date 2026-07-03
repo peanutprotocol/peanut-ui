@@ -298,11 +298,23 @@ const demoMantecaWithdraw = () => ({
     updatedAt: CREATED_AT,
 })
 
+// Session-only, mirrors the server stamping activationCelebratedAt on dismiss:
+// keeps the "You're unlocked" celebration showing once per demo session instead
+// of on every home visit. In-memory (like demoCharges) — resets on full reload.
+let demoActivationCelebratedAt: string | null = null
+
 // ---- routes (ordered: literal paths before :param paths) ----
 
 const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // user
-    { method: 'GET', pattern: '/users/me', handler: () => DEMO_USER },
+    {
+        method: 'GET',
+        pattern: '/users/me',
+        handler: () =>
+            demoActivationCelebratedAt
+                ? { ...DEMO_USER, user: { ...DEMO_USER.user, activationCelebratedAt: demoActivationCelebratedAt } }
+                : DEMO_USER,
+    },
     {
         method: 'GET',
         pattern: '/users/contacts',
@@ -321,7 +333,11 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     {
         method: 'POST',
         pattern: '/update-user',
-        handler: ({ options }) => demoApiUser(parseBody(options).username ?? 'demo'),
+        handler: ({ options }) => {
+            const body = parseBody(options)
+            if (body.dismissActivationCelebration) demoActivationCelebratedAt = new Date().toISOString()
+            return demoApiUser(body.username ?? 'demo')
+        },
     },
 
     // history detail

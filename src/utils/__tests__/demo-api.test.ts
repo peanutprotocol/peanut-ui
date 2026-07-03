@@ -60,6 +60,22 @@ describe('demoRespond — routing', () => {
         const { data } = await body('/bridge/onramp/t1/cancel', { method: 'DELETE' })
         expect(data.success).toBe(true)
     })
+
+    it('stamps activationCelebratedAt after dismiss so the unlock modal shows once', async () => {
+        // first load: not yet celebrated → home opens the "You're unlocked" modal
+        const before = await body('/users/me')
+        expect(before.data.user.activationCelebratedAt).toBeFalsy()
+
+        // dismissing the modal PATCHes the user with dismissActivationCelebration
+        await body('/update-user', {
+            method: 'POST',
+            body: JSON.stringify({ username: 'demo', dismissActivationCelebration: true }),
+        })
+
+        // subsequent loads report it stamped → the modal stays dismissed
+        const after = await body('/users/me')
+        expect(after.data.user.activationCelebratedAt).toBeTruthy()
+    })
 })
 
 describe('demoRespond — shape-aware fallback (never throws on undefined.map)', () => {
