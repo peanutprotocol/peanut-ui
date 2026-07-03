@@ -100,7 +100,7 @@ export interface RailCapability {
  *                           document (used for the country-not-supported CTA
  *                           on Manteca-only rails; user has a self-fix path).
  */
-export type NextActionKind = 'sumsub' | 'accept-tos' | 'wait' | 'contact-support' | 'restart-identity'
+export type NextActionKind = 'sumsub' | 'accept-tos' | 'wait' | 'contact-support' | 'restart-identity' | 'provide-email'
 
 export interface NextAction {
     key: string // stable id, referenced by RailCapability.blockingActions

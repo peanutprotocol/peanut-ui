@@ -1,6 +1,6 @@
 'use client'
 
-import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
+import { PEANUT_LOGO_BLACK, PEANUTMAN } from '@/assets'
 import { Button } from '@/components/0_Bruddle/Button'
 import Image from 'next/image'
 
@@ -13,7 +13,7 @@ const CreateAccountButton = ({ onClick }: CreateAccountButtonProps) => {
         <Button onClick={onClick} shadowSize="4">
             <div>Create a</div>
             <div className="flex items-center gap-1">
-                <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
+                <Image src={PEANUTMAN} alt="Peanut Logo" className="size-5" />
                 <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
             </div>
             <div>account</div>

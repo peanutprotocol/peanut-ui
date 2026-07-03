@@ -1,4 +1,4 @@
-import { PEANUTMAN_LOGO } from '@/assets'
+import { PEANUTMAN } from '@/assets'
 import { twMerge } from 'tailwind-merge'
 
 export default function PeanutLoading({
@@ -18,7 +18,7 @@ export default function PeanutLoading({
                 )}
             >
                 <div className={twMerge('animate-spin')}>
-                    <img src={PEANUTMAN_LOGO.src} alt="logo" className="h-10" />
+                    <img src={PEANUTMAN.src} alt="Peanut mascot" className="h-10" />
                     <span className="sr-only">{message ?? 'Loading...'}</span>
                 </div>
             </div>

@@ -578,3 +578,44 @@ describe('deriveGate — advisory pre-empt (future-dated requirement on a ready 
         expect(gate.kind).toBe('fixable-rejection')
     })
 })
+
+describe('deriveGate — provide-email self-serve for email-blocked rails', () => {
+    const provideEmailAction: NextAction = {
+        key: 'provide-email',
+        kind: 'provide-email',
+        purpose: 'submission-failed-no-email',
+    }
+
+    test('blocked rail carrying provide-email action → provide-email gate (self-fix path)', () => {
+        const rail = bankRail({
+            status: 'blocked',
+            blockingActions: ['provide-email'],
+            reason: {
+                code: 'email_required',
+                userMessage: 'We need an email address to finish setting up this account.',
+            },
+        })
+
+        const gate = deriveGate(state([rail], [provideEmailAction]), 'deposit', { channel: 'bank' })
+
+        expect(gate.kind).toBe('provide-email')
+        if (gate.kind === 'provide-email') {
+            expect(gate.userMessage).toMatch(/email address/)
+            expect(gate.reason?.code).toBe('email_required')
+        }
+        expect(getGateUserMessage(gate)).toMatch(/email address/)
+    })
+
+    test('blocked rail without provide-email action still dead-ends on blocked-rejection', () => {
+        const rail = bankRail({
+            status: 'blocked',
+            blockingActions: ['contact-support'],
+            reason: { code: 'submission_failed', userMessage: 'We hit a snag.' },
+        })
+        const supportAction: NextAction = { key: 'contact-support', kind: 'contact-support', purpose: 'kyc-support' }
+
+        const gate = deriveGate(state([rail], [supportAction]), 'deposit', { channel: 'bank' })
+
+        expect(gate.kind).toBe('blocked-rejection')
+    })
+})
