@@ -3,15 +3,13 @@
 import { ActionListCard } from '@/components/ActionListCard'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import ChooseNetworkDrawer from '../components/ChooseNetworkDrawer'
+// offramp.xyz migrants get this link-granted badge at signup (peanut-api-ts
+// invite/badge routes, code `offramp` / utm `offramp`).
+import { OFFRAMP_BADGE_CODE } from '@/components/Invites/campaign-maps'
 import type { RhinoChainType } from '@/services/services.types'
 import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-
-// offramp.xyz migrants get this link-granted badge at signup (peanut-api-ts
-// invite/badge routes, code `offramp` / utm `offramp`). Keep in sync with the
-// backend BADGE_CODES.OFFRAMP_USER.
-const OFFRAMP_BADGE_CODE = 'OFFRAMP_USER'
 
 interface AddMoneyMethodSelectionProps {
     onBankTransferClick: () => void

@@ -25,17 +25,27 @@ const AddMoneyCryptoPage = () => {
     const { user } = useAuth()
     const onBack = useSafeBack('/add-money')
     const { address: peanutWalletAddress } = useWallet()
-    const [network] = useQueryState(
+    const [networkParam] = useQueryState(
         'network',
         parseAsStringEnum<RhinoChainType>(['EVM', 'SOL', 'TRON']).withDefault('EVM')
     )
     // offramp migration deep-link: strips the chain/token picker down to arbitrum + usdc
     const [source] = useQueryState('source', parseAsStringEnum(['offramp']))
     const isOfframp = source === 'offramp'
+    // The offramp UI is hardwired to Arbitrum copy, so the underlying address
+    // must be EVM no matter what a shared/edited link says — otherwise a
+    // ?network=SOL&source=offramp URL would show a Solana address labeled
+    // "Arbitrum" and instruct the user to send funds to it.
+    const network: RhinoChainType = isOfframp ? 'EVM' : networkParam
     const [showSuccessView, setShowSuccessView] = useState(false)
     const [depositResult, setDepositResult] = useState<DepositAddressStatusResponse | null>(null)
 
-    const { data: depositAddressData, isLoading } = useQuery({
+    const {
+        data: depositAddressData,
+        isLoading,
+        isError,
+        refetch,
+    } = useQuery({
         queryKey: ['rhino-deposit-address', user?.user.userId, peanutWalletAddress, network],
         queryFn: () =>
             rhinoApi.createDepositAddress(peanutWalletAddress as string, network, user?.user.userId as string),
@@ -61,8 +71,11 @@ const AddMoneyCryptoPage = () => {
     const depositTransactionDetails: TransactionDetails | null = useMemo(() => {
         if (!depositResult) return null
         const usdAmount = depositResult.amount?.toString() ?? '0'
-        const chainName = depositResult.chainIn ?? NETWORK_LABELS[network]
-        const tokenSymbol = depositResult.tokenSymbol ?? 'USDT'
+        // offramp migrants were told "USDC on Arbitrum" — when Rhino's status
+        // response omits token/chain, fall back to that promise instead of the
+        // generic USDT/EVM guess (which renders an Ethereum icon on the receipt).
+        const chainName = depositResult.chainIn ?? (isOfframp ? 'ARBITRUM' : NETWORK_LABELS[network])
+        const tokenSymbol = depositResult.tokenSymbol ?? (isOfframp ? 'USDC' : 'USDT')
         const chainIconUrl = CHAIN_LOGOS[chainName as ChainName] ?? CHAIN_LOGOS.ETHEREUM
         const tokenIconUrl = TOKEN_LOGOS[tokenSymbol as TokenName] ?? TOKEN_LOGOS.USDT
         const explorerUrl =
@@ -100,13 +113,13 @@ const AddMoneyCryptoPage = () => {
             currency: { amount: usdAmount, code: 'USD' },
             totalAmountCollected: 0,
         } satisfies TransactionDetails
-    }, [depositResult, network])
+    }, [depositResult, network, isOfframp])
 
     if (showSuccessView && depositResult) {
         return (
             <PaymentSuccessView
                 type="DEPOSIT"
-                headerTitle="Deposited Crypto"
+                headerTitle={isOfframp ? 'Migration Complete' : 'Deposited Crypto'}
                 usdAmount={depositResult.amount?.toString()}
                 amount={depositResult.tokenAmount}
                 transactionDetails={depositTransactionDetails}
@@ -124,6 +137,8 @@ const AddMoneyCryptoPage = () => {
             network={network}
             depositAddressData={depositAddressData}
             isLoading={isLoading}
+            isError={isError}
+            onRetry={() => refetch()}
             onSuccess={handleSuccess}
             onBack={onBack}
             variant={isOfframp ? 'offramp' : 'default'}

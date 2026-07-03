@@ -19,7 +19,7 @@ import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { profileUrl } from '@/utils/native-routes'
-import { INVITE_CODE_TO_CAMPAIGN_MAP, UTM_CAMPAIGN_TO_BADGE_MAP, classifyBareCampaign } from './campaign-maps'
+import { OFFRAMP_BADGE_CODE, classifyBareCampaign, resolveCampaign } from './campaign-maps'
 
 function InvitePageContent() {
     const searchParams = useSearchParams()
@@ -31,17 +31,8 @@ function InvitePageContent() {
     const utmCampaignParam = searchParams.get('utm_campaign')?.toLowerCase()
     const { user, isFetchingUser, fetchUser } = useAuth()
 
-    // resolution order: explicit campaign / campaignTag query param wins, then
-    // mapped invite code, then mapped utm_campaign. utm_campaign comes last so
-    // an explicit ?campaign= can still override on links that carry both.
-    // A lowercase vanity tag in the explicit param (e.g. ?campaign=offramp) is
-    // resolved through the UTM map to its badge code — otherwise it reaches
-    // /badge/award raw and 400s, since the backend matches the badge code.
-    const campaign =
-        (campaignParam && UTM_CAMPAIGN_TO_BADGE_MAP[campaignParam.toLowerCase()]) ||
-        campaignParam ||
-        (inviteCode ? INVITE_CODE_TO_CAMPAIGN_MAP[inviteCode] : undefined) ||
-        (utmCampaignParam ? UTM_CAMPAIGN_TO_BADGE_MAP[utmCampaignParam] : undefined)
+    // precedence + lowercase-tag mapping live in campaign-maps.ts (unit-tested)
+    const campaign = resolveCampaign(campaignParam, inviteCode, utmCampaignParam)
 
     // Bare campaign link (no invite code) that's claimable without an invite. The
     // effects below treat these specially so a returning logged-in user still gets
@@ -128,7 +119,11 @@ function InvitePageContent() {
                 .finally(async () => {
                     await fetchUser()
                     setIsAwardingBadge(false)
-                    router.push('/home')
+                    // offramp migrants came here to move their balance — land them
+                    // directly on the migration deposit screen, not /home.
+                    router.push(
+                        campaign === OFFRAMP_BADGE_CODE ? '/add-money/crypto?network=EVM&source=offramp' : '/home'
+                    )
                 })
             return
         }
