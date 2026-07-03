@@ -34,6 +34,7 @@ import { railJurisdictionForBank } from '@/utils/bridge.utils'
 import { getRegionIntent } from '@/utils/regions.utils'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
+import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { useModalsContext } from '@/context/ModalsContext'
 import underMaintenanceConfig, { PIX_BRAZIL_ONRAMP_MAINTENANCE } from '@/config/underMaintenance.config'
 
@@ -126,6 +127,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const bankCountry = useMemo(() => railJurisdictionForBank(currentCountry?.id), [currentCountry?.id])
     const gate = useMemo(() => gateFor('deposit', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
+    const [showProvideEmail, setShowProvideEmail] = useState(false)
     const { setIsSupportModalOpen } = useModalsContext()
 
     // stores the callback to replay after tos acceptance in the list view
@@ -149,6 +151,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 if (gate.kind === 'accept-tos') {
                     pendingAfterTosRef.current = onAfterTos ?? null
                     guardWithTos()
+                } else if (gate.kind === 'provide-email') {
+                    setShowProvideEmail(true)
                 } else {
                     setIsKycModalOpen(true)
                 }
@@ -378,6 +382,11 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 }}
                 onSkip={hideTos}
                 reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
+            />
+            <ProvideEmailStep
+                visible={showProvideEmail}
+                onComplete={() => setShowProvideEmail(false)}
+                onSkip={() => setShowProvideEmail(false)}
             />
             <SumsubKycModals flow={sumsubFlow} />
         </>

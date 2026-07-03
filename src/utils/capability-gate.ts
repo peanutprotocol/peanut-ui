@@ -68,6 +68,12 @@ export type GateState =
      * CTA opens a fresh Sumsub WebSDK after POST /users/identity/restart.
      */
     | { kind: 'restart-identity'; userMessage: string | null; reason?: CapabilityReason }
+    /**
+     * Blocked rail whose pipeline failure is self-serviceable: no email was
+     * ever captured, so provider submission couldn't run. CTA opens an email
+     * form; on save the BE flips the rails back to PENDING and resubmits.
+     */
+    | { kind: 'provide-email'; userMessage: string | null; reason?: CapabilityReason }
     | { kind: 'needs-identity' }
     | { kind: 'needs-enrollment' }
 
@@ -200,6 +206,21 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
     // 3. blocked — split: if the rail carries a `restart-identity` action the
     // user can self-fix by re-verifying with a different document; otherwise
     // the only path is contact-support.
+    // provide-email is a USER-level fix (one email unblocks every email-blocked
+    // rail), so any blocked rail carrying it wins over an earlier blocked rail
+    // with a terminal reason — .find() order must not shadow the self-serve path.
+    const emailBlocked = candidates.find(
+        (rail) =>
+            rail.status === 'blocked' &&
+            railActions(rail, actionByKey).some((action) => action.kind === 'provide-email')
+    )
+    if (emailBlocked) {
+        return {
+            kind: 'provide-email',
+            userMessage: emailBlocked.reason?.userMessage ?? null,
+            reason: emailBlocked.reason,
+        }
+    }
     const blocked = candidates.find((rail) => rail.status === 'blocked')
     if (blocked) {
         const hasRestart = railActions(blocked, actionByKey).some((action) => action.kind === 'restart-identity')
@@ -287,6 +308,10 @@ export function getKycModalVariant(
     kind: GateState['kind']
 ): 'blocked' | 'provider_rejection' | 'cross_region' | 'restart_identity' | 'default' {
     if (kind === 'blocked-rejection') return 'blocked'
+    // Floor for consumers not yet wired to render the email sheet: show the
+    // contact-support variant, never the 'default' re-verify CTA (the user's
+    // identity is already verified — bouncing them into Sumsub is wrong).
+    if (kind === 'provide-email') return 'blocked'
     if (kind === 'restart-identity') return 'restart_identity'
     if (kind === 'fixable-rejection') return 'provider_rejection'
     if (kind === 'needs-enrollment') return 'cross_region'
@@ -303,6 +328,7 @@ export function getGateUserMessage(gate: GateState): string | undefined {
         gate.kind === 'fixable-rejection' ||
         gate.kind === 'blocked-rejection' ||
         gate.kind === 'restart-identity' ||
+        gate.kind === 'provide-email' ||
         gate.kind === 'accept-tos' ||
         gate.kind === 'waiting-on-provider'
     ) {

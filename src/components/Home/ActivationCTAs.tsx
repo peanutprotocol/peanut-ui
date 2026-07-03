@@ -7,13 +7,14 @@ import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import Card from '../Global/Card'
 import CardLaunchCTABanner from '@/components/Home/CardLaunchCTA/CardLaunchCTABanner'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useAuth } from '@/context/authContext'
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
+import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 
 interface ActivationCTAsProps {
     activationStep: ActivationStep
@@ -76,7 +77,7 @@ const STEPS: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = {
 export default function ActivationCTAs({ activationStep, onDismissCard }: ActivationCTAsProps) {
     const router = useRouter()
     const { setIsQRScannerOpen, openSupportWithMessage } = useModalsContext()
-    const { rails, channelOf } = useCapabilities()
+    const { rails, channelOf, nextActionsForRail } = useCapabilities()
     const { user } = useAuth()
     // Suppress the "Unlock payments" verify CTA while identity is mid-flight
     // (Sumsub processing / action_required). The user already took the verify
@@ -88,20 +89,31 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // qr-only channels — never through card. Top-level status (not per-op
     // refinement): Manteca's pool tier reads `enabled` at the rail level even when
     // deposit/withdraw individually need an upgrade — that's not a rejection.
-    const { hasFixableRejection, hasBlockedRejection, primaryRejectionMessage, blockedRail } = useMemo(() => {
-        const rejectableRails = rails.filter((rail) => {
-            const channel = channelOf(rail)
-            return channel === 'bank' || channel === 'qr-only'
-        })
-        const fixableRail = rejectableRails.find((rail) => rail.status === 'requires-info')
-        const blocked = rejectableRails.find((rail) => rail.status === 'blocked')
-        return {
-            hasFixableRejection: !!fixableRail,
-            hasBlockedRejection: !!blocked,
-            primaryRejectionMessage: (fixableRail ?? blocked)?.reason?.userMessage ?? null,
-            blockedRail: blocked,
-        }
-    }, [rails, channelOf])
+    const { hasFixableRejection, hasBlockedRejection, primaryRejectionMessage, blockedRail, isEmailBlocked } =
+        useMemo(() => {
+            const rejectableRails = rails.filter((rail) => {
+                const channel = channelOf(rail)
+                return channel === 'bank' || channel === 'qr-only'
+            })
+            const fixableRail = rejectableRails.find((rail) => rail.status === 'requires-info')
+            // Email-blocked rails carry a self-serve provide-email action (same
+            // contract the capability gate reads) — prefer one over an earlier
+            // blocked rail with a terminal reason, since one email fixes them all.
+            const emailBlocked = rejectableRails.find(
+                (rail) =>
+                    rail.status === 'blocked' && nextActionsForRail(rail.id).some((a) => a.kind === 'provide-email')
+            )
+            const blocked = emailBlocked ?? rejectableRails.find((rail) => rail.status === 'blocked')
+            return {
+                hasFixableRejection: !!fixableRail,
+                hasBlockedRejection: !!blocked,
+                primaryRejectionMessage: (fixableRail ?? blocked)?.reason?.userMessage ?? null,
+                blockedRail: blocked,
+                isEmailBlocked: !!emailBlocked,
+            }
+        }, [rails, channelOf, nextActionsForRail])
+
+    const [showProvideEmail, setShowProvideEmail] = useState(false)
 
     const lastTrackedStep = useRef<ActivationStep | null>(null)
     useEffect(() => {
@@ -137,6 +149,18 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     href: '/profile/identity-verification',
                 }
             }
+            // blocked on a missing email — self-serve, not a support ticket
+            if (isEmailBlocked) {
+                return {
+                    icon: 'globe-lock',
+                    iconBg: 'bg-primary-1',
+                    title: 'Add your email',
+                    description:
+                        primaryRejectionMessage || 'We need an email address to finish setting up your account.',
+                    ctaLabel: 'Add email',
+                    href: '', // handled in onClick
+                }
+            }
             // blocked
             return {
                 icon: 'globe-lock',
@@ -153,6 +177,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         activationStep,
         hasProviderRejection,
         hasFixableRejection,
+        isEmailBlocked,
         primaryRejectionMessage,
         isIdentityProcessing,
         isIdentityActionRequired,
@@ -193,7 +218,9 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     shadowSize="4"
                     className="mt-2 w-full"
                     onClick={() => {
-                        if (hasProviderRejection && hasBlockedRejection && !hasFixableRejection) {
+                        if (isEmailBlocked) {
+                            setShowProvideEmail(true)
+                        } else if (hasProviderRejection && hasBlockedRejection && !hasFixableRejection) {
                             // REQUIRES_SUPPORT class (or any blocked rail) — pre-fill Crisp
                             // with the failure context so support can dispatch without
                             // re-investigating the user's state.
@@ -219,6 +246,11 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     </button>
                 )}
             </div>
+            <ProvideEmailStep
+                visible={showProvideEmail}
+                onComplete={() => setShowProvideEmail(false)}
+                onSkip={() => setShowProvideEmail(false)}
+            />
         </Card>
     )
 }
