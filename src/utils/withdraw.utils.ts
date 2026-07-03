@@ -239,10 +239,8 @@ export const isPixEmvcoQr = (pixKey: string): boolean => {
  * @returns true if the code is a PIX Automático (recurring) EMV payload
  */
 export const isPixRecurringCode = (code: string): boolean => {
-    // TODO(human) — implement the detection: an EMVCo PIX payload (starts with
-    // "000201", contains "br.gov.bcb.pix") whose content contains "/rec/",
-    // all case-insensitive. Tests: src/utils/__tests__/withdraw.utils.test.ts
-    return false
+    const c = code.toLowerCase()
+    return c.startsWith('000201') && c.includes('br.gov.bcb.pix') && c.includes('/rec/')
 }
 
 /**
