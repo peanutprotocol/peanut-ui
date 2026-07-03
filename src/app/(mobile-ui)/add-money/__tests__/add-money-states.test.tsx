@@ -1356,7 +1356,7 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         })
     })
 
-    test('waiting-on-provider gate shows under-review message instead of silent no-op', async () => {
+    test('waiting-on-provider gate shows the reverification pending modal instead of a dead button', async () => {
         setGate('waiting-on-provider')
         const mockCreateOnramp = jest.fn()
         mockUseCreateOnramp.mockReturnValue({
@@ -1371,12 +1371,9 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             fireEvent.click(screen.getByText('Continue'))
         })
 
-        // no transfer attempt, but the user is told why
+        // no doomed transfer attempt; the user sees the bridge-review pending modal
         expect(mockCreateOnramp).not.toHaveBeenCalled()
-        expect(mockOnrampFlow.setError).toHaveBeenCalledWith({
-            showError: true,
-            errorMessage: expect.stringContaining('being reviewed'),
-        })
+        expect(await screen.findByText(/reviewing your details/i)).toBeInTheDocument()
     })
 
     test('limits blocking disables Continue and shows LimitsWarningCard', () => {

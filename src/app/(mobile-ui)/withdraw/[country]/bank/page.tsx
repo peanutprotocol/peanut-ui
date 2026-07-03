@@ -29,6 +29,8 @@ import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
+import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
@@ -126,6 +128,7 @@ export default function WithdrawBankPage() {
         },
     })
     const [showKycModal, setShowKycModal] = useState(false)
+    const [showPendingModal, setShowPendingModal] = useState(false)
     const { setIsSupportModalOpen } = useModalsContext()
 
     // close kyc modal when sumsub sdk opens
@@ -213,9 +216,17 @@ export default function WithdrawBankPage() {
 
     const proceedWithOfframp = async () => {
         if (gate.kind !== 'ready') {
-            // Loading and waiting-on-provider both mean "user has no action to
-            // take" — silently no-op instead of bouncing them through Sumsub.
-            if (gate.kind === 'loading' || gate.kind === 'waiting-on-provider') return
+            // capabilities still loading — silently no-op.
+            if (gate.kind === 'loading') return
+            // `waiting-on-provider` means bridge is re-reviewing submitted info
+            // (e.g. right after an eea uplift) — show the pending modal instead of
+            // a dead button, and re-arm the capability poller so we pick up
+            // bridge's latest status live and the modal auto-dismisses on clear.
+            if (gate.kind === 'waiting-on-provider') {
+                markSubmitted()
+                setShowPendingModal(true)
+                return
+            }
             if (gate.kind === 'accept-tos') {
                 guardWithTos()
             } else {
@@ -587,6 +598,13 @@ export default function WithdrawBankPage() {
                 regionName={getCountryFromPath(country)?.title}
             />
             <AdvisoryPreemptModal {...advisoryModalProps} />
+
+            <KycReverificationPendingModal
+                // auto-dismiss the moment bridge finishes re-reviewing (gate
+                // leaves waiting-on-provider via the re-armed capability poll).
+                isOpen={showPendingModal && gate.kind === 'waiting-on-provider'}
+                onClose={() => setShowPendingModal(false)}
+            />
             <SumsubKycModals flow={sumsubFlow} />
         </div>
     )

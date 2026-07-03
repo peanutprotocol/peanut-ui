@@ -33,6 +33,8 @@ import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
+import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
@@ -69,6 +71,7 @@ export default function OnrampBankPage() {
     // Local UI state (not URL-appropriate - transient)
     const [showWarningModal, setShowWarningModal] = useState<boolean>(false)
     const [showKycModal, setShowKycModal] = useState<boolean>(false)
+    const [showPendingModal, setShowPendingModal] = useState<boolean>(false)
     const [isRiskAccepted, setIsRiskAccepted] = useState<boolean>(false)
     const { setError, error, setOnrampData, onrampData } = useOnrampFlow()
 
@@ -259,18 +262,14 @@ export default function OnrampBankPage() {
             // capabilities still loading — silently no-op instead of flashing
             // a misleading needs_kyc modal.
             if (gate.kind === 'loading') return
-            // `waiting-on-provider` means the user has nothing to do (e.g. bridge
-            // reviewing eea-uplift docs) — tell them to wait instead of a dead
-            // button or a doomed transfer attempt with no feedback.
+            // `waiting-on-provider` means bridge is re-reviewing submitted info
+            // (e.g. right after an eea uplift) — the user has nothing to do but
+            // wait. Show the pending modal instead of a dead button, and re-arm
+            // the capability poller so we pick up bridge's latest status live and
+            // the modal auto-dismisses the moment the gate clears.
             if (gate.kind === 'waiting-on-provider') {
-                // prefer the backend's specific review copy (via the gate reason)
-                // and fall back to generic wait text.
-                setError({
-                    showError: true,
-                    errorMessage:
-                        gate.userMessage ??
-                        'Your verification details are being reviewed. This usually takes a few minutes — please try again soon.',
-                })
+                markSubmitted()
+                setShowPendingModal(true)
                 return
             }
             if (gate.kind === 'accept-tos') {
@@ -511,6 +510,13 @@ export default function OnrampBankPage() {
                 />
 
                 <AdvisoryPreemptModal {...advisoryModalProps} />
+
+                <KycReverificationPendingModal
+                    // auto-dismiss the moment bridge finishes re-reviewing (gate
+                    // leaves waiting-on-provider via the re-armed capability poll).
+                    isOpen={showPendingModal && gate.kind === 'waiting-on-provider'}
+                    onClose={() => setShowPendingModal(false)}
+                />
 
                 <SumsubKycModals flow={sumsubFlow} autoStartSdk />
 
