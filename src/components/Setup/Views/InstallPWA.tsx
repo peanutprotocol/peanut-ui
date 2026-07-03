@@ -14,7 +14,6 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
-import { getFromCookie } from '@/utils/general.utils'
 
 const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
 
@@ -229,30 +228,22 @@ const InstallPWA = ({
         )
     }
 
-    const DesktopInstructions = () => {
-        // Carry the campaign tag into the QR so the phone that scans it (a fresh
-        // device with no cookie) still lands with the campaign — useCaptureCampaign
-        // re-persists it there and signup awards the badge / skips the waitlist.
-        const base = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin
-        const campaignTag = getFromCookie('campaignTag')
-        const qrUrl = campaignTag ? `${base}/setup?campaign=${encodeURIComponent(campaignTag)}` : `${base}/setup`
-        return (
-            <div className="flex flex-col items-center justify-center gap-6">
-                <div className={'flex size-12 items-center justify-center rounded-full bg-primary-1'}>
-                    <Icon name="mobile-install" size={24} />
-                </div>
-                <div className="space-y-3 text-center">
-                    <StepTitle text="Peanut is mobile first!" />
-                    <p className="max-w-[220px] text-lg font-normal text-grey-1">
-                        For a better experience, use Peanut on your phone.
-                    </p>
-                </div>
-                <div className="mx-auto rounded-lg">
-                    <QRCodeWrapper url={qrUrl} />
-                </div>
+    const DesktopInstructions = () => (
+        <div className="flex flex-col items-center justify-center gap-6">
+            <div className={'flex size-12 items-center justify-center rounded-full bg-primary-1'}>
+                <Icon name="mobile-install" size={24} />
             </div>
-        )
-    }
+            <div className="space-y-3 text-center">
+                <StepTitle text="Peanut is mobile first!" />
+                <p className="max-w-[220px] text-lg font-normal text-grey-1">
+                    For a better experience, use Peanut on your phone.
+                </p>
+            </div>
+            <div className="mx-auto rounded-lg">
+                <QRCodeWrapper url={process.env.NEXT_PUBLIC_BASE_URL + '/setup' || window.location.origin} />
+            </div>
+        </div>
+    )
 
     switch (screenId) {
         case 'android-initial-pwa-install':
