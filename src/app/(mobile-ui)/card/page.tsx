@@ -259,6 +259,17 @@ const CardPage: FC = () => {
             posthog.capture(ANALYTICS_EVENTS.CARD_COUNTRY_CONFIRMED, { country: countryCode })
             try {
                 const res = await rainApi.applyForCard({ confirmedResidenceCountry: countryCode })
+                // Caller-specific `incomplete` branch (advanceFromApplyResponse
+                // deliberately doesn't handle it): the applicant regressed
+                // between the mismatch response and the confirm call — open the
+                // WebSDK instead of silently dumping the user on the entry
+                // screen via the default overview-invalidate arm.
+                if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
+                    setPendingCountryConfirmation(null)
+                    setSumsubToken(res.sumsubAccessToken)
+                    posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+                    return
+                }
                 advanceFromApplyResponse(res)
             } catch (e) {
                 const message = e instanceof Error ? e.message : 'Failed to confirm country'
@@ -486,7 +497,12 @@ const CardPage: FC = () => {
                     candidates={pendingCountryConfirmation.candidates}
                     onConfirm={handleConfirmCountry}
                     onContactSupport={() => setIsSupportModalOpen(true)}
-                    onPrev={() => setPendingCountryConfirmation(null)}
+                    onPrev={() => {
+                        // Clear the shared error too — a confirm failure must not
+                        // leak onto the entry/terms screens after backing out.
+                        setPendingCountryConfirmation(null)
+                        setApplyError(null)
+                    }}
                     submitError={applyError}
                 />
             )
