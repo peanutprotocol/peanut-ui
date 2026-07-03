@@ -4,6 +4,11 @@
 // badge silently renders the Peanutman fallback + raw backend name (the
 // parallel-maps→single-record regression). campaign-maps.test.ts guards that.
 
+// offramp.xyz → Peanut migration badge. Single FE source of truth for the code —
+// the add-money entry gate (AddMoneyMethodSelection) and both maps below key on
+// it. Mirrors peanut-api-ts BADGE_CODES.OFFRAMP_USER.
+export const OFFRAMP_BADGE_CODE = 'OFFRAMP_USER'
+
 // mapping of special invite codes to their campaign tags
 // when these invite codes are used, the corresponding campaign tag is automatically applied
 export const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
@@ -12,7 +17,7 @@ export const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
     founderhaus: 'FOUNDER_HOUSE',
     alumni: 'EVENT_ALUMNI',
     touched_grass: 'TOUCHED_GRASS',
-    offramp: 'OFFRAMP_USER',
+    offramp: OFFRAMP_BADGE_CODE,
     irl_nomads: 'IRL_NOMADS',
     survivor: 'SUPPORT_SURVIVOR',
     notsoshhh: 'NOT_SO_SHHHH',
@@ -32,10 +37,35 @@ export const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
     ethfloripa: 'ETHFLORIPA_HUB',
     alumni: 'EVENT_ALUMNI',
     'touched-grass': 'TOUCHED_GRASS',
-    offramp: 'OFFRAMP_USER',
+    offramp: OFFRAMP_BADGE_CODE,
     'festa-junina': 'FESTA_JUNINA_2026',
     'card-alpha': 'CARD_ALPHA',
     'irl-nomads': 'IRL_NOMADS',
+}
+
+// Resolve the effective campaign (a badge code, or a raw passthrough tag) from
+// the three places it can arrive on /invite. Precedence:
+//   1. explicit ?campaign= / ?campaignTag= — mapped through the UTM map first so
+//      a human-facing lowercase token (?campaign=offramp) resolves to its badge
+//      code instead of reaching /badge/award raw and 400ing; unmapped values
+//      pass through unchanged (?campaign=OFFRAMP_USER still works).
+//      NOTE: this deliberately makes ?campaign=<tag> behave exactly like
+//      ?utm_campaign=<tag> — users and partners can't be expected to know the
+//      difference between the two param spellings.
+//   2. a mapped special invite code (?code=offramp).
+//   3. ?utm_campaign= — last so an explicit ?campaign= wins on links carrying both.
+export function resolveCampaign(
+    campaignParam: string | null | undefined,
+    inviteCode: string | null | undefined,
+    utmCampaignParam: string | null | undefined
+): string | undefined {
+    return (
+        (campaignParam && UTM_CAMPAIGN_TO_BADGE_MAP[campaignParam.toLowerCase()]) ||
+        campaignParam ||
+        (inviteCode ? INVITE_CODE_TO_CAMPAIGN_MAP[inviteCode] : undefined) ||
+        (utmCampaignParam ? UTM_CAMPAIGN_TO_BADGE_MAP[utmCampaignParam] : undefined) ||
+        undefined
+    )
 }
 
 // Bare ?campaign= links (no invite code) that are claimable without an invite —
