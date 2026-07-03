@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
+import { ConnectivityBanner } from './ConnectivityBanner'
+import { useConnectivity } from '@/hooks/useConnectivity'
 import { MaintenanceBanner } from './MaintenanceBanner'
 import { MarqueeWrapper } from '../MarqueeWrapper'
 import maintenanceConfig from '@/config/underMaintenance.config'
@@ -14,7 +16,14 @@ import { isDemoMode } from '@/utils/demo'
 
 export function Banner() {
     const pathname = usePathname()
+    const connectivity = useConnectivity()
     if (!pathname) return null
+
+    // Connectivity wins over the beta/maintenance banners: if the app can't reach
+    // the backend, that's the most actionable thing to tell the user right now.
+    if (connectivity.show) {
+        return <ConnectivityBanner isOffline={connectivity.isOffline} />
+    }
 
     // check if maintenance banner OR full maintenance is enabled - show on all pages
     if (maintenanceConfig.enableMaintenanceBanner || maintenanceConfig.enableFullMaintenance) {

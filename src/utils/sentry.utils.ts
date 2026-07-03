@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nextjs'
 
 import { type JSONValue } from '../interfaces/interfaces'
+import { reportNetworkError, reportNetworkOk } from './connectivity'
 
 /**
  * Endpoint + status combinations to skip reporting.
@@ -357,6 +358,8 @@ export const fetchWithSentry = async (
         })
 
         clearTimeout(timeoutId)
+        // A response came back — the backend is reachable, clear any failure streak.
+        reportNetworkOk()
 
         if (!response.ok) {
             // Skip both the console warn AND Sentry submission for expected
@@ -397,6 +400,9 @@ export const fetchWithSentry = async (
         return response
     } catch (error: unknown) {
         clearTimeout(timeoutId)
+        // fetch rejected (timeout / DNS / connection refused) — the request never
+        // reached the backend, so flag a connectivity failure.
+        reportNetworkError()
         console.error(error)
 
         if (error instanceof Error && error.name === 'AbortError') {
