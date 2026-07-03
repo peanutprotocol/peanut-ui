@@ -148,6 +148,10 @@ export const ANALYTICS_EVENTS = {
     // the Continue button is HTML-disabled until all are checked.
     CARD_TERMS_VIEWED: 'card_terms_viewed',
     CARD_TERMS_ACCEPTED: 'card_terms_accepted',
+    // Residence-country confirmation screen (address vs ID-document mismatch).
+    // VIEWED→CONFIRMED drop-off = users confused or scared by the question.
+    CARD_COUNTRY_CONFIRM_VIEWED: 'card_country_confirm_viewed',
+    CARD_COUNTRY_CONFIRMED: 'card_country_confirmed',
     // Session-key permission grant (passkey tap). `kind` mirrors GrantSessionKeyError.kind.
     CARD_SESSION_KEY_PROMPTED: 'card_session_key_prompted',
     CARD_SESSION_KEY_GRANTED: 'card_session_key_granted',

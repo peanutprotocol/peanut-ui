@@ -12,6 +12,7 @@ import { pollUntilApplyAdvances, pollUntilReady } from '@/components/Card/cardAp
 import AddCardEntryScreen from '@/components/Card/AddCardEntryScreen'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 import CardTermsScreen from '@/components/Card/CardTermsScreen'
+import CardCountryConfirmScreen from '@/components/Card/CardCountryConfirmScreen'
 import CardRejectionScreen from '@/components/Card/CardRejectionScreen'
 import BadgeSkipCelebration from '@/components/Card/BadgeSkipCelebration'
 import CardEligibilityCheckScreen from '@/components/Card/CardEligibilityCheckScreen'
@@ -79,6 +80,11 @@ const CardPage: FC = () => {
     // When backend returns status:'terms-required', we capture it here so
     // the dispatcher can render the terms screen between Sumsub and submit.
     const [pendingTerms, setPendingTerms] = useState<{ isUsResident: boolean } | null>(null)
+    // When backend returns status:'country-confirmation-required' (Sumsub
+    // address country contradicts the ID-document country), we capture the
+    // candidate list here so the dispatcher can render the residence
+    // confirmation screen before terms.
+    const [pendingCountryConfirmation, setPendingCountryConfirmation] = useState<{ candidates: string[] } | null>(null)
     // Covers the moment between "terms accepted" and "overview refetched with
     // the new card row". Without it the screen would briefly flip back to Add
     // Card mid-apply before the state machine sees the new state.
@@ -222,15 +228,46 @@ const CardPage: FC = () => {
                 posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
                 return
             }
+            // Conflicting residence evidence — collect the user's pick before
+            // anything reaches Rain. Cleared once a later response advances
+            // past it (the answer is persisted server-side).
+            if (res.status === 'country-confirmation-required' && 'candidates' in res) {
+                setPendingTerms(null)
+                setPendingCountryConfirmation({ candidates: res.candidates })
+                return
+            }
             if (res.status === 'terms-required' && 'isUsResident' in res) {
+                setPendingCountryConfirmation(null)
                 setPendingTerms({ isUsResident: res.isUsResident })
                 return
             }
             // pending / already-applied → state machine routes based on overview.
             setPendingTerms(null)
+            setPendingCountryConfirmation(null)
             invalidateOverview()
         },
         [invalidateOverview]
+    )
+
+    // The user picked their residence country on the confirmation screen.
+    // Re-apply with the pick — the backend validates it against its own
+    // candidate recompute, repairs the Sumsub data, and usually answers
+    // `terms-required` next.
+    const handleConfirmCountry = useCallback(
+        async (countryCode: string) => {
+            setApplyError(null)
+            posthog.capture(ANALYTICS_EVENTS.CARD_COUNTRY_CONFIRMED, { country: countryCode })
+            try {
+                const res = await rainApi.applyForCard({ confirmedResidenceCountry: countryCode })
+                advanceFromApplyResponse(res)
+            } catch (e) {
+                const message = e instanceof Error ? e.message : 'Failed to confirm country'
+                console.error('[card apply] country confirm error:', e)
+                setApplyError(message)
+                posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
+            }
+        },
+        [advanceFromApplyResponse]
     )
 
     const handleApply = useCallback(
@@ -396,6 +433,8 @@ const CardPage: FC = () => {
         setSumsubToken(null)
         if (res.status === 'terms-required' && 'isUsResident' in res) {
             setPendingTerms({ isUsResident: res.isUsResident })
+        } else if (res.status === 'country-confirmation-required' && 'candidates' in res) {
+            setPendingCountryConfirmation({ candidates: res.candidates })
         } else {
             invalidateOverview()
         }
@@ -438,6 +477,19 @@ const CardPage: FC = () => {
         // to Add Card for a split second while the API call is in flight.
         if (isIssuing) {
             return <ApplicationStatusScreen variant="pending" />
+        }
+        // Residence confirmation comes before terms in the funnel — the
+        // backend won't return terms-required until the country is resolved.
+        if (pendingCountryConfirmation) {
+            return (
+                <CardCountryConfirmScreen
+                    candidates={pendingCountryConfirmation.candidates}
+                    onConfirm={handleConfirmCountry}
+                    onContactSupport={() => setIsSupportModalOpen(true)}
+                    onPrev={() => setPendingCountryConfirmation(null)}
+                    submitError={applyError}
+                />
+            )
         }
         // Terms screen takes precedence over the state-machine target — the
         // user already clicked "Get your card" or completed Sumsub; we need

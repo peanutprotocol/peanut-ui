@@ -258,6 +258,18 @@ export type ApplyForCardResponse =
           termsVersion: string
       }
     | {
+          // Sumsub address country contradicts the ID-document country (or is
+          // junk). Show the residence-confirmation screen; re-call with
+          // `confirmedResidenceCountry` set to one of `candidates`. Empty
+          // `candidates` = neither signal usable → route to support.
+          status: 'country-confirmation-required'
+          candidates: string[]
+          evidence: {
+              addressCountry: string | null
+              idDocumentCountry: string | null
+          }
+      }
+    | {
           status: 'pending'
           rainUserId: string
           message: string
@@ -468,12 +480,15 @@ export const rainApi = {
      *    Applicant Action. The token to open it is included.
      *  - `terms-required` → backend is ready to submit but needs explicit
      *    consent; re-call with `termsAccepted: true` to proceed.
+     *  - `country-confirmation-required` → conflicting residence evidence;
+     *    show the confirmation screen and re-call with
+     *    `confirmedResidenceCountry` set to the user's pick.
      *  - `pending` / `ENABLED` / other → application submitted or already
      *    in-flight. Frontend should refetch overview and let the state
      *    machine route.
      */
     applyForCard: async (
-        opts: { termsAccepted?: boolean; serializedApproval?: string } = {}
+        opts: { termsAccepted?: boolean; serializedApproval?: string; confirmedResidenceCountry?: string } = {}
     ): Promise<ApplyForCardResponse> => {
         // `serializedApproval` is consumed only by the re-issue branch on the
         // backend (where a RainCard row is created synchronously). First-time
@@ -481,6 +496,7 @@ export const rainApi = {
         // the field entirely in that case.
         const body: Record<string, unknown> = { termsAccepted: opts.termsAccepted === true }
         if (opts.serializedApproval) body.serializedApproval = opts.serializedApproval
+        if (opts.confirmedResidenceCountry) body.confirmedResidenceCountry = opts.confirmedResidenceCountry
         return rainRequest<ApplyForCardResponse>({
             method: 'POST',
             path: '/rain/cards',
