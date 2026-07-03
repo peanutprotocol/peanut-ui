@@ -15,7 +15,8 @@ import {
     rainWithdrawEip712Types,
 } from '@/constants/rain.consts'
 import { rainApi, type RainCollateralKind } from '@/services/rain'
-import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { findActiveCard } from '@/components/Card/cardState.utils'
+import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey, type GrantSessionKeyError } from './useGrantSessionKey'
 import { useSignUserOp, type SignedUserOpData } from './useSignUserOp'
 import {
@@ -142,6 +143,10 @@ export const useSignSpendBundle = () => {
                     error_kind: 'insufficient',
                     flow: 'sign-only',
                 })
+                // Passed the FE display gate but the live balance can't cover it yet
+                // (in-transit collateral not landed / ~30s-stale FE). Refresh the Rain
+                // overview so the displayed balance + a retry reflect reality.
+                queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
                 throw new InsufficientSpendableError()
             }
 
@@ -158,7 +163,7 @@ export const useSignSpendBundle = () => {
                 if (!overview) {
                     throw new SessionKeyGrantRequiredError({ kind: 'unexpected' } as GrantSessionKeyError)
                 }
-                const card = overview.cards?.[0]
+                const card = findActiveCard(overview)
                 if (card && !card.hasWithdrawApproval) {
                     onGrantRequired?.()
                     const grantResult = await grant()

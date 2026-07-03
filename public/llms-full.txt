@@ -1,77 +1,78 @@
 # Peanut — Full Product Description
 
-> Instant global peer-to-peer payments in digital dollars.
+> Spend, send, and cash out digital dollars anywhere — pay local QR codes in Argentina and Brazil with just your passport, spend on a card, and move money across borders without a local bank account or local tax ID.
 
 ## Overview
 
-Peanut is a peer-to-peer payments app that lets users send and receive money globally using digital dollars (USDC stablecoins). It provides a consumer-grade UX on top of blockchain infrastructure — users never need to understand crypto, manage wallets, or handle gas fees.
+Peanut is a self-custody money app built on digital dollars (USDC). Users hold dollars in an account that only they control and spend them like a local — scanning the same QR codes locals use, paying with a card, sending a link, or cashing out to a bank. The experience is consumer-grade: users never manage wallets, seed phrases, or gas fees. Where identity verification is needed it takes a passport and under two minutes — no local ID, bank account, or residency required. Core crypto features require no verification at all.
 
-## Key Features
+## Headline differentiators
 
-### Instant P2P Transfers
-Send digital dollars to any Peanut user instantly. No waiting for bank processing, no wire fees.
+### Pay PIX in Brazil without a CPF
+PIX is Brazil's instant payment network — ~150 million people use it daily. Normally it requires a CPF (Brazilian tax ID) and a Brazilian bank account, which locks out tourists, nomads, and expats. Peanut lets anyone scan a merchant PIX QR and pay in BRL using a passport-verified account funded with digital dollars. The merchant receives BRL in seconds and sees an ordinary PIX payment. The conversion isn't subject to IOF (Brazil's financial-operations tax), saving up to ~3.5% versus cards and bank transfers. Free, 24/7/365, QR scan only.
 
-### Payment Links
-Generate a shareable link containing funds. The recipient clicks the link to claim the money — no account needed. Links work across messaging apps, email, and social media.
+### Pay MercadoPago in Argentina without a DNI
+MercadoPago QR is accepted at 1,000,000+ merchants in Argentina. Locals need a DNI to open an account; Peanut gives access to the payment network without one — pay in pesos with a passport-verified account. Conversion uses the cripto dólar rate (a direct dollar-to-peso market rate that beats the regulated MEP rate cards use), typically several percent to ~11% more pesos per dollar. Free, instant, rate locked at payment.
 
-### Bank Cash-Out
-Connect a local bank account and convert digital dollars to local currency. Supported rails:
-- **Argentina**: Bank transfer, MercadoPago
-- **Brazil**: PIX, bank transfer
-- **Mexico**: SPEI, bank transfer
-- **Colombia**: Bank transfer
-- **Peru**: Bank transfer
-- **Bolivia**: Bank transfer (via Meru)
+### The Peanut Card
+A virtual Visa card that spends the user's digital-dollar balance anywhere Visa is accepted. Free to issue and top up; the only cost is the exchange-rate spread on currency conversion. Available in most countries (the US, Europe, the UK, Latin America, Africa, and more) and requires identity verification. A short list of regions is excluded — the card issuer's restricted-issuance list (China, India, Russia, Turkey, Vietnam, Iran, Israel, and a handful of others).
 
-### Crypto Deposit
-Fund your account by depositing crypto from any exchange (Coinbase, Binance, Kraken, Bybit, OKX, etc.) or external wallet.
+## Core features
 
-### Card Payments
-Physical and virtual debit cards for spending digital dollars at any merchant that accepts card payments.
+### Peanut Links
+Put money in a shareable link or QR; the recipient claims it with no account needed. Works across messengers, email, and social. Unclaimed links are reclaimable; claimed is final.
 
-### QR Payments
-Generate and scan QR codes for in-person payments.
+### Peanut Requests
+A collection link for splitting bills, tips, or donations. Multiple contributors, funds arrive instantly to the balance.
 
-## Security Model
+### Add money (deposit)
+- Crypto: USDC or USDT (and ETH on major EVM networks, auto-converted) from any exchange or wallet on Solana, Arbitrum, Base, Tron, Polygon, or Ethereum. No verification. Gas covered.
+- Bank: SEPA (EUR), ACH (USD), SPEI (MXN), Faster Payments (GBP), and incoming wires (USD/EUR).
+- All deposits free.
 
-- **Self-custodied smart accounts**: User funds sit in ERC-4337 smart accounts, not on Peanut servers
-- **Biometric passkeys**: Account access is secured by the device's Secure Enclave (face/fingerprint). The private key never leaves the device
-- **No server-side keys**: Peanut cannot access, freeze, or move user funds — even under regulatory pressure
-- **Independent recovery**: If Peanut goes offline, users can recover access via any ERC-4337-compatible wallet
+### Cash out (withdraw)
+- Bank: SEPA, ACH, SPEI, Faster Payments — to your own or any third party.
+- Crypto: to any wallet on any supported network; gas covered.
+- Argentina: MercadoPago or a local account.
+- All withdrawals free from Peanut.
 
-## KYC / Compliance
+### Direct bank transfers
+Send from balance straight to any third-party bank account, and receive into the balance, via SEPA/ACH/SPEI/Faster Payments — no link required.
 
-- Core features (send, receive, payment links) work without KYC
-- Bank connections trigger a one-time identity check via Persona (SOC2 Type 2, GDPR, ISO 27001)
-- Peanut only receives a pass/fail result — no documents stored on Peanut servers
+## Security & custody
 
-## Fee Structure
+- Non-custodial smart accounts (ERC-4337) on Arbitrum. User funds never sit on Peanut servers.
+- Biometric passkey auth: the private key is generated from device biometrics and sealed in the device Secure Enclave — never exported, never sent to Peanut.
+- Peanut cannot freeze, seize, or move user funds. If Peanut went offline, users keep full control via any ERC-4337-compatible wallet.
+- Every transaction requires an on-device biometric signature.
 
-- Peer-to-peer transfers: minimal fees
-- Bank cash-out: small conversion spread
-- No monthly subscription or account fees
-- Merchant payments planned with fees lower than Visa/Mastercard
+## Verification & limits
 
-## Target Markets
+- Required only for bank deposits/withdrawals and local QR payments. Passport or national ID from any country (US driver's license accepted for US users). No local ID anywhere.
+- Crypto deposits, crypto withdrawals, and browsing require no verification.
+- Limits: Latin America ~$2,000/month combined (raisable with documents); US/Europe/Mexico/UK no hard limit (very large transactions reviewed); crypto unlimited.
 
-Primary focus on Latin America:
-- Argentina, Brazil, Mexico (largest markets)
-- Colombia, Peru, Bolivia, Chile, Ecuador
+## Fees
 
-Use cases: remittances, freelancer payments, cross-border transfers, savings in stable currency, merchant payments.
+- No per-transaction fee from Peanut. Same-currency moves (USD↔USDC) are free; cross-currency conversions carry a small spread embedded in the displayed, locked rate. Gas is always covered. No monthly or account fees.
 
-## Technical Stack
+## Where Peanut works
 
-- Next.js web application (progressive web app)
-- ERC-4337 smart accounts on Base (Ethereum L2)
-- Biometric passkeys via WebAuthn / Secure Enclave
-- Licensed banking partners for fiat on/off ramps
+- Local QR spending live: Argentina (MercadoPago), Brazil (PIX).
+- Bank rails live: 36 SEPA-zone countries (EUR), US (ACH/wire), Mexico (SPEI), UK (Faster Payments).
+- Crypto deposit/withdraw: global, all non-restricted countries.
+- Card: available in most countries; excludes a short restricted-issuance list (China, India, Russia, Turkey, Vietnam, and others).
+- Roadmap (not live): local payment methods in many more countries (CoDi, Transfiya, Yape, Bizum, MB WAY, UPI, and others). Only Argentina and Brazil have live local spending today.
+
+## Who it's for
+
+Tourists, digital nomads, expats, remote workers, freelancers, and families moving money across borders — especially anyone wanting to spend or save in dollars in Latin America without a local ID or bank account.
 
 ## Company
 
-- Founded by Konrad Kononenko and Hugo Montenegro
-- Based in Europe, serving Latin America
 - Website: https://peanut.me
-- Twitter: https://twitter.com/PeanutProtocol
+- Twitter/X: https://twitter.com/PeanutProtocol
 - GitHub: https://github.com/peanutprotocol
 - LinkedIn: https://www.linkedin.com/company/peanut-trade/
+- Careers: https://peanut.me/careers
+- Support: https://peanut.me/support

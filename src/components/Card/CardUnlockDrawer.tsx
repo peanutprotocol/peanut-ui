@@ -10,8 +10,9 @@
  * <ShareAssetActions /> (Share + Save image).
  */
 
-import { type FC, useEffect, useRef } from 'react'
+import { type FC, useEffect, useRef, useState } from 'react'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import { ScaledShareAsset } from '@/components/Card/share-asset/ScaledShareAsset'
 import { ShareAssetActions } from '@/components/Card/share-asset/ShareAssetActions'
 import posthog from 'posthog-js'
@@ -31,6 +32,10 @@ interface Props {
 
 export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, badges }) => {
     const captureRef = useRef<HTMLDivElement | null>(null)
+    const [hideUsername, setHideUsername] = useState(false)
+    // Gate the Share/Save buttons until the card face's async hand <canvas>
+    // mounts — otherwise an early capture snapshots a blank card.
+    const [assetReady, setAssetReady] = useState(false)
 
     useEffect(() => {
         if (!isOpen) return
@@ -64,15 +69,20 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
                             username={username ?? 'anon'}
                             badges={assetBadges}
                             cardLast4="0420"
+                            hideUsername={hideUsername}
                             animate={false}
+                            onReady={() => setAssetReady(true)}
                         />
                     </div>
                     <div className="mx-auto flex w-full max-w-md flex-col gap-2">
-                        <ShareAssetActions
-                            captureRef={captureRef}
-                            source="history-replay"
-                            shareText="I got my Peanut card. shhhh."
+                        {/* Anti-dox toggle — hides the peanut.me/<handle> pill on the asset */}
+                        <Checkbox
+                            className="self-center"
+                            label="Hide username"
+                            value={hideUsername}
+                            onChange={(e) => setHideUsername(e.target.checked)}
                         />
+                        <ShareAssetActions captureRef={captureRef} source="history-replay" ready={assetReady} />
                     </div>
                 </div>
             </DrawerContent>

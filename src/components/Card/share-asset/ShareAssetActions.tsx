@@ -23,6 +23,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { captureShareAsset, canShareImageFiles, downloadBlob, ShareAssetCaptureError } from './captureShareAsset'
 import { shareCardOnTwitter } from './share.utils'
+import { pickWinCaption } from './winCaptions'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -68,15 +69,22 @@ interface Props {
     source: string
     /** Optional filename for the downloaded PNG. */
     filename?: string
-    /** Caption text passed to the native share sheet (e.g. "I got my Peanut card. shhhh."). */
-    shareText: string
+    /** Whether the share asset has finished painting its card face (the async
+     *  hand <canvas> has mounted — see PixelatedCardFace.onReady). Until then,
+     *  capturing would snapshot a blank card, so both buttons stay disabled.
+     *  Defaults to true so callers that don't wire the signal aren't blocked. */
+    ready?: boolean
 }
 
-export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'peanut-card.png', shareText }) => {
+export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'peanut-card.png', ready = true }) => {
     const [isSharing, setIsSharing] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
-
     const [error, setError] = useState<string | null>(null)
+
+    // One random win caption per mount (rotation lives in winCaptions.ts), so
+    // shared timelines don't fill with one identical line. Stable for this
+    // mount so Share + the desktop intent post the same caption.
+    const [caption] = useState(pickWinCaption)
 
     const handleShare = async (): Promise<void> => {
         setError(null)
@@ -93,14 +101,14 @@ export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'p
                     source,
                     method: 'twitter-intent-fallback',
                 })
-                shareCardOnTwitter()
+                shareCardOnTwitter(caption)
                 return
             }
             const node = captureRef.current
             if (!node) throw new Error('share asset not yet rendered — try again in a moment')
             const blob = await captureShareAsset(node)
             const file = new File([blob], filename, { type: 'image/png' })
-            await navigator.share({ text: shareText, files: [file] })
+            await navigator.share({ text: caption, files: [file] })
             posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, {
                 source,
                 method: 'native-share-with-file',
@@ -160,7 +168,7 @@ export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'p
                 shadowSize="4"
                 className="w-full"
                 loading={isSharing}
-                disabled={isSharing || isSaving}
+                disabled={isSharing || isSaving || !ready}
                 icon={<Icon name="share" size={18} />}
             >
                 Share
@@ -170,7 +178,7 @@ export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'p
                 variant="stroke"
                 className="w-full"
                 loading={isSaving}
-                disabled={isSharing || isSaving}
+                disabled={isSharing || isSaving || !ready}
                 icon={<Icon name="download" size={18} />}
             >
                 Save image

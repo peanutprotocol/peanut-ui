@@ -96,8 +96,12 @@ export type MantecaPrice = {
             daily: string
         }
     }
-    effectiveBuy: string
-    effectiveSell: string
+    // Manteca nests the effective (company) rate here as of 2026-07-01.
+    effectivePrice?: { buy: string; sell: string }
+    // Legacy top-level effective rate (pre-2026-07-01). Optional — kept only so a
+    // provider rollback stays parseable; new reads should prefer `effectivePrice`.
+    effectiveBuy?: string
+    effectiveSell?: string
 }
 
 // withdraw init response - contains locked price for withdraw flow
@@ -280,6 +284,19 @@ export const mantecaApi = {
                 return { error: error.message }
             }
             return { error: 'An unexpected error occurred.' }
+        }
+    },
+
+    getDepositStatus: async (depositId: string): Promise<{ data?: { id: string; status: string }; error?: string }> => {
+        try {
+            const response = await serverFetch(`/manteca/deposit/${depositId}/status`)
+            const data = await response.json()
+            if (!response.ok) {
+                return { error: data.error || 'Failed to fetch deposit status.' }
+            }
+            return { data }
+        } catch (error) {
+            return { error: error instanceof Error ? error.message : 'An unexpected error occurred.' }
         }
     },
 

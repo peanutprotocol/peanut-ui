@@ -39,9 +39,9 @@ export const rpcUrls: Record<number, string[]> = {
         // 'https://rpc.ankr.com/arbitrum', // requires API key
     ].filter(Boolean) as string[],
     [arbitrumSepolia.id]: [
-        // infuraUrl('arbitrum-sepolia'),
-        // alchemyUrl('arb-sepolia'),
-        'https://sepolia-rollup.arbitrum.io/rpc', // Official Arbitrum Sepolia
+        'https://arbitrum-sepolia.publicnode.com', // publicnode (primary) — keyless, CORS *, reliable
+        'https://arbitrum-sepolia.drpc.org', // drpc — keyless fallback
+        'https://sepolia-rollup.arbitrum.io/rpc', // Official Arbitrum Sepolia (503-prone) — last resort
     ].filter(Boolean) as string[],
     [polygon.id]: [
         'https://polygon-mainnet.core.chainstack.com/e8d733c7341e28d98e4cf66c61c42aa6', // Chainstack (primary)

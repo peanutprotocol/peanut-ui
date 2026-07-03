@@ -18,7 +18,8 @@ import {
 } from '@/constants/rain.consts'
 import { rainApi, type RainCollateralKind } from '@/services/rain'
 import { useZeroDev } from '@/hooks/useZeroDev'
-import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { findActiveCard } from '@/components/Card/cardState.utils'
+import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey, type GrantSessionKeyError } from './useGrantSessionKey'
 import { usdcUnitsToRainCents } from '@/utils/balance.utils'
 import { useModalsContextOptional } from '@/context/ModalsContext'
@@ -213,6 +214,10 @@ export const useSpendBundle = () => {
                     strategy: 'insufficient',
                     error_kind: 'insufficient',
                 })
+                // Passed the FE display gate but the live balance can't cover it yet
+                // (in-transit collateral not landed / ~30s-stale FE). Refresh the Rain
+                // overview so the displayed balance + a retry reflect reality.
+                queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
                 throw new InsufficientSpendableError()
             }
 
@@ -224,7 +229,7 @@ export const useSpendBundle = () => {
                 // the one-time session-key grant. If missing, run the inline grant
                 // flow now (one extra passkey tap the FIRST time, zero after).
                 const touchesCollateral = strategy === 'collateral-only' || strategy === 'mixed'
-                const card = overview?.cards?.[0]
+                const card = findActiveCard(overview)
                 if (touchesCollateral && card && !card.hasWithdrawApproval) {
                     onGrantRequired?.()
                     const grantResult = await grant()

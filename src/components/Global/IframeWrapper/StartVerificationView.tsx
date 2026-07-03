@@ -25,7 +25,10 @@ const StartVerificationView = ({
                     height={100}
                     width={100}
                 />
-                <div className="absolute right-5 top-5">
+                <div
+                    className="absolute right-5"
+                    style={{ top: 'calc(env(safe-area-inset-top) + 1.25rem)' }}
+                >
                     <NavHeader icon="cancel" onPrev={onClose} />
                 </div>
             </div>

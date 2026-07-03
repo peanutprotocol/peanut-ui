@@ -78,6 +78,13 @@ export interface RailCapability {
     operations?: Partial<Record<RailOperation, RailCapabilityStatus>>
     /** keys into NextAction.key — actions that unlock currently-unavailable operations on this rail. */
     blockingActions?: string[]
+    /**
+     * Non-blocking hints — actions the user CAN take on a rail that's otherwise
+     * working (the rail stays usable): the Bridge advisory pre-empt (a future-dated
+     * requirement whose NextAction carries `effectiveDate`) and the Manteca
+     * cap-nudge. Distinct from `blockingActions` so the FE never gates on them.
+     */
+    hintActions?: string[]
     /** present for requires-info / blocked — normalized reason for uniform FE rendering. */
     reason?: CapabilityReason
 }
@@ -103,6 +110,14 @@ export interface NextAction {
     levelKey?: string
     /** for kind:'accept-tos' */
     tosUrl?: string
+    /**
+     * Advisory (non-blocking) actions only — surfaced via RailCapability.hintActions.
+     * ISO date the requirement becomes blocking (Bridge future_requirements[].effective_date);
+     * absent on current/blocking actions. The FE renders a skippable "complete before {date}" pre-empt.
+     */
+    effectiveDate?: string
+    /** Advisory actions only — the provider requirement key, for telemetry / FE branching. */
+    requirementKey?: string
 }
 
 export interface CapabilityRestriction {

@@ -11,6 +11,9 @@ export interface RevealedCardDetails {
     cvv: string
     expiryMonth: number
     expiryYear: number
+    /** Registered cardholder name from Rain. Optional — the backend resolves it
+     *  best-effort, so a Rain hiccup leaves it absent and the field is hidden. */
+    cardholderName?: string
 }
 
 interface Props {
@@ -125,10 +128,17 @@ const CardFace: FC<Props> = ({
                                     </button>
                                 )}
                             </div>
+                            {/* Registered cardholder name — PII, kept out of session
+                             * recordings like the other revealed fields. */}
+                            {revealed.cardholderName && (
+                                <span className="ph-no-capture mt-1 text-sm font-bold uppercase tracking-wide">
+                                    {revealed.cardholderName}
+                                </span>
+                            )}
                             <div className="flex items-end justify-between">
                                 <div className="text-s flex gap-6">
                                     <div>
-                                        <div className="opacity-70">Expiry</div>
+                                        {/* "Expiry" label dropped — value row stays one line so PAN/name clear the artwork */}
                                         {/* ph-no-capture: expiry digits out of recordings. */}
                                         <div className="ph-no-capture font-bold">
                                             {String(revealed.expiryMonth).padStart(2, '0')}/
@@ -137,7 +147,7 @@ const CardFace: FC<Props> = ({
                                     </div>
                                     <div className="flex items-end gap-1">
                                         <div>
-                                            <div className="opacity-70">CVV</div>
+                                            {/* "CVV" label dropped — value only */}
                                             {/* ph-no-capture: CVV out of recordings. */}
                                             <div className="ph-no-capture font-bold">{revealed.cvv}</div>
                                         </div>
@@ -170,11 +180,11 @@ const CardFace: FC<Props> = ({
                             <div className="h-7 w-56 animate-pulse rounded bg-white/40" />
                             <div className="mt-2 flex items-end gap-6 text-xs">
                                 <div>
-                                    <div className="opacity-70">Expiry</div>
+                                    {/* label dropped to match the revealed layout — no height jump on reveal */}
                                     <div className="mt-1 h-4 w-12 animate-pulse rounded bg-white/40" />
                                 </div>
                                 <div>
-                                    <div className="opacity-70">CVV</div>
+                                    {/* label dropped to match the revealed layout */}
                                     <div className="mt-1 h-4 w-10 animate-pulse rounded bg-white/40" />
                                 </div>
                             </div>

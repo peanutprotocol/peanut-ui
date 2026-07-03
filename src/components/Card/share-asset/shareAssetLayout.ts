@@ -33,94 +33,131 @@ export const CARD_LEFT = Math.round((CANVAS_W - CARD_W) / 2) // 220 — centred
 export const CARD_TOP = Math.round((CANVAS_H - CARD_H) / 2) // 210 — centred
 export const CARD_ROTATION_DEG = -8
 
-// ─── Stamp positions ────────────────────────────────────────────────────
-// Slots that stamps can land in, in priority order. Each carries a
-// "behind" flag — true = z-index BELOW the card (stamp peeks out from
-// behind), false = z-index ABOVE the card (stamp lands on top, overlapping).
-// PRNG jiggles within `jitter` bounds.
+// ─── Sticker placement (force-directed) ─────────────────────────────────
+// Stickers fill the blue field AROUND the card using a small position-based
+// relaxation (a constraint solver, not a fixed ring). Three forces settle
+// them into the 2D background instead of crowding a single ellipse:
+//   • a strong keep-clear ellipse over the card centre repels stickers off
+//     the card's middle, so the pixel logo stays readable;
+//   • every sticker repels every other, so they spread out and barely
+//     overlap, however many there are;
+//   • a soft inward margin pulls them off the extreme canvas edge.
+// They still render on top of the card (z-index above it) and may cover its
+// outer edges; only its centre and the bottom-right @username pill are kept
+// clear.
+const FIELD_CX = CANVAS_W / 2 // 600
+const FIELD_CY = CANVAS_H / 2 // 450
 
-export interface StampSlot {
-    /** Anchor in canvas coords (top-left of stamp). */
-    top: number
-    left: number
-    /** ±px wiggle applied via PRNG. */
-    jitterXY: number
-    /** Base rotation in deg. */
-    rotation: number
-    /** ±deg rotation wiggle. */
-    jitterRot: number
-    /** Behind the card (peeks out) or in front (overlaps card edges). */
-    behind: boolean
-    /** Optional: tape strip pinning the stamp. */
-    withTape?: boolean
+// Seed ellipse — only used to scatter the initial positions around the card
+// before relaxation. The actual "don't cover this" repulsion lives in
+// CARD_KEEPOUTS (the centred hand keep-out doubles as the card-centre guard).
+const KEEP_A = 300
+const KEEP_B = 205
+
+// Specific card graphics that must never be covered. Unlike the soft centre
+// ellipse above, each of these is inflated by the sticker's half-size in the
+// solver, so no sticker overlaps the mark at all (not just its centre).
+// Positions are canvas coords: the card renders at (220,210) sized 760×479,
+// rotated −8° about its centre (600,450) — these are the peanut logo
+// (card-local ~54,50) and the pixel hand (card-local ~460,200) mapped through
+// that transform.
+const CARD_KEEPOUTS: readonly { cx: number; cy: number; rx: number; ry: number }[] = [
+    { cx: 251, cy: 307, rx: 40, ry: 40 }, // peanut logo (top-left of the card)
+    { cx: 660, cy: 405, rx: 142, ry: 100 }, // pixelated hand (centre, leaning up-right)
+]
+
+// Soft inward margin from the canvas edge — pulls stickers off the extreme
+// edge into the background; the hard clamp keeps the bbox within OVERHANG.
+const EDGE_MARGIN = 32
+const STICKER_OVERHANG = 24
+
+// Repulsion keep-out for the @username pill (bottom-right corner). Its rect
+// extends to the bottom-right canvas corner; PILL_PAD adds a margin so the
+// repulsion leaves a gap, not just a touch. Any sticker pushed inside is
+// shoved back out each relaxation pass — the pill repels like everything else.
+// The component passes a box sized to the *rendered* pill (see pillKeepoutBox);
+// this default is the fallback for callers that don't measure it.
+const DEFAULT_PILL_KEEPOUT = { x0: 690, y0: 712 } as const
+const PILL_PAD = 26
+
+// The pill renders bottom-right at `right: PILL_RIGHT, bottom: PILL_BOTTOM`.
+// Exported so the component keeps the keep-out box in lockstep with the render.
+export const PILL_RIGHT = 56
+export const PILL_BOTTOM = 48
+
+/** Top-left corner of the pill keep-out for a pill of the given rendered size,
+ *  pinned to the bottom-right canvas corner. The component measures the pill's
+ *  footprint (it varies with the handle + typography) so badges are kept off
+ *  the *whole* pill, not just its right edge. */
+export function pillKeepoutBox(pillW: number, pillH: number): { x0: number; y0: number } {
+    return {
+        x0: CANVAS_W - PILL_RIGHT - pillW,
+        y0: CANVAS_H - PILL_BOTTOM - pillH,
+    }
 }
 
-// Slots are positioned to never overlap each other AND never overlap
-// fixed chrome on the 1200×900 canvas:
-//   - EARNED rubber stamp:        x[920..1200], y[20..200]
-//   - EDITION + tier block:       x[20..360],   y[20..460]
-//   - @username pill + tagline:   x[400..800],  y[770..900]
-//   - Card bbox (axis-aligned):   x[264..884],  y[254..645]
-//
-// Stamps with `behind:true` may sit ON TOP of the card bbox — they're
-// rendered z-index BELOW the card and peek out from behind. Their visible
-// portion must still land mostly OUTSIDE the card so the icon reads.
-//
-// Non-overlap is enforced by shareAssetLayout.test.ts (`stamps never
-// overlap`) — DO NOT edit positions without re-running that test.
-//
-// The catalogue is intentionally larger than 6 (the prior cap). For
-// N ≥ 7 we wrap with a per-cycle offset so stacked stamps look like a
-// pile rather than perfectly aligned duplicates.
-const STAMP_SLOTS: readonly StampSlot[] = [
-    // 1. HERO behind, top-center — peeks down from above the card.
-    { top: 140, left: 504, jitterXY: 12, rotation: -12, jitterRot: 5, behind: true, withTape: true },
-    // 2. Front bottom-left.
-    { top: 720, left: 80, jitterXY: 10, rotation: -10, jitterRot: 4, behind: false },
-    // 3. Behind upper-right of card (clear of EARNED).
-    { top: 220, left: 940, jitterXY: 10, rotation: 14, jitterRot: 5, behind: true },
-    // 4. Front mid-left — peeks at card's left edge.
-    { top: 440, left: 60, jitterXY: 10, rotation: -16, jitterRot: 4, behind: false },
-    // 5. Behind right-of-card, lower half.
-    { top: 480, left: 940, jitterXY: 10, rotation: 18, jitterRot: 5, behind: true },
-    // 6. Front bottom-right (opposite slot 2 across the pill).
-    { top: 720, left: 900, jitterXY: 10, rotation: 8, jitterRot: 4, behind: false },
-] as const
+// Relaxation iterations + how close two sticker centres may sit (× combined
+// radii). 1.0 = just touching; below 1.0 allows a bit of overlap while the
+// solver still actively repels them apart each pass. SEPARATION_PASSES is a
+// final separation-only cleanup (see below) that breaks corner deadlocks.
+const RELAX_ITERS = 120
+const SEPARATION_PASSES = 28
+const STICKER_GAP = 0.82
 
 export interface StampPlacement {
-    badge: { code: string; iconUrl: string; year?: string }
+    badge: { code: string; iconUrl: string }
     top: number
     left: number
     rotation: number
-    behind: boolean
-    withTape: boolean
-    /** Size: shrinks as badge count grows (so 6 badges aren't huge). */
+    /** Size: shrinks as badge count grows (so 6 badges aren't huge).
+     *  Stickers are square — width === height. */
     width: number
     height: number
 }
 
-// Inversely scale stamp size with count: 1 stamp gets a hero treatment,
-// 10+ stamps shrink to fit. Beyond the table, clamp to the smallest size.
-//
-// Heights are bounded so bottom slots (top≈720) + max-jitter (10) + height
-// stay within the canvas + a 20px overhang tolerance (900 + 20 - 730 = 190).
-// Low counts (1–3, the common case) get a Twitter-legibility bump; counts
-// 4–10 stay near original since the collage crowds and the non-overlap
-// invariant (circumscribing-circle metric + jitter) leaves little headroom.
-const STAMP_SIZE_BY_COUNT: ReadonlyArray<readonly [number, number]> = [
-    [248, 290], // 1 — only slot 1 (hero, top=140) used; canvas-safe.
-    [182, 188], // 2 — slot 2 (top=720) activates here; height capped at 188.
-    [176, 186], // 3
-    [168, 182], // 4
-    [156, 170], // 5
-    [144, 158], // 6
-    [136, 150], // 7
-    [128, 142], // 8
-    [120, 134], // 9
-    [112, 126], // 10
-] as const
+// Sticker size shrinks as the badge count grows, but stays large enough that
+// the repulsion packs them across the whole field (not a thin scatter). Past
+// the table it eases down a 2700/count curve with a legibility floor.
+// Stickers are square (raw badge art, no frame).
+const STICKER_SIZE_BY_COUNT: readonly number[] = [
+    520, // 1 — single hero sticker slapped on the card
+    460, // 2
+    415, // 3
+    385, // 4
+    360, // 5
+    340, // 6
+    322, // 7
+    306, // 8
+    292, // 9
+    280, // 10
+]
 
-export function placeStamps(badges: ShareAssetBadge[], rng: SeededRandom): StampPlacement[] {
+function stickerSize(count: number): number {
+    if (count <= STICKER_SIZE_BY_COUNT.length) return STICKER_SIZE_BY_COUNT[count - 1]
+    return Math.max(180, Math.round(2700 / count))
+}
+
+/** Does a size×size sticker centred at (cx,cy) intersect the pill keep-out
+ *  (which extends to the bottom-right canvas corner)? */
+function hitsPill(cx: number, cy: number, half: number, pill: { x0: number; y0: number }): boolean {
+    return cx + half > pill.x0 - PILL_PAD && cy + half > pill.y0 - PILL_PAD
+}
+
+/** An extra keep-out region (e.g. the hero message sticker at the top) that
+ *  badge stickers must not cover. Canvas-coord ellipse. */
+export interface KeepoutEllipse {
+    cx: number
+    cy: number
+    rx: number
+    ry: number
+}
+
+export function placeStamps(
+    badges: ShareAssetBadge[],
+    rng: SeededRandom,
+    extraKeepouts: readonly KeepoutEllipse[] = [],
+    pill: { x0: number; y0: number } = DEFAULT_PILL_KEEPOUT
+): StampPlacement[] {
     const sorted = [...badges].sort((a, b) => {
         const aT = a.earnedAt ? new Date(a.earnedAt).getTime() : 0
         const bT = b.earnedAt ? new Date(b.earnedAt).getTime() : 0
@@ -129,196 +166,156 @@ export function placeStamps(badges: ShareAssetBadge[], rng: SeededRandom): Stamp
     const count = sorted.length
     if (count === 0) return []
 
-    // Size table is indexed 1..10; clamp anything above to the smallest tier.
-    const [width, height] = STAMP_SIZE_BY_COUNT[Math.min(count, STAMP_SIZE_BY_COUNT.length) - 1]
+    const size = stickerSize(count)
+    const half = size / 2
+    const minC = half - STICKER_OVERHANG
+    const maxCx = CANVAS_W - half + STICKER_OVERHANG
+    const maxCy = CANVAS_H - half + STICKER_OVERHANG
+    const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
+    const keepouts = [...CARD_KEEPOUTS, ...extraKeepouts]
 
-    // Shuffle once so two users with identical badge sets but different
-    // seeds get visually distinct layouts.
-    const shuffled = rng.shuffle(sorted)
-
-    return shuffled.map((badge, i): StampPlacement => {
-        // For i < STAMP_SLOTS.length, use a unique base slot. For overflow
-        // (i ≥ slot count), wrap with a per-cycle offset so the extras
-        // stack on existing slots as a natural pile (Hugo: "just stack
-        // them"). Per-cycle x/y shift + rotation tweak avoid pixel-
-        // identical duplicates.
-        const slotIdx = i % STAMP_SLOTS.length
-        const cycle = Math.floor(i / STAMP_SLOTS.length)
-        const base = STAMP_SLOTS[slotIdx]
-        const stackOffset = cycle * 22
-        // `'25`-style year denomination. (An earlier pass switched this to the
-        // full 4-digit year chasing Konrad's "the ''' look buggy" note — that
-        // was actually about sparkle.svg's slash-strokes, not the year. Hugo
-        // 2026-06-11: the apostrophe year looked fine; bring it back.)
-        const year = badge.earnedAt ? `'${String(new Date(badge.earnedAt).getFullYear()).slice(-2)}` : undefined
+    // ── Seed positions: spread around the card by angle (so even a few
+    //    stickers surround it) with a varied radius (so the relaxation has 2D
+    //    room to fill, not just a ring). The first sticker starts up top.
+    const pos = sorted.map((_, i) => {
+        const theta = -Math.PI / 2 + ((i === 0 ? 0 : i) / count) * Math.PI * 2 + rng.float(-0.4, 0.4)
+        const rad = rng.float(1.05, 1.95)
         return {
-            badge: {
-                code: badge.code,
-                iconUrl: getBadgeIcon(badge.code),
-                year,
-            },
-            top: base.top + stackOffset + rng.float(-base.jitterXY, base.jitterXY),
-            left: base.left + stackOffset + rng.float(-base.jitterXY, base.jitterXY),
-            rotation: base.rotation + cycle * 6 + rng.float(-base.jitterRot, base.jitterRot),
-            behind: base.behind,
-            withTape: !!base.withTape,
-            width,
-            height,
+            x: clamp(FIELD_CX + Math.cos(theta) * KEEP_A * rad, minC, maxCx),
+            y: clamp(FIELD_CY + Math.sin(theta) * KEEP_B * rad, minC, maxCy),
         }
     })
-}
 
-// ─── Decorations (stars + thumbs-up + peanut chars) ─────────────────────
-// Pool of candidate positions in safe negative-space zones.
-// `kind` selects which SVG. PRNG picks which subset to actually render.
-
-interface DecorationCandidate {
-    kind: 'star' | 'starAlt' | 'thumbsUp' | 'thumbsUpV2' | 'peace' | 'eyes' | 'cloud' | 'peanutChar'
-    top?: number
-    bottom?: number
-    left?: number
-    right?: number
-    size: number
-    rotation: number
-    /** Whether this position is "safe" when card has stamps behind it.
-     *  Currently always true — pool is curated to avoid stamp slots. */
-    safe: boolean
-}
-
-// Decoration pool. No peanut characters — both peanut-raising-hands.svg
-// and peanutman-waving.svg crop the lower body at the SVG source (it's
-// the art style, not a bug we can fix). No sparkle.svg either — it's
-// three loose slash-strokes that read as stray tick marks / apostrophes
-// on the asset (Konrad's "the ''' look a bit buggy"). The pool sticks to
-// stars, hands, eyes, and clouds so every decoration reads as a clearly
-// formed shape.
-//
-// Layout-zone map on the 1200×900 canvas:
-//   - EARNED stamp:          x[920..1200], y[20..200]    (top-right)
-//   - EDITION + tier block:  x[20..360],   y[20..460]    (left band)
-//   - @username pill:        x[400..1144], y[770..900]   (bottom-right)
-//   - Card bbox:             x[264..884],  y[254..645]   (centre)
-//   - Stamp slots:           see STAMP_SLOTS above
-// All slots below sit OUTSIDE the chrome zones AND outside stamp slots.
-const DECORATION_POOL: readonly DecorationCandidate[] = [
-    // ── Top strip (y=16..160) — above the card, between EDITION left and
-    //    EARNED right. Two natural columns left/right of the centre stamp.
-    { kind: 'cloud', top: 16, left: 880, size: 64, rotation: -4, safe: true },
-    { kind: 'star', top: 36, left: 380, size: 72, rotation: 8, safe: true },
-    { kind: 'peace', top: 52, left: 720, size: 56, rotation: -12, safe: true },
-    { kind: 'thumbsUp', top: 56, left: 232, size: 92, rotation: -10, safe: true },
-    { kind: 'thumbsUpV2', top: 80, left: 700, size: 76, rotation: 12, safe: true },
-    { kind: 'eyes', top: 28, left: 580, size: 48, rotation: 6, safe: true },
-    { kind: 'star', top: 130, left: 980, size: 40, rotation: 18, safe: true },
-    { kind: 'starAlt', top: 110, left: 320, size: 52, rotation: -20, safe: true },
-
-    // ── Top-LEFT quadrant (Hugo flagged this as empty) — fits between
-    //    the EDITION header (y<120) and the tier block (y>158, x<360).
-    //    Tight space; small accents only.
-    { kind: 'star', top: 14, left: 56, size: 32, rotation: 22, safe: true },
-    { kind: 'starAlt', top: 8, left: 460, size: 36, rotation: -16, safe: true },
-    { kind: 'eyes', top: 130, left: 180, size: 36, rotation: 14, safe: true },
-
-    // ── Mid-right gap between stamp slot 3 (y≤396) and slot 5 (y≥470).
-    { kind: 'star', top: 410, right: 30, size: 44, rotation: 45, safe: true },
-    { kind: 'peace', top: 420, right: 140, size: 42, rotation: -10, safe: true },
-
-    // ── Mid-left / mid-right margins outside the card.
-    { kind: 'cloud', top: 380, left: 26, size: 48, rotation: 10, safe: true },
-    { kind: 'eyes', top: 540, right: 220, size: 38, rotation: 22, safe: true },
-    { kind: 'starAlt', top: 480, right: 200, size: 44, rotation: -8, safe: true },
-
-    // ── Bottom-CENTRE (Hugo flagged this as empty) — between card-bottom
-    //    (y=645) and the username pill top (y≥770). The pill ends at
-    //    x≈400 worst case, so anything in x[120..380] is safely in the
-    //    gutter to the LEFT of the pill.
-    { kind: 'star', top: 660, left: 200, size: 44, rotation: -14, safe: true },
-    { kind: 'starAlt', top: 700, left: 320, size: 48, rotation: 18, safe: true },
-    { kind: 'eyes', top: 670, left: 60, size: 40, rotation: -6, safe: true },
-    { kind: 'thumbsUpV2', top: 690, left: 130, size: 64, rotation: 8, safe: true },
-
-    // ── Lower-right (small sprinkles between EARNED-zone clear point and
-    //    the pill's top edge at y≈770).
-    { kind: 'peace', bottom: 220, right: 280, size: 52, rotation: -8, safe: true },
-    { kind: 'star', bottom: 60, right: 360, size: 34, rotation: -12, safe: true },
-    { kind: 'cloud', bottom: 80, right: 60, size: 56, rotation: 8, safe: true },
-
-    // ── Peanut character — peeks up from BEHIND the card. The peanut
-    //    art style is legless (body tapers to a rounded point), so we
-    //    place him with his bottom inside the card's bbox (y≥254) and
-    //    only the head/arms visible above the card edge. Decorations
-    //    render at z-index 1; the card at z-index 3, with overflow:
-    //    hidden — so the body inside the card region is naturally
-    //    clipped without any extra masking. Two candidate positions
-    //    flanking the centre HERO stamp slot (top:140, left:504).
-    { kind: 'peanutChar', top: 120, left: 320, size: 180, rotation: -6, safe: true },
-    { kind: 'peanutChar', top: 130, left: 760, size: 170, rotation: 8, safe: true },
-] as const
-
-export interface DecorationPlacement {
-    kind: 'star' | 'starAlt' | 'thumbsUp' | 'thumbsUpV2' | 'peace' | 'eyes' | 'cloud' | 'peanutChar'
-    top?: number
-    bottom?: number
-    left?: number
-    right?: number
-    size: number
-    rotation: number
-}
-
-/** Axis-aligned bounding-box of a placed decoration in canvas coords.
- *  Used by the non-overlap check below — treats every decoration as a
- *  size × size square (conservative; tall assets won't be over-tight). */
-function decorationBbox(d: { top?: number; bottom?: number; left?: number; right?: number; size: number }): {
-    x0: number
-    y0: number
-    x1: number
-    y1: number
-} {
-    const left = d.left ?? CANVAS_W - (d.right ?? 0) - d.size
-    const top = d.top ?? CANVAS_H - (d.bottom ?? 0) - d.size
-    return { x0: left, y0: top, x1: left + d.size, y1: top + d.size }
-}
-
-/** AABB intersection with a small padding so decorations aren't just-not-touching. */
-function bboxesOverlap(
-    a: { x0: number; y0: number; x1: number; y1: number },
-    b: { x0: number; y0: number; x1: number; y1: number },
-    pad = 8
-): boolean {
-    return !(a.x1 + pad < b.x0 || a.x0 - pad > b.x1 || a.y1 + pad < b.y0 || a.y0 - pad > b.y1)
-}
-
-/** Greedy non-overlap placement. Walks the shuffled pool and accepts a
- *  candidate only if its bbox doesn't intersect any already-placed
- *  decoration. Target count 12-15; if the pool can't satisfy that
- *  (collisions), returns whatever fit — never compromises the no-overlap
- *  invariant. */
-export function placeDecorations(rng: SeededRandom): DecorationPlacement[] {
-    const target = rng.int(12, 15)
-    const shuffled = rng.shuffle([...DECORATION_POOL])
-    const accepted: DecorationPlacement[] = []
-    const acceptedBboxes: ReturnType<typeof decorationBbox>[] = []
-
-    for (const d of shuffled) {
-        if (accepted.length >= target) break
-        const sizeJitter = rng.float(-4, 4)
-        const rotJitter = rng.float(-6, 6)
-        const placement: DecorationPlacement = {
-            kind: d.kind,
-            top: d.top,
-            bottom: d.bottom,
-            left: d.left,
-            right: d.right,
-            size: d.size + sizeJitter,
-            rotation: d.rotation + rotJitter,
+    // ── Relax: position-based constraints, Gauss–Seidel. Each pass separates
+    //    overlapping stickers, shoves any inside the keep-clear ellipse back
+    //    out, nudges them off the edges and out of the pill, then clamps to
+    //    the canvas. Converges to an even spread filling the field.
+    const minDist = size * STICKER_GAP
+    for (let step = 0; step < RELAX_ITERS; step++) {
+        // sticker ↔ sticker separation
+        for (let i = 0; i < count; i++) {
+            for (let j = i + 1; j < count; j++) {
+                let dx = pos[j].x - pos[i].x
+                let dy = pos[j].y - pos[i].y
+                let dist = Math.hypot(dx, dy)
+                if (dist === 0) {
+                    dx = rng.float(-1, 1)
+                    dy = rng.float(-1, 1)
+                    dist = Math.hypot(dx, dy) || 1
+                }
+                if (dist < minDist) {
+                    const corr = (minDist - dist) / 2
+                    const ux = dx / dist
+                    const uy = dy / dist
+                    pos[i].x -= ux * corr
+                    pos[i].y -= uy * corr
+                    pos[j].x += ux * corr
+                    pos[j].y += uy * corr
+                }
+            }
         }
-        const bbox = decorationBbox(placement)
-        const collides = acceptedBboxes.some((other) => bboxesOverlap(bbox, other))
-        if (collides) continue
-        accepted.push(placement)
-        acceptedBboxes.push(bbox)
+        // unary constraints
+        for (let i = 0; i < count; i++) {
+            const p = pos[i]
+            // targeted keep-outs (inflated by the sticker half so the mark is
+            // never covered) — peanut logo + pixel hand, plus any caller extras
+            // (the hero message sticker at the top).
+            for (const ko of keepouts) {
+                const rx = ko.rx + half
+                const ry = ko.ry + half
+                const kex = (p.x - ko.cx) / rx
+                const key = (p.y - ko.cy) / ry
+                const ke = Math.hypot(kex, key)
+                if (ke === 0) {
+                    p.x += rx
+                } else if (ke < 1) {
+                    const s = 1 / ke
+                    p.x = ko.cx + (p.x - ko.cx) * s
+                    p.y = ko.cy + (p.y - ko.cy) * s
+                }
+            }
+            // soft inward margin off the canvas edges
+            const loX = EDGE_MARGIN + half
+            const hiX = CANVAS_W - EDGE_MARGIN - half
+            const loY = EDGE_MARGIN + half
+            const hiY = CANVAS_H - EDGE_MARGIN - half
+            if (p.x < loX) p.x += (loX - p.x) * 0.5
+            else if (p.x > hiX) p.x -= (p.x - hiX) * 0.5
+            if (p.y < loY) p.y += (loY - p.y) * 0.5
+            else if (p.y > hiY) p.y -= (p.y - hiY) * 0.5
+            // pill keep-out: shove out along the shallower axis
+            if (hitsPill(p.x, p.y, half, pill)) {
+                const exitLeft = p.x + half - (pill.x0 - PILL_PAD)
+                const exitUp = p.y + half - (pill.y0 - PILL_PAD)
+                if (exitLeft < exitUp) p.x -= exitLeft
+                else p.y -= exitUp
+            }
+            // hard clamp to canvas (within overhang)
+            p.x = clamp(p.x, minC, maxCx)
+            p.y = clamp(p.y, minC, maxCy)
+        }
     }
-    return accepted
+
+    // ── Final separation pass. The soft edge/pill pulls above can deadlock two
+    //    stickers against a corner (a Gauss–Seidel local minimum: the edge +
+    //    pill shove keeps cramming them back together faster than the pairwise
+    //    push can spread them). Run a short cleanup of separation + hard keep-
+    //    outs + clamp ONLY — no edge/pill pull — so pairwise spread gets the
+    //    last word. Card marks / hero stay clear; a sticker may drift under the
+    //    pill (which renders on top), but no two stickers pile up.
+    for (let step = 0; step < SEPARATION_PASSES; step++) {
+        for (let i = 0; i < count; i++) {
+            for (let j = i + 1; j < count; j++) {
+                let dx = pos[j].x - pos[i].x
+                let dy = pos[j].y - pos[i].y
+                let dist = Math.hypot(dx, dy)
+                if (dist === 0) {
+                    dx = rng.float(-1, 1)
+                    dy = rng.float(-1, 1)
+                    dist = Math.hypot(dx, dy) || 1
+                }
+                if (dist < minDist) {
+                    const corr = (minDist - dist) / 2
+                    const ux = dx / dist
+                    const uy = dy / dist
+                    pos[i].x -= ux * corr
+                    pos[i].y -= uy * corr
+                    pos[j].x += ux * corr
+                    pos[j].y += uy * corr
+                }
+            }
+        }
+        for (let i = 0; i < count; i++) {
+            const p = pos[i]
+            for (const ko of keepouts) {
+                const rx = ko.rx + half
+                const ry = ko.ry + half
+                const kex = (p.x - ko.cx) / rx
+                const key = (p.y - ko.cy) / ry
+                const ke = Math.hypot(kex, key)
+                if (ke === 0) {
+                    p.x += rx
+                } else if (ke < 1) {
+                    const s = 1 / ke
+                    p.x = ko.cx + (p.x - ko.cx) * s
+                    p.y = ko.cy + (p.y - ko.cy) * s
+                }
+            }
+            p.x = clamp(p.x, minC, maxCx)
+            p.y = clamp(p.y, minC, maxCy)
+        }
+    }
+
+    return pos.map(
+        (p, i): StampPlacement => ({
+            badge: { code: sorted[i].code, iconUrl: getBadgeIcon(sorted[i].code) },
+            top: p.y - half,
+            left: p.x - half,
+            rotation: rng.float(-15, 15),
+            width: size,
+            height: size,
+        })
+    )
 }
 
 // ─── Stats inline block ─────────────────────────────────────────────────
