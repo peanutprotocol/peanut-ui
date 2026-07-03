@@ -8197,6 +8197,11 @@
 									"serializedApproval": {
 										"minLength": 1,
 										"type": "string"
+									},
+									"confirmedResidenceCountry": {
+										"minLength": 2,
+										"maxLength": 2,
+										"type": "string"
 									}
 								}
 							}
@@ -8287,6 +8292,48 @@
 												}
 											},
 											"required": ["status", "isUsResident", "termsVersion"]
+										},
+										{
+											"type": "object",
+											"properties": {
+												"status": {
+													"type": "string",
+													"enum": ["country-confirmation-required"]
+												},
+												"candidates": {
+													"type": "array",
+													"items": {
+														"type": "string"
+													}
+												},
+												"evidence": {
+													"type": "object",
+													"properties": {
+														"addressCountry": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"idDocumentCountry": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														}
+													},
+													"required": ["addressCountry", "idDocumentCountry"]
+												}
+											},
+											"required": ["status", "candidates", "evidence"]
 										},
 										{
 											"type": "object",
