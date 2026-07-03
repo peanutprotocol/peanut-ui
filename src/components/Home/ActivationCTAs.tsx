@@ -107,7 +107,8 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             return {
                 hasFixableRejection: !!fixableRail,
                 hasBlockedRejection: !!blocked,
-                primaryRejectionMessage: (fixableRail ?? blocked)?.reason?.userMessage ?? null,
+                // Same precedence the copy/onClick use: email-blocked → fixable → terminal.
+                primaryRejectionMessage: (emailBlocked ?? fixableRail ?? blocked)?.reason?.userMessage ?? null,
                 blockedRail: blocked,
                 isEmailBlocked: !!emailBlocked,
             }
@@ -139,17 +140,11 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         if (activationStep === 'verify' && isIdentityProcessing && !isIdentityActionRequired) return null
 
         if (hasProviderRejection) {
-            if (hasFixableRejection) {
-                return {
-                    icon: 'globe-lock',
-                    iconBg: 'bg-primary-1',
-                    title: 'Complete your setup',
-                    description: primaryRejectionMessage || 'We need an updated document before you can add money.',
-                    ctaLabel: 'Upload document',
-                    href: '/profile/identity-verification',
-                }
-            }
-            // blocked on a missing email — self-serve, not a support ticket
+            // Email-blocked (status=blocked) outranks a fixable RFI (status=requires-info)
+            // — the canonical `deriveGate` order, and the order this card's onClick
+            // already follows (isEmailBlocked first). Ranking fixable above email here
+            // made the copy say "Upload document" while the button opened the email
+            // sheet, and hid the document-upload path entirely when both coexisted.
             if (isEmailBlocked) {
                 return {
                     icon: 'globe-lock',
@@ -159,6 +154,16 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                         primaryRejectionMessage || 'We need an email address to finish setting up your account.',
                     ctaLabel: 'Add email',
                     href: '', // handled in onClick
+                }
+            }
+            if (hasFixableRejection) {
+                return {
+                    icon: 'globe-lock',
+                    iconBg: 'bg-primary-1',
+                    title: 'Complete your setup',
+                    description: primaryRejectionMessage || 'We need an updated document before you can add money.',
+                    ctaLabel: 'Upload document',
+                    href: '/profile/identity-verification',
                 }
             }
             // blocked

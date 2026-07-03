@@ -182,6 +182,11 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             }
             if (gate.kind === 'accept-tos') {
                 guardWithTos()
+            } else if (gate.kind === 'provide-email') {
+                // A rail that flipped to email-blocked between form-open and submit
+                // is self-serve — open the email sheet, NOT the contact-support KYC
+                // modal (mirrors checkBridgeGate; the whole point of provide-email).
+                setShowProvideEmail(true)
             } else {
                 setIsKycModalOpen(true)
             }
