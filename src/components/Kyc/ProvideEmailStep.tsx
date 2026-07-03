@@ -28,7 +28,10 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        if (visible) setError(null)
+        if (visible) {
+            setEmail('')
+            setError(null)
+        }
     }, [visible])
 
     const handleSave = useCallback(async () => {
@@ -37,10 +40,15 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
             setError('Please enter a valid email address.')
             return
         }
+        const userId = user?.user?.userId
+        if (!userId) {
+            setError('Still loading your account — please try again in a moment.')
+            return
+        }
         setIsSaving(true)
         setError(null)
         try {
-            const response = await updateUserById({ userId: user?.user?.userId, email: trimmed })
+            const response = await updateUserById({ userId, email: trimmed })
             if (response.error) {
                 setError(response.error)
                 return

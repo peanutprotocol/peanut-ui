@@ -77,7 +77,7 @@ const STEPS: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = {
 export default function ActivationCTAs({ activationStep, onDismissCard }: ActivationCTAsProps) {
     const router = useRouter()
     const { setIsQRScannerOpen, openSupportWithMessage } = useModalsContext()
-    const { rails, channelOf } = useCapabilities()
+    const { rails, channelOf, nextActionsForRail } = useCapabilities()
     const { user } = useAuth()
     // Suppress the "Unlock payments" verify CTA while identity is mid-flight
     // (Sumsub processing / action_required). The user already took the verify
@@ -89,25 +89,30 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // qr-only channels — never through card. Top-level status (not per-op
     // refinement): Manteca's pool tier reads `enabled` at the rail level even when
     // deposit/withdraw individually need an upgrade — that's not a rejection.
-    const { hasFixableRejection, hasBlockedRejection, primaryRejectionMessage, blockedRail } = useMemo(() => {
-        const rejectableRails = rails.filter((rail) => {
-            const channel = channelOf(rail)
-            return channel === 'bank' || channel === 'qr-only'
-        })
-        const fixableRail = rejectableRails.find((rail) => rail.status === 'requires-info')
-        const blocked = rejectableRails.find((rail) => rail.status === 'blocked')
-        return {
-            hasFixableRejection: !!fixableRail,
-            hasBlockedRejection: !!blocked,
-            primaryRejectionMessage: (fixableRail ?? blocked)?.reason?.userMessage ?? null,
-            blockedRail: blocked,
-        }
-    }, [rails, channelOf])
+    const { hasFixableRejection, hasBlockedRejection, primaryRejectionMessage, blockedRail, isEmailBlocked } =
+        useMemo(() => {
+            const rejectableRails = rails.filter((rail) => {
+                const channel = channelOf(rail)
+                return channel === 'bank' || channel === 'qr-only'
+            })
+            const fixableRail = rejectableRails.find((rail) => rail.status === 'requires-info')
+            // Email-blocked rails carry a self-serve provide-email action (same
+            // contract the capability gate reads) — prefer one over an earlier
+            // blocked rail with a terminal reason, since one email fixes them all.
+            const emailBlocked = rejectableRails.find(
+                (rail) =>
+                    rail.status === 'blocked' && nextActionsForRail(rail.id).some((a) => a.kind === 'provide-email')
+            )
+            const blocked = emailBlocked ?? rejectableRails.find((rail) => rail.status === 'blocked')
+            return {
+                hasFixableRejection: !!fixableRail,
+                hasBlockedRejection: !!blocked,
+                primaryRejectionMessage: (fixableRail ?? blocked)?.reason?.userMessage ?? null,
+                blockedRail: blocked,
+                isEmailBlocked: !!emailBlocked,
+            }
+        }, [rails, channelOf, nextActionsForRail])
 
-    // Self-serve email recovery: the BE tags email-less submission failures
-    // with reason code 'email_required' + a provide-email action — the fix is
-    // an email form, not a support ticket.
-    const isEmailBlocked = blockedRail?.reason?.code === 'email_required'
     const [showProvideEmail, setShowProvideEmail] = useState(false)
 
     const lastTrackedStep = useRef<ActivationStep | null>(null)
@@ -144,6 +149,18 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     href: '/profile/identity-verification',
                 }
             }
+            // blocked on a missing email — self-serve, not a support ticket
+            if (isEmailBlocked) {
+                return {
+                    icon: 'globe-lock',
+                    iconBg: 'bg-primary-1',
+                    title: 'Add your email',
+                    description:
+                        primaryRejectionMessage || 'We need an email address to finish setting up your account.',
+                    ctaLabel: 'Add email',
+                    href: '', // handled in onClick
+                }
+            }
             // blocked
             return {
                 icon: 'globe-lock',
@@ -160,6 +177,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         activationStep,
         hasProviderRejection,
         hasFixableRejection,
+        isEmailBlocked,
         primaryRejectionMessage,
         isIdentityProcessing,
         isIdentityActionRequired,

@@ -206,16 +206,23 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
     // 3. blocked — split: if the rail carries a `restart-identity` action the
     // user can self-fix by re-verifying with a different document; otherwise
     // the only path is contact-support.
+    // provide-email is a USER-level fix (one email unblocks every email-blocked
+    // rail), so any blocked rail carrying it wins over an earlier blocked rail
+    // with a terminal reason — .find() order must not shadow the self-serve path.
+    const emailBlocked = candidates.find(
+        (rail) =>
+            rail.status === 'blocked' &&
+            railActions(rail, actionByKey).some((action) => action.kind === 'provide-email')
+    )
+    if (emailBlocked) {
+        return {
+            kind: 'provide-email',
+            userMessage: emailBlocked.reason?.userMessage ?? null,
+            reason: emailBlocked.reason,
+        }
+    }
     const blocked = candidates.find((rail) => rail.status === 'blocked')
     if (blocked) {
-        const hasProvideEmail = railActions(blocked, actionByKey).some((action) => action.kind === 'provide-email')
-        if (hasProvideEmail) {
-            return {
-                kind: 'provide-email',
-                userMessage: blocked.reason?.userMessage ?? null,
-                reason: blocked.reason,
-            }
-        }
         const hasRestart = railActions(blocked, actionByKey).some((action) => action.kind === 'restart-identity')
         if (hasRestart) {
             return {
@@ -301,6 +308,10 @@ export function getKycModalVariant(
     kind: GateState['kind']
 ): 'blocked' | 'provider_rejection' | 'cross_region' | 'restart_identity' | 'default' {
     if (kind === 'blocked-rejection') return 'blocked'
+    // Floor for consumers not yet wired to render the email sheet: show the
+    // contact-support variant, never the 'default' re-verify CTA (the user's
+    // identity is already verified — bouncing them into Sumsub is wrong).
+    if (kind === 'provide-email') return 'blocked'
     if (kind === 'restart-identity') return 'restart_identity'
     if (kind === 'fixable-rejection') return 'provider_rejection'
     if (kind === 'needs-enrollment') return 'cross_region'
