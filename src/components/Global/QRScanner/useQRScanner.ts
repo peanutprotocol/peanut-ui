@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import QrScannerLib from 'qr-scanner'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
+import { isCapacitor } from '@/utils/capacitor'
 
 // ============================================================================
 // Configuration
@@ -65,6 +66,25 @@ export type QRScanHandler = (data: string) => Promise<{ success: boolean; error?
 
 type FacingMode = 'user' | 'environment'
 
+/**
+ * On native, settle the OS camera permission before getUserMedia runs, so the
+ * scanner opens straight to a live camera instead of prompting mid-view. Best
+ * effort: on any plugin error we return true and let getUserMedia trigger the
+ * WebView's own permission flow (unchanged fallback).
+ */
+async function ensureNativeCameraPermission(): Promise<boolean> {
+    try {
+        const { Camera } = await import('@capacitor/camera')
+        const status = await Camera.checkPermissions()
+        if (status.camera === 'granted' || status.camera === 'limited') return true
+        const requested = await Camera.requestPermissions({ permissions: ['camera'] })
+        return requested.camera === 'granted' || requested.camera === 'limited'
+    } catch (err) {
+        console.warn('Native camera permission check failed, falling back to getUserMedia:', err)
+        return true
+    }
+}
+
 // ============================================================================
 // Hook
 // ============================================================================
@@ -74,6 +94,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
     const [isPermissionDenied, setIsPermissionDenied] = useState(false)
     const [facingMode, setFacingMode] = useState<FacingMode>('environment')
     const [isScanning, setIsScanning] = useState(isOpen)
+    const [isCameraReady, setIsCameraReady] = useState(false)
 
     const toast = useToast()
     const { deviceType } = useDeviceType()
@@ -190,6 +211,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
         async (preferredCamera: FacingMode = facingMode) => {
             setError(null)
             setIsPermissionDenied(false)
+            setIsCameraReady(false)
 
             if (!videoRef.current) {
                 // retry if video element not ready (react mounting race condition)
@@ -212,6 +234,15 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
             try {
                 cleanup()
 
+                if (isCapacitor()) {
+                    const granted = await ensureNativeCameraPermission()
+                    if (!granted) {
+                        setIsPermissionDenied(true)
+                        setError(getErrorMessage(CAMERA_ERRORS.NOT_ALLOWED, 0))
+                        return
+                    }
+                }
+
                 // iOS needs a delay to release camera hardware
                 if (deviceType === DeviceType.IOS) {
                     await new Promise((resolve) => setTimeout(resolve, CONFIG.IOS_CAMERA_DELAY_MS))
@@ -226,18 +257,27 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
 
                 scannerRef.current = scanner
 
-                // race against a timeout — iOS PWA's getUserMedia can hang forever
-                // after the user denies camera permission instead of rejecting
-                await Promise.race([
-                    scanner.start(),
-                    new Promise<never>((_, reject) => {
-                        startTimeoutId = setTimeout(
-                            () => reject(new DOMException('Camera start timed out', 'NotAllowedError')),
-                            CONFIG.CAMERA_START_TIMEOUT_MS
-                        )
-                    }),
-                ])
-                clearTimeout(startTimeoutId)
+                if (isCapacitor()) {
+                    // Native (Capacitor) resolves getUserMedia once the OS permission
+                    // dialog is answered and rejects cleanly on denial, so no timeout is
+                    // needed. Racing the short timeout made the first-run permission
+                    // prompt look like a failure (false "Camera start timed out" → retry).
+                    await scanner.start()
+                } else {
+                    // iOS PWA (WKWebView) getUserMedia can hang forever after the user
+                    // denies permission instead of rejecting — race a timeout so the
+                    // permission modal still shows.
+                    await Promise.race([
+                        scanner.start(),
+                        new Promise<never>((_, reject) => {
+                            startTimeoutId = setTimeout(
+                                () => reject(new DOMException('Camera start timed out', 'NotAllowedError')),
+                                CONFIG.CAMERA_START_TIMEOUT_MS
+                            )
+                        }),
+                    ])
+                    clearTimeout(startTimeoutId)
+                }
 
                 // Request continuous autofocus — some devices default to single-shot
                 // focus on start, leaving the image blurry when the user moves the phone.
@@ -254,6 +294,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 }
 
                 console.log('[QR Scanner] Camera started, ready to scan')
+                setIsCameraReady(true)
                 retryCountRef.current = 0
             } catch (err: any) {
                 clearTimeout(startTimeoutId)
@@ -350,6 +391,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
         error,
         isPermissionDenied,
         isScanning,
+        isCameraReady,
         videoRef,
         close,
         toggleCamera,

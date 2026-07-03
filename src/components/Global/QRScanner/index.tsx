@@ -155,11 +155,8 @@ function ErrorView({ message, onClose }: { message: string; onClose: () => void 
 // ============================================================================
 
 export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerProps) {
-    const { error, isPermissionDenied, isScanning, videoRef, close, toggleCamera, retryCamera } = useQRScanner(
-        onScan,
-        onClose,
-        isOpen
-    )
+    const { error, isPermissionDenied, isScanning, isCameraReady, videoRef, close, toggleCamera, retryCamera } =
+        useQRScanner(onScan, onClose, isOpen)
     const toast = useToast()
     const [detectedAddress, setDetectedAddress] = useState<string | null>(null)
 
@@ -228,6 +225,12 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                         playsInline
                         muted
                     />
+                    {!isCameraReady && (
+                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black">
+                            <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                            <span className="text-sm text-white/80">Starting camera…</span>
+                        </div>
+                    )}
                     <ScannerControls onClose={close} onToggleCamera={toggleCamera} />
                     <ScanRegionOverlay
                         onPaste={handlePaste}
