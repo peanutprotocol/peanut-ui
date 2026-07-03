@@ -16,6 +16,7 @@ import { ContextProvider } from '@/context'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { useOtaUpdates } from '@/hooks/useOtaUpdates'
+import { useCaptureCampaign } from '@/hooks/useCaptureCampaign'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import dynamic from 'next/dynamic'
 import { Suspense } from 'react'
@@ -32,6 +33,8 @@ const HarnessBootstrap = HARNESS_ENABLED
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     // initialize capgo ota updates (calls notifyAppReady on mount, no-op on web)
     useOtaUpdates()
+    // persist inbound campaign/utm tag until signup consumes it (offramp badge etc.)
+    useCaptureCampaign()
 
     return (
         <NuqsAdapter>
