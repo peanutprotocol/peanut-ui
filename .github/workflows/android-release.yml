@@ -119,9 +119,16 @@ jobs:
                   fi
 
             - name: Build signed AAB
-              env:
-                  ANDROID_VERSION_NAME: ${{ github.event.inputs.versionName || '' }}
               run: |
+                  # versionName: manual dispatch input wins; else the tag name minus
+                  # its leading 'v' (v1.0.10 -> 1.0.10); else build.gradle's
+                  # package.json fallback. Keeps the Play versionName in lockstep
+                  # with the release tag without a manual package.json bump.
+                  VERSION_NAME="${{ github.event.inputs.versionName }}"
+                  if [ -z "$VERSION_NAME" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then
+                      VERSION_NAME="${GITHUB_REF_NAME#v}"
+                  fi
+                  export ANDROID_VERSION_NAME="$VERSION_NAME"
                   # Monotonic (run_number always increases). +10000 clears legacy
                   # codes already on Play from earlier manual/local uploads (small
                   # console codes plus git-commit-count builds up to ~8600).
