@@ -15,6 +15,13 @@ process.env.VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'test-vapid-pri
 process.env.VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:test@example.com'
 process.env.PEANUT_API_KEY = process.env.PEANUT_API_KEY || 'test-peanut-api-key'
 
+// jsdom has no ResizeObserver; components using it (e.g. react-fast-marquee) need a stub.
+global.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+}
+
 // Add any global test setup here
 global.console = {
     ...console,

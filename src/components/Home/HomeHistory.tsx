@@ -319,12 +319,24 @@ const HomeHistory = ({
 
     // show error state
     if (isError) {
-        console.error(error)
-        Sentry.captureException(error)
+        const isNetworkError =
+            error instanceof Error &&
+            (error.name === 'ServiceUnavailableError' || (typeof navigator !== 'undefined' && !navigator.onLine))
+        // Network timeouts are already captured at the fetch layer — don't
+        // re-report them here (and not on every re-render). Only surface
+        // genuinely unexpected errors to Sentry.
+        if (!isNetworkError) {
+            console.error(error)
+            Sentry.captureException(error)
+        }
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
                 <h2 className="text-base font-bold">Activity</h2>{' '}
-                <EmptyState icon="alert" title="Error loading activity!" description="Please contact Support." />
+                <EmptyState
+                    icon="alert"
+                    title={isNetworkError ? "Couldn't load activity" : 'Error loading activity!'}
+                    description={isNetworkError ? 'Check your connection and try again.' : 'Please contact Support.'}
+                />
             </div>
         )
     }
