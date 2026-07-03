@@ -7,13 +7,14 @@ import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import Card from '../Global/Card'
 import CardLaunchCTABanner from '@/components/Home/CardLaunchCTA/CardLaunchCTABanner'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useAuth } from '@/context/authContext'
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
+import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 
 interface ActivationCTAsProps {
     activationStep: ActivationStep
@@ -102,6 +103,12 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             blockedRail: blocked,
         }
     }, [rails, channelOf])
+
+    // Self-serve email recovery: the BE tags email-less submission failures
+    // with reason code 'email_required' + a provide-email action — the fix is
+    // an email form, not a support ticket.
+    const isEmailBlocked = blockedRail?.reason?.code === 'email_required'
+    const [showProvideEmail, setShowProvideEmail] = useState(false)
 
     const lastTrackedStep = useRef<ActivationStep | null>(null)
     useEffect(() => {
@@ -193,7 +200,9 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     shadowSize="4"
                     className="mt-2 w-full"
                     onClick={() => {
-                        if (hasProviderRejection && hasBlockedRejection && !hasFixableRejection) {
+                        if (isEmailBlocked) {
+                            setShowProvideEmail(true)
+                        } else if (hasProviderRejection && hasBlockedRejection && !hasFixableRejection) {
                             // REQUIRES_SUPPORT class (or any blocked rail) — pre-fill Crisp
                             // with the failure context so support can dispatch without
                             // re-investigating the user's state.
@@ -219,6 +228,11 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     </button>
                 )}
             </div>
+            <ProvideEmailStep
+                visible={showProvideEmail}
+                onComplete={() => setShowProvideEmail(false)}
+                onSkip={() => setShowProvideEmail(false)}
+            />
         </Card>
     )
 }

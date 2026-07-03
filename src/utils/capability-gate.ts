@@ -68,6 +68,12 @@ export type GateState =
      * CTA opens a fresh Sumsub WebSDK after POST /users/identity/restart.
      */
     | { kind: 'restart-identity'; userMessage: string | null; reason?: CapabilityReason }
+    /**
+     * Blocked rail whose pipeline failure is self-serviceable: no email was
+     * ever captured, so provider submission couldn't run. CTA opens an email
+     * form; on save the BE flips the rails back to PENDING and resubmits.
+     */
+    | { kind: 'provide-email'; userMessage: string | null; reason?: CapabilityReason }
     | { kind: 'needs-identity' }
     | { kind: 'needs-enrollment' }
 
@@ -202,6 +208,14 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
     // the only path is contact-support.
     const blocked = candidates.find((rail) => rail.status === 'blocked')
     if (blocked) {
+        const hasProvideEmail = railActions(blocked, actionByKey).some((action) => action.kind === 'provide-email')
+        if (hasProvideEmail) {
+            return {
+                kind: 'provide-email',
+                userMessage: blocked.reason?.userMessage ?? null,
+                reason: blocked.reason,
+            }
+        }
         const hasRestart = railActions(blocked, actionByKey).some((action) => action.kind === 'restart-identity')
         if (hasRestart) {
             return {
@@ -303,6 +317,7 @@ export function getGateUserMessage(gate: GateState): string | undefined {
         gate.kind === 'fixable-rejection' ||
         gate.kind === 'blocked-rejection' ||
         gate.kind === 'restart-identity' ||
+        gate.kind === 'provide-email' ||
         gate.kind === 'accept-tos' ||
         gate.kind === 'waiting-on-provider'
     ) {
