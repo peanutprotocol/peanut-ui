@@ -126,10 +126,27 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         }
     }, [activationStep])
 
+    // A user who can already transact — they hold an active card (its rail reads
+    // `enabled`), have any other enabled rail, or the BE has marked them
+    // activated — is NOT mid-activation. A rejected *bank* rail is then an
+    // optional extra capability, not a setup blocker, so the home activation CTA
+    // must stand down. A genuinely-fixable bank RFI still surfaces in context in
+    // the /add-money bank flow (which runs its own gate). Without this, a
+    // card-holder with a dead/rejected bank rail gets nagged with "Complete your
+    // setup" on a rail they can't — and needn't — fix.
+    const canAlreadyTransact = useMemo(
+        () => rails.some((rail) => rail.status === 'enabled') || (user?.user?.isActivated ?? false),
+        [rails, user?.user?.isActivated]
+    )
+
     // provider rejection overrides the step copy when user is past the verify step
-    // (sumsub approved but provider rejected — deposit/outbound CTAs are useless)
+    // (sumsub approved but provider rejected — deposit/outbound CTAs are useless),
+    // UNLESS they can already transact via card / another rail (see above).
     const hasProviderRejection =
-        activationStep !== 'verify' && activationStep !== 'card' && (hasFixableRejection || hasBlockedRejection)
+        activationStep !== 'verify' &&
+        activationStep !== 'card' &&
+        !canAlreadyTransact &&
+        (hasFixableRejection || hasBlockedRejection)
 
     const step: StepConfig | null = useMemo(() => {
         if (activationStep === 'completed' && !hasProviderRejection) return null
