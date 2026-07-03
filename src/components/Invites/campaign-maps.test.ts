@@ -4,7 +4,9 @@ import {
     UTM_CAMPAIGN_TO_BADGE_MAP,
     WAITLIST_SKIP_CAMPAIGNS,
     BARE_VANITY_CAMPAIGNS,
+    OFFRAMP_BADGE_CODE,
     classifyBareCampaign,
+    resolveCampaign,
 } from './campaign-maps'
 
 // Regression guard. The /invite flow resolves an inbound invite code / utm_campaign
@@ -73,5 +75,41 @@ describe('classifyBareCampaign', () => {
     it('an unrelated or missing campaign is not bare-claimable', () => {
         expect(classifyBareCampaign(undefined, undefined).isBareClaimCampaign).toBe(false)
         expect(classifyBareCampaign('FOUNDER_HOUSE', undefined).isBareClaimCampaign).toBe(false)
+    })
+})
+
+describe('resolveCampaign', () => {
+    // The offramp migration regression this guards: ?campaign=offramp used to
+    // reach /badge/award as the raw string 'offramp' and 400 (the backend matches
+    // badge codes). The explicit param must resolve through the UTM map first.
+    it('resolves a lowercase human-facing tag in the explicit param (?campaign=offramp)', () => {
+        expect(resolveCampaign('offramp', undefined, undefined)).toBe(OFFRAMP_BADGE_CODE)
+        expect(resolveCampaign('OFFRAMP', undefined, undefined)).toBe(OFFRAMP_BADGE_CODE)
+    })
+
+    it('passes an unmapped explicit param through raw (?campaign=OFFRAMP_USER)', () => {
+        expect(resolveCampaign('OFFRAMP_USER', undefined, undefined)).toBe('OFFRAMP_USER')
+        expect(resolveCampaign('FOUNDER_HOUSE', undefined, undefined)).toBe('FOUNDER_HOUSE')
+    })
+
+    it('documents that ?campaign=<tag> behaves exactly like ?utm_campaign=<tag>', () => {
+        for (const [utmKey, badgeCode] of Object.entries(UTM_CAMPAIGN_TO_BADGE_MAP)) {
+            expect(resolveCampaign(utmKey, undefined, undefined)).toBe(badgeCode)
+            expect(resolveCampaign(undefined, undefined, utmKey)).toBe(badgeCode)
+        }
+    })
+
+    it('explicit param wins over invite code and utm_campaign', () => {
+        expect(resolveCampaign('offramp', 'alumni', 'touched-grass')).toBe(OFFRAMP_BADGE_CODE)
+    })
+
+    it('invite code wins over utm_campaign when there is no explicit param', () => {
+        expect(resolveCampaign(undefined, 'offramp', 'touched-grass')).toBe(OFFRAMP_BADGE_CODE)
+    })
+
+    it('falls back to utm_campaign, and to undefined when nothing resolves', () => {
+        expect(resolveCampaign(undefined, undefined, 'offramp')).toBe(OFFRAMP_BADGE_CODE)
+        expect(resolveCampaign(undefined, 'not-a-special-code', undefined)).toBeUndefined()
+        expect(resolveCampaign(null, undefined, undefined)).toBeUndefined()
     })
 })
