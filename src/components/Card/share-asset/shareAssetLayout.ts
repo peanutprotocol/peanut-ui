@@ -256,13 +256,17 @@ export function placeStamps(
         }
     }
 
-    // ── Final separation pass. The soft edge/pill pulls above can deadlock two
-    //    stickers against a corner (a Gauss–Seidel local minimum: the edge +
-    //    pill shove keeps cramming them back together faster than the pairwise
-    //    push can spread them). Run a short cleanup of separation + hard keep-
-    //    outs + clamp ONLY — no edge/pill pull — so pairwise spread gets the
-    //    last word. Card marks / hero stay clear; a sticker may drift under the
-    //    pill (which renders on top), but no two stickers pile up.
+    // ── Final separation pass. The main loop's *hard* edge + pill shoves can
+    //    deadlock two stickers against a corner (a Gauss–Seidel local minimum:
+    //    the hard shove crams them back together faster than the pairwise push
+    //    can spread them). Run a short cleanup of separation + hard card keep-
+    //    outs + a *soft* pill pull + clamp: the soft pull nudges stickers off
+    //    the @username pill without re-creating the hard-shove deadlock, so
+    //    pairwise spread still gets the last word. Dropping the pill entirely
+    //    here (the old behaviour) let separation shove a sticker onto the pill
+    //    on the last pass — the username-covered bug. Card marks / hero stay
+    //    clear and no two stickers pile up. The pill also renders ABOVE the
+    //    stickers, so the handle stays legible even if a corner drifts under it.
     for (let step = 0; step < SEPARATION_PASSES; step++) {
         for (let i = 0; i < count; i++) {
             for (let j = i + 1; j < count; j++) {
@@ -300,6 +304,17 @@ export function placeStamps(
                     p.x = ko.cx + (p.x - ko.cx) * s
                     p.y = ko.cy + (p.y - ko.cy) * s
                 }
+            }
+            // soft pull off the @username pill — a gentle nudge, not the main
+            // loop's hard shove (a hard shove here re-creates the corner
+            // deadlock this pass exists to break). The pill renders on top
+            // regardless, so this only has to stop stickers crowding it, not
+            // fully evict them.
+            if (hitsPill(p.x, p.y, half, pill)) {
+                const exitLeft = p.x + half - (pill.x0 - PILL_PAD)
+                const exitUp = p.y + half - (pill.y0 - PILL_PAD)
+                if (exitLeft < exitUp) p.x -= exitLeft * 0.5
+                else p.y -= exitUp * 0.5
             }
             p.x = clamp(p.x, minC, maxCx)
             p.y = clamp(p.y, minC, maxCy)
