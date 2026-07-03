@@ -24,7 +24,9 @@ export function useWaitingOnProviderModal(gate: GateState) {
     const [requested, setRequested] = useState(false)
     const isWaiting = gate.kind === 'waiting-on-provider'
     const isOpen = requested && isWaiting
-    const message = isOpen ? ((gate as { userMessage?: string | null }).userMessage ?? undefined) : undefined
+    // narrow on the discriminated union rather than casting, so a rename of
+    // `userMessage` fails the build instead of silently returning undefined.
+    const message = isOpen && gate.kind === 'waiting-on-provider' ? (gate.userMessage ?? undefined) : undefined
 
     const open = useCallback(() => {
         markSubmitted() // arm the poller immediately

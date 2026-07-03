@@ -46,7 +46,9 @@ export type UpliftStartTrigger = {
  * ready-to-fire trigger when it's an uplift remediation, else null.
  */
 export function upliftTriggerFromGate(gate: GateState): UpliftStartTrigger | null {
-    const code = (gate as { reason?: { code?: string } }).reason?.code
+    // narrow on the union ('reason' is native to the gate variants that carry
+    // it) rather than casting, so a rename of reason.code fails the build.
+    const code = 'reason' in gate ? gate.reason?.code : undefined
     if (!code?.startsWith('eea_uplift')) return null
     return { requirementKey: code, source: 'blocking' }
 }
