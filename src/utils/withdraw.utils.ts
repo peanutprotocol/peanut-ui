@@ -234,13 +234,14 @@ export const isPixEmvcoQr = (pixKey: string): boolean => {
  * these — recurrence payloads embed a URL containing "/rec/" per the BCB spec.
  * Recurrence-only codes may lack the currency/country fields PIX_REGEX needs,
  * so this must not assume a full payment payload — only EMVCo shape + "/rec/".
- * Note: real-world payloads mix upper/lower case, so match case-insensitively.
+ * Normalizes internally (case, protocol prefix) because callers pass raw
+ * scanner data, decoded URL params, and pasted keys alike.
  * @param code - raw scanned/pasted QR content
  * @returns true if the code is a PIX Automático (recurring) EMV payload
  */
 export const isPixRecurringCode = (code: string): boolean => {
-    const c = code.toLowerCase()
-    return c.startsWith('000201') && c.includes('br.gov.bcb.pix') && c.includes('/rec/')
+    const c = code.toLowerCase().replace(/^https?:\/\/(www\.)?/, '')
+    return isPixEmvcoQr(c) && c.includes('/rec/')
 }
 
 /**
@@ -312,6 +313,9 @@ export const validatePixKey = (pixKey: string): { valid: boolean; message?: stri
 
     // 6. EMVCo QR Code: Full QR code string
     if (isPixEmvcoQr(trimmed)) {
+        if (isPixRecurringCode(trimmed)) {
+            return { valid: false, message: 'PIX Automático (recurring) codes are not supported' }
+        }
         if (trimmed.length < 50 || trimmed.length > 500) {
             return { valid: false, message: 'Invalid QR code length' }
         }

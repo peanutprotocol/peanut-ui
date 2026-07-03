@@ -210,6 +210,10 @@ describe('recognizeQr', () => {
             expect(recognizeQr(recurrenceOnly.toUpperCase())).toBe(EQrType.PIX_RECURRING)
         })
 
+        it('should recognize a protocol-prefixed recurring payload (mirrors the "PIX with URL prefix" case)', () => {
+            expect(recognizeQr(`http://${compositeRecurring}`)).toBe(EQrType.PIX_RECURRING)
+        })
+
         it('should NOT classify a regular PIX payment QR as PIX_RECURRING', () => {
             const regularPix =
                 '00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-4266554400005204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'

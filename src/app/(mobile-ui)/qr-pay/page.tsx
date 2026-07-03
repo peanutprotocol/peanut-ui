@@ -525,6 +525,9 @@ export default function QRPayPage() {
             paymentProcessor === 'MANTECA' &&
             !!qrCode &&
             isPaymentProcessorQR(qrCode) &&
+            // Composite Automático codes also match isPaymentProcessorQR — without
+            // this the entry guard shows its error but the doomed init still fires.
+            !isPixRecurringCode(qrCode) &&
             !paymentLock &&
             !shouldBlockPay,
         retry: (failureCount, error: any) => {

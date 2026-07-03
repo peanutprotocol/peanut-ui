@@ -164,6 +164,8 @@ describe('Withdraw Utilities', () => {
             ['00020126720014br.gov.bcb.pix2550pix.example.com/rec/abc1236304ABCD', true],
             // Uppercase payload (real-world QRs mix case)
             ['00020126720014BR.GOV.BCB.PIX2550PIX.EXAMPLE.COM/REC/ABC1236304ABCD', true],
+            // Protocol-prefixed payload (some QRs embed the EMV string behind http://)
+            ['http://00020126720014br.gov.bcb.pix2550pix.example.com/rec/abc1236304ABCD', true],
             // Regular PIX payment QR — no /rec/
             [
                 '00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-4266554400005204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D',
@@ -178,6 +180,14 @@ describe('Withdraw Utilities', () => {
             ['', false],
         ])('should return %s for %s', (input, expected) => {
             expect(isPixRecurringCode(input)).toBe(expected)
+        })
+
+        it('validatePixKey rejects a recurring EMV payload as a destination (withdraw path)', () => {
+            const result = validatePixKey(
+                '00020126850014br.gov.bcb.pix2563pix.example.com/rec/2a4d05638b1c4b2e9f3a67890ab5204000053039865802BR5909Test Merc6009SAO PAULO62070503***6304ABCD'
+            )
+            expect(result.valid).toBe(false)
+            expect(result.message).toMatch(/recurring/i)
         })
     })
 
