@@ -312,10 +312,13 @@ export const validatePixKey = (pixKey: string): { valid: boolean; message?: stri
     }
 
     // 6. EMVCo QR Code: Full QR code string
+    // Checked before the EMVCo branch: isPixRecurringCode normalizes case and
+    // protocol prefixes that the stricter isPixEmvcoQr would fall through, so
+    // every recurring shape gets the specific message instead of the generic one.
+    if (isPixRecurringCode(trimmed)) {
+        return { valid: false, message: 'PIX Automático (recurring) codes are not supported' }
+    }
     if (isPixEmvcoQr(trimmed)) {
-        if (isPixRecurringCode(trimmed)) {
-            return { valid: false, message: 'PIX Automático (recurring) codes are not supported' }
-        }
         if (trimmed.length < 50 || trimmed.length > 500) {
             return { valid: false, message: 'Invalid QR code length' }
         }

@@ -189,6 +189,12 @@ describe('Withdraw Utilities', () => {
             expect(result.valid).toBe(false)
             expect(result.message).toMatch(/recurring/i)
         })
+
+        it('validatePixKey gives the specific recurring message even for uppercase payloads (which skip the case-sensitive EMVCo branch)', () => {
+            const result = validatePixKey('00020126720014BR.GOV.BCB.PIX2550PIX.EXAMPLE.COM/REC/ABC1236304ABCD')
+            expect(result.valid).toBe(false)
+            expect(result.message).toMatch(/recurring/i)
+        })
     })
 
     describe('validatePixKey', () => {
