@@ -42,6 +42,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/z
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
 import { MIN_MANTECA_QR_PAYMENT_AMOUNT, MIN_PIX_AMOUNT_BRL } from '@/constants/payment.consts'
+import { isPixRecurringCode } from '@/utils/withdraw.utils'
 import { formatUnits, parseUnits } from 'viem'
 import type { TransactionReceipt, Hash } from 'viem'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
@@ -85,12 +86,21 @@ const MIN_QR_PAYMENT_AMOUNT = '0.1'
 
 // Deterministic provider rejections — retrying the payment-lock query can't
 // change the outcome, so fail fast instead of burning the 3-attempt budget.
-const NON_RETRYABLE_QR_PAY_ERRORS = ['PAYMENT_DESTINATION_DECODING_ERROR', 'PIX_MIN_AMOUNT']
+const NON_RETRYABLE_QR_PAY_ERRORS = [
+    'PAYMENT_DESTINATION_DECODING_ERROR',
+    'PIX_MIN_AMOUNT',
+    'PIX_RECURRING_NOT_SUPPORTED',
+]
 
 // Shown wherever the backend rejects a Pix payment below the rail minimum
 // (typed 400 PIX_MIN_AMOUNT — fires at lock-init for merchant-encoded amounts
 // and at re-init for user-entered amounts on open-amount QRs).
 const PIX_MIN_AMOUNT_ERROR_MESSAGE = `This Pix charge is below the ${MIN_PIX_AMOUNT_BRL} BRL minimum for Pix payments.`
+
+// PIX Automático (recurring) codes — rejected at the entry guard for scanned/pasted
+// deep links, and mapped from the backend's typed 400 PIX_RECURRING_NOT_SUPPORTED.
+const PIX_RECURRING_ERROR_MESSAGE =
+    "This QR code is for a recurring payment (PIX Automático). Peanut doesn't support recurring PIX payments — please ask for a regular PIX QR code instead."
 
 type PaymentProcessor = 'MANTECA'
 
@@ -365,6 +375,13 @@ export default function QRPayPage() {
     useEffect(() => {
         resetState()
 
+        // Before isPaymentProcessorQR: recurrence codes can match PIX_REGEX, and the
+        // specific message must win over the generic "Invalid QR code scanned".
+        if (qrCode && isPixRecurringCode(qrCode)) {
+            setErrorInitiatingPayment(PIX_RECURRING_ERROR_MESSAGE)
+            return
+        }
+
         if (!qrCode || !isPaymentProcessorQR(qrCode)) {
             setErrorInitiatingPayment('Invalid QR code scanned')
             return
@@ -561,6 +578,9 @@ export default function QRPayPage() {
                 // the rail minimum, so there's no merchant amount to wait for.
                 setWaitingForMerchantAmount(false)
                 setErrorInitiatingPayment(PIX_MIN_AMOUNT_ERROR_MESSAGE)
+            } else if (error.message.includes('PIX_RECURRING_NOT_SUPPORTED')) {
+                setWaitingForMerchantAmount(false)
+                setErrorInitiatingPayment(PIX_RECURRING_ERROR_MESSAGE)
             } else {
                 // Network/timeout errors after all retries exhausted
                 setErrorInitiatingPayment(

@@ -230,6 +230,22 @@ export const isPixEmvcoQr = (pixKey: string): boolean => {
 }
 
 /**
+ * Detects a PIX Automático (recurring payment) QR code. Peanut can't process
+ * these — recurrence payloads embed a URL containing "/rec/" per the BCB spec.
+ * Recurrence-only codes may lack the currency/country fields PIX_REGEX needs,
+ * so this must not assume a full payment payload — only EMVCo shape + "/rec/".
+ * Note: real-world payloads mix upper/lower case, so match case-insensitively.
+ * @param code - raw scanned/pasted QR content
+ * @returns true if the code is a PIX Automático (recurring) EMV payload
+ */
+export const isPixRecurringCode = (code: string): boolean => {
+    // TODO(human) — implement the detection: an EMVCo PIX payload (starts with
+    // "000201", contains "br.gov.bcb.pix") whose content contains "/rec/",
+    // all case-insensitive. Tests: src/utils/__tests__/withdraw.utils.test.ts
+    return false
+}
+
+/**
  * Normalizes a raw PIX key as the user types: keep an EMVCo QR verbatim,
  * otherwise strip whitespace and canonicalize a phone number to its +55 form.
  * Shared by every PIX-key input so they can't drift.

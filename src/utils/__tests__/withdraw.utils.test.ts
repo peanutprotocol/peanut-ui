@@ -3,6 +3,7 @@ import {
     isPixPhoneNumber,
     normalizePixPhoneNumber,
     isPixEmvcoQr,
+    isPixRecurringCode,
     normalizePixInput,
     validatePixKey,
     getCountryCodeForWithdraw,
@@ -149,6 +150,34 @@ describe('Withdraw Utilities', () => {
             ['', false],
         ])('should return %s for %s', (input, expected) => {
             expect(isPixEmvcoQr(input)).toBe(expected)
+        })
+    })
+
+    describe('isPixRecurringCode (PIX Automático)', () => {
+        it.each([
+            // Composite Automático payload — payment fields + /rec/ URL
+            [
+                '00020126850014br.gov.bcb.pix2563pix.example.com/rec/2a4d05638b1c4b2e9f3a67890ab5204000053039865802BR5909Test Merc6009SAO PAULO62070503***6304ABCD',
+                true,
+            ],
+            // Recurrence-only payload — no currency (5303986) / country (5802BR) fields
+            ['00020126720014br.gov.bcb.pix2550pix.example.com/rec/abc1236304ABCD', true],
+            // Uppercase payload (real-world QRs mix case)
+            ['00020126720014BR.GOV.BCB.PIX2550PIX.EXAMPLE.COM/REC/ABC1236304ABCD', true],
+            // Regular PIX payment QR — no /rec/
+            [
+                '00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-4266554400005204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D',
+                false,
+            ],
+            // /rec/ present but not a PIX EMV payload
+            ['https://example.com/rec/123', false],
+            // /rec/ present but wrong EMV prefix
+            ['999999260014br.gov.bcb.pix2550pix.example.com/rec/abc123', false],
+            // Raw PIX key
+            ['user@example.com', false],
+            ['', false],
+        ])('should return %s for %s', (input, expected) => {
+            expect(isPixRecurringCode(input)).toBe(expected)
         })
     })
 
