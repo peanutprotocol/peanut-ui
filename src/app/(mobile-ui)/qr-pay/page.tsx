@@ -100,7 +100,7 @@ const PIX_MIN_AMOUNT_ERROR_MESSAGE = `This Pix charge is below the ${MIN_PIX_AMO
 // PIX Automático (recurring) codes — rejected at the entry guard for scanned/pasted
 // deep links, and mapped from the backend's typed 400 PIX_RECURRING_NOT_SUPPORTED.
 const PIX_RECURRING_ERROR_MESSAGE =
-    "This QR code is for a recurring payment (PIX Automático). Peanut doesn't support recurring PIX payments — please ask for a regular PIX QR code instead."
+    "Oooops... This QR code is for a recurring payment (PIX Automático) which we don't support at the moment"
 
 type PaymentProcessor = 'MANTECA'
 
