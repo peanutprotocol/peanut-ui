@@ -1,7 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 
 const cloud1 = (
     <svg width="209" height="98" viewBox="0 0 209 98" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -45,25 +44,23 @@ const Cloud: React.FC<CloudProps> = ({ top, scale = 1, variant, side, speed, scr
     const distance = Math.abs(endX - startX)
     const duration = distance / speed
 
+    // CSS animation (see .cloud-drift in globals.css) so the drift runs on the
+    // compositor thread — framer-motion's rAF loop pinned the main thread on
+    // low-end devices (iPhone X) for the lifetime of the screen.
+    const style: CSSProperties & Record<'--cloud-from' | '--cloud-to' | '--cloud-scale', string> = {
+        position: 'absolute',
+        top: `${top}%`,
+        zIndex: 0,
+        animationDuration: `${duration}s`,
+        '--cloud-from': `${startX}px`,
+        '--cloud-to': `${endX}px`,
+        '--cloud-scale': `${scale}`,
+    }
+
     return (
-        <motion.div
-            style={{
-                position: 'absolute',
-                top: `${top}%`,
-                transform: `scale(${scale})`,
-                zIndex: 0,
-            }}
-            initial={{ x: startX }}
-            animate={{ x: endX }}
-            transition={{
-                duration,
-                repeat: Infinity,
-                ease: 'linear',
-                repeatType: 'loop',
-            }}
-        >
+        <div className="cloud-drift" style={style}>
             {CloudSvg}
-        </motion.div>
+        </div>
     )
 }
 

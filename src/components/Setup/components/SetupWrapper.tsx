@@ -42,7 +42,9 @@ interface SetupWrapperProps {
 
 // define responsive height classes for different layout types
 const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
-    signup: 'min-h-[55dvh] md:min-h-full', // signup view has larger container height
+    // signup: flexible hero — grows into leftover space but never squeezes the
+    // content panel into scrolling on short screens (e.g. iPhone X)
+    signup: 'min-h-[35dvh] grow md:grow-0 md:min-h-full',
     standard: 'min-h-[50dvh] md:min-h-full', // rest all views has medium container height
     'android-initial-pwa-install': 'min-h-[60dvh] md:min-h-full',
 }
@@ -122,7 +124,7 @@ const ImageSection = ({
     const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
     const imageClass = !!imageClassName
         ? imageClassName
-        : 'w-full max-w-[80%] md:max-w-[75%] lg:max-w-xl object-contain relative'
+        : 'w-full max-w-[80%] max-h-[85%] md:max-w-[75%] lg:max-w-xl object-contain relative'
 
     // special rendering for welcome/signup screens with animated decorations
     if (isSignup) {
@@ -257,7 +259,10 @@ export const SetupWrapper = memo(function SetupWrapper({
                     animate={animatePanelIn ? { y: 0 } : undefined}
                     transition={{ type: 'spring', stiffness: 260, damping: 30 }}
                     className={twMerge(
-                        'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',
+                        'flex flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',
+                        // signup: panel hugs its content so the hero absorbs the slack
+                        // (paired with the grow classes in IMAGE_CONTAINER_CLASSES)
+                        layoutType === 'signup' ? 'grow-0 md:grow' : 'flex-grow',
                         contentClassName
                     )}
                 >

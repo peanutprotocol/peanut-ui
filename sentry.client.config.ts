@@ -19,7 +19,7 @@ if (process.env.NODE_ENV !== 'development') {
         dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
         environment: inferSentryEnvironment(),
         enabled: true,
-        tracesSampleRate: 1,
+        tracesSampleRate: 0.1,
         debug: false,
 
         beforeSend: beforeSendHandler,
