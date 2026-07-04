@@ -112,14 +112,9 @@ let nextConfig = {
     async rewrites() {
         return {
             beforeFiles: [
-                {
-                    source: '/apple-app-site-association',
-                    destination: '/api/apple-app-site-association',
-                },
-                {
-                    source: '/.well-known/apple-app-site-association',
-                    destination: '/api/apple-app-site-association',
-                },
+                // apple-app-site-association is served statically from
+                // public/.well-known/ (mirrors assetlinks.json for Android); no
+                // rewrite here, or it would shadow the static file.
                 {
                     source: '/.well-known/assetLinks.json',
                     destination: '/api/assetLinks',
@@ -160,7 +155,7 @@ let nextConfig = {
     async headers() {
         return [
             {
-                source: '/apple-app-site-association',
+                source: '/.well-known/apple-app-site-association',
                 headers: [
                     {
                         key: 'Content-Type',
