@@ -808,9 +808,10 @@ export default function QRPayPage() {
         //    already carries the sponsored amount from that response — so mark
         //    it claimed and report it directly. (The old /perks/claim round-trip
         //    took a mantecaTransferId the endpoint no longer accepts — it now
-        //    requires a usageId the client never has — so it always 400'd and
-        //    showed a false "reward is being processed" error even though the
-        //    reward had already landed.)
+        //    requires a usageId the client never has — so it always 400'd: pure
+        //    Sentry noise, and REWARD_CLAIMED never fired because it lived in the
+        //    never-reached success branch. The error it set was invisible here —
+        //    the success screen doesn't render errorMessage.)
         const claimedPerk = qrPayment.perk
         if (claimedPerk) {
             posthog.capture(ANALYTICS_EVENTS.REWARD_CLAIMED, {
