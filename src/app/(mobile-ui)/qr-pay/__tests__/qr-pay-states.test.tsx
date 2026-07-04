@@ -159,7 +159,6 @@ jest.mock('@/components/TransactionDetails/TransactionDetailsDrawer', () => ({
 const mockMantecaApi = {
     initiateQrPayment: jest.fn(),
     completeQrPaymentWithSignedTx: jest.fn(),
-    claimPerk: jest.fn(),
 }
 jest.mock('@/services/manteca', () => ({
     mantecaApi: mockMantecaApi,
@@ -619,15 +618,6 @@ function applyDefaults() {
             paymentPrice: '1200',
             priceExpireAt: '2026-04-16T23:59:59Z',
             merchant: { name: 'Test Merchant' },
-        },
-    })
-
-    mockMantecaApi.claimPerk.mockResolvedValue({
-        success: true,
-        perk: {
-            amountSponsored: 0.5,
-            discountPercentage: 5,
-            txHash: '0xabc',
         },
     })
 
@@ -1106,6 +1096,57 @@ describe('GROUP 4: Success States', () => {
         await waitFor(() => {
             expect(screen.getByText('Go to Home')).toBeInTheDocument()
         })
+
+        jest.useRealTimers()
+    })
+
+    // Regression: the perk is already claimed server-side during QR-payment
+    // processing, and the QR response carries the sponsored amount. The
+    // hold-to-claim gesture must report that reward directly — it must NOT make
+    // a second /perks/claim round-trip (that endpoint now requires a usageId the
+    // client never has, so the old call always 400'd and surfaced a false
+    // "reward is being processed" error even though the reward had landed).
+    test('Perk claim reports the reward from the QR response, no /perks/claim round-trip, no error', async () => {
+        jest.useFakeTimers()
+        const posthog = require('posthog-js').default
+
+        // BE sends sponsoredUsd; the page maps it to amountSponsored on load.
+        await completeMantecaPayment({
+            perk: {
+                eligible: true,
+                discountPercentage: 5,
+                sponsoredUsd: 0.5,
+            },
+        })
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /Claim Reward/i })).toBeInTheDocument()
+        })
+
+        const claimButton = screen.getByRole('button', { name: /Claim Reward/i })
+        await act(async () => {
+            fireEvent.pointerDown(claimButton)
+        })
+        // Advance past the hold duration to fire the claim.
+        await act(async () => {
+            jest.advanceTimersByTime(1600)
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText('Go to Home')).toBeInTheDocument()
+        })
+
+        // Reward reported from the QR response (sponsoredUsd → amount_usd).
+        expect(posthog.capture).toHaveBeenCalledWith('reward_claimed', {
+            amount_usd: 0.5,
+            discount_pct: 5,
+        })
+
+        // The old broken round-trip surfaced this false error — it must not appear.
+        expect(screen.queryByText(/reward is being processed/i)).not.toBeInTheDocument()
+
+        // The redundant client claim method is gone entirely.
+        expect('claimPerk' in mockMantecaApi).toBe(false)
 
         jest.useRealTimers()
     })
