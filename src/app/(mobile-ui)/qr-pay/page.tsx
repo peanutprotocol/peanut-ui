@@ -261,7 +261,6 @@ export default function QRPayPage() {
     const queryClient = useQueryClient()
     const [isShaking, setIsShaking] = useState(false)
     const [shakeIntensity, setShakeIntensity] = useState<ShakeIntensity>('none')
-    const [isClaimingPerk, setIsClaimingPerk] = useState(false)
     const [perkClaimed, setPerkClaimed] = useState(false)
     const [holdProgress, setHoldProgress] = useState(0)
     const holdTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -299,7 +298,6 @@ export default function QRPayPage() {
         setWaitingForMerchantAmount(false)
         retryCount.current = 0
         // reset perk states
-        setIsClaimingPerk(false)
         setPerkClaimed(false)
         // reset analytics tracking refs so a new QR flow gets fresh tracking
         hasTrackedPerkShown.current = false
@@ -784,7 +782,7 @@ export default function QRPayPage() {
     // DEV NOTE: This is an OPTIMISTIC claim flow for better UX
     // We immediately show success UI and trigger confetti, then claim in background
     // If claim fails, we show error post-factum but keep the user in success state
-    const claimPerk = useCallback(async () => {
+    const claimPerk = useCallback(() => {
         if (!qrPayment?.externalId) return
 
         // 1. IMMEDIATELY show success UI (optimistic)
@@ -805,34 +803,22 @@ export default function QRPayPage() {
             shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })
         }, 100)
 
-        // 5. NOW do the actual API claim in the background
-        setIsClaimingPerk(true)
-        try {
-            const result = await mantecaApi.claimPerk(qrPayment.externalId)
-            if (result.success) {
-                posthog.capture(ANALYTICS_EVENTS.REWARD_CLAIMED, {
-                    amount_usd: result.perk.amountSponsored,
-                    discount_pct: result.perk.discountPercentage,
-                })
-                // Update qrPayment with actual claimed perk info from backend
-                setQrPayment({
-                    ...qrPayment,
-                    perk: {
-                        eligible: true,
-                        discountPercentage: result.perk.discountPercentage,
-                        claimed: true,
-                        amountSponsored: result.perk.amountSponsored,
-                        txHash: result.perk.txHash,
-                    },
-                })
-            }
-        } catch (error) {
-            // If claim fails, show error but keep user in success state
-            // (they already saw confetti, better UX than reverting)
-            captureException(error)
-            setErrorMessage('Reward is being processed. If you do not see it in your history, contact support.')
-        } finally {
-            setIsClaimingPerk(false)
+        // 5. Surface the reward. The perk was already issued AND claimed
+        //    server-side during QR-payment processing, and qrPayment.perk
+        //    already carries the sponsored amount from that response — so mark
+        //    it claimed and report it directly. (The old /perks/claim round-trip
+        //    took a mantecaTransferId the endpoint no longer accepts — it now
+        //    requires a usageId the client never has — so it always 400'd: pure
+        //    Sentry noise, and REWARD_CLAIMED never fired because it lived in the
+        //    never-reached success branch. The error it set was invisible here —
+        //    the success screen doesn't render errorMessage.)
+        const claimedPerk = qrPayment.perk
+        if (claimedPerk) {
+            posthog.capture(ANALYTICS_EVENTS.REWARD_CLAIMED, {
+                amount_usd: claimedPerk.amountSponsored,
+                discount_pct: claimedPerk.discountPercentage,
+            })
+            setQrPayment({ ...qrPayment, perk: { ...claimedPerk, claimed: true } })
         }
     }, [qrPayment])
 
@@ -1366,13 +1352,13 @@ export default function QRPayPage() {
                                 onPointerUp={cancelHold}
                                 onPointerLeave={cancelHold}
                                 onKeyDown={(e) => {
-                                    if ((e.key === 'Enter' || e.key === ' ') && !isClaimingPerk) {
+                                    if (e.key === 'Enter' || e.key === ' ') {
                                         e.preventDefault()
                                         startHold()
                                     }
                                 }}
                                 onKeyUp={(e) => {
-                                    if ((e.key === 'Enter' || e.key === ' ') && !isClaimingPerk) {
+                                    if (e.key === 'Enter' || e.key === ' ') {
                                         e.preventDefault()
                                         cancelHold()
                                     }
@@ -1382,8 +1368,6 @@ export default function QRPayPage() {
                                     e.preventDefault()
                                 }}
                                 shadowSize="4"
-                                disabled={isClaimingPerk}
-                                loading={isClaimingPerk}
                                 className="relative touch-manipulation select-none overflow-hidden"
                                 style={{
                                     WebkitTouchCallout: 'none',
