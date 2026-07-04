@@ -24,10 +24,7 @@ const { execSync } = require('child_process')
 const SUMSUB_VERSION = '1.42.0'
 
 const repoRoot = path.join(__dirname, '..')
-const pluginDir = path.join(
-    repoRoot,
-    'ios/capacitor-cordova-ios-plugins/sources/SumsubCordovaIdensicMobileSdkPlugin',
-)
+const pluginDir = path.join(repoRoot, 'ios/capacitor-cordova-ios-plugins/sources/SumsubCordovaIdensicMobileSdkPlugin')
 const frameworksDir = path.join(pluginDir, 'Frameworks')
 const xcframework = path.join(frameworksDir, 'IdensicMobileSDK.xcframework')
 const pkgSwiftPath = path.join(pluginDir, 'Package.swift')
@@ -70,21 +67,20 @@ if (pkg.includes('IdensicMobileSDK')) {
             '        .binaryTarget(\n' +
             '            name: "IdensicMobileSDK",\n' +
             '            path: "Frameworks/IdensicMobileSDK.xcframework"\n' +
-            '        ),\n',
+            '        ),\n'
     )
 
     // (b) add it to the plugin target's dependencies
     pkg = pkg.replace(
         '.product(name: "Cordova", package: "capacitor-swift-pm")\n',
-        '.product(name: "Cordova", package: "capacitor-swift-pm"),\n' +
-            '                "IdensicMobileSDK"\n',
+        '.product(name: "Cordova", package: "capacitor-swift-pm"),\n' + '                "IdensicMobileSDK"\n'
     )
 
     // (c) keep the framework dir out of the source-file glob.
     // SwiftPM enforces argument order: `exclude:` must precede `publicHeadersPath:`.
     pkg = pkg.replace(
         'path: ".",\n            publicHeadersPath: "."',
-        'path: ".",\n            exclude: ["Frameworks"],\n            publicHeadersPath: "."',
+        'path: ".",\n            exclude: ["Frameworks"],\n            publicHeadersPath: "."'
     )
 
     if (pkg === before) {

@@ -32,24 +32,19 @@ export function useNativePlugins() {
         const init = async () => {
             try {
                 const { App } = await import('@capacitor/app')
-                const backListener = await App.addListener(
-                    'backButton',
-                    ({ canGoBack }: { canGoBack: boolean }) => {
-                        if (canGoBack) {
-                            router.back()
-                        } else {
-                            App.minimizeApp()
-                        }
+                const backListener = await App.addListener('backButton', ({ canGoBack }: { canGoBack: boolean }) => {
+                    if (canGoBack) {
+                        router.back()
+                    } else {
+                        App.minimizeApp()
                     }
-                )
+                })
                 cleanups.push(() => backListener.remove())
 
                 // App Links: cold start (getLaunchUrl) + warm start (appUrlOpen).
                 const launch = await App.getLaunchUrl()
                 openDeepLink(launch?.url)
-                const urlListener = await App.addListener('appUrlOpen', ({ url }: { url: string }) =>
-                    openDeepLink(url)
-                )
+                const urlListener = await App.addListener('appUrlOpen', ({ url }: { url: string }) => openDeepLink(url))
                 cleanups.push(() => urlListener.remove())
             } catch (e) {
                 console.warn('failed to init app listeners:', e)

@@ -1,9 +1,4 @@
-import {
-    getConsecutiveFailures,
-    reportNetworkError,
-    reportNetworkOk,
-    subscribeConnectivity,
-} from '../connectivity'
+import { getConsecutiveFailures, reportNetworkError, reportNetworkOk, subscribeConnectivity } from '../connectivity'
 
 // Module state is shared across tests, so reset to a known-good state each time.
 beforeEach(() => {
