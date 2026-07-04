@@ -8,6 +8,7 @@
  * per-test via mockReturnValue / mockImplementation.
  */
 import React from 'react'
+import posthog from 'posthog-js'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
@@ -1108,7 +1109,6 @@ describe('GROUP 4: Success States', () => {
     // "reward is being processed" error even though the reward had landed).
     test('Perk claim reports the reward from the QR response, no /perks/claim round-trip, no error', async () => {
         jest.useFakeTimers()
-        const posthog = require('posthog-js').default
 
         // BE sends sponsoredUsd; the page maps it to amountSponsored on load.
         await completeMantecaPayment({
