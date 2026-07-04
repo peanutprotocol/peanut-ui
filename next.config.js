@@ -111,15 +111,10 @@ let nextConfig = {
     skipTrailingSlashRedirect: true,
     async rewrites() {
         return {
-            beforeFiles: [
-                // apple-app-site-association is served statically from
-                // public/.well-known/ (mirrors assetlinks.json for Android); no
-                // rewrite here, or it would shadow the static file.
-                {
-                    source: '/.well-known/assetLinks.json',
-                    destination: '/api/assetLinks',
-                },
-            ],
+            // Domain-association files (apple-app-site-association, assetlinks.json)
+            // are served statically from public/.well-known/ — no rewrites here,
+            // or they would shadow the static files.
+            beforeFiles: [],
             afterFiles: [
                 // PostHog reverse proxy — bypasses ad blockers. Path renamed
                 // from /ingest/ (which uBlock Origin's default lists block as
