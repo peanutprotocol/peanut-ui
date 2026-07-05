@@ -25,10 +25,13 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     useEffect(() => {
         if (!isCapacitor()) return
         import('@capacitor/status-bar')
-            .then(({ StatusBar, Style }) => {
-                StatusBar.setOverlaysWebView({ overlay: false })
-                StatusBar.setStyle({ style: Style.Light })
-                StatusBar.setBackgroundColor({ color: '#90A8ED' }) // secondary-3
+            .then(async ({ StatusBar, Style }) => {
+                // await so rejections (e.g. plugin missing in older native
+                // binaries that got this bundle via OTA update) hit the catch
+                // below instead of surfacing as unhandled rejections in Sentry
+                await StatusBar.setOverlaysWebView({ overlay: false })
+                await StatusBar.setStyle({ style: Style.Light })
+                await StatusBar.setBackgroundColor({ color: '#90A8ED' }) // secondary-3
             })
             .catch(() => {})
     }, [])
