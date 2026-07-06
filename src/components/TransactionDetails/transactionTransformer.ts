@@ -622,7 +622,10 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                           cancellationReason: entry.extraData?.cancellationReason as string | null,
                           parentRainTxId: entry.extraData?.parentRainTxId as string | null,
                           rainTransactionId: entry.extraData?.rainTransactionId as string | null,
-                          isRefund: !!entry.extraData?.parentRainTxId,
+                          isRefund:
+                              !!entry.extraData?.parentRainTxId ||
+                              entry.extraData?.isRefund === true ||
+                              Number(entry.amount) < 0,
                           // Dispute lifecycle — null when Rain hasn't fired
                           // any dispute.* webhook for this spend.
                           dispute: (() => {
