@@ -1,17 +1,15 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { useToast } from '@/components/0_Bruddle/Toast'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import * as Sentry from '@sentry/nextjs'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { invitesApi } from '@/services/invites'
 import ErrorAlert from '@/components/Global/ErrorAlert'
-import { useLogin } from '@/hooks/useLogin'
+import LoginLink from '@/components/Setup/components/LoginLink'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { INVITER_NOT_FOUND_ERROR } from '@/constants/invites.consts'
@@ -23,10 +21,8 @@ const JoinWaitlist = () => {
     const [isLoading, setisLoading] = useState(false)
     const [error, setError] = useState('')
 
-    const toast = useToast()
     const { handleNext } = useSetupFlow()
     const dispatch = useAppDispatch()
-    const { handleLoginClick, isLoggingIn } = useLogin()
 
     useEffect(() => {
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_WAITLIST_VIEWED)
@@ -57,25 +53,6 @@ const JoinWaitlist = () => {
             return false
         } finally {
             setisLoading(false)
-        }
-    }
-
-    const handleError = (error: any) => {
-        const errorMessage =
-            error.code === 'LOGIN_CANCELED'
-                ? 'Login was canceled. Please try again.'
-                : error.code === 'NO_PASSKEY'
-                  ? 'No passkey found. Please create a wallet first.'
-                  : 'An unexpected error occurred during login.'
-        toast.error(errorMessage)
-        Sentry.captureException(error, { extra: { errorCode: error.code } })
-    }
-
-    const onLoginClick = async () => {
-        try {
-            await handleLoginClick()
-        } catch (e) {
-            handleError(e)
         }
     }
 
@@ -133,6 +110,10 @@ const JoinWaitlist = () => {
             >
                 Join waitlist
             </Button>
+
+            <div className="text-center">
+                <LoginLink />
+            </div>
         </div>
     )
 }

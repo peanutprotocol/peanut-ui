@@ -9,6 +9,7 @@ import { setupActions } from '@/redux/slices/setup-slice'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
+import LoginLink from '@/components/Setup/components/LoginLink'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useState } from 'react'
@@ -150,7 +151,10 @@ const SignupStep = () => {
                         </div>
                     )}
                 </div>
-                <div>
+                <div className="space-y-3">
+                    <div className="text-center">
+                        <LoginLink />
+                    </div>
                     <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
                         <span>By creating account you agree with </span>
                         <Link rel="noopener noreferrer" target="_blank" href="/terms">
