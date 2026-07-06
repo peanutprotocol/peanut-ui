@@ -78,4 +78,13 @@ describe('ErrorHandler', () => {
         expect(rainCollateralErrorMessage(cooldown)).toBe(cooldown.message)
         expect(ErrorHandler(cooldown)).toBe(cooldown.message)
     })
+
+    test('stale-card-approval surfaces its friendly copy inline, not the "contact support" fallback', () => {
+        // Matched by error name so the inline path matches the global re-enable
+        // modal instead of dead-ending on the generic support fallback.
+        const stale = new Error('Your card needs to be re-enabled before you can withdraw.')
+        stale.name = 'StaleCardApprovalError'
+        expect(rainCollateralErrorMessage(stale)).toBe(stale.message)
+        expect(ErrorHandler(stale)).toBe(stale.message)
+    })
 })
