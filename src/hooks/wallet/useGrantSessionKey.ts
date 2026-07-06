@@ -83,7 +83,7 @@ export interface GrantSessionKeyResult {
 
 export const useGrantSessionKey = (): GrantSessionKeyResult => {
     const { overview, refetch } = useRainCardOverview()
-    const { getClientForChain } = useKernelClient()
+    const { getClientForChain, getPatchedSudoValidator } = useKernelClient()
     const queryClient = useQueryClient()
     const [isGranting, setIsGranting] = useState(false)
     const [lastError, setLastError] = useState<GrantSessionKeyError | null>(null)
@@ -157,11 +157,21 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
         // 'no-contracts' / 'session-key-unavailable' early returns that never
         // produce a passkey prompt.
         posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_PROMPTED)
+        // The serialized approval's sudo plugin MUST bind to the v0.0.3 PATCHED
+        // validator. Do NOT read `kernelClient.account.kernelPluginManager
+        // .sudoValidator`: for a pre-2025-09-18 (migrated) user that resolves to
+        // the STALE v0.0.2 validator the migration client was constructed with
+        // (`sudo: fromValidator`), so the backend's replayed sweep/withdraw
+        // userOp gets wapk-403'd by ZeroDev's paymaster. `getPatchedSudoValidator`
+        // is the single source of truth — the same v0.0.3 validator the migration
+        // client migrates *to* — so the approval binds correctly for every user.
+        const patchedSudoValidator = await getPatchedSudoValidator(peanutPublicClient)
+
         // Triggers the passkey prompt — this is the one-time install.
         // `address` is forced to the user's actual wallet so the approval
         // binds to the deployed kernel. Pre-2025-09-18 users sit at a
         // legacy V0_0_2-derived address (migrated in place to V0_0_3); the
-        // natural counterfactual of `createKernelAccount({sudo: newValidator})`
+        // natural counterfactual of `createKernelAccount({sudo: patchedSudoValidator})`
         // is a different, never-funded address. Forcing the address here makes
         // the grant work for both legacy and post-migration users.
         const sessionKernelAccount = await createKernelAccount(peanutPublicClient, {
@@ -169,14 +179,14 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
             entryPoint: getEntryPoint('0.7'),
             kernelVersion: KERNEL_V3_1,
             plugins: {
-                sudo: (kernelClient.account as any).kernelPluginManager.sudoValidator,
+                sudo: patchedSudoValidator,
                 regular: permissionPlugin,
             },
         })
 
         const serialized = await serializePermissionAccount(sessionKernelAccount)
         return { ok: true, serialized }
-    }, [overview, getClientForChain])
+    }, [overview, getClientForChain, getPatchedSudoValidator])
 
     const wrap = useCallback(
         async <T>(
