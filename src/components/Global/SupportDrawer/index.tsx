@@ -106,10 +106,10 @@ const SupportDrawer = () => {
         const handleMessage = (event: MessageEvent) => {
             if (event.origin !== window.location.origin) return
 
-            if (event.data.type === 'CRISP_READY') {
+            if (event.data?.type === 'CRISP_READY') {
                 setIsCrispReady(true)
                 setIsCrispFailed(false)
-            } else if (event.data.type === 'CRISP_FAILED') {
+            } else if (event.data?.type === 'CRISP_FAILED') {
                 setIsCrispFailed(true)
             }
         }

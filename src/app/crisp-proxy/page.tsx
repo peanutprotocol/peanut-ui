@@ -28,18 +28,35 @@ function CrispProxyContent() {
         const prefilledMessage = searchParams.get('prefilled_message')
         const currentTokenId = searchParams.get('crisp_token_id')
 
-        // Notify the parent (SupportDrawer) exactly once — either ready or failed —
-        // so a spinner never hangs forever and a failure surfaces a fallback UI.
-        let notified = false
-        const notifyParent = (type: 'CRISP_READY' | 'CRISP_FAILED') => {
-            if (notified) return
-            notified = true
+        // Report readiness to the parent (SupportDrawer). A READY may supersede an earlier
+        // FAILED: on a slow connection the 8s watchdog can post FAILED before the chatbox
+        // finishes loading, and the later session:loaded must still be able to dismiss the
+        // fallback. Once READY has been sent, FAILED never fires. Each is sent at most once.
+        let readyNotified = false
+        let failedNotified = false
+        const postToParent = (type: 'CRISP_READY' | 'CRISP_FAILED') => {
             if (window.parent !== window) {
                 window.parent.postMessage({ type }, window.location.origin)
             }
         }
-        const notifyParentReady = () => notifyParent('CRISP_READY')
-        const notifyParentFailed = () => notifyParent('CRISP_FAILED')
+        const notifyParentReady = () => {
+            if (readyNotified) return
+            readyNotified = true
+            // Record the identity as loaded only now that Crisp has confirmed ready —
+            // writing it optimistically would let a failed load skip the reset on Retry.
+            try {
+                localStorage.setItem('crisp_last_token_id', currentTokenId ?? '')
+            } catch {
+                // storage blocked (private mode / partitioned iframe) — the token-change
+                // reset simply re-fires on the next load, which is harmless.
+            }
+            postToParent('CRISP_READY')
+        }
+        const notifyParentFailed = () => {
+            if (failedNotified || readyNotified) return
+            failedNotified = true
+            postToParent('CRISP_FAILED')
+        }
 
         // Crisp upgrades the $crisp array in place once l.js loads, adding methods.
         const crispScriptLoaded = () => typeof window.$crisp?.is === 'function'
@@ -56,14 +73,27 @@ function CrispProxyContent() {
             //     survives restarts. Crisp silently refuses to bind a new token over a
             //     persisted session without a reset first, which is what leaves the
             //     chatbox blank for users who have hosted more than one account.
-            const needsReset = sessionStorage.getItem('crisp_needs_reset') === 'true'
-            const lastTokenId = localStorage.getItem('crisp_last_token_id') ?? ''
+            let needsReset = false
+            let lastTokenId = ''
+            try {
+                needsReset = sessionStorage.getItem('crisp_needs_reset') === 'true'
+                lastTokenId = localStorage.getItem('crisp_last_token_id') ?? ''
+            } catch {
+                // storage blocked (private mode / partitioned iframe) — fall back to no
+                // stored identity; the token-change check below still triggers a reset,
+                // and identity/session setup below proceeds instead of aborting.
+            }
             const tokenChanged = lastTokenId !== (currentTokenId ?? '')
             if (needsReset || tokenChanged) {
                 window.$crisp.push(['do', 'session:reset'])
-                sessionStorage.removeItem('crisp_needs_reset')
+                try {
+                    sessionStorage.removeItem('crisp_needs_reset')
+                } catch {
+                    // storage blocked — the flag couldn't have been read as true anyway.
+                }
             }
-            localStorage.setItem('crisp_last_token_id', currentTokenId ?? '')
+            // NB: crisp_last_token_id is persisted in notifyParentReady, once Crisp confirms
+            // the session actually loaded — not here, so a failed load still resets on Retry.
 
             // Set user identification
             if (email) {
