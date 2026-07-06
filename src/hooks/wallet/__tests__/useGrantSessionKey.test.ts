@@ -99,9 +99,7 @@ jest.mock('@/context/kernelClient.context', () => ({
     }),
 }))
 
-// eslint-disable-next-line import/first -- must come after jest.mock calls
 import { createKernelAccount } from '@zerodev/sdk'
-// eslint-disable-next-line import/first
 import { useGrantSessionKey } from '../useGrantSessionKey'
 
 describe('useGrantSessionKey — serialized approval binds to the v0.0.3 validator', () => {
@@ -109,8 +107,9 @@ describe('useGrantSessionKey — serialized approval binds to the v0.0.3 validat
         jest.clearAllMocks()
         // createKernelAccount (mocked @zerodev/sdk) echoes the sudo validator it
         // was given so serializePermissionAccount can encode it.
-        ;(createKernelAccount as jest.Mock).mockImplementation((_pc: unknown, opts: any) =>
-            Promise.resolve({ address: opts.address, __sudoValidator: opts.plugins.sudo })
+        ;(createKernelAccount as jest.Mock).mockImplementation(
+            (_pc: unknown, opts: { address: string; plugins: { sudo: { address: string } } }) =>
+                Promise.resolve({ address: opts.address, __sudoValidator: opts.plugins.sudo })
         )
         mockGetSessionKeyAddress.mockResolvedValue({ address: SESSION_KEY })
         mockGetPatchedSudoValidator.mockResolvedValue({ address: V003_VALIDATOR })
