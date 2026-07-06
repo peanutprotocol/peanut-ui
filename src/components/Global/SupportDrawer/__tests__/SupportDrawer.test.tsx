@@ -14,9 +14,10 @@
  * Anonymous visitors (no userId, no token by design) proceed immediately.
  */
 import React from 'react'
-import { render, screen, act, waitFor } from '@testing-library/react'
+import { render, screen, act, waitFor, fireEvent } from '@testing-library/react'
 import SupportDrawer from '../index'
 import { isCapacitor } from '@/utils/capacitor'
+import { SUPPORT_EMAIL } from '@/constants/crisp'
 
 const mockUseCrispUserData = jest.fn()
 const mockUseCrispTokenId = jest.fn()
@@ -56,6 +57,12 @@ jest.mock('@capgo/capacitor-crisp', () => ({ CapacitorCrisp: nativeCrisp }))
 
 const supportIframe = () => screen.queryByTitle('Support Chat')
 
+const postCrispMessage = (type: 'CRISP_READY' | 'CRISP_FAILED') => {
+    act(() => {
+        window.dispatchEvent(new MessageEvent('message', { data: { type }, origin: window.location.origin }))
+    })
+}
+
 describe('SupportDrawer Crisp session gate — web iframe', () => {
     beforeEach(() => {
         mockUseCrispUserData.mockReset()
@@ -93,6 +100,52 @@ describe('SupportDrawer Crisp session gate — web iframe', () => {
         const iframe = supportIframe()
         expect(iframe).toBeInTheDocument()
         expect(iframe).toHaveAttribute('src', '/crisp-proxy')
+    })
+})
+
+describe('SupportDrawer — Crisp load-failure fallback', () => {
+    beforeEach(() => {
+        mockUseCrispUserData.mockReset().mockReturnValue({ userId: undefined, email: undefined })
+        mockUseCrispTokenId.mockReset().mockReturnValue(undefined)
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+    })
+
+    it('shows the mailto fallback + retry when the proxy reports CRISP_FAILED', () => {
+        render(<SupportDrawer />)
+
+        // spinner up, no fallback yet
+        expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
+        expect(screen.queryByText(/chat couldn’t load/i)).not.toBeInTheDocument()
+
+        postCrispMessage('CRISP_FAILED')
+
+        // spinner replaced by a fallback with a mailto link to the real support inbox
+        expect(screen.queryByTestId('peanut-loading')).not.toBeInTheDocument()
+        expect(screen.getByText(/chat couldn’t load/i)).toBeInTheDocument()
+        const mailto = screen.getByRole('link', { name: SUPPORT_EMAIL })
+        expect(mailto).toHaveAttribute('href', `mailto:${SUPPORT_EMAIL}`)
+        expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
+    })
+
+    it('clears the fallback and re-shows the loader when Retry is pressed', () => {
+        render(<SupportDrawer />)
+        postCrispMessage('CRISP_FAILED')
+
+        fireEvent.click(screen.getByRole('button', { name: /try again/i }))
+
+        expect(screen.queryByText(/chat couldn’t load/i)).not.toBeInTheDocument()
+        expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
+    })
+
+    it('a later CRISP_READY dismisses the fallback', () => {
+        render(<SupportDrawer />)
+        postCrispMessage('CRISP_FAILED')
+        expect(screen.getByText(/chat couldn’t load/i)).toBeInTheDocument()
+
+        postCrispMessage('CRISP_READY')
+
+        expect(screen.queryByText(/chat couldn’t load/i)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('peanut-loading')).not.toBeInTheDocument()
     })
 })
 

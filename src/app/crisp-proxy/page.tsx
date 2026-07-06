@@ -26,27 +26,44 @@ function CrispProxyContent() {
         const avatar = searchParams.get('user_avatar')
         const sessionDataJson = searchParams.get('session_data')
         const prefilledMessage = searchParams.get('prefilled_message')
+        const currentTokenId = searchParams.get('crisp_token_id')
 
-        const notifyParentReady = () => {
+        // Notify the parent (SupportDrawer) exactly once — either ready or failed —
+        // so a spinner never hangs forever and a failure surfaces a fallback UI.
+        let notified = false
+        const notifyParent = (type: 'CRISP_READY' | 'CRISP_FAILED') => {
+            if (notified) return
+            notified = true
             if (window.parent !== window) {
-                window.parent.postMessage(
-                    {
-                        type: 'CRISP_READY',
-                    },
-                    window.location.origin
-                )
+                window.parent.postMessage({ type }, window.location.origin)
             }
         }
+        const notifyParentReady = () => notifyParent('CRISP_READY')
+        const notifyParentFailed = () => notifyParent('CRISP_FAILED')
+
+        // Crisp upgrades the $crisp array in place once l.js loads, adding methods.
+        const crispScriptLoaded = () => typeof window.$crisp?.is === 'function'
 
         const setAllData = () => {
             if (!window.$crisp) return false
 
-            // Check sessionStorage for reset flag (set during logout)
-            const needsReset = sessionStorage.getItem('crisp_needs_reset')
-            if (needsReset === 'true') {
+            // Reset the Crisp session whenever the identity changes, so Crisp binds
+            // the new token to a clean session. Two independent triggers:
+            //  1. explicit logout flag (sessionStorage) — set at logout, but per-tab
+            //     and wiped on app restart, so it is routinely missed on multi-account
+            //     devices.
+            //  2. token mismatch vs the last identity we loaded (localStorage) —
+            //     survives restarts. Crisp silently refuses to bind a new token over a
+            //     persisted session without a reset first, which is what leaves the
+            //     chatbox blank for users who have hosted more than one account.
+            const needsReset = sessionStorage.getItem('crisp_needs_reset') === 'true'
+            const lastTokenId = localStorage.getItem('crisp_last_token_id') ?? ''
+            const tokenChanged = lastTokenId !== (currentTokenId ?? '')
+            if (needsReset || tokenChanged) {
                 window.$crisp.push(['do', 'session:reset'])
                 sessionStorage.removeItem('crisp_needs_reset')
             }
+            localStorage.setItem('crisp_last_token_id', currentTokenId ?? '')
 
             // Set user identification
             if (email) {
@@ -88,9 +105,6 @@ function CrispProxyContent() {
             // Wait for Crisp to be fully ready (session loaded and UI rendered)
             window.$crisp.push(['on', 'session:loaded', notifyParentReady])
 
-            // Fallback: notify after a delay if session:loaded doesn't fire
-            setTimeout(notifyParentReady, 1500)
-
             return true
         }
 
@@ -108,6 +122,20 @@ function CrispProxyContent() {
             setTimeout(() => clearInterval(checkCrisp), 5000)
         }
 
+        // Readiness watchdog. session:loaded is the real "chatbox is up" signal, but it
+        // doesn't always fire. After 8s, if we haven't already reported ready, decide:
+        //  - the Crisp bundle errored or never upgraded the $crisp stub  → report FAILED
+        //    (parent shows a fallback so the user isn't stuck on a blank panel).
+        //  - the bundle loaded but session:loaded didn't fire            → report READY
+        //    (assume the chatbox rendered — preserves the prior fallback behaviour).
+        const readinessTimer = setTimeout(() => {
+            if (window.__crispLoadFailed || !crispScriptLoaded()) {
+                notifyParentFailed()
+            } else {
+                notifyParentReady()
+            }
+        }, 8000)
+
         // Listen for reset messages from parent window
         const handleMessage = (event: MessageEvent) => {
             if (event.origin !== window.location.origin) return
@@ -119,7 +147,10 @@ function CrispProxyContent() {
         }
 
         window.addEventListener('message', handleMessage)
-        return () => window.removeEventListener('message', handleMessage)
+        return () => {
+            clearTimeout(readinessTimer)
+            window.removeEventListener('message', handleMessage)
+        }
     }, [searchParams])
 
     return (
@@ -138,6 +169,7 @@ function CrispProxyContent() {
                         var s=d.createElement("script");
                         s.src="https://client.crisp.chat/l.js";
                         s.async=1;
+                        s.onerror=function(){window.__crispLoadFailed=true;};
                         d.getElementsByTagName("head")[0].appendChild(s);
                     })();
                     window.$crisp.push(["safe", true]);
