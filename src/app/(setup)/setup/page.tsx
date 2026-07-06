@@ -12,7 +12,7 @@ import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { getFromCookie } from '@/utils/general.utils'
-import { classifyBareCampaign } from '@/components/Invites/campaign-maps'
+import { useSearchParams } from 'next/navigation'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAuth } from '@/context/authContext'
 
@@ -30,6 +30,7 @@ function SetupPageContent() {
     const [showDeviceNotSupportedModal, setShowDeviceNotSupportedModal] = useState(false)
     const [showBrowserNotSupportedModal, setShowBrowserNotSupportedModal] = useState(false)
     const { deviceType: detectedDeviceType } = useDeviceType()
+    const searchParams = useSearchParams()
 
     useEffect(() => {
         const determineInitialStep = async () => {
@@ -43,20 +44,21 @@ function SetupPageContent() {
             setIsLoading(true)
             await new Promise((resolve) => setTimeout(resolve, 100)) // ensure other initializations can complete
 
-            // An invite code OR a bare-claim campaign (offramp, skip, event_alumni
-            // + the vanity badges — the ones /invite lets you claim WITHOUT an
-            // invite) both skip the invite-code gate and drop the user straight on
-            // signup. useZeroDev then registers a campaign-only user with no invite
-            // code, and the backend grants the badge (and app access, for
-            // skip/offramp — OFFRAMP_USER is a FULL_BYPASS badge) at registration.
-            // Keeps /setup consistent with /invite, which already shows these users
-            // a "Claim" CTA rather than an invite prompt.
+            // Skip the invite-code gate straight to signup when either:
+            //  - an invite code is present (cookie survives the PWA-install hop), or
+            //  - the URL asks for it via ?step=signup — the signal every campaign /
+            //    skip flow already sends (ShhhhhLandingPage, InvitesPage.handleClaim)
+            //    when it pushes to /setup. useZeroDev still reads the campaignTag
+            //    cookie post-signup to award the badge; the step decision no longer
+            //    trusts that cookie.
+            //
+            // Why not the campaignTag cookie: it's a session cookie cleared only on a
+            // successful signup, so a returning user who claimed a campaign earlier in
+            // the same session was routed past Landing (the only screen with Log In)
+            // onto Signup, unable to log back in (regression from PR #2346).
             const inviteCodeFromCookie = getFromCookie('inviteCode')
             const userInviteCode = inviteCode || inviteCodeFromCookie
-            const campaignTag = getFromCookie('campaignTag')
-            const skipInviteGate =
-                !!userInviteCode ||
-                classifyBareCampaign(campaignTag ?? undefined, userInviteCode ?? undefined).isBareClaimCampaign
+            const skipInviteGate = !!userInviteCode || searchParams.get('step') === 'signup'
 
             const localDeviceType = detectedDeviceType
 
@@ -64,7 +66,7 @@ function SetupPageContent() {
             // and go straight to the landing (signup) flow
             if (isCapacitor()) {
                 setDeviceType(localDeviceType)
-                // invite code or bare-claim campaign → straight to signup, else landing
+                // invite code or ?step=signup → straight to signup, else landing
                 const targetStep = skipInviteGate ? 'signup' : 'landing'
                 const stepIndex = steps.findIndex((s: ISetupStep) => s.screenId === targetStep)
                 if (stepIndex !== -1) {
@@ -154,7 +156,7 @@ function SetupPageContent() {
                 determinedSetupInitialStepId = 'pwa-install'
             }
 
-            // If an invite code or bare-claim campaign is present, jump to signup
+            // If an invite code or ?step=signup is present, jump to signup
             if (determinedSetupInitialStepId && skipInviteGate) {
                 const signupScreenIndex = steps.findIndex((s: ISetupStep) => s.screenId === 'signup')
                 dispatch(setupActions.setStep(signupScreenIndex + 1))
@@ -188,7 +190,7 @@ function SetupPageContent() {
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
         }
-    }, [dispatch, steps])
+    }, [dispatch, steps, searchParams])
 
     useEffect(() => {
         if (step) {
