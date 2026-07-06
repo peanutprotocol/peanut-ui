@@ -156,6 +156,9 @@ export const ANALYTICS_EVENTS = {
     CARD_SESSION_KEY_PROMPTED: 'card_session_key_prompted',
     CARD_SESSION_KEY_GRANTED: 'card_session_key_granted',
     CARD_SESSION_KEY_FAILED: 'card_session_key_failed',
+    // Withdraw refused with 409 STALE_CARD_APPROVAL — stored session-key
+    // approval is bound to a deprecated validator; user must re-enable the card.
+    CARD_STALE_APPROVAL_HIT: 'card_stale_approval_hit',
 
     // ── Card: waitlist + early-access funnel (M2 Card Waitlist Launch) ──
     // /shhhhh closed-beta landing page → /card.
