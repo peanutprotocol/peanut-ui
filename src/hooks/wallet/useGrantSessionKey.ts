@@ -23,6 +23,22 @@ import { serializePermissionAccount } from '@zerodev/permissions'
 const CURRENT_NONCE_ABI = [
     { type: 'function', name: 'currentNonce', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint32' }] },
 ] as const
+
+/** Minimal structural view of the bits of the kernel account's plugin manager
+ *  this flow touches. The SDK doesn't surface these on its public account type,
+ *  so we model just what we use rather than reaching through `any`. `sudoValidator`
+ *  is typed from `createKernelAccount`'s own `plugins.sudo` so it stays assignable
+ *  back into that call. */
+type SudoValidator = NonNullable<
+    Extract<NonNullable<Parameters<typeof createKernelAccount>[1]['plugins']>, { sudo?: unknown }>['sudo']
+>
+type KernelAccountInternals = {
+    kernelPluginManager: {
+        sudoValidator: SudoValidator
+        getAction: () => unknown
+        hook: unknown
+    }
+}
 import { peanutPublicClient } from '@/app/actions/clients'
 import { rainApi } from '@/services/rain'
 
@@ -166,7 +182,8 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
         // natural counterfactual of `createKernelAccount({sudo: newValidator})`
         // is a different, never-funded address. Forcing the address here makes
         // the grant work for both legacy and post-migration users.
-        const sudoValidator = (kernelClient.account as any).kernelPluginManager.sudoValidator
+        const sudoValidator = (kernelClient.account as unknown as KernelAccountInternals).kernelPluginManager
+            .sudoValidator
         const sessionKernelAccount = await createKernelAccount(peanutPublicClient, {
             address: kernelClient.account!.address,
             entryPoint: getEntryPoint('0.7'),
@@ -194,7 +211,7 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
                 functionName: 'currentNonce',
             })
         )
-        const pm = (sessionKernelAccount as any).kernelPluginManager
+        const pm = (sessionKernelAccount as unknown as KernelAccountInternals).kernelPluginManager
         const enableTypedData = await getPluginsEnableTypedData({
             accountAddress: sessionKernelAccount.address,
             chainId: PEANUT_WALLET_CHAIN.id,
@@ -203,10 +220,10 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
             hook: pm.hook,
             validator: permissionPlugin,
             validatorNonce,
-        } as any)
+        } as Parameters<typeof getPluginsEnableTypedData>[0])
         // Same sudo validator + signing path the SDK uses internally, so for
         // healthy nonce=1 accounts this yields an identical approval.
-        const enableSignature = (await sudoValidator.signTypedData(enableTypedData)) as Hex
+        const enableSignature = await sudoValidator.signTypedData(enableTypedData)
 
         const serialized = await serializePermissionAccount(sessionKernelAccount, undefined, enableSignature)
         return { ok: true, serialized }
