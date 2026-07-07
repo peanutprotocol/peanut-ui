@@ -28,7 +28,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const HOME_PATH = '/home'
 
-type ModalBadge = { title: string; description: string; logo: string }
+type ModalBadge = { code: string; title: string; description: string; logo: string }
 
 export default function BadgeEarnToast() {
     const pathname = usePathname()
@@ -64,6 +64,7 @@ export default function BadgeEarnToast() {
             posthog.capture(ANALYTICS_EVENTS.BADGE_EARN_TOAST_TAPPED, { count })
             if (count === 1) {
                 setModalBadge({
+                    code: newest.code,
                     title: newestName,
                     description: newest.description || getPublicBadgeDescription(newest.code) || '',
                     logo: newestIcon,
@@ -116,6 +117,7 @@ export default function BadgeEarnToast() {
         <BadgeDetailModal
             isOpen
             onClose={() => setModalBadge(null)}
+            code={modalBadge.code}
             title={modalBadge.title}
             description={modalBadge.description}
             logo={modalBadge.logo}
