@@ -8,11 +8,14 @@
  * an approval frozen to nonce 1 that the kernel rejects with AA23 InvalidNonce
  * for any account whose live nonce ≠ 1 (migrated / sudo-changed accounts). The
  * card then declines forever. The fix reads `currentNonce` explicitly, binds the
- * enable to it, and throws on a read failure instead of producing a bad approval.
+ * enable to it, and throws on a read failure instead of producing a bad approval —
+ * except for counterfactual (never-deployed) accounts, where the read reverting is
+ * expected and 1 is exact (the kernel initializes currentNonce to 1 at deployment).
  *
  * These tests lock down that contract:
- *  1. the enable approval is bound to the live currentNonce (not a fallback), and
- *  2. a failed currentNonce read aborts the grant — no approval is produced.
+ *  1. the enable approval is bound to the live currentNonce (not a fallback),
+ *  2. a failed currentNonce read on a deployed account aborts the grant, and
+ *  3. counterfactual accounts still grant (nonce 1), so fresh wallets aren't blocked.
  */
 import { renderHook, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -51,7 +54,7 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
     useRainCardOverview: jest.fn(),
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',
 }))
-jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: { readContract: jest.fn() } }))
+jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: { readContract: jest.fn(), getCode: jest.fn() } }))
 jest.mock('@/services/rain', () => ({ rainApi: { getSessionKeyAddress: jest.fn() } }))
 jest.mock('@zerodev/permissions', () => ({
     toPermissionValidator: jest.fn(),
@@ -63,32 +66,15 @@ jest.mock('@zerodev/permissions/policies', () => ({
     ParamCondition: { EQUAL: 0 },
 }))
 jest.mock('@zerodev/permissions/signers', () => ({ toECDSASigner: jest.fn() }))
-// jest resolves '@zerodev/sdk' and '@zerodev/sdk/constants' to the same module
-// registry entry (subpath collapses onto the package), so the two mocks clobber
-// each other — last wins. Give BOTH the union of needed exports so every symbol
-// (createKernelAccount, getPluginsEnableTypedData, getEntryPoint, KERNEL_V3_1)
-// is present whichever factory wins.
-jest.mock('@zerodev/sdk', () => ({
-    createKernelAccount: jest.fn(),
-    getPluginsEnableTypedData: jest.fn(),
-    getEntryPoint: () => ({ address: '0x0', version: '0.7' }),
-    KERNEL_V3_1: '0.3.1',
-}))
-jest.mock('@zerodev/sdk/constants', () => ({
-    createKernelAccount: jest.fn(),
-    getPluginsEnableTypedData: jest.fn(),
-    getEntryPoint: () => ({ address: '0x0', version: '0.7' }),
-    KERNEL_V3_1: '0.3.1',
-}))
+// '@zerodev/sdk' and '@zerodev/sdk/constants' both resolve to the shared mock at
+// src/utils/__mocks__/zerodev-sdk.ts via package.json's jest moduleNameMapper
+// ('^@zerodev/sdk(.*)$'), so every export the hook needs lives there.
 
+// These named imports resolve through the mapper to the shared mock file, so
+// they are the exact jest.fn instances the hook calls — configure them per test.
+// (jest.requireMock would auto-mock the mapped file into a second instance.)
+import { accountMetadata, createKernelAccount, getPluginsEnableTypedData } from '@zerodev/sdk'
 import { useGrantSessionKey } from '../useGrantSessionKey'
-
-// `@zerodev/sdk`'s named imports don't bind to the mock cleanly at the test's
-// top level (module-interop quirk); pull the mocked fns from jest's registry.
-const { createKernelAccount, getPluginsEnableTypedData } = jest.requireMock('@zerodev/sdk') as {
-    createKernelAccount: jest.Mock
-    getPluginsEnableTypedData: jest.Mock
-}
 
 const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={new QueryClient()}>{children}</QueryClientProvider>
@@ -119,7 +105,10 @@ beforeEach(() => {
         kernelPluginManager: { getAction: () => ({ selector: '0xe9ae5c53', address: ACCOUNT }), hook: undefined },
     })
     ;(getPluginsEnableTypedData as jest.Mock).mockResolvedValue({ primaryType: 'Enable', message: {} })
+    ;(accountMetadata as jest.Mock).mockResolvedValue({ name: 'Kernel', version: '0.3.1', chainId: 42161n })
     ;(serializePermissionAccount as jest.Mock).mockResolvedValue('SERIALIZED_APPROVAL')
+    // deployed account by default; individual tests override for counterfactual
+    ;(peanutPublicClient.getCode as jest.Mock).mockResolvedValue('0xdeadbeef')
 })
 
 describe('useGrantSessionKey — enable approval binds to the live currentNonce', () => {
@@ -136,15 +125,18 @@ describe('useGrantSessionKey — enable approval binds to the live currentNonce'
         expect(peanutPublicClient.readContract).toHaveBeenCalledWith(
             expect.objectContaining({ address: ACCOUNT, functionName: 'currentNonce' })
         )
-        // …the enable typed data was built for THAT nonce (2), not a fallback (1)…
-        expect(getPluginsEnableTypedData).toHaveBeenCalledWith(expect.objectContaining({ validatorNonce: 2 }))
+        // …the enable typed data was built for THAT nonce (2), not a fallback (1),
+        // over the account's live EIP-712 domain version…
+        expect(getPluginsEnableTypedData).toHaveBeenCalledWith(
+            expect.objectContaining({ validatorNonce: 2, kernelVersion: '0.3.1' })
+        )
         // …signed by the sudo (passkey) validator, and injected into serialize.
         expect(signTypedData).toHaveBeenCalledWith({ primaryType: 'Enable', message: {} })
         expect(serializePermissionAccount).toHaveBeenCalledWith(expect.anything(), undefined, '0xENABLESIG')
         expect(out!).toEqual({ ok: true, serialized: 'SERIALIZED_APPROVAL' })
     })
 
-    it('aborts the grant when currentNonce cannot be read — no approval is produced', async () => {
+    it('aborts the grant when currentNonce cannot be read on a DEPLOYED account — no approval is produced', async () => {
         ;(peanutPublicClient.readContract as jest.Mock).mockRejectedValue(new Error('RPC read failed'))
 
         const { result } = renderHook(() => useGrantSessionKey(), { wrapper })
@@ -157,5 +149,33 @@ describe('useGrantSessionKey — enable approval binds to the live currentNonce'
         expect(getPluginsEnableTypedData).not.toHaveBeenCalled()
         expect(serializePermissionAccount).not.toHaveBeenCalled()
         expect(out!.ok).toBe(false)
+    })
+
+    it('grants with nonce 1 for a counterfactual (never-deployed) account — the read reverting is expected there', async () => {
+        // No code at the address: the currentNonce read reverts, but 1 is exact
+        // (the kernel initializes currentNonce to 1 at deployment), so the grant
+        // must succeed rather than block card issuance for fresh wallets.
+        ;(peanutPublicClient.getCode as jest.Mock).mockResolvedValue(undefined)
+        ;(peanutPublicClient.readContract as jest.Mock).mockRejectedValue(new Error('returned no data ("0x")'))
+
+        const { result } = renderHook(() => useGrantSessionKey(), { wrapper })
+        let out: Awaited<ReturnType<typeof result.current.serializeGrant>>
+        await act(async () => {
+            out = await result.current.serializeGrant()
+        })
+
+        expect(getPluginsEnableTypedData).toHaveBeenCalledWith(expect.objectContaining({ validatorNonce: 1 }))
+        expect(out!).toEqual({ ok: true, serialized: 'SERIALIZED_APPROVAL' })
+    })
+
+    it('normalizes a deployed-but-uninitialized nonce of 0 to 1, the way the SDK does', async () => {
+        ;(peanutPublicClient.readContract as jest.Mock).mockResolvedValue(0n)
+
+        const { result } = renderHook(() => useGrantSessionKey(), { wrapper })
+        await act(async () => {
+            await result.current.serializeGrant()
+        })
+
+        expect(getPluginsEnableTypedData).toHaveBeenCalledWith(expect.objectContaining({ validatorNonce: 1 }))
     })
 })

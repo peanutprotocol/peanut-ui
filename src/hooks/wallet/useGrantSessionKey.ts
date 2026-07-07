@@ -13,34 +13,29 @@ import { rainCoordinatorAbi } from '@/constants/rain.consts'
 import { toPermissionValidator } from '@zerodev/permissions'
 import { toCallPolicy, CallPolicyVersion, ParamCondition } from '@zerodev/permissions/policies'
 import { toECDSASigner } from '@zerodev/permissions/signers'
-import { createKernelAccount, getPluginsEnableTypedData } from '@zerodev/sdk'
+import { accountMetadata, createKernelAccount, getPluginsEnableTypedData, KernelV3AccountAbi } from '@zerodev/sdk'
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { serializePermissionAccount } from '@zerodev/permissions'
-
-/** Kernel v3 validator-enable epoch. The permission's enable approval is signed
- *  over this value; the kernel rejects the enable with `InvalidNonce` if the
- *  signed value ≠ the account's live `currentNonce`. */
-const CURRENT_NONCE_ABI = [
-    { type: 'function', name: 'currentNonce', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint32' }] },
-] as const
+import { peanutPublicClient } from '@/app/actions/clients'
+import { rainApi } from '@/services/rain'
 
 /** Minimal structural view of the bits of the kernel account's plugin manager
  *  this flow touches. The SDK doesn't surface these on its public account type,
  *  so we model just what we use rather than reaching through `any`. `sudoValidator`
  *  is typed from `createKernelAccount`'s own `plugins.sudo` so it stays assignable
- *  back into that call. */
+ *  back into that call; `getAction`/`hook` from `getPluginsEnableTypedData`'s own
+ *  parameter so the enable-typed-data call stays fully checked. */
+type EnableTypedDataParams = Parameters<typeof getPluginsEnableTypedData>[0]
 type SudoValidator = NonNullable<
     Extract<NonNullable<Parameters<typeof createKernelAccount>[1]['plugins']>, { sudo?: unknown }>['sudo']
 >
 type KernelAccountInternals = {
     kernelPluginManager: {
         sudoValidator: SudoValidator
-        getAction: () => unknown
-        hook: unknown
+        getAction: () => EnableTypedDataParams['action']
+        hook: EnableTypedDataParams['hook']
     }
 }
-import { peanutPublicClient } from '@/app/actions/clients'
-import { rainApi } from '@/services/rain'
 
 /**
  * One-time session-key grant for Rain card operations.
@@ -184,43 +179,65 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
         // the grant work for both legacy and post-migration users.
         const sudoValidator = (kernelClient.account as unknown as KernelAccountInternals).kernelPluginManager
             .sudoValidator
-        const sessionKernelAccount = await createKernelAccount(peanutPublicClient, {
-            address: kernelClient.account!.address,
-            entryPoint: getEntryPoint('0.7'),
-            kernelVersion: KERNEL_V3_1,
-            plugins: {
-                sudo: sudoValidator,
-                regular: permissionPlugin,
-            },
-        })
+        const accountAddress = kernelClient.account!.address
+        // The three on-chain reads only need the (already-known) account address,
+        // so they run alongside the account construction.
+        const [sessionKernelAccount, bytecode, metadata, nonceRead] = await Promise.all([
+            createKernelAccount(peanutPublicClient, {
+                address: accountAddress,
+                entryPoint: getEntryPoint('0.7'),
+                kernelVersion: KERNEL_V3_1,
+                plugins: {
+                    sudo: sudoValidator,
+                    regular: permissionPlugin,
+                },
+            }),
+            peanutPublicClient.getCode({ address: accountAddress }),
+            // Live on-chain EIP-712 domain version, KERNEL_V3_1 fallback when the
+            // account can't report one — the same resolution the SDK's internal
+            // enable path uses (a hardcoded version signs the wrong domain for any
+            // kernel not exactly on that version).
+            accountMetadata(peanutPublicClient, accountAddress, KERNEL_V3_1, PEANUT_WALLET_CHAIN.id),
+            peanutPublicClient
+                .readContract({ address: accountAddress, abi: KernelV3AccountAbi, functionName: 'currentNonce' })
+                .then(
+                    (nonce) => ({ read: true as const, nonce: Number(nonce) }),
+                    (error: unknown) => ({ read: false as const, error })
+                ),
+        ])
 
-        // The session-key permission installs on-chain via an "enable" approval
-        // the passkey signs here, bound to the account's `currentNonce`. We read
-        // that nonce EXPLICITLY and let the read throw on failure: the SDK's
-        // internal `getKernelV3Nonce` silently falls back to `1` on a read error,
-        // which produces an approval frozen to nonce 1. That only mismatches
-        // accounts whose live nonce ≠ 1 (e.g. any account migrated / with a
-        // sudo-validator change), and the grant still "succeeds" — so the card
-        // then declines forever because the enable reverts `AA23 InvalidNonce`
-        // on every auto-balance. Binding the enable to the verified live nonce
-        // (and failing loudly if we can't read it) is the fix.
-        const validatorNonce = Number(
-            await peanutPublicClient.readContract({
-                address: sessionKernelAccount.address,
-                abi: CURRENT_NONCE_ABI,
-                functionName: 'currentNonce',
-            })
-        )
+        // The session-key permission installs on-chain via an "enable" approval the
+        // passkey signs here, bound to the account's `currentNonce` — the kernel
+        // rejects the enable with `AA23 InvalidNonce` if the signed value ≠ its live
+        // value, and the grant still "succeeds", so the card then declines forever.
+        // The SDK's internal `getKernelV3Nonce` silently falls back to `1` on ANY
+        // read failure, which mints exactly that broken approval for accounts whose
+        // live nonce ≠ 1 (e.g. migrated / sudo-changed accounts). Bind to the
+        // verified live nonce instead, and only fall back where 1 is provably
+        // correct: a counterfactual account, whose kernel initializes
+        // `currentNonce` to 1 at deployment (the read itself reverts pre-deploy).
+        let validatorNonce: number
+        if (!bytecode) {
+            validatorNonce = 1
+        } else if (!nonceRead.read) {
+            // Deployed but unreadable: fail LOUDLY rather than sign a guess.
+            throw nonceRead.error
+        } else {
+            // A deployed-but-uninitialized proxy reports 0; enables validate
+            // against ≥1 post-init, so normalize the way the SDK does.
+            validatorNonce = nonceRead.nonce === 0 ? 1 : nonceRead.nonce
+        }
+
         const pm = (sessionKernelAccount as unknown as KernelAccountInternals).kernelPluginManager
         const enableTypedData = await getPluginsEnableTypedData({
             accountAddress: sessionKernelAccount.address,
             chainId: PEANUT_WALLET_CHAIN.id,
-            kernelVersion: KERNEL_V3_1,
+            kernelVersion: metadata.version,
             action: pm.getAction(),
             hook: pm.hook,
             validator: permissionPlugin,
             validatorNonce,
-        } as Parameters<typeof getPluginsEnableTypedData>[0])
+        })
         // Same sudo validator + signing path the SDK uses internally, so for
         // healthy nonce=1 accounts this yields an identical approval.
         const enableSignature = await sudoValidator.signTypedData(enableTypedData)
