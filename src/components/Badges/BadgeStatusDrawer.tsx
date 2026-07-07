@@ -92,6 +92,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
             <BadgeDetailModal
                 isOpen={isDetailOpen}
                 onClose={() => setIsDetailOpen(false)}
+                code={badge.code}
                 title={displayName}
                 description={badge.description || ''}
                 logo={getBadgeIcon(badge.code)}
