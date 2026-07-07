@@ -488,7 +488,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // happened. Deliberately does NOT assert charge status — a payment that
         // settles then fails is refunded elsewhere — so "didn't complete" is honest
         // whether or not funds moved; the ledger stays the source of truth for that.
-        nameForDetails = REAPER_FAIL_COPY['qr_pay_timeout']
+        nameForDetails = 'Failed QR payment attempt'
         isPeerActuallyUser = false
     }
 

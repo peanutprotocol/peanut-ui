@@ -386,7 +386,7 @@ const cases: TestCase[] = [
         expect: { userName: 'alice' },
     },
     {
-        name: 'failed collateral QR_PAY (no reaper reason) renders neutral "didn\'t complete" copy',
+        name: 'failed collateral QR_PAY (no reaper reason) renders "Failed QR payment attempt" copy',
         entry: baseEntry({
             userRole: EHistoryUserRole.SENDER,
             status: EHistoryStatus.FAILED,
@@ -394,7 +394,7 @@ const cases: TestCase[] = [
         }),
         // Overrides the misleading "QR payment to <merchant>" the kind-switch
         // would produce for a FAILED row (peanut-api-ts #1146 surfaces these).
-        expect: { userName: "QR payment didn't complete" },
+        expect: { userName: 'Failed QR payment attempt' },
     },
 ]
 
