@@ -213,6 +213,27 @@ export function useNotifications() {
                         }
                     })
 
+                    // Notification tap → PostHog. OneSignal delivers push clicks to its own
+                    // SDK worker (bypassing our sw.ts handler), so this is the only client-side
+                    // hook that sees the tap. Firing an explicit event (with the campaign carried
+                    // in additionalData) makes blast clicks attributable even when the tap merely
+                    // focuses an already-open PWA tab and no `$pageview` — hence no utm capture —
+                    // fires. Marketing sends set `data.campaign`; transactional taps have none.
+                    OneSignal.Notifications.addEventListener('click', (event) => {
+                        const data = (event?.notification?.additionalData ?? {}) as Record<string, unknown>
+                        const campaign = typeof data.campaign === 'string' ? data.campaign : undefined
+                        const props: Record<string, unknown> = {
+                            deep_link: event?.result?.url ?? event?.notification?.launchURL,
+                        }
+                        if (campaign) {
+                            props.utm_source = 'onesignal'
+                            props.utm_medium = 'push'
+                            props.utm_campaign = campaign
+                            if (typeof data.utmContent === 'string') props.utm_content = data.utmContent
+                        }
+                        posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_CLICKED, props)
+                    })
+
                     type PushSubscriptionChangeEvent = { current?: { optedIn?: boolean } | null }
                     OneSignal.User.PushSubscription.addEventListener(
                         'change',

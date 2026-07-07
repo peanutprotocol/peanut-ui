@@ -109,6 +109,7 @@ export const ANALYTICS_EVENTS = {
     NOTIFICATION_PERMISSION_GRANTED: 'notification_permission_granted',
     NOTIFICATION_PERMISSION_DENIED: 'notification_permission_denied',
     NOTIFICATION_SUBSCRIBED: 'notification_subscribed',
+    NOTIFICATION_CLICKED: 'notification_clicked',
 
     // ── Modal Fatigue ──
     MODAL_SHOWN: 'modal_shown',
