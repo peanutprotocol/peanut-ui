@@ -1,7 +1,11 @@
 import DocsLink from '@/components/Global/DocsLink'
 import { Button } from '@/components/0_Bruddle/Button'
+import { PEANUT_API_URL } from '@/constants/general.consts'
+import { isCapacitor } from '@/utils/capacitor'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { useSetupStore } from '@/redux/hooks'
 import { useZeroDev } from '@/hooks/useZeroDev'
+import { useLogin } from '@/hooks/useLogin'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useEffect, useState } from 'react'
@@ -14,15 +18,32 @@ import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
+// A signup that failed client-side AFTER the server verified may have already
+// registered this username (user + passkey exist server-side, so login works).
+// Fail-open on network errors — the server's 409 is the backstop.
+const isUsernameTaken = async (username: string): Promise<boolean> => {
+    try {
+        // capacitorHttp doesn't support HEAD — use GET in native
+        const res = await fetchWithSentry(`${PEANUT_API_URL}/users/username/${username}`, {
+            method: isCapacitor() ? 'GET' : 'HEAD',
+        })
+        return res.status === 200
+    } catch {
+        return false
+    }
+}
+
 const SetupPasskey = () => {
     const { username } = useSetupStore()
     const { isLoading, handleNext } = useSetupFlow()
     const { handleRegister, address, isRegistering } = useZeroDev()
+    const { handleLoginClick, isLoggingIn } = useLogin()
     const { deviceType } = useDeviceType()
     const [errorName, setErrorName] = useState<string | null>(null)
     const [showErrorModal, setShowErrorModal] = useState(false)
     const [preflightWarning, setPreflightWarning] = useState<string | null>(null)
     const [inlineError, setInlineError] = useState<string | null>(null)
+    const [usernameTaken, setUsernameTaken] = useState(false)
 
     // preflight check for common passkey issues
     useEffect(() => {
@@ -41,6 +62,7 @@ const SetupPasskey = () => {
         // clear any previous inline errors
         setInlineError(null)
         setErrorName(null)
+        setUsernameTaken(false)
 
         // Re-check support live before attempting registration. Device state can
         // change after mount (e.g. user signs into a Google account / updates Play
@@ -59,6 +81,18 @@ const SetupPasskey = () => {
             return
         }
         setPreflightWarning(null)
+
+        // Catch an already-registered username BEFORE the WebAuthn ceremony:
+        // retrying a half-completed signup would otherwise create another
+        // credential in the OS keychain and then 409 on the server.
+        if (await isUsernameTaken(username)) {
+            setUsernameTaken(true)
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
+                device_type: deviceType,
+                error_name: 'UsernameTaken',
+            })
+            return
+        }
 
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_STARTED, { device_type: deviceType })
 
@@ -127,6 +161,17 @@ const SetupPasskey = () => {
         }
     }
 
+    const onLogInClick = async () => {
+        setInlineError(null)
+        try {
+            await handleLoginClick()
+            // success — useLogin's effect redirects once the user is loaded
+        } catch (error) {
+            // handleLogin throws PasskeyError with a curated user-facing message
+            setInlineError((error as Error)?.message || 'We couldn’t log you in. Please try again.')
+        }
+    }
+
     // once passkey is registered successfully, move to test transaction step
     useEffect(() => {
         if (address) {
@@ -152,6 +197,21 @@ const SetupPasskey = () => {
                         Set it up
                     </Button>
                     {preflightWarning && <p className="text-sm font-bold text-orange-1">{preflightWarning}</p>}
+                    {usernameTaken && (
+                        <>
+                            <ErrorAlert description="This username is already registered — possibly from an earlier attempt on this device. If that was you, your passkey is ready: just log in." />
+                            <Button
+                                loading={isLoggingIn}
+                                disabled={isLoggingIn}
+                                variant="primary-soft"
+                                onClick={onLogInClick}
+                                className="text-nowrap"
+                                shadowSize="4"
+                            >
+                                Log In
+                            </Button>
+                        </>
+                    )}
                     {inlineError && <ErrorAlert description={inlineError} />}
                 </div>
                 <div>
