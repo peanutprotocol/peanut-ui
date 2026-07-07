@@ -17,7 +17,6 @@ import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
 import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/registry'
-import { isNegativeWireAmount } from './transaction-details.utils'
 
 /** Rain dispute lifecycle status values. Source: Rain dispute.* webhooks. */
 export type DisputeStatus = 'pending' | 'inReview' | 'accepted' | 'rejected' | 'canceled' | 'resolvedByMerchant'
@@ -623,10 +622,11 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                           cancellationReason: entry.extraData?.cancellationReason as string | null,
                           parentRainTxId: entry.extraData?.parentRainTxId as string | null,
                           rainTransactionId: entry.extraData?.rainTransactionId as string | null,
-                          isRefund:
-                              !!entry.extraData?.parentRainTxId ||
-                              entry.extraData?.isRefund === true ||
-                              isNegativeWireAmount(entry.amount),
+                          // Reuse the strategy verdict instead of re-deriving the
+                          // parentRainTxId/isRefund/negative-amount heuristic here —
+                          // a local copy would silently diverge from the strategy
+                          // layer as its rules evolve (CodeRabbit #2373).
+                          isRefund: transactionCardType === 'refund',
                           // Dispute lifecycle — null when Rain hasn't fired
                           // any dispute.* webhook for this spend.
                           dispute: (() => {
