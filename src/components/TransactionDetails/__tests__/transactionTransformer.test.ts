@@ -494,6 +494,16 @@ describe('mapTransactionDataForDrawer', () => {
             expect(result.extraDataForDrawer?.cardPayment?.isRefund).toBe(true)
         })
 
+        it('role-derived display strings follow the refund verdict, not the wire role', () => {
+            // Old BE reports userRole=SENDER on a negative auth. The receipt's
+            // "Sent/Received" label and the +/- currency symbol key off
+            // originalUserRole/currencySymbol — they must agree with the
+            // refund header, not assert the user sent the money.
+            const result = mapTransactionDataForDrawer(negativeAuth).transactionDetails
+            expect(result.extraDataForDrawer?.originalUserRole).toBe(EHistoryUserRole.RECIPIENT)
+            expect(result.currencySymbol).toBe('+$')
+        })
+
         it('kind REFUND no longer trips the unknown-transformer-kind pipeline alert', () => {
             jest.mocked(pipelineAlert).mockClear()
             mapTransactionDataForDrawer(

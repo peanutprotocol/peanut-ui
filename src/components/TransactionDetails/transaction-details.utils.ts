@@ -89,13 +89,19 @@ export function normalizeMerchantName(raw: string): string {
     return raw.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-/** Refund detection off the wire amount. BE amounts are plain decimal
- *  strings ("14.68"), but parse defensively (strip currency formatting,
- *  same as the drawer's usdAmount parsing) — `Number('-1,468')` is NaN and
- *  `NaN < 0` would silently drop the refund route. Shared by the cardSpend
- *  strategy and the drawer's cardPayment.isRefund flag. */
+/** Parse a wire amount defensively. BE amounts are plain decimal strings
+ *  ("14.68"), but strip currency formatting before parsing — `Number('-1,468')`
+ *  is NaN. Single source of the parse rule for the TransactionDetails module
+ *  (list-row refund detection AND the transformer's usdAmount), so the two
+ *  can never read the same wire amount differently. */
+export function parseWireAmount(amount: string | number | null | undefined): number {
+    if (amount === null || amount === undefined) return NaN
+    return parseFloat(String(amount).replace(/[^\d.-]/g, ''))
+}
+
+/** Refund detection off the wire amount — NaN never routes to refund. Used
+ *  by the cardSpend strategy's negative-auth detection. */
 export function isNegativeWireAmount(amount: string | number | null | undefined): boolean {
-    if (amount === null || amount === undefined) return false
-    const n = parseFloat(String(amount).replace(/[^\d.-]/g, ''))
+    const n = parseWireAmount(amount)
     return Number.isFinite(n) && n < 0
 }

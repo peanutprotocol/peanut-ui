@@ -16,8 +16,8 @@ import { cardRefund } from './card'
 export const refund: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
     // Rain when EITHER signal is present — provider tells us directly, and
     // parentRainTxId catches older/kindless rows that predate the provider
-    // field (mirrors fallback.ts, keeping the two Rain lanes consistent). A
-    // Manteca refund has neither, so it falls through to the generic shape.
+    // field. A Manteca refund has neither, so it falls through to the
+    // generic shape.
     const isRainRefund = entry.extraData?.provider === 'RAIN' || !!entry.extraData?.parentRainTxId
     if (isRainRefund) {
         return cardRefund(entry)
