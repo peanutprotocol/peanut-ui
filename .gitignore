@@ -4,6 +4,8 @@
 docs/PR.md
 
 **.patch
+# pnpm patchedDependencies live in patches/ and must be committed
+!patches/**.patch
 
 PR.md
 
@@ -13,6 +15,8 @@ PR.md
 .pnp.js
 .vscode
 **.patch
+# pnpm patchedDependencies live in patches/ and must be committed
+!patches/**.patch
 
 # testing
 /coverage

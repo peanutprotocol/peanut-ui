@@ -171,6 +171,10 @@ export const useZeroDev = () => {
                 console.error('Error logging in', e)
                 clearAuthState(user?.user.userId)
                 captureException(e, { tags: { error_type: 'login_error' } })
+            } else if (isCapacitor()) {
+                // the native plugin maps ceremony failures (.failed/.notHandled) to the
+                // same NotAllowedError as a user cancel — keep visibility without alerting.
+                captureException(e, { level: 'warning', tags: { error_type: 'login_canceled_native' } })
             }
             throw new PasskeyError(message, code)
         }

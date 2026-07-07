@@ -18,6 +18,11 @@ overrides:
   serialize-javascript: ^7.0.5
   protobufjs: ^7.5.5
 
+patchedDependencies:
+  '@zerodev/webauthn-key':
+    hash: dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28
+    path: patches/@zerodev__webauthn-key.patch
+
 importers:
 
   .:
@@ -123,16 +128,16 @@ importers:
         version: 5.4.9(@zerodev/sdk@5.5.7(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       '@zerodev/passkey-validator':
         specifier: ^5.6.0
-        version: 5.6.0(@zerodev/sdk@5.5.7(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(@zerodev/webauthn-key@5.5.0(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
+        version: 5.6.0(@zerodev/sdk@5.5.7(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(@zerodev/webauthn-key@5.5.0(patch_hash=dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28)(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       '@zerodev/permissions':
         specifier: 5.5.0
-        version: 5.5.0(@zerodev/sdk@5.5.7(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(@zerodev/webauthn-key@5.5.0(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
+        version: 5.5.0(@zerodev/sdk@5.5.7(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(@zerodev/webauthn-key@5.5.0(patch_hash=dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28)(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       '@zerodev/sdk':
         specifier: 5.5.7
         version: 5.5.7(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       '@zerodev/webauthn-key':
         specifier: ^5.5.0
-        version: 5.5.0(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
+        version: 5.5.0(patch_hash=dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28)(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       autoprefixer:
         specifier: ^10.4.20
         version: 10.4.23(postcss@8.5.6)
@@ -12398,19 +12403,19 @@ snapshots:
       '@zerodev/sdk': 5.5.7(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       viem: 2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
 
-  '@zerodev/passkey-validator@5.6.0(@zerodev/sdk@5.5.7(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(@zerodev/webauthn-key@5.5.0(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
+  '@zerodev/passkey-validator@5.6.0(@zerodev/sdk@5.5.7(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(@zerodev/webauthn-key@5.5.0(patch_hash=dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28)(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
     dependencies:
       '@noble/curves': 1.9.7
       '@simplewebauthn/browser': 8.3.7
       '@zerodev/sdk': 5.5.7(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
-      '@zerodev/webauthn-key': 5.5.0(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
+      '@zerodev/webauthn-key': 5.5.0(patch_hash=dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28)(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       viem: 2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
 
-  '@zerodev/permissions@5.5.0(@zerodev/sdk@5.5.7(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(@zerodev/webauthn-key@5.5.0(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
+  '@zerodev/permissions@5.5.0(@zerodev/sdk@5.5.7(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(@zerodev/webauthn-key@5.5.0(patch_hash=dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28)(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
     dependencies:
       '@simplewebauthn/browser': 9.0.1
       '@zerodev/sdk': 5.5.7(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
-      '@zerodev/webauthn-key': 5.5.0(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
+      '@zerodev/webauthn-key': 5.5.0(patch_hash=dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28)(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       merkletreejs: 0.3.11
       viem: 2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
 
@@ -12419,7 +12424,7 @@ snapshots:
       semver: 7.7.3
       viem: 2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
 
-  '@zerodev/webauthn-key@5.5.0(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
+  '@zerodev/webauthn-key@5.5.0(patch_hash=dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28)(viem@2.45.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
     dependencies:
       '@noble/curves': 1.9.7
       '@simplewebauthn/browser': 8.3.7

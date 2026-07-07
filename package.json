@@ -226,6 +226,9 @@
             "yaml": "^2.8.3",
             "serialize-javascript": "^7.0.5",
             "protobufjs": "^7.5.5"
+        },
+        "patchedDependencies": {
+            "@zerodev/webauthn-key": "patches/@zerodev__webauthn-key.patch"
         }
     },
     "size-limit": [
