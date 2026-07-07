@@ -120,7 +120,10 @@ const getTitle = (
                 if (status === 'completed') {
                     titleText = `Paid to ${displayName}`
                 } else if (status === 'failed') {
-                    titleText = `Payment to ${displayName}`
+                    // Failed QR-pays carry a self-contained label from the
+                    // transformer ("Failed QR payment attempt") — no "Payment to"
+                    // prefix, which would read "Payment to Failed QR payment attempt".
+                    titleText = displayName
                 } else {
                     titleText = `Paying to ${displayName}`
                 }
