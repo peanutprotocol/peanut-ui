@@ -261,57 +261,56 @@ export function getBadgeDisplayName(code: string | undefined, fallback: string):
 
 // Funny, first-person share copy for each badge. The user is bragging about their
 // OWN achievement, so these read in first person ("I…") — unlike the third-person
-// `description` above (which narrates the badge to others). Thematically they mirror
-// each badge's description so the voice stays consistent across surfaces. Aliased
-// codes (CARD_PIONEER/FOUNDING_PIONEER, SUPPORT_SURVIVOR/BUG_WHISPERER) share a line;
-// unknown/parked codes fall back to a generic-but-proud brag in getBadgeShareText.
+// `description` above (which narrates the badge to others). Aliased codes
+// (CARD_PIONEER/FOUNDING_PIONEER, BUG_WHISPERER/SUPPORT_SURVIVOR) share a line.
+// Rarely-earned badges are intentionally OMITTED (e.g. CERTIFIED_YAPPER,
+// TOKEN_NATION_SP_2026, FESTA_JUNINA_2026) — getBadgeShareText falls back to a
+// generic brag for any code not listed, so a badge almost nobody has isn't worth
+// bespoke copy. Lines + the keep/blank split were chosen against real prod holder
+// counts; order below is roughly most-earned first.
 const BADGE_SHARE_LINES: Record<string, string> = {
     BETA_TESTER: "I've been in the Peanut lab since the early experiments. Officially a beta tester 🧪",
-    DEVCONNECT_BA_2025: 'Came to Devconnect BA, claimed my badge, ate the steak. Priorities 🥩🇦🇷',
-    PRODUCT_HUNT: 'I upvoted Peanut on Product Hunt before it was cool. Hope dealer, certified 🚀',
     OG_2025_10_12: 'I was here before it was cool. Certified Peanut OG 🥜',
-    MOST_RESTAURANTS_DEVCON:
-        'I hit more restaurants at Devconnect than the Michelin guide. Paid for all of them with Peanut 🍽️',
-    BIG_SPENDER_5K: "I didn't come to Devconnect to network. I came to spend. $5K later… 💸",
-    MOST_PAYMENTS_DEVCON: "I move money like it's light work. Most payments at Devconnect — certified money machine ⚡",
-    MOST_INVITES: "I onboarded more people to Peanut than Coinbase's ad budget did 📈",
-    BIGGEST_REQUEST_POT: 'High roller or master beggar? Either way I ran the biggest pot on Peanut 🫗',
-    SEEDLING_DEVCONNECT_BA_2025: "I shill Peanut so they don't have to. Honorary squirrel 🐿️",
-    ARBIVERSE_DEVCONNECT_BA_2025:
-        'Found the Arbiverse booth, walked out with a Peanut badge. Mutual onboarding achieved 🔵',
-    CARD_PIONEER: 'I was building Peanut before it had a launch. Founding Pioneer 🛠️',
-    FOUNDING_PIONEER: 'I was building Peanut before it had a launch. Founding Pioneer 🛠️',
-    FOUNDER_HOUSE: 'On-chain energy, off-chain handshakes. Built it IRL at Founder Haus 🤝',
+    DEVCONNECT_BA_2025: 'Buenos Aires ✅ Peanut badge ✅ A perfect trip',
+    ARBIVERSE_DEVCONNECT_BA_2025: 'I went looking for Arbitrum and Peanut found me 🔵',
+    OFFRAMP_USER: 'Cashed out the easy way. Offramp badge unlocked 💸',
     BUG_WHISPERER: 'I found a real bug in Peanut, reported it, and stuck around. Someone owes me a beer 🐛🍺',
     SUPPORT_SURVIVOR: 'I found a real bug in Peanut, reported it, and stuck around. Someone owes me a beer 🐛🍺',
-    SHHHHH: "I know the secret. That's all I'm allowed to say 🤫",
+    CARD_FIRST_SWIPE: 'Just put my Peanut card to work for the first time. They grow up so fast 💳',
+    WAITLIST_SKIP: "Got the skip pass. It's not what you know, it's who invites you 🔑",
+    EVENT_ALUMNI: 'Old school. I was in the room before most of you 🎟️',
+    IRL_NOMADS: 'Nomad mode on. My office is wherever the wifi is ☕',
+    ETHFLORIPA_HUB: 'Ilha da Magia, baby. Coconuts and consensus 🥥',
+    CARD_ALPHA: 'I tested the Peanut card while it was still held together with tape and hope 🩹💳',
+    SEEDLING_DEVCONNECT_BA_2025: "I shill Peanut so they don't have to. Honorary squirrel 🐿️",
+    CARD_SPENT_1K: "Crossed $1K on the Peanut card. It's earning its keep 💳",
+    FOUNDER_HOUSE: 'On-chain energy, off-chain handshakes. Built it IRL at Founder Haus 🤝',
     NOT_SO_SHHHH: "I couldn't keep the secret… and Peanut paid me for it 🤫💸",
-    CARD_FIRST_SWIPE: 'First swipe on my Peanut card. My money finally got a job 💳',
-    CARD_SPENT_1K: '$1K swiped on my Peanut card. I put my money where my card is 💳',
+    PSYOPS_DIVISION: 'Enlisted in the Peanut Psyops Division. The influence game is real 🧠',
+    TOUCHED_GRASS: 'Touched grass badge. Proof that I do go outside 🌱',
+    ARBITRUM: 'Peanut × Arbitrum. Fast chains, faster money 🔵',
+    BIG_SPENDER_5K: "I didn't come to Devconnect to network. I came to spend. $5K later… 💸",
+    BIGGEST_REQUEST_POT: 'High roller or master beggar? Either way I ran the biggest pot on Peanut 🫗',
+    CARD_CLOSED_BETA: 'I was testing the Peanut card before you knew it existed. IYKYK 🤫💳',
+    DOUBLE_DIGITS: 'Crossed into double digits on Peanut. Real money now 💰',
+    DUNBAR: "150 invites — more people than I can even remember. I hit Dunbar's number 🧠",
+    FIRST_CRUMB: 'Earned my first dollar on Peanut. Proof that it pays 🪙',
     FIRST_INVITE: 'Brought my first friend onto Peanut. One down, the whole group chat to go 👋',
-    SECOND_INVITE: "Two friends on Peanut and counting. Word's getting around 📣",
-    THIRD_INVITE: 'Three friends on Peanut, zero misses. Tip your hat 🎩',
-    MINI_INFLUENCER: 'Built a little Peanut fan club, one invite at a time 🌟',
+    MOST_RESTAURANTS_DEVCON:
+        'I hit more restaurants at Devconnect than the Michelin guide. Paid for all of them with Peanut 🍽️',
+    CARD_PIONEER: 'I was building Peanut before it had a launch. Founding Pioneer 🛠️',
+    FOUNDING_PIONEER: 'I was building Peanut before it had a launch. Founding Pioneer 🛠️',
+    GIGA_YAPPER: "I don't mention Peanut, I broadcast it. Giga Yapper 📢",
     INFLUENCER_25: 'Twenty-five friends on Peanut. The likes keep rolling in 🌟',
     MEGA_INFLUENCER: "A hundred friends on Peanut. I'm kind of a big deal now 😎",
-    DUNBAR: "150 invites — more people than I can even remember. I hit Dunbar's number 🧠",
-    CERTIFIED_YAPPER: "Certified loud. I talk about Peanut so they don't have to 🗣️",
-    GIGA_YAPPER: "I don't mention Peanut, I broadcast it. Giga Yapper 📢",
-    FIRST_CRUMB: 'Earned my first dollar on Peanut. Proof that it pays 🪙',
-    DOUBLE_DIGITS: 'Crossed into double digits on Peanut. Real money now 💰',
+    MINI_INFLUENCER: 'Built a little Peanut fan club, one invite at a time 🌟',
+    MOST_PAYMENTS_DEVCON: "I move money like it's light work. Most payments at Devconnect — certified money machine ⚡",
+    MOST_INVITES: "I onboarded more people to Peanut than Coinbase's ad budget did 📈",
+    PRODUCT_HUNT: 'I upvoted Peanut on Product Hunt before it was cool. Hope dealer, certified 🚀',
+    SECOND_INVITE: "Two friends on Peanut and counting. Word's getting around 📣",
+    SHHHHH: "I know the secret. That's all I'm allowed to say 🤫",
+    THIRD_INVITE: 'Three friends on Peanut, zero misses. Tip your hat 🎩',
     VERIFIED: 'ID checked, identity confirmed. Officially verified on Peanut ✅',
-    CARD_CLOSED_BETA: 'I was testing the Peanut card before you knew it existed. IYKYK 🤫💳',
-    CARD_ALPHA: 'I tested the Peanut card while it was still held together with tape and hope 🩹💳',
-    ARBITRUM: 'Found on Arbitrum, onboarded to Peanut. Mutual W 🔵',
-    TOKEN_NATION_SP_2026: 'São Paulo, baby. Came, claimed, tagged the wall 🇧🇷',
-    FESTA_JUNINA_2026: 'I danced the quadrilha with Peanut. Arraiá unlocked 🎉🌽',
-    TOUCHED_GRASS: 'I logged off and touched real grass — with Peanut. Rare 🌱',
-    OFFRAMP_USER: 'I migrated to Peanut and never looked back 👋',
-    PSYOPS_DIVISION: 'Enlisted in the Peanut Psyops Division. The influence game is real 🧠',
-    EVENT_ALUMNI: 'Old school. I was in the room before most of you 🎟️',
-    ETHFLORIPA_HUB: 'Ilha da Magia, baby. Coconuts and consensus 🥥',
-    IRL_NOMADS: 'No fixed address, just good coffee and better wifi. Certified Nomad 🎒',
-    WAITLIST_SKIP: 'Skipped the waitlist. A friend handed me the key and I walked right in 🔑',
 }
 
 // Builds the text pre-filled into the native share sheet (Web Share API) / copied to
