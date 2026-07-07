@@ -1,6 +1,6 @@
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
-import { normalizeMerchantName } from '@/components/TransactionDetails/transaction-details.utils'
+import { isNegativeWireAmount, normalizeMerchantName } from '@/components/TransactionDetails/transaction-details.utils'
 
 export const qrPay: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
     const raw = entry.recipientAccount?.identifier
@@ -19,7 +19,7 @@ export const cardSpend: TransactionStrategy = (entry: HistoryEntry): Transaction
     // route here). BE flags them via extraData.isRefund; until that ships we
     // also detect the negative wire amount directly, so PR 1 works against
     // today's payload. Either way, render them as a refund credit.
-    if (entry.extraData?.isRefund === true || Number(entry.amount) < 0) {
+    if (entry.extraData?.isRefund === true || isNegativeWireAmount(entry.amount)) {
         return cardRefund(entry)
     }
     const merchantName = (entry.extraData?.merchantName as string | null | undefined) ?? null

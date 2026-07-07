@@ -88,3 +88,14 @@ export function normalizeMerchantName(raw: string): string {
     if (raw.length <= ACRONYM_LENGTH_THRESHOLD) return raw
     return raw.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
 }
+
+/** Refund detection off the wire amount. BE amounts are plain decimal
+ *  strings ("14.68"), but parse defensively (strip currency formatting,
+ *  same as the drawer's usdAmount parsing) — `Number('-1,468')` is NaN and
+ *  `NaN < 0` would silently drop the refund route. Shared by the cardSpend
+ *  strategy and the drawer's cardPayment.isRefund flag. */
+export function isNegativeWireAmount(amount: string | number | null | undefined): boolean {
+    if (amount === null || amount === undefined) return false
+    const n = parseFloat(String(amount).replace(/[^\d.-]/g, ''))
+    return Number.isFinite(n) && n < 0
+}

@@ -50,6 +50,13 @@ describe('cardSpend refund detection (negative-amount auths)', () => {
         expect(out.transactionCardType).toBe('refund')
     })
 
+    test('formatted negative amount ("-1,468.00") still routes to refund', () => {
+        // Number('-1,468.00') is NaN — detection must sanitize before parsing
+        // so locale/currency formatting can never silently drop the route.
+        const out = cardSpend(entry({ amount: '-1,468.00', extraData: { merchantName: 'Acme Coffee' } }))
+        expect(out.transactionCardType).toBe('refund')
+    })
+
     test('positive spend, no refund signal → unchanged card_pay (regression)', () => {
         const out = cardSpend(entry({ amount: '14.68', extraData: { merchantName: 'Acme Coffee' } }))
         expect(out.transactionCardType).toBe('card_pay')

@@ -17,6 +17,7 @@ import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
 import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/registry'
+import { isNegativeWireAmount } from './transaction-details.utils'
 
 /** Rain dispute lifecycle status values. Source: Rain dispute.* webhooks. */
 export type DisputeStatus = 'pending' | 'inReview' | 'accepted' | 'rejected' | 'canceled' | 'resolvedByMerchant'
@@ -625,7 +626,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                           isRefund:
                               !!entry.extraData?.parentRainTxId ||
                               entry.extraData?.isRefund === true ||
-                              Number(entry.amount) < 0,
+                              isNegativeWireAmount(entry.amount),
                           // Dispute lifecycle — null when Rain hasn't fired
                           // any dispute.* webhook for this spend.
                           dispute: (() => {
