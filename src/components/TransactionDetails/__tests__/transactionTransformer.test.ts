@@ -385,6 +385,17 @@ const cases: TestCase[] = [
         }),
         expect: { userName: 'alice' },
     },
+    {
+        name: 'failed collateral QR_PAY (no reaper reason) renders neutral "didn\'t complete" copy',
+        entry: baseEntry({
+            userRole: EHistoryUserRole.SENDER,
+            status: EHistoryStatus.FAILED,
+            extraData: { kind: 'QR_PAY', merchantName: 'MERPAGO*CARREFOUR' },
+        }),
+        // Overrides the misleading "QR payment to <merchant>" the kind-switch
+        // would produce for a FAILED row (peanut-api-ts #1146 surfaces these).
+        expect: { userName: "QR payment didn't complete" },
+    },
 ]
 
 describe('mapTransactionDataForDrawer', () => {
