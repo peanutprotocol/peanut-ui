@@ -2,12 +2,17 @@ import posthog from 'posthog-js'
 import * as Sentry from '@sentry/nextjs'
 import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
+import { getIOSMajorVersion } from '@/utils/webkit.utils'
 
 // rrweb session replay serializes the DOM on every mutation — too heavy for low-end
-// Android WebViews. deviceMemory (GB) is Chromium-only and often absent on cheap
-// devices; treat "unknown" as low-end and skip, to protect the weakest ones.
+// WebViews. iOS WebKit has no deviceMemory, so gate on OS version there: iOS 17
+// requires A12+, which handles rrweb fine; anything stuck below is A11 or older.
+// On Android, deviceMemory (GB) is Chromium-only and often absent on cheap devices;
+// treat "unknown" as low-end and skip, to protect the weakest ones.
 function nativeReplayEnabled(): boolean {
     if (typeof navigator === 'undefined') return false
+    const iosVersion = getIOSMajorVersion()
+    if (iosVersion !== null) return iosVersion >= 17
     const nav = navigator as Navigator & { deviceMemory?: number }
     return (nav.deviceMemory ?? 0) >= 4 && (nav.hardwareConcurrency ?? 0) >= 6
 }
