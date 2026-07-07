@@ -7,6 +7,7 @@ import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils
 import { useUserStore } from '@/redux/hooks'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
+import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
 
 export function useNotifications() {
     const { user } = useUserStore()
@@ -226,8 +227,8 @@ export function useNotifications() {
                             deep_link: event?.result?.url ?? event?.notification?.launchURL,
                         }
                         if (campaign) {
-                            props.utm_source = 'onesignal'
-                            props.utm_medium = 'push'
+                            props.utm_source = UTM_SOURCES.ONESIGNAL
+                            props.utm_medium = UTM_MEDIUMS.PUSH
                             props.utm_campaign = campaign
                             if (typeof data.utmContent === 'string') props.utm_content = data.utmContent
                         }
