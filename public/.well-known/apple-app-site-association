@@ -1,0 +1,16 @@
+{
+    "applinks": {
+        "apps": [],
+        "details": [
+            { "appID": "4K73GMPZP8.com.squirrellabs.peanut-app", "paths": ["*"] },
+            { "appID": "web.app.peanut", "paths": ["*"] },
+            { "appID": "PW388G893L.me.peanut.wallet", "paths": ["*"] }
+        ]
+    },
+    "webcredentials": {
+        "apps": ["web.app.peanut", "PW388G893L.me.peanut.wallet"]
+    },
+    "activitycontinuation": {
+        "apps": ["web.app.peanut", "PW388G893L.me.peanut.wallet"]
+    }
+}
