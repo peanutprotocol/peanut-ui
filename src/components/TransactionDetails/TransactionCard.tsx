@@ -5,7 +5,11 @@ import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionA
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { isCardPaymentEntry, isPerkReward } from '@/components/TransactionDetails/transaction-predicates'
+import {
+    canNavigateToUserProfile,
+    isCardPaymentEntry,
+    isPerkReward,
+} from '@/components/TransactionDetails/transaction-predicates'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import {
     formatNumberForDisplay,
@@ -28,6 +32,8 @@ import { useHaptic } from 'use-haptic'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 import { PEANUTMAN } from '@/assets/mascot'
 import InvitesIcon from '../Home/InvitesIcon'
+import { useRouter } from 'next/navigation'
+import { profileUrl } from '@/utils/native-routes'
 
 // Lazy load transaction details drawer (~40KB) to reduce initial bundle size
 // Only loaded when user taps a transaction to view details
@@ -72,10 +78,22 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
         useTransactionDetailsDrawer()
     const { triggerHaptic } = useHaptic()
+    const router = useRouter()
 
     const handleClick = () => {
         triggerHaptic()
         openTransactionDetails(transaction)
+    }
+
+    const canNavigateToProfile = canNavigateToUserProfile(transaction)
+
+    // Tap the name → the counterparty's profile (to repeat the send/request);
+    // the rest of the card still opens the details drawer. stopPropagation keeps
+    // the name tap from also firing the card's drawer handler.
+    const handleNameClick = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        triggerHaptic()
+        router.push(profileUrl(transaction.userName))
     }
 
     const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
@@ -206,7 +224,13 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             {/* display formatted name (address or username) */}
                             <div className="flex flex-row items-center gap-2">
                                 {isPending && <div className="h-2 w-2 animate-pulsate rounded-full bg-primary-1" />}
-                                <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
+                                <div
+                                    className={twMerge(
+                                        'min-w-0 flex-1 truncate font-roboto text-[16px] font-medium',
+                                        canNavigateToProfile && 'cursor-pointer'
+                                    )}
+                                    onClick={canNavigateToProfile ? handleNameClick : undefined}
+                                >
                                     <VerifiedUserLabel
                                         username={transaction.userName}
                                         name={displayName}

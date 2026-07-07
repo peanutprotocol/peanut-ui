@@ -4,6 +4,7 @@
 // `extraData.kind` pinned to a canonical TransactionIntentKind value.
 
 import {
+    canNavigateToUserProfile,
     isCardSpend,
     isDirectSendEntry,
     isFxBearingFlow,
@@ -150,5 +151,49 @@ describe('isSplittable', () => {
     test('non-QR / non-card kinds are never splittable', () => {
         expect(isSplittable(txWithStatus('DIRECT_TRANSFER', 'completed'))).toBe(false)
         expect(isSplittable(txWithStatus('SEND_LINK', 'completed'))).toBe(false)
+    })
+})
+
+// Gates the clickable counterparty name/avatar in BOTH the history row
+// (TransactionCard) and the receipt header (TransactionDetailsHeaderCard): only
+// a non-link send/request/receive to a real username (not a raw address) deep-
+// links to a Peanut profile.
+describe('canNavigateToUserProfile', () => {
+    const profileTx = (
+        transactionCardType: string | undefined,
+        opts?: { userName?: string; isLinkTransaction?: boolean }
+    ): TransactionDetails =>
+        ({
+            userName: opts?.userName ?? 'natalia',
+            extraDataForDrawer: {
+                originalType: 'TRANSACTION_INTENT',
+                transactionCardType,
+                isLinkTransaction: opts?.isLinkTransaction ?? false,
+            },
+        }) as unknown as TransactionDetails
+
+    test.each(['send', 'request', 'receive'])('a %s to a real username is navigable', (type) => {
+        expect(canNavigateToUserProfile(profileTx(type))).toBe(true)
+    })
+
+    test.each(['withdraw', 'add', 'card_pay', 'bank_withdraw', 'claim_external'])(
+        'a %s has no peer profile → not navigable',
+        (type) => {
+            expect(canNavigateToUserProfile(profileTx(type))).toBe(false)
+        }
+    )
+
+    test('a link send is NOT navigable — there is no user profile behind a link', () => {
+        expect(canNavigateToUserProfile(profileTx('send', { isLinkTransaction: true }))).toBe(false)
+    })
+
+    test('a raw 0x address recipient is NOT navigable — no Peanut profile exists', () => {
+        expect(
+            canNavigateToUserProfile(profileTx('send', { userName: '0x1bf9c9f2b0e8a0b9f2b0e8a0b9f2b0e8a0b9f2b0' }))
+        ).toBe(false)
+    })
+
+    test('a missing username is NOT navigable', () => {
+        expect(canNavigateToUserProfile(profileTx('send', { userName: '' }))).toBe(false)
     })
 })

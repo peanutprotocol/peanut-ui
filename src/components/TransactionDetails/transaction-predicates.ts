@@ -8,6 +8,7 @@
  * transformer runs (e.g. `extraDataForDrawer.cardPayment`).
  */
 
+import { isAddress } from 'viem'
 import { type TransactionDetails } from './transactionTransformer'
 import type { IntentKind } from './strategies/registry'
 
@@ -120,4 +121,20 @@ export function isOnrampEntry(transaction: TransactionDetails): boolean {
 // positive-identity discriminator.
 export function isMantecaOnrampEntry(transaction: TransactionDetails): boolean {
     return isKind(transaction, 'ONRAMP') && transaction.extraDataForDrawer?.provider === 'MANTECA'
+}
+
+// The counterparty is a real Peanut user whose profile we can deep-link to:
+// a non-link send / request / receive whose identifier is a username (not a
+// raw 0x address, which has no Peanut profile). The single source of truth for
+// the clickable name + avatar in both the history row (TransactionCard) and the
+// receipt header (TransactionDetailsHeaderCard) — keep the eligibility rule here
+// so the two surfaces can't drift.
+export function canNavigateToUserProfile(transaction: TransactionDetails): boolean {
+    const type = transaction.extraDataForDrawer?.transactionCardType
+    return (
+        !transaction.extraDataForDrawer?.isLinkTransaction &&
+        !!transaction.userName &&
+        !isAddress(transaction.userName) &&
+        (type === 'send' || type === 'request' || type === 'receive')
+    )
 }
