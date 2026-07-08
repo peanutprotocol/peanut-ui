@@ -87,8 +87,11 @@ beforeEach(() => {
     signTypedData = jest.fn().mockResolvedValue('0xENABLESIG')
     ;(useKernelClient as jest.Mock).mockReturnValue({
         getClientForChain: () => ({
-            account: { address: ACCOUNT, kernelPluginManager: { sudoValidator: { signTypedData } } },
+            account: { address: ACCOUNT },
         }),
+        // The enable approval signs with the v0.0.3 patched validator (#2368),
+        // not the client's possibly-stale kernelPluginManager.sudoValidator.
+        getPatchedSudoValidator: jest.fn().mockResolvedValue({ signTypedData }),
     })
     ;(useRainCardOverview as jest.Mock).mockReturnValue({
         overview: { status: { contractAddress: COLLATERAL, coordinatorAddress: COORDINATOR }, cards: [{}] },
