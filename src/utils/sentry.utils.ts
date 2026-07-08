@@ -13,6 +13,9 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = 
     { pattern: /\/get-user(?:\b|$)/, statuses: [400, 401, 403, 404] },
     { pattern: /users/, statuses: [400, 401, 403, 404] },
     { pattern: /perks/, statuses: [400, 401, 403, 404] },
+    // /invites/validate 400 = "Invalid Invite": the user mistyped an invite code.
+    // Expected input validation, surfaced inline to the user — not a server bug.
+    { pattern: /\/invites\/validate/, statuses: [400] },
     { pattern: /qr-payment\/init/, statuses: [400] },
     // Rain card secrets endpoints are intentionally rate-limited (5/min) — a
     // 429 here is an expected outcome surfaced to the user, not a server bug.
