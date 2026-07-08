@@ -17,6 +17,7 @@ import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
 import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/registry'
+import { parseWireAmount } from './transaction-details.utils'
 
 /** Rain dispute lifecycle status values. Source: Rain dispute.* webhooks. */
 export type DisputeStatus = 'pending' | 'inReview' | 'accepted' | 'rejected' | 'canceled' | 'resolvedByMerchant'
@@ -455,6 +456,12 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     const out = dispatchStrategy(entry)(entry)
     const direction: TransactionDirection = out.direction
     const transactionCardType: TransactionCardType = out.transactionCardType
+    // Role for display strings (the +/- sign, the receipt's "Sent/Received"
+    // label). A pre-#1144 BE reports SENDER on negative-amount card auths,
+    // but the strategy has already classified the row as a refund credit —
+    // trust the strategy verdict so the receipt can't contradict the header.
+    const displayUserRole =
+        transactionCardType === 'refund' ? EHistoryUserRole.RECIPIENT : (entry.userRole as EHistoryUserRole)
     let nameForDetails = out.nameForDetails
     let isPeerActuallyUser = out.isPeerActuallyUser
     const isLinkTx = out.isLinkTx
@@ -500,9 +507,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     }
 
     // parse the amount from the usdamount string in extradata
-    const baseAmount = entry.extraData?.usdAmount
-        ? parseFloat(String(entry.extraData.usdAmount).replace(/[^\d.-]/g, ''))
-        : 0
+    const baseAmount = entry.extraData?.usdAmount ? parseWireAmount(entry.extraData.usdAmount) : 0
     // Bake the cross-chain network fee into the displayed amount (product
     // convention: fees are part of the amount, never a separate line — see the
     // `fee: undefined` note below). The BE only sets `networkFeeUsd` for a
@@ -536,7 +541,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         fullName,
         showFullName,
         currency: rewardData ? undefined : entry.currency,
-        currencySymbol: `${entry.userRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
+        currencySymbol: `${displayUserRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
         tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,
         initials: getInitialsFromName(nameForInitials),
         status: uiStatus,
@@ -573,7 +578,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         extraDataForDrawer: {
             addressExplorerUrl,
             originalType: 'TRANSACTION_INTENT',
-            originalUserRole: entry.userRole as EHistoryUserRole,
+            originalUserRole: displayUserRole,
             kind: intentKindOf(entry),
             provider: entry.extraData?.provider as Provider | undefined,
             bridgeFlow: entry.extraData?.bridgeFlow,
@@ -622,7 +627,11 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                           cancellationReason: entry.extraData?.cancellationReason as string | null,
                           parentRainTxId: entry.extraData?.parentRainTxId as string | null,
                           rainTransactionId: entry.extraData?.rainTransactionId as string | null,
-                          isRefund: !!entry.extraData?.parentRainTxId,
+                          // Reuse the strategy verdict instead of re-deriving the
+                          // parentRainTxId/isRefund/negative-amount heuristic here —
+                          // a local copy would silently diverge from the strategy
+                          // layer as its rules evolve (CodeRabbit #2373).
+                          isRefund: transactionCardType === 'refund',
                           // Dispute lifecycle — null when Rain hasn't fired
                           // any dispute.* webhook for this spend.
                           dispute: (() => {

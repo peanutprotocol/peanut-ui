@@ -309,6 +309,8 @@ const TYPE_PRESENTATION: Record<TransactionType, { icon: IconName | null; iconSi
     // 'Pay' for card spends — the `card_pay` literal is an internal
     // discriminator (see TransactionType comment) that renders as "Pay".
     card_pay: { icon: 'arrow-up-right', text: 'Pay' },
+    // Refund credit row — same inbound arrow as 'receive', labelled "Refund".
+    refund: { icon: 'arrow-down-left', text: 'Refund' },
 }
 
 // helper functions

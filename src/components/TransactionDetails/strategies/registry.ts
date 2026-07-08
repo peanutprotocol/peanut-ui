@@ -14,6 +14,7 @@ import { fiatOfframp } from './intent/fiat-offramp'
 import { fiatOnramp } from './intent/fiat-onramp'
 import { perkReward } from './intent/perk-reward'
 import { qrPay, cardSpend } from './intent/card'
+import { refund } from './intent/refund'
 import { intentFallback } from './fallback'
 
 // IntentKind enumerates every raw TransactionIntentKind value the FE
@@ -34,6 +35,7 @@ export type IntentKind =
     | 'CARD_SPEND_AUTH'
     | 'CARD_SPEND_CLEAR'
     | 'CARD_AUTH_REVERSAL'
+    | 'REFUND'
     | 'PERK_REWARD'
 
 const STRATEGIES: Record<IntentKind, TransactionStrategy> = {
@@ -49,6 +51,7 @@ const STRATEGIES: Record<IntentKind, TransactionStrategy> = {
     CARD_SPEND_AUTH: cardSpend,
     CARD_SPEND_CLEAR: cardSpend,
     CARD_AUTH_REVERSAL: cardSpend,
+    REFUND: refund,
     PERK_REWARD: perkReward,
 }
 

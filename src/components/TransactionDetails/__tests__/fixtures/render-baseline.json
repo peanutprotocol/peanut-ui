@@ -3465,9 +3465,10 @@
       }
     },
     "expected": {
-      "direction": "send",
-      "userName": "<EVM_ADDRESS>",
-      "transactionCardType": "send",
+      "direction": "receive",
+      "userName": "Refund",
+      "transactionCardType": "refund",
+      "kind": "REFUND",
       "provider": "MANTECA",
       "cardPaymentDefined": false,
       "bankAccountDetailsDefined": false
