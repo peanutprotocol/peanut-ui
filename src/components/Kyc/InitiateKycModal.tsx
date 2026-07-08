@@ -87,9 +87,8 @@ export const InitiateKycModal = ({
         }
         if (isCrossRegion) {
             return {
-                text: isLoading ? 'Loading...' : 'Submit document',
+                text: isLoading ? 'Loading...' : 'Continue',
                 onClick: onVerify,
-                icon: 'upload' as IconName,
             }
         }
         return {

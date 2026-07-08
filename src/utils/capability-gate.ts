@@ -304,7 +304,14 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
     // You're unlocked loop (tap Submit document, see success, bounce back with
     // nothing changed).
     if (requiresInfoRails.length > 0) {
-        const rail = requiresInfoRails[0]
+        // Prefer an action-less / self-heal rail over a wait-only one, so a mixed
+        // scope doesn't surface a "we're finalizing with Bridge" wait message on
+        // the document-upload modal.
+        const rail =
+            requiresInfoRails.find((r) => {
+                const acts = railActions(r, actionByKey)
+                return acts.length === 0 || acts.some((a) => a.kind !== 'wait')
+            }) ?? requiresInfoRails[0]
         return {
             kind: 'fixable-rejection',
             userMessage: rail.reason?.userMessage ?? null,

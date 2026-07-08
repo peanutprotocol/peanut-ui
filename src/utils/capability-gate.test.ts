@@ -207,6 +207,29 @@ describe('deriveGate — waiting-on-provider (kind: wait)', () => {
         expect(gate.kind).toBe('fixable-rejection')
     })
 
+    test('mixed scope: 7b surfaces the self-heal rail reason, not a wait-only rail message', () => {
+        // A wait-only rail ("finalizing with Bridge") + an action-less self-heal rail
+        // in the same scope. allWaiting is false, so 7b fires — it must pick the
+        // self-heal rail's reason for the Upload-document modal, not the wait message.
+        const waitAction: NextAction = { key: 'wait:bridge', kind: 'wait', purpose: 'bridge-review' }
+        const rails = [
+            bankRail({
+                id: 'bridge.sepa_eu',
+                status: 'requires-info',
+                blockingActions: ['wait:bridge'],
+                reason: { code: 'bridge_processing', userMessage: "We're finalizing your verification with Bridge." },
+            }),
+            bankRail({
+                id: 'bridge.ach_us',
+                status: 'requires-info',
+                blockingActions: [],
+                reason: { code: 'document_rejected', userMessage: 'Please re-upload your ID document.' },
+            }),
+        ]
+        const gate = deriveGate(state(rails, [waitAction]), 'deposit', { channel: 'bank' })
+        expect(gate).toMatchObject({ kind: 'fixable-rejection', userMessage: 'Please re-upload your ID document.' })
+    })
+
     test('rail with NO actions stays out of waiting-on-provider (would falsely match `every of empty = true`)', () => {
         // Edge case: a requires-info rail with no blockingActions should NOT be
         // misclassified as waiting-on-provider (Array.every returns true on []).
