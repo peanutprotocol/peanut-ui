@@ -224,6 +224,36 @@ export interface RainCooldownEventDetail {
     message: string
 }
 
+/**
+ * Thrown on 409 `{ code: 'STALE_CARD_APPROVAL' }` from
+ * `/rain/cards/withdraw/submit`. The user's stored card session-key approval is
+ * bound to a deprecated ZeroDev validator that can no longer be sponsored, so
+ * the withdrawal can't be broadcast until the user re-enables their card
+ * (re-grants the session key, which mints a fresh, sponsorable approval).
+ *
+ * `rainRequest` also dispatches a `RAIN_STALE_APPROVAL_EVENT` window event when
+ * it constructs this error, so the global re-enable modal can surface the
+ * recovery CTA on ANY spend path without threading state through the call —
+ * same event-driven pattern as the cooldown 425 above.
+ *
+ * TODO(gen:api): the backend (peanut-api-ts #1143) added `code:
+ * 'STALE_CARD_APPROVAL'` to the withdraw error contract. Once that openapi
+ * lands on dev, run `pnpm gen:api` and branch off the generated union type
+ * instead of this hand-written string literal.
+ */
+export class StaleCardApprovalError extends Error {
+    constructor(message: string) {
+        super(message)
+        this.name = 'StaleCardApprovalError'
+    }
+}
+
+/** The only path that returns a 409 STALE_CARD_APPROVAL — the withdraw submit.
+ *  Gate the branch on it so an unrelated 409 elsewhere stays a generic error. */
+const RAIN_WITHDRAW_SUBMIT_PATH = '/rain/cards/withdraw/submit'
+/** Window event the global re-enable modal listens for. */
+export const RAIN_STALE_APPROVAL_EVENT = 'rain:stale-card-approval'
+
 /** Path that legitimately produces the cooldown 425. Any other 425 from a
  *  Rain endpoint is treated as a generic upstream error — without this gate,
  *  an unrelated 425 (e.g. proxy "Too Early") would pop the cooldown modal on
@@ -348,6 +378,23 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
             }
         }
         throw new RainCooldownError(message, retryAfterSec)
+    }
+
+    if (response.status === 409 && opts.path === RAIN_WITHDRAW_SUBMIT_PATH) {
+        const err = await response.json().catch(() => ({}))
+        // Only the stale-approval discriminant routes to the re-enable flow.
+        // Any other 409 on submit (e.g. "Charge already paid") stays generic.
+        if (err.code === 'STALE_CARD_APPROVAL') {
+            const message =
+                err.error ||
+                'Your card needs to be re-enabled before you can withdraw. Please re-enable your card and try again.'
+            if (typeof window !== 'undefined') {
+                posthog.capture(ANALYTICS_EVENTS.CARD_STALE_APPROVAL_HIT)
+                window.dispatchEvent(new CustomEvent(RAIN_STALE_APPROVAL_EVENT))
+            }
+            throw new StaleCardApprovalError(message)
+        }
+        throw new Error(err.error || err.message || `Request failed: ${response.status}`)
     }
 
     if (!response.ok) {
