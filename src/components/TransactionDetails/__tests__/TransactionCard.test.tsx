@@ -112,7 +112,11 @@ describe('TransactionCard — clickable counterparty name', () => {
         expect(push).not.toHaveBeenCalled()
     })
 
-    it('AC3 (link tx): the name is NOT a nav target — clicking it does not navigate', () => {
+    // Ineligible rows: the name must not be a nav target. Eligibility itself
+    // (link tx / raw address / card type / empty username) is exhaustively
+    // locked by transaction-predicates.test.ts; here we only confirm the
+    // component honors it — one representative ineligible case (a link tx).
+    it('AC3 (ineligible — link tx): the name is not a nav target — clicking it does not navigate', () => {
         const tx = eligibleTx()
         ;(tx.extraDataForDrawer as { isLinkTransaction: boolean }).isLinkTransaction = true
 
@@ -123,18 +127,5 @@ describe('TransactionCard — clickable counterparty name', () => {
         expect(push).not.toHaveBeenCalled()
         // the click still bubbles to the card, which opens the drawer
         expect(openTransactionDetails).toHaveBeenCalledTimes(1)
-    })
-
-    it('AC3 (raw address): a 0x-address counterparty name does not navigate', () => {
-        const address = '0x' + 'a'.repeat(40)
-        const tx = eligibleTx()
-        ;(tx as { userName: string }).userName = address
-
-        render(<TransactionCard type="send" name={address} amount={10} status="completed" transaction={tx} />)
-
-        // address is rendered shortened via AddressLink; click the card body instead
-        fireEvent.click(screen.getByTestId('transaction-card'))
-
-        expect(push).not.toHaveBeenCalled()
     })
 })
