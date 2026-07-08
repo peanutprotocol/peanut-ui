@@ -52,11 +52,13 @@ export const Profile = () => {
                     />
                     {/* Menu Items - First Group */}
                     <div>
-                        {/* Card row shows for everyone. Holders go straight to their card;
-                            everyone else lands on /shhhhh (the waitlist/explainer), which
-                            self-redirects card-access users on to /card — so no one 404s on
-                            the gated /card route. `hasCardAccess` is undefined while loading,
-                            which falls through to the /shhhhh path (safe default). */}
+                        {/* Card row shows for everyone. Holders go straight to /card;
+                            everyone else lands on /shhhhh — the waitlist/explainer door,
+                            the canonical card entry point — whose CTA forwards on to /card
+                            post-launch. We deliberately DON'T send non-holders to /card:
+                            it notFound()s users without card access. `hasCardAccess` is
+                            undefined while useCardInfo loads, falling to the /shhhhh path —
+                            the safe default (never 404s; the gated /card route would). */}
                         <ProfileMenuItem
                             icon="credit-card"
                             label={hasCardAccess ? 'Your Card' : 'Peanut Card'}
