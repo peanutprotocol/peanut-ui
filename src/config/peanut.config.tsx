@@ -8,6 +8,7 @@ import { Provider as ReduxProvider } from 'react-redux'
 import store from '@/redux/store'
 import 'react-tooltip/dist/react-tooltip.css'
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
+import { setAuthToken } from '@/utils/auth-token'
 import { CRISP_WEBSITE_ID } from '@/constants/crisp'
 // Note: Sentry configs are auto-loaded by @sentry/nextjs via next.config.js
 // DO NOT import them here - it bundles server/edge configs into client code
@@ -21,6 +22,32 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
         // in capacitor, install the passkey shim so navigator.credentials.create/get
         // routes through native APIs instead of the browser (which doesn't work in webview).
         if (isCapacitor()) {
+            // Capture the session JWT that /passkeys/register/verify and /login/verify
+            // return in their response BODY. On native the Set-Cookie is cross-site
+            // (api.peanut.me vs capacitor://localhost) + SameSite=Lax, so the cookie is
+            // never sent back, and zerodev's toWebAuthnKey — which makes these calls —
+            // discards the body token. Without this, no Authorization header is ever
+            // sent, GET /users/me 400s ("Missing authorization token"), and new signups
+            // hang on the "confirm it's you" screen. Intercept the verify responses once
+            // and persist the token so apiFetch can attach it.
+            const nativeFetch = globalThis.fetch
+            if (nativeFetch && !(globalThis as { __peanutAuthInterceptor?: boolean }).__peanutAuthInterceptor) {
+                ;(globalThis as { __peanutAuthInterceptor?: boolean }).__peanutAuthInterceptor = true
+                globalThis.fetch = async (...args: Parameters<typeof fetch>) => {
+                    const res = await nativeFetch(...args)
+                    try {
+                        const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url
+                        if (res.ok && /\/passkeys\/(?:register|login)\/verify(?:$|\?)/.test(url)) {
+                            const body = await res.clone().json()
+                            if (body?.token) setAuthToken(body.token)
+                        }
+                    } catch {
+                        // never let token capture break the underlying request
+                    }
+                    return res
+                }
+            }
+
             import('@capgo/capacitor-passkey').then(({ CapacitorPasskey }) => {
                 const nativeRpId = getNativeRpId()
 
