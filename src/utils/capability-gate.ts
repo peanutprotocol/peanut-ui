@@ -294,6 +294,24 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
         }
     }
 
+    // 7b. Requires-info rails EXIST in scope but none surfaced an actionable step
+    // (no accept-tos / sumsub / wait). The rail exists so the user is NOT missing a
+    // region; it needs a document the backend resolver punts to the FE resubmit
+    // endpoint (e.g. a Bridge government-id DOCUMENT_SELF_HEAL, requirementKey
+    // government_id_document). Route to the self-heal / document flow
+    // (fixable-rejection -> handleSelfHealResubmit) instead of the misleading
+    // Unlock {region} cross-region modal, which sent these users into a fake
+    // You're unlocked loop (tap Submit document, see success, bounce back with
+    // nothing changed).
+    if (requiresInfoRails.length > 0) {
+        const rail = requiresInfoRails[0]
+        return {
+            kind: 'fixable-rejection',
+            userMessage: rail.reason?.userMessage ?? null,
+            reason: rail.reason,
+        }
+    }
+
     // 8/9. no functional rail in scope. Distinguish identity-not-cleared vs
     // identity-cleared-but-no-rail-for-this-scope (needs enrollment / cross-region).
     if (!state.identityVerified) return { kind: 'needs-identity' }

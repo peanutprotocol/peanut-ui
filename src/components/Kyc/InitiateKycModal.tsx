@@ -58,8 +58,8 @@ export const InitiateKycModal = ({
             )
         if (isProviderRejection) return providerMessage || 'Please upload a clearer photo of your ID to continue.'
         if (isCrossRegion) {
-            const region = regionName ? ` from ${regionName}` : ''
-            return `Your ID is already on file. To unlock payments here, we need a valid ID${region}.`
+            const region = regionName ? ` in ${regionName}` : ' here'
+            return `Your identity is already verified. To turn on payments${region}, we just need to confirm a few more details — about a minute.`
         }
         return 'Confirm your ID to unlock payments. Takes about a minute.'
     }

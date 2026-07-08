@@ -192,6 +192,21 @@ describe('deriveGate — waiting-on-provider (kind: wait)', () => {
         expect(gate.kind).toBe('fixable-rejection')
     })
 
+    test('requires-info rail with no surfaced action -> fixable-rejection, NOT cross-region needs-enrollment (government-id self-heal loop)', () => {
+        // Reported loop: a Bridge rail that needs a government-id re-upload
+        // (DOCUMENT_SELF_HEAL) carries no blockingAction because the backend resolver
+        // punts it to the FE resubmit endpoint. It must route to the self-heal /
+        // document flow, NOT the misleading "Unlock {region}" cross-region modal
+        // (needs-enrollment) that looped users on a fake "You're unlocked".
+        const rail = bankRail({
+            id: 'bridge.ach_us',
+            status: 'requires-info',
+            blockingActions: [],
+        })
+        const gate = deriveGate(state([rail], []), 'deposit', { channel: 'bank' })
+        expect(gate.kind).toBe('fixable-rejection')
+    })
+
     test('rail with NO actions stays out of waiting-on-provider (would falsely match `every of empty = true`)', () => {
         // Edge case: a requires-info rail with no blockingActions should NOT be
         // misclassified as waiting-on-provider (Array.every returns true on []).
