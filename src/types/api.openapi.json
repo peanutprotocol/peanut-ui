@@ -7915,6 +7915,9 @@
 										"eligibilityReason": {
 											"type": "string"
 										},
+										"geoProhibited": {
+											"type": "boolean"
+										},
 										"flowEarlyAccess": {
 											"type": "boolean"
 										},
@@ -7958,6 +7961,7 @@
 									"required": [
 										"hasCardAccess",
 										"isEligible",
+										"geoProhibited",
 										"flowEarlyAccess",
 										"waitlistJoinedAt",
 										"waitlistPosition",

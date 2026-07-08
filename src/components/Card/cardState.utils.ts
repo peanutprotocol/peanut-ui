@@ -17,6 +17,7 @@ export function findActiveCard(overview: RainCardOverview | undefined): RainCard
  * Precedence (top wins) in `computeCardState`:
  *   loading → active → no-flow-access → rejected (incl. FAILED) →
  *   requires-support → requires-info → pending/manual-review →
+ *   geo-blocked (no application, country on Rain's prohibited list) →
  *   eligibility-check (first arrival, not yet held) → skip-celebration →
  *   add-card → waitlist
  *
@@ -46,6 +47,11 @@ export type CardTopLevelState =
     /** Our pipeline broke en route to the provider (rail REQUIRES_SUPPORT).
      *  Not self-fixable — support has to step in. */
     | 'requires-support'
+    /** Country known (from KYC) and on Rain's prohibited-issuance list — the
+     *  user can't apply, so block entry into the funnel before the
+     *  press-and-hold moment. Only for users with NO existing application;
+     *  in-flight/approved applicants keep their truthful rail state above. */
+    | 'geo-blocked'
     | 'rejected'
     | 'active'
 
@@ -121,6 +127,16 @@ export function computeCardState({
     // through to add-card would re-create the apply loop ("Application
     // already submitted" → add-card → …), so route unknowns to support.
     if (rail && rail !== 'ENABLED') return 'requires-support'
+
+    // Country known (from KYC) and on Rain's prohibited-issuance list — no
+    // point letting the user into the funnel (the BE apply gate would refuse
+    // anyway). Checked BEFORE the press-and-hold so they aren't teased with
+    // "see if you qualify". Scoped to `!rail` on purpose: an ENABLED rail
+    // without a card is the re-issue path (already approved by Rain), which
+    // stays untouched — mirroring the BE gate placement. Unknown-country
+    // users (`geoProhibited` false/undefined) pass through; the BE re-checks
+    // the Sumsub address at submission time.
+    if (!rail && cardInfo.geoProhibited) return 'geo-blocked'
 
     // First arrival from /shhhhh: gate everything else behind the press-and-hold
     // "see if you qualify" moment. Applies whether the user ultimately lands on

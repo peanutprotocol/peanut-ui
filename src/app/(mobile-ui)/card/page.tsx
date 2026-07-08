@@ -619,6 +619,10 @@ const CardPage: FC = () => {
                         onPrev={onBack}
                     />
                 )
+            case 'geo-blocked':
+                // Regulatory dead end (country on Rain's prohibited-issuance
+                // list) — no support CTA, support can't override regulation.
+                return <ApplicationStatusScreen variant="geo-blocked" onPrev={onBack} />
             case 'rejected': {
                 // No retry CTA: Rain denials are terminal on our side. The
                 // only path forward is support reviewing the case manually

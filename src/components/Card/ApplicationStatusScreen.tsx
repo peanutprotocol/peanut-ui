@@ -5,7 +5,7 @@ import { PeanutCrying } from '@/assets/mascot'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
 
-type Variant = 'pending' | 'manual-review' | 'requires-info' | 'requires-support' | 'rejected'
+type Variant = 'pending' | 'manual-review' | 'requires-info' | 'requires-support' | 'rejected' | 'geo-blocked'
 
 interface Props {
     variant: Variant
@@ -41,6 +41,12 @@ const COPY: Record<Variant, { title: string; body: string }> = {
         title: "We couldn't issue you a card",
         body: 'You can still use Peanut freely to deposit, withdraw, and pay with crypto.',
     },
+    'geo-blocked': {
+        // Terminal, nothing support can do (regulatory) — no support CTA.
+        // Same reassurance as `rejected`: the rest of the account still works.
+        title: "Cards aren't available in your region yet",
+        body: 'Due to regulatory restrictions, we can’t issue cards in your region. You can still use Peanut freely to deposit, withdraw, and pay with crypto.',
+    },
 }
 
 /** Variants where support is the only path forward — these render the CTA. */
@@ -53,7 +59,7 @@ const ApplicationStatusScreen: FC<Props> = ({ variant, reasonMessage, onContactS
             <NavHeader title="Add card" onPrev={onPrev} />
             <div className="my-auto flex flex-col items-center gap-6 text-center">
                 {variant === 'pending' && <Loading />}
-                {(variant === 'rejected' || variant === 'requires-support') && (
+                {(variant === 'rejected' || variant === 'requires-support' || variant === 'geo-blocked') && (
                     <Image
                         src={PeanutCrying.src}
                         unoptimized
