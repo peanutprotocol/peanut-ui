@@ -43,7 +43,15 @@ jest.mock('@/constants/rain.consts', () => ({
     ],
 }))
 
-jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: { __tag: 'peanutPublicClient' } }))
+// The enable-nonce-binding path (hotfix #2313) reads code + currentNonce off
+// the public client alongside account construction.
+jest.mock('@/app/actions/clients', () => ({
+    peanutPublicClient: {
+        __tag: 'peanutPublicClient',
+        getCode: jest.fn(() => Promise.resolve('0xdeadbeef')),
+        readContract: jest.fn(() => Promise.resolve(BigInt(1))),
+    },
+}))
 
 const mockGetSessionKeyAddress = jest.fn()
 const mockSubmitWithdrawSessionApproval = jest.fn()
@@ -86,7 +94,9 @@ jest.mock('@zerodev/permissions/signers', () => ({
 // v0.0.3 for a post-migration user. `getPatchedSudoValidator` is the FIX: it
 // always resolves the v0.0.3 validator regardless of the client's stale one.
 let mockClientSudoValidatorAddress = V003_VALIDATOR
-const mockGetPatchedSudoValidator = jest.fn(() => Promise.resolve({ address: V003_VALIDATOR }))
+// The patched validator also signs the enable typed data (hotfix #2313 path).
+const mockPatchedValidator = { address: V003_VALIDATOR, signTypedData: jest.fn(() => Promise.resolve('0xENABLESIG')) }
+const mockGetPatchedSudoValidator = jest.fn(() => Promise.resolve(mockPatchedValidator))
 jest.mock('@/context/kernelClient.context', () => ({
     useKernelClient: () => ({
         getClientForChain: () => ({
@@ -109,10 +119,14 @@ describe('useGrantSessionKey — serialized approval binds to the v0.0.3 validat
         // was given so serializePermissionAccount can encode it.
         ;(createKernelAccount as jest.Mock).mockImplementation(
             (_pc: unknown, opts: { address: string; plugins: { sudo: { address: string } } }) =>
-                Promise.resolve({ address: opts.address, __sudoValidator: opts.plugins.sudo })
+                Promise.resolve({
+                    address: opts.address,
+                    __sudoValidator: opts.plugins.sudo,
+                    kernelPluginManager: { getAction: () => ({}), hook: undefined },
+                })
         )
         mockGetSessionKeyAddress.mockResolvedValue({ address: SESSION_KEY })
-        mockGetPatchedSudoValidator.mockResolvedValue({ address: V003_VALIDATOR })
+        mockGetPatchedSudoValidator.mockResolvedValue(mockPatchedValidator)
         mockOverview = {
             status: { contractAddress: COLLATERAL_PROXY, coordinatorAddress: COORDINATOR },
             cards: [{ id: 'card-1' }],

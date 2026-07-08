@@ -15,6 +15,8 @@ import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useAuth } from '@/context/authContext'
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 
 interface ActivationCTAsProps {
     activationStep: ActivationStep
@@ -89,32 +91,47 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // qr-only channels — never through card. Top-level status (not per-op
     // refinement): Manteca's pool tier reads `enabled` at the rail level even when
     // deposit/withdraw individually need an upgrade — that's not a rejection.
-    const { hasFixableRejection, hasBlockedRejection, primaryRejectionMessage, blockedRail, isEmailBlocked } =
-        useMemo(() => {
-            const rejectableRails = rails.filter((rail) => {
-                const channel = channelOf(rail)
-                return channel === 'bank' || channel === 'qr-only'
-            })
-            const fixableRail = rejectableRails.find((rail) => rail.status === 'requires-info')
-            // Email-blocked rails carry a self-serve provide-email action (same
-            // contract the capability gate reads) — prefer one over an earlier
-            // blocked rail with a terminal reason, since one email fixes them all.
-            const emailBlocked = rejectableRails.find(
-                (rail) =>
-                    rail.status === 'blocked' && nextActionsForRail(rail.id).some((a) => a.kind === 'provide-email')
-            )
-            const blocked = emailBlocked ?? rejectableRails.find((rail) => rail.status === 'blocked')
-            return {
-                hasFixableRejection: !!fixableRail,
-                hasBlockedRejection: !!blocked,
-                // Same precedence the copy/onClick use: email-blocked → fixable → terminal.
-                primaryRejectionMessage: (emailBlocked ?? fixableRail ?? blocked)?.reason?.userMessage ?? null,
-                blockedRail: blocked,
-                isEmailBlocked: !!emailBlocked,
-            }
-        }, [rails, channelOf, nextActionsForRail])
+    const {
+        hasFixableRejection,
+        fixableProvider,
+        hasBlockedRejection,
+        primaryRejectionMessage,
+        blockedRail,
+        isEmailBlocked,
+    } = useMemo(() => {
+        const rejectableRails = rails.filter((rail) => {
+            const channel = channelOf(rail)
+            return channel === 'bank' || channel === 'qr-only'
+        })
+        const fixableRail = rejectableRails.find((rail) => rail.status === 'requires-info')
+        // Email-blocked rails carry a self-serve provide-email action (same
+        // contract the capability gate reads) — prefer one over an earlier
+        // blocked rail with a terminal reason, since one email fixes them all.
+        const emailBlocked = rejectableRails.find(
+            (rail) => rail.status === 'blocked' && nextActionsForRail(rail.id).some((a) => a.kind === 'provide-email')
+        )
+        const blocked = emailBlocked ?? rejectableRails.find((rail) => rail.status === 'blocked')
+        return {
+            hasFixableRejection: !!fixableRail,
+            fixableProvider:
+                fixableRail && (fixableRail.provider === 'bridge' || fixableRail.provider === 'manteca')
+                    ? (fixableRail.provider.toUpperCase() as 'BRIDGE' | 'MANTECA')
+                    : null,
+            hasBlockedRejection: !!blocked,
+            // Same precedence the copy/onClick use: email-blocked → fixable → terminal.
+            primaryRejectionMessage: (emailBlocked ?? fixableRail ?? blocked)?.reason?.userMessage ?? null,
+            blockedRail: blocked,
+            isEmailBlocked: !!emailBlocked,
+        }
+    }, [rails, channelOf, nextActionsForRail])
 
     const [showProvideEmail, setShowProvideEmail] = useState(false)
+
+    // Inline self-heal so the home "Upload document" CTA opens the Sumsub document
+    // re-upload directly, instead of routing to /profile/identity-verification (which
+    // only showed the regions list, forcing the user to hunt for the Upload-document
+    // CTA again). Mirrors the add-money bank flow + UnlockedRegions view.
+    const kycFlow = useMultiPhaseKycFlow({})
 
     const lastTrackedStep = useRef<ActivationStep | null>(null)
     useEffect(() => {
@@ -253,6 +270,8 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                                     userId: user?.user?.userId,
                                 })
                             )
+                        } else if (hasProviderRejection && hasFixableRejection && fixableProvider) {
+                            void kycFlow.handleSelfHealResubmit(fixableProvider)
                         } else if (activationStep === 'outbound' && !hasProviderRejection) {
                             setIsQRScannerOpen(true)
                         } else {
@@ -273,6 +292,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 onComplete={() => setShowProvideEmail(false)}
                 onSkip={() => setShowProvideEmail(false)}
             />
+            <SumsubKycModals flow={kycFlow} />
         </Card>
     )
 }

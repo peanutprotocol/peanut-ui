@@ -480,6 +480,16 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     if (entry.status === 'FAILED' && reaperFailReason && reaperFailReason.endsWith('_timeout')) {
         nameForDetails = REAPER_FAIL_COPY[reaperFailReason] ?? 'Transaction did not complete'
         isPeerActuallyUser = false
+    } else if (entry.status === 'FAILED' && intentKindOf(entry) === 'QR_PAY') {
+        // A collateral QR-pay that failed at submit (e.g. the stale-approval 403)
+        // has no reaper _timeout reason, but the BE now surfaces it (peanut-api-ts
+        // #1146). Render the same neutral "didn't complete" copy instead of the
+        // kind-switch's "QR payment to <merchant>", which implies the payment
+        // happened. Deliberately does NOT assert charge status — a payment that
+        // settles then fails is refunded elsewhere — so "didn't complete" is honest
+        // whether or not funds moved; the ledger stays the source of truth for that.
+        nameForDetails = 'Failed QR payment attempt'
+        isPeerActuallyUser = false
     }
 
     // Strategy uiStatus wins (e.g. SEND_LINK BOTH → 'cancelled'); otherwise
