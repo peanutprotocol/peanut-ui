@@ -189,7 +189,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // clear auth tokens (localStorage in capacitor, cookie on web)
         removeFromCookie(WEB_AUTHN_COOKIE_KEY)
-        clearAuthToken()
+        await clearAuthToken()
 
         // clear redirect url
         clearRedirectUrl()

@@ -45,25 +45,26 @@ export function setAuthToken(token: string): void {
 
 /**
  * clears the jwt token.
- * capacitor: removes from localStorage (reliable, no domain/path issues)
+ * capacitor: removes from localStorage and the native cookie jar
  * web: removes cookie
+ * returns a promise for the native cookie-jar clear so logout can await it
+ * before reloading; other callers may safely ignore it.
  */
-export function clearAuthToken(): void {
+export function clearAuthToken(): Promise<void> {
+    let nativeClear: Promise<void> = Promise.resolve()
     if (isCapacitor()) {
         localStorage.removeItem(JWT_STORAGE_KEY)
-        // Also clear api.peanut.me's cookie from CapacitorHttp's native cookie
-        // jar. register/verify sets a jwt-token Set-Cookie that lives there, and
-        // the DOM can't delete a cross-domain cookie — so without this a logged-out
-        // native user stays authenticated via the server-side cookie fallback
-        // (peanut-api-ts verifyAuth). Best-effort, fire-and-forget: logout runs
-        // enough async work before its reload for the native call to dispatch.
-        void import('@capacitor/core')
+        // The verify endpoints' Set-Cookie lands a jwt-token cookie in
+        // CapacitorHttp's native cookie jar, which document.cookie can't touch —
+        // clear it so no stale credential lingers after logout / account switch.
+        nativeClear = import('@capacitor/core')
             .then(({ CapacitorCookies }) => CapacitorCookies.clearCookies({ url: PEANUT_API_URL }))
             .catch(() => {})
     }
     // always clear cookie too in case it was set by backend Set-Cookie header
     Cookies.remove(JWT_COOKIE_KEY, { path: '/' })
     document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+    return nativeClear
 }
 
 /**
