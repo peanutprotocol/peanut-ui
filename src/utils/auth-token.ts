@@ -4,6 +4,7 @@
 
 import Cookies from 'js-cookie'
 import { isCapacitor } from './capacitor'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 const JWT_COOKIE_KEY = 'jwt-token'
 const JWT_STORAGE_KEY = 'jwt-token'
@@ -50,6 +51,15 @@ export function setAuthToken(token: string): void {
 export function clearAuthToken(): void {
     if (isCapacitor()) {
         localStorage.removeItem(JWT_STORAGE_KEY)
+        // Also clear api.peanut.me's cookie from CapacitorHttp's native cookie
+        // jar. register/verify sets a jwt-token Set-Cookie that lives there, and
+        // the DOM can't delete a cross-domain cookie — so without this a logged-out
+        // native user stays authenticated via the server-side cookie fallback
+        // (peanut-api-ts verifyAuth). Best-effort, fire-and-forget: logout runs
+        // enough async work before its reload for the native call to dispatch.
+        void import('@capacitor/core')
+            .then(({ CapacitorCookies }) => CapacitorCookies.clearCookies({ url: PEANUT_API_URL }))
+            .catch(() => {})
     }
     // always clear cookie too in case it was set by backend Set-Cookie header
     Cookies.remove(JWT_COOKIE_KEY, { path: '/' })
