@@ -6404,6 +6404,10 @@ export interface paths {
                                 idDocumentCountry: string | null;
                             };
                         } | {
+                            /** @enum {string} */
+                            status: "geo-blocked";
+                            message: string;
+                        } | {
                             status: string;
                             rainUserId?: string;
                             message: string;

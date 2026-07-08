@@ -89,6 +89,11 @@ const CardPage: FC = () => {
     // the new card row". Without it the screen would briefly flip back to Add
     // Card mid-apply before the state machine sees the new state.
     const [isIssuing, setIsIssuing] = useState(false)
+    // Set when POST /rain/cards answers `geo-blocked` (country on Rain's
+    // prohibited-issuance list, detected from the Sumsub address at apply
+    // time). Per-mount — the cardInfo refetch it triggers makes the state
+    // machine's geoProhibited path own the block durably.
+    const [geoBlocked, setGeoBlocked] = useState(false)
 
     // Track whether the user has acknowledged the skip-badge celebration.
     // localStorage on purpose (per-device, replayable via the eligibility
@@ -241,12 +246,26 @@ const CardPage: FC = () => {
                 setPendingTerms({ isUsResident: res.isUsResident })
                 return
             }
+            // Terminal regulatory block from the BE gate. This can fire
+            // mid-funnel for Sumsub-only users whose country is unknown until
+            // their address lands (cardInfo.geoProhibited couldn't catch them
+            // up front). Local flag renders the screen immediately — without
+            // it the user would bounce back to add-card with a generic error
+            // and an apply button that can never succeed. The cardInfo refetch
+            // lets the state machine own the block on subsequent visits.
+            if (res.status === 'geo-blocked') {
+                setPendingTerms(null)
+                setPendingCountryConfirmation(null)
+                setGeoBlocked(true)
+                void refetchCardInfo()
+                return
+            }
             // pending / already-applied → state machine routes based on overview.
             setPendingTerms(null)
             setPendingCountryConfirmation(null)
             invalidateOverview()
         },
-        [invalidateOverview]
+        [invalidateOverview, refetchCardInfo]
     )
 
     // The user picked their residence country on the confirmation screen.
@@ -446,11 +465,14 @@ const CardPage: FC = () => {
             setPendingTerms({ isUsResident: res.isUsResident })
         } else if (res.status === 'country-confirmation-required' && 'candidates' in res) {
             setPendingCountryConfirmation({ candidates: res.candidates })
+        } else if (res.status === 'geo-blocked') {
+            setGeoBlocked(true)
+            void refetchCardInfo()
         } else {
             invalidateOverview()
         }
         return ''
-    }, [invalidateOverview])
+    }, [invalidateOverview, refetchCardInfo])
 
     // Outer-gate fail — the useEffect above fires notFound() to render the
     // 404 boundary; render nothing here so the page doesn't flash for the
@@ -488,6 +510,12 @@ const CardPage: FC = () => {
         // to Add Card for a split second while the API call is in flight.
         if (isIssuing) {
             return <ApplicationStatusScreen variant="pending" />
+        }
+        // Terminal regulatory block detected mid-funnel by the BE apply gate —
+        // takes precedence over the confirmation/terms overlays (those flows
+        // are moot once the country verdict is in).
+        if (geoBlocked) {
+            return <ApplicationStatusScreen variant="geo-blocked" onPrev={onBack} />
         }
         // Residence confirmation comes before terms in the funnel — the
         // backend won't return terms-required until the country is resolved.

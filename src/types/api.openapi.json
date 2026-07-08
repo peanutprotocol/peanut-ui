@@ -8343,6 +8343,19 @@
 											"type": "object",
 											"properties": {
 												"status": {
+													"type": "string",
+													"enum": ["geo-blocked"]
+												},
+												"message": {
+													"type": "string"
+												}
+											},
+											"required": ["status", "message"]
+										},
+										{
+											"type": "object",
+											"properties": {
+												"status": {
 													"type": "string"
 												},
 												"rainUserId": {

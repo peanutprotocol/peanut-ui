@@ -45,7 +45,7 @@ const COPY: Record<Variant, { title: string; body: string }> = {
         // Terminal, nothing support can do (regulatory) — no support CTA.
         // Same reassurance as `rejected`: the rest of the account still works.
         title: "Cards aren't available in your region yet",
-        body: 'Due to regulatory restrictions, we can’t issue cards in your region. You can still use Peanut freely to deposit, withdraw, and pay with crypto.',
+        body: "Due to regulatory restrictions, we can't issue cards in your region. You can still use Peanut freely to deposit, withdraw, and pay with crypto.",
     },
 }
 
