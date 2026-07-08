@@ -6,7 +6,7 @@ import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import {
-    canNavigateToUserProfile,
+    hasUserProfile,
     isCardPaymentEntry,
     isPerkReward,
 } from '@/components/TransactionDetails/transaction-predicates'
@@ -85,13 +85,12 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         openTransactionDetails(transaction)
     }
 
-    const canNavigateToProfile = canNavigateToUserProfile(transaction)
+    const canNavigateToProfile = hasUserProfile(transaction)
 
     // Tap the name → the counterparty's profile (to repeat the send/request);
-    // the rest of the card still opens the details drawer. stopPropagation keeps
-    // the name tap from also firing the card's drawer handler.
-    const handleNameClick = (e: React.MouseEvent) => {
-        e.stopPropagation()
+    // the rest of the card still opens the details drawer (VerifiedUserLabel
+    // stops the name tap from bubbling to the card's drawer handler).
+    const handleNameClick = () => {
         triggerHaptic()
         router.push(profileUrl(transaction.userName))
     }
@@ -224,18 +223,13 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             {/* display formatted name (address or username) */}
                             <div className="flex flex-row items-center gap-2">
                                 {isPending && <div className="h-2 w-2 animate-pulsate rounded-full bg-primary-1" />}
-                                <div
-                                    className={twMerge(
-                                        'min-w-0 flex-1 truncate font-roboto text-[16px] font-medium',
-                                        canNavigateToProfile && 'cursor-pointer'
-                                    )}
-                                    onClick={canNavigateToProfile ? handleNameClick : undefined}
-                                >
+                                <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
                                     <VerifiedUserLabel
                                         username={transaction.userName}
                                         name={displayName}
                                         isVerified={transaction.isVerified}
                                         haveSentMoneyToUser={haveSentMoneyToUser}
+                                        onNameClick={canNavigateToProfile ? handleNameClick : undefined}
                                     />
                                 </div>
                             </div>

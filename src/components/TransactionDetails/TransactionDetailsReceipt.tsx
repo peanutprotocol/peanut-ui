@@ -46,7 +46,7 @@ import { useRouter } from 'next/navigation'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import {
-    canNavigateToUserProfile,
+    hasUserProfile,
     isPerkReward as isPerkRewardTransaction,
     isRequestEntry,
     isSendLinkEntry,
@@ -253,8 +253,8 @@ export const TransactionDetailsReceipt = ({
 
     // Show profile button only if it's a send/request/receive to a real Peanut
     // user (not a link or a raw address). Shared with the history row — see
-    // canNavigateToUserProfile.
-    const isAvatarClickable = canNavigateToUserProfile(transaction)
+    // hasUserProfile.
+    const isAvatarClickable = hasUserProfile(transaction)
 
     const closeRequestLink = async () => {
         if (isPendingRequester && setIsLoading && onClose) {

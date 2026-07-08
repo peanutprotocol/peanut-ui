@@ -4,7 +4,7 @@
 // `extraData.kind` pinned to a canonical TransactionIntentKind value.
 
 import {
-    canNavigateToUserProfile,
+    hasUserProfile,
     isCardSpend,
     isDirectSendEntry,
     isFxBearingFlow,
@@ -158,7 +158,7 @@ describe('isSplittable', () => {
 // (TransactionCard) and the receipt header (TransactionDetailsHeaderCard): only
 // a non-link send/request/receive to a real username (not a raw address) deep-
 // links to a Peanut profile.
-describe('canNavigateToUserProfile', () => {
+describe('hasUserProfile', () => {
     const profileTx = (
         transactionCardType: string | undefined,
         opts?: { userName?: string; isLinkTransaction?: boolean }
@@ -172,28 +172,32 @@ describe('canNavigateToUserProfile', () => {
             },
         }) as unknown as TransactionDetails
 
-    test.each(['send', 'request', 'receive'])('a %s to a real username is navigable', (type) => {
-        expect(canNavigateToUserProfile(profileTx(type))).toBe(true)
+    test.each(['send', 'request', 'receive'])('a %s to a real username has a profile', (type) => {
+        expect(hasUserProfile(profileTx(type))).toBe(true)
     })
 
     test.each(['withdraw', 'add', 'card_pay', 'bank_withdraw', 'claim_external'])(
-        'a %s has no peer profile → not navigable',
+        'a %s has no peer profile',
         (type) => {
-            expect(canNavigateToUserProfile(profileTx(type))).toBe(false)
+            expect(hasUserProfile(profileTx(type))).toBe(false)
         }
     )
 
-    test('a link send is NOT navigable — there is no user profile behind a link', () => {
-        expect(canNavigateToUserProfile(profileTx('send', { isLinkTransaction: true }))).toBe(false)
+    test('a link send has no user profile behind it', () => {
+        expect(hasUserProfile(profileTx('send', { isLinkTransaction: true }))).toBe(false)
     })
 
-    test('a raw 0x address recipient is NOT navigable — no Peanut profile exists', () => {
-        expect(
-            canNavigateToUserProfile(profileTx('send', { userName: '0x1bf9c9f2b0e8a0b9f2b0e8a0b9f2b0e8a0b9f2b0' }))
-        ).toBe(false)
+    // Same address rule VerifiedUserLabel renders by (isCryptoAddress): EVM,
+    // Solana and Tron shapes all mean "no Peanut profile".
+    test.each([
+        ['EVM', '0x1bf9c9f2b0e8a0b9f2b0e8a0b9f2b0e8a0b9f2b0'],
+        ['Solana', 'DRpbCBMxVnDK7maPM5tGv6MvB3v1sRMC86PZ8okm21hy'],
+        ['Tron', 'TJRabPrwbZy45sbavfcjinPJC18kjpRTv8'],
+    ])('a raw %s address recipient has no profile', (_chain, address) => {
+        expect(hasUserProfile(profileTx('send', { userName: address }))).toBe(false)
     })
 
-    test('a missing username is NOT navigable', () => {
-        expect(canNavigateToUserProfile(profileTx('send', { userName: '' }))).toBe(false)
+    test('a missing username has no profile', () => {
+        expect(hasUserProfile(profileTx('send', { userName: '' }))).toBe(false)
     })
 })
