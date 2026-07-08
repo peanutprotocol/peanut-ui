@@ -14,7 +14,7 @@ import { useCardInfo } from '@/hooks/useCardInfo'
 import Card from '../Global/Card'
 import ShowNameToggle from './components/ShowNameToggle'
 import InviteFriendsModal from '../Global/InviteFriendsModal'
-import { STAR_STRAIGHT_ICON } from '@/assets'
+import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
 
 export const Profile = () => {
