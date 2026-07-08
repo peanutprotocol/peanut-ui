@@ -7,11 +7,10 @@ import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardInfo } from '@/hooks/useCardInfo'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
 import Card from '../Global/Card'
 import ShowNameToggle from './components/ShowNameToggle'
 import InviteFriendsModal from '../Global/InviteFriendsModal'
@@ -37,7 +36,6 @@ export const Profile = () => {
     const username = user?.user.username || 'anonymous'
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const displayName = user?.user.showFullName && user?.user.fullName ? user.user.fullName : username
-    const showCard = useMemo(() => !underMaintenanceConfig.disableCardPioneers || hasCardAccess, [hasCardAccess])
 
     return (
         <div className="h-full w-full bg-background">
@@ -54,15 +52,19 @@ export const Profile = () => {
                     />
                     {/* Menu Items - First Group */}
                     <div>
-                        {showCard && (
-                            <ProfileMenuItem icon="credit-card" label="Your Card" href="/card" position="first" />
-                        )}
+                        {/* Card row shows for everyone. Holders go straight to their card;
+                            everyone else lands on /shhhhh (the waitlist/explainer), which
+                            self-redirects card-access users on to /card — so no one 404s on
+                            the gated /card route. `hasCardAccess` is undefined while loading,
+                            which falls through to the /shhhhh path (safe default). */}
                         <ProfileMenuItem
-                            icon="achievements"
-                            label="Your Badges"
-                            href="/badges"
-                            position={showCard ? 'middle' : 'first'}
+                            icon="credit-card"
+                            label={hasCardAccess ? 'Your Card' : 'Peanut Card'}
+                            href={hasCardAccess ? '/card' : '/shhhhh'}
+                            badge={hasCardAccess ? undefined : 'New!'}
+                            position="first"
                         />
+                        <ProfileMenuItem icon="achievements" label="Your Badges" href="/badges" position="middle" />
                         <ProfileMenuItem
                             icon={<Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />}
                             label="Points"
