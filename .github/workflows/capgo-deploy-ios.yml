@@ -1,0 +1,84 @@
+name: Deploy OTA Update — iOS only (Capgo)
+
+# iOS-only OTA for the mobile-release branch. Uploads the JS bundle to a
+# dedicated iOS channel so Android (which lives on the `production`/`staging`
+# channels) is never affected. Devices must be subscribed to this channel to
+# receive it (self-assign enabled below), so this is a testing/preview lane —
+# not a push to all production iOS users.
+
+on:
+    push:
+        branches: [feat/mobile-release]
+    workflow_dispatch:
+        inputs:
+            channel:
+                description: 'iOS Capgo channel to deploy to'
+                required: true
+                default: 'ios-mobile-release'
+                type: string
+
+concurrency:
+    group: capgo-deploy-ios-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 10
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '21.1.0'
+                  cache: 'pnpm'
+
+            - name: Install dependencies
+              run: pnpm install
+
+            - name: Build native static export
+              run: node scripts/native-build.js
+
+            - name: Verify build output
+              run: |
+                  test -d out && test -f out/index.html || (echo "ERROR: out/ directory missing or incomplete" && exit 1)
+                  echo "Bundle ready. File count: $(find out -type f | wc -l)"
+
+            - name: Resolve channel
+              id: channel
+              run: echo "name=${{ github.event.inputs.channel || 'ios-mobile-release' }}" >> "$GITHUB_OUTPUT"
+
+            # Best-effort: create the channel and lock it to iOS. Idempotent and
+            # non-fatal — if the channel already exists / flags differ, the upload
+            # below still runs and the channel's platform can be set once in the
+            # Capgo dashboard (iOS on, Android off, self-assign on).
+            - name: Ensure iOS-only channel exists
+              continue-on-error: true
+              run: |
+                  npx @capgo/cli@latest channel add ${{ steps.channel.outputs.name }} \
+                    --apikey ${{ secrets.CAPGO_API_KEY }} || true
+                  npx @capgo/cli@latest channel set ${{ steps.channel.outputs.name }} \
+                    --apikey ${{ secrets.CAPGO_API_KEY }} \
+                    --ios --no-android --self-assign
+
+            - name: Upload iOS bundle to Capgo
+              run: |
+                  npx @capgo/cli@latest bundle upload \
+                    --channel ${{ steps.channel.outputs.name }} \
+                    --apikey ${{ secrets.CAPGO_API_KEY }} \
+                    --path ./out \
+                    --auto-min-update-version \
+                    --comment "iOS OTA — ${{ github.event.head_commit.message || 'manual deploy' }}"
+
+            - name: Deployment summary
+              run: |
+                  echo "## iOS-only OTA Deployment" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Channel:** ${{ steps.channel.outputs.name }} (iOS only)" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
