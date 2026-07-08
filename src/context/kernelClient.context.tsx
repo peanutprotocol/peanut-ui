@@ -255,7 +255,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
     const [clientsByChain, setClientsByChain] = useState<Record<string, GenericSmartAccountClient>>({})
     const [webAuthnKey, setWebAuthnKey] = useState<WebAuthnKey | undefined>(undefined)
     const dispatch = useAppDispatch()
-    const { fetchUser, logoutUser, user } = useAuth()
+    const { fetchUser, logoutUser, clearStaleSession, user } = useAuth()
     // In-flight kernel-client builds keyed by chainId. Lets concurrent
     // ensureClientForChain() callers dedupe to a single build, and lets the
     // primary-init effect register itself so a recover-funds page mount that
@@ -323,10 +323,21 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // Harness-only: skip auto-logout so playwright can screenshot the
             // authenticated UI with a seeded user that has no real passkey.
         } else {
-            // avoid mixed state
-            logoutUser()
+            // Mixed state: a leftover JWT resurrected a user, but this device has
+            // no passkey key. During the setup flow this is a half-completed signup
+            // (server made the user, client never stored the key — PEANUT-API-7S);
+            // a full logoutUser() hard-reloads to /setup and wipes the in-progress
+            // signup, bouncing the user back to the start mid-typing. There, clear
+            // the stale JWT quietly and let signup continue. Elsewhere (e.g. /home),
+            // keep forcing a real re-auth.
+            const inSetupFlow = typeof window !== 'undefined' && window.location.pathname.startsWith('/setup')
+            if (inSetupFlow) {
+                clearStaleSession()
+            } else {
+                logoutUser()
+            }
         }
-    }, [user?.user.userId, logoutUser])
+    }, [user?.user.userId, logoutUser, clearStaleSession])
 
     useEffect(() => {
         if (user?.user.userId && !!webAuthnKey) {

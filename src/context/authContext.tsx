@@ -25,6 +25,7 @@ import { createContext, type ReactNode, useContext, useState, useEffect, useMemo
 import { captureException, setUser as setSentryUser } from '@sentry/nextjs'
 // import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
 import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
+import { USER } from '@/constants/query.consts'
 
 interface AuthContextType {
     user: IUserProfile | null
@@ -50,6 +51,7 @@ interface AuthContextType {
     isFetchingUser: boolean
     userFetchError: Error | null
     logoutUser: (options?: { skipBackendCall?: boolean }) => Promise<void>
+    clearStaleSession: () => void
     isLoggingOut: boolean
     invitedUsernamesSet: Set<string>
 }
@@ -277,6 +279,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         [clearLocalAuthState, fetchUser, isLoggingOut, toast]
     )
 
+    /**
+     * Soft session clear for the "mixed state" during the setup flow: a leftover
+     * JWT resurrects a user, but this device has no local passkey key (e.g. a
+     * signup that completed server-side but not client-side — see PEANUT-API-7S).
+     * Unlike logoutUser(), this does NOT hard-reload to /setup or resetSetup(), so
+     * an in-progress signup (invite + username) survives. It just drops the stale
+     * JWT and nulls the user so the flow proceeds as unauthenticated.
+     */
+    const clearStaleSession = useCallback(() => {
+        clearAuthToken()
+        queryClient.setQueryData([USER], null)
+        dispatch(userActions.setUser(null))
+    }, [dispatch, queryClient])
+
     return (
         <AuthContext.Provider
             value={{
@@ -288,6 +304,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 isFetchingUser,
                 userFetchError: userFetchError ?? null,
                 logoutUser,
+                clearStaleSession,
                 isLoggingOut,
                 invitedUsernamesSet,
             }}

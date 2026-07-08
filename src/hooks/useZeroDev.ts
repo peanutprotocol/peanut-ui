@@ -165,17 +165,26 @@ export const useZeroDev = () => {
             setWebAuthnKey(webAuthnKey)
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
         } catch (e) {
-            const { code, message } = classifyPasskeyError(e)
+            // zerodev's toWebAuthnKey login path reads loginVerifyResult.verification.verified
+            // with no HTTP-status check, so a non-2xx /login/verify (e.g. a 401 when this
+            // device's passkey doesn't verify) throws a raw TypeError. Normalize it to a
+            // clean auth error so it classifies and reports as a login failure instead of a
+            // confusing "undefined is not an object (…verification.verified)" crash (PEANUT-UI-R0V).
+            const err =
+                e instanceof TypeError && /verif(ication|ied)/i.test(e.message ?? '')
+                    ? new Error('Login not verified')
+                    : e
+            const { code, message } = classifyPasskeyError(err)
             dispatch(zerodevActions.setIsLoggingIn(false))
-            // Cancel saved no state; everything else clears stale state and reports the raw error to Sentry.
+            // Cancel saved no state; everything else clears stale state and reports the error to Sentry.
             if (code !== 'LOGIN_CANCELED') {
-                console.error('Error logging in', e)
+                console.error('Error logging in', err)
                 clearAuthState(user?.user.userId)
-                captureException(e, { tags: { error_type: 'login_error' } })
+                captureException(err, { tags: { error_type: 'login_error' } })
             } else if (isCapacitor()) {
                 // the native plugin maps ceremony failures (.failed/.notHandled) to the
                 // same NotAllowedError as a user cancel — keep visibility without alerting.
-                captureException(e, { level: 'warning', tags: { error_type: 'login_canceled_native' } })
+                captureException(err, { level: 'warning', tags: { error_type: 'login_canceled_native' } })
             }
             throw new PasskeyError(message, code)
         }
