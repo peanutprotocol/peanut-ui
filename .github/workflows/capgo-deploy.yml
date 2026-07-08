@@ -60,13 +60,19 @@ jobs:
                   fi
 
             - name: Upload bundle to Capgo
+              # Commit message via env, never inline — a multi-line message (or one
+              # with quotes) injected into the run script breaks --comment quoting.
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+                  COMMIT_MSG: ${{ github.event.head_commit.message }}
               run: |
+                  COMMENT="${GITHUB_SHA:0:7} — $(printf '%s' "${COMMIT_MSG:-Manual deploy}" | head -n1)"
                   npx @capgo/cli@latest bundle upload \
-                    --channel ${{ steps.channel.outputs.name }} \
-                    --apikey ${{ secrets.CAPGO_API_KEY }} \
+                    --channel "${{ steps.channel.outputs.name }}" \
+                    --apikey "$CAPGO_API_KEY" \
                     --path ./out \
                     --auto-min-update-version \
-                    --comment "${{ github.event.head_commit.message || 'Manual deploy' }}"
+                    --comment "$COMMENT"
 
             - name: Deployment summary
               run: |
