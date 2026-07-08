@@ -255,7 +255,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
     const [clientsByChain, setClientsByChain] = useState<Record<string, GenericSmartAccountClient>>({})
     const [webAuthnKey, setWebAuthnKey] = useState<WebAuthnKey | undefined>(undefined)
     const dispatch = useAppDispatch()
-    const { fetchUser, logoutUser, clearStaleSession, user } = useAuth()
+    const { fetchUser, logoutUser, user } = useAuth()
     // In-flight kernel-client builds keyed by chainId. Lets concurrent
     // ensureClientForChain() callers dedupe to a single build, and lets the
     // primary-init effect register itself so a recover-funds page mount that
@@ -323,21 +323,22 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // Harness-only: skip auto-logout so playwright can screenshot the
             // authenticated UI with a seeded user that has no real passkey.
         } else {
-            // Mixed state: a leftover JWT resurrected a user, but this device has
-            // no passkey key. During the setup flow this is a half-completed signup
-            // (server made the user, client never stored the key — PEANUT-API-7S);
-            // a full logoutUser() hard-reloads to /setup and wipes the in-progress
-            // signup, bouncing the user back to the start mid-typing. There, clear
-            // the stale JWT quietly and let signup continue. Elsewhere (e.g. /home),
-            // keep forcing a real re-auth.
+            // Only force re-auth OUTSIDE the setup flow. During signup/login the
+            // user/key state legitimately oscillates: React Query refetches the user
+            // while the freshly-created webAuthnKey is still being persisted to
+            // userPreferences, and the native web-authn-key cookie is cross-origin
+            // empty — so `storedWebAuthnKey` is transiently null even though the
+            // signup is healthy. Acting here (a logoutUser() hard-bounce, or clearing
+            // the JWT) either kicks the user back to the start of setup or wipes the
+            // just-captured session token mid-signup, which 400s POST /add-account.
+            // The setup flow + mobile-ui layout own routing for genuinely stale
+            // sessions; the kernel client must not interfere during setup.
             const inSetupFlow = typeof window !== 'undefined' && window.location.pathname.startsWith('/setup')
-            if (inSetupFlow) {
-                clearStaleSession()
-            } else {
+            if (!inSetupFlow) {
                 logoutUser()
             }
         }
-    }, [user?.user.userId, logoutUser, clearStaleSession])
+    }, [user?.user.userId, logoutUser])
 
     useEffect(() => {
         if (user?.user.userId && !!webAuthnKey) {
