@@ -74,19 +74,24 @@ export const ProfileEditView = () => {
             setIsLoading(true)
             setErrorMessage('')
 
-            // validate form data
-            if (!formData.name?.trim()) {
+            // only validate/send the name when the field is editable. once the
+            // user is identity-verified the name is provider-owned and the field
+            // is disabled — requiring it would trap verified users whose fullName
+            // is empty at load (can't type, can't save) when they only want to
+            // set their email.
+            if (!isKycApproved && !formData.name?.trim()) {
                 setErrorMessage('Please provide your name.')
                 return
             }
 
-            // combine name and surname for fullName
-            const fullName = `${formData.name} ${formData.surname}`.trim()
-
             // prepare request payload
             const payload: Record<string, any> = {
                 userId: user?.user.userId,
-                fullName: fullName,
+            }
+
+            // only include name when the field is editable (not provider-locked)
+            if (!isKycApproved) {
+                payload.fullName = `${formData.name} ${formData.surname}`.trim()
             }
 
             // only include email if it's not already set and has a value
@@ -112,7 +117,7 @@ export const ProfileEditView = () => {
         } finally {
             setIsLoading(false)
         }
-    }, [formData, user, fetchUser, router, isEmailSet])
+    }, [formData, user, fetchUser, router, isEmailSet, isKycApproved])
 
     const fullName = user?.user.fullName || user?.user?.username || ''
     const username = user?.user.username || ''
