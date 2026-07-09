@@ -42,6 +42,10 @@ const IGNORED_ERRORS = {
     thirdPartySdkErrors: [
         'IndexedDB:Set:InternalError', // Vercel Analytics storage - fails in private browsing, not actionable
         'Analytics SDK:', // Vercel Analytics errors
+        // qr-scanner console.warns this whenever location.protocol !== 'https:',
+        // which is always true on capacitor://localhost — it then proceeds and the
+        // camera works. Pure noise on native (PEANUT-UI-R1M).
+        'The camera stream is only accessible if the page is transferred via https',
     ],
 }
 

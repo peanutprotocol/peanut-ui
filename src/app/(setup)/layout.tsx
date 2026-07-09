@@ -3,7 +3,7 @@
 import { usePWAStatus } from '@/hooks/usePWAStatus'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { useEffect, Suspense } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { setupSteps } from '../../components/Setup/Setup.consts'
 import '../../styles/globals.css'
 import PeanutLoading from '@/components/Global/PeanutLoading'
@@ -11,12 +11,24 @@ import { Banner } from '@/components/Global/Banner'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
-import { isCapacitor } from '@/utils/capacitor'
+import { isCapacitor, isIOSNative } from '@/utils/capacitor'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const dispatch = useAppDispatch()
     const isPWA = usePWAStatus()
     const { deviceType } = useDeviceType()
+
+    /*
+     * Bottom-inset fill color. Periwinkle is for Android 15 edge-to-edge (matches
+     * the status-bar strip). On iOS the content directly above the home-indicator
+     * inset is the white panel, so periwinkle reads as a stray bar on Face ID
+     * devices — fill with white there instead. State + effect (not a render-time
+     * platform check) so the static export's prerendered HTML hydrates cleanly.
+     */
+    const [bottomInsetFill, setBottomInsetFill] = useState('bg-secondary-3')
+    useEffect(() => {
+        if (isIOSNative()) setBottomInsetFill('bg-white')
+    }, [])
 
     // configure status bar for native. the setup/onboarding flow has a periwinkle
     // top (illustration + feedback ribbon), so tint the status bar to match — on
@@ -75,7 +87,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
                 brand periwinkle so the bottom matches the top. No-op on web (inset = 0). */}
             <div
                 aria-hidden
-                className="pointer-events-none fixed inset-x-0 bottom-0 -z-10 bg-secondary-3"
+                className={`pointer-events-none fixed inset-x-0 bottom-0 -z-10 ${bottomInsetFill}`}
                 style={{ height: 'env(safe-area-inset-bottom)' }}
             />
             <SupportDrawer />
