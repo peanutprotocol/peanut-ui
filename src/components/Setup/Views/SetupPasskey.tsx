@@ -44,6 +44,11 @@ const SetupPasskey = () => {
     const [preflightWarning, setPreflightWarning] = useState<string | null>(null)
     const [inlineError, setInlineError] = useState<string | null>(null)
     const [usernameTaken, setUsernameTaken] = useState(false)
+    // True only once the user actually starts a passkey registration on THIS
+    // screen. The auto-advance below keys off it, so a wallet address that
+    // hydrates asynchronously from a stale web-authn-key cookie (native cookie
+    // jar) can never be mistaken for a fresh registration and skip the step.
+    const registrationInitiatedRef = useRef(false)
 
     // preflight check for common passkey issues
     useEffect(() => {
@@ -96,6 +101,7 @@ const SetupPasskey = () => {
 
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_STARTED, { device_type: deviceType })
 
+        registrationInitiatedRef.current = true
         try {
             await withWebAuthnRetry(() => handleRegister(username), 'passkey-registration')
             // success - useEffect below will handle navigation
@@ -172,14 +178,14 @@ const SetupPasskey = () => {
         }
     }
 
-    // Once a passkey is registered (or logged in) ON THIS SCREEN, move to the
-    // test transaction step. Compare against the address present at mount:
-    // stale credentials from a half-completed earlier signup hydrate an address
-    // before this screen renders, and advancing on it would silently skip
-    // registration and discard the username the user just chose.
-    const addressAtMountRef = useRef(address)
+    // Advance to the test-transaction step only when a wallet address appears
+    // AFTER the user started registration on this screen. Gating on the
+    // intent (registrationInitiatedRef) — not on the address value — is what
+    // prevents an asynchronously-hydrated stale address from skipping the step
+    // and stranding the user on a half-valid session (which the kernel-client
+    // re-auth guard then bounces back to /setup).
     useEffect(() => {
-        if (address && address !== addressAtMountRef.current) {
+        if (address && registrationInitiatedRef.current) {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_SUCCEEDED, { device_type: deviceType })
             handleNext()
         }

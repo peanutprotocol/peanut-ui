@@ -26,7 +26,7 @@ import type { Address, Hash } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { isDemoMode } from '@/utils/demo'
 import { DEMO_ADDRESS } from '@/constants/demo-data'
-import { captureException } from '@sentry/nextjs'
+import { captureException, captureMessage } from '@sentry/nextjs'
 import { retryAsync } from '@/utils/retry.utils'
 import { isStaleClientForUser, isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { isAndroidNative, getNativeRpId } from '@/utils/capacitor'
@@ -335,6 +335,17 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // sessions; the kernel client must not interfere during setup.
             const inSetupFlow = typeof window !== 'undefined' && window.location.pathname.startsWith('/setup')
             if (!inSetupFlow) {
+                // This hard-bounces the user to /setup. It's correct for genuinely
+                // stale sessions but has masqueraded as an onboarding bug when an
+                // upstream flow lands here with a half-valid session. Record it so
+                // the cause is visible in Sentry (no exception is otherwise thrown).
+                captureMessage('kernel-client: no wallet key outside setup — forcing re-auth', {
+                    level: 'warning',
+                    extra: {
+                        userId: user.user.userId,
+                        pathname: typeof window !== 'undefined' ? window.location.pathname : undefined,
+                    },
+                })
                 logoutUser()
             }
         }
