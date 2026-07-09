@@ -207,24 +207,6 @@ export const mantecaApi = {
 
         return response.json()
     },
-    claimPerk: async (
-        mantecaTransferId: string
-    ): Promise<{
-        success: boolean
-        perk: { sponsored: boolean; amountSponsored: number; discountPercentage: number; txHash?: string }
-    }> => {
-        const response = await serverFetch('/perks/claim', {
-            method: 'POST',
-            body: jsonStringify({ mantecaTransferId }),
-        })
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.message || `Perk claim failed: ${response.statusText}`)
-        }
-
-        return response.json()
-    },
     getPrices: async ({ asset, against }: { asset: string; against: string }): Promise<MantecaPrice> => {
         const response = await serverFetch(`/manteca/prices?asset=${asset}&against=${against}`, {
             method: 'GET',

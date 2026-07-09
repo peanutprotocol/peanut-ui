@@ -111,20 +111,10 @@ let nextConfig = {
     skipTrailingSlashRedirect: true,
     async rewrites() {
         return {
-            beforeFiles: [
-                {
-                    source: '/apple-app-site-association',
-                    destination: '/api/apple-app-site-association',
-                },
-                {
-                    source: '/.well-known/apple-app-site-association',
-                    destination: '/api/apple-app-site-association',
-                },
-                {
-                    source: '/.well-known/assetLinks.json',
-                    destination: '/api/assetLinks',
-                },
-            ],
+            // Domain-association files (apple-app-site-association, assetlinks.json)
+            // are served statically from public/.well-known/ — no rewrites here,
+            // or they would shadow the static files.
+            beforeFiles: [],
             afterFiles: [
                 // PostHog reverse proxy — bypasses ad blockers. Path renamed
                 // from /ingest/ (which uBlock Origin's default lists block as
@@ -160,7 +150,7 @@ let nextConfig = {
     async headers() {
         return [
             {
-                source: '/apple-app-site-association',
+                source: '/.well-known/apple-app-site-association',
                 headers: [
                     {
                         key: 'Content-Type',

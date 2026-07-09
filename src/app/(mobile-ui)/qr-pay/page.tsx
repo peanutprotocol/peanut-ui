@@ -42,6 +42,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/z
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
 import { MIN_MANTECA_QR_PAYMENT_AMOUNT, MIN_PIX_AMOUNT_BRL } from '@/constants/payment.consts'
+import { isPixRecurringCode } from '@/utils/withdraw.utils'
 import { formatUnits, parseUnits } from 'viem'
 import type { TransactionReceipt, Hash } from 'viem'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
@@ -85,12 +86,21 @@ const MIN_QR_PAYMENT_AMOUNT = '0.1'
 
 // Deterministic provider rejections — retrying the payment-lock query can't
 // change the outcome, so fail fast instead of burning the 3-attempt budget.
-const NON_RETRYABLE_QR_PAY_ERRORS = ['PAYMENT_DESTINATION_DECODING_ERROR', 'PIX_MIN_AMOUNT']
+const NON_RETRYABLE_QR_PAY_ERRORS = [
+    'PAYMENT_DESTINATION_DECODING_ERROR',
+    'PIX_MIN_AMOUNT',
+    'PIX_RECURRING_NOT_SUPPORTED',
+]
 
 // Shown wherever the backend rejects a Pix payment below the rail minimum
 // (typed 400 PIX_MIN_AMOUNT — fires at lock-init for merchant-encoded amounts
 // and at re-init for user-entered amounts on open-amount QRs).
 const PIX_MIN_AMOUNT_ERROR_MESSAGE = `This Pix charge is below the ${MIN_PIX_AMOUNT_BRL} BRL minimum for Pix payments.`
+
+// PIX Automático (recurring) codes — rejected at the entry guard for scanned/pasted
+// deep links, and mapped from the backend's typed 400 PIX_RECURRING_NOT_SUPPORTED.
+const PIX_RECURRING_ERROR_MESSAGE =
+    "This QR code is for a recurring payment (PIX Automático). Peanut doesn't support recurring PIX payments — please ask for a regular PIX QR code instead."
 
 type PaymentProcessor = 'MANTECA'
 
@@ -251,7 +261,6 @@ export default function QRPayPage() {
     const queryClient = useQueryClient()
     const [isShaking, setIsShaking] = useState(false)
     const [shakeIntensity, setShakeIntensity] = useState<ShakeIntensity>('none')
-    const [isClaimingPerk, setIsClaimingPerk] = useState(false)
     const [perkClaimed, setPerkClaimed] = useState(false)
     const [holdProgress, setHoldProgress] = useState(0)
     const holdTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -289,7 +298,6 @@ export default function QRPayPage() {
         setWaitingForMerchantAmount(false)
         retryCount.current = 0
         // reset perk states
-        setIsClaimingPerk(false)
         setPerkClaimed(false)
         // reset analytics tracking refs so a new QR flow gets fresh tracking
         hasTrackedPerkShown.current = false
@@ -364,6 +372,13 @@ export default function QRPayPage() {
     // First fetch for qrcode info — only after KYC gating allows proceeding
     useEffect(() => {
         resetState()
+
+        // Before isPaymentProcessorQR: recurrence codes can match PIX_REGEX, and the
+        // specific message must win over the generic "Invalid QR code scanned".
+        if (qrCode && isPixRecurringCode(qrCode)) {
+            setErrorInitiatingPayment(PIX_RECURRING_ERROR_MESSAGE)
+            return
+        }
 
         if (!qrCode || !isPaymentProcessorQR(qrCode)) {
             setErrorInitiatingPayment('Invalid QR code scanned')
@@ -508,6 +523,9 @@ export default function QRPayPage() {
             paymentProcessor === 'MANTECA' &&
             !!qrCode &&
             isPaymentProcessorQR(qrCode) &&
+            // Composite Automático codes also match isPaymentProcessorQR — without
+            // this the entry guard shows its error but the doomed init still fires.
+            !isPixRecurringCode(qrCode) &&
             !paymentLock &&
             !shouldBlockPay,
         retry: (failureCount, error: any) => {
@@ -561,6 +579,9 @@ export default function QRPayPage() {
                 // the rail minimum, so there's no merchant amount to wait for.
                 setWaitingForMerchantAmount(false)
                 setErrorInitiatingPayment(PIX_MIN_AMOUNT_ERROR_MESSAGE)
+            } else if (error.message.includes('PIX_RECURRING_NOT_SUPPORTED')) {
+                setWaitingForMerchantAmount(false)
+                setErrorInitiatingPayment(PIX_RECURRING_ERROR_MESSAGE)
             } else {
                 // Network/timeout errors after all retries exhausted
                 setErrorInitiatingPayment(
@@ -761,7 +782,7 @@ export default function QRPayPage() {
     // DEV NOTE: This is an OPTIMISTIC claim flow for better UX
     // We immediately show success UI and trigger confetti, then claim in background
     // If claim fails, we show error post-factum but keep the user in success state
-    const claimPerk = useCallback(async () => {
+    const claimPerk = useCallback(() => {
         if (!qrPayment?.externalId) return
 
         // 1. IMMEDIATELY show success UI (optimistic)
@@ -782,34 +803,22 @@ export default function QRPayPage() {
             shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })
         }, 100)
 
-        // 5. NOW do the actual API claim in the background
-        setIsClaimingPerk(true)
-        try {
-            const result = await mantecaApi.claimPerk(qrPayment.externalId)
-            if (result.success) {
-                posthog.capture(ANALYTICS_EVENTS.REWARD_CLAIMED, {
-                    amount_usd: result.perk.amountSponsored,
-                    discount_pct: result.perk.discountPercentage,
-                })
-                // Update qrPayment with actual claimed perk info from backend
-                setQrPayment({
-                    ...qrPayment,
-                    perk: {
-                        eligible: true,
-                        discountPercentage: result.perk.discountPercentage,
-                        claimed: true,
-                        amountSponsored: result.perk.amountSponsored,
-                        txHash: result.perk.txHash,
-                    },
-                })
-            }
-        } catch (error) {
-            // If claim fails, show error but keep user in success state
-            // (they already saw confetti, better UX than reverting)
-            captureException(error)
-            setErrorMessage('Reward is being processed. If you do not see it in your history, contact support.')
-        } finally {
-            setIsClaimingPerk(false)
+        // 5. Surface the reward. The perk was already issued AND claimed
+        //    server-side during QR-payment processing, and qrPayment.perk
+        //    already carries the sponsored amount from that response — so mark
+        //    it claimed and report it directly. (The old /perks/claim round-trip
+        //    took a mantecaTransferId the endpoint no longer accepts — it now
+        //    requires a usageId the client never has — so it always 400'd: pure
+        //    Sentry noise, and REWARD_CLAIMED never fired because it lived in the
+        //    never-reached success branch. The error it set was invisible here —
+        //    the success screen doesn't render errorMessage.)
+        const claimedPerk = qrPayment.perk
+        if (claimedPerk) {
+            posthog.capture(ANALYTICS_EVENTS.REWARD_CLAIMED, {
+                amount_usd: claimedPerk.amountSponsored,
+                discount_pct: claimedPerk.discountPercentage,
+            })
+            setQrPayment({ ...qrPayment, perk: { ...claimedPerk, claimed: true } })
         }
     }, [qrPayment])
 
@@ -1343,13 +1352,13 @@ export default function QRPayPage() {
                                 onPointerUp={cancelHold}
                                 onPointerLeave={cancelHold}
                                 onKeyDown={(e) => {
-                                    if ((e.key === 'Enter' || e.key === ' ') && !isClaimingPerk) {
+                                    if (e.key === 'Enter' || e.key === ' ') {
                                         e.preventDefault()
                                         startHold()
                                     }
                                 }}
                                 onKeyUp={(e) => {
-                                    if ((e.key === 'Enter' || e.key === ' ') && !isClaimingPerk) {
+                                    if (e.key === 'Enter' || e.key === ' ') {
                                         e.preventDefault()
                                         cancelHold()
                                     }
@@ -1359,8 +1368,6 @@ export default function QRPayPage() {
                                     e.preventDefault()
                                 }}
                                 shadowSize="4"
-                                disabled={isClaimingPerk}
-                                loading={isClaimingPerk}
                                 className="relative touch-manipulation select-none overflow-hidden"
                                 style={{
                                     WebkitTouchCallout: 'none',

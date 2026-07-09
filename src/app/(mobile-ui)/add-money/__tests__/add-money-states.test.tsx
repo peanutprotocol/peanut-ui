@@ -584,6 +584,14 @@ jest.mock('@/components/AddMoney/hooks/useCryptoDepositPolling', () => ({
     useCryptoDepositPolling: (...args: any[]) => mockUseCryptoDepositPolling(...args),
 }))
 
+// updateUserById — the offramp handle gate persists the migrant's offramp.xyz
+// username/email through this server action
+const mockUpdateUserById = jest.fn()
+jest.mock('@/app/actions/users', () => ({
+    ...jest.requireActual('@/app/actions/users'),
+    updateUserById: (...args: any[]) => mockUpdateUserById(...args),
+}))
+
 // Country list
 jest.mock('@/components/Common/CountryList', () => ({
     CountryList: (props: any) => (
@@ -746,7 +754,14 @@ function setParams(params: Record<string, string>) {
 // then push it onto the useCapabilities mock. The page reads `gateFor(...)`,
 // so the mock returns a stub gateFor closing over the desired state; it also
 // exposes `bankRails()` for the few sites that read it directly.
-type Gate = 'ready' | 'accept-tos' | 'fixable-rejection' | 'blocked-rejection' | 'needs-identity' | 'needs-enrollment'
+type Gate =
+    | 'ready'
+    | 'accept-tos'
+    | 'fixable-rejection'
+    | 'blocked-rejection'
+    | 'needs-identity'
+    | 'needs-enrollment'
+    | 'waiting-on-provider'
 
 function setGate(kind: Gate) {
     let rails: any[] = []
@@ -833,6 +848,22 @@ function setGate(kind: Gate) {
             rails = []
             gateState = { kind: 'needs-identity' }
             break
+        case 'waiting-on-provider':
+            // provider reviewing submitted info (e.g. eea-uplift docs) — user
+            // has nothing to do but wait
+            rails = [
+                {
+                    id: 'bridge.ach_us',
+                    provider: 'bridge',
+                    method: 'ACH_US',
+                    country: 'US',
+                    currency: 'USD',
+                    status: 'requires-info',
+                    blockingActions: ['wait:bridge'],
+                },
+            ]
+            gateState = { kind: 'waiting-on-provider', reason: { code: 'bridge_processing' } }
+            break
     }
 
     mockUseCapabilities.mockReturnValue({
@@ -898,7 +929,6 @@ function applyDefaults() {
     mockUseCreateOnramp.mockReturnValue({
         createOnramp: jest.fn(),
         isLoading: false,
-        error: null,
     })
 
     mockUseLimitsValidation.mockReturnValue({
@@ -1206,6 +1236,86 @@ describe('GROUP 4: Crypto Page (with success)', () => {
 })
 
 // ============================================================
+// GROUP 4b: Offramp migration — required handle gate
+// ============================================================
+describe('GROUP 4b: Offramp migration handle gate', () => {
+    const authWithHandle = (offrampHandle: string | null) => {
+        mockUseAuth.mockReturnValue({
+            user: { user: { username: 'test-user', userId: 'user-123', offrampHandle } },
+            isFetchingUser: false,
+            fetchUser: jest.fn().mockResolvedValue(null),
+        })
+    }
+
+    beforeEach(() => {
+        resetQueryState({ network: 'EVM', source: 'offramp' })
+        mockUseCryptoDepositPolling.mockReturnValue({
+            status: 'not_started',
+            resetStatus: jest.fn(),
+            isResetting: false,
+        })
+        mockRhinoApi.createDepositAddress.mockResolvedValue({
+            depositAddress: '0xDepositAddress123',
+            minDepositLimitUsd: 5,
+            maxDepositLimitUsd: 10000,
+        })
+    })
+
+    test('migrant without a stored handle must enter it before seeing the deposit address', () => {
+        authWithHandle(null)
+        renderWithProviders(<AddMoneyCryptoPage />)
+
+        expect(screen.getByPlaceholderText('Offramp username or email')).toBeInTheDocument()
+        expect(screen.queryByTestId('qr-code')).not.toBeInTheDocument()
+    })
+
+    test('submitting the handle saves it trimmed and reveals the deposit screen', async () => {
+        authWithHandle(null)
+        mockUpdateUserById.mockResolvedValue({ data: {} })
+        renderWithProviders(<AddMoneyCryptoPage />)
+
+        fireEvent.change(screen.getByPlaceholderText('Offramp username or email'), {
+            target: { value: '  alice@offramp.xyz  ' },
+        })
+        fireEvent.click(screen.getByText('Continue'))
+
+        await waitFor(() => {
+            expect(mockUpdateUserById).toHaveBeenCalledWith({
+                userId: 'user-123',
+                offrampHandle: 'alice@offramp.xyz',
+            })
+        })
+        await waitFor(() => {
+            expect(screen.queryByPlaceholderText('Offramp username or email')).not.toBeInTheDocument()
+        })
+    })
+
+    test('save failure keeps the gate up and shows an error', async () => {
+        authWithHandle(null)
+        mockUpdateUserById.mockResolvedValue({ error: 'boom' })
+        renderWithProviders(<AddMoneyCryptoPage />)
+
+        fireEvent.change(screen.getByPlaceholderText('Offramp username or email'), {
+            target: { value: 'alice@offramp.xyz' },
+        })
+        fireEvent.click(screen.getByText('Continue'))
+
+        await waitFor(() => {
+            expect(screen.getByText(/Could not save your Offramp account/)).toBeInTheDocument()
+        })
+        expect(screen.getByPlaceholderText('Offramp username or email')).toBeInTheDocument()
+    })
+
+    test('migrant with a stored handle goes straight to the deposit screen', () => {
+        authWithHandle('alice@offramp.xyz')
+        renderWithProviders(<AddMoneyCryptoPage />)
+
+        expect(screen.queryByPlaceholderText('Offramp username or email')).not.toBeInTheDocument()
+        expect(screen.getAllByText('Migrate from Offramp').length).toBeGreaterThan(0)
+    })
+})
+
+// ============================================================
 // GROUP 5: Bridge Bank Onramp (SEPA / US / UK / MX)
 // ============================================================
 describe('GROUP 5: Bridge Bank Onramp', () => {
@@ -1286,7 +1396,6 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         mockUseCreateOnramp.mockReturnValue({
             createOnramp: mockCreateOnramp,
             isLoading: false,
-            error: null,
         })
         resetQueryState({ step: 'inputAmount', amount: '100' })
 
@@ -1308,10 +1417,11 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 
     test('onramp error displays ErrorAlert', async () => {
         const mockCreateOnramp = jest.fn().mockRejectedValue(new Error('Service unavailable'))
+        // the page must surface the caught error's message directly — the hook
+        // exposes no error state to read (that channel was the stale-closure trap).
         mockUseCreateOnramp.mockReturnValue({
             createOnramp: mockCreateOnramp,
             isLoading: false,
-            error: 'Service unavailable',
         })
         resetQueryState({ step: 'inputAmount', amount: '100' })
 
@@ -1327,8 +1437,31 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             fireEvent.click(screen.getByTestId('confirm-onramp'))
         })
 
-        // After error, the setError should have been called
-        expect(mockOnrampFlow.setError).toHaveBeenCalled()
+        // the caught message must be shown to the user
+        expect(mockOnrampFlow.setError).toHaveBeenCalledWith({
+            showError: true,
+            errorMessage: 'Service unavailable',
+        })
+    })
+
+    test('waiting-on-provider gate shows the reverification pending modal instead of a dead button', async () => {
+        setGate('waiting-on-provider')
+        const mockCreateOnramp = jest.fn()
+        mockUseCreateOnramp.mockReturnValue({
+            createOnramp: mockCreateOnramp,
+            isLoading: false,
+        })
+        resetQueryState({ step: 'inputAmount', amount: '100' })
+
+        renderWithProviders(<OnrampBankPage />)
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Continue'))
+        })
+
+        // no doomed transfer attempt; the user sees the bridge-review pending modal
+        expect(mockCreateOnramp).not.toHaveBeenCalled()
+        expect(await screen.findByText(/reviewing your details/i)).toBeInTheDocument()
     })
 
     test('limits blocking disables Continue and shows LimitsWarningCard', () => {

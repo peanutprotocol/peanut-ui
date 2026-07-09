@@ -29,10 +29,13 @@ import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
+import { useWaitingOnProviderModal } from '@/hooks/useWaitingOnProviderModal'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
 import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
+import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -90,6 +93,9 @@ export default function WithdrawBankPage() {
     const { gateFor } = useCapabilities()
     const bankCountry = useMemo(() => railJurisdictionForBank(getCountryFromPath(country)?.id), [country])
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
+    // bridge re-verification ("we're reviewing your details") modal for the
+    // waiting-on-provider gate — keeps the status poll alive + auto-dismisses.
+    const pendingModal = useWaitingOnProviderModal(gate)
     // EEA-uplift funnel events (PostHog): started on launch, completed on KYC
     // success. trackCompleted no-ops unless an uplift was started this session.
     const {
@@ -117,9 +123,10 @@ export default function WithdrawBankPage() {
         // Route through the self-heal resubmit path (reheal-tagged action) so the
         // completed submission round-trips to Bridge. start-action mints a plain
         // token whose webhook completion has no Bridge relay → answers are dropped.
+        // note: eea_uplift_started is fired at modal-open (the handlers below),
+        // not here, so abandoners are captured too.
         onCompleteNow: () => {
             if (!advisory) return Promise.resolve()
-            trackUpliftStarted(advisory)
             return sumsubFlow.handleSelfHealResubmit('BRIDGE', advisory.requirementKey)
         },
     })
@@ -211,12 +218,23 @@ export default function WithdrawBankPage() {
 
     const proceedWithOfframp = async () => {
         if (gate.kind !== 'ready') {
-            // Loading and waiting-on-provider both mean "user has no action to
-            // take" — silently no-op instead of bouncing them through Sumsub.
-            if (gate.kind === 'loading' || gate.kind === 'waiting-on-provider') return
+            // capabilities still loading — silently no-op.
+            if (gate.kind === 'loading') return
+            // `waiting-on-provider` means bridge is re-reviewing submitted info
+            // (e.g. right after an eea uplift) — show the pending modal instead of
+            // a dead button, and re-arm the capability poller so we pick up
+            // bridge's latest status live and the modal auto-dismisses on clear.
+            if (gate.kind === 'waiting-on-provider') {
+                pendingModal.open()
+                return
+            }
             if (gate.kind === 'accept-tos') {
                 guardWithTos()
             } else {
+                // urgent (post-cliff) eea uplift lands here as a fixable-rejection —
+                // fire the funnel event as this KYC modal opens.
+                const upliftTrigger = upliftTriggerFromGate(gate)
+                if (upliftTrigger) trackUpliftStarted(upliftTrigger)
                 setShowKycModal(true)
             }
             return
@@ -346,7 +364,13 @@ export default function WithdrawBankPage() {
     // Enforce the mandatory verification pre-empt, then run the offramp. When the
     // gate isn't `ready` (or there's no pending requirement) this is a no-op and
     // proceedWithOfframp runs straight away (it handles the not-ready cases).
-    const handleCreateAndInitiateOfframp = () => advisoryIntercept(() => void proceedWithOfframp())
+    // upcoming (future-dated) eea uplift opens the advisory modal here — fire the
+    // funnel event as it opens.
+    const handleCreateAndInitiateOfframp = () => {
+        const advisoryTrigger = upliftTriggerFromAdvisory(advisory)
+        if (advisoryTrigger) trackUpliftStarted(advisoryTrigger)
+        advisoryIntercept(() => void proceedWithOfframp())
+    }
 
     const countryCodeForFlag = () => {
         if (!bankAccount?.details?.countryCode) return ''
@@ -543,7 +567,12 @@ export default function WithdrawBankPage() {
 
             <InitiateKycModal
                 visible={showKycModal}
-                onClose={() => setShowKycModal(false)}
+                onClose={() => {
+                    // dismiss = abandon: clear the uplift latch so a later
+                    // unrelated KYC success can't mis-fire eea_uplift_completed.
+                    setShowKycModal(false)
+                    resetUpliftFunnel()
+                }}
                 onVerify={async () => {
                     if (gate.kind === 'restart-identity') {
                         await sumsubFlow.handleRestartIdentity()
@@ -560,6 +589,7 @@ export default function WithdrawBankPage() {
                 }}
                 onContactSupport={() => {
                     setShowKycModal(false)
+                    resetUpliftFunnel()
                     setIsSupportModalOpen(true)
                 }}
                 isLoading={sumsubFlow.isLoading}
@@ -569,6 +599,12 @@ export default function WithdrawBankPage() {
                 regionName={getCountryFromPath(country)?.title}
             />
             <AdvisoryPreemptModal {...advisoryModalProps} />
+
+            <KycReverificationPendingModal
+                isOpen={pendingModal.isOpen}
+                onClose={pendingModal.close}
+                message={pendingModal.message}
+            />
             <SumsubKycModals flow={sumsubFlow} />
         </div>
     )
