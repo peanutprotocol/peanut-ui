@@ -8,7 +8,7 @@ import { useZeroDev } from '@/hooks/useZeroDev'
 import { useLogin } from '@/hooks/useLogin'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import { checkPasskeySupport } from '@/utils/passkeyPreflight'
 import { WebAuthnErrorName, withWebAuthnRetry } from '@/utils/webauthn.utils'
@@ -172,9 +172,14 @@ const SetupPasskey = () => {
         }
     }
 
-    // once passkey is registered successfully, move to test transaction step
+    // Once a passkey is registered (or logged in) ON THIS SCREEN, move to the
+    // test transaction step. Compare against the address present at mount:
+    // stale credentials from a half-completed earlier signup hydrate an address
+    // before this screen renders, and advancing on it would silently skip
+    // registration and discard the username the user just chose.
+    const addressAtMountRef = useRef(address)
     useEffect(() => {
-        if (address) {
+        if (address && address !== addressAtMountRef.current) {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_SUCCEEDED, { device_type: deviceType })
             handleNext()
         }
