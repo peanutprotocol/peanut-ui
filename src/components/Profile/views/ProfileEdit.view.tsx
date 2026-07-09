@@ -103,8 +103,14 @@ export const ProfileEditView = () => {
                 throw new Error('User ID is undefined.')
             }
 
-            // update user profile
-            await updateUserById(payload)
+            // updateUserById resolves with { error } on a non-2xx response
+            // instead of throwing (e.g. 400 invalid email, 409 email already in
+            // use). Surface it instead of navigating away as a false success.
+            const result = await updateUserById(payload)
+            if (result?.error) {
+                setErrorMessage(result.error)
+                return
+            }
 
             // refresh user data
             await fetchUser()
