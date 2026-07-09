@@ -13,7 +13,7 @@ import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
-import { useCreateOnramp } from '@/hooks/useCreateOnramp'
+import { useCreateOnramp, GENERIC_ONRAMP_ERROR } from '@/hooks/useCreateOnramp'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
@@ -33,10 +33,13 @@ import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
+import { useWaitingOnProviderModal } from '@/hooks/useWaitingOnProviderModal'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
 import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
+import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
@@ -68,12 +71,11 @@ export default function OnrampBankPage() {
     // Local UI state (not URL-appropriate - transient)
     const [showWarningModal, setShowWarningModal] = useState<boolean>(false)
     const [showKycModal, setShowKycModal] = useState<boolean>(false)
-    const [isRiskAccepted, setIsRiskAccepted] = useState<boolean>(false)
     const { setError, error, setOnrampData, onrampData } = useOnrampFlow()
 
     const { balance } = useWallet()
     const { user, fetchUser } = useAuth()
-    const { createOnramp, isLoading: isCreatingOnramp, error: onrampError } = useCreateOnramp()
+    const { createOnramp, isLoading: isCreatingOnramp } = useCreateOnramp()
 
     // inline sumsub kyc flow for bridge bank onramp
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -131,6 +133,9 @@ export default function OnrampBankPage() {
     const { gateFor } = useCapabilities()
     const bankCountry = useMemo(() => railJurisdictionForBank(selectedCountry?.id), [selectedCountry?.id])
     const gate = useMemo(() => gateFor('deposit', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
+    // bridge re-verification ("we're reviewing your details") modal for the
+    // waiting-on-provider gate — keeps the status poll alive + auto-dismisses.
+    const pendingModal = useWaitingOnProviderModal(gate)
     // A ready bank rail can still carry a pending Bridge requirement (the gate's
     // `advisory`). Enforce it as a mandatory, non-skippable pre-empt at the
     // proceed step — the deposit cannot continue until it's completed.
@@ -141,9 +146,10 @@ export default function OnrampBankPage() {
         // Route through the self-heal resubmit path (reheal-tagged action) so the
         // completed submission round-trips to Bridge. start-action mints a plain
         // token whose webhook completion has no Bridge relay → answers are dropped.
+        // note: eea_uplift_started is fired at modal-open (handleAmountContinue),
+        // not here, so abandoners are captured too.
         onCompleteNow: () => {
             if (!advisory) return Promise.resolve()
-            trackUpliftStarted(advisory)
             return sumsubFlow.handleSelfHealResubmit('BRIDGE', advisory.requirementKey)
         },
     })
@@ -254,14 +260,25 @@ export default function OnrampBankPage() {
         if (!validateAmount(rawTokenAmount)) return
 
         if (gate.kind !== 'ready') {
-            // capabilities still loading OR provider doing internal review —
-            // silently no-op instead of flashing a misleading needs_kyc modal.
-            // `waiting-on-provider` means the user has nothing to do; opening
-            // a KYC modal would imply otherwise.
-            if (gate.kind === 'loading' || gate.kind === 'waiting-on-provider') return
+            // capabilities still loading — silently no-op instead of flashing
+            // a misleading needs_kyc modal.
+            if (gate.kind === 'loading') return
+            // `waiting-on-provider` means bridge is re-reviewing submitted info
+            // (e.g. right after an eea uplift) — the user has nothing to do but
+            // wait. Show the pending modal instead of a dead button, and re-arm
+            // the capability poller so we pick up bridge's latest status live and
+            // the modal auto-dismisses the moment the gate clears.
+            if (gate.kind === 'waiting-on-provider') {
+                pendingModal.open()
+                return
+            }
             if (gate.kind === 'accept-tos') {
                 guardWithTos()
             } else {
+                // urgent (post-cliff) eea uplift lands here as a fixable-rejection —
+                // fire the funnel event as this KYC modal opens.
+                const upliftTrigger = upliftTriggerFromGate(gate)
+                if (upliftTrigger) trackUpliftStarted(upliftTrigger)
                 setShowKycModal(true)
             }
             return
@@ -271,6 +288,10 @@ export default function OnrampBankPage() {
         // (record the amount-entered event, open the confirmation modal) only
         // runs once there's no pending requirement; while one exists the modal
         // blocks and this never fires, so the event can't double-count.
+        // upcoming (future-dated) eea uplift opens the advisory modal here — fire
+        // the funnel event as it opens.
+        const advisoryTrigger = upliftTriggerFromAdvisory(advisory)
+        if (advisoryTrigger) trackUpliftStarted(advisoryTrigger)
         advisoryIntercept(() => {
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_AMOUNT_ENTERED, {
                 amount_usd: usdEquivalent,
@@ -291,7 +312,6 @@ export default function OnrampBankPage() {
         }
 
         setShowWarningModal(false)
-        setIsRiskAccepted(false)
         try {
             const onrampDataResponse = await createOnramp({
                 amount: rawTokenAmount,
@@ -314,23 +334,24 @@ export default function OnrampBankPage() {
             }
         } catch (error) {
             setShowWarningModal(false)
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+            const isError = error instanceof Error
+            const errorMessage = isError ? error.message : GENERIC_ONRAMP_ERROR
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_FAILED, {
                 method_type: 'bank',
-                error_message: errorMessage,
+                // keep the distinct label for truly-unexpected non-Error throws
+                error_message: isError ? errorMessage : 'Unknown error',
             })
-            if (onrampError) {
-                setError({
-                    showError: true,
-                    errorMessage: onrampError,
-                })
-            }
+            // show the caught message directly — createOnramp carries the specific
+            // reason on the thrown Error, so we don't read any hook state here.
+            setError({
+                showError: true,
+                errorMessage,
+            })
         }
     }
 
     const handleWarningCancel = () => {
         setShowWarningModal(false)
-        setIsRiskAccepted(false)
     }
 
     // Redirect to inputAmount if showDetails is accessed without required data (deep link / back navigation)
@@ -454,7 +475,12 @@ export default function OnrampBankPage() {
 
                 <InitiateKycModal
                     visible={showKycModal}
-                    onClose={() => setShowKycModal(false)}
+                    onClose={() => {
+                        // dismiss = abandon: clear the uplift latch so a later
+                        // unrelated KYC success can't mis-fire eea_uplift_completed.
+                        setShowKycModal(false)
+                        resetUpliftFunnel()
+                    }}
                     onVerify={async () => {
                         if (gate.kind === 'restart-identity') {
                             await sumsubFlow.handleRestartIdentity()
@@ -471,6 +497,7 @@ export default function OnrampBankPage() {
                     }}
                     onContactSupport={() => {
                         setShowKycModal(false)
+                        resetUpliftFunnel()
                         setIsSupportModalOpen(true)
                     }}
                     isLoading={sumsubFlow.isLoading}
@@ -481,6 +508,12 @@ export default function OnrampBankPage() {
                 />
 
                 <AdvisoryPreemptModal {...advisoryModalProps} />
+
+                <KycReverificationPendingModal
+                    isOpen={pendingModal.isOpen}
+                    onClose={pendingModal.close}
+                    message={pendingModal.message}
+                />
 
                 <SumsubKycModals flow={sumsubFlow} autoStartSdk />
 

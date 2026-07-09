@@ -7,16 +7,15 @@ import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardInfo } from '@/hooks/useCardInfo'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
 import Card from '../Global/Card'
 import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
 import ShowNameToggle from './components/ShowNameToggle'
 import InviteFriendsModal from '../Global/InviteFriendsModal'
-import { STAR_STRAIGHT_ICON } from '@/assets'
+import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
 
 export const Profile = () => {
@@ -38,7 +37,6 @@ export const Profile = () => {
     const username = user?.user.username || 'anonymous'
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const displayName = user?.user.showFullName && user?.user.fullName ? user.user.fullName : username
-    const showCard = useMemo(() => !underMaintenanceConfig.disableCardPioneers || hasCardAccess, [hasCardAccess])
 
     return (
         <div className="h-full w-full bg-background">
@@ -55,15 +53,21 @@ export const Profile = () => {
                     />
                     {/* Menu Items - First Group */}
                     <div>
-                        {showCard && (
-                            <ProfileMenuItem icon="credit-card" label="Your Card" href="/card" position="first" />
-                        )}
+                        {/* Card row shows for everyone. Holders go straight to /card;
+                            everyone else lands on /shhhhh — the waitlist/explainer door,
+                            the canonical card entry point — whose CTA forwards on to /card
+                            post-launch. We deliberately DON'T send non-holders to /card:
+                            it notFound()s users without card access. `hasCardAccess` is
+                            undefined while useCardInfo loads, falling to the /shhhhh path —
+                            the safe default (never 404s; the gated /card route would). */}
                         <ProfileMenuItem
-                            icon="achievements"
-                            label="Your Badges"
-                            href="/badges"
-                            position={showCard ? 'middle' : 'first'}
+                            icon="credit-card"
+                            label={hasCardAccess ? 'Your Card' : 'Peanut Card'}
+                            href={hasCardAccess ? '/card' : '/shhhhh'}
+                            badge={hasCardAccess ? undefined : 'New!'}
+                            position="first"
                         />
+                        <ProfileMenuItem icon="achievements" label="Your Badges" href="/badges" position="middle" />
                         <ProfileMenuItem
                             icon={<Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />}
                             label="Points"

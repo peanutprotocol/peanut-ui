@@ -28,7 +28,12 @@ function extractErrorParts(error: unknown): { text: string; message: string | un
  * (signSpend / spend / sendMoney / sendTransactions(requiredUsdcAmount)).
  */
 export const rainCollateralErrorMessage = (error: unknown): string | null => {
-    const { text, message } = extractErrorParts(error)
+    const { text, message, name } = extractErrorParts(error)
+    // Stale card approval (409 STALE_CARD_APPROVAL) — the global re-enable modal
+    // owns the recovery CTA, but the flow that threw still shows an inline error.
+    // Surface the backend's friendly re-enable copy here so the inline path
+    // matches the modal instead of dead-ending on "contact support".
+    if (name === 'StaleCardApprovalError') return message ?? text
     if (
         text.includes('A previous withdrawal is still active for this card') ||
         text.includes('A previous withdrawal signature is still active') ||

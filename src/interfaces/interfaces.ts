@@ -193,6 +193,9 @@ export interface User {
     bridgeCustomerId: string | null
     fullName: string
     telegram: string | null
+    /** Self-reported offramp.xyz username/email — collected once on the
+     *  migration deposit screen (offramp payout reconciliation). */
+    offrampHandle?: string | null
     hasAppAccess: boolean
     isActivated?: boolean
     activatedAt?: string | null

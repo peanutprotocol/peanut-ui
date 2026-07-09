@@ -7,6 +7,7 @@ import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils
 import { useUserStore } from '@/redux/hooks'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
+import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
 
 export function useNotifications() {
     const { user } = useUserStore()
@@ -211,6 +212,27 @@ export function useNotifications() {
                                 posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_DENIED)
                             }
                         }
+                    })
+
+                    // Notification tap → PostHog. OneSignal delivers push clicks to its own
+                    // SDK worker (bypassing our sw.ts handler), so this is the only client-side
+                    // hook that sees the tap. Firing an explicit event (with the campaign carried
+                    // in additionalData) makes blast clicks attributable even when the tap merely
+                    // focuses an already-open PWA tab and no `$pageview` — hence no utm capture —
+                    // fires. Marketing sends set `data.campaign`; transactional taps have none.
+                    OneSignal.Notifications.addEventListener('click', (event) => {
+                        const data = (event?.notification?.additionalData ?? {}) as Record<string, unknown>
+                        const campaign = typeof data.campaign === 'string' ? data.campaign : undefined
+                        const props: Record<string, unknown> = {
+                            deep_link: event?.result?.url ?? event?.notification?.launchURL,
+                        }
+                        if (campaign) {
+                            props.utm_source = UTM_SOURCES.ONESIGNAL
+                            props.utm_medium = UTM_MEDIUMS.PUSH
+                            props.utm_campaign = campaign
+                            if (typeof data.utmContent === 'string') props.utm_content = data.utmContent
+                        }
+                        posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_CLICKED, props)
                     })
 
                     type PushSubscriptionChangeEvent = { current?: { optedIn?: boolean } | null }
