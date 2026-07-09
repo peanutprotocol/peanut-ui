@@ -4,6 +4,7 @@
 // `extraData.kind` pinned to a canonical TransactionIntentKind value.
 
 import {
+    hasUserProfile,
     isCardSpend,
     isDirectSendEntry,
     isFxBearingFlow,
@@ -150,5 +151,66 @@ describe('isSplittable', () => {
     test('non-QR / non-card kinds are never splittable', () => {
         expect(isSplittable(txWithStatus('DIRECT_TRANSFER', 'completed'))).toBe(false)
         expect(isSplittable(txWithStatus('SEND_LINK', 'completed'))).toBe(false)
+    })
+})
+
+// Gates the clickable counterparty name/avatar in BOTH the history row
+// (TransactionCard) and the receipt header (TransactionDetailsHeaderCard): only
+// a non-link send/request/receive to a real username (not a raw address) deep-
+// links to a Peanut profile.
+describe('hasUserProfile', () => {
+    const profileTx = (
+        transactionCardType: string | undefined,
+        opts?: { userName?: string; isLinkTransaction?: boolean; isPeerActuallyUser?: boolean }
+    ): TransactionDetails =>
+        ({
+            userName: opts?.userName ?? 'natalia',
+            isPeerActuallyUser: opts?.isPeerActuallyUser ?? true,
+            extraDataForDrawer: {
+                originalType: 'TRANSACTION_INTENT',
+                transactionCardType,
+                isLinkTransaction: opts?.isLinkTransaction ?? false,
+            },
+        }) as unknown as TransactionDetails
+
+    test.each(['send', 'request', 'receive'])('a %s to a real username has a profile', (type) => {
+        expect(hasUserProfile(profileTx(type))).toBe(true)
+    })
+
+    test.each(['withdraw', 'add', 'card_pay', 'bank_withdraw', 'claim_external'])(
+        'a %s has no peer profile',
+        (type) => {
+            expect(hasUserProfile(profileTx(type))).toBe(false)
+        }
+    )
+
+    test('a link send has no user profile behind it', () => {
+        expect(hasUserProfile(profileTx('send', { isLinkTransaction: true }))).toBe(false)
+    })
+
+    // Same address rule VerifiedUserLabel renders by (isCryptoAddress): EVM,
+    // Solana and Tron shapes all mean "no Peanut profile".
+    test.each([
+        ['EVM', '0x1bf9c9f2b0e8a0b9f2b0e8a0b9f2b0e8a0b9f2b0'],
+        ['Solana', 'DRpbCBMxVnDK7maPM5tGv6MvB3v1sRMC86PZ8okm21hy'],
+        ['Tron', 'TJRabPrwbZy45sbavfcjinPJC18kjpRTv8'],
+    ])('a raw %s address recipient has no profile', (_chain, address) => {
+        expect(hasUserProfile(profileTx('send', { userName: address }))).toBe(false)
+    })
+
+    test('a missing username has no profile', () => {
+        expect(hasUserProfile(profileTx('send', { userName: '' }))).toBe(false)
+    })
+
+    // A non-user peer (raw address, bank account, or a system copy string like
+    // 'Request'/reaper-fail text) is authoritatively flagged by the transformer.
+    test('a non-user peer has no profile even for a send/request/receive', () => {
+        expect(hasUserProfile(profileTx('send', { isPeerActuallyUser: false }))).toBe(false)
+    })
+
+    // A usernameless Peanut user surfaces their userId (UUID) in `userName`;
+    // there is no /<uuid> profile page, so it must not be a nav target.
+    test('a usernameless user (UUID userId fallback) has no profile', () => {
+        expect(hasUserProfile(profileTx('send', { userName: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' }))).toBe(false)
     })
 })

@@ -5,7 +5,11 @@ import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionA
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { isCardPaymentEntry, isPerkReward } from '@/components/TransactionDetails/transaction-predicates'
+import {
+    hasUserProfile,
+    isCardPaymentEntry,
+    isPerkReward,
+} from '@/components/TransactionDetails/transaction-predicates'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import {
     formatNumberForDisplay,
@@ -28,6 +32,8 @@ import { useHaptic } from 'use-haptic'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 import { PEANUTMAN } from '@/assets/mascot'
 import InvitesIcon from '../Home/InvitesIcon'
+import { useRouter } from 'next/navigation'
+import { profileUrl } from '@/utils/native-routes'
 
 // Lazy load transaction details drawer (~40KB) to reduce initial bundle size
 // Only loaded when user taps a transaction to view details
@@ -72,10 +78,21 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
         useTransactionDetailsDrawer()
     const { triggerHaptic } = useHaptic()
+    const router = useRouter()
 
     const handleClick = () => {
         triggerHaptic()
         openTransactionDetails(transaction)
+    }
+
+    const canNavigateToProfile = hasUserProfile(transaction)
+
+    // Tap the name → the counterparty's profile (to repeat the send/request);
+    // the rest of the card still opens the details drawer (VerifiedUserLabel
+    // stops the name tap from bubbling to the card's drawer handler).
+    const handleNameClick = () => {
+        triggerHaptic()
+        router.push(profileUrl(transaction.userName))
     }
 
     const isLinkTx = transaction.extraDataForDrawer?.isLinkTransaction ?? false
@@ -212,6 +229,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                         name={displayName}
                                         isVerified={transaction.isVerified}
                                         haveSentMoneyToUser={haveSentMoneyToUser}
+                                        onNameClick={canNavigateToProfile ? handleNameClick : undefined}
                                     />
                                 </div>
                             </div>
