@@ -72,4 +72,16 @@ describe('ApplicationStatusScreen — geo-blocked', () => {
         render(<ApplicationStatusScreen variant="geo-blocked" onContactSupport={jest.fn()} />)
         expect(screen.queryByText('Contact support')).not.toBeInTheDocument()
     })
+
+    it('links the Prohibited Activities Policy — the one compliant place the country list is published', () => {
+        render(<ApplicationStatusScreen variant="geo-blocked" />)
+        const link = screen.getByRole('link', { name: 'See which regions are restricted' })
+        expect(link).toHaveAttribute('href', 'https://peanut.me/en/card-prohibited-activities')
+        expect(link).toHaveAttribute('target', '_blank')
+    })
+
+    it('does not show the policy link on other variants', () => {
+        render(<ApplicationStatusScreen variant="rejected" onContactSupport={jest.fn()} />)
+        expect(screen.queryByText('See which regions are restricted')).not.toBeInTheDocument()
+    })
 })
