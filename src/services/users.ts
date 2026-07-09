@@ -91,4 +91,14 @@ export const usersApi = {
             filename: attachment?.rawFile?.name,
         })
     },
+
+    // Self-service account deletion (V1). Disables the account server-side and
+    // starts the 30-day data-deletion clock. The user is taken from the JWT, so
+    // there is no body — a user can only delete their own account.
+    requestDeletion: async (): Promise<void> => {
+        const response = await serverFetch('/users/me/delete', { method: 'POST' })
+        if (!response.ok) {
+            throw new Error('Failed to request account deletion')
+        }
+    },
 }

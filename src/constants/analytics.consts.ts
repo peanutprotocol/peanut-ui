@@ -239,6 +239,11 @@ export const ANALYTICS_EVENTS = {
     // Rain withdrawal-signature cooldown tripped during a spend. Handled
     // gracefully in-flow (no captureException), so this is the only telemetry.
     RAIN_COOLDOWN_HIT: 'rain_cooldown_hit',
+
+    // ── Account deletion (settings) ──
+    DELETE_ACCOUNT_INITIATED: 'delete_account_initiated',
+    DELETE_ACCOUNT_CONFIRMED: 'delete_account_confirmed',
+    DELETE_ACCOUNT_FAILED: 'delete_account_failed',
 } as const
 
 /**

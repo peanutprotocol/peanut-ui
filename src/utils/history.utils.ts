@@ -124,6 +124,11 @@ export interface HistoryEntryExtraData {
     // Card-spend cluster. Populated for Rain CARD_SPEND / card-refund
     // intents only.
     parentRainTxId?: string | null
+    /** BE-classified refund flag (serializer-time). True for kind=REFUND (any
+     *  provider) and negative-amount card-spend auths. Mirrors the BE
+     *  `mapGenericIntent` projector; the FE also derives defensively from the
+     *  wire amount so this works before the BE change ships. */
+    isRefund?: boolean
     rainTransactionId?: string | null
     cardAuthAmount?: string | null
     cardSettledAmount?: string | null

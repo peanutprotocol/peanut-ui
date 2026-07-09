@@ -108,11 +108,13 @@ export const RESERVED_ROUTES: readonly string[] = [...DEDICATED_ROUTES, ...STATI
 export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|qr|dev\/payment-graph)/
 
 /**
- * Regex for dev-only public routes (dev index, gift-test, shake-test)
- * Only matched when IS_DEV is true
+ * Regex for dev-only public routes: ALL /dev pages (index + every tool/preview).
+ * Only matched when IS_DEV is true (build-time NODE_ENV==='development'), so this
+ * never applies on prod/preview builds. /dev is also independently notFound()'d on
+ * peanut.me by dev/layout.tsx (except full-graph/payment-graph), so dev tooling is
+ * doubly walled off from prod — this just removes the login-redirect friction locally.
  */
-export const DEV_ONLY_PUBLIC_ROUTES_REGEX =
-    /^\/(dev$|dev\/gift-test|dev\/shake-test|dev\/ds|dev\/components|dev\/share-builder|dev\/rejection-builder)/
+export const DEV_ONLY_PUBLIC_ROUTES_REGEX = /^\/dev(\/|$)/
 
 /**
  * Matches locale tags with a required subtag to avoid false-positives on short

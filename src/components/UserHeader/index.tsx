@@ -103,7 +103,14 @@ export const VerifiedUserLabel = ({
                         className,
                         onNameClick && 'cursor-pointer'
                     )}
-                    onClick={onNameClick}
+                    onClick={
+                        onNameClick &&
+                        ((e) => {
+                            // a name with its own action must not also fire the container's onClick
+                            e.stopPropagation()
+                            onNameClick()
+                        })
+                    }
                 >
                     {name}
                 </div>

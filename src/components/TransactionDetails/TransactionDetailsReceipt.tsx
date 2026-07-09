@@ -46,6 +46,7 @@ import { useRouter } from 'next/navigation'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import {
+    hasUserProfile,
     isPerkReward as isPerkRewardTransaction,
     isRequestEntry,
     isSendLinkEntry,
@@ -56,6 +57,7 @@ import { useReceiptViewModel } from './useReceiptViewModel'
 import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
 import { LocalRailNudge } from './provider-rows/LocalRailNudge'
+import { CardUsdAbroadNotice } from './provider-rows/CardUsdAbroadNotice'
 import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
 import { BridgeDepositInstructions } from './provider-rows/BridgeDepositInstructions'
 import { CancelDepositActions } from './provider-actions/CancelDepositActions'
@@ -249,15 +251,10 @@ export const TransactionDetailsReceipt = ({
         amountDisplay = `$${formattedTotalAmountCollected} collected`
     }
 
-    // Show profile button only if txn is completed, not to/by a guest user and its a send/request/receive txn
-    const isAvatarClickable =
-        !!transaction &&
-        !transaction.extraDataForDrawer?.isLinkTransaction &&
-        !!transaction.userName &&
-        !isAddress(transaction.userName) &&
-        (transaction.extraDataForDrawer?.transactionCardType === 'send' ||
-            transaction.extraDataForDrawer?.transactionCardType === 'request' ||
-            transaction.extraDataForDrawer?.transactionCardType === 'receive')
+    // Show profile button only if it's a send/request/receive to a real Peanut
+    // user (not a link or a raw address). Shared with the history row — see
+    // hasUserProfile.
+    const isAvatarClickable = hasUserProfile(transaction)
 
     const closeRequestLink = async () => {
         if (isPendingRequester && setIsLoading && onClose) {
@@ -646,6 +643,12 @@ export const TransactionDetailsReceipt = ({
                 nothing for other countries / non-card-spend transactions.
                 Hidden on public receipts (same rule as the referral nudge). */}
             {!isPublic && <LocalRailNudge transaction={transaction} />}
+
+            {/* DCC trap: a spend abroad billed in USD (the terminal's "pay in
+                dollars?" option) gets a worse rate than paying local. Nudge the
+                user to pick local currency next time. Suppressed in AR/BR where
+                LocalRailNudge already fires. */}
+            {!isPublic && <CardUsdAbroadNotice transaction={transaction} />}
 
             {/* share and cancel buttons section (only if qr is shown) */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
