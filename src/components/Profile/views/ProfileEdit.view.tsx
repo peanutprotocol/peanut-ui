@@ -85,7 +85,7 @@ export const ProfileEditView = () => {
             }
 
             // prepare request payload
-            const payload: Record<string, any> = {
+            const payload: { userId?: string; fullName?: string; email?: string } = {
                 userId: user?.user.userId,
             }
 
