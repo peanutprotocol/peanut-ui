@@ -9,7 +9,7 @@
 
 import { useEffect, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAuthToken } from '@/utils/auth-token'
+import { hasNativeSessionCookie } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
 
@@ -18,9 +18,16 @@ export function LandingPageCapacitorGate({ children }: { children: ReactNode }) 
 
     useEffect(() => {
         if (isCapacitor()) {
-            // Demo mode has no auth token but is a valid session — send it to the app.
-            const token = getAuthToken()
-            router.replace(token || isDemoMode() ? '/home' : '/setup')
+            // Demo mode has no session but is valid — send it to the app.
+            if (isDemoMode()) {
+                router.replace('/home')
+                return
+            }
+            // The session lives in the native cookie jar (async read). /home's
+            // layout still validates via /users/me and bounces dead sessions.
+            hasNativeSessionCookie().then((hasSession) => {
+                router.replace(hasSession ? '/home' : '/setup')
+            })
         }
     }, [router])
 

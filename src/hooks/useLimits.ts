@@ -1,6 +1,7 @@
 'use client'
 
 import { getAuthToken } from '@/utils/auth-token'
+import { isCapacitor } from '@/utils/capacitor'
 import { useQuery } from '@tanstack/react-query'
 import type { UserLimitsResponse } from '@/interfaces'
 import { LIMITS } from '@/constants/query.consts'
@@ -20,10 +21,11 @@ export function useLimits(options: UseLimitsOptions = {}) {
     const { enabled = true } = options
 
     const fetchLimits = async (): Promise<UserLimitsResponse> => {
-        // Demo has no JWT but should still show limits — let the request through
-        // to the demo interceptor (which returns DEMO_LIMITS) instead of bailing.
+        // Web-only short-circuit: skip the request when logged out. On native
+        // the session is in the cookie jar (not readable synchronously), and in
+        // demo the request routes to the demo interceptor — both just fetch.
         const token = getAuthToken()
-        if (!token && !isDemoMode()) {
+        if (!isCapacitor() && !token && !isDemoMode()) {
             return { manteca: null, bridge: null }
         }
 

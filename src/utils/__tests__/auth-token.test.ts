@@ -2,6 +2,7 @@
 
 import Cookies from 'js-cookie'
 import { isCapacitor } from '@/utils/capacitor'
+import { CapacitorCookies } from '@capacitor/core'
 
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(),
@@ -13,6 +14,13 @@ jest.mock('js-cookie', () => ({
     remove: jest.fn(),
 }))
 
+jest.mock('@capacitor/core', () => ({
+    CapacitorCookies: {
+        getCookies: jest.fn(),
+        clearCookies: jest.fn(),
+    },
+}))
+
 const mockIsCapacitor = isCapacitor as jest.MockedFunction<typeof isCapacitor>
 // Cookies.get has overloaded signatures (one-arg returns string|undefined, no-arg
 // returns { [key: string]: string }). jest.Mocked<typeof Cookies> picks the no-arg
@@ -22,13 +30,19 @@ const mockCookies = Cookies as unknown as {
     set: jest.Mock
     remove: jest.Mock
 }
+const mockCapCookies = CapacitorCookies as unknown as {
+    getCookies: jest.Mock
+    clearCookies: jest.Mock
+}
 
-import { getAuthToken, setAuthToken, clearAuthToken, getAuthHeaders } from '../auth-token'
+import { getAuthToken, setAuthToken, clearAuthToken, getAuthHeaders, hasNativeSessionCookie } from '../auth-token'
 
 describe('auth-token', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         localStorage.clear()
+        mockCapCookies.clearCookies.mockResolvedValue(undefined)
+        mockCapCookies.getCookies.mockResolvedValue({})
         // reset document.cookie
         document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
     })
@@ -43,29 +57,10 @@ describe('auth-token', () => {
                 mockIsCapacitor.mockReturnValue(true)
             })
 
-            it('should read from localStorage', () => {
-                localStorage.setItem('jwt-token', 'cap-token-123')
-                expect(getAuthToken()).toBe('cap-token-123')
-            })
-
-            it('should return null when localStorage is empty and no cookie', () => {
-                mockCookies.get.mockReturnValue(undefined)
+            it('is always null — the native cookie jar is the credential, not JS', () => {
+                localStorage.setItem('jwt-token', 'stale-local-token')
+                mockCookies.get.mockReturnValue('stale-cookie-token')
                 expect(getAuthToken()).toBeNull()
-            })
-
-            it('should migrate from cookie to localStorage when localStorage is empty', () => {
-                mockCookies.get.mockReturnValue('migrated-token')
-                const token = getAuthToken()
-                expect(token).toBe('migrated-token')
-                expect(localStorage.getItem('jwt-token')).toBe('migrated-token')
-            })
-
-            it('should prefer localStorage over cookie when both exist', () => {
-                localStorage.setItem('jwt-token', 'local-token')
-                mockCookies.get.mockReturnValue('cookie-token')
-                expect(getAuthToken()).toBe('local-token')
-                // cookie.get should not have been called since localStorage had a value
-                expect(mockCookies.get).not.toHaveBeenCalled()
             })
         })
 
@@ -93,13 +88,9 @@ describe('auth-token', () => {
                 mockIsCapacitor.mockReturnValue(true)
             })
 
-            it('should save to localStorage', () => {
+            it('is a no-op — the server Set-Cookie already updated the native jar', () => {
                 setAuthToken('new-cap-token')
-                expect(localStorage.getItem('jwt-token')).toBe('new-cap-token')
-            })
-
-            it('should not set a cookie', () => {
-                setAuthToken('new-cap-token')
+                expect(localStorage.getItem('jwt-token')).toBeNull()
                 expect(mockCookies.set).not.toHaveBeenCalled()
             })
         })
@@ -124,21 +115,59 @@ describe('auth-token', () => {
         })
     })
 
+    describe('hasNativeSessionCookie', () => {
+        it('returns false on web without touching the native jar', async () => {
+            mockIsCapacitor.mockReturnValue(false)
+            await expect(hasNativeSessionCookie()).resolves.toBe(false)
+            expect(mockCapCookies.getCookies).not.toHaveBeenCalled()
+        })
+
+        it('returns true when the jar holds a jwt-token cookie', async () => {
+            mockIsCapacitor.mockReturnValue(true)
+            mockCapCookies.getCookies.mockResolvedValue({ 'jwt-token': 'jar-token' })
+            await expect(hasNativeSessionCookie()).resolves.toBe(true)
+        })
+
+        it('returns false when the jar has no jwt-token cookie', async () => {
+            mockIsCapacitor.mockReturnValue(true)
+            mockCapCookies.getCookies.mockResolvedValue({ other: 'cookie' })
+            await expect(hasNativeSessionCookie()).resolves.toBe(false)
+        })
+
+        it('returns false when the native read fails', async () => {
+            mockIsCapacitor.mockReturnValue(true)
+            mockCapCookies.getCookies.mockRejectedValue(new Error('bridge down'))
+            await expect(hasNativeSessionCookie()).resolves.toBe(false)
+        })
+    })
+
     describe('clearAuthToken', () => {
         describe('capacitor mode', () => {
             beforeEach(() => {
                 mockIsCapacitor.mockReturnValue(true)
             })
 
-            it('should remove from localStorage', () => {
+            it('should clear the native cookie jar (the actual credential)', async () => {
+                await clearAuthToken()
+                expect(mockCapCookies.clearCookies).toHaveBeenCalledWith({
+                    url: expect.stringContaining('http'),
+                })
+            })
+
+            it('should remove any localStorage remnant from older builds', async () => {
                 localStorage.setItem('jwt-token', 'to-clear')
-                clearAuthToken()
+                await clearAuthToken()
                 expect(localStorage.getItem('jwt-token')).toBeNull()
             })
 
-            it('should also clear cookie defensively', () => {
-                clearAuthToken()
+            it('should also clear cookie defensively', async () => {
+                await clearAuthToken()
                 expect(mockCookies.remove).toHaveBeenCalledWith('jwt-token', { path: '/' })
+            })
+
+            it('should resolve even when the native clear fails', async () => {
+                mockCapCookies.clearCookies.mockRejectedValue(new Error('bridge down'))
+                await expect(clearAuthToken()).resolves.toBeUndefined()
             })
         })
 
@@ -152,46 +181,52 @@ describe('auth-token', () => {
                 expect(mockCookies.remove).toHaveBeenCalledWith('jwt-token', { path: '/' })
             })
 
-            it('should not attempt to remove from localStorage', () => {
-                const spy = jest.spyOn(Storage.prototype, 'removeItem')
-                clearAuthToken()
-                expect(spy).not.toHaveBeenCalled()
-                spy.mockRestore()
+            it('should not touch the native jar', async () => {
+                await clearAuthToken()
+                expect(mockCapCookies.clearCookies).not.toHaveBeenCalled()
             })
         })
     })
 
     describe('getAuthHeaders', () => {
-        beforeEach(() => {
-            mockIsCapacitor.mockReturnValue(false)
-        })
-
-        it('should return Authorization header when token exists', () => {
-            mockCookies.get.mockReturnValue('my-token')
-            const headers = getAuthHeaders()
-            expect(headers).toEqual({ Authorization: 'Bearer my-token' })
-        })
-
-        it('should return empty object when no token exists', () => {
-            mockCookies.get.mockReturnValue(undefined)
-            const headers = getAuthHeaders()
-            expect(headers).toEqual({})
-        })
-
-        it('should merge extra headers when provided', () => {
-            mockCookies.get.mockReturnValue('my-token')
-            const headers = getAuthHeaders({ 'Content-Type': 'application/json', 'X-Custom': 'value' })
-            expect(headers).toEqual({
-                Authorization: 'Bearer my-token',
-                'Content-Type': 'application/json',
-                'X-Custom': 'value',
-            })
-        })
-
-        it('should return only extra headers when no token', () => {
-            mockCookies.get.mockReturnValue(undefined)
+        it('returns no Authorization on capacitor — the cookie jar authenticates', () => {
+            mockIsCapacitor.mockReturnValue(true)
             const headers = getAuthHeaders({ 'Content-Type': 'application/json' })
             expect(headers).toEqual({ 'Content-Type': 'application/json' })
+        })
+
+        describe('web mode', () => {
+            beforeEach(() => {
+                mockIsCapacitor.mockReturnValue(false)
+            })
+
+            it('should return Authorization header when token exists', () => {
+                mockCookies.get.mockReturnValue('my-token')
+                const headers = getAuthHeaders()
+                expect(headers).toEqual({ Authorization: 'Bearer my-token' })
+            })
+
+            it('should return empty object when no token exists', () => {
+                mockCookies.get.mockReturnValue(undefined)
+                const headers = getAuthHeaders()
+                expect(headers).toEqual({})
+            })
+
+            it('should merge extra headers when provided', () => {
+                mockCookies.get.mockReturnValue('my-token')
+                const headers = getAuthHeaders({ 'Content-Type': 'application/json', 'X-Custom': 'value' })
+                expect(headers).toEqual({
+                    Authorization: 'Bearer my-token',
+                    'Content-Type': 'application/json',
+                    'X-Custom': 'value',
+                })
+            })
+
+            it('should return only extra headers when no token', () => {
+                mockCookies.get.mockReturnValue(undefined)
+                const headers = getAuthHeaders({ 'Content-Type': 'application/json' })
+                expect(headers).toEqual({ 'Content-Type': 'application/json' })
+            })
         })
     })
 })

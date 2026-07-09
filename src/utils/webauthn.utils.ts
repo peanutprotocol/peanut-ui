@@ -54,6 +54,13 @@ function isNetworkError(error: Error): boolean {
 export function classifyPasskeyError(error: unknown): PasskeyErrorClassification {
     const err = error instanceof Error ? error : new Error(String(error))
     let code = 'LOGIN_ERROR'
+    // iOS surfaces ceremony failures as a bare Error whose message carries the
+    // ASAuthorizationError code, not a DOMException name: 1001 = user canceled,
+    // 1004 = failed (typically no usable passkey on this device). Both mean
+    // "no login happened" — route to the copy that offers creating a wallet.
+    if (/AuthenticationServices\.AuthorizationError error 100[14]/.test(err.message)) {
+        return { code: 'LOGIN_CANCELED', message: PASSKEY_LOGIN_MESSAGES['LOGIN_CANCELED'] }
+    }
     switch (err.name) {
         case WebAuthnErrorName.NotAllowed:
             code = 'LOGIN_CANCELED'
