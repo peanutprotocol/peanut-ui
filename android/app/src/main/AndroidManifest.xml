@@ -79,6 +79,14 @@
             android:resource="@string/capacitor_passkey_asset_statements" />
     </application>
 
+    <!-- Phone-only: require a telephony radio so Play filters out Wi-Fi-only
+         tablets, Android XR headsets, Chromebooks, TV/Wear/Auto. No telephony
+         permission is needed — the feature flag alone drives Play's device
+         catalog. NOTE: a cellular tablet that reports a telephony radio can
+         still slip through; that residue is handled in Play Console device
+         exclusions. -->
+    <uses-feature android:name="android.hardware.telephony" android:required="true" />
+
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
