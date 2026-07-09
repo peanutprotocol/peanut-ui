@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import { isCapacitor, getPlatform } from '@/utils/capacitor'
 import { deepLinkToNativePath } from '@/utils/native-routes'
 import { sanitizeRedirectURL } from '@/utils/general.utils'
-import { getSystemTheme } from '@/utils/theme'
-import { syncNativeStatusBar } from '@/utils/native-theme'
 
 /**
  * initializes capacitor native plugins (back button, status bar, splash screen).
@@ -53,9 +51,10 @@ export function useNativePlugins() {
             }
 
             try {
-                const { StatusBar } = await import('@capacitor/status-bar')
+                const { StatusBar, Style } = await import('@capacitor/status-bar')
                 await StatusBar.setOverlaysWebView({ overlay: false })
-                await syncNativeStatusBar(getSystemTheme())
+                await StatusBar.setStyle({ style: Style.Light })
+                await StatusBar.setBackgroundColor({ color: '#ffffff' })
             } catch (e) {
                 console.warn('failed to init status bar:', e)
             }

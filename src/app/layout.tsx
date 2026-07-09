@@ -6,7 +6,6 @@ import Script from 'next/script'
 import '../styles/globals.css'
 import { PEANUT_API_URL, BASE_URL } from '@/constants/general.consts'
 import { CHUNK_ERROR_RECOVERY_SCRIPT } from '@/utils/chunk-error-recovery'
-import { THEME_INIT_SCRIPT } from '@/utils/theme'
 import { type Metadata } from 'next'
 
 const baseUrl = BASE_URL || 'https://peanut.me'
@@ -133,7 +132,7 @@ export const viewport: Viewport = {
     initialScale: 1,
     maximumScale: 1,
     userScalable: false,
-    colorScheme: 'light dark',
+    colorScheme: 'light',
     viewportFit: 'cover',
 }
 
@@ -142,11 +141,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     const apiHostname = new URL(PEANUT_API_URL).origin
 
     return (
-        <html lang="en" data-theme="light" suppressHydrationWarning>
+        <html lang="en" style={{ colorScheme: 'light' }} data-theme="light">
             <head>
-                {/* Set data-theme from the OS appearance before first paint (no light→dark flash).
-                    Raw inline so it runs ahead of hydration; pairs with suppressHydrationWarning above. */}
-                <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+                <meta name="color-scheme" content="light" />
 
                 {/* JSON-LD structured data */}
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
