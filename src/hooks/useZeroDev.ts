@@ -84,6 +84,15 @@ export const useZeroDev = () => {
             const campaignTag = getFromCookie('campaignTag')
 
             if (userInviteCode?.trim().length > 0) {
+                /*
+                 * Fail-open by design: a broken accept must not block signup. But a
+                 * failure here strands the user in the waitlist, so (1) persist the
+                 * code in the cookie — JoinWaitlistPage auto-retries from it, even
+                 * after an app restart — and (2) report to Sentry, not just PostHog:
+                 * a systematic accept failure looks like a completed signup otherwise.
+                 * The cookie is only cleared on confirmed success.
+                 */
+                const keepInviteCodeForRetry = () => saveToCookie('inviteCode', userInviteCode, 30)
                 try {
                     const result = await invitesApi.acceptInvite(userInviteCode, inviteType, campaignTag)
                     if (result.success) {
@@ -92,24 +101,34 @@ export const useZeroDev = () => {
                             invite_type: inviteType,
                             campaign_tag: campaignTag,
                         })
+                        if (inviteCodeFromCookie) {
+                            removeFromCookie('inviteCode')
+                        }
+                        if (campaignTag) {
+                            removeFromCookie('campaignTag')
+                        }
                     } else {
                         posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
                             invite_code: userInviteCode,
                             error_message: 'API returned unsuccessful',
                         })
+                        captureException(new Error('register-time invite accept returned unsuccessful'), {
+                            tags: { error_type: 'invite_accept_failed' },
+                            extra: { inviteCode: userInviteCode, result },
+                        })
+                        keepInviteCodeForRetry()
                         console.error('Error accepting invite', result)
-                    }
-                    if (inviteCodeFromCookie) {
-                        removeFromCookie('inviteCode')
-                    }
-                    if (campaignTag) {
-                        removeFromCookie('campaignTag')
                     }
                 } catch (e) {
                     posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
                         invite_code: userInviteCode,
                         error_message: String(e),
                     })
+                    captureException(e, {
+                        tags: { error_type: 'invite_accept_failed' },
+                        extra: { inviteCode: userInviteCode },
+                    })
+                    keepInviteCodeForRetry()
                     console.error('Error accepting invite', e)
                 }
             } else if (campaignTag) {
