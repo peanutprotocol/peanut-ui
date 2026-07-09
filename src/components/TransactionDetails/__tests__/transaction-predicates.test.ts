@@ -161,10 +161,11 @@ describe('isSplittable', () => {
 describe('hasUserProfile', () => {
     const profileTx = (
         transactionCardType: string | undefined,
-        opts?: { userName?: string; isLinkTransaction?: boolean }
+        opts?: { userName?: string; isLinkTransaction?: boolean; isPeerActuallyUser?: boolean }
     ): TransactionDetails =>
         ({
             userName: opts?.userName ?? 'natalia',
+            isPeerActuallyUser: opts?.isPeerActuallyUser ?? true,
             extraDataForDrawer: {
                 originalType: 'TRANSACTION_INTENT',
                 transactionCardType,
@@ -199,5 +200,17 @@ describe('hasUserProfile', () => {
 
     test('a missing username has no profile', () => {
         expect(hasUserProfile(profileTx('send', { userName: '' }))).toBe(false)
+    })
+
+    // A non-user peer (raw address, bank account, or a system copy string like
+    // 'Request'/reaper-fail text) is authoritatively flagged by the transformer.
+    test('a non-user peer has no profile even for a send/request/receive', () => {
+        expect(hasUserProfile(profileTx('send', { isPeerActuallyUser: false }))).toBe(false)
+    })
+
+    // A usernameless Peanut user surfaces their userId (UUID) in `userName`;
+    // there is no /<uuid> profile page, so it must not be a nav target.
+    test('a usernameless user (UUID userId fallback) has no profile', () => {
+        expect(hasUserProfile(profileTx('send', { userName: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' }))).toBe(false)
     })
 })

@@ -67,6 +67,7 @@ function eligibleTx(): TransactionDetails {
         direction: 'send',
         status: 'completed',
         userName: 'natalia',
+        isPeerActuallyUser: true,
         showFullName: false,
         isVerified: false,
         amount: 10,

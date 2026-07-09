@@ -290,6 +290,12 @@ export interface TransactionDetails {
     id: string
     direction: TransactionDirection
     userName: string
+    /** The counterparty is an actual Peanut user (not a raw address, bank
+     *  account, or a system copy string like 'Request'/'Recipient'/reaper text).
+     *  Authoritative gate for whether the name/avatar can deep-link to a
+     *  profile — see hasUserProfile. Optional so hand-built fixtures fail safe
+     *  to non-clickable; the transformer always sets it. */
+    isPeerActuallyUser?: boolean
     fullName: string
     showFullName?: boolean
     amount: number | bigint
@@ -541,6 +547,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         initials: getInitialsFromName(nameForInitials),
         status: uiStatus,
         isVerified: entry.isVerified && isPeerActuallyUser,
+        isPeerActuallyUser,
         // only show verification badge if the other person is a peanut user
         date: new Date(entry.timestamp),
         // Peanut product convention: fees are baked into the displayed exchange
