@@ -3,9 +3,11 @@
 @tailwind utilities;
 
 @layer base {
-    /* Nudge browser to prefer light mode for native controls (scrollbars, inputs, etc) */
+    /* Follow the OS appearance for native controls (scrollbars, inputs, etc).
+       The resolved scheme is pinned per-render via an inline style on <html>
+       (see THEME_INIT_SCRIPT / useSystemTheme). */
     :root {
-        color-scheme: light;
+        color-scheme: light dark;
     }
 
     html,

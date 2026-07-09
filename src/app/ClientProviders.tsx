@@ -11,11 +11,12 @@ import RainCooldownIntroModal from '@/components/Global/RainCooldown/IntroModal'
 import BadgeEarnToast from '@/components/Badges/BadgeEarnToast'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
-import { PeanutProvider } from '@/config'
-import { ContextProvider } from '@/context'
+import { PeanutProvider } from '@/config/peanut.config'
+import { ContextProvider } from '@/context/contextProvider'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { useOtaUpdates } from '@/hooks/useOtaUpdates'
+import { useSystemTheme } from '@/hooks/useSystemTheme'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import dynamic from 'next/dynamic'
 import { Suspense } from 'react'
@@ -32,6 +33,9 @@ const HarnessBootstrap = HARNESS_ENABLED
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     // initialize capgo ota updates (calls notifyAppReady on mount, no-op on web)
     useOtaUpdates()
+
+    // keep data-theme + native status bar in sync with the OS appearance
+    useSystemTheme()
 
     return (
         <NuqsAdapter>
