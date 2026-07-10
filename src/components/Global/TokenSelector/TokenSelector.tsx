@@ -311,8 +311,11 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         }
 
         if (searchValue) {
-            // search active: show searched token across ALL supported networks
-            return buildTokensForChainArray(TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS, searchValue)
+            // search active: show searched token across all networks selectable
+            // in this mode — the Rhino destination set for withdraw (which
+            // includes destination-only chains like Linea/Avalanche), the wagmi
+            // source list otherwise.
+            return buildTokensForChainArray(Array.from(allowedChainIds), searchValue)
         }
         if (selectedChainID) {
             // specific chain selected: show popular (USDC, USDT, Native) for that chain
@@ -329,6 +332,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         isCrossChainDisabled,
         restrictToRhino,
         isRhinoSupported,
+        allowedChainIds,
     ])
 
     // filter popular tokens by search
