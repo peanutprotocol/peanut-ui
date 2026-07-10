@@ -506,7 +506,7 @@ function setCapabilitiesGate(state: GateState, opts: { userMessage?: string | nu
 
 // Loading state context provider
 const LoadingStateProvider = ({ children }: { children: React.ReactNode }) => {
-    const loadingStateContext = require('@/context').loadingStateContext
+    const loadingStateContext = require('@/context/loadingStates.context').loadingStateContext
     const [loadingState, setLoadingState] = React.useState('Idle')
     const isLoading = loadingState !== 'Idle'
     return (
@@ -516,9 +516,10 @@ const LoadingStateProvider = ({ children }: { children: React.ReactNode }) => {
     )
 }
 
-// We need to mock the context module itself since it's imported via { loadingStateContext }
+// We need to mock the context module itself (specific file, not the barrel — the page
+// imports from '@/context/loadingStates.context' per the no-barrel rule)
 const mockSetLoadingState = jest.fn()
-jest.mock('@/context', () => ({
+jest.mock('@/context/loadingStates.context', () => ({
     loadingStateContext: React.createContext({
         loadingState: 'Idle' as string,
         setLoadingState: (s: string) => {},
@@ -529,7 +530,7 @@ jest.mock('@/context', () => ({
 function renderQrPay(params: Record<string, string> = {}) {
     setSearchParams(params)
     const queryClient = createQueryClient()
-    const { loadingStateContext } = require('@/context')
+    const { loadingStateContext } = require('@/context/loadingStates.context')
 
     const LoadingProvider = ({ children }: { children: React.ReactNode }) => {
         const [loadingState, setLoadingState] = React.useState<string>('Idle')

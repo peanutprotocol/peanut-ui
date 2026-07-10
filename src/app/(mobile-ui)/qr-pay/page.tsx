@@ -19,7 +19,7 @@ import AmountInput from '@/components/Global/AmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
-import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
+import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import {
@@ -28,14 +28,9 @@ import {
     BALANCE_SETTLING_MESSAGE,
     isAmountWithinBalance,
 } from '@/utils/balance.utils'
-import { isTxReverted, saveRedirectUrl, formatNumberForDisplay } from '@/utils/general.utils'
+import { formatNumberForDisplay } from '@/utils/general.utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
-import {
-    calculateSavingsInCents,
-    hasCardMarkupComparison,
-    isArgentinaMantecaQrPayment,
-    getSavingsMessage,
-} from '@/utils/qr-payment.utils'
+import { calculateSavingsInCents, hasCardMarkupComparison, getSavingsMessage } from '@/utils/qr-payment.utils'
 import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -44,11 +39,10 @@ import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
 import { MIN_MANTECA_QR_PAYMENT_AMOUNT, MIN_PIX_AMOUNT_BRL } from '@/constants/payment.consts'
 import { isPixRecurringCode } from '@/utils/withdraw.utils'
 import { formatUnits, parseUnits } from 'viem'
-import type { TransactionReceipt, Hash } from 'viem'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
-import { loadingStateContext } from '@/context'
+import { loadingStateContext } from '@/context/loadingStates.context'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { captureException } from '@sentry/nextjs'
