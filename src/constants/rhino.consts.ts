@@ -15,6 +15,8 @@ export const CHAIN_LOGOS = {
     TRON: 'https://assets.coingecko.com/asset_platforms/images/1094/standard/TRON_LOGO.png?1706606652',
     SOLANA: 'https://assets.coingecko.com/asset_platforms/images/5/standard/solana.png?1706606708',
     TEMPO: 'https://icons.llamao.fi/icons/chains/rsz_tempo.jpg',
+    KAIA: 'https://coin-images.coingecko.com/asset_platforms/images/9672/small/kaia.png?1734946776',
+    PLASMA: 'https://coin-images.coingecko.com/asset_platforms/images/32256/small/plasma.jpg?1758000963',
 } as const
 
 /** Token symbol to logo URL mapping - reusable across the app */
@@ -40,11 +42,14 @@ export const SUPPORTED_EVM_CHAINS = [
     'KATANA',
     'GNOSIS',
     'CELO',
-    // TEMPO added 2026-07-10: live SDA catalog lists it with USDC+USDT (the
-    // REQUIRED_TOKENS bar). KAIA/PLASMA stay excluded — USDT-only on Rhino, and
-    // the deposit UI advertises USDC per EVM family, so a USDC deposit there
-    // would be silently lost.
+    // TEMPO/KAIA/PLASMA added 2026-07-10 from Rhino's live SDA catalog. KAIA and
+    // PLASMA are USDT-only on Rhino while the deposit UI advertises tokens per
+    // EVM family (incl. USDC) — accepted risk (Hugo, 2026-07-10): a USDC deposit
+    // there is recoverable via the Rhino team. Per-chain token gating is the
+    // proper fix (follow-up).
     'TEMPO',
+    'KAIA',
+    'PLASMA',
 ] as const
 
 export const OTHER_SUPPORTED_CHAINS = ['SOLANA', 'TRON'] as const
