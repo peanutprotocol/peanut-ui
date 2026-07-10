@@ -20,7 +20,8 @@ import {
     rainCentsToUsdcUnits,
     isAmountWithinBalance,
 } from '@/utils/balance.utils'
-import { useSpendBundle, type SpendStrategy } from './useSpendBundle'
+import { useSpendBundle } from './useSpendBundle'
+import type { SpendStrategy } from './spendPreflight'
 import type { RainCollateralKind } from '@/services/rain'
 
 type SendTransactionsOptions = {

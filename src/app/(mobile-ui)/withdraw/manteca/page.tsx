@@ -3,7 +3,7 @@
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
-import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
+import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
 import {
     rainCentsToUsdcUnits,

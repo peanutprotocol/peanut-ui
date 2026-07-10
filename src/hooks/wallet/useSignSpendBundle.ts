@@ -10,21 +10,13 @@ import { useKernelClient } from '@/context/kernelClient.context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { rainCoordinatorAbi } from '@/constants/rain.consts'
 import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
-import { ensureRootValidatorMigrated, isMigrationWrapperAccount } from '@/utils/kernelMigration.utils'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useModalsContextOptional } from '@/context/ModalsContext'
 import { rainApi, type RainCollateralKind } from '@/services/rain'
-import { findActiveCard } from '@/components/Card/cardState.utils'
-import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
-import { useGrantSessionKey, type GrantSessionKeyError } from './useGrantSessionKey'
+import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { useGrantSessionKey } from './useGrantSessionKey'
 import { useSignUserOp, type SignedUserOpData } from './useSignUserOp'
-import {
-    computeSpendStrategy,
-    fetchLiveSmartUsdcBalance,
-    InsufficientSpendableError,
-    SessionKeyGrantRequiredError,
-    type SpendStrategy,
-} from './useSpendBundle'
+import { resolveSpendStrategy, runCollateralSpendPreflight, type SpendStrategy } from './spendPreflight'
 import { usdcUnitsToRainCents } from '@/utils/balance.utils'
 
 /**
@@ -128,86 +120,42 @@ export const useSignSpendBundle = () => {
             // send the UserOp — never a cached value (see fetchLiveSmartUsdcBalance).
             // A stale, pre-sweep balance routes `smart-only` to an empty account
             // and reverts on-chain (incident #2230).
-            const smartBalance = await fetchLiveSmartUsdcBalance(queryClient, kernelAccount.address)
-
             // Manteca-style flows always have a single recipient and no
             // subsequent kernel calls — collateral-only is always eligible.
-            const strategy = computeSpendStrategy({
-                smart: smartBalance,
-                rain: rainSpendingPower,
-                amount: requiredUsdcAmount,
+            const { strategy, smartBalance } = await resolveSpendStrategy({
+                queryClient,
+                accountAddress: kernelAccount.address,
+                requiredUsdcAmount,
+                rainSpendingPower,
                 collateralOnlyAllowed: true,
+                flow: 'sign-only',
             })
-            if (strategy === 'insufficient') {
-                posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
-                    strategy: 'insufficient',
-                    error_kind: 'insufficient',
-                    flow: 'sign-only',
-                })
-                // Passed the FE display gate but the live balance can't cover it yet
-                // (in-transit collateral not landed / ~30s-stale FE). Refresh the Rain
-                // overview so the displayed balance + a retry reflect reality.
-                queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
-                throw new InsufficientSpendableError()
-            }
 
             onStrategyDecided?.(strategy)
             posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, { strategy, kind, flow: 'sign-only' })
 
-            // Pre-flight #1 — root-validator migration (pre-2025-09-18 accounts
-            // only). The mixed path pre-signs the admin EIP-712 AND a userOp the
-            // backend submits later; on an unmigrated account that userOp is
-            // migration-wrapped, and the migration swaps the root validator
-            // before `withdrawAsset` verifies the (old-validator-routed) admin
-            // sig via ERC-1271 — the op always reverts ("Delegatecall failed").
-            // Migrate first as its own userOp, then re-resolve the account so
-            // every signature below routes to v0.0.3. Overlay = same intentional
-            // beat as useSpendBundle's mixed path. collateral-only is exempt:
-            // its session-key submission never re-wraps a migration around the
-            // admin sig.
-            let activeAccount = kernelAccount
-            if (strategy === 'mixed' && isMigrationWrapperAccount(kernelAccount)) {
-                modals?.setIsSecurityVerificationOpen?.(true)
-                try {
-                    const activeClient = await ensureRootValidatorMigrated({
-                        client: kernelClient,
-                        sendNoopUserOp: (call) => handleSendUserOpEncoded([call], chainIdStr),
-                        rebuildClient: () => rebuildClientForChain(chainIdStr),
-                        onEvent: (event) =>
-                            posthog.capture(
-                                event === 'attempted'
-                                    ? ANALYTICS_EVENTS.KERNEL_MIGRATION_ATTEMPTED
-                                    : ANALYTICS_EVENTS.KERNEL_MIGRATION_SUCCEEDED,
-                                { trigger: 'sign-spend', kind }
-                            ),
-                    })
-                    if (!activeClient.account) {
-                        throw new Error('useSignSpendBundle: rebuilt kernel account not initialized')
-                    }
-                    activeAccount = activeClient.account
-                } finally {
-                    modals?.setIsSecurityVerificationOpen?.(false)
-                }
-            }
-
-            // Pre-flight #2: any strategy that touches Rain collateral requires
-            // the one-time session-key grant. If missing, run the inline grant
-            // flow now. Reject when the overview hasn't loaded yet — we can't
-            // tell whether the grant was already given, and signing
-            // optimistically would crash on the backend submission.
-            const touchesCollateral = strategy === 'collateral-only' || strategy === 'mixed'
-            if (touchesCollateral) {
-                if (!overview) {
-                    throw new SessionKeyGrantRequiredError({ kind: 'unexpected' } as GrantSessionKeyError)
-                }
-                const card = findActiveCard(overview)
-                if (card && !card.hasWithdrawApproval) {
-                    onGrantRequired?.()
-                    const grantResult = await grant()
-                    if (!grantResult.ok) {
-                        throw new SessionKeyGrantRequiredError(grantResult.error as GrantSessionKeyError)
-                    }
-                }
+            // Shared collateral pre-flights (root-validator migration gate +
+            // session-key grant) — ONE ordered sequence for both spend engines;
+            // see runCollateralSpendPreflight. Every signature below MUST come
+            // from the account it returns. requireOverview: this engine can't
+            // tell whether the grant exists while the overview is loading, and
+            // signing optimistically would crash on the backend submission.
+            const activeClient = await runCollateralSpendPreflight({
+                strategy,
+                kind,
+                kernelClient,
+                overview,
+                requireOverview: true,
+                grant,
+                onGrantRequired,
+                sendNoopUserOp: (call) => handleSendUserOpEncoded([call], chainIdStr),
+                rebuildClient: () => rebuildClientForChain(chainIdStr),
+                setSecurityOverlay: modals?.setIsSecurityVerificationOpen,
+                migrationTrigger: 'sign-spend',
+            })
+            const activeAccount = activeClient.account
+            if (!activeAccount) {
+                throw new Error('useSignSpendBundle: kernel account not initialized after preflight')
             }
 
             // ─── smart-only ─────────────────────────────────────────────────

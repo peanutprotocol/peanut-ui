@@ -10,7 +10,7 @@ import SlideToAction from '@/components/Card/SlideToAction'
 import { rainApi } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
-import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/useSpendBundle'
+import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
 

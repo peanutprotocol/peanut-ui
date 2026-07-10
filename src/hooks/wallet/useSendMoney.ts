@@ -8,12 +8,8 @@ import { useBalance } from './useBalance'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '../useRainCardOverview'
 import { rainCentsToUsdcUnits, BALANCE_SETTLING_MESSAGE } from '@/utils/balance.utils'
 import type { RainCollateralKind } from '@/services/rain'
-import {
-    InsufficientSpendableError,
-    SessionKeyGrantRequiredError,
-    type SpendStrategy,
-    useSpendBundle,
-} from './useSpendBundle'
+import { useSpendBundle } from './useSpendBundle'
+import { InsufficientSpendableError, SessionKeyGrantRequiredError, type SpendStrategy } from './spendPreflight'
 
 type SendMoneyParams = {
     toAddress: Address
