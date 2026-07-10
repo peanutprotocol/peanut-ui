@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import type { Address, Hex } from 'viem'
+import type { Hex } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import ErrorAlert from '@/components/Global/ErrorAlert'
