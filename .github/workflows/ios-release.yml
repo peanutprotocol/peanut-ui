@@ -28,6 +28,9 @@ on:
                 required: false
                 type: string
 
+permissions:
+    contents: read
+
 concurrency:
     group: ios-release-${{ github.ref }}
     cancel-in-progress: false
@@ -43,11 +46,11 @@ jobs:
                   submodules: recursive
                   token: ${{ secrets.SUBMODULE_TOKEN }}
 
-            - uses: maxim-lobanov/setup-xcode@v1
+            - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
               with:
                   xcode-version: latest-stable
 
-            - uses: pnpm/action-setup@v6
+            - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
 
             - uses: actions/setup-node@v6
               with:
@@ -87,7 +90,7 @@ jobs:
                   if [ -f scripts/native-ios-postsync.js ]; then node scripts/native-ios-postsync.js; fi
 
             - name: Install Apple distribution certificate
-              uses: apple-actions/import-codesign-certs@v7
+              uses: apple-actions/import-codesign-certs@5142e029c445c10ffc7149d172e540235a065466 # v7
               with:
                   p12-file-base64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
                   p12-password: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
@@ -169,7 +172,7 @@ jobs:
                       -exportOptionsPlist /tmp/ExportOptions.plist
 
             - name: Upload to TestFlight
-              uses: apple-actions/upload-testflight-build@v5
+              uses: apple-actions/upload-testflight-build@1ad58030672057aa084b4e96beb6f7a8c627f9e6 # v5
               with:
                   app-path: build/ios/App.ipa
                   issuer-id: ${{ secrets.ASC_ISSUER_ID }}
