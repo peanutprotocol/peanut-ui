@@ -366,7 +366,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // avoid mixed state
             logoutUser()
         }
-    }, [user?.user.userId, logoutUser])
+    }, [user?.user.userId, logoutUser, clearClients])
 
     useEffect(() => {
         if (user?.user.userId && !!webAuthnKey) {
