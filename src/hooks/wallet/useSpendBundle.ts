@@ -12,7 +12,7 @@ import { AccountType } from '@/interfaces'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { rainCoordinatorAbi } from '@/constants/rain.consts'
 import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
-import { ensureRootValidatorMigrated } from '@/utils/kernelMigration.utils'
+import { ensureRootValidatorMigrated, isMigrationWrapperAccount } from '@/utils/kernelMigration.utils'
 import { rainApi, type RainCollateralKind } from '@/services/rain'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { findActiveCard } from '@/components/Card/cardState.utils'
@@ -222,19 +222,28 @@ export const useSpendBundle = () => {
                 // with the sig checked against the CURRENT (pre-migration) state,
                 // which is valid — no reason to add a passkey tap there.
                 let activeClient = kernelClient
-                if (strategy === 'mixed') {
-                    activeClient = await ensureRootValidatorMigrated({
-                        client: kernelClient,
-                        sendNoopUserOp: (call) => handleSendUserOpEncoded([call], chainIdStr),
-                        rebuildClient: () => rebuildClientForChain(chainIdStr),
-                        onEvent: (event) =>
-                            posthog.capture(
-                                event === 'attempted'
-                                    ? ANALYTICS_EVENTS.KERNEL_MIGRATION_ATTEMPTED
-                                    : ANALYTICS_EVENTS.KERNEL_MIGRATION_SUCCEEDED,
-                                { trigger: 'mixed-spend', kind }
-                            ),
-                    })
+                if (strategy === 'mixed' && isMigrationWrapperAccount(kernelClient.account)) {
+                    // The migration adds one passkey tap + a few seconds of
+                    // confirmation wait. Show the security-verification overlay
+                    // for the whole beat (same pattern as the admin-sig → userOp
+                    // gap below) so the extra prompt reads as intentional.
+                    modals?.setIsSecurityVerificationOpen?.(true)
+                    try {
+                        activeClient = await ensureRootValidatorMigrated({
+                            client: kernelClient,
+                            sendNoopUserOp: (call) => handleSendUserOpEncoded([call], chainIdStr),
+                            rebuildClient: () => rebuildClientForChain(chainIdStr),
+                            onEvent: (event) =>
+                                posthog.capture(
+                                    event === 'attempted'
+                                        ? ANALYTICS_EVENTS.KERNEL_MIGRATION_ATTEMPTED
+                                        : ANALYTICS_EVENTS.KERNEL_MIGRATION_SUCCEEDED,
+                                    { trigger: 'mixed-spend', kind }
+                                ),
+                        })
+                    } finally {
+                        modals?.setIsSecurityVerificationOpen?.(false)
+                    }
                 }
 
                 // Pre-flight #2: any strategy that touches Rain collateral requires

@@ -8,12 +8,11 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
-import {
-    RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
-    RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
-    rainCoordinatorAbi,
-    rainWithdrawEip712Types,
-} from '@/constants/rain.consts'
+import { rainCoordinatorAbi } from '@/constants/rain.consts'
+import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
+import { ensureRootValidatorMigrated, isMigrationWrapperAccount } from '@/utils/kernelMigration.utils'
+import { useZeroDev } from '@/hooks/useZeroDev'
+import { useModalsContextOptional } from '@/context/ModalsContext'
 import { rainApi, type RainCollateralKind } from '@/services/rain'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
@@ -100,7 +99,9 @@ export interface SignSpendBundleInput {
  */
 
 export const useSignSpendBundle = () => {
-    const { getClientForChain } = useKernelClient()
+    const { getClientForChain, rebuildClientForChain } = useKernelClient()
+    const { handleSendUserOpEncoded } = useZeroDev()
+    const modals = useModalsContextOptional()
     const { signCallsUserOp } = useSignUserOp()
     const { overview } = useRainCardOverview()
     const { grant } = useGrantSessionKey()
@@ -153,7 +154,43 @@ export const useSignSpendBundle = () => {
             onStrategyDecided?.(strategy)
             posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, { strategy, kind, flow: 'sign-only' })
 
-            // Pre-flight: any strategy that touches Rain collateral requires
+            // Pre-flight #1 — root-validator migration (pre-2025-09-18 accounts
+            // only). The mixed path pre-signs the admin EIP-712 AND a userOp the
+            // backend submits later; on an unmigrated account that userOp is
+            // migration-wrapped, and the migration swaps the root validator
+            // before `withdrawAsset` verifies the (old-validator-routed) admin
+            // sig via ERC-1271 — the op always reverts ("Delegatecall failed").
+            // Migrate first as its own userOp, then re-resolve the account so
+            // every signature below routes to v0.0.3. Overlay = same intentional
+            // beat as useSpendBundle's mixed path. collateral-only is exempt:
+            // its session-key submission never re-wraps a migration around the
+            // admin sig.
+            let activeAccount = kernelAccount
+            if (strategy === 'mixed' && isMigrationWrapperAccount(kernelAccount)) {
+                modals?.setIsSecurityVerificationOpen?.(true)
+                try {
+                    const activeClient = await ensureRootValidatorMigrated({
+                        client: kernelClient,
+                        sendNoopUserOp: (call) => handleSendUserOpEncoded([call], chainIdStr),
+                        rebuildClient: () => rebuildClientForChain(chainIdStr),
+                        onEvent: (event) =>
+                            posthog.capture(
+                                event === 'attempted'
+                                    ? ANALYTICS_EVENTS.KERNEL_MIGRATION_ATTEMPTED
+                                    : ANALYTICS_EVENTS.KERNEL_MIGRATION_SUCCEEDED,
+                                { trigger: 'sign-spend', kind }
+                            ),
+                    })
+                    if (!activeClient.account) {
+                        throw new Error('useSignSpendBundle: rebuilt kernel account not initialized')
+                    }
+                    activeAccount = activeClient.account
+                } finally {
+                    modals?.setIsSecurityVerificationOpen?.(false)
+                }
+            }
+
+            // Pre-flight #2: any strategy that touches Rain collateral requires
             // the one-time session-key grant. If missing, run the inline grant
             // flow now. Reject when the overview hasn't loaded yet — we can't
             // tell whether the grant was already given, and signing
@@ -198,24 +235,9 @@ export const useSignSpendBundle = () => {
                     kind,
                 })
 
-                const adminSignature = (await kernelAccount.signTypedData({
-                    domain: {
-                        name: RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
-                        version: RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
-                        chainId: chainIdNum,
-                        verifyingContract: prep.collateralProxy as Address,
-                        salt: prep.adminSalt as Hex,
-                    },
-                    types: rainWithdrawEip712Types,
-                    primaryType: 'Withdraw',
-                    message: {
-                        user: prep.adminAddress as Address,
-                        asset: prep.tokenAddress as Address,
-                        amount: BigInt(prep.amount),
-                        recipient: prep.recipientAddress as Address,
-                        nonce: BigInt(prep.adminNonce),
-                    },
-                })) as Hex
+                const adminSignature = (await activeAccount.signTypedData(
+                    buildRainWithdrawTypedData(prep, chainIdNum)
+                )) as Hex
 
                 return {
                     strategy,
@@ -253,24 +275,9 @@ export const useSignSpendBundle = () => {
                 totalAmountCents: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
             })
 
-            const adminSignature = (await kernelAccount.signTypedData({
-                domain: {
-                    name: RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
-                    version: RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
-                    chainId: chainIdNum,
-                    verifyingContract: prep.collateralProxy as Address,
-                    salt: prep.adminSalt as Hex,
-                },
-                types: rainWithdrawEip712Types,
-                primaryType: 'Withdraw',
-                message: {
-                    user: prep.adminAddress as Address,
-                    asset: prep.tokenAddress as Address,
-                    amount: BigInt(prep.amount),
-                    recipient: prep.recipientAddress as Address,
-                    nonce: BigInt(prep.adminNonce),
-                },
-            })) as Hex
+            const adminSignature = (await activeAccount.signTypedData(
+                buildRainWithdrawTypedData(prep, chainIdNum)
+            )) as Hex
 
             const withdrawCall = {
                 to: prep.coordinatorAddress as Hex,
@@ -306,7 +313,16 @@ export const useSignSpendBundle = () => {
             const signedUserOp = await signCallsUserOp([withdrawCall, transferCall], chainIdStr)
             return { strategy, signedUserOp, rainPreparationId: prep.preparationId }
         },
-        [getClientForChain, signCallsUserOp, overview, grant, queryClient]
+        [
+            getClientForChain,
+            rebuildClientForChain,
+            handleSendUserOpEncoded,
+            modals,
+            signCallsUserOp,
+            overview,
+            grant,
+            queryClient,
+        ]
     )
 
     return { signSpend }
