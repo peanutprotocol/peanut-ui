@@ -1,5 +1,5 @@
 import OneSignal from 'react-onesignal'
-import type { NotificationPermissionState, OneSignalAdapter } from './types'
+import type { NotificationClickInfo, NotificationPermissionState, OneSignalAdapter } from './types'
 
 function browserPermission(): NotificationPermissionState {
     if (typeof Notification === 'undefined') return 'default'
@@ -10,6 +10,7 @@ let initPromise: Promise<void> | null = null
 
 const permissionListeners = new Set<(state: NotificationPermissionState) => void>()
 const subscriptionListeners = new Set<(optedIn: boolean) => void>()
+const clickListeners = new Set<(info: NotificationClickInfo) => void>()
 let underlyingListenersAttached = false
 
 function attachUnderlyingListeners() {
@@ -25,6 +26,14 @@ function attachUnderlyingListeners() {
     OneSignal.User.PushSubscription.addEventListener('change', (event: PushSubscriptionChangeEvent) => {
         const optedIn = !!event.current?.optedIn
         subscriptionListeners.forEach((cb) => cb(optedIn))
+    })
+
+    OneSignal.Notifications.addEventListener('click', (event) => {
+        const info: NotificationClickInfo = {
+            deepLink: event?.result?.url ?? event?.notification?.launchURL,
+            additionalData: (event?.notification?.additionalData ?? {}) as Record<string, unknown>,
+        }
+        clickListeners.forEach((cb) => cb(info))
     })
 }
 
@@ -115,5 +124,10 @@ export const webOneSignalAdapter: OneSignalAdapter = {
     onSubscriptionChange(listener) {
         subscriptionListeners.add(listener)
         return () => subscriptionListeners.delete(listener)
+    },
+
+    onNotificationClick(listener) {
+        clickListeners.add(listener)
+        return () => clickListeners.delete(listener)
     },
 }

@@ -16,7 +16,10 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = 
     // /invites/validate 400 = "Invalid Invite": the user mistyped an invite code.
     // Expected input validation, surfaced inline to the user — not a server bug.
     { pattern: /\/invites\/validate/, statuses: [400] },
-    { pattern: /qr-payment\/init/, statuses: [400] },
+    // qr-payment/init: 400 = open QR awaiting merchant amount; 422 = a QR the
+    // provider can't decode (bad/expired/unsupported) — both are user-input
+    // outcomes shown to the user, not server bugs. (BE peanut-api-ts #1041.)
+    { pattern: /qr-payment\/init/, statuses: [400, 422] },
     // Rain card secrets endpoints are intentionally rate-limited (5/min) — a
     // 429 here is an expected outcome surfaced to the user, not a server bug.
     { pattern: /\/rain\/cards\/[^/]+\/details/, statuses: [429] },

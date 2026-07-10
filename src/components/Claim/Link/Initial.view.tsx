@@ -42,7 +42,7 @@ import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
 import { getTokenSymbol } from '@/utils/general.utils'
 import { Button } from '@/components/0_Bruddle/Button'
 import Image from 'next/image'
-import { PEANUT_LOGO_BLACK, PEANUTMAN_LOGO } from '@/assets'
+import { PEANUT_LOGO_BLACK, PEANUTMAN } from '@/assets'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import MantecaFlowManager from './MantecaFlowManager'
@@ -822,7 +822,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 <div className="flex items-center gap-1">
                     <div>Receive on </div>
                     <div className="flex items-center gap-1">
-                        <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" className="size-5" />
+                        <Image src={PEANUTMAN} alt="Peanut Logo" className="size-5" />
                         <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
                     </div>
                 </div>

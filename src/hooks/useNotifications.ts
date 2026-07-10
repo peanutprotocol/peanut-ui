@@ -8,6 +8,7 @@ import { isDemoMode } from '@/utils/demo'
 import { useUserStore } from '@/redux/hooks'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
+import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
 
 /*
  * Notification state lives in a module-level store shared by every
@@ -184,6 +185,24 @@ async function ensureInitialized() {
                 posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_SUBSCRIBED)
                 setState({ showPermissionModal: false })
             }
+        })
+
+        // Notification tap → PostHog. OneSignal delivers push clicks to its own
+        // SDK worker (bypassing our sw.ts handler), so this is the only client-side
+        // hook that sees the tap. Firing an explicit event (with the campaign carried
+        // in additionalData) makes blast clicks attributable even when the tap merely
+        // focuses an already-open PWA tab and no `$pageview` — hence no utm capture —
+        // fires. Marketing sends set `data.campaign`; transactional taps have none.
+        adapter.onNotificationClick(({ deepLink, additionalData }) => {
+            const campaign = typeof additionalData.campaign === 'string' ? additionalData.campaign : undefined
+            const props: Record<string, unknown> = { deep_link: deepLink }
+            if (campaign) {
+                props.utm_source = UTM_SOURCES.ONESIGNAL
+                props.utm_medium = UTM_MEDIUMS.PUSH
+                props.utm_campaign = campaign
+                if (typeof additionalData.utmContent === 'string') props.utm_content = additionalData.utmContent
+            }
+            posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_CLICKED, props)
         })
 
         setState({ oneSignalInitialized: true, sdkReady: true })

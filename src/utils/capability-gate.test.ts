@@ -1,5 +1,6 @@
 import {
     deriveGate,
+    getGateAdvisory,
     getGateUserMessage,
     getKycModalVariant,
     type CapabilityState,
@@ -189,6 +190,44 @@ describe('deriveGate — waiting-on-provider (kind: wait)', () => {
         // wait-only branch requires `every action is wait` — mixed-action rail
         // falls through and the fixable-rejection branch catches it.
         expect(gate.kind).toBe('fixable-rejection')
+    })
+
+    test('requires-info rail with no surfaced action -> fixable-rejection, NOT cross-region needs-enrollment (government-id self-heal loop)', () => {
+        // Reported loop: a Bridge rail that needs a government-id re-upload
+        // (DOCUMENT_SELF_HEAL) carries no blockingAction because the backend resolver
+        // punts it to the FE resubmit endpoint. It must route to the self-heal /
+        // document flow, NOT the misleading "Unlock {region}" cross-region modal
+        // (needs-enrollment) that looped users on a fake "You're unlocked".
+        const rail = bankRail({
+            id: 'bridge.ach_us',
+            status: 'requires-info',
+            blockingActions: [],
+        })
+        const gate = deriveGate(state([rail], []), 'deposit', { channel: 'bank' })
+        expect(gate.kind).toBe('fixable-rejection')
+    })
+
+    test('mixed scope: 7b surfaces the self-heal rail reason, not a wait-only rail message', () => {
+        // A wait-only rail ("finalizing with Bridge") + an action-less self-heal rail
+        // in the same scope. allWaiting is false, so 7b fires — it must pick the
+        // self-heal rail's reason for the Upload-document modal, not the wait message.
+        const waitAction: NextAction = { key: 'wait:bridge', kind: 'wait', purpose: 'bridge-review' }
+        const rails = [
+            bankRail({
+                id: 'bridge.sepa_eu',
+                status: 'requires-info',
+                blockingActions: ['wait:bridge'],
+                reason: { code: 'bridge_processing', userMessage: "We're finalizing your verification with Bridge." },
+            }),
+            bankRail({
+                id: 'bridge.ach_us',
+                status: 'requires-info',
+                blockingActions: [],
+                reason: { code: 'document_rejected', userMessage: 'Please re-upload your ID document.' },
+            }),
+        ]
+        const gate = deriveGate(state(rails, [waitAction]), 'deposit', { channel: 'bank' })
+        expect(gate).toMatchObject({ kind: 'fixable-rejection', userMessage: 'Please re-upload your ID document.' })
     })
 
     test('rail with NO actions stays out of waiting-on-provider (would falsely match `every of empty = true`)', () => {
@@ -473,5 +512,148 @@ describe('deriveGate — country scoping (the Add Money dead-end class)', () => 
             country: 'EU',
         })
         expect(gate.kind).toBe('needs-enrollment')
+    })
+})
+
+describe('deriveGate — advisory pre-empt (future-dated requirement on a ready rail)', () => {
+    // A Bridge rail that's ENABLED now but carries a future-dated requirement,
+    // surfaced by the BE as a non-blocking hintAction whose NextAction has an
+    // `effectiveDate` (the 2026-06-29 sof_individual_primary_purpose cohort).
+    const advisoryAction: NextAction = {
+        key: 'sumsub:eea_uplift',
+        kind: 'sumsub',
+        purpose: 'unlock-bridge',
+        levelKey: 'eea_uplift',
+        effectiveDate: '2099-06-29',
+        requirementKey: 'sof_individual_primary_purpose',
+    }
+
+    test('enabled rail with a future-dated hint → ready + advisory (rail stays usable)', () => {
+        const rail = bankRail({
+            id: 'bridge.sepa_eu',
+            method: 'SEPA_EU',
+            country: 'EU',
+            currency: 'EUR',
+            status: 'enabled',
+            hintActions: ['sumsub:eea_uplift'],
+        })
+        const gate = deriveGate(state([rail], [advisoryAction]), 'deposit', { channel: 'bank' })
+        expect(gate.kind).toBe('ready')
+        if (gate.kind === 'ready') {
+            expect(gate.advisory).toEqual({
+                effectiveDate: '2099-06-29',
+                actionKey: 'sumsub:eea_uplift',
+                requirementKey: 'sof_individual_primary_purpose',
+            })
+        }
+        expect(getGateAdvisory(gate)).toMatchObject({ effectiveDate: '2099-06-29', actionKey: 'sumsub:eea_uplift' })
+    })
+
+    test('enabled rail with no hint → ready, no advisory (back-compat)', () => {
+        const gate = deriveGate(state([bankRail({ status: 'enabled' })]), 'deposit', { channel: 'bank' })
+        expect(gate.kind).toBe('ready')
+        if (gate.kind === 'ready') expect(gate.advisory).toBeUndefined()
+        expect(getGateAdvisory(gate)).toBeUndefined()
+    })
+
+    test('a hint WITHOUT effectiveDate (Manteca cap-nudge) is not an advisory pre-empt', () => {
+        const capNudge: NextAction = {
+            key: 'sumsub:source_of_funds',
+            kind: 'sumsub',
+            purpose: 'raise-manteca-limit',
+            levelKey: 'source_of_funds',
+        }
+        const rail = bankRail({
+            id: 'manteca.pix_br',
+            provider: 'manteca',
+            method: 'PIX_BR',
+            country: 'BR',
+            currency: 'BRL',
+            status: 'enabled',
+            hintActions: ['sumsub:source_of_funds'],
+        })
+        const gate = deriveGate(state([rail], [capNudge]), 'deposit', { channel: 'bank' })
+        expect(gate.kind).toBe('ready')
+        if (gate.kind === 'ready') expect(gate.advisory).toBeUndefined()
+    })
+
+    test('earliest effectiveDate wins across multiple ready rails', () => {
+        const later: NextAction = {
+            key: 'sumsub:tax_identification_number',
+            kind: 'sumsub',
+            purpose: 'unlock-bridge',
+            levelKey: 'tax_identification_number',
+            effectiveDate: '2099-12-31',
+        }
+        const rails = [
+            bankRail({
+                id: 'bridge.sepa_eu',
+                method: 'SEPA_EU',
+                country: 'EU',
+                currency: 'EUR',
+                status: 'enabled',
+                hintActions: ['sumsub:tax_identification_number'],
+            }),
+            bankRail({ id: 'bridge.ach_us', status: 'enabled', hintActions: ['sumsub:eea_uplift'] }),
+        ]
+        const gate = deriveGate(state(rails, [advisoryAction, later]), 'deposit', { channel: 'bank' })
+        expect(gate.kind).toBe('ready')
+        if (gate.kind === 'ready') expect(gate.advisory?.effectiveDate).toBe('2099-06-29')
+    })
+
+    test('a blocking sibling still wins — advisory only rides on an otherwise-ready scope', () => {
+        // If the same scope has a CURRENT blocker, that takes priority (ready
+        // requires an enabled rail); advisory is strictly a ready-state rider.
+        const blockedRail = bankRail({
+            id: 'bridge.sepa_eu',
+            method: 'SEPA_EU',
+            country: 'EU',
+            currency: 'EUR',
+            status: 'requires-info',
+            blockingActions: ['sumsub:eea_uplift'],
+        })
+        const gate = deriveGate(state([blockedRail], [advisoryAction]), 'deposit', { channel: 'bank' })
+        expect(gate.kind).toBe('fixable-rejection')
+    })
+})
+
+describe('deriveGate — provide-email self-serve for email-blocked rails', () => {
+    const provideEmailAction: NextAction = {
+        key: 'provide-email',
+        kind: 'provide-email',
+        purpose: 'submission-failed-no-email',
+    }
+
+    test('blocked rail carrying provide-email action → provide-email gate (self-fix path)', () => {
+        const rail = bankRail({
+            status: 'blocked',
+            blockingActions: ['provide-email'],
+            reason: {
+                code: 'email_required',
+                userMessage: 'We need an email address to finish setting up this account.',
+            },
+        })
+
+        const gate = deriveGate(state([rail], [provideEmailAction]), 'deposit', { channel: 'bank' })
+
+        expect(gate.kind).toBe('provide-email')
+        if (gate.kind === 'provide-email') {
+            expect(gate.userMessage).toMatch(/email address/)
+            expect(gate.reason?.code).toBe('email_required')
+        }
+        expect(getGateUserMessage(gate)).toMatch(/email address/)
+    })
+
+    test('blocked rail without provide-email action still dead-ends on blocked-rejection', () => {
+        const rail = bankRail({
+            status: 'blocked',
+            blockingActions: ['contact-support'],
+            reason: { code: 'submission_failed', userMessage: 'We hit a snag.' },
+        })
+        const supportAction: NextAction = { key: 'contact-support', kind: 'contact-support', purpose: 'kyc-support' }
+
+        const gate = deriveGate(state([rail], [supportAction]), 'deposit', { channel: 'bank' })
+
+        expect(gate.kind).toBe('blocked-rejection')
     })
 })

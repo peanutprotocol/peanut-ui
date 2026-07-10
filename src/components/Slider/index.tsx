@@ -71,7 +71,7 @@ const Slider = React.forwardRef<React.ElementRef<typeof SliderPrimitive.Root>, S
                 </SliderPrimitive.Track>
                 <SliderPrimitive.Thumb
                     onPointerDown={() => setIsDragging(true)}
-                    className="z-20 flex h-12 w-12 cursor-pointer items-center justify-center rounded-r-sm bg-primary-1 transition-colors focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-50"
+                    className="z-20 flex h-[46px] w-12 cursor-pointer items-center justify-center rounded-r-sm bg-primary-1 transition-colors focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-50"
                 >
                     <Icon name="chevron-up" size={24} className="rotate-90 text-black" />
                 </SliderPrimitive.Thumb>

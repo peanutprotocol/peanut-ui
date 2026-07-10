@@ -6,6 +6,8 @@ import { useCrispUserData } from '@/hooks/useCrispUserData'
 import { useCrispTokenId } from '@/hooks/useCrispTokenId'
 import { useCrispProxyUrl } from '@/hooks/useCrispProxyUrl'
 import PeanutLoading from '../PeanutLoading'
+import { Button } from '@/components/0_Bruddle/Button'
+import { SUPPORT_EMAIL } from '@/constants/crisp'
 import { isCapacitor } from '@/utils/capacitor'
 
 const DISMISS_THRESHOLD = 100
@@ -15,6 +17,10 @@ const SupportDrawer = () => {
     const userData = useCrispUserData()
     const crispTokenId = useCrispTokenId()
     const [isCrispReady, setIsCrispReady] = useState(false)
+    // The proxy reports CRISP_FAILED when the Crisp bundle never loads (blank-panel bug).
+    const [isCrispFailed, setIsCrispFailed] = useState(false)
+    // Bumping this key remounts the iframe, giving the user a clean retry.
+    const [iframeKey, setIframeKey] = useState(0)
 
     const crispProxyUrl = useCrispProxyUrl(userData, prefilledMessage, crispTokenId)
 
@@ -32,6 +38,12 @@ const SupportDrawer = () => {
     useEffect(() => {
         if (isSupportModalOpen) setHasBeenOpened(true)
     }, [isSupportModalOpen])
+
+    const handleRetry = useCallback(() => {
+        setIsCrispFailed(false)
+        setIsCrispReady(false)
+        setIframeKey((k) => k + 1)
+    }, [])
 
     // A logged-in user's token is computed asynchronously (SHA-256 of their userId).
     // Until it resolves we must NOT load the proxy: a token-less load makes Crisp fall
@@ -109,8 +121,11 @@ const SupportDrawer = () => {
         const handleMessage = (event: MessageEvent) => {
             if (event.origin !== window.location.origin) return
 
-            if (event.data.type === 'CRISP_READY') {
+            if (event.data?.type === 'CRISP_READY') {
                 setIsCrispReady(true)
+                setIsCrispFailed(false)
+            } else if (event.data?.type === 'CRISP_FAILED') {
+                setIsCrispFailed(true)
             }
         }
 
@@ -166,13 +181,28 @@ const SupportDrawer = () => {
 
                 <div className="flex w-full justify-center">
                     <div className="relative h-[80vh] w-full overflow-auto md:max-w-xl">
-                        {(!isCrispReady || isAwaitingToken) && (
+                        {(!isCrispReady || isAwaitingToken) && !isCrispFailed && (
                             <div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
                                 <PeanutLoading />
                             </div>
                         )}
+                        {isCrispFailed && (
+                            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-background px-8 text-center">
+                                <p className="text-base font-bold text-n-1">Chat couldn’t load</p>
+                                <p className="text-sm text-grey-1">
+                                    Something went wrong loading support chat. Email us and we’ll help you out:
+                                </p>
+                                <a href={`mailto:${SUPPORT_EMAIL}`} className="text-black underline">
+                                    {SUPPORT_EMAIL}
+                                </a>
+                                <Button variant="stroke" className="w-full" onClick={handleRetry}>
+                                    Try again
+                                </Button>
+                            </div>
+                        )}
                         {!isCapacitor() && hasBeenOpened && !isAwaitingToken && (
                             <iframe
+                                key={iframeKey}
                                 src={crispProxyUrl}
                                 className="h-full w-full"
                                 allow="storage-access *"

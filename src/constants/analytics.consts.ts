@@ -70,6 +70,9 @@ export const ANALYTICS_EVENTS = {
     DEPOSIT_CONFIRMED: 'deposit_confirmed',
     DEPOSIT_COMPLETED: 'deposit_completed',
     DEPOSIT_FAILED: 'deposit_failed',
+    // offramp.xyz migrants must self-report their Offramp username/email
+    // before the migration deposit address is revealed (payout reconciliation)
+    OFFRAMP_HANDLE_SUBMITTED: 'offramp_handle_submitted',
 
     // ── Withdraw ──
     WITHDRAW_AMOUNT_ENTERED: 'withdraw_amount_entered',
@@ -112,6 +115,7 @@ export const ANALYTICS_EVENTS = {
     NOTIFICATION_PERMISSION_GRANTED: 'notification_permission_granted',
     NOTIFICATION_PERMISSION_DENIED: 'notification_permission_denied',
     NOTIFICATION_SUBSCRIBED: 'notification_subscribed',
+    NOTIFICATION_CLICKED: 'notification_clicked',
 
     // ── Modal Fatigue ──
     MODAL_SHOWN: 'modal_shown',
@@ -148,10 +152,17 @@ export const ANALYTICS_EVENTS = {
     // the Continue button is HTML-disabled until all are checked.
     CARD_TERMS_VIEWED: 'card_terms_viewed',
     CARD_TERMS_ACCEPTED: 'card_terms_accepted',
+    // Residence-country confirmation screen (address vs ID-document mismatch).
+    // VIEWED→CONFIRMED drop-off = users confused or scared by the question.
+    CARD_COUNTRY_CONFIRM_VIEWED: 'card_country_confirm_viewed',
+    CARD_COUNTRY_CONFIRMED: 'card_country_confirmed',
     // Session-key permission grant (passkey tap). `kind` mirrors GrantSessionKeyError.kind.
     CARD_SESSION_KEY_PROMPTED: 'card_session_key_prompted',
     CARD_SESSION_KEY_GRANTED: 'card_session_key_granted',
     CARD_SESSION_KEY_FAILED: 'card_session_key_failed',
+    // Withdraw refused with 409 STALE_CARD_APPROVAL — stored session-key
+    // approval is bound to a deprecated validator; user must re-enable the card.
+    CARD_STALE_APPROVAL_HIT: 'card_stale_approval_hit',
 
     // ── Card: waitlist + early-access funnel (M2 Card Waitlist Launch) ──
     // /shhhhh closed-beta landing page → /card.
@@ -231,6 +242,11 @@ export const ANALYTICS_EVENTS = {
     // Rain withdrawal-signature cooldown tripped during a spend. Handled
     // gracefully in-flow (no captureException), so this is the only telemetry.
     RAIN_COOLDOWN_HIT: 'rain_cooldown_hit',
+
+    // ── Account deletion (settings) ──
+    DELETE_ACCOUNT_INITIATED: 'delete_account_initiated',
+    DELETE_ACCOUNT_CONFIRMED: 'delete_account_confirmed',
+    DELETE_ACCOUNT_FAILED: 'delete_account_failed',
 } as const
 
 /**

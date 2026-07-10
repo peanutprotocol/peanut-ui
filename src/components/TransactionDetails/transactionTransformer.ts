@@ -17,6 +17,7 @@ import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
 import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/registry'
+import { parseWireAmount } from './transaction-details.utils'
 
 /** Rain dispute lifecycle status values. Source: Rain dispute.* webhooks. */
 export type DisputeStatus = 'pending' | 'inReview' | 'accepted' | 'rejected' | 'canceled' | 'resolvedByMerchant'
@@ -290,6 +291,12 @@ export interface TransactionDetails {
     id: string
     direction: TransactionDirection
     userName: string
+    /** The counterparty is an actual Peanut user (not a raw address, bank
+     *  account, or a system copy string like 'Request'/'Recipient'/reaper text).
+     *  Authoritative gate for whether the name/avatar can deep-link to a
+     *  profile — see hasUserProfile. Optional so hand-built fixtures fail safe
+     *  to non-clickable; the transformer always sets it. */
+    isPeerActuallyUser?: boolean
     fullName: string
     showFullName?: boolean
     amount: number | bigint
@@ -455,6 +462,12 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     const out = dispatchStrategy(entry)(entry)
     const direction: TransactionDirection = out.direction
     const transactionCardType: TransactionCardType = out.transactionCardType
+    // Role for display strings (the +/- sign, the receipt's "Sent/Received"
+    // label). A pre-#1144 BE reports SENDER on negative-amount card auths,
+    // but the strategy has already classified the row as a refund credit —
+    // trust the strategy verdict so the receipt can't contradict the header.
+    const displayUserRole =
+        transactionCardType === 'refund' ? EHistoryUserRole.RECIPIENT : (entry.userRole as EHistoryUserRole)
     let nameForDetails = out.nameForDetails
     let isPeerActuallyUser = out.isPeerActuallyUser
     const isLinkTx = out.isLinkTx
@@ -480,6 +493,16 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     if (entry.status === 'FAILED' && reaperFailReason && reaperFailReason.endsWith('_timeout')) {
         nameForDetails = REAPER_FAIL_COPY[reaperFailReason] ?? 'Transaction did not complete'
         isPeerActuallyUser = false
+    } else if (entry.status === 'FAILED' && intentKindOf(entry) === 'QR_PAY') {
+        // A collateral QR-pay that failed at submit (e.g. the stale-approval 403)
+        // has no reaper _timeout reason, but the BE now surfaces it (peanut-api-ts
+        // #1146). Render the same neutral "didn't complete" copy instead of the
+        // kind-switch's "QR payment to <merchant>", which implies the payment
+        // happened. Deliberately does NOT assert charge status — a payment that
+        // settles then fails is refunded elsewhere — so "didn't complete" is honest
+        // whether or not funds moved; the ledger stays the source of truth for that.
+        nameForDetails = 'Failed QR payment attempt'
+        isPeerActuallyUser = false
     }
 
     // Strategy uiStatus wins (e.g. SEND_LINK BOTH → 'cancelled'); otherwise
@@ -500,9 +523,14 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     }
 
     // parse the amount from the usdamount string in extradata
-    const amount = entry.extraData?.usdAmount
-        ? parseFloat(String(entry.extraData.usdAmount).replace(/[^\d.-]/g, ''))
-        : 0
+    const baseAmount = entry.extraData?.usdAmount ? parseWireAmount(entry.extraData.usdAmount) : 0
+    // Bake the cross-chain network fee into the displayed amount (product
+    // convention: fees are part of the amount, never a separate line — see the
+    // `fee: undefined` note below). The BE only sets `networkFeeUsd` for a
+    // CRYPTO_WITHDRAW whose kernel actually debited principal + fee (SDA path),
+    // so this shows the true amount deducted instead of just the principal.
+    const networkFeeUsd = typeof entry.extraData?.networkFeeUsd === 'number' ? entry.extraData.networkFeeUsd : 0
+    const amount = baseAmount + networkFeeUsd
 
     const { explorerUrlWithTx, addressExplorerUrl, tokenDisplayDetails, rewardData } = computeDerivedFields(entry)
 
@@ -529,11 +557,12 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         fullName,
         showFullName,
         currency: rewardData ? undefined : entry.currency,
-        currencySymbol: `${entry.userRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
+        currencySymbol: `${displayUserRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
         tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,
         initials: getInitialsFromName(nameForInitials),
         status: uiStatus,
         isVerified: entry.isVerified && isPeerActuallyUser,
+        isPeerActuallyUser,
         // only show verification badge if the other person is a peanut user
         date: new Date(entry.timestamp),
         // Peanut product convention: fees are baked into the displayed exchange
@@ -566,7 +595,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         extraDataForDrawer: {
             addressExplorerUrl,
             originalType: 'TRANSACTION_INTENT',
-            originalUserRole: entry.userRole as EHistoryUserRole,
+            originalUserRole: displayUserRole,
             kind: intentKindOf(entry),
             provider: entry.extraData?.provider as Provider | undefined,
             bridgeFlow: entry.extraData?.bridgeFlow,
@@ -615,7 +644,11 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                           cancellationReason: entry.extraData?.cancellationReason as string | null,
                           parentRainTxId: entry.extraData?.parentRainTxId as string | null,
                           rainTransactionId: entry.extraData?.rainTransactionId as string | null,
-                          isRefund: !!entry.extraData?.parentRainTxId,
+                          // Reuse the strategy verdict instead of re-deriving the
+                          // parentRainTxId/isRefund/negative-amount heuristic here —
+                          // a local copy would silently diverge from the strategy
+                          // layer as its rules evolve (CodeRabbit #2373).
+                          isRefund: transactionCardType === 'refund',
                           // Dispute lifecycle — null when Rain hasn't fired
                           // any dispute.* webhook for this spend.
                           dispute: (() => {

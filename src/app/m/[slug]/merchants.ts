@@ -187,7 +187,7 @@ export const MERCHANTS: Record<string, Merchant> = {
                 {
                     id: 'funding',
                     question: 'How do I fund it?',
-                    answer: 'Two ways. Crypto: USDC or USDT on Solana, Arbitrum, Base, Tron, Avalanche, Polygon, or Ethereum, and we cover the network fees. Bank: SEPA, ACH, or wire from any country. No Argentine bank account needed.',
+                    answer: 'Two ways. Crypto: USDC or USDT on Solana, Arbitrum, Base, Tron, Polygon, or Ethereum, and we cover the network fees. Bank: SEPA, ACH, or wire from any country. No Argentine bank account needed.',
                 },
                 {
                     id: 'receiving',

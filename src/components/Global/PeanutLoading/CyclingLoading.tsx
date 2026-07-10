@@ -1,6 +1,6 @@
 'use client'
 
-import { PEANUTMAN_LOGO } from '@/assets/mascot'
+import { PEANUTMAN } from '@/assets/mascot'
 import { useEffect, useState } from 'react'
 import { PAYMENT_LOADING_WORDS } from './words'
 
@@ -26,7 +26,7 @@ export default function CyclingLoading() {
         <div className="w-full flex-col items-center justify-center self-center text-center">
             <div className="flex w-full items-center justify-center self-center">
                 <div className="animate-spin">
-                    <img src={PEANUTMAN_LOGO.src} alt="logo" className="h-10" />
+                    <img src={PEANUTMAN.src} alt="logo" className="h-10" />
                     <span className="sr-only">{word}</span>
                 </div>
             </div>

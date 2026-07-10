@@ -275,7 +275,7 @@ const REJECT_LABEL_MAP: Record<string, RejectLabelInfo> = {
     DUPLICATE_EMAIL: {
         title: 'Email already in use',
         description:
-            'The email you entered is already associated with another account. Please verify again with a different email.',
+            'This email is already linked to another Peanut account. If it’s yours, sign in to that account to continue — otherwise contact support.',
     },
 }
 

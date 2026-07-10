@@ -8,6 +8,7 @@
  * per-test via mockReturnValue / mockImplementation.
  */
 import React from 'react'
+import posthog from 'posthog-js'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
@@ -81,7 +82,7 @@ jest.mock('@/assets/payment-apps', () => ({
 
 // The page imports PeanutThinking from @/assets/mascot and STAR_STRAIGHT_ICON
 // from @/assets/icons directly — mock those paths, not the @/assets barrel, and
-// keep sibling exports (e.g. PEANUTMAN_LOGO, ETHEREUM_ICON used by QRScanner) intact.
+// keep sibling exports (e.g. PEANUTMAN, ETHEREUM_ICON used by QRScanner) intact.
 jest.mock('@/assets/mascot', () => ({
     ...jest.requireActual('@/assets/mascot'),
     PeanutThinking: '/peanut-guy.gif',
@@ -137,6 +138,9 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
 }))
 
 jest.mock('@/utils/balance.utils', () => ({
+    // keep the real isAmountWithinBalance / messages so the gate is genuinely
+    // exercised; only stub the Rain widening helper.
+    ...jest.requireActual('@/utils/balance.utils'),
     rainCentsToUsdcUnits: jest.fn(() => 0n),
 }))
 
@@ -156,7 +160,6 @@ jest.mock('@/components/TransactionDetails/TransactionDetailsDrawer', () => ({
 const mockMantecaApi = {
     initiateQrPayment: jest.fn(),
     completeQrPaymentWithSignedTx: jest.fn(),
-    claimPerk: jest.fn(),
 }
 jest.mock('@/services/manteca', () => ({
     mantecaApi: mockMantecaApi,
@@ -560,6 +563,8 @@ function applyDefaults() {
 
     mockUseWallet.mockReturnValue({
         balance: parseUnits('100', 6), // $100 USDC
+        spendableBalance: parseUnits('100', 6),
+        hasSufficientSpendableBalance: () => true, // affordable by default
         sendMoney: jest.fn(),
     })
 
@@ -614,15 +619,6 @@ function applyDefaults() {
             paymentPrice: '1200',
             priceExpireAt: '2026-04-16T23:59:59Z',
             merchant: { name: 'Test Merchant' },
-        },
-    })
-
-    mockMantecaApi.claimPerk.mockResolvedValue({
-        success: true,
-        perk: {
-            amountSponsored: 0.5,
-            discountPercentage: 5,
-            txHash: '0xabc',
         },
     })
 
@@ -780,14 +776,14 @@ describe('GROUP 2: Payment Form States', () => {
         expect(screen.getByRole('button', { name: 'Pay' })).toBeInTheDocument()
     })
 
-    test.skip('Insufficient balance shows pay button disabled + error', async () => {
-        // SKIP 2026-04-24: feat/card-ui merge surfaced post-merge balance
-        // path mismatch in qr-pay state tests. Mock signature for useWallet
-        // drifted vs new spendable-balance shape. FOLLOW-UP: rewrite or delete
-        // these state tests after the card-ui apply flow stabilises.
-        // Set balance to $5 but payment needs $18.4
+    test('Insufficient balance shows pay button disabled + error', async () => {
+        // Payment needs ~$18.4 but the displayed spendable is only $5, so the gate
+        // (hasSufficientSpendableBalance) returns false. Revived from skip once the
+        // gate moved onto the shared hook predicate (the original mock-shape drift).
         mockUseWallet.mockReturnValue({
             balance: parseUnits('5', 6),
+            spendableBalance: parseUnits('5', 6),
+            hasSufficientSpendableBalance: () => false,
             sendMoney: jest.fn(),
         })
 
@@ -1101,6 +1097,56 @@ describe('GROUP 4: Success States', () => {
         await waitFor(() => {
             expect(screen.getByText('Go to Home')).toBeInTheDocument()
         })
+
+        jest.useRealTimers()
+    })
+
+    // Regression: the perk is already claimed server-side during QR-payment
+    // processing, and the QR response carries the sponsored amount. The
+    // hold-to-claim gesture must report that reward directly — it must NOT make
+    // a second /perks/claim round-trip (that endpoint now requires a usageId the
+    // client never has, so the old call always 400'd and surfaced a false
+    // "reward is being processed" error even though the reward had landed).
+    test('Perk claim reports the reward from the QR response, no /perks/claim round-trip, no error', async () => {
+        jest.useFakeTimers()
+
+        // BE sends sponsoredUsd; the page maps it to amountSponsored on load.
+        await completeMantecaPayment({
+            perk: {
+                eligible: true,
+                discountPercentage: 5,
+                sponsoredUsd: 0.5,
+            },
+        })
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /Claim Reward/i })).toBeInTheDocument()
+        })
+
+        const claimButton = screen.getByRole('button', { name: /Claim Reward/i })
+        await act(async () => {
+            fireEvent.pointerDown(claimButton)
+        })
+        // Advance past the hold duration to fire the claim.
+        await act(async () => {
+            jest.advanceTimersByTime(1600)
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText('Go to Home')).toBeInTheDocument()
+        })
+
+        // Reward reported from the QR response (sponsoredUsd → amount_usd).
+        expect(posthog.capture).toHaveBeenCalledWith('reward_claimed', {
+            amount_usd: 0.5,
+            discount_pct: 5,
+        })
+
+        // The old broken round-trip surfaced this false error — it must not appear.
+        expect(screen.queryByText(/reward is being processed/i)).not.toBeInTheDocument()
+
+        // The redundant client claim method is gone entirely.
+        expect('claimPerk' in mockMantecaApi).toBe(false)
 
         jest.useRealTimers()
     })

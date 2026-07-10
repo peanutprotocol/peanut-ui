@@ -44,3 +44,9 @@ export type TransactionType =
     // so the avatar logic can render a credit-card icon instead of the
     // Mercado Pago / PIX brand mark or the generic wallet fallback.
     | 'card_pay'
+    // Refund credit rows — Rain card refunds (negative-amount spend auths or
+    // kind=REFUND) and Manteca QR-pay refunds. Direction stays 'receive' (so
+    // the balance-change sign is '+'); this presentation type drives the
+    // arrow-down-left icon + "Refund" label and keeps the row visually
+    // distinct from a plain 'receive'.
+    | 'refund'

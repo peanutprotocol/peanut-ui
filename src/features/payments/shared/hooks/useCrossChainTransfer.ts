@@ -303,25 +303,30 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                     return
                 }
 
-                // Run preview + provision in parallel — they don't depend on each other.
-                const [preview, sda] = await Promise.all([
-                    previewSdaTransfer({
-                        chainIn: sourceRhinoChain,
-                        chainOut: destRhinoChain,
-                        token: tokenSymbol,
-                        amount: destination.tokenAmount,
-                        mode: 'receive', // UI always asks "merchant gets X" — user pays X + fee
-                    }),
-                    provisionSdaTransfer({
-                        context,
-                        contextId,
-                        depositChain: sourceRhinoChain,
-                        destinationChain: destRhinoChain,
-                        destinationAddress: destination.recipientAddress,
-                        tokenOut: tokenSymbol,
-                        senderPeanutWalletAddress,
-                    }),
-                ])
+                // Preview first, then provision — provision now carries the quote
+                // economics (feeUsd / payAmount / receiveAmount) so the backend can
+                // persist them onto the charge and book the FEE ledger entry at
+                // settlement (PRINCIPAL + FEE = real on-chain debit). Sequential
+                // because provision depends on preview's numbers.
+                const preview = await previewSdaTransfer({
+                    chainIn: sourceRhinoChain,
+                    chainOut: destRhinoChain,
+                    token: tokenSymbol,
+                    amount: destination.tokenAmount,
+                    mode: 'receive', // UI always asks "merchant gets X" — user pays X + fee
+                })
+                const sda = await provisionSdaTransfer({
+                    context,
+                    contextId,
+                    depositChain: sourceRhinoChain,
+                    destinationChain: destRhinoChain,
+                    destinationAddress: destination.recipientAddress,
+                    tokenOut: tokenSymbol,
+                    senderPeanutWalletAddress,
+                    feeUsd: preview.feeUsd,
+                    payAmount: preview.payAmount,
+                    receiveAmount: preview.receiveAmount,
+                })
 
                 applyRhinoResult({
                     preview,

@@ -1,16 +1,19 @@
+import { BALANCE_SETTLING_MESSAGE } from '@/utils/balance.utils'
+
 /** Safely extract a string-form of an unknown error + its `.message` if any.
  *  Lets the matchers below use `string` methods without unsafe property access
  *  while still accepting whatever shape callers throw (Error, string, object). */
-function extractErrorParts(error: unknown): { text: string; message: string | undefined } {
-    if (typeof error === 'string') return { text: error, message: error }
+function extractErrorParts(error: unknown): { text: string; message: string | undefined; name: string | undefined } {
+    if (typeof error === 'string') return { text: error, message: error, name: undefined }
     if (error && typeof error === 'object') {
-        const obj = error as { toString?: () => unknown; message?: unknown }
+        const obj = error as { toString?: () => unknown; message?: unknown; name?: unknown }
         const rawText = typeof obj.toString === 'function' ? obj.toString() : ''
         const text = typeof rawText === 'string' ? rawText : ''
         const message = typeof obj.message === 'string' ? obj.message : undefined
-        return { text, message }
+        const name = typeof obj.name === 'string' ? obj.name : undefined
+        return { text, message, name }
     }
-    return { text: '', message: undefined }
+    return { text: '', message: undefined, name: undefined }
 }
 
 /**
@@ -25,7 +28,12 @@ function extractErrorParts(error: unknown): { text: string; message: string | un
  * (signSpend / spend / sendMoney / sendTransactions(requiredUsdcAmount)).
  */
 export const rainCollateralErrorMessage = (error: unknown): string | null => {
-    const { text, message } = extractErrorParts(error)
+    const { text, message, name } = extractErrorParts(error)
+    // Stale card approval (409 STALE_CARD_APPROVAL) — the global re-enable modal
+    // owns the recovery CTA, but the flow that threw still shows an inline error.
+    // Surface the backend's friendly re-enable copy here so the inline path
+    // matches the modal instead of dead-ending on "contact support".
+    if (name === 'StaleCardApprovalError') return message ?? text
     if (
         text.includes('A previous withdrawal is still active for this card') ||
         text.includes('A previous withdrawal signature is still active') ||
@@ -39,12 +47,17 @@ export const rainCollateralErrorMessage = (error: unknown): string | null => {
 /** UI-friendly error message extractor. Matches substrings on common
  *  wallet / viem / Peanut API error messages and returns user-facing copy. */
 export const ErrorHandler = (error: unknown): string => {
-    const { text, message } = extractErrorParts(error)
+    const { text, message, name } = extractErrorParts(error)
     // Rain card-collateral errors — surface the backend's already user-
     // friendly copy verbatim (includes the "Try again in about M min." hint
     // on the cooldown case). Covers every spend path that touches Rain.
     const rainMsg = rainCollateralErrorMessage(error)
     if (rainMsg) return rainMsg
+    // Spend passed the displayed-balance gate but couldn't be routed yet
+    // (in-transit collateral not landed) — nudge a retry rather than "add funds".
+    // Match the typed error's name first (stable) and fall back to the message.
+    if (name === 'InsufficientSpendableError' || text.includes('Insufficient spendable balance'))
+        return BALANCE_SETTLING_MESSAGE
     if (text.includes('insufficient funds')) return "You don't have enough funds."
     if (text.includes('user rejected transaction')) return 'Please confirm the transaction in your wallet.'
     if (text.includes('not deployed on chain')) return 'Bulk is not able on this chain, please try another chain.'

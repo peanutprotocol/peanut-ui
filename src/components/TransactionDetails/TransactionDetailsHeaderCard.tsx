@@ -12,7 +12,7 @@ import { VerifiedUserLabel } from '../UserHeader'
 import ProgressBar from '../Global/ProgressBar'
 import { useRouter } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
-import { PEANUTMAN_LOGO } from '@/assets/mascot'
+import { PEANUTMAN } from '@/assets/mascot'
 import { profileUrl } from '@/utils/native-routes'
 
 interface TransactionDetailsHeaderCardProps {
@@ -120,7 +120,10 @@ const getTitle = (
                 if (status === 'completed') {
                     titleText = `Paid to ${displayName}`
                 } else if (status === 'failed') {
-                    titleText = `Payment to ${displayName}`
+                    // Failed QR-pays carry a self-contained label from the
+                    // transformer ("Failed QR payment attempt") — no "Payment to"
+                    // prefix, which would read "Payment to Failed QR payment attempt".
+                    titleText = displayName
                 } else {
                     titleText = `Paying to ${displayName}`
                 }
@@ -210,7 +213,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
             {isTestTransaction ? (
                 <div className="flex items-center gap-3">
                     <div>
-                        <Image src={PEANUTMAN_LOGO} alt="Peanut Logo" width={64} height={64} className="size-8" />
+                        <Image src={PEANUTMAN} alt="Peanut Logo" width={64} height={64} className="size-8" />
                     </div>
                     <div>
                         <h2 className="text-xl font-extrabold">Enjoy Peanut!</h2>

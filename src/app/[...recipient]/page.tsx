@@ -7,6 +7,7 @@ import { isAddress } from 'viem'
 import { printableAddress, isStableCoin } from '@/utils/general.utils'
 import { chargesApi } from '@/services/charges'
 import { parseAmountAndToken } from '@/lib/url-parser/parser'
+import { buildOgImageUrl } from '@/utils/og.utils'
 import { notFound } from 'next/navigation'
 import { couldBeRecipient, isReservedRoute } from '@/constants/routes'
 
@@ -99,30 +100,19 @@ export async function generateMetadata({ params, searchParams }: any) {
         if (!siteUrl) {
             console.error('Error: Unable to determine site origin')
         } else {
-            const ogUrl = new URL(`${siteUrl}/api/og`)
-            ogUrl.searchParams.set('type', 'request')
-            ogUrl.searchParams.set('username', recipient)
-
-            if (amount) {
-                ogUrl.searchParams.set('amount', String(amount))
-                if (token) {
-                    ogUrl.searchParams.set('token', token.toUpperCase())
-                }
-            } else {
-                // For ETH addresses/ENS without amount, set to 0 to show "is requesting funds"
-                ogUrl.searchParams.set('amount', '0')
-            }
-
-            // Only show as receipt if there's both a chargeId AND it's paid
-            if (chargeId && isPaid) {
-                ogUrl.searchParams.set('isReceipt', 'true')
-            }
-
-            if (isPeanutUsername) {
-                ogUrl.searchParams.set('isPeanutUsername', 'true')
-            }
-
-            ogImageUrl = ogUrl.toString()
+            ogImageUrl = buildOgImageUrl(
+                {
+                    type: 'request',
+                    username: recipient,
+                    // ETH addresses/ENS without an amount use 0 to show "is requesting funds"
+                    amount: amount ? String(amount) : '0',
+                    token: amount && token ? token.toUpperCase() : undefined,
+                    // only a receipt when there's a chargeId AND it's paid
+                    isReceipt: Boolean(chargeId && isPaid),
+                    isPeanutUsername,
+                },
+                siteUrl
+            )
         }
     }
 

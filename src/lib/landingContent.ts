@@ -5,6 +5,11 @@
 // component or route handler, never inside a 'use client' file.
 
 import { readSingletonContentLocalized } from '@/lib/content'
+import {
+    SUPPORTED_RAILS_FAQ_ANSWER,
+    SUPPORTED_RAILS_FAQ_ID,
+    SUPPORTED_RAILS_FAQ_QUESTION,
+} from '@/constants/faq.consts'
 import type { Locale } from '@/i18n/types'
 
 interface LandingFrontmatter {
@@ -40,7 +45,30 @@ const DEFAULTS: LandingContent = {
     marqueeMessages: [],
 }
 
+// Code-defined FAQ item advertising supported networks/tokens/bank rails.
+// Lives in code (not the content MD) because its facts derive from
+// rhino.consts — the same constants the add-money flow renders — so the
+// public answer can't drift from what the app actually supports.
+// LandingPageClient swaps in the rich chip UI by this id.
+const SUPPORTED_RAILS_QUESTION = {
+    id: SUPPORTED_RAILS_FAQ_ID,
+    question: SUPPORTED_RAILS_FAQ_QUESTION,
+    answer: SUPPORTED_RAILS_FAQ_ANSWER,
+}
+
+// Insert right after the "What is Peanut?" question (falls back to the end).
+function withSupportedRails(questions: LandingContent['faqData']['questions']) {
+    const idx = questions.findIndex((q) => /what is peanut\??/i.test(q.question))
+    const at = idx === -1 ? questions.length : idx + 1
+    return [...questions.slice(0, at), SUPPORTED_RAILS_QUESTION, ...questions.slice(at)]
+}
+
 export function getLandingContent(locale: Locale = 'en'): LandingContent {
+    const base = readLandingContent(locale)
+    return { ...base, faqData: { ...base.faqData, questions: withSupportedRails(base.faqData.questions) } }
+}
+
+function readLandingContent(locale: Locale): LandingContent {
     const content = readSingletonContentLocalized<LandingFrontmatter>('landing', locale)
     if (!content) return DEFAULTS
 

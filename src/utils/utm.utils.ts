@@ -23,6 +23,8 @@ export const UTM_MEDIUMS = {
     REFERRAL: 'referral',
     /** Any email — newsletter, drip, transactional. */
     EMAIL: 'email',
+    /** Push / in-app notification blasts (delivered via OneSignal). */
+    PUSH: 'push',
     /** Organic social posts. */
     SOCIAL: 'social',
     /** Paid acquisition where we pay per click (Google ads, Meta ads). */
@@ -47,6 +49,8 @@ export const UTM_SOURCES = {
     CONTENT_HUB: 'c',
     /** Beehiiv-driven email. */
     BEEHIIV: 'beehiiv',
+    /** OneSignal-delivered messages (push + email blasts). Split by medium. */
+    ONESIGNAL: 'onesignal',
     TWITTER: 'twitter',
     INSTAGRAM: 'instagram',
     TIKTOK: 'tiktok',

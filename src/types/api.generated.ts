@@ -6362,6 +6362,7 @@ export interface paths {
                     "application/json": {
                         termsAccepted?: boolean;
                         serializedApproval?: string;
+                        confirmedResidenceCountry?: string;
                     };
                 };
             };
@@ -6393,6 +6394,14 @@ export interface paths {
                             status: "terms-required";
                             isUsResident: boolean;
                             termsVersion: string;
+                        } | {
+                            /** @enum {string} */
+                            status: "country-confirmation-required";
+                            candidates: string[];
+                            evidence: {
+                                addressCountry: string | null;
+                                idDocumentCountry: string | null;
+                            };
                         } | {
                             status: string;
                             rainUserId?: string;

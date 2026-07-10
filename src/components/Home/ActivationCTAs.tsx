@@ -7,13 +7,16 @@ import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import Card from '../Global/Card'
 import CardLaunchCTABanner from '@/components/Home/CardLaunchCTA/CardLaunchCTABanner'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useAuth } from '@/context/authContext'
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
+import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 
 interface ActivationCTAsProps {
     activationStep: ActivationStep
@@ -76,7 +79,7 @@ const STEPS: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = {
 export default function ActivationCTAs({ activationStep, onDismissCard }: ActivationCTAsProps) {
     const router = useRouter()
     const { setIsQRScannerOpen, openSupportWithMessage } = useModalsContext()
-    const { rails, channelOf } = useCapabilities()
+    const { rails, channelOf, nextActionsForRail } = useCapabilities()
     const { user } = useAuth()
     // Suppress the "Unlock payments" verify CTA while identity is mid-flight
     // (Sumsub processing / action_required). The user already took the verify
@@ -88,20 +91,47 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // qr-only channels — never through card. Top-level status (not per-op
     // refinement): Manteca's pool tier reads `enabled` at the rail level even when
     // deposit/withdraw individually need an upgrade — that's not a rejection.
-    const { hasFixableRejection, hasBlockedRejection, primaryRejectionMessage, blockedRail } = useMemo(() => {
+    const {
+        hasFixableRejection,
+        fixableProvider,
+        hasBlockedRejection,
+        primaryRejectionMessage,
+        blockedRail,
+        isEmailBlocked,
+    } = useMemo(() => {
         const rejectableRails = rails.filter((rail) => {
             const channel = channelOf(rail)
             return channel === 'bank' || channel === 'qr-only'
         })
         const fixableRail = rejectableRails.find((rail) => rail.status === 'requires-info')
-        const blocked = rejectableRails.find((rail) => rail.status === 'blocked')
+        // Email-blocked rails carry a self-serve provide-email action (same
+        // contract the capability gate reads) — prefer one over an earlier
+        // blocked rail with a terminal reason, since one email fixes them all.
+        const emailBlocked = rejectableRails.find(
+            (rail) => rail.status === 'blocked' && nextActionsForRail(rail.id).some((a) => a.kind === 'provide-email')
+        )
+        const blocked = emailBlocked ?? rejectableRails.find((rail) => rail.status === 'blocked')
         return {
             hasFixableRejection: !!fixableRail,
+            fixableProvider:
+                fixableRail && (fixableRail.provider === 'bridge' || fixableRail.provider === 'manteca')
+                    ? (fixableRail.provider.toUpperCase() as 'BRIDGE' | 'MANTECA')
+                    : null,
             hasBlockedRejection: !!blocked,
-            primaryRejectionMessage: (fixableRail ?? blocked)?.reason?.userMessage ?? null,
+            // Same precedence the copy/onClick use: email-blocked → fixable → terminal.
+            primaryRejectionMessage: (emailBlocked ?? fixableRail ?? blocked)?.reason?.userMessage ?? null,
             blockedRail: blocked,
+            isEmailBlocked: !!emailBlocked,
         }
-    }, [rails, channelOf])
+    }, [rails, channelOf, nextActionsForRail])
+
+    const [showProvideEmail, setShowProvideEmail] = useState(false)
+
+    // Inline self-heal so the home "Upload document" CTA opens the Sumsub document
+    // re-upload directly, instead of routing to /profile/identity-verification (which
+    // only showed the regions list, forcing the user to hunt for the Upload-document
+    // CTA again). Mirrors the add-money bank flow + UnlockedRegions view.
+    const kycFlow = useMultiPhaseKycFlow({})
 
     const lastTrackedStep = useRef<ActivationStep | null>(null)
     useEffect(() => {
@@ -113,10 +143,27 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         }
     }, [activationStep])
 
+    // A user who can already transact — they hold an active card (its rail reads
+    // `enabled`), have any other enabled rail, or the BE has marked them
+    // activated — is NOT mid-activation. A rejected *bank* rail is then an
+    // optional extra capability, not a setup blocker, so the home activation CTA
+    // must stand down. A genuinely-fixable bank RFI still surfaces in context in
+    // the /add-money bank flow (which runs its own gate). Without this, a
+    // card-holder with a dead/rejected bank rail gets nagged with "Complete your
+    // setup" on a rail they can't — and needn't — fix.
+    const canAlreadyTransact = useMemo(
+        () => rails.some((rail) => rail.status === 'enabled') || (user?.user?.isActivated ?? false),
+        [rails, user?.user?.isActivated]
+    )
+
     // provider rejection overrides the step copy when user is past the verify step
-    // (sumsub approved but provider rejected — deposit/outbound CTAs are useless)
+    // (sumsub approved but provider rejected — deposit/outbound CTAs are useless),
+    // UNLESS they can already transact via card / another rail (see above).
     const hasProviderRejection =
-        activationStep !== 'verify' && activationStep !== 'card' && (hasFixableRejection || hasBlockedRejection)
+        activationStep !== 'verify' &&
+        activationStep !== 'card' &&
+        !canAlreadyTransact &&
+        (hasFixableRejection || hasBlockedRejection)
 
     const step: StepConfig | null = useMemo(() => {
         if (activationStep === 'completed' && !hasProviderRejection) return null
@@ -127,6 +174,22 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         if (activationStep === 'verify' && isIdentityProcessing && !isIdentityActionRequired) return null
 
         if (hasProviderRejection) {
+            // Email-blocked (status=blocked) outranks a fixable RFI (status=requires-info)
+            // — the canonical `deriveGate` order, and the order this card's onClick
+            // already follows (isEmailBlocked first). Ranking fixable above email here
+            // made the copy say "Upload document" while the button opened the email
+            // sheet, and hid the document-upload path entirely when both coexisted.
+            if (isEmailBlocked) {
+                return {
+                    icon: 'globe-lock',
+                    iconBg: 'bg-primary-1',
+                    title: 'Add your email',
+                    description:
+                        primaryRejectionMessage || 'We need an email address to finish setting up your account.',
+                    ctaLabel: 'Add email',
+                    href: '', // handled in onClick
+                }
+            }
             if (hasFixableRejection) {
                 return {
                     icon: 'globe-lock',
@@ -153,6 +216,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         activationStep,
         hasProviderRejection,
         hasFixableRejection,
+        isEmailBlocked,
         primaryRejectionMessage,
         isIdentityProcessing,
         isIdentityActionRequired,
@@ -193,7 +257,9 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     shadowSize="4"
                     className="mt-2 w-full"
                     onClick={() => {
-                        if (hasProviderRejection && hasBlockedRejection && !hasFixableRejection) {
+                        if (isEmailBlocked) {
+                            setShowProvideEmail(true)
+                        } else if (hasProviderRejection && hasBlockedRejection && !hasFixableRejection) {
                             // REQUIRES_SUPPORT class (or any blocked rail) — pre-fill Crisp
                             // with the failure context so support can dispatch without
                             // re-investigating the user's state.
@@ -204,6 +270,8 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                                     userId: user?.user?.userId,
                                 })
                             )
+                        } else if (hasProviderRejection && hasFixableRejection && fixableProvider) {
+                            void kycFlow.handleSelfHealResubmit(fixableProvider)
                         } else if (activationStep === 'outbound' && !hasProviderRejection) {
                             setIsQRScannerOpen(true)
                         } else {
@@ -219,6 +287,12 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     </button>
                 )}
             </div>
+            <ProvideEmailStep
+                visible={showProvideEmail}
+                onComplete={() => setShowProvideEmail(false)}
+                onSkip={() => setShowProvideEmail(false)}
+            />
+            <SumsubKycModals flow={kycFlow} />
         </Card>
     )
 }

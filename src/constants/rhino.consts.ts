@@ -26,6 +26,9 @@ export const TOKEN_LOGOS = {
 export type ChainName = keyof typeof CHAIN_LOGOS
 export type TokenName = keyof typeof TOKEN_LOGOS
 
+// Mirrors Rhino's live SDA config (`depositAddresses.getSupportedConfigs()`).
+// Scroll was removed 2026-06-11: Rhino's live config no longer returns an SDA
+// entry for it, and a deposit on an unsupported chain is silently lost.
 export const SUPPORTED_EVM_CHAINS = [
     'ARBITRUM',
     'ETHEREUM',
@@ -34,7 +37,6 @@ export const SUPPORTED_EVM_CHAINS = [
     'BNB',
     'POLYGON',
     'KATANA',
-    'SCROLL',
     'GNOSIS',
     'CELO',
 ] as const
@@ -98,12 +100,17 @@ export const RHINO_SUPPORTED_TOKENS = (Object.keys(TOKEN_LOGOS) as TokenName[])
  * — matters for the sandbox harness, where our smart accounts live on Arb
  * Sepolia while Rhino's endpoints only recognize mainnet chain names.
  */
-export const EVM_CHAIN_ID_TO_RHINO_NAME: Record<string, ChainName | undefined> = {
+// Values are Rhino's API chain names (what `chainIn`/`chainOut` must be), which
+// differ from our display ChainName for two chains: Polygon is `MATIC_POS` and
+// BNB Chain is `BINANCE` in Rhino's API. Sending the display name (POLYGON/BNB)
+// 400s with `Invalid chain`. Keep this in sync with peanut-api-ts
+// `src/rhino/consts.ts` CHAINS_CONFIG.
+export const EVM_CHAIN_ID_TO_RHINO_NAME: Record<string, string | undefined> = {
     '1': 'ETHEREUM',
     '10': 'OPTIMISM',
-    '56': 'BNB',
+    '56': 'BINANCE', // Rhino's name for BNB Chain (display: BNB)
     '100': 'GNOSIS',
-    '137': 'POLYGON',
+    '137': 'MATIC_POS', // Rhino's name for Polygon (display: POLYGON)
     '534352': 'SCROLL',
     '42161': 'ARBITRUM',
     '421614': 'ARBITRUM', // Arb Sepolia — same Rhino bucket for sandbox runs
@@ -111,6 +118,6 @@ export const EVM_CHAIN_ID_TO_RHINO_NAME: Record<string, ChainName | undefined> =
     '42220': 'CELO',
 }
 
-export function evmChainIdToRhinoName(chainId: string | number): ChainName | undefined {
+export function evmChainIdToRhinoName(chainId: string | number): string | undefined {
     return EVM_CHAIN_ID_TO_RHINO_NAME[String(chainId)]
 }

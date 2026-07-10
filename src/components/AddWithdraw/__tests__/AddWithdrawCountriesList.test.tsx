@@ -160,6 +160,10 @@ jest.mock('@/components/AddWithdraw/DynamicBankAccountForm', () => ({ DynamicBan
 jest.mock('@/components/Global/TokenAndNetworkConfirmationModal', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
 jest.mock('@/components/Kyc/BridgeTosStep', () => ({ BridgeTosStep: () => null }))
+jest.mock('@/components/Kyc/ProvideEmailStep', () => ({
+    __esModule: true,
+    default: (props: any) => (props.visible ? <div data-testid="provide-email-sheet" /> : null),
+}))
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({
     InitiateKycModal: (props: any) => (props.visible ? <div data-testid="initiate-kyc-modal" /> : null),
 }))
@@ -234,6 +238,66 @@ describe('AddWithdrawCountriesList — bank gate', () => {
 
         expect(mockPush).not.toHaveBeenCalled()
         expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
+    })
+
+    // provide-email is a self-serve gate (one email unblocks the rail) — it must
+    // open the email sheet, NEVER the contact-support KYC modal. Both the click
+    // gate (checkBridgeGate) and the form-submit gate (handleFormSubmit) must
+    // route it there; a missing branch on the submit path turned self-serve
+    // recovery into a support ticket (2026-07 review finding).
+    it('an email-blocked gate opens the provide-email sheet, not the contact-support KYC modal', () => {
+        setCapabilities('provide-email', [{ status: 'blocked', channel: 'bank', country: 'US' }])
+
+        render(<AddWithdrawCountriesList flow="add" />)
+        fireEvent.click(screen.getByTestId('method-bank'))
+
+        expect(screen.getByTestId('provide-email-sheet')).toBeInTheDocument()
+        expect(screen.queryByTestId('initiate-kyc-modal')).toBeNull()
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * When the BRL-via-PIX onramp degrades, the Pix option gets flagged "under
+ * maintenance" (config: pixBrazilOnrampMaintenance) — warn-only: it stays
+ * visible and clickable.
+ */
+describe('AddWithdrawCountriesList — PIX onramp maintenance tag', () => {
+    // snapshot/restore the shipped flag so each test can flip it without leaking
+    // state — and without coupling the restore to the committed default
+    let originalPixMaintenance: boolean
+
+    beforeEach(() => {
+        mockPush.mockClear()
+        // a ready gate so a click can navigate — proving the option is not blocked
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+        originalPixMaintenance = underMaintenanceConfig.pixBrazilOnrampMaintenance
+    })
+
+    afterEach(() => {
+        underMaintenanceConfig.pixBrazilOnrampMaintenance = originalPixMaintenance
+    })
+
+    it('tags the Pix option "Maintenance" but keeps it clickable (warn-only)', () => {
+        underMaintenanceConfig.pixBrazilOnrampMaintenance = true
+
+        render(<AddWithdrawCountriesList flow="add" />)
+
+        const pixCard = screen.getByTestId('method-pix')
+        expect(within(pixCard).getByText('Maintenance')).toBeInTheDocument()
+
+        // warn-only: still navigates into the deposit flow
+        fireEvent.click(pixCard)
+        expect(mockPush).toHaveBeenCalledWith('/add-money/brazil/manteca')
+    })
+
+    it('shows no maintenance tag when the flag is off, and never tags non-Pix methods', () => {
+        underMaintenanceConfig.pixBrazilOnrampMaintenance = false
+
+        render(<AddWithdrawCountriesList flow="add" />)
+
+        expect(within(screen.getByTestId('method-pix')).queryByText('Maintenance')).toBeNull()
+        expect(within(screen.getByTestId('method-bank')).queryByText('Maintenance')).toBeNull()
     })
 })
 

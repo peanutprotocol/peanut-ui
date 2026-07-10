@@ -26,6 +26,7 @@
 
 import fs from 'fs'
 import path from 'path'
+import { RAIL_SLUGS } from '../src/data/seo/deposit-rails'
 
 const ROOT = path.join(process.cwd(), 'src/content')
 const CONTENT_DIR = path.join(ROOT, 'content')
@@ -37,20 +38,9 @@ const PRIMARY_LOCALES = ['en', 'es-419', 'pt-br']
 // `content/deposit/` mixes two URL families on the same dynamic route:
 //   exchanges → /{locale}/deposit/from-{slug}
 //   rails     → /{locale}/deposit/via-{slug}
-// The rail list lives in src/data/seo/exchanges.ts (DEPOSIT_RAILS). Keep in sync.
-// Anything in content/deposit/ that isn't a rail is an exchange.
-const RAIL_SLUGS = new Set([
-    'ach',
-    'arbitrum',
-    'avalanche',
-    'base',
-    'ethereum',
-    'polygon',
-    'sepa',
-    'solana',
-    'tron',
-    'wire',
-])
+// RAIL_SLUGS is the single source of truth (src/data/seo/deposit-rails), shared
+// with the app's route + sitemap generation. Anything in content/deposit/ that
+// isn't a rail is an exchange.
 const exchangeSlugs = listDirs(path.join(ROOT, 'content/deposit')).filter((s) => !RAIL_SLUGS.has(s))
 
 // --- Diagnostics ---

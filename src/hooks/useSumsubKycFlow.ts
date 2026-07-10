@@ -2,7 +2,12 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
-import { initiateSumsubKyc, initiateSelfHealResubmission, restartIdentityVerification } from '@/app/actions/sumsub'
+import {
+    initiateSumsubKyc,
+    initiateSelfHealResubmission,
+    restartIdentityVerification,
+    startKycAction,
+} from '@/app/actions/sumsub'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { isCapacitor } from '@/utils/capacitor'
@@ -12,6 +17,36 @@ interface UseSumsubKycFlowOptions {
     onKycSuccess?: () => void
     onManualClose?: () => void
     regionIntent?: KYCRegionIntent
+}
+
+// Time-escalating schedule for the verification-progress-modal status poll.
+// initiateSumsubKyc is a MUTATING endpoint — for approved-LATAM users in the
+// self-recovery state each call re-runs a full provider submission. A fixed 5s
+// interval hammered it for the entire modal-open (incident 2026-07-02: 86
+// re-submissions in 20 min for one user). We keep the fast 5s cadence only for
+// the first minute (the common quick transition), then back off. The backoff is
+// purely time-based, NOT error-based: the poll returns HTTP 200 even when the
+// backend reprocess fails, so an error count would never escalate.
+const KYC_POLL_SCHEDULE: ReadonlyArray<{ untilMs: number; delayMs: number }> = [
+    { untilMs: 60_000, delayMs: 5_000 }, // first ~1 min: fast path for the common quick transition
+    { untilMs: 120_000, delayMs: 10_000 },
+    { untilMs: 180_000, delayMs: 20_000 },
+]
+// After the escalation schedule the poll settles at this steady cadence for as
+// long as the modal stays open. It does NOT stop: a missed websocket event
+// (laptop sleep, mobile background, network switch) can land at any time during
+// a long manual review, and a hard stop would strand the user on "Almost there"
+// forever with onKycSuccess never firing. The 60s floor plus the backend's own
+// self-recovery cooldown (which short-circuits repeat submissions server-side)
+// keeps the steady poll cheap — nothing like the fixed-5s battering ram this
+// schedule replaced.
+const KYC_POLL_MAX_DELAY_MS = 60_000
+
+const getKycPollDelayMs = (elapsedMs: number): number => {
+    for (const { untilMs, delayMs } of KYC_POLL_SCHEDULE) {
+        if (elapsedMs < untilMs) return delayMs
+    }
+    return KYC_POLL_MAX_DELAY_MS
 }
 
 export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: UseSumsubKycFlowOptions = {}) => {
@@ -114,11 +149,20 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         fetchCurrentStatus()
     }, [regionIntent])
 
-    // polling fallback for missed websocket events.
-    // when the verification progress modal is open, poll status every 5s
-    // so the flow can transition even if the websocket event never arrives.
+    // polling fallback for missed websocket events. while the verification
+    // progress modal is open, re-check status on a time-escalating schedule
+    // (KYC_POLL_SCHEDULE) so the flow can transition even if the websocket event
+    // never arrives — without hammering the mutating initiate endpoint. A
+    // self-rescheduling setTimeout chain (rather than a fixed setInterval) lets
+    // the delay grow as the modal stays open, settling at a steady 60s cadence —
+    // it keeps polling for the whole modal-open lifetime so a late/missed
+    // websocket event is always eventually recovered.
     useEffect(() => {
         if (!isVerificationProgressModalOpen) return
+
+        const startedAt = Date.now()
+        let timeoutId: ReturnType<typeof setTimeout>
+        let cancelled = false
 
         const pollStatus = async () => {
             try {
@@ -135,8 +179,22 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             }
         }
 
-        const interval = setInterval(pollStatus, 5000)
-        return () => clearInterval(interval)
+        const scheduleNext = () => {
+            const elapsed = Date.now() - startedAt
+            timeoutId = setTimeout(async () => {
+                await pollStatus()
+                // the modal may have closed (cleanup ran) while the poll was in
+                // flight — don't re-arm a timer after teardown.
+                if (cancelled) return
+                scheduleNext()
+            }, getKycPollDelayMs(elapsed))
+        }
+
+        scheduleNext()
+        return () => {
+            cancelled = true
+            clearTimeout(timeoutId)
+        }
     }, [isVerificationProgressModalOpen])
 
     const handleInitiateKyc = useCallback(
@@ -409,15 +467,17 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     }, [])
 
     // initiate self-heal document resubmission: calls the resubmit API
-    // and opens the sumsub SDK with the action token
-    const handleSelfHealResubmit = useCallback(async (provider: 'BRIDGE' | 'MANTECA') => {
+    // and opens the sumsub SDK with the action token. `requirementKey` targets a
+    // specific (e.g. future-dated advisory) Bridge requirement; omitted for the
+    // legacy blocking flow.
+    const handleSelfHealResubmit = useCallback(async (provider: 'BRIDGE' | 'MANTECA', requirementKey?: string) => {
         setIsLoading(true)
         setError(null)
         userInitiatedRef.current = true
         selfHealProviderRef.current = provider
 
         try {
-            const response = await initiateSelfHealResubmission(provider)
+            const response = await initiateSelfHealResubmission(provider, requirementKey)
 
             if (response.error) {
                 userInitiatedRef.current = false
@@ -444,6 +504,37 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         }
     }, [])
 
+    // Start a capability nextAction by key (POST /users/kyc/start-action) and
+    // open the WebSDK with the returned token. Unlike handleInitiateKyc (which
+    // resolves the level from region and no-ops for an already-approved user),
+    // this mints a token for the specific RFI level the key maps to — the path
+    // the advisory pre-empt needs to start a future-dated requirement early.
+    const handleStartAction = useCallback(async (key: string) => {
+        setIsLoading(true)
+        setError(null)
+        userInitiatedRef.current = true
+        selfHealProviderRef.current = null
+
+        try {
+            const response = await startKycAction(key)
+            if (response.error || !response.data?.token) {
+                userInitiatedRef.current = false
+                setError(response.error || 'Could not start verification. Please try again.')
+                return
+            }
+            levelNameRef.current = response.data.levelName
+            setAccessToken(response.data.token)
+            setIsActionFlow(true)
+            setShowWrapper(true)
+        } catch (e: unknown) {
+            userInitiatedRef.current = false
+            const message = e instanceof Error ? e.message : 'An unexpected error occurred'
+            setError(message)
+        } finally {
+            setIsLoading(false)
+        }
+    }, [])
+
     return {
         isLoading,
         error,
@@ -454,6 +545,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         handleInitiateKyc,
         handleRestartIdentity,
         handleSelfHealResubmit,
+        handleStartAction,
         handleSdkComplete,
         handleClose,
         refreshToken,

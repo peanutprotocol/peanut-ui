@@ -58,7 +58,7 @@ export function RequestPotActionList({
     const router = useRouter()
     const dispatch = useAppDispatch()
     const { user } = useAuth()
-    const { hasSufficientSpendableBalance: hasSufficientBalance, isFetchingBalance } = useWallet()
+    const { hasSufficientSpendableBalance: hasSufficientBalance, isFetchingSpendableBalance } = useWallet()
     // MIGRATION-REVIEW: mercadopago/pix are QR `pay` methods over Manteca. Old gate was
     // `isUserMantecaKycApproved`; mapped to canDo('pay', { provider: 'manteca' }) (operation-specific).
     const isMantecaPayEnabled = useCapabilities().canDo('pay', { provider: 'manteca' })
@@ -80,9 +80,12 @@ export function RequestPotActionList({
     // only show insufficient balance after balance has loaded to avoid flash
     const userHasSufficientPeanutBalance = useMemo(() => {
         if (!user || !usdAmount) return false
-        if (isFetchingBalance) return true // assume sufficient while loading to avoid flash
+        // wait on BOTH smart + Rain overview (spendable) — using the smart-only
+        // flag would gate on a partial balance and flash a false "insufficient"
+        // for split-funds users during the Rain-overview load window.
+        if (isFetchingSpendableBalance) return true // assume sufficient while loading to avoid flash
         return hasSufficientBalance(usdAmount)
-    }, [user, usdAmount, hasSufficientBalance, isFetchingBalance])
+    }, [user, usdAmount, hasSufficientBalance, isFetchingSpendableBalance])
 
     // filter and sort payment methods
     const { filteredMethods: sortedMethods, isLoading: isGeoLoading } = useGeoFilteredPaymentOptions({

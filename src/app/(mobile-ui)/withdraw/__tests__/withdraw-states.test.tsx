@@ -248,8 +248,11 @@ function applyDefaults() {
     mockWithdrawFlow.selectedBankAccount = null
 
     mockUseWallet.mockReturnValue({
-        // component destructures `spendableBalance` (not `balance`) — CodeRabbit nit
+        // component gates on the displayed `spendableBalance` (= maxDecimalAmount).
         spendableBalance: parseUnits('100', 6),
+        formattedSpendableBalance: '100.00',
+        // amount-aware: over-$100 entries are a true shortfall
+        hasSufficientSpendableBalance: (amt: string | number) => Number(amt) <= 100,
     })
 
     mockUseGetExchangeRate.mockReturnValue({
@@ -364,10 +367,10 @@ describe('GROUP 3: Amount Validation', () => {
 
     test('Error state shows ErrorAlert', () => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
-        mockWithdrawFlow.error = { showError: true, errorMessage: 'Amount exceeds your wallet balance.' }
+        mockWithdrawFlow.error = { showError: true, errorMessage: 'Not enough balance. Add funds to continue.' }
         renderWithdraw()
 
-        expect(screen.getByTestId('error-alert')).toHaveTextContent('Amount exceeds your wallet balance.')
+        expect(screen.getByTestId('error-alert')).toHaveTextContent('Not enough balance. Add funds to continue.')
     })
 
     test('Error hidden when limits blocking card is displayed', () => {
@@ -492,7 +495,11 @@ describe('GROUP 6: Continue never dead-buttons', () => {
         // feedback (Sentry: incomplete-app-router-transaction, 6 users/14d).
         mockGetCountryFromAccount.mockReturnValue(undefined)
 
-        mockUseWallet.mockReturnValue({ spendableBalance: parseUnits('100', 6) })
+        mockUseWallet.mockReturnValue({
+            spendableBalance: parseUnits('100', 6),
+            formattedSpendableBalance: '100.00',
+            hasSufficientSpendableBalance: (amt: string | number) => Number(amt) <= 100,
+        })
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
         mockWithdrawFlow.selectedBankAccount = { type: 'iban', details: { countryName: '', countryCode: '' } }
         mockWithdrawFlow.amountToWithdraw = '50'
@@ -513,7 +520,11 @@ describe('GROUP 6: Continue never dead-buttons', () => {
         // Manteca (AR/BR) accounts set selectedBankAccount too; the manteca
         // method check must win over the generic bank branch so they reach
         // /withdraw/manteca rather than the Bridge bank page (or the throw).
-        mockUseWallet.mockReturnValue({ spendableBalance: parseUnits('100', 6) })
+        mockUseWallet.mockReturnValue({
+            spendableBalance: parseUnits('100', 6),
+            formattedSpendableBalance: '100.00',
+            hasSufficientSpendableBalance: (amt: string | number) => Number(amt) <= 100,
+        })
         mockWithdrawFlow.selectedMethod = { type: 'manteca', countryPath: 'argentina', title: 'Bank Transfer' }
         mockWithdrawFlow.selectedBankAccount = { type: 'manteca', details: { countryName: 'argentina' } }
         mockWithdrawFlow.amountToWithdraw = '50'

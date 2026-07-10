@@ -1,5 +1,10 @@
 export type NotificationPermissionState = 'default' | 'granted' | 'denied'
 
+export interface NotificationClickInfo {
+    deepLink?: string
+    additionalData: Record<string, unknown>
+}
+
 /**
  * Platform-agnostic surface over OneSignal. The web implementation wraps the
  * `react-onesignal` web SDK (Web Push + service worker); the native one wraps
@@ -16,4 +21,5 @@ export interface OneSignalAdapter {
     isOptedIn(): Promise<boolean>
     onPermissionChange(listener: (state: NotificationPermissionState) => void): () => void
     onSubscriptionChange(listener: (optedIn: boolean) => void): () => void
+    onNotificationClick(listener: (info: NotificationClickInfo) => void): () => void
 }

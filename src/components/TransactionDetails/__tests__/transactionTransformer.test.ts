@@ -1,8 +1,10 @@
 import { mapTransactionDataForDrawer } from '../transactionTransformer'
-import { EHistoryUserRole, EHistoryStatus, type HistoryEntry } from '@/utils/history.utils'
+import { EHistoryUserRole, EHistoryStatus, getTransactionSign, type HistoryEntry } from '@/utils/history.utils'
+import { pipelineAlert } from '@/utils/pipelineAlerts'
 
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '', SIMPLEFI: '' }))
+jest.mock('@/utils/pipelineAlerts', () => ({ pipelineAlert: jest.fn() }))
 
 type Account = NonNullable<HistoryEntry['recipientAccount']>
 
@@ -348,7 +350,48 @@ const cases: TestCase[] = [
         }),
         expect: {
             direction: 'receive',
-            transactionCardType: 'receive',
+            transactionCardType: 'refund',
+            userName: 'Refund from Acme Coffee',
+            cardPaymentDefined: true,
+        },
+    },
+
+    // ───── REFUND (Rain + Manteca) ─────
+    {
+        name: 'REFUND × RAIN → card refund shape (Refund from merchant)',
+        entry: baseEntry({
+            userRole: EHistoryUserRole.RECIPIENT,
+            recipientAccount: aliceUser,
+            extraData: { kind: 'REFUND', provider: 'RAIN', parentRainTxId: 'rain-789', merchantName: 'Acme Coffee' },
+        }),
+        expect: {
+            direction: 'receive',
+            transactionCardType: 'refund',
+            userName: 'Refund from Acme Coffee',
+            cardPaymentDefined: true,
+        },
+    },
+    {
+        name: 'REFUND × MANTECA → generic Refund credit row',
+        entry: baseEntry({
+            userRole: EHistoryUserRole.RECIPIENT,
+            recipientAccount: aliceUser,
+            extraData: { kind: 'REFUND', provider: 'MANTECA' },
+        }),
+        expect: { direction: 'receive', transactionCardType: 'refund', userName: 'Refund' },
+    },
+    {
+        name: 'negative CARD_SPEND_AUTH (Rain refund credit) → refund, not card_pay',
+        entry: baseEntry({
+            userRole: EHistoryUserRole.SENDER,
+            amount: '-14.68',
+            status: EHistoryStatus.PENDING,
+            recipientAccount: aliceUser,
+            extraData: { kind: 'CARD_SPEND_AUTH', provider: 'RAIN', merchantName: 'Acme Coffee' },
+        }),
+        expect: {
+            direction: 'receive',
+            transactionCardType: 'refund',
             userName: 'Refund from Acme Coffee',
             cardPaymentDefined: true,
         },
@@ -384,6 +427,17 @@ const cases: TestCase[] = [
             extraData: { kind: 'DIRECT_TRANSFER', failReason: 'validator_max_retries' },
         }),
         expect: { userName: 'alice' },
+    },
+    {
+        name: 'failed collateral QR_PAY (no reaper reason) renders "Failed QR payment attempt" copy',
+        entry: baseEntry({
+            userRole: EHistoryUserRole.SENDER,
+            status: EHistoryStatus.FAILED,
+            extraData: { kind: 'QR_PAY', merchantName: 'MERPAGO*CARREFOUR' },
+        }),
+        // Overrides the misleading "QR payment to <merchant>" the kind-switch
+        // would produce for a FAILED row (peanut-api-ts #1146 surfaces these).
+        expect: { userName: 'Failed QR payment attempt' },
     },
 ]
 
@@ -425,6 +479,52 @@ describe('mapTransactionDataForDrawer', () => {
             const result = mapTransactionDataForDrawer(entry).transactionDetails
             expect(result.direction).toBeDefined()
             expect(result.extraDataForDrawer?.kind).toBeUndefined()
+        })
+    })
+
+    describe('refund credit rows (status + sign + flag)', () => {
+        const negativeAuth = baseEntry({
+            userRole: EHistoryUserRole.SENDER,
+            amount: '-14.68',
+            status: EHistoryStatus.PENDING,
+            recipientAccount: aliceUser,
+            extraData: { kind: 'CARD_SPEND_AUTH', provider: 'RAIN', merchantName: 'Acme Coffee', usdAmount: '-14.68' },
+        })
+
+        it('a negative auth stays pending (never "refunded") so the + sign shows', () => {
+            const result = mapTransactionDataForDrawer(negativeAuth).transactionDetails
+            expect(result.status).toBe('pending')
+            expect(result.direction).toBe('receive')
+            // 'refunded'/'failed'/'cancelled' would suppress the sign; a pending
+            // receive keeps the '+'. This is what makes the credit read as +$14.68.
+            expect(getTransactionSign(result)).toBe('+')
+        })
+
+        it('flags the drawer cardPayment as a refund', () => {
+            const result = mapTransactionDataForDrawer(negativeAuth).transactionDetails
+            expect(result.extraDataForDrawer?.cardPayment?.isRefund).toBe(true)
+        })
+
+        it('role-derived display strings follow the refund verdict, not the wire role', () => {
+            // Old BE reports userRole=SENDER on a negative auth. The receipt's
+            // "Sent/Received" label and the +/- currency symbol key off
+            // originalUserRole/currencySymbol — they must agree with the
+            // refund header, not assert the user sent the money.
+            const result = mapTransactionDataForDrawer(negativeAuth).transactionDetails
+            expect(result.extraDataForDrawer?.originalUserRole).toBe(EHistoryUserRole.RECIPIENT)
+            expect(result.currencySymbol).toBe('+$')
+        })
+
+        it('kind REFUND no longer trips the unknown-transformer-kind pipeline alert', () => {
+            jest.mocked(pipelineAlert).mockClear()
+            mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'REFUND', provider: 'MANTECA' },
+                })
+            )
+            expect(pipelineAlert).not.toHaveBeenCalled()
         })
     })
 })

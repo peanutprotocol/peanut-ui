@@ -44,7 +44,7 @@ export const PeanutWalking = pick(walkingWebp, walkingGif) // mid-stride, arms s
 export const PeanutPointingDown = pick(pointingDownWebp, pointingDownGif) // both hands pointing down — marketing CTA
 
 // Stills
-export { default as PEANUTMAN_LOGO } from './peanut-logo.svg'
+export { default as PEANUTMAN } from './peanutman.svg'
 export { default as PEANUTMAN_PFP } from './peanut-pfp.svg'
 export { default as PEANUTMAN_HOLDING_BEER } from './peanut-beer.svg'
 export { default as PEANUTMAN_MOBILE } from './peanut-club.webp'

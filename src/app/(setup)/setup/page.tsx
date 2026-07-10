@@ -12,6 +12,7 @@ import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { getFromCookie } from '@/utils/general.utils'
+import { useSearchParams } from 'next/navigation'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
@@ -35,6 +36,7 @@ function SetupPageContent() {
     const [showDeviceNotSupportedModal, setShowDeviceNotSupportedModal] = useState(false)
     const [showBrowserNotSupportedModal, setShowBrowserNotSupportedModal] = useState(false)
     const { deviceType: detectedDeviceType } = useDeviceType()
+    const searchParams = useSearchParams()
     const [sessionChecked, setSessionChecked] = useState(false)
     const [existingSessionUsername, setExistingSessionUsername] = useState<string | null>(null)
 
@@ -81,16 +83,30 @@ function SetupPageContent() {
             setIsLoading(true)
             await new Promise((resolve) => setTimeout(resolve, 100)) // ensure other initializations can complete
 
+            // Skip the invite-code gate straight to signup when either:
+            //  - an invite code is present (cookie survives the PWA-install hop), or
+            //  - the URL asks for it via ?step=signup — the signal every campaign /
+            //    skip flow already sends (ShhhhhLandingPage, InvitesPage.handleClaim)
+            //    when it pushes to /setup. useZeroDev still reads the campaignTag
+            //    cookie post-signup to award the badge; the step decision no longer
+            //    trusts that cookie.
+            //
+            // Why not the campaignTag cookie: it's a session cookie cleared only on a
+            // successful signup, so a returning user who claimed a campaign earlier in
+            // the same session was routed past Landing (the only screen with Log In)
+            // onto Signup, unable to log back in (regression from PR #2346).
+            const inviteCodeFromCookie = getFromCookie('inviteCode')
+            const userInviteCode = inviteCode || inviteCodeFromCookie
+            const skipInviteGate = !!userInviteCode || searchParams.get('step') === 'signup'
+
             const localDeviceType = detectedDeviceType
 
             // in capacitor, passkeys are handled natively — skip all browser/webview/os/pwa checks
             // and go straight to the landing (signup) flow
             if (isCapacitor()) {
                 setDeviceType(localDeviceType)
-                // check for invite code — if present, go to signup instead of landing
-                const inviteCodeFromCookie = getFromCookie('inviteCode')
-                const userInviteCode = inviteCode || inviteCodeFromCookie
-                const targetStep = userInviteCode ? 'signup' : 'landing'
+                // invite code or ?step=signup → straight to signup, else landing
+                const targetStep = skipInviteGate ? 'signup' : 'landing'
                 const stepIndex = steps.findIndex((s: ISetupStep) => s.screenId === targetStep)
                 if (stepIndex !== -1) {
                     dispatch(setupActions.setStep(stepIndex + 1))
@@ -179,13 +195,8 @@ function SetupPageContent() {
                 determinedSetupInitialStepId = 'pwa-install'
             }
 
-            const inviteCodeFromCookie = getFromCookie('inviteCode')
-
-            // invite code can also be store in cookies, so we need to check both
-            const userInviteCode = inviteCode || inviteCodeFromCookie
-
-            // If invite code is present, set the step to the signup screen
-            if (determinedSetupInitialStepId && userInviteCode) {
+            // If an invite code or ?step=signup is present, jump to signup
+            if (determinedSetupInitialStepId && skipInviteGate) {
                 const signupScreenIndex = steps.findIndex((s: ISetupStep) => s.screenId === 'signup')
                 dispatch(setupActions.setStep(signupScreenIndex + 1))
             } else if (determinedSetupInitialStepId) {
@@ -218,7 +229,7 @@ function SetupPageContent() {
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
         }
-    }, [dispatch, steps])
+    }, [dispatch, steps, searchParams])
 
     useEffect(() => {
         if (step) {

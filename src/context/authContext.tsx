@@ -87,12 +87,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (typeof window !== 'undefined' && window.gtag) {
                 window.gtag('set', { user_id: user.user.userId })
             }
-            // PostHog: identify user (stitches anonymous pre-login events to this user).
+            // PostHog: identify user (stitches anonymous pre-login events to this user)
+            // and enrich the person profile for segmentation. Property names mirror the
+            // server-side identify in peanut-api-ts src/log/identifyUser.ts — keep in sync.
             // `name` duplicates username because PostHog's Persons-page search is
             // hardcoded to email/name/distinct_id — username alone is not searchable.
             posthog.identify(user.user.userId, {
                 username: user.user.username,
                 name: user.user.username,
+                userId: user.user.userId,
+                totalPoints: user.totalPoints,
+                // Badge codes (human-readable identifier), never the uuid.
+                badges: user.user.badges?.map((badge) => badge.code) ?? [],
+                kycStatus: user.identityVerification?.status ?? 'not_started',
             })
             // Sentry: every error captured from here on inherits user context
             // as searchable Sentry tags. Closes the historical gap where FE

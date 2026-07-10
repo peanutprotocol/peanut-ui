@@ -157,6 +157,7 @@ jest.mock('@/services/sendLinks', () => ({
     },
     sendLinksApi: mockSendLinksApi,
     getParamsFromLink: (...args: any[]) => mockGetParamsFromLink(...args),
+    resolveClaimLink: (link: string) => link,
 }))
 
 jest.mock('@/utils/peanut-link.utils', () => ({

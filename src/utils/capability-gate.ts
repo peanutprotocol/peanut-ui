@@ -19,6 +19,23 @@
 import type { NextAction, RailCapability, RailOperation, CapabilityReason, RailChannel } from '@/types/capabilities'
 
 /**
+ * A non-blocking advisory pre-empt riding on a `ready` gate. An ENABLED rail can
+ * carry a future-dated requirement (Bridge's `future_requirements[].effective_date`,
+ * surfaced as a `hintAction` whose NextAction has an `effectiveDate`). The rail
+ * stays usable; the FE offers a SKIPPABLE "complete before {date}" prompt. When
+ * the date passes the BE reclassifies it to blocking and the gate becomes
+ * `fixable-rejection` on its own — no FE date logic, no hardcoded cutover.
+ */
+export interface GateAdvisory {
+    /** ISO date the requirement becomes blocking. */
+    effectiveDate: string
+    /** the NextAction `key` to start (POST /users/kyc/start-action) if the user completes it now. */
+    actionKey: string
+    /** which requirement — telemetry / FE branching. */
+    requirementKey?: string
+}
+
+/**
  * Normalized gate state. Discriminated union — consumers branch on `kind`.
  *
  * Mapping from the old `BridgeGateAction`:
@@ -38,7 +55,7 @@ import type { NextAction, RailCapability, RailOperation, CapabilityReason, RailC
  */
 export type GateState =
     | { kind: 'loading' }
-    | { kind: 'ready' }
+    | { kind: 'ready'; advisory?: GateAdvisory }
     | { kind: 'pending' }
     | { kind: 'waiting-on-provider'; userMessage: string | null; reason?: CapabilityReason }
     | { kind: 'accept-tos'; tosUrl?: string; userMessage: string | null; reason?: CapabilityReason }
@@ -51,6 +68,12 @@ export type GateState =
      * CTA opens a fresh Sumsub WebSDK after POST /users/identity/restart.
      */
     | { kind: 'restart-identity'; userMessage: string | null; reason?: CapabilityReason }
+    /**
+     * Blocked rail whose pipeline failure is self-serviceable: no email was
+     * ever captured, so provider submission couldn't run. CTA opens an email
+     * form; on save the BE flips the rails back to PENDING and resubmits.
+     */
+    | { kind: 'provide-email'; userMessage: string | null; reason?: CapabilityReason }
     | { kind: 'needs-identity' }
     | { kind: 'needs-enrollment' }
 
@@ -91,6 +114,30 @@ function railActions(rail: RailCapability, byKey: Map<string, NextAction>): Next
     return (rail.blockingActions ?? [])
         .map((key) => byKey.get(key))
         .filter((action): action is NextAction => action !== undefined)
+}
+
+/** Resolve a rail's HINT (non-blocking) actions to NextAction descriptors. */
+function railHintActions(rail: RailCapability, byKey: Map<string, NextAction>): NextAction[] {
+    return (rail.hintActions ?? [])
+        .map((key) => byKey.get(key))
+        .filter((action): action is NextAction => action !== undefined)
+}
+
+/**
+ * The most-urgent advisory pre-empt among the given (ready) rails — the
+ * hintAction whose NextAction carries the earliest `effectiveDate`. Returns
+ * undefined when no rail has a future-dated hint.
+ */
+function firstAdvisory(rails: RailCapability[], byKey: Map<string, NextAction>): GateAdvisory | undefined {
+    let best: NextAction | undefined
+    for (const rail of rails) {
+        for (const action of railHintActions(rail, byKey)) {
+            if (!action.effectiveDate) continue
+            if (!best || action.effectiveDate < best.effectiveDate!) best = action
+        }
+    }
+    if (!best) return undefined
+    return { effectiveDate: best.effectiveDate!, actionKey: best.key, requirementKey: best.requirementKey }
 }
 
 /**
@@ -147,12 +194,33 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
     // above blocked / accept-tos / fixable-rejection because the user has
     // a working path; a blocked sibling rail (different currency, KYC
     // remediation pending) is not the user's problem right now.
-    const hasReady = candidates.some((rail) => operationStatus(rail, op) === 'enabled')
-    if (hasReady) return { kind: 'ready' }
+    const readyRails = candidates.filter((rail) => operationStatus(rail, op) === 'enabled')
+    if (readyRails.length > 0) {
+        // A working rail can still carry a future-dated requirement as a
+        // non-blocking hint — surface it as a SKIPPABLE pre-empt without
+        // demoting `ready` (the rail is usable now).
+        const advisory = firstAdvisory(readyRails, actionByKey)
+        return advisory ? { kind: 'ready', advisory } : { kind: 'ready' }
+    }
 
     // 3. blocked — split: if the rail carries a `restart-identity` action the
     // user can self-fix by re-verifying with a different document; otherwise
     // the only path is contact-support.
+    // provide-email is a USER-level fix (one email unblocks every email-blocked
+    // rail), so any blocked rail carrying it wins over an earlier blocked rail
+    // with a terminal reason — .find() order must not shadow the self-serve path.
+    const emailBlocked = candidates.find(
+        (rail) =>
+            rail.status === 'blocked' &&
+            railActions(rail, actionByKey).some((action) => action.kind === 'provide-email')
+    )
+    if (emailBlocked) {
+        return {
+            kind: 'provide-email',
+            userMessage: emailBlocked.reason?.userMessage ?? null,
+            reason: emailBlocked.reason,
+        }
+    }
     const blocked = candidates.find((rail) => rail.status === 'blocked')
     if (blocked) {
         const hasRestart = railActions(blocked, actionByKey).some((action) => action.kind === 'restart-identity')
@@ -226,6 +294,31 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
         }
     }
 
+    // 7b. Requires-info rails EXIST in scope but none surfaced an actionable step
+    // (no accept-tos / sumsub / wait). The rail exists so the user is NOT missing a
+    // region; it needs a document the backend resolver punts to the FE resubmit
+    // endpoint (e.g. a Bridge government-id DOCUMENT_SELF_HEAL, requirementKey
+    // government_id_document). Route to the self-heal / document flow
+    // (fixable-rejection -> handleSelfHealResubmit) instead of the misleading
+    // Unlock {region} cross-region modal, which sent these users into a fake
+    // You're unlocked loop (tap Submit document, see success, bounce back with
+    // nothing changed).
+    if (requiresInfoRails.length > 0) {
+        // Prefer an action-less / self-heal rail over a wait-only one, so a mixed
+        // scope doesn't surface a "we're finalizing with Bridge" wait message on
+        // the document-upload modal.
+        const rail =
+            requiresInfoRails.find((r) => {
+                const acts = railActions(r, actionByKey)
+                return acts.length === 0 || acts.some((a) => a.kind !== 'wait')
+            }) ?? requiresInfoRails[0]
+        return {
+            kind: 'fixable-rejection',
+            userMessage: rail.reason?.userMessage ?? null,
+            reason: rail.reason,
+        }
+    }
+
     // 8/9. no functional rail in scope. Distinguish identity-not-cleared vs
     // identity-cleared-but-no-rail-for-this-scope (needs enrollment / cross-region).
     if (!state.identityVerified) return { kind: 'needs-identity' }
@@ -240,6 +333,10 @@ export function getKycModalVariant(
     kind: GateState['kind']
 ): 'blocked' | 'provider_rejection' | 'cross_region' | 'restart_identity' | 'default' {
     if (kind === 'blocked-rejection') return 'blocked'
+    // Floor for consumers not yet wired to render the email sheet: show the
+    // contact-support variant, never the 'default' re-verify CTA (the user's
+    // identity is already verified — bouncing them into Sumsub is wrong).
+    if (kind === 'provide-email') return 'blocked'
     if (kind === 'restart-identity') return 'restart_identity'
     if (kind === 'fixable-rejection') return 'provider_rejection'
     if (kind === 'needs-enrollment') return 'cross_region'
@@ -256,10 +353,16 @@ export function getGateUserMessage(gate: GateState): string | undefined {
         gate.kind === 'fixable-rejection' ||
         gate.kind === 'blocked-rejection' ||
         gate.kind === 'restart-identity' ||
+        gate.kind === 'provide-email' ||
         gate.kind === 'accept-tos' ||
         gate.kind === 'waiting-on-provider'
     ) {
         return gate.userMessage ?? undefined
     }
     return undefined
+}
+
+/** The advisory pre-empt riding on a `ready` gate, if present. */
+export function getGateAdvisory(gate: GateState): GateAdvisory | undefined {
+    return gate.kind === 'ready' ? gate.advisory : undefined
 }

@@ -17,11 +17,17 @@ function Slider({
     // Use internal state for the slider value to enable magnetic snapping
     const [internalValue, setInternalValue] = React.useState<number[]>(defaultValue || controlledValue)
 
-    // Sync internal state when controlled value changes from external source
+    // Sync internal state when controlled value changes from external source.
+    // The parent derives the controlled value from a cent-rounded amount, so a
+    // percentage the user snapped to (e.g. 50%) comes back as 49.98% for pots
+    // whose half lands on a sub-cent ($33.37 → $16.685 → floored to $16.68).
+    // Don't let that sub-cent drift knock the thumb off a snap point it's
+    // already resting on (the amount stays correct; only the label was wrong).
     React.useEffect(() => {
-        if (controlledValue !== undefined && controlledValue[0] !== internalValue[0]) {
-            setInternalValue(controlledValue)
-        }
+        if (controlledValue === undefined || controlledValue[0] === internalValue[0]) return
+        const restingSnap = SNAP_POINTS.find((snapPoint) => Math.abs(internalValue[0] - snapPoint) < 0.5)
+        if (restingSnap !== undefined && Math.abs(controlledValue[0] - restingSnap) < 0.5) return
+        setInternalValue(controlledValue)
     }, [controlledValue])
 
     // Check if current value is at a snap point (exact match)

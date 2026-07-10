@@ -2,6 +2,7 @@ import { BRIDGE_DEVELOPER_FEE_RATE } from '@/constants/payment.consts'
 import {
     applyBridgeCrossCurrencyFee,
     getCurrencyConfig,
+    getOfframpConfigFromAccount,
     getOfframpCurrencyConfig,
     getPaymentRailDisplayName,
     getMinimumAmount,
@@ -138,6 +139,83 @@ describe('bridge.utils', () => {
         it('should return correct offramp configuration for other countries', () => {
             const config = getOfframpCurrencyConfig('FR')
             expect(config).toEqual({
+                currency: 'eur',
+                paymentRail: 'sepa',
+            })
+        })
+    })
+
+    describe('getOfframpConfigFromAccount (PEANUT-API-5P/5M/5N regression)', () => {
+        // The 2026-06-02 21:24 incident: a GB/GBP account got paired with
+        // EUR/SEPA because the picker used `account.country ?? selectedCountry`
+        // and the user-selected country fell through the "everything else →
+        // EUR/SEPA" default. These cases lock in the behavior that the account
+        // type alone is enough to pick the right rail.
+        it('GB account → GBP / faster_payments (was EUR/SEPA in the incident)', () => {
+            expect(getOfframpConfigFromAccount({ type: 'gb' })).toEqual({
+                currency: 'gbp',
+                paymentRail: 'faster_payments',
+            })
+        })
+
+        it('US account → USD / ach', () => {
+            expect(getOfframpConfigFromAccount({ type: 'us' })).toEqual({
+                currency: 'usd',
+                paymentRail: 'ach',
+            })
+        })
+
+        it('CLABE account → MXN / spei', () => {
+            expect(getOfframpConfigFromAccount({ type: 'clabe' })).toEqual({
+                currency: 'mxn',
+                paymentRail: 'spei',
+            })
+        })
+
+        it('IBAN account → EUR / sepa', () => {
+            expect(getOfframpConfigFromAccount({ type: 'iban' })).toEqual({
+                currency: 'eur',
+                paymentRail: 'sepa',
+            })
+        })
+
+        it('accepts BE Prisma-shape suffixes like BANK_IBAN / BANK_ACH_GB', () => {
+            expect(getOfframpConfigFromAccount({ type: 'BANK_IBAN' })).toEqual({
+                currency: 'eur',
+                paymentRail: 'sepa',
+            })
+            expect(getOfframpConfigFromAccount({ type: 'bank_account_gb' })).toEqual({
+                currency: 'gbp',
+                paymentRail: 'faster_payments',
+            })
+        })
+
+        it('accepts the exact Prisma enum BANK_GB → GBP / faster_payments (uk-gbp-withdraw-flow)', () => {
+            // The withdraw bank page derives the offramp payload from the account
+            // via destinationDetails → getOfframpConfigFromAccount. A UK account
+            // whose `type` arrives as the raw Prisma enum 'BANK_GB' (not the
+            // projected 'gb') must still map to GBP/faster_payments; the previous
+            // switch's `default` returned an empty rail → "External account ID is
+            // missing.".
+            expect(getOfframpConfigFromAccount({ type: 'BANK_GB' })).toEqual({
+                currency: 'gbp',
+                paymentRail: 'faster_payments',
+            })
+        })
+
+        it('throws on Manteca account type — must use the Manteca offramp path', () => {
+            expect(() => getOfframpConfigFromAccount({ type: 'manteca' })).toThrow(
+                'Manteca accounts route through a separate offramp path'
+            )
+        })
+
+        it('falls back to country-based picking when type is missing', () => {
+            expect(getOfframpConfigFromAccount({ country: 'US' })).toEqual({
+                currency: 'usd',
+                paymentRail: 'ach',
+            })
+            // Unknown country → EU/SEPA default, mirrors prior behavior
+            expect(getOfframpConfigFromAccount({ country: 'XYZ' })).toEqual({
                 currency: 'eur',
                 paymentRail: 'sepa',
             })

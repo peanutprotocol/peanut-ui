@@ -41,6 +41,12 @@ interface KernelClientContextType {
     // eager-init for non-Arb chains (mainnet/base/linea — recovery-only).
     // Cached chains resolve immediately; concurrent calls dedupe via inFlightRef.
     ensureClientForChain: (chainId: string) => Promise<GenericSmartAccountClient>
+    // Resolve the v0.0.3 PATCHED passkey sudo validator for the logged-in user's
+    // account. Callers that serialize a permission approval (Rain card session
+    // key) MUST bind their sudo plugin to THIS validator — see
+    // `resolvePatchedSudoValidator` for why binding to the migration client's
+    // stale v0.0.2 validator wapk-blocks the backend replay.
+    getPatchedSudoValidator: (publicClient: PublicClient) => Promise<Awaited<ReturnType<typeof createPasskeyValidator>>>
 }
 
 type GenericSmartAccountClient<C extends Chain = Chain> = KernelAccountClient<Transport, C>
@@ -63,6 +69,35 @@ export const createPasskeyValidator = async (
         validatorContractVersion,
     })
 }
+
+/**
+ * Build the v0.0.3 PATCHED passkey validator that owns `webAuthnKey`'s account.
+ *
+ * This is the single source of truth for "the correct sudo validator for this
+ * user". It is the validator the migration client migrates *to*, and the ONLY
+ * validator a serialized permission approval (Rain card session key) may bind
+ * its sudo plugin to.
+ *
+ * Why it matters: accounts created before 2025-09-18 were born on the v0.0.2
+ * UNPATCHED validator (`0xbA45…`) and are migrated in place to v0.0.3
+ * (`0x7ab1…`). Their migration kernel client still exposes the *stale* v0.0.2
+ * validator via `account.kernelPluginManager.sudoValidator` (the migration
+ * account is constructed with `sudo: fromValidator` until the on-chain root
+ * validator flips — see `createKernelMigrationAccount`). Serializing a Rain
+ * approval against that v0.0.2 validator makes ZeroDev's paymaster reject
+ * ("Unauthorized: wapk", HTTP 403) every backend-replayed sweep/withdraw
+ * userOp. Resolving the sudo validator through here — a freshly built v0.0.3
+ * validator, never the plugin-manager internal — guarantees the patched
+ * binding for every user, migrated or not.
+ *
+ * TODO(follow-up): thread this through the remaining kernel-construction sites
+ * (e.g. recover-funds) so the whole app has one chokepoint — separate PR.
+ */
+export const resolvePatchedSudoValidator = (publicClient: PublicClient, webAuthnKey: WebAuthnKey) =>
+    // `createPasskeyValidator` already defaults to V0_0_3_PATCHED — keep it that
+    // way; this named helper makes the "always patched" intent explicit at both
+    // call sites (migration-client build + Rain grant).
+    createPasskeyValidator(publicClient, webAuthnKey)
 
 // Harness-only: when the playwright session sets window.__harness_ecdsa_pk,
 // build the kernel client with an ECDSA validator over that private key
@@ -160,7 +195,10 @@ export const createKernelClientForChain = async <C extends Chain>(
     const { bundlerUrl, paymasterUrl } = options
 
     let kernelAccount: Awaited<ReturnType<typeof createKernelAccount>>
-    const newValidator = await createPasskeyValidator(publicClient, webAuthnKey)
+    // The v0.0.3 PATCHED validator this account migrates *to* — the same
+    // validator the Rain grant binds its serialized approval to (single source
+    // of truth, see `resolvePatchedSudoValidator`).
+    const newValidator = await resolvePatchedSudoValidator(publicClient, webAuthnKey)
     if (!shouldUseNewKernel) {
         if (!address) {
             throw new Error('Address is required for migration kernel')
@@ -534,6 +572,16 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         [user, logoutUser]
     )
 
+    const getPatchedSudoValidator = useCallback(
+        async (publicClient: PublicClient) => {
+            if (!webAuthnKey) {
+                throw new Error('Cannot resolve sudo validator: not authenticated (no webAuthnKey)')
+            }
+            return resolvePatchedSudoValidator(publicClient, webAuthnKey)
+        },
+        [webAuthnKey]
+    )
+
     const getClientForChain = useCallback(
         (chainId: string) => {
             const client = clientsByChain[chainId]
@@ -610,6 +658,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 setWebAuthnKey,
                 getClientForChain,
                 ensureClientForChain,
+                getPatchedSudoValidator,
             }}
         >
             {children}

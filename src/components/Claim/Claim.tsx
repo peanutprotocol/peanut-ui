@@ -14,7 +14,13 @@ import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import type { RecipientType } from '@/interfaces/interfaces'
-import { ESendLinkStatus, getParamsFromLink, sendLinksApi, type ClaimLinkData } from '@/services/sendLinks'
+import {
+    ESendLinkStatus,
+    getParamsFromLink,
+    resolveClaimLink,
+    sendLinksApi,
+    type ClaimLinkData,
+} from '@/services/sendLinks'
 import {
     getInitialsFromName,
     getTokenDetails,
@@ -408,7 +414,9 @@ export const Claim = ({}) => {
     useEffect(() => {
         const pageUrl = typeof window !== 'undefined' ? window.location.href : ''
         if (pageUrl) {
-            setLinkUrl(pageUrl) // TanStack Query will automatically fetch when linkUrl changes
+            // resolveClaimLink restores the pristine `#p=` password if an auth/KYC
+            // redirect mangled the current URL's fragment (TASK-20193).
+            setLinkUrl(resolveClaimLink(pageUrl)) // TanStack Query will automatically fetch when linkUrl changes
         }
     }, [])
 
@@ -526,7 +534,7 @@ export const Claim = ({}) => {
                     transaction={selectedTransaction}
                     setIsLoading={setisLinkCancelling}
                     isLoading={isLinkCancelling}
-                    onClose={() => setLinkUrl(window.location.href)}
+                    onClose={() => setLinkUrl(resolveClaimLink(window.location.href))}
                 />
             )}
         </PageContainer>
