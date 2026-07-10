@@ -2,8 +2,8 @@
 # projects, plists, resources) isn't worth AI review and pushes large
 # mobile PRs over the 150-file review limit.
 reviews:
-  path_filters:
-    - "!ios/**"
-    - "!android/**"
-    - "!patches/**"
-    - "!**/*.svg"
+    path_filters:
+        - '!ios/**'
+        - '!android/**'
+        - '!patches/**'
+        - '!**/*.svg'
