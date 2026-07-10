@@ -310,9 +310,22 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         setClientsByChain((prev) => ({ ...prev, [chainId]: client }))
     }, [])
 
+    // Monotonic build sequence per chain. A build may only store its result if
+    // it is still the LATEST build for that chain — otherwise a slow, stale
+    // build (started pre-logout, or superseded by rebuildClientForChain after
+    // a root-validator migration) would clobber the cache with a client built
+    // against old state: the previous user's account after logout, or a
+    // pre-migration wrapper that signs with the wrong validator.
+    const buildSeqRef = useRef(0)
+    const latestBuildSeqRef = useRef<Map<string, number>>(new Map())
+
     const clearClients = useCallback(() => {
         clientsRef.current = {}
         setClientsByChain({})
+        // Orphan every in-flight build: none is "latest" anymore, so their
+        // .then(storeClient) becomes a no-op instead of resurrecting the
+        // logged-out user's client into the freshly cleared cache.
+        latestBuildSeqRef.current.clear()
     }, [])
 
     const isAfterZeroDevMigration = useMemo<boolean>(() => {
@@ -597,6 +610,8 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 )
             }
 
+            const seq = ++buildSeqRef.current
+            latestBuildSeqRef.current.set(chainId, seq)
             const promise = createKernelClientForChain(
                 entry.client,
                 entry.chain,
@@ -610,7 +625,12 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 { bundlerUrl: entry.bundlerUrl, paymasterUrl: entry.paymasterUrl }
             )
                 .then((kernelClient) => {
-                    storeClient(chainId, kernelClient)
+                    // Superseded (logout cleared the map, or a newer build /
+                    // rebuild started): return the client to OUR caller but do
+                    // not store it — the cache belongs to the latest build.
+                    if (latestBuildSeqRef.current.get(chainId) === seq) {
+                        storeClient(chainId, kernelClient)
+                    }
                     return assertClientOwnedByUser(kernelClient)
                 })
                 .catch((error) => {
@@ -623,7 +643,12 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                     throw error
                 })
                 .finally(() => {
-                    inFlightRef.current.delete(chainId)
+                    // Only clear the dedupe slot if it is still OURS — a newer
+                    // build may have replaced it, and deleting that entry would
+                    // silently break dedupe for its concurrent awaiters.
+                    if (inFlightRef.current.get(chainId) === promise) {
+                        inFlightRef.current.delete(chainId)
+                    }
                 })
 
             inFlightRef.current.set(chainId, promise)

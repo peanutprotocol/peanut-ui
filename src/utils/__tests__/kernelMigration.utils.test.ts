@@ -13,6 +13,7 @@ import {
     buildMigrationNoopCall,
     ensureRootValidatorMigrated,
     isMigrationWrapperAccount,
+    KernelMigrationFailedError,
     KernelMigrationPendingError,
 } from '../kernelMigration.utils'
 import { PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
@@ -24,8 +25,11 @@ const revertedReceipt = { status: 'reverted' } as TransactionReceipt
 
 type FakeClient = { account?: unknown; rebuilt?: boolean }
 
-const makeDeps = (opts: { account: unknown; receipt?: TransactionReceipt | null }) => {
-    const rebuiltClient: FakeClient = { account: { address: ACCOUNT_ADDRESS }, rebuilt: true }
+const makeDeps = (opts: { account: unknown; receipt?: TransactionReceipt | null; rebuiltAccount?: unknown }) => {
+    const rebuiltClient: FakeClient = {
+        account: opts.rebuiltAccount ?? { address: ACCOUNT_ADDRESS },
+        rebuilt: true,
+    }
     const sendNoopUserOp = jest.fn(async () => ({
         receipt: opts.receipt === undefined ? successReceipt : opts.receipt,
     }))
@@ -37,6 +41,9 @@ const makeDeps = (opts: { account: unknown; receipt?: TransactionReceipt | null 
             sendNoopUserOp,
             rebuildClient,
             onEvent: (e: 'attempted' | 'succeeded') => events.push(e),
+            // keep polling instant in tests
+            statusRetries: 3,
+            statusIntervalMs: 1,
         },
         sendNoopUserOp,
         rebuildClient,
@@ -45,9 +52,21 @@ const makeDeps = (opts: { account: unknown; receipt?: TransactionReceipt | null 
     }
 }
 
-const wrapperAccount = (migrated: boolean) => ({
+/** Wrapper whose on-chain root flips to migrated after the migration op lands
+ *  (first status read gates, later reads verify). */
+const wrapperAccount = (migrated: boolean) => {
+    let calls = 0
+    return {
+        address: ACCOUNT_ADDRESS,
+        getRootValidatorMigrationStatus: jest.fn(async () => (migrated ? true : ++calls > 1)),
+    }
+}
+
+/** Wrapper whose migration NEVER lands on-chain (e.g. the userOp itself
+ *  reverted even though the 4337 bundle receipt reported success). */
+const stuckWrapperAccount = () => ({
     address: ACCOUNT_ADDRESS,
-    getRootValidatorMigrationStatus: jest.fn(async () => migrated),
+    getRootValidatorMigrationStatus: jest.fn(async () => false),
 })
 
 describe('isMigrationWrapperAccount', () => {
@@ -89,7 +108,7 @@ describe('ensureRootValidatorMigrated', () => {
         expect(rebuildClient).toHaveBeenCalledTimes(1)
     })
 
-    it('migrates via the no-op userOp, then rebuilds, for unmigrated accounts', async () => {
+    it('migrates via the no-op userOp, verifies on-chain, then rebuilds', async () => {
         const { deps, sendNoopUserOp, rebuildClient, rebuiltClient, events } = makeDeps({
             account: wrapperAccount(false),
         })
@@ -100,16 +119,40 @@ describe('ensureRootValidatorMigrated', () => {
         expect(events).toEqual(['attempted', 'succeeded'])
     })
 
-    it('throws (and does NOT rebuild) when the migration receipt never confirms', async () => {
-        const { deps, rebuildClient, events } = makeDeps({ account: wrapperAccount(false), receipt: null })
+    it('4337 trap: bundle receipt success but userOp reverted (root never flips) → pending, no rebuild', async () => {
+        // In ERC-4337 a reverted userOp still yields receipt.status === 'success'
+        // on the bundle tx — the on-chain root validator is the only truth.
+        const { deps, rebuildClient, events } = makeDeps({ account: stuckWrapperAccount(), receipt: successReceipt })
         await expect(ensureRootValidatorMigrated(deps)).rejects.toThrow(KernelMigrationPendingError)
         expect(rebuildClient).not.toHaveBeenCalled()
         expect(events).toEqual(['attempted'])
     })
 
-    it('throws when the migration userOp reverts on-chain', async () => {
-        const { deps, rebuildClient } = makeDeps({ account: wrapperAccount(false), receipt: revertedReceipt })
+    it('null receipt (timeout) still succeeds when the on-chain root flipped', async () => {
+        const { deps, rebuildClient, rebuiltClient } = makeDeps({ account: wrapperAccount(false), receipt: null })
+        const result = await ensureRootValidatorMigrated(deps)
+        expect(result).toBe(rebuiltClient)
+        expect(rebuildClient).toHaveBeenCalledTimes(1)
+    })
+
+    it('null receipt AND root never flips → pending', async () => {
+        const { deps, rebuildClient } = makeDeps({ account: stuckWrapperAccount(), receipt: null })
         await expect(ensureRootValidatorMigrated(deps)).rejects.toThrow(KernelMigrationPendingError)
         expect(rebuildClient).not.toHaveBeenCalled()
+    })
+
+    it('REVERTED bundle receipt → deterministic KernelMigrationFailedError (no retry framing)', async () => {
+        const { deps, rebuildClient } = makeDeps({ account: wrapperAccount(false), receipt: revertedReceipt })
+        await expect(ensureRootValidatorMigrated(deps)).rejects.toThrow(KernelMigrationFailedError)
+        expect(rebuildClient).not.toHaveBeenCalled()
+    })
+
+    it('fails closed when the rebuilt client is STILL a wrapper (lagging public RPC)', async () => {
+        const { deps, rebuildClient } = makeDeps({
+            account: wrapperAccount(true),
+            rebuiltAccount: stuckWrapperAccount(), // rebuild keeps returning a wrapper
+        })
+        await expect(ensureRootValidatorMigrated(deps)).rejects.toThrow(KernelMigrationPendingError)
+        expect(rebuildClient).toHaveBeenCalledTimes(2) // one grace retry, then fail closed
     })
 })

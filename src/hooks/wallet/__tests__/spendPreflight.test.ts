@@ -189,10 +189,14 @@ const preflightHarness = (opts: { account: unknown; overview?: unknown; grantOk?
     }
 }
 
-const unmigratedWrapper = () => ({
-    address: '0x70f22a4db066aed9bcd2157a7b19e2e28c10c483',
-    getRootValidatorMigrationStatus: jest.fn(async () => false),
-})
+const unmigratedWrapper = () => {
+    // flips to migrated once the (mocked) migration op lands — mirrors chain state
+    let calls = 0
+    return {
+        address: '0x70f22a4db066aed9bcd2157a7b19e2e28c10c483',
+        getRootValidatorMigrationStatus: jest.fn(async () => ++calls > 1),
+    }
+}
 
 describe('runCollateralSpendPreflight', () => {
     it('smart-only: no migration, no grant, same client back', async () => {

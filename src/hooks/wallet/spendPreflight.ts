@@ -182,6 +182,14 @@ export async function runCollateralSpendPreflight<TClient extends { account?: un
         migrationTrigger,
     } = args
 
+    const touchesCollateral = strategy === 'collateral-only' || strategy === 'mixed'
+
+    // Cheap validation FIRST: never charge the user a migration passkey tap
+    // for a flow that is already doomed by a missing overview.
+    if (touchesCollateral && requireOverview && !overview) {
+        throw new SessionKeyGrantRequiredError({ kind: 'unexpected' } as GrantSessionKeyError)
+    }
+
     let activeClient = kernelClient
     if (strategy === 'mixed' && isMigrationWrapperAccount(kernelClient.account)) {
         // The migration adds one passkey tap + a few seconds of confirmation
@@ -208,11 +216,7 @@ export async function runCollateralSpendPreflight<TClient extends { account?: un
         }
     }
 
-    const touchesCollateral = strategy === 'collateral-only' || strategy === 'mixed'
     if (touchesCollateral) {
-        if (requireOverview && !overview) {
-            throw new SessionKeyGrantRequiredError({ kind: 'unexpected' } as GrantSessionKeyError)
-        }
         const card = findActiveCard(overview)
         if (card && !card.hasWithdrawApproval) {
             onGrantRequired?.()
