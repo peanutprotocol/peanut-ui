@@ -45,6 +45,14 @@ interface KernelClientContextType {
     // `resolvePatchedSudoValidator` for why binding to the migration client's
     // stale v0.0.2 validator wapk-blocks the backend replay.
     getPatchedSudoValidator: (publicClient: PublicClient) => Promise<Awaited<ReturnType<typeof createPasskeyValidator>>>
+    // Drops the cached client for `chainId` and builds a fresh one. Needed when
+    // the account's on-chain validator set changes mid-session (root-validator
+    // migration): the cached migration account keeps SIGNING via the v0.0.2
+    // validator it was built with, so its EIP-1271 signatures are rejected once
+    // the on-chain root flips to v0.0.3. The rebuilt client lands in the
+    // ref-backed cache, so every consumer — including closures captured before
+    // the rebuild — sees it immediately.
+    rebuildClientForChain: (chainId: string) => Promise<GenericSmartAccountClient>
 }
 
 type GenericSmartAccountClient<C extends Chain = Chain> = KernelAccountClient<Transport, C>
@@ -290,6 +298,22 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
     // primary-init effect register itself so a recover-funds page mount that
     // races primary login doesn't kick off a duplicate Arb build.
     const inFlightRef = useRef<Map<string, Promise<GenericSmartAccountClient>>>(new Map())
+    // Ref mirror of `clientsByChain`. Reads go through the ref so that closures
+    // captured before a cache update (e.g. a spend flow that rebuilds the client
+    // mid-flight after a root-validator migration) resolve to the CURRENT client
+    // instead of a stale one. State stays the source of re-renders; the ref is
+    // the source of truth for lookups. Always write both via storeClient/clearClients.
+    const clientsRef = useRef<Record<string, GenericSmartAccountClient>>({})
+
+    const storeClient = useCallback((chainId: string, client: GenericSmartAccountClient) => {
+        clientsRef.current = { ...clientsRef.current, [chainId]: client }
+        setClientsByChain((prev) => ({ ...prev, [chainId]: client }))
+    }, [])
+
+    const clearClients = useCallback(() => {
+        clientsRef.current = {}
+        setClientsByChain({})
+    }, [])
 
     const isAfterZeroDevMigration = useMemo<boolean>(() => {
         if (!user?.user?.createdAt) {
@@ -304,7 +328,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // clear webauthn key and clients when user logs out
             console.log('[KernelClient] No user found, clearing webAuthnKey, clients, and address')
             setWebAuthnKey(undefined)
-            setClientsByChain({})
+            clearClients()
             // Drop any in-flight lazy builds — their results would be useless
             // (and re-applying them would write into a fresh post-logout state).
             inFlightRef.current.clear()
@@ -383,7 +407,8 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 console.error('[harness] primary ECDSA kernel client failed')
                 return
             }
-            setClientsByChain(clients)
+            clientsRef.current = { ...clientsRef.current, ...clients }
+            setClientsByChain((prev) => ({ ...prev, ...clients }))
             dispatch(zerodevActions.setIsKernelClientReady(true))
             dispatch(zerodevActions.setIsRegistering(false))
             dispatch(zerodevActions.setIsLoggingIn(false))
@@ -460,7 +485,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // Only update state after primary succeeds — avoids
             // registering→not→registering UI flicker between retries.
             if (isMounted) {
-                setClientsByChain((prev) => ({ ...prev, [primaryChainId]: kernelClient }))
+                storeClient(primaryChainId, kernelClient)
                 fetchUser()
                 dispatch(zerodevActions.setIsKernelClientReady(true))
                 dispatch(zerodevActions.setIsRegistering(false))
@@ -539,7 +564,9 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
 
     const getClientForChain = useCallback(
         (chainId: string) => {
-            const client = clientsByChain[chainId]
+            // Read through the ref so closures captured before a mid-session
+            // rebuild (root-validator migration) still resolve the fresh client.
+            const client = clientsRef.current[chainId] ?? clientsByChain[chainId]
             if (!client) {
                 const availableChains = Object.keys(clientsByChain).join(', ')
                 console.error(
@@ -554,14 +581,12 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         [clientsByChain, assertClientOwnedByUser]
     )
 
-    const ensureClientForChain = useCallback(
-        async (chainId: string): Promise<GenericSmartAccountClient> => {
-            const cached = clientsByChain[chainId]
-            if (cached) return assertClientOwnedByUser(cached)
-
-            const inFlight = inFlightRef.current.get(chainId)
-            if (inFlight) return inFlight.then(assertClientOwnedByUser)
-
+    // Kicks off a fresh client build for `chainId`, stores the result in the
+    // ref-backed cache, and registers itself in inFlightRef for dedupe. Shared
+    // by ensureClientForChain (cache-first) and rebuildClientForChain (cache-
+    // busting).
+    const startClientBuild = useCallback(
+        (chainId: string): Promise<GenericSmartAccountClient> => {
             if (!webAuthnKey) {
                 throw new Error(`Cannot build kernel client for chain ${chainId}: not authenticated`)
             }
@@ -585,7 +610,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 { bundlerUrl: entry.bundlerUrl, paymasterUrl: entry.paymasterUrl }
             )
                 .then((kernelClient) => {
-                    setClientsByChain((prev) => ({ ...prev, [chainId]: kernelClient }))
+                    storeClient(chainId, kernelClient)
                     return assertClientOwnedByUser(kernelClient)
                 })
                 .catch((error) => {
@@ -604,7 +629,32 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             inFlightRef.current.set(chainId, promise)
             return promise
         },
-        [clientsByChain, webAuthnKey, isAfterZeroDevMigration, user, assertClientOwnedByUser, logoutUser]
+        [webAuthnKey, isAfterZeroDevMigration, user, assertClientOwnedByUser, logoutUser, storeClient]
+    )
+
+    const ensureClientForChain = useCallback(
+        async (chainId: string): Promise<GenericSmartAccountClient> => {
+            const cached = clientsRef.current[chainId] ?? clientsByChain[chainId]
+            if (cached) return assertClientOwnedByUser(cached)
+
+            const inFlight = inFlightRef.current.get(chainId)
+            if (inFlight) return inFlight.then(assertClientOwnedByUser)
+
+            return startClientBuild(chainId)
+        },
+        [clientsByChain, assertClientOwnedByUser, startClientBuild]
+    )
+
+    const rebuildClientForChain = useCallback(
+        async (chainId: string): Promise<GenericSmartAccountClient> => {
+            // Deliberately ignores cache AND any in-flight build: those were
+            // constructed against the pre-migration on-chain state. storeClient
+            // in startClientBuild overwrites the stale cache entry for every
+            // future getClientForChain reader (including stale closures — they
+            // read through clientsRef).
+            return startClientBuild(chainId)
+        },
+        [startClientBuild]
     )
 
     return (
@@ -614,6 +664,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 getClientForChain,
                 ensureClientForChain,
                 getPatchedSudoValidator,
+                rebuildClientForChain,
             }}
         >
             {children}

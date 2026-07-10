@@ -227,6 +227,10 @@ export const ANALYTICS_EVENTS = {
     CARD_PHYSICAL_WAITLIST_JOINED: 'card_physical_waitlist_joined',
     CARD_ADD_TO_WALLET_VIEWED: 'card_add_to_wallet_viewed',
     // Spend routing across collateral / smart / mixed buckets. `strategy` is SpendStrategy.
+    // Root-validator migration userOp fired ahead of a mixed spend (pre-2025-09-18
+    // accounts still on the unpatched validator) — see kernelMigration.utils.ts.
+    KERNEL_MIGRATION_ATTEMPTED: 'kernel_migration_attempted',
+    KERNEL_MIGRATION_SUCCEEDED: 'kernel_migration_succeeded',
     CARD_WITHDRAW_ATTEMPTED: 'card_withdraw_attempted',
     CARD_WITHDRAW_SUCCEEDED: 'card_withdraw_succeeded',
     CARD_WITHDRAW_FAILED: 'card_withdraw_failed',
