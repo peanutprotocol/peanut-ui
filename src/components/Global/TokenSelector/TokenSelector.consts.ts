@@ -1,7 +1,7 @@
 import { SOLANA_ICON, TRON_ICON } from '@/assets'
 import { networks } from '@/config'
 import type { IPeanutChainDetails, IToken } from '@/interfaces/interfaces'
-import { celo, linea, worldchain } from 'viem/chains'
+import { celo, linea, scroll, worldchain } from 'viem/chains'
 
 interface CombinedType extends IPeanutChainDetails {
     tokens: IToken[]
@@ -69,7 +69,9 @@ export const TOKEN_SELECTOR_POPULAR_NETWORK_IDS = [
     },
 ]
 
-const networksToExclude: readonly number[] = [celo.id, linea.id, worldchain.id] as const
+// scroll excluded 2026-07-10: Rhino disabled it entirely, and Scroll isn't an
+// SDA deposit chain either, so every cross-chain route from it dead-ends.
+const networksToExclude: readonly number[] = [celo.id, linea.id, scroll.id, worldchain.id] as const
 
 // supported network ids for the network list, getting this from reown appkit config
 export const TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS = networks
@@ -92,6 +94,11 @@ export const TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS = networks
  *   BNB Chain is supported.
  * - EVM only (the withdraw flow uses 0x addresses); matches the current
  *   selectable chain set rather than every Rhino chain.
+ * - 2026-07-10 expansion: each new chain verified against Rhino prod with a real
+ *   ARBITRUM→X quote AND an outflow SDA create (see PR #2396). Stablecoins only
+ *   for the new chains — that's what was tested. Plasma/Stable are USDT-only on
+ *   Rhino. KAIA/opBNB deliberately absent: quotes pass but SDA create rejects
+ *   (DepositAddressTokenOutNotSupported).
  */
 export const RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN: Record<string, readonly string[]> = {
     '42161': ['ETH', 'USDC', 'USDT'], // Arbitrum
@@ -100,4 +107,13 @@ export const RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN: Record<string, readonly s
     '137': ['USDC', 'USDT'], // Polygon (native POL not bridged by Rhino)
     '100': ['USDC', 'USDT'], // Gnosis (native xDAI not bridged by Rhino)
     '56': ['BNB', 'USDC', 'USDT'], // BNB Chain
+    '43114': ['USDC', 'USDT'], // Avalanche
+    '999': ['USDC', 'USDT'], // HyperEVM
+    '57073': ['USDC', 'USDT'], // Ink
+    '747474': ['USDC', 'USDT'], // Katana (delivered as vbUSDC/vbUSDT)
+    '59144': ['USDC', 'USDT'], // Linea
+    '5000': ['USDC', 'USDT'], // Mantle (USDT delivered as USDT0)
+    '9745': ['USDT'], // Plasma (USDT0-only chain)
+    '988': ['USDT'], // Stable (USDT0-only chain)
+    '4217': ['USDC', 'USDT'], // Tempo (delivered as USDC.e/USDT0)
 }

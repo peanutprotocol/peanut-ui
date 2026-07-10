@@ -169,11 +169,16 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         }
     }
 
+    // Withdraw destinations are gated by what Rhino can DELIVER to
+    // (RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN), not by the wagmi source-chain
+    // list — the destination needs no wallet connection or balance reads, and
+    // several deliverable chains (Avalanche, Linea, Ink, …) are intentionally
+    // not source chains. Names/icons come from supportedChainsAndTokens.
     const allowedChainIds = useMemo(
         () =>
             new Set(
                 restrictToRhino
-                    ? TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS.filter((id) => RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN[id])
+                    ? Object.keys(RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN)
                     : TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS
             ),
         [restrictToRhino]
