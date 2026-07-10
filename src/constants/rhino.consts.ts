@@ -14,6 +14,7 @@ export const CHAIN_LOGOS = {
     CELO: 'https://assets.coingecko.com/asset_platforms/images/21/standard/celo.jpeg?1711358666',
     TRON: 'https://assets.coingecko.com/asset_platforms/images/1094/standard/TRON_LOGO.png?1706606652',
     SOLANA: 'https://assets.coingecko.com/asset_platforms/images/5/standard/solana.png?1706606708',
+    TEMPO: 'https://icons.llamao.fi/icons/chains/rsz_tempo.jpg',
 } as const
 
 /** Token symbol to logo URL mapping - reusable across the app */
@@ -39,6 +40,11 @@ export const SUPPORTED_EVM_CHAINS = [
     'KATANA',
     'GNOSIS',
     'CELO',
+    // TEMPO added 2026-07-10: live SDA catalog lists it with USDC+USDT (the
+    // REQUIRED_TOKENS bar). KAIA/PLASMA stay excluded — USDT-only on Rhino, and
+    // the deposit UI advertises USDC per EVM family, so a USDC deposit there
+    // would be silently lost.
+    'TEMPO',
 ] as const
 
 export const OTHER_SUPPORTED_CHAINS = ['SOLANA', 'TRON'] as const
@@ -111,11 +117,24 @@ export const EVM_CHAIN_ID_TO_RHINO_NAME: Record<string, string | undefined> = {
     '56': 'BINANCE', // Rhino's name for BNB Chain (display: BNB)
     '100': 'GNOSIS',
     '137': 'MATIC_POS', // Rhino's name for Polygon (display: POLYGON)
-    '534352': 'SCROLL',
+    // SCROLL (534352) removed 2026-07-10: Rhino disabled it ("SCROLL is disabled"
+    // InvalidRequest on quote). Re-add only after confirming via getBridgeConfig().
     '42161': 'ARBITRUM',
     '421614': 'ARBITRUM', // Arb Sepolia — same Rhino bucket for sandbox runs
     '8453': 'BASE',
     '42220': 'CELO',
+    // Added 2026-07-10 after verifying each against Rhino's live bridge config
+    // (status=enabled) AND a real ARBITRUM→X quote + outflow-SDA create.
+    // PLASMA/STABLE are USDT-only routes; token gating lives in token-details.json.
+    '43114': 'AVALANCHE',
+    '999': 'HYPEREVM',
+    '57073': 'INK',
+    '747474': 'KATANA',
+    '59144': 'LINEA',
+    '5000': 'MANTLE',
+    '9745': 'PLASMA',
+    '988': 'STABLE',
+    '4217': 'TEMPO',
 }
 
 export function evmChainIdToRhinoName(chainId: string | number): string | undefined {
