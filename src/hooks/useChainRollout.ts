@@ -1,22 +1,16 @@
 'use client'
-import { useEffect, useReducer } from 'react'
-import posthog from 'posthog-js'
-import { BASE_URL } from '@/constants/general.consts'
+import { isFeatureFlagEnabled, useFeatureFlags } from '@/hooks/useFeatureFlag'
 
 /**
  * Per-chain rollout toggles for the Rhino chain expansion — one PostHog
- * feature flag per chain so marketing can enable chains one by one with a
- * click (no deploy). Keyed by every identifier a chain appears under in the
- * selector/deposit surfaces (EVM numeric chainId, non-EVM slug, deposit
- * ChainName) so one flag governs all surfaces of the same chain.
+ * feature flag per chain so marketing can launch chains one by one with a
+ * click (no deploy). Thin domain wrapper over `useFeatureFlag`; the map is
+ * keyed by every identifier a chain appears under (EVM numeric chainId,
+ * non-EVM slug, deposit ChainName) so one flag governs all surfaces of the
+ * same chain. Chains NOT in this map (the legacy set) are always on.
  *
- * Semantics:
- * - chains NOT in this map (the legacy set) are always on
- * - outside the prod domain (staging/preview/local) everything is ON — QA
- *   must be able to test a chain before its public launch
- * - on prod, a chain shows only when its flag is enabled; if PostHog is
- *   unavailable (adblock, outage) new chains stay hidden (fail-closed —
- *   a rollout gate must never fail into "launched")
+ * Hygiene: once a chain is permanently launched, delete its entry here and
+ * its flag in PostHog — flags are scaffolding, not architecture.
  */
 export const CHAIN_ROLLOUT_FLAGS: Record<string, string> = {
     // withdraw destinations (EVM chainId keys)
@@ -39,24 +33,14 @@ export const CHAIN_ROLLOUT_FLAGS: Record<string, string> = {
     PLASMA: 'chain-rollout-plasma',
 }
 
-const IS_PROD_DOMAIN = BASE_URL === 'https://peanut.me'
-
 export function isChainRolledOut(chainKey: string): boolean {
     const flag = CHAIN_ROLLOUT_FLAGS[chainKey]
     if (!flag) return true
-    if (!IS_PROD_DOMAIN) return true
-    return posthog.isFeatureEnabled(flag) ?? false
+    return isFeatureFlagEnabled(flag, { nonProdBypass: true })
 }
 
-/**
- * Reactive variant: re-renders once PostHog's flags load (they arrive async
- * after page load), so gated chains pop in rather than requiring a refresh.
- */
+/** Reactive variant — re-renders when PostHog's flags load. */
 export function useChainRollout(): (chainKey: string) => boolean {
-    const [, bump] = useReducer((n: number) => n + 1, 0)
-    useEffect(() => {
-        // returns an unsubscribe function
-        return posthog.onFeatureFlags(() => bump())
-    }, [])
+    useFeatureFlags()
     return isChainRolledOut
 }
