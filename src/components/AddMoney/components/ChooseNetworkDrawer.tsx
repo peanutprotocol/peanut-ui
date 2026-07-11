@@ -9,6 +9,7 @@ import {
     getSupportedTokens,
     EVM_DEPOSIT_TOKEN_EXCEPTIONS,
 } from '@/constants/rhino.consts'
+import { useChainRollout } from '@/hooks/useChainRollout'
 import type { RhinoChainType } from '@/services/services.types'
 import Image from 'next/image'
 
@@ -19,6 +20,7 @@ interface ChooseNetworkDrawerProps {
 }
 
 const ChooseNetworkDrawer = ({ open, onClose, onSelect }: ChooseNetworkDrawerProps) => {
+    const isChainRolledOut = useChainRollout()
     return (
         <Drawer open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
             <DrawerContent className="pt-4">
@@ -49,7 +51,7 @@ const ChooseNetworkDrawer = ({ open, onClose, onSelect }: ChooseNetworkDrawerPro
                         {/* expanded chain list */}
                         <div onClick={() => onSelect('EVM')} className="mx-4 border-t border-dashed border-black py-3">
                             <div className="flex flex-wrap gap-2">
-                                {SUPPORTED_EVM_CHAINS.map((chain) => {
+                                {SUPPORTED_EVM_CHAINS.filter(isChainRolledOut).map((chain) => {
                                     const tokenException = EVM_DEPOSIT_TOKEN_EXCEPTIONS[chain]
                                     const label = tokenException ? `${chain} · ${tokenException.join('/')} only` : chain
                                     return <ChainChip key={chain} chainName={label} chainSymbol={CHAIN_LOGOS[chain]} />

@@ -34,6 +34,7 @@ import {
     TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS,
 } from './TokenSelector.consts'
 import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/nonEvmWithdraw.consts'
+import { useChainRollout } from '@/hooks/useChainRollout'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 
@@ -190,14 +191,17 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     // list — the destination needs no wallet connection or balance reads, and
     // several deliverable chains (Avalanche, Linea, Ink, …) are intentionally
     // not source chains. Names/icons come from supportedChainsAndTokens.
+    // Per-chain rollout flags (PostHog) gate the newly-added withdraw
+    // destinations on prod so marketing can launch chains one by one.
+    const isChainRolledOut = useChainRollout()
     const allowedChainIds = useMemo(
         () =>
             new Set(
                 restrictToRhino
-                    ? Object.keys(RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN)
+                    ? Object.keys(RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN).filter(isChainRolledOut)
                     : TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS
             ),
-        [restrictToRhino]
+        [restrictToRhino, isChainRolledOut]
     )
 
     const popularChainsForButtons = useMemo(() => {
