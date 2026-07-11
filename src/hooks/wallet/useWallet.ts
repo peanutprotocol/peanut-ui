@@ -9,7 +9,7 @@ import { useIsFetching } from '@tanstack/react-query'
 import { formatUnits, type Hex, type Address } from 'viem'
 import { useZeroDev } from '../useZeroDev'
 import { useAuth } from '@/context/authContext'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import { useBalance } from './useBalance'
 import { useSendMoney as useSendMoneyMutation } from './useSendMoney'
 import { formatCurrency } from '@/utils/general.utils'
@@ -20,7 +20,8 @@ import {
     rainCentsToUsdcUnits,
     isAmountWithinBalance,
 } from '@/utils/balance.utils'
-import { useSpendBundle, type SpendStrategy } from './useSpendBundle'
+import { useSpendBundle } from './useSpendBundle'
+import type { SpendStrategy } from './spendPreflight'
 import type { RainCollateralKind } from '@/services/rain'
 
 type SendTransactionsOptions = {
