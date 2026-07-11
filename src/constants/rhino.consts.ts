@@ -94,6 +94,20 @@ const SUPPORTED_TOKENS_BY_NETWORK: Record<RhinoChainType, TokenName[]> = {
     TRON: ['USDT'],
 }
 
+/**
+ * EVM deposit chains where Rhino accepts FEWER tokens than the EVM family
+ * list above. A token sent on a chain where Rhino doesn't accept it is
+ * silently lost (no webhook, no intent), so deposit surfaces annotate these.
+ * Source: Rhino's live SDA catalog (getSupportedConfigs, 2026-07-11).
+ */
+export const EVM_DEPOSIT_TOKEN_EXCEPTIONS: Partial<Record<ChainName, TokenName[]>> = {
+    KAIA: ['USDT'],
+    PLASMA: ['USDT'],
+    TEMPO: ['USDT', 'USDC'],
+    CELO: ['USDT', 'USDC'],
+    GNOSIS: ['USDT', 'USDC'],
+}
+
 /** returns supported tokens (with logos) for a given chain type */
 export const getSupportedTokens = (network: RhinoChainType): Array<{ name: TokenName; logoUrl: string }> =>
     SUPPORTED_TOKENS_BY_NETWORK[network].map((name) => ({ name, logoUrl: TOKEN_LOGOS[name] }))
@@ -144,4 +158,20 @@ export const EVM_CHAIN_ID_TO_RHINO_NAME: Record<string, string | undefined> = {
 
 export function evmChainIdToRhinoName(chainId: string | number): string | undefined {
     return EVM_CHAIN_ID_TO_RHINO_NAME[String(chainId)]
+}
+
+/**
+ * Non-EVM withdraw destinations use string slugs as their selector chainId
+ * ('solana' | 'tron' — the identifiers the old coming-soon entries used).
+ * Chain data lives in `nonEvmWithdraw.consts.ts`.
+ */
+export const NON_EVM_CHAIN_ID_TO_RHINO_NAME: Record<string, string | undefined> = {
+    solana: 'SOLANA',
+    tron: 'TRON',
+}
+
+/** chainId (EVM numeric or non-EVM slug) → Rhino API chain name. */
+export function chainIdToRhinoName(chainId: string | number): string | undefined {
+    const key = String(chainId)
+    return EVM_CHAIN_ID_TO_RHINO_NAME[key] ?? NON_EVM_CHAIN_ID_TO_RHINO_NAME[key.toLowerCase()]
 }

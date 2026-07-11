@@ -116,4 +116,8 @@ export const RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN: Record<string, readonly s
     '9745': ['USDT'], // Plasma (USDT0-only chain)
     '988': ['USDT'], // Stable (USDT0-only chain)
     '4217': ['USDC', 'USDT'], // Tempo (delivered as USDC.e/USDT0)
+    // Non-EVM destinations (slug ids; entries in nonEvmWithdraw.consts.ts).
+    // Verified 2026-07-11: live quote + outflow SDA create for both.
+    solana: ['USDC', 'USDT'],
+    tron: ['USDT'], // no USDC on Tron
 }

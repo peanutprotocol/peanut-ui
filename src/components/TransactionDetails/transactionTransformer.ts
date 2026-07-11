@@ -250,7 +250,15 @@ function computeDerivedFields(entry: HistoryEntry): {
     // (Arbitrum) — the underlying chainId field is the deposit-source chain.
     const explorerUrlChainID =
         intentKindOf(entry) === 'CRYPTO_DEPOSIT' ? PEANUT_WALLET_CHAIN.id.toString() : entry.chainId
-    const baseUrl = getExplorerUrl(explorerUrlChainID)
+    let baseUrl = getExplorerUrl(explorerUrlChainID)
+    // Cross-chain withdrawals record the ARBITRUM source tx hash while
+    // entry.chainId is the destination — and several destinations (Tempo,
+    // Solana, Tron, …) have no chain-details explorer entry at all, which
+    // left the receipt linkless. Fall back to the source-chain explorer so
+    // the receipt always links the tx that actually carries the hash.
+    if (!baseUrl && intentKindOf(entry) === 'CRYPTO_WITHDRAW') {
+        baseUrl = getExplorerUrl(PEANUT_WALLET_CHAIN.id.toString())
+    }
 
     let explorerUrlWithTx: string | undefined
     let addressExplorerUrl: string | undefined

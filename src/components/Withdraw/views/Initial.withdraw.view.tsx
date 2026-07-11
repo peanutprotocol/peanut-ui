@@ -14,6 +14,9 @@ import { useRouter } from 'next/navigation'
 import { useContext, useEffect } from 'react'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/nonEvmWithdraw.consts'
+import { addressFamilyForChainId } from '@/lib/validation/addressFamily'
+import { useMemo, useRef } from 'react'
 
 interface InitialWithdrawViewProps {
     amount: string
@@ -44,8 +47,22 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
         setError,
     } = useWithdrawFlow()
 
+    // Non-EVM destinations (Solana/Tron) drive the recipient input's address
+    // family; changing family invalidates whatever address was typed.
+    const addressFamily = useMemo(() => addressFamilyForChainId(selectedChainID), [selectedChainID])
+    const prevFamilyRef = useRef(addressFamily)
+    useEffect(() => {
+        if (prevFamilyRef.current !== addressFamily) {
+            prevFamilyRef.current = addressFamily
+            setRecipient({ name: undefined, address: '' })
+            setIsValidRecipient(false)
+        }
+    }, [addressFamily, setRecipient, setIsValidRecipient])
+
     const handleReview = () => {
-        const xchainChainData = supportedChainsAndTokens[selectedChainID]
+        // Solana/Tron have no chain-details entry — resolve from the synthetic
+        // non-EVM records the withdraw selector also uses.
+        const xchainChainData = supportedChainsAndTokens[selectedChainID] ?? NON_EVM_WITHDRAW_CHAINS[selectedChainID]
         // supportedChainsAndTokens may not list the Peanut wallet chain on
         // testnets / env-configured chains. Synthesize a minimal entry so the
         // same-chain (no-bridge) path can proceed.
@@ -98,7 +115,9 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
     }, [])
 
     return (
-        <div className="space-y-8">
+        // flex/gap shell per the page-layout rules — space-y on the outer div
+        // conflicts with centering and clipped the CTA on short viewports
+        <div className="flex min-h-[inherit] flex-col gap-8">
             <NavHeader title="Withdraw" onPrev={onBack || defaultOnBack} />
 
             <div className="space-y-4">
@@ -114,7 +133,8 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                 <TokenSelector viewType="withdraw" />
 
                 <GeneralRecipientInput
-                    placeholder="Enter an address or ENS"
+                    placeholder={addressFamily === 'evm' ? 'Enter an address or ENS' : 'Enter an address'}
+                    addressFamily={addressFamily}
                     recipient={recipient}
                     onUpdate={(update: GeneralRecipientUpdate) => {
                         setRecipient(update.recipient)

@@ -33,6 +33,7 @@ import {
     TOKEN_SELECTOR_POPULAR_NETWORK_IDS,
     TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS,
 } from './TokenSelector.consts'
+import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/nonEvmWithdraw.consts'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 
@@ -89,12 +90,21 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     // state for image loading errors
     const [buttonImageError, setButtonImageError] = useState(false)
     const {
-        supportedChainsAndTokens,
+        supportedChainsAndTokens: contextChainsAndTokens,
         setSelectedTokenAddress,
         setSelectedChainID,
         selectedTokenAddress,
         selectedChainID,
     } = useContext(tokenSelectorContext)
+
+    // Withdraw mode also offers non-EVM destinations (Solana/Tron) that have
+    // no chain-details entry — merge their synthetic records so every internal
+    // lookup (network list, token list, button display) resolves them. Other
+    // modes must NOT see them: sources/claims assume EVM addresses + wagmi.
+    const supportedChainsAndTokens = useMemo(
+        () => (restrictToRhino ? { ...contextChainsAndTokens, ...NON_EVM_WITHDRAW_CHAINS } : contextChainsAndTokens),
+        [contextChainsAndTokens, restrictToRhino]
+    )
 
     // drawer utility functions
     const openDrawer = useCallback(() => setIsDrawerOpen(true), [])
@@ -131,7 +141,13 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     // selected network name memo, being used ui
     const selectedNetworkName = useMemo(() => {
         if (!selectedChainID) return null
-        return getChainName(selectedChainID) || `Chain ${selectedChainID}`
+        // record first — non-EVM slugs ('solana'/'tron') aren't in the
+        // chain-details-backed getChainName lookup
+        return (
+            supportedChainsAndTokens?.[selectedChainID]?.networkName ||
+            getChainName(selectedChainID) ||
+            `Chain ${selectedChainID}`
+        )
     }, [selectedChainID, supportedChainsAndTokens])
 
     const peanutWalletTokenDetails = useMemo(() => {
@@ -444,7 +460,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                 setSearchValue={setNetworkSearchValue}
                                 selectedChainID={selectedChainID}
                                 allowedChainIds={allowedChainIds}
-                                comingSoonNetworks={TOKEN_SELECTOR_COMING_SOON_NETWORKS}
+                                comingSoonNetworks={restrictToRhino ? [] : TOKEN_SELECTOR_COMING_SOON_NETWORKS}
                             />
                         ) : (
                             <div className="relative flex flex-col space-y-4">

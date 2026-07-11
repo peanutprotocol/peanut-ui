@@ -3,7 +3,12 @@
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/Global/Drawer'
 import { ActionListCard } from '@/components/ActionListCard'
 import ChainChip from './ChainChip'
-import { CHAIN_LOGOS, SUPPORTED_EVM_CHAINS, getSupportedTokens } from '@/constants/rhino.consts'
+import {
+    CHAIN_LOGOS,
+    SUPPORTED_EVM_CHAINS,
+    getSupportedTokens,
+    EVM_DEPOSIT_TOKEN_EXCEPTIONS,
+} from '@/constants/rhino.consts'
 import type { RhinoChainType } from '@/services/services.types'
 import Image from 'next/image'
 
@@ -44,9 +49,11 @@ const ChooseNetworkDrawer = ({ open, onClose, onSelect }: ChooseNetworkDrawerPro
                         {/* expanded chain list */}
                         <div onClick={() => onSelect('EVM')} className="mx-4 border-t border-dashed border-black py-3">
                             <div className="flex flex-wrap gap-2">
-                                {SUPPORTED_EVM_CHAINS.map((chain) => (
-                                    <ChainChip key={chain} chainName={chain} chainSymbol={CHAIN_LOGOS[chain]} />
-                                ))}
+                                {SUPPORTED_EVM_CHAINS.map((chain) => {
+                                    const tokenException = EVM_DEPOSIT_TOKEN_EXCEPTIONS[chain]
+                                    const label = tokenException ? `${chain} · ${tokenException.join('/')} only` : chain
+                                    return <ChainChip key={chain} chainName={label} chainSymbol={CHAIN_LOGOS[chain]} />
+                                })}
                             </div>
                         </div>
                     </div>
