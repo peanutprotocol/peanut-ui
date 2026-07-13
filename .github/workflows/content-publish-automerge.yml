@@ -1,0 +1,76 @@
+name: Content publish auto-merge
+
+# Auto-approve + auto-merge content-only submodule bumps to `main` (production
+# content publishes, e.g. #2400). Everything else keeps the normal gate:
+# 1 human review + green `ci-success` (the "Protect Prod" org ruleset).
+#
+# Why this exists: "Protect Prod" requires 1 approving review on EVERY PR to
+# main — GitHub rulesets can't make that conditional on the changed paths. A
+# content publish PR is a single `src/content` gitlink bump: safe by inspection
+# and shouldn't need a second human. This workflow supplies the approval ONLY
+# when the diff is exactly that pointer, so the review requirement stays fully
+# in force for real code. eslint is already advisory (not in `ci-success`), so
+# "green tests" here means the real test/typecheck/build jobs, not lint.
+#
+# Security model:
+#   - `pull_request_target` runs THIS logic from the base branch (main), so a PR
+#     cannot tamper with the guard or the approve step. We never check out or run
+#     PR code — only `gh` API calls by PR number — so pull_request_target is safe
+#     here (no untrusted-code execution).
+#   - Same-repo branches only (fork guard on the job).
+#   - The approval is submitted by CONTENT_BOT_TOKEN's user (Hugo0). GitHub
+#     forbids approving your own PR, so this auto-approves anyone's content
+#     publish EXCEPT one that same user authored — those fall back to a manual
+#     merge (org-admin bypass). Konrad-authored publishes (the target case) work.
+
+on:
+    pull_request_target:
+        types: [opened, synchronize, reopened, ready_for_review]
+        branches: [main]
+
+permissions:
+    contents: read
+    pull-requests: write
+
+jobs:
+    approve-and-merge:
+        # Same-repo PRs only — never a fork.
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        runs-on: ubuntu-latest
+        steps:
+            - name: Guard — diff must be exactly the content submodule pointer
+              id: guard
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  PR: ${{ github.event.pull_request.number }}
+                  REPO: ${{ github.repository }}
+              run: |
+                  set -euo pipefail
+                  FILES=$(gh pr diff "$PR" --repo "$REPO" --name-only)
+                  echo "Changed files:"
+                  echo "$FILES"
+                  if [ "$FILES" = "src/content" ]; then
+                    echo "content_only=true" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "content_only=false" >> "$GITHUB_OUTPUT"
+                    echo "::notice::Not content-only — normal review gate stays in place."
+                  fi
+
+            - name: Approve + enable auto-merge
+              if: steps.guard.outputs.content_only == 'true'
+              env:
+                  GH_TOKEN: ${{ secrets.CONTENT_BOT_TOKEN }}
+                  PR: ${{ github.event.pull_request.number }}
+                  REPO: ${{ github.repository }}
+              run: |
+                  set -euo pipefail
+                  # Approve — satisfies the 1-review rule. Fails only when the bot
+                  # user authored the PR (GitHub blocks self-approval); in that
+                  # case leave it for a manual merge.
+                  if gh pr review "$PR" --repo "$REPO" --approve; then
+                    # main ruleset allows merge commits only (not squash/rebase).
+                    gh pr merge "$PR" --repo "$REPO" --auto --merge \
+                      || echo "::warning::auto-merge not enabled/permitted — merge manually."
+                  else
+                    echo "::warning::Could not approve (bot may be the PR author) — merge manually."
+                  fi
