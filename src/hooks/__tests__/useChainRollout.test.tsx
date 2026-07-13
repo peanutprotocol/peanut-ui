@@ -1,16 +1,16 @@
 import { renderHook, act } from '@testing-library/react'
 
 // posthog-js is mocked so tests control flag values and load events
-let flagsCallback: (() => void) | undefined
-const isFeatureEnabledMock = jest.fn()
+let mockFlagsCallback: (() => void) | undefined
+const mockIsFeatureEnabled = jest.fn()
 jest.mock('posthog-js', () => ({
     __esModule: true,
     default: {
-        isFeatureEnabled: (key: string) => isFeatureEnabledMock(key),
+        isFeatureEnabled: (key: string) => mockIsFeatureEnabled(key),
         onFeatureFlags: (cb: () => void) => {
-            flagsCallback = cb
+            mockFlagsCallback = cb
             return () => {
-                flagsCallback = undefined
+                mockFlagsCallback = undefined
             }
         },
     },
@@ -28,30 +28,30 @@ describe('useFeatureFlags', () => {
     it('returns a NEW checker identity when PostHog flags load (memo-busting)', () => {
         const { result } = renderHook(() => useFeatureFlags())
         const before = result.current
-        act(() => flagsCallback?.())
+        act(() => mockFlagsCallback?.())
         expect(result.current).not.toBe(before) // regression: frozen-at-mount gate
     })
 })
 
 describe('useChainRollout', () => {
-    beforeEach(() => isFeatureEnabledMock.mockReset())
+    beforeEach(() => mockIsFeatureEnabled.mockReset())
 
     it('always allows unflagged (legacy) chains', () => {
         const { result } = renderHook(() => useChainRollout())
         expect(result.current('42161')).toBe(true)
-        expect(isFeatureEnabledMock).not.toHaveBeenCalled()
+        expect(mockIsFeatureEnabled).not.toHaveBeenCalled()
     })
 
     it('fails CLOSED on prod when PostHog has no answer', () => {
-        isFeatureEnabledMock.mockReturnValue(undefined)
+        mockIsFeatureEnabled.mockReturnValue(undefined)
         const { result } = renderHook(() => useChainRollout())
         expect(result.current('solana')).toBe(false)
     })
 
     it('reflects flag values once loaded, keyed per chain', () => {
-        isFeatureEnabledMock.mockImplementation((key: string) => key === 'chain-rollout-tempo')
+        mockIsFeatureEnabled.mockImplementation((key: string) => key === 'chain-rollout-tempo')
         const { result } = renderHook(() => useChainRollout())
-        act(() => flagsCallback?.())
+        act(() => mockFlagsCallback?.())
         expect(result.current('4217')).toBe(true) // tempo by chainId
         expect(result.current('TEMPO')).toBe(true) // tempo by deposit ChainName — same flag
         expect(result.current('solana')).toBe(false)
