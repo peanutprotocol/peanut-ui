@@ -1,5 +1,5 @@
 import { isAddress } from 'viem'
-import { isNonEvmWithdrawChainId } from '@/constants/nonEvmWithdraw.consts'
+import { isNonEvmWithdrawChainId } from '@/constants/chainRegistry.consts'
 
 /**
  * Address families for withdraw destinations. EVM chains share one 0x

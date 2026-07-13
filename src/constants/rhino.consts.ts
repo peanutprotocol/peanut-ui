@@ -119,7 +119,7 @@ export function evmChainIdToRhinoName(chainId: string | number): string | undefi
 /**
  * Non-EVM withdraw destinations use string slugs as their selector chainId
  * ('solana' | 'tron' — the identifiers the old coming-soon entries used).
- * Chain data lives in `nonEvmWithdraw.consts.ts`.
+ * Chain data lives in `chainRegistry.consts.ts`.
  */
 export const NON_EVM_CHAIN_ID_TO_RHINO_NAME: Record<string, string | undefined> = Object.fromEntries(
     CHAIN_REGISTRY.filter((c) => c.family !== 'evm' && c.rhinoName).map((c) => [c.id, c.rhinoName])

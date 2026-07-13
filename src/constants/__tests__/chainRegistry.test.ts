@@ -18,10 +18,8 @@ import {
     chainIdToRhinoName,
     EVM_DEPOSIT_TOKEN_EXCEPTIONS,
 } from '../rhino.consts'
-import { CHAIN_ROLLOUT_FLAGS } from '../chainRollout.consts'
-import { NON_EVM_WITHDRAW_CHAINS } from '../nonEvmWithdraw.consts'
 import { RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN } from '@/components/Global/TokenSelector/TokenSelector.consts'
-import { CHAIN_REGISTRY } from '../chainRegistry.consts'
+import { CHAIN_REGISTRY, CHAIN_ROLLOUT_FLAGS, NON_EVM_WITHDRAW_CHAINS } from '../chainRegistry.consts'
 
 describe('CHAIN_REGISTRY derivations match the replaced literals', () => {
     it('EVM_CHAIN_ID_TO_RHINO_NAME', () => {
@@ -68,6 +66,9 @@ describe('CHAIN_REGISTRY derivations match the replaced literals', () => {
             '137': ['USDC', 'USDT'],
             '100': ['USDC', 'USDT'],
             '56': ['BNB', 'USDC', 'USDT'],
+            // Added 2026-07-13 (Hugo): the June curation oversight, fixed —
+            // verified live (quotes ETH/USDC/USDT + SDA create) same day.
+            '8453': ['ETH', 'USDC', 'USDT'],
             '43114': ['USDC', 'USDT'],
             '999': ['USDC', 'USDT'],
             '57073': ['USDC', 'USDT'],
@@ -119,6 +120,8 @@ describe('CHAIN_REGISTRY derivations match the replaced literals', () => {
 
     it('CHAIN_ROLLOUT_FLAGS — every surface key of a flagged chain maps to ONE flag', () => {
         expect(CHAIN_ROLLOUT_FLAGS).toEqual({
+            '8453': 'chain-rollout-base',
+            BASE: 'chain-rollout-base',
             '43114': 'chain-rollout-avalanche',
             '999': 'chain-rollout-hyperevm',
             '57073': 'chain-rollout-ink',

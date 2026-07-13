@@ -86,10 +86,12 @@ const CHAIN_REGISTRY_LITERAL = [
         displayName: 'BASE',
         logoUrl: 'https://assets.coingecko.com/asset_platforms/images/131/standard/base.png?1759905869',
         deposit: {},
-        // NOTE: deliberately NO `withdraw` — Base has never been in the
-        // curated withdraw gate (looks like a June-2026 curation oversight;
-        // Rhino fully supports it). Behavior-preserving refactor: enabling it
-        // is a one-line product decision + verification, not a side effect.
+        // Enabled 2026-07-13 (Hugo): Base was missing from the curated
+        // withdraw gate since June — an oversight, not a decision. Verified
+        // same-day: ARB→BASE quotes OK for ETH/USDC/USDT + outflow SDA
+        // create OK. Rollout-flagged like the other 2026-07 additions.
+        withdraw: { tokens: ['ETH', 'USDC', 'USDT'] },
+        rolloutFlag: 'chain-rollout-base',
     },
     {
         id: '10',
@@ -292,3 +294,51 @@ export type RegistryChainName = Extract<RegistryEntryLiteral, { displayName: str
 /** The registry, widened for iteration (optional props accessible on every
  *  entry). The literal source above keeps the name union type-safe. */
 export const CHAIN_REGISTRY: readonly ChainRegistryEntry[] = CHAIN_REGISTRY_LITERAL
+
+// ─── Derived views ─────────────────────────────────────────────────────────
+// Everything below is COMPUTED from the registry — never hand-edit a chain
+// fact here; edit the entry above.
+
+import type { ChainWithTokens } from '@/interfaces/chain-meta'
+
+/**
+ * Per-chain PostHog rollout flags, keyed by every identifier a chain appears
+ * under (selector id, aliases, deposit display name) so one flag governs all
+ * surfaces of the same chain. See engineering/patterns/feature-gates.md.
+ */
+export const CHAIN_ROLLOUT_FLAGS: Record<string, string> = Object.fromEntries(
+    CHAIN_REGISTRY.filter((c) => c.rolloutFlag).flatMap((c) =>
+        [c.id, ...(c.aliasIds ?? []), ...(c.displayName ? [c.displayName] : [])].map((key) => [key, c.rolloutFlag!])
+    )
+)
+
+/**
+ * Synthetic selector records for non-EVM withdraw destinations (no
+ * chain-details.json entry). The token-selector context merges these so
+ * every selector surface and the price hook resolve them; they stay
+ * invisible outside the withdraw flow (all other network lists are gated by
+ * the wagmi id set, and URL parsing/validation read the server action).
+ */
+export const NON_EVM_WITHDRAW_CHAINS: Record<string, ChainWithTokens> = Object.fromEntries(
+    CHAIN_REGISTRY.filter((c) => c.nonEvmRecord).map((c) => [
+        c.id,
+        {
+            chainId: c.id,
+            networkName: c.nonEvmRecord!.networkName,
+            chainIconURI: c.logoUrl ?? '',
+            tokens: c.nonEvmRecord!.tokens.map((t) => ({
+                chainId: c.id,
+                address: t.address,
+                decimals: t.decimals,
+                name: t.name,
+                symbol: t.symbol,
+                logoURI: t.logoURI,
+                usdPrice: 0,
+            })),
+        },
+    ])
+)
+
+export function isNonEvmWithdrawChainId(chainId: string | number): boolean {
+    return Object.prototype.hasOwnProperty.call(NON_EVM_WITHDRAW_CHAINS, String(chainId).toLowerCase())
+}

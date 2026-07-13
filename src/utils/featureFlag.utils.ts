@@ -1,6 +1,6 @@
 import posthog from 'posthog-js'
 import { BASE_URL } from '@/constants/general.consts'
-import { CHAIN_ROLLOUT_FLAGS } from '@/constants/chainRollout.consts'
+import { CHAIN_ROLLOUT_FLAGS } from '@/constants/chainRegistry.consts'
 
 /**
  * PostHog feature flags — the runtime-toggle primitive (non-reactive reads;

@@ -11,7 +11,7 @@ import {
 } from '@/constants/zerodev.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSupportedChainsAndTokens } from '@/hooks/useSupportedChainsAndTokens'
-import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/nonEvmWithdraw.consts'
+import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/chainRegistry.consts'
 import { useTokenPrice } from '@/hooks/useTokenPrice'
 import { type ITokenPriceData } from '@/interfaces'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
