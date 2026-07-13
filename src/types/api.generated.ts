@@ -6012,6 +6012,7 @@ export interface paths {
                             hasCardAccess: boolean;
                             isEligible: boolean;
                             eligibilityReason?: string;
+                            geoProhibited: boolean;
                             flowEarlyAccess: boolean;
                             waitlistJoinedAt: string | null;
                             waitlistPosition: number | null;
@@ -6402,6 +6403,10 @@ export interface paths {
                                 addressCountry: string | null;
                                 idDocumentCountry: string | null;
                             };
+                        } | {
+                            /** @enum {string} */
+                            status: "geo-blocked";
+                            message: string;
                         } | {
                             status: string;
                             rainUserId?: string;

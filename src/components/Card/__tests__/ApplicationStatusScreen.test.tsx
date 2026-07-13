@@ -57,3 +57,31 @@ describe('ApplicationStatusScreen — rejected', () => {
         expect(onContactSupport).toHaveBeenCalledTimes(1)
     })
 })
+
+describe('ApplicationStatusScreen — geo-blocked', () => {
+    it('renders the regional copy with the reassurance', () => {
+        render(<ApplicationStatusScreen variant="geo-blocked" />)
+        expect(screen.getByText("Cards aren't available in your region yet")).toBeInTheDocument()
+        expect(screen.getByText(/regulatory restrictions.*deposit, withdraw, and pay with crypto/)).toBeInTheDocument()
+    })
+
+    it('never renders a Contact-support CTA — regulation is not a support case', () => {
+        // Even if a caller wires the handler, geo-blocked must not show the
+        // CTA: support cannot override Rain's prohibited-issuance list, so the
+        // button would be a dead end by design. Guards SUPPORT_VARIANTS drift.
+        render(<ApplicationStatusScreen variant="geo-blocked" onContactSupport={jest.fn()} />)
+        expect(screen.queryByText('Contact support')).not.toBeInTheDocument()
+    })
+
+    it('links the Prohibited Activities Policy — the one compliant place the country list is published', () => {
+        render(<ApplicationStatusScreen variant="geo-blocked" />)
+        const link = screen.getByRole('link', { name: 'See which regions are restricted' })
+        expect(link).toHaveAttribute('href', 'https://peanut.me/en/card-prohibited-activities')
+        expect(link).toHaveAttribute('target', '_blank')
+    })
+
+    it('does not show the policy link on other variants', () => {
+        render(<ApplicationStatusScreen variant="rejected" onContactSupport={jest.fn()} />)
+        expect(screen.queryByText('See which regions are restricted')).not.toBeInTheDocument()
+    })
+})

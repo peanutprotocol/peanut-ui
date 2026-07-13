@@ -5,7 +5,7 @@ import { PeanutCrying } from '@/assets/mascot'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
 
-type Variant = 'pending' | 'manual-review' | 'requires-info' | 'requires-support' | 'rejected'
+type Variant = 'pending' | 'manual-review' | 'requires-info' | 'requires-support' | 'rejected' | 'geo-blocked'
 
 interface Props {
     variant: Variant
@@ -41,10 +41,25 @@ const COPY: Record<Variant, { title: string; body: string }> = {
         title: "We couldn't issue you a card",
         body: 'You can still use Peanut freely to deposit, withdraw, and pay with crypto.',
     },
+    'geo-blocked': {
+        // Terminal, nothing support can do (regulatory) — no support CTA.
+        // Same reassurance as `rejected`: the rest of the account still works.
+        title: "Cards aren't available in your region yet",
+        body: "Due to regulatory restrictions, we can't issue cards in your region. You can still use Peanut freely to deposit, withdraw, and pay with crypto.",
+    },
 }
 
 /** Variants where support is the only path forward — these render the CTA. */
 const SUPPORT_VARIANTS: ReadonlySet<Variant> = new Set(['requires-info', 'requires-support', 'rejected'])
+
+/**
+ * The legal policy behind the geo block — §1 "Restricted Countries" lists the
+ * issuance denylist. A LEGAL page on purpose: Rain's marketing-compliance
+ * rules ban country names / eligibility framing in card-marketing surfaces
+ * (help articles included), so this policy page is the one compliant place
+ * the full list is published. Mirrors CardTermsScreen's absolute-URL pattern.
+ */
+const PROHIBITED_ACTIVITIES_POLICY_URL = 'https://peanut.me/en/card-prohibited-activities'
 
 const ApplicationStatusScreen: FC<Props> = ({ variant, reasonMessage, onContactSupport, onPrev }) => {
     const copy = COPY[variant]
@@ -53,7 +68,7 @@ const ApplicationStatusScreen: FC<Props> = ({ variant, reasonMessage, onContactS
             <NavHeader title="Add card" onPrev={onPrev} />
             <div className="my-auto flex flex-col items-center gap-6 text-center">
                 {variant === 'pending' && <Loading />}
-                {(variant === 'rejected' || variant === 'requires-support') && (
+                {(variant === 'rejected' || variant === 'requires-support' || variant === 'geo-blocked') && (
                     <Image
                         src={PeanutCrying.src}
                         unoptimized
@@ -69,6 +84,16 @@ const ApplicationStatusScreen: FC<Props> = ({ variant, reasonMessage, onContactS
                     {reasonMessage && <p className="text-grey-1">{reasonMessage}</p>}
                     <p className="text-grey-1">{copy.body}</p>
                 </div>
+                {variant === 'geo-blocked' && (
+                    <a
+                        href={PROHIBITED_ACTIVITIES_POLICY_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-black underline"
+                    >
+                        See which regions are restricted
+                    </a>
+                )}
                 {SUPPORT_VARIANTS.has(variant) && onContactSupport && (
                     <button type="button" onClick={onContactSupport} className="text-black underline">
                         Contact support

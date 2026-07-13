@@ -305,6 +305,12 @@ export type ApplyForCardResponse =
           message: string
       }
     | {
+          // Residence country is on Rain's prohibited-issuance list —
+          // terminal. Render the geo-blocked screen; no retry, no support CTA.
+          status: 'geo-blocked'
+          message: string
+      }
+    | {
           status: string
           rainUserId?: string
           message: string
