@@ -1,6 +1,7 @@
 import { validateInviteCode } from '@/app/actions/invites'
 import { serverFetch } from '@/utils/api-fetch'
 import { toInviteCode } from '@/utils/general.utils'
+import { isCapacitor } from '@/utils/capacitor'
 import { enableDemoMode, isDemoInviteCode } from '@/utils/demo'
 import { EInviteType, type PointsInvitesResponse } from './services.types'
 
@@ -47,7 +48,7 @@ export const invitesApi = {
         try {
             const res = await validateInviteCode(toInviteCode(inviteCode))
             // demo code enables demo mode.
-            if (res.data?.success && isDemoInviteCode(inviteCode)) {
+            if (res.data?.success && isCapacitor() && isDemoInviteCode(inviteCode)) {
                 enableDemoMode()
             }
             return {

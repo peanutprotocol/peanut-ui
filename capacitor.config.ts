@@ -33,6 +33,11 @@ const config: CapacitorConfig = {
             responseTimeout: 30,
             autoDeleteFailed: true,
             autoDeletePrevious: true,
+            // E2E signing: bundles are encrypted/signed with the private key
+            // (.capgo_key_v2, CI secret only) and verified on-device with this
+            // public key, so only we can ship an OTA the app will accept.
+            publicKey:
+                '-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAr0HzEca/1vuvWcJ8/xYB6tx0j4uJMzw/kT34GnjyMlRmLLUIO9sj\nroXaUGaNoqlOCx73b7Qgp10TLPOAVxmoHV9ZJ4BS9cMCl5mvzB4qIdl6FZLcl3g5\nk5Nkj4w22nskqbBqL7eqMXpk4DD9oWRclnaZC/lCpok1n2AWy4EMZrshemBQ6iXr\ncppo+WByPbqmh/GbHvJyRvkx4Rgt2LSBJBI3laP3eEDkujCq1ZH9qgcIE4MXO5xq\n7c6LsLjN5wkQiNPSPI81zAbqBThhqodKzwav0FwIE1pyiJeGk1nV5Ji5kUgpFNwY\nY78iDVq4OP2jPfWO4jXnnJtnGN7aeKDMEQIDAQAB\n-----END RSA PUBLIC KEY-----\n',
         },
         CapacitorHttp: {
             enabled: true,

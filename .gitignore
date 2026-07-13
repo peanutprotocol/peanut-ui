@@ -100,8 +100,9 @@ e2e/.auth/
 keystore.properties
 .env.production.local
 
-# capgo ota signing key
+# capgo ota signing keys — private key is a CI secret; public key lives in capacitor.config.ts
 .capgo_key_v2
+.capgo_key_v2.pub
 test-results/
 coverage/
 
