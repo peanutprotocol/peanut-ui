@@ -2,9 +2,7 @@
 
 import Modal from '@/components/Global/Modal'
 import InfoCard from '@/components/Global/InfoCard'
-import ChainChip from './ChainChip'
-import { SUPPORTED_EVM_CHAINS, CHAIN_LOGOS, EVM_DEPOSIT_TOKEN_EXCEPTIONS } from '@/constants/rhino.consts'
-import { useChainRollout } from '@/hooks/useChainRollout'
+import EvmChainChips from './EvmChainChips'
 
 interface SupportedNetworksModalProps {
     visible: boolean
@@ -12,7 +10,6 @@ interface SupportedNetworksModalProps {
 }
 
 const SupportedNetworksModal = ({ visible, onClose }: SupportedNetworksModalProps) => {
-    const isChainRolledOut = useChainRollout()
     return (
         <Modal
             visible={visible}
@@ -27,11 +24,7 @@ const SupportedNetworksModal = ({ visible, onClose }: SupportedNetworksModalProp
                 </p>
 
                 <div className="flex flex-wrap gap-2">
-                    {SUPPORTED_EVM_CHAINS.filter(isChainRolledOut).map((chain) => {
-                        const tokenException = EVM_DEPOSIT_TOKEN_EXCEPTIONS[chain]
-                        const label = tokenException ? `${chain} · ${tokenException.join('/')} only` : chain
-                        return <ChainChip key={chain} chainName={label} chainSymbol={CHAIN_LOGOS[chain]} />
-                    })}
+                    <EvmChainChips />
                 </div>
 
                 <InfoCard

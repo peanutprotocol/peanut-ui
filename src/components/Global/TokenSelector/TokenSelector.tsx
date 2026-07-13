@@ -33,7 +33,6 @@ import {
     TOKEN_SELECTOR_POPULAR_NETWORK_IDS,
     TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS,
 } from './TokenSelector.consts'
-import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/nonEvmWithdraw.consts'
 import { useChainRollout } from '@/hooks/useChainRollout'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -91,21 +90,12 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     // state for image loading errors
     const [buttonImageError, setButtonImageError] = useState(false)
     const {
-        supportedChainsAndTokens: contextChainsAndTokens,
+        supportedChainsAndTokens,
         setSelectedTokenAddress,
         setSelectedChainID,
         selectedTokenAddress,
         selectedChainID,
     } = useContext(tokenSelectorContext)
-
-    // Withdraw mode also offers non-EVM destinations (Solana/Tron) that have
-    // no chain-details entry — merge their synthetic records so every internal
-    // lookup (network list, token list, button display) resolves them. Other
-    // modes must NOT see them: sources/claims assume EVM addresses + wagmi.
-    const supportedChainsAndTokens = useMemo(
-        () => (restrictToRhino ? { ...contextChainsAndTokens, ...NON_EVM_WITHDRAW_CHAINS } : contextChainsAndTokens),
-        [contextChainsAndTokens, restrictToRhino]
-    )
 
     // drawer utility functions
     const openDrawer = useCallback(() => setIsDrawerOpen(true), [])

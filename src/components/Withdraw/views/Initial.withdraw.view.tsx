@@ -11,12 +11,10 @@ import { type ITokenPriceData } from '@/interfaces'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { formatAmount } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
-import { useContext, useEffect } from 'react'
+import { useContext, useEffect, useMemo, useRef } from 'react'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
-import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/nonEvmWithdraw.consts'
 import { addressFamilyForChainId } from '@/lib/validation/addressFamily'
-import { useMemo, useRef } from 'react'
 
 interface InitialWithdrawViewProps {
     amount: string
@@ -60,9 +58,9 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
     }, [addressFamily, setRecipient, setIsValidRecipient])
 
     const handleReview = () => {
-        // Solana/Tron have no chain-details entry — resolve from the synthetic
-        // non-EVM records the withdraw selector also uses.
-        const xchainChainData = supportedChainsAndTokens[selectedChainID] ?? NON_EVM_WITHDRAW_CHAINS[selectedChainID]
+        // Context record already includes the synthetic non-EVM withdraw
+        // destinations (merged once in tokenSelector.context).
+        const xchainChainData = supportedChainsAndTokens[selectedChainID]
         // supportedChainsAndTokens may not list the Peanut wallet chain on
         // testnets / env-configured chains. Synthesize a minimal entry so the
         // same-chain (no-bridge) path can proceed.

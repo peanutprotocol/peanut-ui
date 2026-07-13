@@ -2,13 +2,8 @@
 
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/Global/Drawer'
 import { ActionListCard } from '@/components/ActionListCard'
-import ChainChip from './ChainChip'
-import {
-    CHAIN_LOGOS,
-    SUPPORTED_EVM_CHAINS,
-    getSupportedTokens,
-    EVM_DEPOSIT_TOKEN_EXCEPTIONS,
-} from '@/constants/rhino.consts'
+import EvmChainChips from './EvmChainChips'
+import { CHAIN_LOGOS, SUPPORTED_EVM_CHAINS, getSupportedTokens } from '@/constants/rhino.consts'
 import { useChainRollout } from '@/hooks/useChainRollout'
 import type { RhinoChainType } from '@/services/services.types'
 import Image from 'next/image'
@@ -20,7 +15,10 @@ interface ChooseNetworkDrawerProps {
 }
 
 const ChooseNetworkDrawer = ({ open, onClose, onSelect }: ChooseNetworkDrawerProps) => {
+    // Count only rolled-out chains — the chips below are gated the same way,
+    // and "12 Networks" above 10 visible chips would be a lie.
     const isChainRolledOut = useChainRollout()
+    const evmChainCount = SUPPORTED_EVM_CHAINS.filter(isChainRolledOut).length
     return (
         <Drawer open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
             <DrawerContent className="pt-4">
@@ -34,7 +32,7 @@ const ChooseNetworkDrawer = ({ open, onClose, onSelect }: ChooseNetworkDrawerPro
                     <div className="overflow-hidden rounded-t-sm border border-black bg-white ">
                         <ActionListCard
                             title="EVM"
-                            description={`${SUPPORTED_EVM_CHAINS.length} Networks - 1 Address`}
+                            description={`${evmChainCount} Networks - 1 Address`}
                             position="single"
                             className="border-0"
                             leftIcon={
@@ -51,11 +49,7 @@ const ChooseNetworkDrawer = ({ open, onClose, onSelect }: ChooseNetworkDrawerPro
                         {/* expanded chain list */}
                         <div onClick={() => onSelect('EVM')} className="mx-4 border-t border-dashed border-black py-3">
                             <div className="flex flex-wrap gap-2">
-                                {SUPPORTED_EVM_CHAINS.filter(isChainRolledOut).map((chain) => {
-                                    const tokenException = EVM_DEPOSIT_TOKEN_EXCEPTIONS[chain]
-                                    const label = tokenException ? `${chain} · ${tokenException.join('/')} only` : chain
-                                    return <ChainChip key={chain} chainName={label} chainSymbol={CHAIN_LOGOS[chain]} />
-                                })}
+                                <EvmChainChips />
                             </div>
                         </div>
                     </div>
