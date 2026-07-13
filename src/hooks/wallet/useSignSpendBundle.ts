@@ -8,24 +8,15 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
-import {
-    RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
-    RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
-    rainCoordinatorAbi,
-    rainWithdrawEip712Types,
-} from '@/constants/rain.consts'
+import { rainCoordinatorAbi } from '@/constants/rain.consts'
+import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
+import { useZeroDev } from '@/hooks/useZeroDev'
+import { useModalsContextOptional } from '@/context/ModalsContext'
 import { rainApi, type RainCollateralKind } from '@/services/rain'
-import { findActiveCard } from '@/components/Card/cardState.utils'
-import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
-import { useGrantSessionKey, type GrantSessionKeyError } from './useGrantSessionKey'
+import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { useGrantSessionKey } from './useGrantSessionKey'
 import { useSignUserOp, type SignedUserOpData } from './useSignUserOp'
-import {
-    computeSpendStrategy,
-    fetchLiveSmartUsdcBalance,
-    InsufficientSpendableError,
-    SessionKeyGrantRequiredError,
-    type SpendStrategy,
-} from './useSpendBundle'
+import { resolveSpendStrategy, runCollateralSpendPreflight, type SpendStrategy } from './spendPreflight'
 import { usdcUnitsToRainCents } from '@/utils/balance.utils'
 
 /**
@@ -100,7 +91,9 @@ export interface SignSpendBundleInput {
  */
 
 export const useSignSpendBundle = () => {
-    const { getClientForChain } = useKernelClient()
+    const { getClientForChain, rebuildClientForChain } = useKernelClient()
+    const { handleSendUserOpEncoded } = useZeroDev()
+    const modals = useModalsContextOptional()
     const { signCallsUserOp } = useSignUserOp()
     const { overview } = useRainCardOverview()
     const { grant } = useGrantSessionKey()
@@ -127,186 +120,171 @@ export const useSignSpendBundle = () => {
             // send the UserOp — never a cached value (see fetchLiveSmartUsdcBalance).
             // A stale, pre-sweep balance routes `smart-only` to an empty account
             // and reverts on-chain (incident #2230).
-            const smartBalance = await fetchLiveSmartUsdcBalance(queryClient, kernelAccount.address)
-
             // Manteca-style flows always have a single recipient and no
             // subsequent kernel calls — collateral-only is always eligible.
-            const strategy = computeSpendStrategy({
-                smart: smartBalance,
-                rain: rainSpendingPower,
-                amount: requiredUsdcAmount,
+            const { strategy, smartBalance } = await resolveSpendStrategy({
+                queryClient,
+                accountAddress: kernelAccount.address,
+                requiredUsdcAmount,
+                rainSpendingPower,
                 collateralOnlyAllowed: true,
+                flow: 'sign-only',
             })
-            if (strategy === 'insufficient') {
-                posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
-                    strategy: 'insufficient',
-                    error_kind: 'insufficient',
-                    flow: 'sign-only',
-                })
-                // Passed the FE display gate but the live balance can't cover it yet
-                // (in-transit collateral not landed / ~30s-stale FE). Refresh the Rain
-                // overview so the displayed balance + a retry reflect reality.
-                queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
-                throw new InsufficientSpendableError()
-            }
 
             onStrategyDecided?.(strategy)
             posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, { strategy, kind, flow: 'sign-only' })
 
-            // Pre-flight: any strategy that touches Rain collateral requires
-            // the one-time session-key grant. If missing, run the inline grant
-            // flow now. Reject when the overview hasn't loaded yet — we can't
-            // tell whether the grant was already given, and signing
-            // optimistically would crash on the backend submission.
-            const touchesCollateral = strategy === 'collateral-only' || strategy === 'mixed'
-            if (touchesCollateral) {
-                if (!overview) {
-                    throw new SessionKeyGrantRequiredError({ kind: 'unexpected' } as GrantSessionKeyError)
+            // Failure-capture parity with useSpendBundle's catch: without this,
+            // a failed migration/grant/signing in the sign-then-broadcast flow
+            // emits `attempted` with no terminal event and the funnel lies.
+            try {
+                // Shared collateral pre-flights (root-validator migration gate +
+                // session-key grant) — ONE ordered sequence for both spend engines;
+                // see runCollateralSpendPreflight. Every signature below MUST come
+                // from the account it returns. requireOverview: this engine can't
+                // tell whether the grant exists while the overview is loading, and
+                // signing optimistically would crash on the backend submission.
+                const activeClient = await runCollateralSpendPreflight({
+                    strategy,
+                    kind,
+                    kernelClient,
+                    overview,
+                    requireOverview: true,
+                    grant,
+                    onGrantRequired,
+                    sendNoopUserOp: (call) => handleSendUserOpEncoded([call], chainIdStr),
+                    rebuildClient: () => rebuildClientForChain(chainIdStr),
+                    setSecurityOverlay: modals?.setIsSecurityVerificationOpen,
+                    migrationTrigger: 'sign-spend',
+                })
+                const activeAccount = activeClient.account
+                if (!activeAccount) {
+                    throw new Error('useSignSpendBundle: kernel account not initialized after preflight')
                 }
-                const card = findActiveCard(overview)
-                if (card && !card.hasWithdrawApproval) {
-                    onGrantRequired?.()
-                    const grantResult = await grant()
-                    if (!grantResult.ok) {
-                        throw new SessionKeyGrantRequiredError(grantResult.error as GrantSessionKeyError)
+
+                // ─── smart-only ─────────────────────────────────────────────────
+                if (strategy === 'smart-only') {
+                    const transferData = encodeFunctionData({
+                        abi: erc20Abi,
+                        functionName: 'transfer',
+                        args: [recipient, requiredUsdcAmount],
+                    })
+                    const signedUserOp = await signCallsUserOp(
+                        [{ to: PEANUT_WALLET_TOKEN as Hex, value: 0n, data: transferData }],
+                        chainIdStr
+                    )
+                    return { strategy, signedUserOp }
+                }
+
+                // ─── collateral-only ────────────────────────────────────────────
+                // Only sign the admin EIP-712 — backend submits the withdrawal via
+                // the user's session-key UserOp (1 tap total).
+                if (strategy === 'collateral-only') {
+                    const prep = await rainApi.prepareWithdrawal({
+                        amount: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
+                        recipientAddress: recipient,
+                        directTransfer: true,
+                        kind,
+                    })
+
+                    const adminSignature = (await activeAccount.signTypedData(
+                        buildRainWithdrawTypedData(prep, chainIdNum)
+                    )) as Hex
+
+                    return {
+                        strategy,
+                        rainWithdrawal: {
+                            preparationId: prep.preparationId,
+                            amount: prep.amount,
+                            recipientAddress: prep.recipientAddress as Address,
+                            directTransfer: prep.directTransfer,
+                            adminSalt: prep.adminSalt as Hex,
+                            adminNonce: prep.adminNonce,
+                            adminSignature,
+                            executorSignature: prep.executorSignature,
+                            executorSalt: prep.executorSalt,
+                            expiresAt: prep.expiresAt,
+                        },
                     }
                 }
-            }
 
-            // ─── smart-only ─────────────────────────────────────────────────
-            if (strategy === 'smart-only') {
-                const transferData = encodeFunctionData({
-                    abi: erc20Abi,
-                    functionName: 'transfer',
-                    args: [recipient, requiredUsdcAmount],
-                })
-                const signedUserOp = await signCallsUserOp(
-                    [{ to: PEANUT_WALLET_TOKEN as Hex, value: 0n, data: transferData }],
-                    chainIdStr
-                )
-                return { strategy, signedUserOp }
-            }
+                // ─── mixed ──────────────────────────────────────────────────────
+                // Pull the shortfall from collateral into the smart account, then
+                // forward the full amount to the recipient — one atomic UserOp,
+                // signed without broadcasting. Two passkey taps (admin sig + UserOp).
+                // Use the kernel account's own address as the admin recipient (the
+                // address we sign FROM) instead of re-deriving from useAuth.
+                const adminAddress = kernelAccount.address as Address
 
-            // ─── collateral-only ────────────────────────────────────────────
-            // Only sign the admin EIP-712 — backend submits the withdrawal via
-            // the user's session-key UserOp (1 tap total).
-            if (strategy === 'collateral-only') {
+                const shortfall = requiredUsdcAmount - smartBalance
                 const prep = await rainApi.prepareWithdrawal({
-                    amount: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
-                    recipientAddress: recipient,
-                    directTransfer: true,
+                    amount: usdcUnitsToRainCents(shortfall).toString(),
+                    // directTransfer=false sends tokens to the admin (kernel). Same
+                    // semantics as broadcasting useSpendBundle.spend's mixed path.
+                    recipientAddress: adminAddress,
+                    directTransfer: false,
                     kind,
+                    totalAmountCents: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                 })
 
-                const adminSignature = (await kernelAccount.signTypedData({
-                    domain: {
-                        name: RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
-                        version: RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
-                        chainId: chainIdNum,
-                        verifyingContract: prep.collateralProxy as Address,
-                        salt: prep.adminSalt as Hex,
-                    },
-                    types: rainWithdrawEip712Types,
-                    primaryType: 'Withdraw',
-                    message: {
-                        user: prep.adminAddress as Address,
-                        asset: prep.tokenAddress as Address,
-                        amount: BigInt(prep.amount),
-                        recipient: prep.recipientAddress as Address,
-                        nonce: BigInt(prep.adminNonce),
-                    },
-                })) as Hex
+                const adminSignature = (await activeAccount.signTypedData(
+                    buildRainWithdrawTypedData(prep, chainIdNum)
+                )) as Hex
 
-                return {
-                    strategy,
-                    rainWithdrawal: {
-                        preparationId: prep.preparationId,
-                        amount: prep.amount,
-                        recipientAddress: prep.recipientAddress as Address,
-                        directTransfer: prep.directTransfer,
-                        adminSalt: prep.adminSalt as Hex,
-                        adminNonce: prep.adminNonce,
-                        adminSignature,
-                        executorSignature: prep.executorSignature,
-                        executorSalt: prep.executorSalt,
-                        expiresAt: prep.expiresAt,
-                    },
+                const withdrawCall = {
+                    to: prep.coordinatorAddress as Hex,
+                    value: 0n,
+                    data: encodeFunctionData({
+                        abi: rainCoordinatorAbi,
+                        functionName: 'withdrawAsset',
+                        args: [
+                            prep.collateralProxy as Address,
+                            prep.tokenAddress as Address,
+                            BigInt(prep.amount),
+                            prep.recipientAddress as Address,
+                            BigInt(prep.expiresAt),
+                            prep.executorSalt as Hex,
+                            prep.executorSignature as Hex,
+                            [prep.adminSalt as Hex],
+                            [adminSignature],
+                            prep.directTransfer,
+                        ],
+                    }),
                 }
+
+                const transferCall = {
+                    to: PEANUT_WALLET_TOKEN as Hex,
+                    value: 0n,
+                    data: encodeFunctionData({
+                        abi: erc20Abi,
+                        functionName: 'transfer',
+                        args: [recipient, requiredUsdcAmount],
+                    }),
+                }
+
+                const signedUserOp = await signCallsUserOp([withdrawCall, transferCall], chainIdStr)
+                return { strategy, signedUserOp, rainPreparationId: prep.preparationId }
+            } catch (e) {
+                posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
+                    strategy,
+                    kind,
+                    flow: 'sign-only',
+                    error_kind: (e as Error)?.name ?? 'unknown',
+                    error_message: (e as Error)?.message,
+                })
+                throw e
             }
-
-            // ─── mixed ──────────────────────────────────────────────────────
-            // Pull the shortfall from collateral into the smart account, then
-            // forward the full amount to the recipient — one atomic UserOp,
-            // signed without broadcasting. Two passkey taps (admin sig + UserOp).
-            // Use the kernel account's own address as the admin recipient (the
-            // address we sign FROM) instead of re-deriving from useAuth.
-            const adminAddress = kernelAccount.address as Address
-
-            const shortfall = requiredUsdcAmount - smartBalance
-            const prep = await rainApi.prepareWithdrawal({
-                amount: usdcUnitsToRainCents(shortfall).toString(),
-                // directTransfer=false sends tokens to the admin (kernel). Same
-                // semantics as broadcasting useSpendBundle.spend's mixed path.
-                recipientAddress: adminAddress,
-                directTransfer: false,
-                kind,
-                totalAmountCents: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
-            })
-
-            const adminSignature = (await kernelAccount.signTypedData({
-                domain: {
-                    name: RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
-                    version: RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
-                    chainId: chainIdNum,
-                    verifyingContract: prep.collateralProxy as Address,
-                    salt: prep.adminSalt as Hex,
-                },
-                types: rainWithdrawEip712Types,
-                primaryType: 'Withdraw',
-                message: {
-                    user: prep.adminAddress as Address,
-                    asset: prep.tokenAddress as Address,
-                    amount: BigInt(prep.amount),
-                    recipient: prep.recipientAddress as Address,
-                    nonce: BigInt(prep.adminNonce),
-                },
-            })) as Hex
-
-            const withdrawCall = {
-                to: prep.coordinatorAddress as Hex,
-                value: 0n,
-                data: encodeFunctionData({
-                    abi: rainCoordinatorAbi,
-                    functionName: 'withdrawAsset',
-                    args: [
-                        prep.collateralProxy as Address,
-                        prep.tokenAddress as Address,
-                        BigInt(prep.amount),
-                        prep.recipientAddress as Address,
-                        BigInt(prep.expiresAt),
-                        prep.executorSalt as Hex,
-                        prep.executorSignature as Hex,
-                        [prep.adminSalt as Hex],
-                        [adminSignature],
-                        prep.directTransfer,
-                    ],
-                }),
-            }
-
-            const transferCall = {
-                to: PEANUT_WALLET_TOKEN as Hex,
-                value: 0n,
-                data: encodeFunctionData({
-                    abi: erc20Abi,
-                    functionName: 'transfer',
-                    args: [recipient, requiredUsdcAmount],
-                }),
-            }
-
-            const signedUserOp = await signCallsUserOp([withdrawCall, transferCall], chainIdStr)
-            return { strategy, signedUserOp, rainPreparationId: prep.preparationId }
         },
-        [getClientForChain, signCallsUserOp, overview, grant, queryClient]
+        [
+            getClientForChain,
+            rebuildClientForChain,
+            handleSendUserOpEncoded,
+            modals,
+            signCallsUserOp,
+            overview,
+            grant,
+            queryClient,
+        ]
     )
 
     return { signSpend }

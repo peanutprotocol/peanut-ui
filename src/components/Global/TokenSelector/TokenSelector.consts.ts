@@ -1,7 +1,8 @@
 import { SOLANA_ICON, TRON_ICON } from '@/assets'
 import { networks } from '@/config'
+import { CHAIN_REGISTRY } from '@/constants/chainRegistry.consts'
 import type { IPeanutChainDetails, IToken } from '@/interfaces/interfaces'
-import { celo, linea, worldchain } from 'viem/chains'
+import { celo, linea, scroll, worldchain } from 'viem/chains'
 
 interface CombinedType extends IPeanutChainDetails {
     tokens: IToken[]
@@ -69,7 +70,9 @@ export const TOKEN_SELECTOR_POPULAR_NETWORK_IDS = [
     },
 ]
 
-const networksToExclude: readonly number[] = [celo.id, linea.id, worldchain.id] as const
+// scroll excluded 2026-07-10: Rhino disabled it entirely, and Scroll isn't an
+// SDA deposit chain either, so every cross-chain route from it dead-ends.
+const networksToExclude: readonly number[] = [celo.id, linea.id, scroll.id, worldchain.id] as const
 
 // supported network ids for the network list, getting this from reown appkit config
 export const TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS = networks
@@ -92,12 +95,12 @@ export const TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS = networks
  *   BNB Chain is supported.
  * - EVM only (the withdraw flow uses 0x addresses); matches the current
  *   selectable chain set rather than every Rhino chain.
+ * - 2026-07-10 expansion: each new chain verified against Rhino prod with a real
+ *   ARBITRUM→X quote AND an outflow SDA create (see PR #2396). Stablecoins only
+ *   for the new chains — that's what was tested. Plasma/Stable are USDT-only on
+ *   Rhino. KAIA/opBNB deliberately absent: quotes pass but SDA create rejects
+ *   (DepositAddressTokenOutNotSupported).
  */
-export const RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN: Record<string, readonly string[]> = {
-    '42161': ['ETH', 'USDC', 'USDT'], // Arbitrum
-    '1': ['ETH', 'USDC', 'USDT'], // Ethereum
-    '10': ['ETH', 'USDC', 'USDT'], // Optimism
-    '137': ['USDC', 'USDT'], // Polygon (native POL not bridged by Rhino)
-    '100': ['USDC', 'USDT'], // Gnosis (native xDAI not bridged by Rhino)
-    '56': ['BNB', 'USDC', 'USDT'], // BNB Chain
-}
+export const RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN: Record<string, readonly string[]> = Object.fromEntries(
+    CHAIN_REGISTRY.filter((c) => c.withdraw).map((c) => [c.id, c.withdraw!.tokens])
+)

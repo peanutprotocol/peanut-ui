@@ -30,7 +30,9 @@ export interface SdaTransferRequest {
     /** Rhino chain name (e.g. ARBITRUM, BASE). */
     depositChain: string
     destinationChain: string
-    destinationAddress: Address
+    /** 0x for EVM destinations, base58 for Solana/Tron — the BE forwards it
+     *  to Rhino, which validates per destination chain. */
+    destinationAddress: string
     tokenOut: RhinoSupportedToken
     senderPeanutWalletAddress?: Address
     /**

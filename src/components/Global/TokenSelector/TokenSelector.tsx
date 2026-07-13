@@ -39,6 +39,7 @@ import {
     TOKEN_SELECTOR_POPULAR_NETWORK_IDS,
     TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS,
 } from './TokenSelector.consts'
+import { useChainRollout } from '@/hooks/useChainRollout'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 
@@ -141,7 +142,13 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     // selected network name memo, being used ui
     const selectedNetworkName = useMemo(() => {
         if (!selectedChainID) return null
-        return getChainName(selectedChainID) || `Chain ${selectedChainID}`
+        // record first — non-EVM slugs ('solana'/'tron') aren't in the
+        // chain-details-backed getChainName lookup
+        return (
+            supportedChainsAndTokens?.[selectedChainID]?.networkName ||
+            getChainName(selectedChainID) ||
+            `Chain ${selectedChainID}`
+        )
     }, [selectedChainID, supportedChainsAndTokens])
 
     const peanutWalletTokenDetails = useMemo(() => {
@@ -179,14 +186,22 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         }
     }
 
+    // Withdraw destinations are gated by what Rhino can DELIVER to
+    // (RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN), not by the wagmi source-chain
+    // list — the destination needs no wallet connection or balance reads, and
+    // several deliverable chains (Avalanche, Linea, Ink, …) are intentionally
+    // not source chains. Names/icons come from supportedChainsAndTokens.
+    // Per-chain rollout flags (PostHog) gate the newly-added withdraw
+    // destinations on prod so marketing can launch chains one by one.
+    const isChainRolledOut = useChainRollout()
     const allowedChainIds = useMemo(
         () =>
             new Set(
                 restrictToRhino
-                    ? TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS.filter((id) => RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN[id])
+                    ? Object.keys(RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN).filter(isChainRolledOut)
                     : TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS
             ),
-        [restrictToRhino]
+        [restrictToRhino, isChainRolledOut]
     )
 
     const popularChainsForButtons = useMemo(() => {
@@ -315,9 +330,11 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         }
 
         if (searchValue) {
-            // search active: show searched token across ALL supported networks.
-            // No USDC fallback here — let the "no matching tokens" empty state show.
-            return buildTokensForChainArray(TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS, searchValue)
+            // search active: show searched token across all networks selectable
+            // in this mode — the Rhino destination set for withdraw (which
+            // includes destination-only chains like Linea/Avalanche), the wagmi
+            // source list otherwise.
+            return buildTokensForChainArray(Array.from(allowedChainIds), searchValue)
         }
 
         const result = selectedChainID
@@ -336,6 +353,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         isCrossChainDisabled,
         restrictToRhino,
         isRhinoSupported,
+        allowedChainIds,
     ])
 
     // filter popular tokens by search
@@ -447,7 +465,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                 setSearchValue={setNetworkSearchValue}
                                 selectedChainID={selectedChainID}
                                 allowedChainIds={allowedChainIds}
-                                comingSoonNetworks={TOKEN_SELECTOR_COMING_SOON_NETWORKS}
+                                comingSoonNetworks={restrictToRhino ? [] : TOKEN_SELECTOR_COMING_SOON_NETWORKS}
                             />
                         ) : (
                             <div className="relative flex flex-col space-y-4">

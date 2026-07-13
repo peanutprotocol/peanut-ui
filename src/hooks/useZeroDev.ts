@@ -267,6 +267,10 @@ export const useZeroDev = () => {
             } catch (error) {
                 console.error('Error waiting for UserOp receipt:', error)
                 captureException(error)
+                // Reset the loading banner too — callers that treat a null
+                // receipt as a failure (migration gate) would otherwise leave
+                // the UI stuck on 'Executing transaction'.
+                setLoadingState('Idle')
                 dispatch(zerodevActions.setIsSendingUserOp(false))
                 return {
                     userOpHash,

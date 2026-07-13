@@ -1,5 +1,5 @@
 'use client'
-import React, { createContext, useState, useCallback, useEffect } from 'react'
+import React, { createContext, useState, useCallback, useEffect, useMemo } from 'react'
 
 import {
     PEANUT_WALLET_CHAIN,
@@ -11,6 +11,7 @@ import {
 } from '@/constants/zerodev.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSupportedChainsAndTokens } from '@/hooks/useSupportedChainsAndTokens'
+import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/chainRegistry.consts'
 import { useTokenPrice } from '@/hooks/useTokenPrice'
 import { type ITokenPriceData } from '@/interfaces'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
@@ -73,7 +74,19 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [devconnectRecipientAddress, setDevconnectRecipientAddress] = useState<string>('')
 
     // Fetch supported chains and tokens (cached for 24 hours - static data)
-    const { data: supportedChainsAndTokens = {} } = useSupportedChainsAndTokens()
+    const { data: fetchedChainsAndTokens = {} } = useSupportedChainsAndTokens()
+
+    // Merge the synthetic non-EVM withdraw destinations (Solana/Tron) here —
+    // the ONE record every selector surface AND the price hook read, so
+    // selectedTokenData resolves for them (stablecoin $1 branch) and no
+    // consumer needs its own merge/fallback. They stay invisible outside the
+    // withdraw flow: every network list is gated by allowedChainIds (the
+    // wagmi id set everywhere except withdraw), and URL parsing/validation
+    // read the server action, not this context.
+    const supportedChainsAndTokens = useMemo(
+        () => ({ ...fetchedChainsAndTokens, ...NON_EVM_WITHDRAW_CHAINS }),
+        [fetchedChainsAndTokens]
+    )
 
     // Fetch token price using TanStack Query (replaces manual useEffect + state)
     const {

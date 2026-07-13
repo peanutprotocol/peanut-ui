@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import type { Address, Hex } from 'viem'
+import type { Hex } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import ErrorAlert from '@/components/Global/ErrorAlert'
@@ -9,11 +9,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import {
-    RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
-    RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
-    rainWithdrawEip712Types,
-} from '@/constants/rain.consts'
+import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { rainApi, type RecoverFundsPreviewResponse } from '@/services/rain'
 import { getExplorerUrl } from '@/utils/general.utils'
@@ -82,24 +78,9 @@ export default function CardRecoveryPage() {
             const chainIdNum = Number(prep.chainId)
             const kernelClient = getClientForChain(chainIdStr)
 
-            const adminSignature = (await kernelClient.account!.signTypedData({
-                domain: {
-                    name: RAIN_WITHDRAW_EIP712_DOMAIN_NAME,
-                    version: RAIN_WITHDRAW_EIP712_DOMAIN_VERSION,
-                    chainId: chainIdNum,
-                    verifyingContract: prep.collateralProxy as Address,
-                    salt: prep.adminSalt as Hex,
-                },
-                types: rainWithdrawEip712Types,
-                primaryType: 'Withdraw',
-                message: {
-                    user: prep.adminAddress as Address,
-                    asset: prep.tokenAddress as Address,
-                    amount: BigInt(prep.amount),
-                    recipient: prep.recipientAddress as Address,
-                    nonce: BigInt(prep.adminNonce),
-                },
-            })) as Hex
+            const adminSignature = (await kernelClient.account!.signTypedData(
+                buildRainWithdrawTypedData(prep, chainIdNum)
+            )) as Hex
 
             setStep('submitting')
             const { txHash: hash } = await rainApi.submitWithdrawal({

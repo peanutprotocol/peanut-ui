@@ -7,6 +7,7 @@ import * as Senty from '@sentry/nextjs'
 import { useCallback, useRef } from 'react'
 import { isIBAN } from 'validator'
 import { validateAndResolveRecipient } from '@/lib/validation/recipient'
+import { isValidAddressForFamily, type WithdrawAddressFamily } from '@/lib/validation/addressFamily'
 import { BASE_URL } from '@/constants/general.consts'
 
 type GeneralRecipientInputProps = {
@@ -17,6 +18,10 @@ type GeneralRecipientInputProps = {
     infoText?: string
     showInfoText?: boolean
     isWithdrawal?: boolean
+    /** Address family of the selected withdraw destination ('evm' default).
+     *  Solana/Tron short-circuit the IBAN/US-routing/ENS branches — a base58
+     *  address is the only valid input for them. */
+    addressFamily?: WithdrawAddressFamily
 }
 
 export type GeneralRecipientUpdate = {
@@ -35,6 +40,7 @@ const GeneralRecipientInput = ({
     infoText,
     showInfoText = true,
     isWithdrawal = false,
+    addressFamily = 'evm',
 }: GeneralRecipientInputProps) => {
     const recipientType = useRef<RecipientType>('address')
     const errorMessage = useRef('')
@@ -49,6 +55,19 @@ const GeneralRecipientInput = ({
                 // trim the input and remove URL prefix if present
                 const trimmedInput = recipient.trim().replace(`${BASE_URL}/`, '')
                 const sanitizedInput = sanitizeBankAccount(trimmedInput)
+
+                // Non-EVM destination: base58 address or nothing — never IBAN,
+                // US-routing, ENS, or username.
+                if (addressFamily !== 'evm') {
+                    const familyValid = isValidAddressForFamily(trimmedInput, addressFamily)
+                    if (familyValid) {
+                        resolvedAddress.current = trimmedInput
+                    } else {
+                        errorMessage.current = `Invalid ${addressFamily === 'solana' ? 'Solana' : 'Tron'} address`
+                    }
+                    recipientType.current = 'address'
+                    return familyValid
+                }
 
                 if (isIBAN(sanitizedInput)) {
                     type = 'iban'
@@ -82,7 +101,7 @@ const GeneralRecipientInput = ({
                 return false
             }
         },
-        [isWithdrawal]
+        [isWithdrawal, addressFamily]
     )
 
     const onInputUpdate = useCallback(
