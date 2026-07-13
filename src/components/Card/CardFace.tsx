@@ -139,13 +139,15 @@ const CardFace: FC<Props> = ({
                             {/* Registered cardholder name — PII, kept out of session
                              * recordings like the other revealed fields. */}
                             {revealed.cardholderName && (
-                                <CardDetailField
-                                    value={revealed.cardholderName}
-                                    autoComplete="cc-name"
-                                    name="ccname"
-                                    ariaLabel="Cardholder name"
-                                    className="mt-1 text-sm font-bold uppercase tracking-wide"
-                                />
+                                <div className="mt-1">
+                                    <CardDetailField
+                                        value={revealed.cardholderName}
+                                        autoComplete="cc-name"
+                                        name="ccname"
+                                        ariaLabel="Cardholder name"
+                                        className="text-sm font-bold uppercase tracking-wide"
+                                    />
+                                </div>
                             )}
                             <div className="flex items-end justify-between">
                                 <div className="text-s flex gap-6">
