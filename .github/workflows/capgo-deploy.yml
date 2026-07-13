@@ -28,9 +28,11 @@ concurrency:
 jobs:
     deploy:
         runs-on: ubuntu-latest
-        # Protect with required reviewers in repo Settings → Environments → Production.
-        # A production OTA (workflow_dispatch → production) pauses here for approval.
-        environment: Production
+        # Gate ONLY the production deploy behind the Production environment (required
+        # reviewers, set in repo Settings → Environments → Production). Resolving to an
+        # empty string means no environment, so the dev→staging auto-push is never
+        # paused for approval. Production is reachable only via workflow_dispatch.
+        environment: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.channel == 'production') && 'Production' || '' }}
         steps:
             - uses: actions/checkout@v7
               with:
