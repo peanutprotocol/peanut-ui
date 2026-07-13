@@ -46,12 +46,11 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development') {
             dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
             environment: inferSentryEnvironment(),
             release: process.env.NEXT_PUBLIC_GIT_COMMIT_HASH,
-            // Native traffic is a small fraction of web, and onboarding bugs here
-            // are hard to reproduce — capture everything. Errors are 100% by
-            // default (sampleRate stated explicitly for intent); traces at 100%
-            // vs the web's 0.1; and mirror web by also capturing console.warn.
+            // Errors captured at 100% (sampleRate stated explicitly for intent);
+            // traces sampled at 10% to match the web and keep transaction volume
+            // down. Mirror web by also capturing console.warn.
             sampleRate: 1.0,
-            tracesSampleRate: 1.0,
+            tracesSampleRate: 0.1,
             beforeSend: beforeSendHandler,
             integrations: [Sentry.captureConsoleIntegration({ levels: ['error', 'warn'] })],
         })
