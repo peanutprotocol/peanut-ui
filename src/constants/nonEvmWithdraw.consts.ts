@@ -1,66 +1,34 @@
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
-import { CHAIN_LOGOS, TOKEN_LOGOS } from '@/constants/rhino.consts'
+import { CHAIN_REGISTRY } from '@/constants/chainRegistry.consts'
 
 /**
- * Non-EVM withdraw destinations (Rhino delivers; verified 2026-07-11 with
- * live quotes + outflow-SDA creates: SOLANA USDC+USDT, TRON USDT-only).
- *
- * These chains have no EVM chainId and no chain-details.json entry, so the
- * withdraw selector merges these synthetic entries in withdraw mode ONLY
- * (`restrictToRhino`) — they must not leak into send/pay/claim surfaces or
- * URL parsing, which assume EVM addresses and wagmi networks.
- *
- * The selector `chainId` is the slug ('solana' | 'tron') — the same
- * identifier the old coming-soon entries used; `chainIdToRhinoName` maps it
- * to Rhino's API chain name. Token addresses are the canonical SPL mints /
- * TRC20 contract (mirrors peanut-api-ts `src/rhino/consts.ts`); Rhino
- * resolves tokens by SYMBOL, the address here is for selector display and
- * identity only.
+ * Synthetic selector records for non-EVM withdraw destinations — DERIVED
+ * from CHAIN_REGISTRY (`nonEvmRecord` entries). These chains have no
+ * chain-details.json entry; the token-selector context merges these records
+ * so every selector surface and the price hook resolve them. They stay
+ * invisible outside the withdraw flow: every other network list is gated by
+ * the wagmi id set, and URL parsing/validation read the server action.
  */
-export const NON_EVM_WITHDRAW_CHAINS: Record<string, ChainWithTokens> = {
-    solana: {
-        chainId: 'solana',
-        networkName: 'Solana',
-        chainIconURI: CHAIN_LOGOS.SOLANA,
-        tokens: [
-            {
-                chainId: 'solana',
-                address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
-                decimals: 6,
-                name: 'USD Coin',
-                symbol: 'USDC',
-                logoURI: TOKEN_LOGOS.USDC,
+export const NON_EVM_WITHDRAW_CHAINS: Record<string, ChainWithTokens> = Object.fromEntries(
+    CHAIN_REGISTRY.filter((c) => c.nonEvmRecord).map((c) => [
+        c.id,
+        {
+            chainId: c.id,
+            networkName: c.nonEvmRecord!.networkName,
+            chainIconURI: c.logoUrl ?? '',
+            tokens: c.nonEvmRecord!.tokens.map((t) => ({
+                chainId: c.id,
+                address: t.address,
+                decimals: t.decimals,
+                name: t.name,
+                symbol: t.symbol,
+                logoURI: t.logoURI,
                 usdPrice: 0,
-            },
-            {
-                chainId: 'solana',
-                address: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',
-                decimals: 6,
-                name: 'Tether USD',
-                symbol: 'USDT',
-                logoURI: TOKEN_LOGOS.USDT,
-                usdPrice: 0,
-            },
-        ],
-    },
-    tron: {
-        chainId: 'tron',
-        networkName: 'Tron',
-        chainIconURI: CHAIN_LOGOS.TRON,
-        tokens: [
-            {
-                chainId: 'tron',
-                address: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
-                decimals: 6,
-                name: 'Tether USD',
-                symbol: 'USDT',
-                logoURI: TOKEN_LOGOS.USDT,
-                usdPrice: 0,
-            },
-        ],
-    },
-}
+            })),
+        },
+    ])
+)
 
 export function isNonEvmWithdrawChainId(chainId: string | number): boolean {
-    return String(chainId).toLowerCase() in NON_EVM_WITHDRAW_CHAINS
+    return Object.prototype.hasOwnProperty.call(NON_EVM_WITHDRAW_CHAINS, String(chainId).toLowerCase())
 }
