@@ -40,7 +40,11 @@ const CardDetailField: FC<Props> = ({ value, autoComplete, name, ariaLabel, clas
             aria-label={ariaLabel}
             value={value}
             className={twMerge(
-                'ph-no-capture absolute inset-0 w-full whitespace-pre border-0 bg-transparent p-0 text-n-1 outline-none',
+                'ph-no-capture absolute inset-0 w-full whitespace-pre border-0 bg-transparent p-0 text-n-1',
+                // Real, tabbable inputs (so managers/keyboard users can interact),
+                // so keep a keyboard focus cue — but only on keyboard focus, not on
+                // casual taps, so the pink card isn't ringed every time it's touched.
+                'outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-1',
                 className
             )}
         />
