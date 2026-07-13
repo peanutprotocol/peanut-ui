@@ -1,7 +1,7 @@
 'use client'
 import { useMemo } from 'react'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
-import { CHAIN_ROLLOUT_FLAGS } from '@/constants/chainRollout.consts'
+import { CHAIN_ROLLOUT_FLAGS } from '@/constants/chainRegistry.consts'
 
 /**
  * Reactive per-chain rollout gate — thin domain wrapper over

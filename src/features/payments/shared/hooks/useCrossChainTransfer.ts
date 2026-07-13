@@ -45,7 +45,7 @@ import {
     type BridgeStatusResponse,
 } from '@/services/rhino-bridge'
 import { chainIdToRhinoName } from '@/constants/rhino.consts'
-import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/nonEvmWithdraw.consts'
+import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/chainRegistry.consts'
 import { areEvmAddressesEqual, getTokenSymbol } from '@/utils/general.utils'
 
 /** Tokens Rhino's SDA primitive accepts as `tokenOut`. Anything else routes
