@@ -3,6 +3,7 @@ import { type FC, useState } from 'react'
 import Image from 'next/image'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '@/components/Global/Icons/Icon'
+import CardDetailField from '@/components/Card/CardDetailField'
 import { PEANUT_CARD_HAND, VISA_BRAND_MARK } from '@/assets/cards'
 import { PEANUTMAN } from '@/assets/mascot'
 
@@ -109,14 +110,21 @@ const CardFace: FC<Props> = ({
                             </div>
                         </>
                     ) : showingDetails ? (
-                        <>
+                        // Fields are real readOnly <input>s (via CardDetailField) inside a
+                        // <form> so password managers recognise the card and offer to save
+                        // it. `contents` keeps the form out of the layout box tree, so the
+                        // flex layout — and every field's rendered position — is unchanged.
+                        <form className="contents" onSubmit={(e) => e.preventDefault()}>
                             <div className="flex items-center gap-2">
-                                {/* ph-no-capture: PAN out of session recordings. Wraps only
-                                 * the digits, not the copy button — we still want to see in
-                                 * replays whether the user tapped copy. */}
-                                <span className="ph-no-capture text-xl font-extrabold tracking-wider">
-                                    {formatPan(revealed.pan)}
-                                </span>
+                                {/* Copy button stays outside the field so replays still show
+                                 * whether the user tapped copy (the field itself is ph-no-capture). */}
+                                <CardDetailField
+                                    value={formatPan(revealed.pan)}
+                                    autoComplete="cc-number"
+                                    name="cardnumber"
+                                    ariaLabel="Card number"
+                                    className="text-xl font-extrabold tracking-wider"
+                                />
                                 {onCopy && (
                                     <button
                                         type="button"
@@ -131,25 +139,38 @@ const CardFace: FC<Props> = ({
                             {/* Registered cardholder name — PII, kept out of session
                              * recordings like the other revealed fields. */}
                             {revealed.cardholderName && (
-                                <span className="ph-no-capture mt-1 text-sm font-bold uppercase tracking-wide">
-                                    {revealed.cardholderName}
-                                </span>
+                                <CardDetailField
+                                    value={revealed.cardholderName}
+                                    autoComplete="cc-name"
+                                    name="ccname"
+                                    ariaLabel="Cardholder name"
+                                    className="mt-1 text-sm font-bold uppercase tracking-wide"
+                                />
                             )}
                             <div className="flex items-end justify-between">
                                 <div className="text-s flex gap-6">
                                     <div>
                                         {/* "Expiry" label dropped — value row stays one line so PAN/name clear the artwork */}
-                                        {/* ph-no-capture: expiry digits out of recordings. */}
-                                        <div className="ph-no-capture font-bold">
-                                            {String(revealed.expiryMonth).padStart(2, '0')}/
-                                            {String(revealed.expiryYear).slice(-2)}
-                                        </div>
+                                        <CardDetailField
+                                            value={`${String(revealed.expiryMonth).padStart(2, '0')}/${String(
+                                                revealed.expiryYear
+                                            ).slice(-2)}`}
+                                            autoComplete="cc-exp"
+                                            name="cc-exp"
+                                            ariaLabel="Expiry date"
+                                            className="font-bold"
+                                        />
                                     </div>
                                     <div className="flex items-end gap-1">
                                         <div>
                                             {/* "CVV" label dropped — value only */}
-                                            {/* ph-no-capture: CVV out of recordings. */}
-                                            <div className="ph-no-capture font-bold">{revealed.cvv}</div>
+                                            <CardDetailField
+                                                value={revealed.cvv}
+                                                autoComplete="cc-csc"
+                                                name="cvc"
+                                                ariaLabel="Security code"
+                                                className="font-bold"
+                                            />
                                         </div>
                                         {onCopy && (
                                             <button
@@ -174,7 +195,7 @@ const CardFace: FC<Props> = ({
                                     </button>
                                 )}
                             </div>
-                        </>
+                        </form>
                     ) : loading ? (
                         <>
                             <div className="h-7 w-56 animate-pulse rounded bg-white/40" />

@@ -21,23 +21,33 @@ const revealed: RevealedCardDetails = {
 describe('CardFace cardholder name', () => {
     it('shows the registered name when the card is revealed', () => {
         render(<CardFace last4="1234" revealed={revealed} />)
-        const name = screen.getByText('Jane Doe')
+        // Revealed details are readOnly inputs (so password managers can save the
+        // card), so the value lives on `value`, not text content.
+        const name = screen.getByDisplayValue('Jane Doe')
         expect(name).toBeInTheDocument()
-        // PII guard: the name must stay inside the ph-no-capture wrapper so it's
-        // kept out of session recordings — assert the class, not just the text.
+        // PII guard: the name field must carry ph-no-capture so it's kept out of
+        // session recordings — assert the class, not just the value.
         expect(name).toHaveClass('ph-no-capture')
     })
 
     it('hides the name when the card is masked (not revealed)', () => {
         render(<CardFace last4="1234" revealed={null} />)
-        expect(screen.queryByText('Jane Doe')).not.toBeInTheDocument()
+        expect(screen.queryByDisplayValue('Jane Doe')).not.toBeInTheDocument()
     })
 
     it('still renders the revealed card when the name is absent', () => {
         const { cardholderName: _omitted, ...withoutName } = revealed
         render(<CardFace last4="1234" revealed={withoutName} />)
-        expect(screen.queryByText('Jane Doe')).not.toBeInTheDocument()
+        expect(screen.queryByDisplayValue('Jane Doe')).not.toBeInTheDocument()
         // PAN still renders, proving reveal works without the name.
-        expect(screen.getByText('4111 1111 1111 1234')).toBeInTheDocument()
+        expect(screen.getByDisplayValue('4111 1111 1111 1234')).toBeInTheDocument()
+    })
+
+    it('exposes card fields with the autocomplete tokens password managers detect', () => {
+        render(<CardFace last4="1234" revealed={revealed} />)
+        expect(screen.getByDisplayValue('4111 1111 1111 1234')).toHaveAttribute('autocomplete', 'cc-number')
+        expect(screen.getByDisplayValue('Jane Doe')).toHaveAttribute('autocomplete', 'cc-name')
+        expect(screen.getByDisplayValue('12/30')).toHaveAttribute('autocomplete', 'cc-exp')
+        expect(screen.getByDisplayValue('123')).toHaveAttribute('autocomplete', 'cc-csc')
     })
 })
