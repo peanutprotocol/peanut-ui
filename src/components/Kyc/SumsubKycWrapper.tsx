@@ -6,7 +6,6 @@ import ActionModal from '@/components/Global/ActionModal'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
 import { useModalsContext } from '@/context/ModalsContext'
-import StartVerificationView from '../Global/IframeWrapper/StartVerificationView'
 import { evaluateSumsubStatusEvent, type SumsubStatusEventPayload } from './sumsubStatusEvent.utils'
 
 // todo: move to consts
@@ -19,8 +18,6 @@ interface SumsubKycWrapperProps {
     onComplete: () => void
     onError?: (error: unknown) => void
     onRefreshToken: () => Promise<string>
-    /** skip StartVerificationView and launch SDK immediately (for re-submissions) */
-    autoStart?: boolean
     /** multi-level workflow (e.g. LATAM) — don't close SDK on Level 1 submission */
     isMultiLevel?: boolean
 }
@@ -32,10 +29,8 @@ export const SumsubKycWrapper = ({
     onComplete,
     onError,
     onRefreshToken,
-    autoStart,
     isMultiLevel,
 }: SumsubKycWrapperProps) => {
-    const [isVerificationStarted, setIsVerificationStarted] = useState(false)
     const [sdkLoaded, setSdkLoaded] = useState(false)
     const [sdkLoadError, setSdkLoadError] = useState(false)
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
@@ -86,9 +81,9 @@ export const SumsubKycWrapper = ({
         document.head.appendChild(script)
     }, [])
 
-    // initialize sdk when verification starts and all deps are ready
+    // initialize sdk as soon as the modal is visible and all deps are ready
     useEffect(() => {
-        if (!isVerificationStarted || !accessToken || !sdkLoaded || !sdkContainerRef.current) return
+        if (!visible || !accessToken || !sdkLoaded || !sdkContainerRef.current) return
 
         // clean up previous instance
         if (sdkInstanceRef.current) {
@@ -211,12 +206,11 @@ export const SumsubKycWrapper = ({
                 sdkInstanceRef.current = null
             }
         }
-    }, [isVerificationStarted, accessToken, sdkLoaded, stableOnComplete, stableOnError, stableOnRefreshToken])
+    }, [visible, accessToken, sdkLoaded, stableOnComplete, stableOnError, stableOnRefreshToken])
 
-    // reset state when modal closes, auto-start on re-submission
+    // reset state when modal closes
     useEffect(() => {
         if (!visible) {
-            setIsVerificationStarted(false)
             setSdkLoadError(false)
             hasSubmittedRef.current = false
             if (sdkInstanceRef.current) {
@@ -227,11 +221,8 @@ export const SumsubKycWrapper = ({
                 }
                 sdkInstanceRef.current = null
             }
-        } else if (autoStart) {
-            // skip StartVerificationView on re-submission (user already consented)
-            setIsVerificationStarted(true)
         }
-    }, [visible, autoStart])
+    }, [visible])
 
     // Close-button handler. After the user has submitted, the "are you sure
     // you want to stop?" modal is misleading — they're done, not abandoning.
@@ -269,54 +260,30 @@ export const SumsubKycWrapper = ({
             }
         }
 
-        return autoStart
-            ? {
-                  title: 'Exit for now?',
-                  description: 'You can pick up where you left off later — your progress is saved.',
-                  icon: 'alert' as IconName,
-                  iconContainerClassName: 'bg-secondary-1',
-                  ctas: [
-                      {
-                          text: 'Exit',
-                          onClick: () => {
-                              setIsHelpModalOpen(false)
-                              onClose()
-                          },
-                          variant: 'purple' as ButtonVariant,
-                          shadowSize: '4' as const,
-                      },
-                      {
-                          text: 'Continue',
-                          onClick: () => setIsHelpModalOpen(false),
-                          variant: 'transparent' as ButtonVariant,
-                          className: 'underline text-sm font-medium w-full h-fit mt-3',
-                      },
-                  ],
-              }
-            : {
-                  title: 'Exit and lose progress?',
-                  description: "If you exit now, you'll need to start the ID check again from scratch.",
-                  icon: 'alert' as IconName,
-                  iconContainerClassName: 'bg-secondary-1',
-                  ctas: [
-                      {
-                          text: 'Exit',
-                          onClick: () => {
-                              setIsHelpModalOpen(false)
-                              onClose()
-                          },
-                          variant: 'purple' as ButtonVariant,
-                          shadowSize: '4' as const,
-                      },
-                      {
-                          text: 'Keep going',
-                          onClick: () => setIsHelpModalOpen(false),
-                          variant: 'transparent' as ButtonVariant,
-                          className: 'underline text-sm font-medium w-full h-fit mt-3',
-                      },
-                  ],
-              }
-    }, [autoStart, modalVariant, onClose, setIsSupportModalOpen])
+        return {
+            title: 'Exit for now?',
+            description: 'You can pick up where you left off later — your progress is saved.',
+            icon: 'alert' as IconName,
+            iconContainerClassName: 'bg-secondary-1',
+            ctas: [
+                {
+                    text: 'Exit',
+                    onClick: () => {
+                        setIsHelpModalOpen(false)
+                        onClose()
+                    },
+                    variant: 'purple' as ButtonVariant,
+                    shadowSize: '4' as const,
+                },
+                {
+                    text: 'Continue',
+                    onClick: () => setIsHelpModalOpen(false),
+                    variant: 'transparent' as ButtonVariant,
+                    className: 'underline text-sm font-medium w-full h-fit mt-3',
+                },
+            ],
+        }
+    }, [modalVariant, onClose, setIsSupportModalOpen])
 
     return (
         <>
@@ -331,12 +298,7 @@ export const SumsubKycWrapper = ({
                 preventClose={true}
                 hideOverlay={false}
             >
-                {!isVerificationStarted ? (
-                    <StartVerificationView
-                        onClose={onClose}
-                        onStartVerification={() => setIsVerificationStarted(true)}
-                    />
-                ) : sdkLoadError ? (
+                {sdkLoadError ? (
                     <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
                         <Icon name="alert" size={24} className="text-red-500" />
                         <p className="text-center text-lg font-medium">

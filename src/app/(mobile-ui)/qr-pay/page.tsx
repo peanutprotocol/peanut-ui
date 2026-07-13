@@ -1471,7 +1471,6 @@ export default function QRPayPage() {
                 onClose={qrLimitIncreaseFlow.handleClose}
                 onComplete={qrLimitIncreaseFlow.handleSdkComplete}
                 onRefreshToken={qrLimitIncreaseFlow.refreshToken}
-                autoStart
                 isMultiLevel
             />
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>

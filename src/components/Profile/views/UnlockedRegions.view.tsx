@@ -96,8 +96,6 @@ const UnlockedRegions = () => {
     // persist region intent for the duration of the kyc session so token refresh
     // and status checks use the correct template after the confirmation modal closes
     const [activeRegionIntent, setActiveRegionIntent] = useState<KYCRegionIntent | undefined>(undefined)
-    // skip StartVerificationView when re-submitting (user already consented)
-    const [autoStartSdk, setAutoStartSdk] = useState(false)
     // when an initiate fails, flow.error is set but the modal that triggered it
     // has already closed — show a dismissible error modal so the user isn't left
     // staring at a screen where "verify now" appeared to do nothing.
@@ -147,7 +145,6 @@ const UnlockedRegions = () => {
     const handleFinalKycSuccess = useCallback(() => {
         setSelectedRegion(null)
         setActiveRegionIntent(undefined)
-        setAutoStartSdk(false)
     }, [])
 
     const flow = useMultiPhaseKycFlow({
@@ -156,7 +153,6 @@ const UnlockedRegions = () => {
         onManualClose: () => {
             setSelectedRegion(null)
             setActiveRegionIntent(undefined)
-            setAutoStartSdk(false)
         },
     })
 
@@ -194,12 +190,6 @@ const UnlockedRegions = () => {
         // APPROVED verification, so for first-time users the flag is a no-op.
         await flow.handleInitiateKyc(intent, undefined, true)
     }, [flow.handleInitiateKyc, selectedRegion, hasCardAccess, hasActiveCard, router])
-
-    // re-submission: skip StartVerificationView since user already consented
-    const handleResubmitKyc = useCallback(async () => {
-        setAutoStartSdk(true)
-        await handleStartKyc()
-    }, [handleStartKyc])
 
     // ROW (rest-of-world) regions have no provider/rail, so an initiate there is a
     // terminal "not available in your region yet" — not a transient failure. Only
@@ -249,7 +239,7 @@ const UnlockedRegions = () => {
             <KycActionRequiredModal
                 visible={modalVariant === 'action_required'}
                 onClose={handleModalClose}
-                onResubmit={handleResubmitKyc}
+                onResubmit={handleStartKyc}
                 isLoading={flow.isLoading}
                 rejectLabels={sumsubRejectLabels}
             />
@@ -257,7 +247,7 @@ const UnlockedRegions = () => {
             <KycFailedModal
                 visible={modalVariant === 'rejected'}
                 onClose={handleModalClose}
-                onRetry={handleResubmitKyc}
+                onRetry={handleStartKyc}
                 isLoading={flow.isLoading}
                 rejectLabels={sumsubRejectLabels}
                 rejectType={sumsubRejectType}
@@ -357,7 +347,7 @@ const UnlockedRegions = () => {
                 }
             />
 
-            <SumsubKycModals flow={flow} autoStartSdk={autoStartSdk} />
+            <SumsubKycModals flow={flow} />
         </div>
     )
 }
