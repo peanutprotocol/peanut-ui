@@ -8,11 +8,23 @@ import { serverFetch } from '@/utils/api-fetch'
 import * as Sentry from '@sentry/nextjs'
 import { RecipientValidationError } from '../url-parser/errors'
 import { type RecipientType } from '../url-parser/types/payment'
+import { isValidAddressForFamily, type WithdrawAddressFamily } from './addressFamily'
 
 export async function validateAndResolveRecipient(
     recipient: string,
-    isWithdrawal: boolean = false
+    isWithdrawal: boolean = false,
+    addressFamily: WithdrawAddressFamily = 'evm'
 ): Promise<{ identifier: string; recipientType: RecipientType; resolvedAddress: string }> {
+    // Non-EVM withdraw destinations (Solana/Tron): a base58 address is the
+    // only valid input — no ENS, no usernames. The family comes from the
+    // selected destination chain, never inferred from the string.
+    if (addressFamily !== 'evm') {
+        if (!isValidAddressForFamily(recipient, addressFamily)) {
+            throw new RecipientValidationError(`Invalid ${addressFamily === 'solana' ? 'Solana' : 'Tron'} address`)
+        }
+        return { identifier: recipient, recipientType: 'ADDRESS', resolvedAddress: recipient }
+    }
+
     const recipientType = getRecipientType(recipient, isWithdrawal)
 
     switch (recipientType) {

@@ -2,8 +2,7 @@
 
 import Modal from '@/components/Global/Modal'
 import InfoCard from '@/components/Global/InfoCard'
-import ChainChip from './ChainChip'
-import { SUPPORTED_EVM_CHAINS, CHAIN_LOGOS } from '@/constants/rhino.consts'
+import EvmChainChips from './EvmChainChips'
 
 interface SupportedNetworksModalProps {
     visible: boolean
@@ -25,9 +24,7 @@ const SupportedNetworksModal = ({ visible, onClose }: SupportedNetworksModalProp
                 </p>
 
                 <div className="flex flex-wrap gap-2">
-                    {SUPPORTED_EVM_CHAINS.map((chain) => (
-                        <ChainChip key={chain} chainName={chain} chainSymbol={CHAIN_LOGOS[chain]} />
-                    ))}
+                    <EvmChainChips />
                 </div>
 
                 <InfoCard
