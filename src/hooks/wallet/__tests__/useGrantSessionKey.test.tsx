@@ -38,6 +38,7 @@ jest.mock('@/constants/analytics.consts', () => ({
         CARD_SESSION_KEY_PROMPTED: 'card_session_key_prompted',
         CARD_SESSION_KEY_GRANTED: 'card_session_key_granted',
         CARD_SESSION_KEY_FAILED: 'card_session_key_failed',
+        CARD_SESSION_KEY_PREFLIGHT_REPAIR: 'card_session_key_preflight_repair',
     },
 }))
 jest.mock('@/constants/zerodev.consts', () => ({
@@ -56,6 +57,23 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
 }))
 jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: { readContract: jest.fn(), getCode: jest.fn() } }))
 jest.mock('@/services/rain', () => ({ rainApi: { getSessionKeyAddress: jest.fn() } }))
+const mockHandleSendUserOpEncoded = jest.fn(() => Promise.resolve({ userOpHash: '0xhash', receipt: null }))
+jest.mock('@/hooks/useZeroDev', () => ({
+    useZeroDev: () => ({ handleSendUserOpEncoded: mockHandleSendUserOpEncoded }),
+}))
+// Repair internals are unit-tested in kernelNonceRepair.utils.test.ts — here we
+// only assert the hook routes floored accounts through it and binds the result.
+const mockRepairEnableNonce = jest.fn()
+jest.mock('@/utils/kernelNonceRepair.utils', () => ({
+    repairEnableNonce: (...args: unknown[]) => mockRepairEnableNonce(...args),
+}))
+// Deploy path goes through the hardened migration gate (ground-truth verified);
+// its internals are covered by kernelMigration.utils.test.ts.
+const mockEnsureRootValidatorMigrated = jest.fn()
+jest.mock('@/utils/kernelMigration.utils', () => ({
+    ...jest.requireActual('@/utils/kernelMigration.utils'),
+    ensureRootValidatorMigrated: (...args: unknown[]) => mockEnsureRootValidatorMigrated(...args),
+}))
 jest.mock('@zerodev/permissions', () => ({
     toPermissionValidator: jest.fn(),
     serializePermissionAccount: jest.fn(),
@@ -180,5 +198,59 @@ describe('useGrantSessionKey — enable approval binds to the live currentNonce'
         })
 
         expect(getPluginsEnableTypedData).toHaveBeenCalledWith(expect.objectContaining({ validatorNonce: 1 }))
+    })
+
+    it('repairs a nonce-floored account (validNonceFrom > currentNonce) before signing and binds the fresh nonce', async () => {
+        // The 2025-09-18 migration-wave state: an approval signed without repair
+        // would fail AA23 InvalidNonce on every backend replay, forever.
+        ;(peanutPublicClient.readContract as jest.Mock).mockImplementation(({ functionName }) =>
+            Promise.resolve(functionName === 'validNonceFrom' ? 3n : 2n)
+        )
+        mockRepairEnableNonce.mockResolvedValue({ validatorNonce: 4 })
+
+        const { result } = renderHook(() => useGrantSessionKey(), { wrapper })
+        let out: Awaited<ReturnType<typeof result.current.serializeGrant>>
+        await act(async () => {
+            out = await result.current.serializeGrant()
+        })
+
+        expect(mockRepairEnableNonce).toHaveBeenCalledWith(
+            expect.objectContaining({ validNonceFrom: 3, accountAddress: ACCOUNT })
+        )
+        expect(getPluginsEnableTypedData).toHaveBeenCalledWith(expect.objectContaining({ validatorNonce: 4 }))
+        expect(out!).toEqual({ ok: true, serialized: 'SERIALIZED_APPROVAL' })
+    })
+
+    it('deploys an undeployed pre-cutoff (migration-wrapper) account via the migration gate before granting — its approval would AA14 otherwise', async () => {
+        ;(useKernelClient as jest.Mock).mockReturnValue({
+            getClientForChain: () => ({
+                // getRootValidatorMigrationStatus marks the migration wrapper.
+                account: { address: ACCOUNT, getRootValidatorMigrationStatus: jest.fn() },
+            }),
+            getPatchedSudoValidator: jest.fn().mockResolvedValue({ signTypedData }),
+            rebuildClientForChain: jest.fn(),
+        })
+        ;(peanutPublicClient.getCode as jest.Mock).mockResolvedValue(undefined)
+        // Pre-deploy reads revert; after the migration gate runs (deploy lands),
+        // the fresh currentNonce read returns 1.
+        let migrated = false
+        mockEnsureRootValidatorMigrated.mockImplementation(async () => {
+            migrated = true
+            return {}
+        })
+        ;(peanutPublicClient.readContract as jest.Mock).mockImplementation(() =>
+            migrated ? Promise.resolve(1n) : Promise.reject(new Error('returned no data ("0x")'))
+        )
+
+        const { result } = renderHook(() => useGrantSessionKey(), { wrapper })
+        let out: Awaited<ReturnType<typeof result.current.serializeGrant>>
+        await act(async () => {
+            out = await result.current.serializeGrant()
+        })
+
+        expect(mockEnsureRootValidatorMigrated).toHaveBeenCalled()
+        expect(mockRepairEnableNonce).not.toHaveBeenCalled()
+        expect(getPluginsEnableTypedData).toHaveBeenCalledWith(expect.objectContaining({ validatorNonce: 1 }))
+        expect(out!).toEqual({ ok: true, serialized: 'SERIALIZED_APPROVAL' })
     })
 })
