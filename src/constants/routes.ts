@@ -45,6 +45,7 @@ export const DEDICATED_ROUTES = [
     'recover-funds',
     'card-recovery',
     'recover-wallet',
+    'fix-card-signature',
 
     // Public pages (existing)
     'm', // merchant landing pages (/m/[slug]) — added on main; register so the catch-all never treats it as a recipient
