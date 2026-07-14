@@ -5,6 +5,7 @@ import Modal from '@/components/Global/Modal'
 import ActionModal from '@/components/Global/ActionModal'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
+import Loading from '@/components/Global/Loading'
 import { useModalsContext } from '@/context/ModalsContext'
 import { evaluateSumsubStatusEvent, type SumsubStatusEventPayload } from './sumsubStatusEvent.utils'
 
@@ -63,22 +64,41 @@ export const SumsubKycWrapper = ({
 
     // load sumsub websdk script
     useEffect(() => {
+        if (window.snsWebSdk) {
+            setSdkLoaded(true)
+            return undefined
+        }
+
+        const handleLoaded = () => setSdkLoaded(true)
+        const handleError = () => {
+            console.error('[sumsub] failed to load websdk script')
+            setSdkLoadError(true)
+        }
+
         const existingScript = document.getElementById('sumsub-websdk')
         if (existingScript) {
-            setSdkLoaded(true)
-            return
+            // another wrapper instance appended the script and it's still
+            // downloading — a bare existence check would init against an
+            // undefined window.snsWebSdk
+            existingScript.addEventListener('load', handleLoaded)
+            existingScript.addEventListener('error', handleError)
+            // the script may have finished between the snsWebSdk check above
+            // and the listener attach — re-check so we don't wait forever
+            if (window.snsWebSdk) handleLoaded()
+            return () => {
+                existingScript.removeEventListener('load', handleLoaded)
+                existingScript.removeEventListener('error', handleError)
+            }
         }
 
         const script = document.createElement('script')
         script.id = 'sumsub-websdk'
         script.src = SUMSUB_SDK_URL
         script.async = true
-        script.onload = () => setSdkLoaded(true)
-        script.onerror = () => {
-            console.error('[sumsub] failed to load websdk script')
-            setSdkLoadError(true)
-        }
+        script.onload = handleLoaded
+        script.onerror = handleError
         document.head.appendChild(script)
+        return undefined
     }, [])
 
     // initialize sdk as soon as the modal is visible and all deps are ready
@@ -192,6 +212,8 @@ export const SumsubKycWrapper = ({
             }
         } catch (error) {
             console.error('[sumsub] failed to initialize sdk', error)
+            // surface the error UI — without this the modal stays blank
+            setSdkLoadError(true)
             stableOnError(error)
         }
 
@@ -208,19 +230,12 @@ export const SumsubKycWrapper = ({
         }
     }, [visible, accessToken, sdkLoaded, stableOnComplete, stableOnError, stableOnRefreshToken])
 
-    // reset state when modal closes
+    // reset state when modal closes (the init effect's cleanup already
+    // destroys the SDK instance — visible is one of its deps)
     useEffect(() => {
         if (!visible) {
             setSdkLoadError(false)
             hasSubmittedRef.current = false
-            if (sdkInstanceRef.current) {
-                try {
-                    sdkInstanceRef.current.destroy()
-                } catch {
-                    // ignore cleanup errors
-                }
-                sdkInstanceRef.current = null
-            }
         }
     }, [visible])
 
@@ -324,7 +339,16 @@ export const SumsubKycWrapper = ({
                                 <Icon name="cancel" size={24} />
                             </button>
                         </div>
-                        <div ref={sdkContainerRef} className="w-full flex-1 overflow-auto [&>iframe]:!min-h-full" />
+                        <div className="relative w-full flex-1">
+                            {/* sits behind the SDK iframe — covered once it paints */}
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <Loading className="h-8 w-8" />
+                            </div>
+                            <div
+                                ref={sdkContainerRef}
+                                className="relative h-full w-full overflow-auto [&>iframe]:!min-h-full"
+                            />
+                        </div>
                     </div>
                 )}
             </Modal>

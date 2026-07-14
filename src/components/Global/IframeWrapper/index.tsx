@@ -70,7 +70,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
 
         return {
             title: 'Exit for now?',
-            description: 'You can pick up where you left off later — your progress is saved.',
+            description: 'You can come back and finish this anytime.',
             icon: 'alert' as IconName,
             iconContainerClassName: 'bg-secondary-1',
             ctas: [
