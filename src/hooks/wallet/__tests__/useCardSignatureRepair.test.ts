@@ -38,7 +38,6 @@ jest.mock('@zerodev/sdk', () => ({
         },
     ],
 }))
-// eslint-disable-next-line import/order
 import { KernelV3AccountAbi as KERNEL_ABI } from '@zerodev/sdk'
 
 jest.mock('@/constants/zerodev.consts', () => ({
