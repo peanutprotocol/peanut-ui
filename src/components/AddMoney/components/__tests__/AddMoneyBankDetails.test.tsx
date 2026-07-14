@@ -77,7 +77,7 @@ jest.mock('@/components/Global/ShareButton', () => ({
 
 const mockUseOnrampFlow = jest.fn()
 
-// eslint-disable-next-line import/first -- must come after jest.mock
+// import must come after jest.mock
 import AddMoneyBankDetails from '../AddMoneyBankDetails'
 
 // 20 chars, the real shape of a Bridge deposit message — anything shorter than
