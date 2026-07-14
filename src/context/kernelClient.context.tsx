@@ -22,9 +22,11 @@ import {
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react'
 import { type Chain, http, type PublicClient, type Transport } from 'viem'
 import { AccountType } from '@/interfaces/interfaces'
-import type { Address } from 'viem'
+import type { Address, Hash } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { captureException } from '@sentry/nextjs'
+import { isDemoMode } from '@/utils/demo'
+import { DEMO_ADDRESS } from '@/constants/demo-data'
+import { captureException, captureMessage } from '@sentry/nextjs'
 import { retryAsync } from '@/utils/retry.utils'
 import { isStaleClientForUser, isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { isAndroidNative, getNativeRpId } from '@/utils/capacitor'
@@ -283,6 +285,13 @@ export const createKernelClientForChain = async <C extends Chain>(
         },
     })
 
+    // demo mode hard-stop: no UserOp from any flow can reach the chain.
+    const realSendUserOperation = kernelClient.sendUserOperation.bind(kernelClient)
+    kernelClient.sendUserOperation = (async (args: unknown) => {
+        if (isDemoMode()) return `0x${'de'.repeat(32)}` as Hash
+        return realSendUserOperation(args as never)
+    }) as typeof kernelClient.sendUserOperation
+
     return kernelClient
 }
 
@@ -349,6 +358,13 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             return
         }
 
+        // Demo mode: no passkey/kernel client — synthesize the address and report ready.
+        if (isDemoMode()) {
+            dispatch(zerodevActions.setAddress(DEMO_ADDRESS))
+            dispatch(zerodevActions.setIsKernelClientReady(true))
+            return
+        }
+
         const userPreferences = getUserPreferences(user.user.userId)
         const storedWebAuthnKey = userPreferences?.webAuthnKey ?? getFromCookie(WEB_AUTHN_COOKIE_KEY)
         if (storedWebAuthnKey) {
@@ -358,7 +374,13 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // the native capacitor plugin callback so signing works after restore.
             if (isAndroidNative() && !storedWebAuthnKey.signMessageCallback) {
                 const rpId = storedWebAuthnKey.rpID || getNativeRpId()
-                storedWebAuthnKey.signMessageCallback = createNativeSignMessageCallback(rpId)
+                // Pin the native signing ceremony to THIS kernel's own credential
+                // so a second peanut.me passkey on the device can't be substituted
+                // (see createNativeSignMessageCallback + PR #2189).
+                storedWebAuthnKey.signMessageCallback = createNativeSignMessageCallback(
+                    rpId,
+                    storedWebAuthnKey.authenticatorId
+                )
             }
             // Only update if the key actually changed to avoid re-triggering kernel client init
             // Note: WebAuthnKey contains BigInt fields (pubX, pubY) which JSON.stringify cannot handle,
@@ -376,8 +398,31 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // Harness-only: skip auto-logout so playwright can screenshot the
             // authenticated UI with a seeded user that has no real passkey.
         } else {
-            // avoid mixed state
-            logoutUser()
+            // Only force re-auth OUTSIDE the setup flow. During signup/login the
+            // user/key state legitimately oscillates: React Query refetches the user
+            // while the freshly-created webAuthnKey is still being persisted to
+            // userPreferences, and the native web-authn-key cookie is cross-origin
+            // empty — so `storedWebAuthnKey` is transiently null even though the
+            // signup is healthy. Acting here (a logoutUser() hard-bounce, or clearing
+            // the JWT) either kicks the user back to the start of setup or wipes the
+            // just-captured session token mid-signup, which 400s POST /add-account.
+            // The setup flow + mobile-ui layout own routing for genuinely stale
+            // sessions; the kernel client must not interfere during setup.
+            const inSetupFlow = typeof window !== 'undefined' && window.location.pathname.startsWith('/setup')
+            if (!inSetupFlow) {
+                // This hard-bounces the user to /setup. It's correct for genuinely
+                // stale sessions but has masqueraded as an onboarding bug when an
+                // upstream flow lands here with a half-valid session. Record it so
+                // the cause is visible in Sentry (no exception is otherwise thrown).
+                captureMessage('kernel-client: no wallet key outside setup — forcing re-auth', {
+                    level: 'warning',
+                    extra: {
+                        userId: user.user.userId,
+                        pathname: typeof window !== 'undefined' ? window.location.pathname : undefined,
+                    },
+                })
+                logoutUser()
+            }
         }
     }, [user?.user.userId, logoutUser, clearClients])
 

@@ -29,6 +29,12 @@ allprojects {
         exclude group: 'com.sumsub.sns', module: 'idensic-mobile-sdk-eid'
         exclude group: 'de.authada.library', module: 'aal'
     }
+
+    // Force Java 17 for all modules (capacitor-android uses 21)
+    tasks.withType(JavaCompile) {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
 }
 
 task clean(type: Delete) {

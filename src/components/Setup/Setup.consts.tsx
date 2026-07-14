@@ -87,7 +87,7 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'sign-test-transaction',
         layoutType: 'signup',
-        title: 'Your wallet is ready',
+        title: 'Your account is ready',
         description: "Just confirm it's you — one tap and you're in.",
         image: PeanutWhistling.src,
         component: SignTestTransaction,

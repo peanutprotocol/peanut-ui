@@ -11,6 +11,7 @@ import type { StaticImageData } from 'next/image'
 import { useModalsContext } from '@/context/ModalsContext'
 import { DeviceType, useDeviceType } from './useGetDeviceType'
 import { usePWAStatus } from './usePWAStatus'
+import { isCapacitor } from '@/utils/capacitor'
 import { useGeoLocation } from './useGeoLocation'
 import { useCardInfo } from './useCardInfo'
 import { useActivationStatus } from './useActivationStatus'
@@ -180,18 +181,18 @@ export const useHomeCarouselCTAs = () => {
         }
         // Brave Shields blocks the OneSignal SDK; requestPermission no-ops
         // until init succeeds, so don't render a click-to-no-op CTA.
-        if (oneSignalInitialized && !isPermissionGranted && !isPushOptedIn && isPwa) {
+        if (oneSignalInitialized && !isPermissionGranted && !isPushOptedIn && (isPwa || isCapacitor())) {
             _carouselCTAs.push({
                 id: 'notification-prompt',
                 title: 'Stay in the loop!',
                 description: 'Turn on notifications and get alerts for all your wallet activity.',
                 icon: 'bell',
                 onClick: async () => {
-                    // If the user has already denied browser permission, the OS won't
-                    // re-prompt — they have to reinstall the PWA. Open the install
-                    // modal directly instead of routing through a dead-end "Got it"
-                    // dialog that gave them no path forward.
-                    if (isPermissionDenied) {
+                    // On the web PWA a denied browser permission can't be re-prompted —
+                    // the user must reinstall — so route to the install modal. On native
+                    // the OS prompt falls back to the Settings app (handled in requestPermission),
+                    // so let it through instead of showing a PWA-install dead end.
+                    if (isPermissionDenied && !isCapacitor()) {
                         setIsIosPwaInstallModalOpen(true)
                         return
                     }
@@ -207,7 +208,7 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        if (deviceType === DeviceType.IOS && !isPwa) {
+        if (deviceType === DeviceType.IOS && !isPwa && !isCapacitor()) {
             _carouselCTAs.push({
                 id: 'ios-pwa-install',
                 title: 'Add Peanut to your home screen',

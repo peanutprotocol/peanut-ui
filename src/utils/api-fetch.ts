@@ -5,10 +5,17 @@
 import { getAuthHeaders } from './auth-token'
 import { fetchWithSentry } from './sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { isDemoMode } from './demo'
 
 type FetchOptions = RequestInit & { timeoutMs?: number }
 
 function callApi(path: string, options?: FetchOptions): Promise<Response> {
+    // Native-only demo mode: route to synthetic data before any header/network
+    // work. isDemoMode() is false on web, so this is unreachable for real users.
+    // Lazy import keeps the demo module (and its viem-using fixtures) out of the
+    // web bundle and out of every api-fetch importer's module graph.
+    if (isDemoMode()) return import('./demo-api').then((m) => m.demoRespond(path, options))
+
     const { timeoutMs, ...fetchOptions } = options ?? {}
     const callerHeaders = (fetchOptions.headers as Record<string, string>) ?? {}
 

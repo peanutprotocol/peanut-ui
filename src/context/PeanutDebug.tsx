@@ -22,6 +22,11 @@ import { logRunMode } from '@/utils/mode'
 export function PeanutDebug() {
     useEffect(() => {
         if (typeof window === 'undefined') return
+        // Build-time guard so the whole harness block (including the hardcoded
+        // DEFAULT_HARNESS_PK and the localStorage signer-key writes) is
+        // dead-code-eliminated from production bundles, not merely skipped at
+        // runtime. Defense in depth alongside the localhost gate below.
+        if (process.env.NODE_ENV === 'production') return
         const hostname = window.location.hostname
         const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]'
         if (!isLocalhost) return

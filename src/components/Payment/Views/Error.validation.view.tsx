@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useEffect, useState } from 'react'
+import DocsLink from '@/components/Global/DocsLink'
 
 export type ValidationErrorViewProps = {
     title: string | React.ReactNode
@@ -47,14 +48,9 @@ function ValidationErrorView({
                 <p className="text-sm font-normal md:max-w-xs">{message}</p>
             </div>
             {showLearnMore && (
-                <a
-                    href="/en/help/request-money"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm underline"
-                >
+                <DocsLink href="/en/help/request-money" className="text-sm underline">
                     Learn how to receive money through Peanut
-                </a>
+                </DocsLink>
             )}
             <div className="flex w-full flex-col gap-2">
                 <Button

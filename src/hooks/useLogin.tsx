@@ -1,8 +1,13 @@
+import { useToast } from '@/components/0_Bruddle/Toast'
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from './useZeroDev'
+import { captureMessage } from '@sentry/nextjs'
 import { useEffect, useState } from 'react'
 import { getRedirectUrl, getValidRedirectUrl, clearRedirectUrl } from '@/utils/general.utils'
 import { useRouter, useSearchParams } from 'next/navigation'
+
+// how long we wait for the user object after a successful passkey ceremony
+const POST_LOGIN_USER_TIMEOUT_MS = 15_000
 
 /**
  * Hook for handling user login and post-login redirects.
@@ -27,7 +32,9 @@ export const useLogin = () => {
     const { handleLogin, isLoggingIn } = useZeroDev()
     const searchParams = useSearchParams()
     const router = useRouter()
+    const toast = useToast()
     const [isloginClicked, setIsloginClicked] = useState(false)
+    const [loginResolved, setLoginResolved] = useState(false)
 
     // wait for user to be fetched, then redirect
     useEffect(() => {
@@ -47,12 +54,35 @@ export const useLogin = () => {
                 router.push('/home')
             }
             setIsloginClicked(false)
+            setLoginResolved(false)
         }
     }, [user, router, searchParams, isloginClicked])
 
+    // the ceremony succeeded but the user object never arrived (e.g. token not
+    // stored / fetch failed) — without this the UI idles on the setup screen forever.
+    useEffect(() => {
+        if (!loginResolved || user) return
+        const timer = setTimeout(() => {
+            setIsloginClicked(false)
+            setLoginResolved(false)
+            toast.error('Login didn’t complete. Please try again.')
+            captureMessage('login ceremony succeeded but user never loaded', {
+                level: 'warning',
+                tags: { error_type: 'login_stalled' },
+            })
+        }, POST_LOGIN_USER_TIMEOUT_MS)
+        return () => clearTimeout(timer)
+    }, [loginResolved, user, toast])
+
     const handleLoginClick = async () => {
         setIsloginClicked(true)
-        await handleLogin()
+        try {
+            await handleLogin()
+            setLoginResolved(true)
+        } catch (e) {
+            setIsloginClicked(false)
+            throw e
+        }
     }
 
     return { handleLoginClick, isLoggingIn }

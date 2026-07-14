@@ -31,6 +31,7 @@ import { useNativePlugins } from '@/hooks/useNativePlugins'
 // guarantees the patch is installed before any child page's mount-time router.push.
 import '@/hooks/useSafeBack'
 import { isCapacitor } from '@/utils/capacitor'
+import { isDemoMode, enableDemoMode } from '@/utils/demo'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
@@ -97,12 +98,16 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             const url = new URL(window.location.href)
             if (url.searchParams.get('__reproduce')) return
         }
-        if (!isPublicPath && isReady && !isFetchingUser && !user && !isRedirecting.current) {
+        // Demo mode: never bounce to /setup. isDemoMode() reads the #demo hash
+        // (reliable on the first render after the hard-nav); persist it so later
+        // navigations that drop the hash stay in demo mode.
+        if (isDemoMode()) enableDemoMode()
+        if (!isPublicPath && isReady && !isFetchingUser && !user && !isRedirecting.current && !isDemoMode()) {
             isRedirecting.current = true
             router.replace('/setup')
-            // hard navigation fallback in case soft navigation silently fails
+            // Hard-nav fallback if the soft nav silently fails; re-check at fire time.
             const fallback = setTimeout(() => {
-                window.location.replace('/setup')
+                if (!isDemoMode()) window.location.replace('/setup')
             }, 3000)
             return () => clearTimeout(fallback)
         }
@@ -189,10 +194,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         id="scrollable-content"
                         className={classNames(
                             twMerge(
-                                'relative flex-1 overflow-y-auto bg-background p-6 pb-24 md:pb-6',
-                                !!isSupport && 'p-0 pb-20 md:p-6',
+                                'relative flex-1 overflow-y-auto bg-background p-6 pb-[calc(6rem_+_env(safe-area-inset-bottom))] md:pb-6',
+                                !!isSupport && 'p-0 pb-[calc(5rem_+_env(safe-area-inset-bottom))] md:p-6',
                                 !!isHome && 'p-0 md:p-6 md:pr-0',
-                                isUserLoggedIn ? 'pb-24' : 'pb-4',
+                                isUserLoggedIn
+                                    ? 'pb-[calc(6rem_+_env(safe-area-inset-bottom))]'
+                                    : 'pb-[calc(1rem_+_env(safe-area-inset-bottom))]',
                                 isDev && 'p-0 pb-0',
                                 isHome && isCapacitor() && 'px-0 pt-0'
                             )
@@ -200,10 +207,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     >
                         <div
                             className={twMerge(
-                                'flex w-full items-center justify-center md:ml-auto md:w-[calc(100%-160px)]',
+                                'flex w-full items-center justify-center md:ml-auto md:w-[calc(100%_-_160px)]',
                                 alignStart && 'items-start',
                                 isSupport && 'h-full',
-                                isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-64px)]',
+                                isUserLoggedIn
+                                    ? 'min-h-[calc(100dvh_-_160px_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))]'
+                                    : 'min-h-[calc(100dvh_-_64px_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))]',
                                 isDev && 'min-h-[100dvh] items-start justify-start md:ml-0 md:w-full'
                             )}
                         >
@@ -213,7 +222,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
                     {/* Mobile navigation */}
                     {!isDev && (
-                        <div className="fixed bottom-0 left-0 right-0 z-10 bg-background md:hidden">
+                        <div
+                            className="fixed bottom-0 left-0 right-0 z-10 bg-background md:hidden"
+                            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+                        >
                             <WalletNavigation />
                         </div>
                     )}

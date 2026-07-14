@@ -159,6 +159,7 @@ const GeneralRecipientInput = ({
                 name="bank-account"
                 infoText={showInfoText ? infoText : undefined}
                 formatDisplayValue={formatDisplayValue}
+                smartPasteKind="recipient"
             />
         </div>
     )

@@ -1,14 +1,14 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import ValidatedInput from '@/components/Global/ValidatedInput'
-import { PEANUT_API_URL } from '@/constants/general.consts'
+import DocsLink from '@/components/Global/DocsLink'
+import { PEANUT_API_URL, USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import * as Sentry from '@sentry/nextjs'
-import Link from 'next/link'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useState } from 'react'
@@ -33,7 +33,7 @@ const SignupStep = () => {
         }
 
         // check length requirement
-        if (username.length < 4) {
+        if (username.length < USERNAME_MIN_LENGTH) {
             setError('Username must be at least 4 characters long')
             return false
         }
@@ -125,6 +125,7 @@ const SignupStep = () => {
                             value={username}
                             debounceTime={750}
                             validate={checkUsernameValidity}
+                            shouldValidate={(v) => v.length >= USERNAME_MIN_LENGTH}
                             onUpdate={handleInputUpdate}
                             isSetupFlow
                             isInputChanging={isChanging}
@@ -153,13 +154,13 @@ const SignupStep = () => {
                 <div>
                     <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
                         <span>By creating account you agree with </span>
-                        <Link rel="noopener noreferrer" target="_blank" href="/terms">
-                            <span className="underline underline-offset-2">T&C</span>
-                        </Link>
+                        <DocsLink href="/terms" className="underline underline-offset-2">
+                            T&C
+                        </DocsLink>
                         {' and '}
-                        <Link rel="noopener noreferrer" target="_blank" href="/privacy">
-                            <span className="underline underline-offset-2">Privacy Policy</span>
-                        </Link>
+                        <DocsLink href="/privacy" className="underline underline-offset-2">
+                            Privacy Policy
+                        </DocsLink>
                     </p>
                 </div>
             </div>

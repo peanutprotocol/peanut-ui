@@ -107,7 +107,7 @@ export default function PaymentGraphPage() {
                 }) => (
                     <>
                         {/* Controls Panel - Top Right */}
-                        <div className="absolute right-4 top-4 max-h-[calc(100vh-140px)] w-[200px] overflow-y-auto rounded-xl bg-white/95 p-3 shadow-lg backdrop-blur-sm">
+                        <div className="absolute right-4 top-4 max-h-[calc(100vh_-_140px)] w-[200px] overflow-y-auto rounded-xl bg-white/95 p-3 shadow-lg backdrop-blur-sm">
                             <h3 className="mb-2 text-xs font-bold text-gray-900">Display & Forces</h3>
 
                             <div className="space-y-2 text-[11px]">

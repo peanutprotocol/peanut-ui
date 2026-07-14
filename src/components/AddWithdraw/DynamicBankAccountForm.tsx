@@ -7,7 +7,7 @@ import { type AddBankAccountPayload, BridgeAccountOwnerType, BridgeAccountType }
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { BRIDGE_ALPHA3_TO_ALPHA2, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import {
     validateIban,
     validateBankAccount,
@@ -26,6 +26,7 @@ import {
     validateMXCLabeAccount,
     validateUSBankAccount,
 } from '@/utils/withdraw.utils'
+import { createSmartPasteHandler, type PasteFieldKind } from '@/utils/clipboard-extract.utils'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { useAppDispatch, useAppSelector } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
@@ -95,13 +96,23 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const [isSubmitting, setIsSubmitting] = useState(false)
         const [submissionError, setSubmissionError] = useState<string | null>(null)
         const { country: countryNameParams } = useParams()
+        // Native/Capacitor passes country as a query param (?country=usa), so
+        // useParams() is empty there — fall back to searchParams and finally the
+        // `country` prop so this never derefs undefined (white-screen crash).
+        const searchParams = useSearchParams()
         const { amountToWithdraw, setSelectedBankAccount } = useWithdrawFlow()
         const router = useRouter()
         const savedAccounts = useSavedAccounts()
         const [isCheckingBICValid, setisCheckingBICValid] = useState(false)
         const STREET_ADDRESS_MAX_LENGTH = 35 // From bridge docs: street address can be max 35 characters
 
-        let selectedCountry = (countryNameFromProps ?? (countryNameParams as string)).toLowerCase()
+        let selectedCountry = (
+            countryNameFromProps ??
+            (countryNameParams as string) ??
+            searchParams.get('country') ??
+            country ??
+            ''
+        ).toLowerCase()
 
         // Get persisted form data from Redux
         const persistedFormData = useAppSelector((state) => state.bankForm.formData)
@@ -297,6 +308,23 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             }
         }
 
+        const smartPasteKindFor = (name: keyof IBankAccountDetails): PasteFieldKind | undefined => {
+            switch (name) {
+                case 'clabe':
+                    return 'clabe'
+                case 'bic':
+                    return 'bic'
+                case 'routingNumber':
+                    return 'routingNumber'
+                case 'sortCode':
+                    return 'ukSortCode'
+                case 'accountNumber':
+                    return isIban ? 'iban' : isUk ? 'ukAccount' : 'usAccount'
+                default:
+                    return undefined
+            }
+        }
+
         const renderInput = (
             name: keyof IBankAccountDetails,
             placeholder: string,
@@ -306,49 +334,59 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             onBlur?: (field: any) => Promise<void> | void,
             showCharCount?: boolean,
             maxLength?: number
-        ) => (
-            <div className="w-full">
-                <div className="relative">
-                    <Controller
-                        name={name}
-                        control={control}
-                        rules={rules}
-                        render={({ field }) => (
-                            <BaseInput
-                                {...field}
-                                type={type}
-                                placeholder={placeholder}
-                                className={twMerge(
-                                    'h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm',
-                                    errors[name] && touchedFields[name] && 'border-error'
-                                )}
-                                onBlur={async (e) => {
-                                    // remove any whitespace from the input field
-                                    // note: @dev not a great fix, this should also be fixed in the backend
-                                    if (typeof field.value === 'string') {
-                                        field.onChange(field.value.trim())
+        ) => {
+            const smartPasteKind = smartPasteKindFor(name)
+            return (
+                <div className="w-full">
+                    <div className="relative">
+                        <Controller
+                            name={name}
+                            control={control}
+                            rules={rules}
+                            render={({ field }) => (
+                                <BaseInput
+                                    {...field}
+                                    type={type}
+                                    placeholder={placeholder}
+                                    onPaste={
+                                        smartPasteKind
+                                            ? createSmartPasteHandler(smartPasteKind, field.onChange)
+                                            : undefined
                                     }
-                                    field.onBlur()
-                                    if (onBlur) {
-                                        await onBlur(field)
+                                    className={twMerge(
+                                        'h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm',
+                                        errors[name] && touchedFields[name] && 'border-error'
+                                    )}
+                                    onBlur={async (e) => {
+                                        // remove any whitespace from the input field
+                                        // note: @dev not a great fix, this should also be fixed in the backend
+                                        if (typeof field.value === 'string') {
+                                            field.onChange(field.value.trim())
+                                        }
+                                        field.onBlur()
+                                        if (onBlur) {
+                                            await onBlur(field)
+                                        }
+                                    }}
+                                    rightContent={
+                                        showCharCount && maxLength ? (
+                                            <span className="text-xs">
+                                                {field.value?.length ?? 0}/{maxLength}
+                                            </span>
+                                        ) : undefined
                                     }
-                                }}
-                                rightContent={
-                                    showCharCount && maxLength ? (
-                                        <span className="text-xs">
-                                            {field.value?.length ?? 0}/{maxLength}
-                                        </span>
-                                    ) : undefined
-                                }
-                            />
+                                />
+                            )}
+                        />
+                    </div>
+                    <div className="mt-2 w-fit text-start">
+                        {errors[name] && touchedFields[name] && (
+                            <ErrorAlert description={errors[name]?.message ?? ''} />
                         )}
-                    />
+                    </div>
                 </div>
-                <div className="mt-2 w-fit text-start">
-                    {errors[name] && touchedFields[name] && <ErrorAlert description={errors[name]?.message ?? ''} />}
-                </div>
-            </div>
-        )
+            )
+        }
 
         const renderSelect = (name: keyof IBankAccountDetails, placeholder: string, options: any[], rules: any) => (
             <div className="w-full">
