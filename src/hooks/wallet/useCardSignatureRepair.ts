@@ -44,7 +44,7 @@ interface RepairState {
 const CHAIN_ID = String(PEANUT_WALLET_CHAIN.id)
 // Post-repair confirmation poll: the public RPC can lag the bundler that
 // included the repair userOp (same hazard ensureRootValidatorMigrated guards).
-const CONFIRM_RETRIES = 5
+const CONFIRM_RETRIES = 8
 const CONFIRM_INTERVAL_MS = 1500
 // Kernel v3.1 rejects invalidateNonce more than MAX_NONCE_INCREMENT_SIZE (10)
 // above currentNonce AND at-or-below validNonceFrom — a floor further than 10
