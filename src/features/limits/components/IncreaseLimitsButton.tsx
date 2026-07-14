@@ -65,7 +65,6 @@ export default function IncreaseLimitsButton() {
                 onClose={actionFlow.handleClose}
                 onComplete={actionFlow.handleSdkComplete}
                 onRefreshToken={actionFlow.refreshToken}
-                autoStart
                 isMultiLevel
             />
         </>

@@ -664,7 +664,6 @@ function MantecaBankWithdrawFlow() {
                 onClose={limitIncreaseFlow.handleClose}
                 onComplete={limitIncreaseFlow.handleSdkComplete}
                 onRefreshToken={limitIncreaseFlow.refreshToken}
-                autoStart
                 isMultiLevel
             />
             <NavHeader
