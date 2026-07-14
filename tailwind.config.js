@@ -4,6 +4,11 @@ const plugin = require('tailwindcss/plugin')
 /** @type {import('tailwindcss').Config} */
 module.exports = {
     darkMode: ['class', '[data-theme="dark"]'],
+    // Gate hover styles behind (hover: hover) so WKWebView doesn't latch a tapped
+    // button into its hover state (e.g. stroke buttons stuck solid-black on iOS).
+    future: {
+        hoverOnlyWhenSupported: true,
+    },
     content: [
         './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
         './src/components/**/*.{js,ts,jsx,tsx,mdx}',

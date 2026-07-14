@@ -2,7 +2,9 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { isCapacitor } from '@/utils/capacitor'
+import { isCapacitor, getPlatform } from '@/utils/capacitor'
+import { deepLinkToNativePath } from '@/utils/native-routes'
+import { sanitizeRedirectURL } from '@/utils/general.utils'
 
 /**
  * initializes capacitor native plugins (back button, status bar, splash screen).
@@ -16,21 +18,36 @@ export function useNativePlugins() {
     useEffect(() => {
         if (!isCapacitor()) return
 
-        let cleanup: (() => void) | undefined
+        const cleanups: Array<() => void> = []
+
+        const openDeepLink = (url?: string | null) => {
+            if (!url) return
+            const target = deepLinkToNativePath(url)
+            if (!target) return
+            // same-origin guard: only ever navigate to an in-app relative path
+            const safe = sanitizeRedirectURL(target)
+            if (safe) router.push(safe)
+        }
 
         const init = async () => {
             try {
                 const { App } = await import('@capacitor/app')
-                const listener = await App.addListener('backButton', ({ canGoBack }: { canGoBack: boolean }) => {
+                const backListener = await App.addListener('backButton', ({ canGoBack }: { canGoBack: boolean }) => {
                     if (canGoBack) {
                         router.back()
                     } else {
                         App.minimizeApp()
                     }
                 })
-                cleanup = () => listener.remove()
+                cleanups.push(() => backListener.remove())
+
+                // App Links: cold start (getLaunchUrl) + warm start (appUrlOpen).
+                const launch = await App.getLaunchUrl()
+                openDeepLink(launch?.url)
+                const urlListener = await App.addListener('appUrlOpen', ({ url }: { url: string }) => openDeepLink(url))
+                cleanups.push(() => urlListener.remove())
             } catch (e) {
-                console.warn('failed to init back button handler:', e)
+                console.warn('failed to init app listeners:', e)
             }
 
             try {
@@ -48,12 +65,25 @@ export function useNativePlugins() {
             } catch (e) {
                 console.warn('failed to hide splash screen:', e)
             }
+
+            // Resize the webview when the soft keyboard appears so inputs on
+            // amount / send / invite screens aren't hidden behind it. setResizeMode
+            // is an iOS API — Android throws "not implemented" and handles resize via
+            // the manifest's windowSoftInputMode=adjustResize instead.
+            if (getPlatform() === 'ios-native') {
+                try {
+                    const { Keyboard, KeyboardResize } = await import('@capacitor/keyboard')
+                    await Keyboard.setResizeMode({ mode: KeyboardResize.Native })
+                } catch (e) {
+                    console.warn('failed to configure keyboard:', e)
+                }
+            }
         }
 
         init()
 
         return () => {
-            cleanup?.()
+            cleanups.forEach((fn) => fn())
         }
     }, [router])
 }

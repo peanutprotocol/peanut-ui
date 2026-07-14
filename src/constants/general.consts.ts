@@ -250,3 +250,6 @@ export const ROUTE_NOT_FOUND_ERROR =
 export const PERK_HOLD_DURATION_MS = 1500 // 1.5 seconds hold duration for claiming perks
 
 export const ENS_NAME_REGEX = /^(?:[-a-zA-Z0-9]+\.)+[-a-zA-Z0-9]+$/
+
+// Mirrors the backend username minimum (USERNAME_REGEX = /^[a-z][a-z0-9]{3,11}$/).
+export const USERNAME_MIN_LENGTH = 4

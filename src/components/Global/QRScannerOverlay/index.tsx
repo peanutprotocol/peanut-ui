@@ -15,6 +15,8 @@ import { BASE_URL } from '@/constants/general.consts'
 import { serverFetch } from '@/utils/api-fetch'
 import { openExternalUrl } from '@/utils/capacitor'
 import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
+import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
+import { recipientPayUrl, qrClaimUrl } from '@/utils/native-routes'
 import * as Sentry from '@sentry/nextjs'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
@@ -235,6 +237,14 @@ export default function QRScannerOverlay() {
         }
         posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: recognized, data: getLogData() })
         if (!recognized) {
+            // Pasted text is often prose with an address embedded ("...0xabc... is
+            // the Arbitrum address..."). Pull a valid EVM address out and re-process
+            // it as a clean value before giving up. One level of recursion only —
+            // the extracted value is a bare address, which recognizeQr matches.
+            const embeddedAddress = extractPaymentValue(data, 'evmAddress')
+            if (embeddedAddress && embeddedAddress.toLowerCase() !== normalized) {
+                return processQRCode(embeddedAddress)
+            }
             showModal(EModalType.UNRECOGNIZED)
             return { success: true }
         }
@@ -260,11 +270,11 @@ export default function QRScannerOverlay() {
                             if (lookup.claimed && lookup.redirectUrl) {
                                 redirectUrl = lookup.redirectUrl
                             } else {
-                                redirectUrl = `/qr/${redirectQrCode}`
+                                redirectUrl = qrClaimUrl(redirectQrCode)
                             }
                         } catch (error) {
                             console.error('Error checking redirect QR:', error)
-                            redirectUrl = `/qr/${redirectQrCode}`
+                            redirectUrl = qrClaimUrl(redirectQrCode)
                         }
                     } else {
                         redirectUrl = path
@@ -273,24 +283,28 @@ export default function QRScannerOverlay() {
                 break
             case EQrType.EVM_ADDRESS:
                 {
-                    toConfirmUrl = `/${normalized}`
+                    // recipientPayUrl → web: /<addr> ([...recipient]); native: /send?recipient=<addr>
+                    toConfirmUrl = recipientPayUrl(normalized)
                 }
                 break
             case EQrType.EIP_681:
                 {
                     try {
                         const { address, chainId, amount, tokenSymbol } = parseEip681(normalized)
-                        toConfirmUrl = `/${address}`
+                        // build the recipient PATH (no leading slash), then route it
+                        // through recipientPayUrl for native query-param compatibility.
+                        let path = address
                         if (chainId) {
-                            toConfirmUrl += `@${chainId}`
+                            path += `@${chainId}`
                             if (tokenSymbol) {
-                                toConfirmUrl += `/`
+                                path += `/`
                                 if (amount) {
-                                    toConfirmUrl += `${amount}`
+                                    path += `${amount}`
                                 }
-                                toConfirmUrl += `${tokenSymbol}`
+                                path += `${tokenSymbol}`
                             }
                         }
+                        toConfirmUrl = recipientPayUrl(path)
                     } catch (error) {
                         toast.error('Error parsing EIP-681 URL')
                         Sentry.captureException(error)
@@ -300,7 +314,7 @@ export default function QRScannerOverlay() {
             case EQrType.ENS_NAME: {
                 const resolvedAddress = await resolveEns(normalized)
                 if (resolvedAddress) {
-                    toConfirmUrl = `/${normalized}`
+                    toConfirmUrl = recipientPayUrl(normalized)
                 } else {
                     showModal(EModalType.UNRECOGNIZED)
                     return { success: true }

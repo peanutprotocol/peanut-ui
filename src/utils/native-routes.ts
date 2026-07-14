@@ -12,6 +12,14 @@ export function sendUrl(username: string): string {
     return isCapacitor() ? `/send?recipient=${encodeURIComponent(username)}` : `/send/${username}`
 }
 
+// Pay/send to an arbitrary recipient PATH — covers usernames AND addresses/ENS,
+// optionally with chain + amount + token (e.g. `0xabc@1/100usdc`, `vitalik.eth`).
+// Web uses the [...recipient] catch-all; native (no dynamic routes) funnels it
+// into /send?recipient=, which SendRouterView dispatches by recipient type.
+export function recipientPayUrl(path: string): string {
+    return isCapacitor() ? `/send?recipient=${encodeURIComponent(path)}` : `/${path}`
+}
+
 export function requestUrl(username: string): string {
     return isCapacitor() ? `/request?recipient=${encodeURIComponent(username)}` : `/request/${username}`
 }
@@ -53,6 +61,48 @@ export function withdrawBankUrl(countryPath: string, queryParams?: string): stri
         return `/withdraw?country=${encodeURIComponent(countryPath)}&view=bank${qs}`
     }
     return `/withdraw/${countryPath}/bank${queryParams || ''}`
+}
+
+/**
+ * Maps an incoming App-Links URL (https://peanut.me/<path>) to the path the
+ * native static export can actually render. Dynamic web routes are funnelled
+ * through the same query-param helpers used to build outbound links, so
+ * `/send/<user>` → `/send?recipient=<user>`, `/qr/<code>` → `/qr?code=<code>`,
+ * `/add-money/<country>/bank` → `/add-money?country=<country>&view=bank`, etc.
+ * Static routes (e.g. `/card`, `/pay-request`) pass through unchanged.
+ * Returns null for an unparseable URL.
+ */
+export function deepLinkToNativePath(url: string): string | null {
+    let parsed: URL
+    try {
+        parsed = new URL(url)
+    } catch {
+        return null
+    }
+    const path = parsed.pathname
+    const extraParams = parsed.search.replace(/^\?/, '')
+    const segments = path.split('/').filter(Boolean)
+
+    if (segments[0] === 'send' && segments[1]) {
+        return appendParams(sendUrl(decodeURIComponent(segments.slice(1).join('/'))), extraParams)
+    }
+    if (segments[0] === 'request' && segments[1]) {
+        return appendParams(requestUrl(decodeURIComponent(segments.slice(1).join('/'))), extraParams)
+    }
+    if (segments[0] === 'qr' && segments[1]) {
+        const code = decodeURIComponent(segments[1])
+        return appendParams(segments[2] === 'success' ? qrSuccessUrl(code) : qrClaimUrl(code), extraParams)
+    }
+    if (segments[0] === 'add-money' || segments[0] === 'withdraw') {
+        return rewriteMethodPath(path, extraParams || undefined)
+    }
+
+    return appendParams(path, extraParams)
+}
+
+function appendParams(base: string, params: string): string {
+    if (!params) return base
+    return `${base}${base.includes('?') ? '&' : '?'}${params}`
 }
 
 /**

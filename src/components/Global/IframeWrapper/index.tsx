@@ -141,7 +141,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage, skipStartVi
                     onStartVerification={() => setIsVerificationStarted(true)}
                 />
             ) : (
-                <div className="flex h-full flex-col gap-2 p-0">
+                <div className="flex h-full flex-col gap-2 p-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
                     <div className="h-full w-full flex-grow overflow-scroll">
                         <iframe
                             key={src}

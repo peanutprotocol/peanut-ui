@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nextjs'
 
 import { type JSONValue } from '../interfaces/interfaces'
+import { reportNetworkError, reportNetworkOk } from './connectivity'
 
 /**
  * Endpoint + status combinations to skip reporting.
@@ -12,6 +13,9 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = 
     { pattern: /\/get-user(?:\b|$)/, statuses: [400, 401, 403, 404] },
     { pattern: /users/, statuses: [400, 401, 403, 404] },
     { pattern: /perks/, statuses: [400, 401, 403, 404] },
+    // /invites/validate 400 = "Invalid Invite": the user mistyped an invite code.
+    // Expected input validation, surfaced inline to the user — not a server bug.
+    { pattern: /\/invites\/validate/, statuses: [400] },
     // qr-payment/init: 400 = open QR awaiting merchant amount; 422 = a QR the
     // provider can't decode (bad/expired/unsupported) — both are user-input
     // outcomes shown to the user, not server bugs. (BE peanut-api-ts #1041.)
@@ -360,6 +364,8 @@ export const fetchWithSentry = async (
         })
 
         clearTimeout(timeoutId)
+        // A response came back — the backend is reachable, clear any failure streak.
+        reportNetworkOk()
 
         if (!response.ok) {
             // Skip both the console warn AND Sentry submission for expected
@@ -400,6 +406,9 @@ export const fetchWithSentry = async (
         return response
     } catch (error: unknown) {
         clearTimeout(timeoutId)
+        // fetch rejected (timeout / DNS / connection refused) — the request never
+        // reached the backend, so flag a connectivity failure.
+        reportNetworkError()
         console.error(error)
 
         if (error instanceof Error && error.name === 'AbortError') {

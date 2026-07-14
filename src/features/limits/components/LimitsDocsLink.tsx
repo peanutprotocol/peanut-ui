@@ -1,12 +1,9 @@
+import DocsLink from '@/components/Global/DocsLink'
+
 export default function LimitsDocsLink() {
     return (
-        <a
-            href="/en/help/transaction-limits"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-center text-sm underline"
-        >
+        <DocsLink href="/en/help/transaction-limits" className="text-center text-sm underline">
             See more about limits
-        </a>
+        </DocsLink>
     )
 }

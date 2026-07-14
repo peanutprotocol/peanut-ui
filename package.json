@@ -1,7 +1,8 @@
 {
     "name": "peanut-ui",
-    "version": "0.2.0",
+    "version": "1.0.8",
     "private": true,
+    "packageManager": "pnpm@10.30.1",
     "engines": {
         "node": ">=21.1.0 <22.0.0 || ^20.9.0"
     },
@@ -37,17 +38,23 @@
         "validate-links": "tsx scripts/verify-content.ts",
         "verify-content": "tsx scripts/verify-content.ts",
         "native:build": "node scripts/native-build.js",
-        "native:sync": "npx cap sync android",
-        "capgo:upload:dev": "node scripts/native-build.js && npx @capgo/cli@latest bundle upload --channel development --path ./out",
-        "capgo:upload:staging": "node scripts/native-build.js && npx @capgo/cli@latest bundle upload --channel staging --path ./out",
+        "native:sync": "pnpm exec cap sync android",
+        "native:release": "bash scripts/native-release.sh",
+        "capgo:upload:dev": "node scripts/native-build.js && pnpm dlx @capgo/cli@latest bundle upload --channel development --path ./out",
+        "capgo:upload:staging": "node scripts/native-build.js && pnpm dlx @capgo/cli@latest bundle upload --channel staging --path ./out",
         "test:unit:ci": "jest --coverage --reporters=default --reporters=jest-junit"
     },
     "dependencies": {
         "@capacitor/android": "8.2.0",
         "@capacitor/app": "^8.1.0",
         "@capacitor/browser": "^8.0.3",
+        "@capacitor/camera": "^8.2.0",
         "@capacitor/cli": "8.2.0",
+        "@capacitor/clipboard": "^8.0.1",
         "@capacitor/core": "8.2.0",
+        "@capacitor/haptics": "^8.0.2",
+        "@capacitor/ios": "8.2.0",
+        "@capacitor/keyboard": "^8.0.3",
         "@capacitor/splash-screen": "^8.0.1",
         "@capacitor/status-bar": "^8.0.2",
         "@capgo/capacitor-crisp": "^8.0.27",
@@ -58,6 +65,7 @@
         "@justaname.id/react": "0.3.180",
         "@justaname.id/sdk": "0.2.177",
         "@noble/curves": "1.9.7",
+        "@onesignal/capacitor-plugin": "^1.0.6",
         "@radix-ui/react-accordion": "^1.2.12",
         "@radix-ui/react-select": "^2.2.6",
         "@radix-ui/react-slider": "^1.3.5",
@@ -219,6 +227,9 @@
             "yaml": "^2.8.3",
             "serialize-javascript": "^7.0.5",
             "protobufjs": "^7.5.5"
+        },
+        "patchedDependencies": {
+            "@zerodev/webauthn-key": "patches/@zerodev__webauthn-key.patch"
         }
     },
     "size-limit": [

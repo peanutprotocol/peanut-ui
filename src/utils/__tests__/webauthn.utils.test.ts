@@ -1,5 +1,5 @@
 import posthog from 'posthog-js'
-import { capturePasskeySignFailure } from '../webauthn.utils'
+import { capturePasskeySignFailure, classifyPasskeyError } from '../webauthn.utils'
 
 jest.mock('posthog-js', () => ({
     __esModule: true,
@@ -34,5 +34,37 @@ describe('capturePasskeySignFailure', () => {
         capturePasskeySignFailure(new Error('insufficient funds'), 'send-user-op')
         capturePasskeySignFailure('not even an Error', 'send-user-op')
         expect(posthog.capture).not.toHaveBeenCalled()
+    })
+})
+
+describe('classifyPasskeyError', () => {
+    test('maps iOS ASAuthorizationError 1004 (failed, e.g. no usable passkey) to LOGIN_CANCELED', () => {
+        const err = new Error(
+            'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError error 1004.)'
+        )
+        expect(classifyPasskeyError(err).code).toBe('LOGIN_CANCELED')
+    })
+
+    test('maps iOS ASAuthorizationError 1001 (user canceled) to LOGIN_CANCELED', () => {
+        const err = new Error(
+            'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError error 1001.)'
+        )
+        expect(classifyPasskeyError(err).code).toBe('LOGIN_CANCELED')
+    })
+
+    test('leaves other ASAuthorizationError codes as LOGIN_ERROR', () => {
+        const err = new Error(
+            'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError error 1002.)'
+        )
+        expect(classifyPasskeyError(err).code).toBe('LOGIN_ERROR')
+    })
+
+    test('still maps NotAllowedError DOMException name to LOGIN_CANCELED', () => {
+        const err = Object.assign(new Error('not allowed'), { name: 'NotAllowedError' })
+        expect(classifyPasskeyError(err).code).toBe('LOGIN_CANCELED')
+    })
+
+    test('falls back to LOGIN_ERROR for unknown errors', () => {
+        expect(classifyPasskeyError(new Error('mystery')).code).toBe('LOGIN_ERROR')
     })
 })

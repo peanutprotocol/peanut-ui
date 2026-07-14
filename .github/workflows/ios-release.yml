@@ -1,0 +1,193 @@
+name: iOS Release (TestFlight)
+
+# Builds a SIGNED iOS app and uploads it to TestFlight.
+# Mirrors android-release.yml's no-fastlane style: signing material lives as CI
+# secrets (base64 .p12 cert + base64 provisioning profile, the iOS analogue of the
+# Android keystore-as-secret), the build is reproducible, and the IPA lands on
+# TestFlight for manual App Store promotion. No Ruby/fastlane toolchain.
+#
+# Trigger: push a tag `vX.Y.Z`, or run manually (workflow_dispatch).
+# Prereq: the `ios/` Capacitor platform must be committed on the branch CI builds
+#         (currently only present in the peanut-ui-ios2 worktree).
+#
+# Required repo secrets (see docs/NATIVE-RELEASE.md §11):
+#   ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_CONTENT   App Store Connect API key (.p8 PEM contents)
+#   APPLE_TEAM_ID                                  Apple Developer team id
+#   IOS_DIST_CERT_P12_BASE64 / IOS_DIST_CERT_PASSWORD   Apple Distribution cert (.p12, base64) + its password
+#   IOS_PROVISIONING_PROFILE_BASE64                App Store provisioning profile (.mobileprovision, base64)
+#   SUBMODULE_TOKEN                                read access to the src/content submodule
+# Plus the production NEXT_PUBLIC_* the static export bakes in (see the env step).
+
+on:
+    push:
+        tags: ['v*']
+    workflow_dispatch:
+        inputs:
+            versionName:
+                description: 'versionName override (optional; defaults to project MARKETING_VERSION)'
+                required: false
+                type: string
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ios-release-${{ github.ref }}
+    cancel-in-progress: false
+
+jobs:
+    release:
+        runs-on: macos-15
+        # Protect with required reviewers in repo Settings → Environments → Production.
+        environment: Production
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  submodules: recursive
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+
+            - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
+              with:
+                  xcode-version: latest-stable
+
+            - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: '22' # @sentry/profiling-node has no Node 25 binary; project targets 22
+                  cache: 'pnpm'
+
+            - name: Install dependencies
+              run: pnpm install
+
+            - name: Production web env
+              run: |
+                  # NEXT_PUBLIC_* values are baked into the static export at build time.
+                  # rpId MUST be peanut.me (passkeys + assetlinks/AASA).
+                  # Keep this block identical to android-release.yml. CAPACITOR_BUILD /
+                  # IS_NATIVE_BUILD / GIT_COMMIT_HASH are auto-baked by next.config.native.js.
+                  cat > .env.production.local <<EOF
+                  NEXT_PUBLIC_BASE_URL=https://peanut.me
+                  NEXT_PUBLIC_PEANUT_API_URL=${{ vars.NEXT_PUBLIC_PEANUT_API_URL }}
+                  NEXT_PUBLIC_NATIVE_RP_ID=peanut.me
+                  NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL=${{ secrets.NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL }}
+                  NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL=${{ secrets.NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL }}
+                  NEXT_PUBLIC_ZERO_DEV_PASSKEY_PROJECT_ID=${{ secrets.NEXT_PUBLIC_ZERO_DEV_PASSKEY_PROJECT_ID }}
+                  NEXT_PUBLIC_ZERO_DEV_RECOVERY_BUNDLER_URL=${{ secrets.NEXT_PUBLIC_ZERO_DEV_RECOVERY_BUNDLER_URL }}
+                  NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN=peanut.me
+                  NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+                  NEXT_PUBLIC_POSTHOG_KEY=${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+                  NEXT_PUBLIC_POSTHOG_HOST=${{ vars.NEXT_PUBLIC_POSTHOG_HOST }}
+                  NEXT_PUBLIC_GA_KEY=${{ vars.NEXT_PUBLIC_GA_KEY }}
+                  NEXT_PUBLIC_ONESIGNAL_APP_ID=${{ secrets.NEXT_PUBLIC_ONESIGNAL_APP_ID }}
+                  NEXT_PUBLIC_SAFARI_WEB_ID=${{ vars.NEXT_PUBLIC_SAFARI_WEB_ID }}
+                  NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
+                  EOF
+
+            - name: Build web + sync iOS
+              run: |
+                  node scripts/native-build.js && npx cap sync ios
+                  if [ -f scripts/native-ios-postsync.js ]; then node scripts/native-ios-postsync.js; fi
+
+            - name: Install Apple distribution certificate
+              uses: apple-actions/import-codesign-certs@5142e029c445c10ffc7149d172e540235a065466 # v7
+              with:
+                  p12-file-base64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
+                  p12-password: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+
+            - name: Install provisioning profile
+              id: provision
+              env:
+                  IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+              run: |
+                  PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+                  mkdir -p "$PROFILE_DIR"
+                  echo "$IOS_PROVISIONING_PROFILE_BASE64" | base64 -d > /tmp/profile.mobileprovision
+                  # Decode the profile to read its UUID + Name (no extra secret needed).
+                  security cms -D -i /tmp/profile.mobileprovision > /tmp/profile.plist
+                  PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' /tmp/profile.plist)
+                  PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' /tmp/profile.plist)
+                  cp /tmp/profile.mobileprovision "$PROFILE_DIR/$PROFILE_UUID.mobileprovision"
+                  echo "name=$PROFILE_NAME" >> "$GITHUB_OUTPUT"
+                  echo "Installed provisioning profile: $PROFILE_NAME ($PROFILE_UUID)"
+
+            - name: Archive & export IPA
+              env:
+                  APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+                  PROFILE_NAME: ${{ steps.provision.outputs.name }}
+                  # Monotonic, always-increments-even-on-rerun. TestFlight requires each
+                  # upload's build number to exceed the last.
+                  IOS_BUILD_NUMBER: ${{ github.run_number }}
+                  IOS_VERSION_NAME: ${{ github.event.inputs.versionName || '' }}
+              run: |
+                  # Only override MARKETING_VERSION when an explicit versionName is supplied;
+                  # otherwise keep the project's MARKETING_VERSION. CURRENT_PROJECT_VERSION is
+                  # always the CI run number. Info.plist reads both via $(...) build settings.
+                  MARKETING_ARG=()
+                  if [ -n "$IOS_VERSION_NAME" ]; then MARKETING_ARG=("MARKETING_VERSION=$IOS_VERSION_NAME"); fi
+
+                  cat > /tmp/ExportOptions.plist <<EOF
+                  <?xml version="1.0" encoding="UTF-8"?>
+                  <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+                  <plist version="1.0">
+                  <dict>
+                      <key>method</key>
+                      <string>app-store</string>
+                      <key>teamID</key>
+                      <string>${APPLE_TEAM_ID}</string>
+                      <key>signingStyle</key>
+                      <string>manual</string>
+                      <key>provisioningProfiles</key>
+                      <dict>
+                          <key>me.peanut.wallet</key>
+                          <string>${PROFILE_NAME}</string>
+                      </dict>
+                      <key>uploadSymbols</key>
+                      <true/>
+                  </dict>
+                  </plist>
+                  EOF
+
+                  # Manual signing lives in the App target's Release build config
+                  # (CODE_SIGN_STYLE=Manual, DEVELOPMENT_TEAM, CODE_SIGN_IDENTITY,
+                  # PROVISIONING_PROFILE_SPECIFIER="Peanut Wallet App Store"). It is NOT
+                  # passed on the command line: global build settings leak onto the SwiftPM
+                  # dependency targets (Alamofire, ZIPFoundation, …), which reject a
+                  # provisioning profile and fail the archive. Only version numbers, which
+                  # are harmless to inherit, are overridden here.
+                  xcodebuild \
+                      -project ios/App/App.xcodeproj \
+                      -scheme App \
+                      -configuration Release \
+                      -destination 'generic/platform=iOS' \
+                      -archivePath build/ios/App.xcarchive \
+                      CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER" \
+                      "${MARKETING_ARG[@]}" \
+                      archive
+
+                  xcodebuild \
+                      -exportArchive \
+                      -archivePath build/ios/App.xcarchive \
+                      -exportPath build/ios \
+                      -exportOptionsPlist /tmp/ExportOptions.plist
+
+            - name: Upload to TestFlight
+              uses: apple-actions/upload-testflight-build@1ad58030672057aa084b4e96beb6f7a8c627f9e6 # v5
+              with:
+                  app-path: build/ios/App.ipa
+                  issuer-id: ${{ secrets.ASC_ISSUER_ID }}
+                  api-key-id: ${{ secrets.ASC_KEY_ID }}
+                  api-private-key: ${{ secrets.ASC_KEY_CONTENT }}
+                  # The upload itself is what matters; the post-upload processing
+                  # poll re-queries ASC for many minutes and fails when the API
+                  # token expires mid-wait (401 NOT_AUTHORIZED). The build is
+                  # already in App Store Connect by then, so skip the wait.
+                  wait-for-processing: 'false'
+
+            - name: Upload IPA as build artifact
+              if: always()
+              uses: actions/upload-artifact@v7
+              with:
+                  name: app-store-ipa
+                  path: build/ios/*.ipa
+                  if-no-files-found: warn

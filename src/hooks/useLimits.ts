@@ -1,10 +1,12 @@
 'use client'
 
 import { getAuthToken } from '@/utils/auth-token'
+import { isCapacitor } from '@/utils/capacitor'
 import { useQuery } from '@tanstack/react-query'
 import type { UserLimitsResponse } from '@/interfaces'
 import { LIMITS } from '@/constants/query.consts'
 import { serverFetch } from '@/utils/api-fetch'
+import { isDemoMode } from '@/utils/demo'
 
 interface UseLimitsOptions {
     enabled?: boolean
@@ -19,8 +21,11 @@ export function useLimits(options: UseLimitsOptions = {}) {
     const { enabled = true } = options
 
     const fetchLimits = async (): Promise<UserLimitsResponse> => {
+        // Web-only short-circuit: skip the request when logged out. On native
+        // the session is in the cookie jar (not readable synchronously), and in
+        // demo the request routes to the demo interceptor — both just fetch.
         const token = getAuthToken()
-        if (!token) {
+        if (!isCapacitor() && !token && !isDemoMode()) {
             return { manteca: null, bridge: null }
         }
 

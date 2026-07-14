@@ -6,18 +6,31 @@ import NavHeader from '@/components/Global/NavHeader'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { printableUsdc } from '@/utils/balance.utils'
 import { getExchangeRateWidgetRedirectRoute } from '@/utils/exchangeRateWidget.utils'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { deriveRegionAccess } from '@/utils/regions.utils'
 import { useRouter } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useMemo } from 'react'
 
 export default function ExchangeRatePage() {
     const router = useRouter()
     const onBack = useSafeBack('/profile', { replace: true })
     const { balance } = useWallet()
+    const { rails } = useCapabilities()
+    const unlockedRegionPaths = useMemo(
+        () => deriveRegionAccess(rails).unlockedRegions.map((region) => region.path),
+        [rails]
+    )
 
     const handleCtaAction = (sourceCurrency: string, destinationCurrency: string) => {
         const formattedBalance = parseFloat(printableUsdc(balance ?? 0n))
 
-        const redirectRoute = getExchangeRateWidgetRedirectRoute(sourceCurrency, destinationCurrency, formattedBalance)
+        const redirectRoute = getExchangeRateWidgetRedirectRoute(
+            sourceCurrency,
+            destinationCurrency,
+            formattedBalance,
+            unlockedRegionPaths
+        )
         router.push(redirectRoute)
     }
 

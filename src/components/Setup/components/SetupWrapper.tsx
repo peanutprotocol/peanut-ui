@@ -7,6 +7,7 @@ import InstallPWA from '@/components/Setup/Views/InstallPWA'
 import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import classNames from 'classnames'
+import { motion, useReducedMotion } from 'framer-motion'
 import Image from 'next/image'
 import { Children, type ReactNode, cloneElement, memo, type ReactElement, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -41,7 +42,9 @@ interface SetupWrapperProps {
 
 // define responsive height classes for different layout types
 const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
-    signup: 'min-h-[55dvh] md:min-h-full', // signup view has larger container height
+    // signup: flexible hero — grows into leftover space but never squeezes the
+    // content panel into scrolling on short screens (e.g. iPhone X)
+    signup: 'min-h-[35dvh] grow md:grow-0 md:min-h-full',
     standard: 'min-h-[50dvh] md:min-h-full', // rest all views has medium container height
     'android-initial-pwa-install': 'min-h-[60dvh] md:min-h-full',
 }
@@ -121,7 +124,7 @@ const ImageSection = ({
     const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
     const imageClass = !!imageClassName
         ? imageClassName
-        : 'w-full max-w-[80%] md:max-w-[75%] lg:max-w-xl object-contain relative'
+        : 'w-full max-w-[80%] max-h-[85%] md:max-w-[75%] lg:max-w-xl object-contain relative'
 
     // special rendering for welcome/signup screens with animated decorations
     if (isSignup) {
@@ -208,6 +211,14 @@ export const SetupWrapper = memo(function SetupWrapper({
 }: SetupWrapperProps) {
     const { isBrave } = useBravePWAInstallState()
     const [showBraveSuccessMessage, setShowBraveSuccessMessage] = useState(false)
+    const prefersReducedMotion = useReducedMotion()
+
+    // Slide the white panel up on first paint for a native bottom-sheet feel.
+    // Mobile + landing only; read synchronously so the offset is correct on mount.
+    const [slideUpPanel] = useState(
+        () => screenId === 'landing' && typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+    )
+    const animatePanelIn = slideUpPanel && !prefersReducedMotion
 
     const shouldShowBraveInstalledHeaderOnly =
         (screenId === 'pwa-install' || screenId === 'android-initial-pwa-install') && isBrave && showBraveSuccessMessage
@@ -218,7 +229,7 @@ export const SetupWrapper = memo(function SetupWrapper({
         : description
 
     return (
-        <div className="flex min-h-[100dvh] flex-col">
+        <div className="flex min-h-[calc(100dvh_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))] flex-col overflow-hidden">
             {/* navigation buttons */}
             <Navigation
                 showBackButton={showBackButton}
@@ -243,13 +254,18 @@ export const SetupWrapper = memo(function SetupWrapper({
                 />
 
                 {/* content section */}
-                <div
+                <motion.div
+                    initial={animatePanelIn ? { y: '100%' } : false}
+                    animate={animatePanelIn ? { y: 0 } : undefined}
+                    transition={{ type: 'spring', stiffness: 260, damping: 30 }}
                     className={twMerge(
-                        'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',
+                        'flex flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',
+                        // signup: panel hugs its content so the hero absorbs the slack
+                        // (paired with the grow classes in IMAGE_CONTAINER_CLASSES)
+                        layoutType === 'signup' ? 'grow-0 md:grow' : 'flex-grow',
                         contentClassName
                     )}
                 >
-                    {/* todo: add transition animation */}
                     {/* title and description container */}
                     <div
                         className={twMerge(
@@ -284,7 +300,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                             return child
                         })}
                     </div>
-                </div>
+                </motion.div>
             </div>
         </div>
     )

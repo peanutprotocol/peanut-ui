@@ -17,6 +17,7 @@ import { apiFetch } from '@/utils/api-fetch'
 import { isCapacitor } from '@/utils/capacitor'
 import { clearAuthToken } from '@/utils/auth-token'
 import { resetCrispProxySessions } from '@/utils/crisp'
+import { disableDemoMode } from '@/utils/demo'
 import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
@@ -195,7 +196,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // clear auth tokens (localStorage in capacitor, cookie on web)
         removeFromCookie(WEB_AUTHN_COOKIE_KEY)
-        clearAuthToken()
+        await clearAuthToken()
 
         // clear redirect url
         clearRedirectUrl()
@@ -231,6 +232,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
             sessionStorage.removeItem('hasSeenIOSPWAPromptThisSession')
         } catch {}
+
+        // clear demo mode flag
+        disableDemoMode()
 
         // reset third-party sessions (non-fatal)
         try {

@@ -26,6 +26,9 @@ const getErrorDescription = (errorName: string, platform: 'android' | 'ios' | 'w
         return "There's an issue with your device's passkey settings. Please try again."
     }
     if (errorName === WebAuthnErrorName.NotAllowed) {
+        if (platform === 'android') {
+            return 'We couldn’t create a passkey. This usually means you’re not signed in to a Google account, Google Play Services is out of date, or screen lock isn’t set up. Fix one of these and retry — or it may have been cancelled.'
+        }
         return 'Passkeys are not enabled on your device. Check your device settings to enable them'
     }
     if (errorName === WebAuthnErrorName.InvalidState) {
@@ -35,11 +38,13 @@ const getErrorDescription = (errorName: string, platform: 'android' | 'ios' | 'w
 }
 
 const getTroubleshootingSteps = (errorName: string, platform: 'android' | 'ios' | 'web'): readonly string[] => {
-    if (platform === 'android' && errorName in PASSKEY_TROUBLESHOOTING_STEPS.android) {
-        return PASSKEY_TROUBLESHOOTING_STEPS.android[errorName as keyof typeof PASSKEY_TROUBLESHOOTING_STEPS.android]
+    if (platform === 'android') {
+        const steps = PASSKEY_TROUBLESHOOTING_STEPS.android
+        return errorName in steps ? steps[errorName as keyof typeof steps] : steps.default
     }
-    if (platform === 'ios' && errorName in PASSKEY_TROUBLESHOOTING_STEPS.ios) {
-        return PASSKEY_TROUBLESHOOTING_STEPS.ios[errorName as keyof typeof PASSKEY_TROUBLESHOOTING_STEPS.ios]
+    if (platform === 'ios') {
+        const steps = PASSKEY_TROUBLESHOOTING_STEPS.ios
+        return errorName in steps ? steps[errorName as keyof typeof steps] : steps.default
     }
     return PASSKEY_TROUBLESHOOTING_STEPS.web.default
 }
