@@ -105,6 +105,11 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
     const amount = isAddMoneyFlow ? (amountFromUrl ?? '') : requestFulfilmentOnrampData?.depositInstructions?.amount
     const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
 
+    // The single source for every surface that hands the reference to the user
+    // (display, copy, share, summary). Bridge can't reconcile a wire sent with
+    // anything short of the full depositMessage — never truncate or format it.
+    const depositReference = onrampData?.depositInstructions?.depositMessage
+
     const currencySymbolBasedOnCountry = useMemo(() => {
         // symbol of the detected onramp currency (e.g., €, $)
         return getCurrencySymbol(onrampCurrency)
@@ -236,7 +241,7 @@ ${routingLabel}: ${routingValue}`
         }
 
         bankDetails += `
-Deposit Reference: ${onrampData?.depositInstructions?.depositMessage || 'Loading...'}
+Deposit Reference: ${depositReference}
 
 Please use these details to complete your bank transfer.`
 
@@ -273,17 +278,12 @@ Please use these details to complete your bank transfer.`
                 <Card className="p-4">
                     <p className="text-xs font-normal text-gray-1">Deposit reference</p>
                     <div className="flex items-baseline gap-2">
-                        {/* Full reference always — Bridge can't reconcile a wire sent with a
-                            truncated deposit message; break-all handles the visual overflow */}
+                        {/* break-all handles the visual overflow of the full reference */}
                         <p className="break-all text-xl font-extrabold text-black md:text-4xl">
-                            {onrampData?.depositInstructions?.depositMessage || 'Loading...'}
+                            {depositReference || 'Loading...'}
                         </p>
-                        {onrampData?.depositInstructions?.depositMessage && (
-                            <CopyToClipboard
-                                textToCopy={onrampData.depositInstructions.depositMessage}
-                                fill="black"
-                                iconSize="4"
-                            />
+                        {depositReference && (
+                            <CopyToClipboard textToCopy={depositReference} fill="black" iconSize="4" />
                         )}
                     </div>
 
@@ -418,7 +418,7 @@ Please use these details to complete your bank transfer.`
                     title="Double check in your bank before sending:"
                     items={[
                         `Amount: ${formattedCurrencyAmount} (exact)`,
-                        `Reference: ${onrampData?.depositInstructions?.depositMessage || 'Loading...'} (included)`,
+                        `Reference: ${depositReference || 'Loading...'} (included)`,
                     ]}
                 />
 
@@ -426,14 +426,18 @@ Please use these details to complete your bank transfer.`
                     I've sent the transfer
                 </Button>
 
-                <ShareButton
-                    generateText={generateBankDetails}
-                    title="Bank Transfer Details"
-                    variant="primary-soft"
-                    className="w-full"
-                >
-                    Share Details
-                </ShareButton>
+                {/* No share until the reference exists — a shared blob with a
+                    missing reference produces an unreconcilable wire */}
+                {depositReference && (
+                    <ShareButton
+                        generateText={generateBankDetails}
+                        title="Bank Transfer Details"
+                        variant="primary-soft"
+                        className="w-full"
+                    >
+                        Share Details
+                    </ShareButton>
+                )}
             </div>
         </div>
     )

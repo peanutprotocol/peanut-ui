@@ -130,4 +130,20 @@ describe('AddMoneyBankDetails deposit reference', () => {
         const details = await capturedGenerateText!()
         expect(details).toContain(`Deposit Reference: ${FULL_REFERENCE}`)
     })
+
+    it('offers no copy or share while the reference is still loading', () => {
+        mockUseOnrampFlow.mockReturnValue({
+            onrampData: {
+                transferId: 'transfer-123',
+                depositInstructions: { ...baseOnrampData.depositInstructions, depositMessage: undefined },
+            },
+        })
+        render(<AddMoneyBankDetails onBack={jest.fn()} />)
+
+        // the 'Loading...' placeholder must never leave the screen — no share
+        // blob, no copyable value carrying the literal placeholder
+        expect(screen.queryByTestId('share-button')).not.toBeInTheDocument()
+        const copyTexts = screen.getAllByTestId('copy').map((el) => el.getAttribute('data-text'))
+        expect(copyTexts).not.toContain('Loading...')
+    })
 })
