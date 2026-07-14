@@ -9,7 +9,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
 import { countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
-import { formatBankAccountDisplay } from '@/utils/format.utils'
+import { formatBankAccountDisplay, shortDepositReference } from '@/utils/format.utils'
 import { applyBridgeCrossCurrencyFee, getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { formatAmount } from '@/utils/general.utils'
@@ -236,7 +236,7 @@ ${routingLabel}: ${routingValue}`
         }
 
         bankDetails += `
-Deposit Reference: ${onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || 'Loading...'}
+Deposit Reference: ${shortDepositReference(onrampData?.depositInstructions?.depositMessage) || 'Loading...'}
 
 Please use these details to complete your bank transfer.`
 
@@ -274,11 +274,11 @@ Please use these details to complete your bank transfer.`
                     <p className="text-xs font-normal text-gray-1">Deposit reference</p>
                     <div className="flex items-baseline gap-2">
                         <p className="text-xl font-extrabold text-black md:text-4xl">
-                            {onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || 'Loading...'}
+                            {shortDepositReference(onrampData?.depositInstructions?.depositMessage) || 'Loading...'}
                         </p>
                         {onrampData?.depositInstructions?.depositMessage && (
                             <CopyToClipboard
-                                textToCopy={onrampData.depositInstructions.depositMessage?.slice(0, 10)}
+                                textToCopy={shortDepositReference(onrampData.depositInstructions.depositMessage)}
                                 fill="black"
                                 iconSize="4"
                             />
@@ -416,7 +416,7 @@ Please use these details to complete your bank transfer.`
                     title="Double check in your bank before sending:"
                     items={[
                         `Amount: ${formattedCurrencyAmount} (exact)`,
-                        `Reference: ${onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || 'Loading...'} (included)`,
+                        `Reference: ${shortDepositReference(onrampData?.depositInstructions?.depositMessage) || 'Loading...'} (included)`,
                     ]}
                 />
 

@@ -45,6 +45,10 @@ export function CancelDepositActions({
     // a real user cancelled a funded deposit while trying to report a problem
     // (no way to match the wire once cancelled). Every cancel confirms first.
     const [pendingCancel, setPendingCancel] = useState<{ noun: string; run: () => Promise<void> } | null>(null)
+    // Visibility is separate from pendingCancel so the noun stays rendered
+    // during the modal's fade-out (nulling it mid-fade flashed 'deposit'
+    // over 'request' titles).
+    const [confirmOpen, setConfirmOpen] = useState(false)
     if (!setIsLoading || !onClose) return null
 
     const refetchAndClose = () =>
@@ -68,9 +72,14 @@ export function CancelDepositActions({
         }
     }
 
+    const armCancel = (noun: string, run: () => Promise<void>) => {
+        setPendingCancel({ noun, run })
+        setConfirmOpen(true)
+    }
+
     const confirmThenRun = async () => {
         if (!pendingCancel) return
-        setPendingCancel(null)
+        setConfirmOpen(false)
         await wrapAction(pendingCancel.run)
     }
 
@@ -81,11 +90,9 @@ export function CancelDepositActions({
             {button}
             {error && <ErrorAlert description={error} />}
             <ActionModal
-                visible={pendingCancel !== null}
-                onClose={() => setPendingCancel(null)}
+                visible={confirmOpen}
+                onClose={() => setConfirmOpen(false)}
                 icon="ban"
-                iconContainerClassName="bg-purple-1"
-                iconProps={{ className: 'text-black' }}
                 title={`Cancel this ${pendingCancel?.noun ?? 'deposit'}?`}
                 modalClassName="!z-[9999] pointer-events-auto"
                 description={
@@ -123,12 +130,9 @@ export function CancelDepositActions({
             <CancelButton
                 disabled={!!isLoading}
                 onClick={() =>
-                    setPendingCancel({
-                        noun: 'deposit',
-                        run: async () => {
-                            const result = await cancelOnramp(transaction.id)
-                            if (result.error) throw new Error(result.error)
-                        },
+                    armCancel('deposit', async () => {
+                        const result = await cancelOnramp(transaction.id)
+                        if (result.error) throw new Error(result.error)
                     })
                 }
             />
@@ -143,12 +147,9 @@ export function CancelDepositActions({
             <CancelButton
                 disabled={!!isLoading}
                 onClick={() =>
-                    setPendingCancel({
-                        noun: 'deposit',
-                        run: async () => {
-                            const result = await mantecaApi.cancelDeposit(transaction.id)
-                            if (result.error) throw new Error(result.error)
-                        },
+                    armCancel('deposit', async () => {
+                        const result = await mantecaApi.cancelDeposit(transaction.id)
+                        if (result.error) throw new Error(result.error)
                     })
                 }
             />
@@ -168,20 +169,17 @@ export function CancelDepositActions({
                     label="Cancel Request"
                     disabled={!!isLoading}
                     onClick={() =>
-                        setPendingCancel({
-                            noun: 'request',
-                            run: async () => {
-                                const bridgeTransferId = transaction.extraDataForDrawer?.bridgeTransferId
-                                if (!bridgeTransferId) {
-                                    throw new Error('Cannot cancel REQUEST: missing bridgeTransferId on transaction')
-                                }
-                                // Bridge cancel must succeed before we cancel the
-                                // charge — otherwise the onramp orphans on Bridge's
-                                // side while the user sees the request as cancelled.
-                                const bridgeResult = await cancelOnramp(bridgeTransferId)
-                                if (bridgeResult.error) throw new Error(bridgeResult.error)
-                                await chargesApi.cancel(transaction.id)
-                            },
+                        armCancel('request', async () => {
+                            const bridgeTransferId = transaction.extraDataForDrawer?.bridgeTransferId
+                            if (!bridgeTransferId) {
+                                throw new Error('Cannot cancel REQUEST: missing bridgeTransferId on transaction')
+                            }
+                            // Bridge cancel must succeed before we cancel the
+                            // charge — otherwise the onramp orphans on Bridge's
+                            // side while the user sees the request as cancelled.
+                            const bridgeResult = await cancelOnramp(bridgeTransferId)
+                            if (bridgeResult.error) throw new Error(bridgeResult.error)
+                            await chargesApi.cancel(transaction.id)
                         })
                     }
                 />

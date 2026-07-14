@@ -131,9 +131,15 @@ const SupportDrawer = () => {
     return (
         <>
             {/* backdrop */}
+            {/* pointer-events-auto is load-bearing on BOTH divs: when this drawer is
+                opened from inside a vaul drawer (transaction receipt), vaul sets
+                pointer-events:none on <body> and these divs inherit it — the whole
+                support overlay becomes click-transparent, and taps fall through to
+                the receipt underneath (a fall-through tap on "Cancel deposit"
+                cancelled a user's funded bank deposit). */}
             <div
                 className={`fixed inset-0 z-[999998] bg-black/80 transition-opacity duration-300 ${
-                    isSupportModalOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+                    isSupportModalOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
                 }`}
                 onClick={() => setIsSupportModalOpen(false)}
                 aria-hidden="true"
@@ -147,7 +153,7 @@ const SupportDrawer = () => {
                 aria-label="Support"
                 aria-modal={isSupportModalOpen}
                 className={`fixed inset-x-0 bottom-0 z-[999999] flex max-h-[85vh] flex-col rounded-t-[10px] border bg-background pt-4 ${
-                    isSupportModalOpen ? 'translate-y-0' : 'pointer-events-none translate-y-full'
+                    isSupportModalOpen ? 'pointer-events-auto translate-y-0' : 'pointer-events-none translate-y-full'
                 }`}
                 style={{
                     transform: isSupportModalOpen ? `translateY(${dragOffset}px)` : 'translateY(100%)',

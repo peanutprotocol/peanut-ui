@@ -149,6 +149,31 @@ describe('SupportDrawer — Crisp load-failure fallback', () => {
     })
 })
 
+describe('SupportDrawer — pointer-events when opened inside a vaul drawer', () => {
+    beforeEach(() => {
+        mockUseCrispUserData.mockReset().mockReturnValue({ userId: undefined, email: undefined })
+        mockUseCrispTokenId.mockReset().mockReturnValue(undefined)
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+    })
+
+    it('backdrop and panel explicitly re-enable pointer events while open', () => {
+        // vaul sets pointer-events:none on <body> while the transaction drawer is
+        // open. Without an explicit pointer-events-auto, the support overlay
+        // inherits none and becomes click-transparent — taps fall through to the
+        // receipt underneath (one landed on "Cancel deposit" and cancelled a
+        // user's funded bank deposit).
+        const { container } = render(<SupportDrawer />)
+
+        const backdrop = container.querySelector('[aria-hidden="true"]')
+        const panel = screen.getByRole('dialog', { name: 'Support' })
+
+        expect(backdrop?.className).toContain('pointer-events-auto')
+        expect(panel.className).toContain('pointer-events-auto')
+        expect(backdrop?.className).not.toContain('pointer-events-none')
+        expect(panel.className).not.toContain('pointer-events-none')
+    })
+})
+
 describe('SupportDrawer Crisp session gate — native (Capacitor)', () => {
     beforeEach(() => {
         mockUseCrispUserData.mockReset()

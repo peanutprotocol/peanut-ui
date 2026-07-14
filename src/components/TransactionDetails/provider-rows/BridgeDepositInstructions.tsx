@@ -7,6 +7,7 @@ import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME } from '@/constants/payment.consts'
+import { shortDepositReference } from '@/utils/format.utils'
 import { formatIban } from '@/utils/general.utils'
 
 /**
@@ -36,13 +37,14 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                 }
                 value={
                     <div className="flex items-center gap-2">
-                        {/* Shortened to 10 chars to match the Add Money screen — some
-                            banks (e.g. Wise) cap reference fields at 10 chars, and
-                            Bridge matches deposits on the partial reference. Showing
-                            the full form only here made users think they wired with
-                            the "wrong" code (two-different-codes confusion). */}
-                        <span className="break-all">{instructions.deposit_message?.slice(0, 10)}</span>
-                        <CopyToClipboard textToCopy={instructions.deposit_message?.slice(0, 10)} iconSize="4" />
+                        {/* Same shortened form as the Add Money screen — rationale on
+                            shortDepositReference. Showing the full form only here made
+                            users think they wired with the "wrong" code. */}
+                        <span className="break-all">{shortDepositReference(instructions.deposit_message)}</span>
+                        <CopyToClipboard
+                            textToCopy={shortDepositReference(instructions.deposit_message)}
+                            iconSize="4"
+                        />
                     </div>
                 }
                 hideBottomBorder={false}
