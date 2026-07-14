@@ -236,7 +236,7 @@ ${routingLabel}: ${routingValue}`
         }
 
         bankDetails += `
-Deposit Reference: ${onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || 'Loading...'}
+Deposit Reference: ${onrampData?.depositInstructions?.depositMessage || 'Loading...'}
 
 Please use these details to complete your bank transfer.`
 
@@ -273,12 +273,14 @@ Please use these details to complete your bank transfer.`
                 <Card className="p-4">
                     <p className="text-xs font-normal text-gray-1">Deposit reference</p>
                     <div className="flex items-baseline gap-2">
-                        <p className="text-xl font-extrabold text-black md:text-4xl">
-                            {onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || 'Loading...'}
+                        {/* Full reference always — Bridge can't reconcile a wire sent with a
+                            truncated deposit message; break-all handles the visual overflow */}
+                        <p className="break-all text-xl font-extrabold text-black md:text-4xl">
+                            {onrampData?.depositInstructions?.depositMessage || 'Loading...'}
                         </p>
                         {onrampData?.depositInstructions?.depositMessage && (
                             <CopyToClipboard
-                                textToCopy={onrampData.depositInstructions.depositMessage?.slice(0, 10)}
+                                textToCopy={onrampData.depositInstructions.depositMessage}
                                 fill="black"
                                 iconSize="4"
                             />
@@ -416,7 +418,7 @@ Please use these details to complete your bank transfer.`
                     title="Double check in your bank before sending:"
                     items={[
                         `Amount: ${formattedCurrencyAmount} (exact)`,
-                        `Reference: ${onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || 'Loading...'} (included)`,
+                        `Reference: ${onrampData?.depositInstructions?.depositMessage || 'Loading...'} (included)`,
                     ]}
                 />
 
