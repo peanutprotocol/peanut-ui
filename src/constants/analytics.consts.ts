@@ -162,7 +162,8 @@ export const ANALYTICS_EVENTS = {
     CARD_SESSION_KEY_FAILED: 'card_session_key_failed',
     // Grant preflight found a repair-needing kernel (nonce floor from the
     // 2025-09-18 migration wave, or an undeployed pre-cutoff account) and
-    // sent the repair userOp before signing. `mode`: invalidate | deploy.
+    // completed the repair before signing (captured on success), or fell back
+    // on a flaky floor read. `mode`: invalidate | deploy | floor-read-failed.
     CARD_SESSION_KEY_PREFLIGHT_REPAIR: 'card_session_key_preflight_repair',
     // Withdraw refused with 409 STALE_CARD_APPROVAL — stored session-key
     // approval is bound to a deprecated validator; user must re-enable the card.

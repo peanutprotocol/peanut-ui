@@ -20,7 +20,7 @@ import { serializePermissionAccount } from '@zerodev/permissions'
 import { peanutPublicClient } from '@/app/actions/clients'
 import { rainApi } from '@/services/rain'
 import { useZeroDev } from '@/hooks/useZeroDev'
-import { isMigrationWrapperAccount } from '@/utils/kernelMigration.utils'
+import { ensureRootValidatorMigrated, isMigrationWrapperAccount } from '@/utils/kernelMigration.utils'
 import { repairEnableNonce, type NoncePublicClient } from '@/utils/kernelNonceRepair.utils'
 
 /** Minimal structural view of the bits of the kernel account's plugin manager
@@ -99,7 +99,7 @@ export interface GrantSessionKeyResult {
 
 export const useGrantSessionKey = (): GrantSessionKeyResult => {
     const { overview, refetch } = useRainCardOverview()
-    const { getClientForChain, getPatchedSudoValidator } = useKernelClient()
+    const { getClientForChain, getPatchedSudoValidator, rebuildClientForChain } = useKernelClient()
     const { handleSendUserOpEncoded } = useZeroDev()
     const queryClient = useQueryClient()
     const [isGranting, setIsGranting] = useState(false)
@@ -240,19 +240,24 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
                 // Undeployed PRE-cutoff account: the serialized approval would bake
                 // a v0.0.3 initCode that derives a different CREATE2 address than
                 // this wallet, so every backend replay reverts AA14. Deploy first
-                // (one extra passkey tap; the wrapper also migrates the root
-                // validator in the same op), then bind the fresh live nonce.
+                // via the hardened migration gate — it verifies the root-validator
+                // swap against ON-CHAIN ground truth (a reverted migration inside a
+                // successful bundle would otherwise deploy the account on v0.0.2
+                // and the approval signed below would be silently dead) and hands
+                // back a rebuilt client. One extra passkey tap.
+                await ensureRootValidatorMigrated({
+                    client: kernelClient,
+                    sendNoopUserOp: (call) => handleSendUserOpEncoded([call], chainId),
+                    rebuildClient: () => rebuildClientForChain(chainId),
+                })
+                // Freshly deployed: read the live nonce; fail loud if unreadable.
+                const freshNonce = await peanutPublicClient.readContract({
+                    address: accountAddress,
+                    abi: KernelV3AccountAbi,
+                    functionName: 'currentNonce',
+                })
+                validatorNonce = Math.max(Number(freshNonce), 1)
                 posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_PREFLIGHT_REPAIR, { mode: 'deploy' })
-                validatorNonce = (
-                    await repairEnableNonce({
-                        // viem's generic readContract collapses structural
-                        // assignability to the minimal client interface.
-                        publicClient: peanutPublicClient as unknown as NoncePublicClient,
-                        accountAddress,
-                        mode: 'deploy',
-                        sendUserOp: (call) => handleSendUserOpEncoded([call], chainId),
-                    })
-                ).validatorNonce
             } else {
                 // Post-cutoff counterfactual: the kernel initializes currentNonce
                 // to 1 at deployment, so 1 is provably exact.
@@ -261,27 +266,31 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
         } else if (!nonceRead.read) {
             // Deployed but unreadable: fail LOUDLY rather than sign a guess.
             throw nonceRead.error
-        } else if (!floorRead.read) {
-            // Same rule for the floor read — skipping the check could mint an
-            // approval that is dead on arrival for a floored account.
-            throw floorRead.error
-        } else if (floorRead.floor > Math.max(nonceRead.nonce, 1)) {
+        } else if (floorRead.read && floorRead.floor > Math.max(nonceRead.nonce, 1)) {
             // validNonceFrom AHEAD of currentNonce — the 2025-09-18 migration-wave
             // state. Every enable-mode install lands below the floor and reverts
             // InvalidNonce forever, so an approval signed now would be dead on
             // arrival. Repair inline (one extra passkey tap: invalidateNonce
             // syncs the counter up to the floor), then bind the fresh nonce.
-            posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_PREFLIGHT_REPAIR, { mode: 'invalidate' })
             validatorNonce = (
                 await repairEnableNonce({
+                    // viem's generic readContract collapses structural
+                    // assignability to the minimal client interface.
                     publicClient: peanutPublicClient as unknown as NoncePublicClient,
                     accountAddress,
-                    mode: 'invalidate',
                     validNonceFrom: floorRead.floor,
                     sendUserOp: (call) => handleSendUserOpEncoded([call], chainId),
                 })
             ).validatorNonce
+            posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_PREFLIGHT_REPAIR, { mode: 'invalidate' })
         } else {
+            if (!floorRead.read) {
+                // Don't regress every healthy grant on one flaky read: proceed on
+                // the old (pre-floor-check) behavior and flag it — a floored
+                // account slipping through here still gets caught by the sweep's
+                // permanent-failure path and /fix-card-signature.
+                posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_PREFLIGHT_REPAIR, { mode: 'floor-read-failed' })
+            }
             // A deployed-but-uninitialized proxy reports 0; enables validate
             // against ≥1 post-init, so normalize the way the SDK does.
             validatorNonce = nonceRead.nonce === 0 ? 1 : nonceRead.nonce
@@ -303,7 +312,7 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
 
         const serialized = await serializePermissionAccount(sessionKernelAccount, undefined, enableSignature)
         return { ok: true, serialized }
-    }, [overview, getClientForChain, getPatchedSudoValidator, handleSendUserOpEncoded])
+    }, [overview, getClientForChain, getPatchedSudoValidator, handleSendUserOpEncoded, rebuildClientForChain])
 
     const wrap = useCallback(
         async <T>(

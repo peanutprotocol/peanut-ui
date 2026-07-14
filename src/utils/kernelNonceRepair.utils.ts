@@ -1,27 +1,24 @@
 import type { Address, Hex } from 'viem'
 import { encodeFunctionData } from 'viem'
 import { KernelV3AccountAbi } from '@zerodev/sdk'
-import { buildMigrationNoopCall } from './kernelMigration.utils'
 
 /**
- * The 2025-09-18 root-validator migration batch left a subset of pre-cutoff
- * kernel accounts with `validNonceFrom` AHEAD of `currentNonce` (a revocation
- * floor above the counter — unreachable through Kernel v3.1's own
- * `invalidateNonce`, which syncs the counter up). Kernel.sol rejects every
- * NON-root validation installed below the floor with `InvalidNonce()`
- * (0x756688fe), so any enable-mode approval (the card auto-balance session
- * key) minted for such an account fails on every backend replay, forever —
- * however correctly it was signed. Root-passkey ops are exempt, so the
- * account looks healthy until a card grant.
+ * The 2025-09-18 emergency validator migration left a subset of kernel
+ * accounts with `validNonceFrom` AHEAD of `currentNonce` (a revocation floor
+ * above the counter — unreachable through Kernel v3.1's own `invalidateNonce`,
+ * which syncs the counter up). Kernel.sol rejects every NON-root validation
+ * installed below the floor with `InvalidNonce()` (0x756688fe), so any
+ * enable-mode approval (the card auto-balance session key) minted for such an
+ * account fails on every backend replay, forever — however correctly it was
+ * signed. Root-passkey ops are exempt, so the account looks healthy until a
+ * card grant.
  *
  * Repair is a single root userOp the user confirms with one passkey tap:
- * - floored (deployed, vnf > cn): `invalidateNonce(validNonceFrom + 1)` on
- *   the account itself — the kernel syncs `currentNonce` up to the new floor.
- * - undeployed pre-cutoff (migration-wrapper) account: any root userOp — the
- *   wrapper prepends the root migration and the deploy uses the account's
- *   true initCode. Without this, the grant's serialized approval bakes a
- *   v0.0.3 initCode that CREATE2-derives a different address, and the
- *   backend replay reverts `AA14 initCode must return sender`.
+ * `invalidateNonce(validNonceFrom + 1)` on the account itself — the kernel
+ * syncs `currentNonce` up to the new floor, unbricking enable mode.
+ * (Undeployed pre-cutoff accounts are a different hazard — AA14 from a
+ * mismatched initCode — and are handled by `ensureRootValidatorMigrated`,
+ * which verifies the migration against ground truth; not here.)
  *
  * Detection is purely on-chain state of the connected wallet — nothing
  * account-specific ships in this repo.
@@ -66,10 +63,8 @@ export interface NoncePublicClient {
 export interface RepairEnableNonceDeps {
     publicClient: NoncePublicClient
     accountAddress: Address
-    /** 'invalidate' = floored deployed account; 'deploy' = undeployed wrapper account. */
-    mode: 'invalidate' | 'deploy'
-    /** Required for 'invalidate': the floor observed by the caller's read. */
-    validNonceFrom?: number
+    /** The floor observed by the caller's read — fallback when re-reads flake. */
+    validNonceFrom: number
     /** Sends one root userOp through the user's kernel client (one passkey tap). */
     sendUserOp: (call: { to: Hex; value: bigint; data: Hex }) => Promise<unknown>
     /** On-chain confirmation attempts / spacing (overridable for tests). */
@@ -103,33 +98,38 @@ export const buildInvalidateNonceCall = (
 })
 
 /**
- * Sends the repair userOp and confirms it against re-read on-chain state.
- * Returns the enable nonce the caller must bind the grant to.
+ * Sends the invalidateNonce repair userOp for a floored (deployed) account
+ * and confirms it against re-read on-chain state. Returns the enable nonce
+ * the caller must bind the grant to.
  */
 export async function repairEnableNonce(deps: RepairEnableNonceDeps): Promise<{ validatorNonce: number }> {
     const retries = deps.retries ?? 8
     const intervalMs = deps.intervalMs ?? 1500
 
-    if (deps.mode === 'invalidate') {
-        // Re-read live state first: a retry after a confirm timeout must not
-        // re-send an invalidateNonce the first op already consumed.
-        const fresh = await readNonceState(deps.publicClient, deps.accountAddress)
-        if (fresh.deployed && fresh.validNonceFrom <= fresh.currentNonce) {
-            return { validatorNonce: Math.max(fresh.currentNonce, 1) }
-        }
-        const floor = fresh.deployed ? fresh.validNonceFrom : (deps.validNonceFrom ?? 0)
-        if (floor + 1 > fresh.currentNonce + MAX_NONCE_INCREMENT_SIZE) {
-            throw new KernelNonceRepairUnrepairableError()
-        }
-        await deps.sendUserOp(buildInvalidateNonceCall(deps.accountAddress, floor))
-    } else {
-        await deps.sendUserOp(buildMigrationNoopCall(deps.accountAddress))
+    // Re-read live state first: a retry after a confirm timeout must not
+    // re-send an invalidateNonce the first op already consumed. The caller
+    // only enters here after observing a DEPLOYED floored account, so an
+    // "undeployed" fresh read can only be a lagging node — retryable, never
+    // grounds for the unrepairable verdict.
+    const fresh = await readNonceState(deps.publicClient, deps.accountAddress)
+    if (!fresh.deployed) throw new KernelNonceRepairPendingError()
+    if (fresh.validNonceFrom <= fresh.currentNonce) {
+        return { validatorNonce: Math.max(fresh.currentNonce, 1) }
     }
+    if (fresh.validNonceFrom + 1 > fresh.currentNonce + MAX_NONCE_INCREMENT_SIZE) {
+        throw new KernelNonceRepairUnrepairableError()
+    }
+    await deps.sendUserOp(buildInvalidateNonceCall(deps.accountAddress, fresh.validNonceFrom))
 
     for (let attempt = 0; attempt < retries; attempt++) {
-        const state = await readNonceState(deps.publicClient, deps.accountAddress)
-        if (state.deployed && state.validNonceFrom <= state.currentNonce) {
-            return { validatorNonce: Math.max(state.currentNonce, 1) }
+        try {
+            const state = await readNonceState(deps.publicClient, deps.accountAddress)
+            if (state.deployed && state.validNonceFrom <= state.currentNonce) {
+                return { validatorNonce: Math.max(state.currentNonce, 1) }
+            }
+        } catch {
+            // A flaky read after the op was already sent must not abort the
+            // poll — the tap and gas are spent; keep confirming.
         }
         if (attempt < retries - 1) await delay(intervalMs)
     }
