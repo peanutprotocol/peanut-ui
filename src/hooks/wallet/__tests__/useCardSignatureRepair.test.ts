@@ -178,6 +178,50 @@ describe('repair', () => {
         expect(mockSendUserOp).not.toHaveBeenCalled()
     })
 
+    it('retry after a confirm timeout skips the send when the first op already landed', async () => {
+        chainState({ deployed: true, cn: 2, vnf: 3 })
+        const { result } = renderHook(() => useCardSignatureRepair())
+        await act(async () => {
+            await result.current.diagnose()
+        })
+
+        // Between the stale diagnosis and the retry tap, the first repair op landed.
+        chainState({ deployed: true, cn: 4, vnf: 4 })
+
+        await act(async () => {
+            expect(await result.current.repair()).toEqual({ state: 'healthy', currentNonce: 4, validNonceFrom: 4 })
+        })
+        expect(mockSendUserOp).not.toHaveBeenCalled()
+        expect(mockRebuildClient).toHaveBeenCalledWith('42161')
+    })
+
+    it('refuses to send a doomed op when the floor is beyond the kernel invalidation cap', async () => {
+        chainState({ deployed: true, cn: 2, vnf: 20 })
+        const { result } = renderHook(() => useCardSignatureRepair())
+        await act(async () => {
+            await result.current.diagnose()
+        })
+        await act(async () => {
+            expect(await result.current.repair()).toBeNull()
+        })
+        expect(mockSendUserOp).not.toHaveBeenCalled()
+        expect(result.current.error).toMatch(/manual repair/)
+    })
+
+    it('treats a dismissed passkey sheet as a quiet no-op, not an error', async () => {
+        chainState({ deployed: true, cn: 2, vnf: 3 })
+        const { result } = renderHook(() => useCardSignatureRepair())
+        await act(async () => {
+            await result.current.diagnose()
+        })
+        mockSendUserOp.mockRejectedValue(new Error('Signing failed: The operation was not allowed'))
+        await act(async () => {
+            expect(await result.current.repair()).toBeNull()
+        })
+        expect(result.current.error).toBeNull()
+        expect(result.current.isRepairing).toBe(false)
+    })
+
     it('surfaces a retryable error when the repair never confirms on-chain', async () => {
         jest.useFakeTimers()
         try {

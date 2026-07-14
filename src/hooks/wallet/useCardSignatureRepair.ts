@@ -29,7 +29,7 @@ import { buildMigrationNoopCall } from '@/utils/kernelMigration.utils'
  * signs against the fresh live nonce and re-stores the approval server-side.
  */
 
-export type CardSignatureDiagnosis =
+type CardSignatureDiagnosis =
     | { state: 'undeployed' }
     | { state: 'nonce-bricked'; currentNonce: number; validNonceFrom: number }
     | { state: 'healthy'; currentNonce: number; validNonceFrom: number }
@@ -46,6 +46,15 @@ const CHAIN_ID = String(PEANUT_WALLET_CHAIN.id)
 // included the repair userOp (same hazard ensureRootValidatorMigrated guards).
 const CONFIRM_RETRIES = 5
 const CONFIRM_INTERVAL_MS = 1500
+// Kernel v3.1 rejects invalidateNonce more than MAX_NONCE_INCREMENT_SIZE (10)
+// above currentNonce AND at-or-below validNonceFrom — a floor further than 10
+// ahead of the nonce has no valid invalidation target and needs manual repair.
+const MAX_NONCE_INCREMENT_SIZE = 10
+
+const isUserCancelled = (message: string) => {
+    const m = message.toLowerCase()
+    return m.includes('user rejected') || m.includes('cancelled') || m.includes('not allowed')
+}
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -94,10 +103,30 @@ export const useCardSignatureRepair = () => {
      * Returns the post-repair diagnosis, or null on failure.
      */
     const repair = useCallback(async (): Promise<CardSignatureDiagnosis | null> => {
-        const diagnosis = state.diagnosis
-        if (!address || !diagnosis || diagnosis.state === 'healthy') return diagnosis
+        if (!address || !state.diagnosis || state.diagnosis.state === 'healthy') return state.diagnosis
         setState((s) => ({ ...s, isRepairing: true, error: null }))
         try {
+            // Re-diagnose against live state, not the mount-time snapshot: a
+            // retry after a confirm-poll timeout must not re-send an
+            // invalidateNonce the first op already consumed (it would revert).
+            const diagnosis = await readDiagnosis(address as Address)
+            if (diagnosis.state === 'healthy') {
+                await rebuildClientForChain(CHAIN_ID)
+                setState((s) => ({ ...s, diagnosis, isRepairing: false }))
+                return diagnosis
+            }
+            if (
+                diagnosis.state === 'nonce-bricked' &&
+                diagnosis.validNonceFrom + 1 > diagnosis.currentNonce + MAX_NONCE_INCREMENT_SIZE
+            ) {
+                setState((s) => ({
+                    ...s,
+                    diagnosis,
+                    isRepairing: false,
+                    error: 'This wallet needs a manual repair — please contact support.',
+                }))
+                return null
+            }
             const call =
                 diagnosis.state === 'nonce-bricked'
                     ? {
@@ -135,7 +164,10 @@ export const useCardSignatureRepair = () => {
             setState((s) => ({ ...s, diagnosis: confirmed, isRepairing: false }))
             return confirmed
         } catch (error) {
-            setState((s) => ({ ...s, isRepairing: false, error: (error as Error).message }))
+            const message = (error as Error).message ?? String(error)
+            // A dismissed passkey sheet is not a failure — clear busy quietly,
+            // matching how the grant path treats user-cancelled.
+            setState((s) => ({ ...s, isRepairing: false, error: isUserCancelled(message) ? null : message }))
             return null
         }
     }, [address, state.diagnosis, handleSendUserOpEncoded, rebuildClientForChain])

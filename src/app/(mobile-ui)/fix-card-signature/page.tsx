@@ -16,22 +16,26 @@ import { Card } from '@/components/0_Bruddle/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { useZeroDev } from '@/hooks/useZeroDev'
 import { useCardSignatureRepair } from '@/hooks/wallet/useCardSignatureRepair'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 
 export default function FixCardSignaturePage() {
-    const { overview } = useRainCardOverview()
+    const { address } = useZeroDev()
+    const { overview, isLoading: isOverviewLoading } = useRainCardOverview()
     const { diagnosis, isDiagnosing, isRepairing, error, diagnose, repair } = useCardSignatureRepair()
-    const { grant, isGranting, lastError } = useGrantSessionKey()
+    const { grant, isGranting } = useGrantSessionKey()
     const [grantDone, setGrantDone] = useState(false)
     const [grantErrorMessage, setGrantErrorMessage] = useState<string | null>(null)
 
     const card = findActiveCard(overview)
 
+    // Keyed on address: the zerodev address hydrates asynchronously after the
+    // layout unblocks, so a mount-only effect would diagnose before it exists
+    // and never retry — dead page on a cold load from a support DM.
     useEffect(() => {
-        void diagnose()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+        if (address) void diagnose()
+    }, [address, diagnose])
 
     const needsRepair = diagnosis !== null && diagnosis.state !== 'healthy'
     const busy = isDiagnosing || isRepairing || isGranting
@@ -64,7 +68,13 @@ export default function FixCardSignaturePage() {
                     takes up to two quick passkey confirmations.
                 </p>
 
-                {isDiagnosing && <p className="text-sm">Checking your wallet…</p>}
+                {(isDiagnosing || (!address && !diagnosis)) && <p className="text-sm">Checking your wallet…</p>}
+
+                {!isDiagnosing && !diagnosis && error && (
+                    <Button variant="stroke" className="w-full" onClick={() => void diagnose()}>
+                        Check again
+                    </Button>
+                )}
 
                 {diagnosis && (
                     <Card className="flex flex-col gap-3 p-4">
@@ -114,11 +124,15 @@ export default function FixCardSignaturePage() {
                                     shadowSize="4"
                                     className="w-full"
                                     onClick={handleGrant}
-                                    disabled={busy || !card}
+                                    disabled={busy || isOverviewLoading || !card}
                                 >
-                                    {isGranting ? 'Waiting for confirmation…' : 'Re-enable funding'}
+                                    {isGranting
+                                        ? 'Waiting for confirmation…'
+                                        : isOverviewLoading
+                                          ? 'Loading your card…'
+                                          : 'Re-enable funding'}
                                 </Button>
-                                {!card && (
+                                {!isOverviewLoading && !card && (
                                     <p className="text-sm text-grey-1">
                                         No active card found on this account — please contact support.
                                     </p>
@@ -128,11 +142,7 @@ export default function FixCardSignaturePage() {
                     </Card>
                 )}
 
-                {(error || grantErrorMessage || (lastError && lastError.kind !== 'user-cancelled' && !grantDone)) && (
-                    <p className="text-sm text-error">
-                        {error ?? grantErrorMessage ?? 'Something went wrong — please try again.'}
-                    </p>
-                )}
+                {(error || grantErrorMessage) && <p className="text-sm text-error">{error ?? grantErrorMessage}</p>}
 
                 {diagnosis && diagnosis.state !== 'undeployed' && (
                     <p className="text-xs text-grey-1">
