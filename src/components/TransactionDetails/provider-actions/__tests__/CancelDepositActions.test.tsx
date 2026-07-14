@@ -128,6 +128,21 @@ describe('CancelDepositActions confirmation gate', () => {
         await waitFor(() => expect(mockCancelOnramp).toHaveBeenCalledWith('tx-1'))
     })
 
+    it('double-tapping the confirm button fires the cancel exactly once', async () => {
+        // keep the cancel in-flight so the second tap lands while the first runs
+        let resolveCancel: (v: unknown) => void
+        mockCancelOnramp.mockReturnValue(new Promise((resolve) => (resolveCancel = resolve)))
+        renderCancel()
+
+        fireEvent.click(screen.getByText('Cancel deposit'))
+        const confirmButton = screen.getByText('Yes, cancel deposit')
+        fireEvent.click(confirmButton)
+        fireEvent.click(confirmButton)
+
+        resolveCancel!({})
+        await waitFor(() => expect(mockCancelOnramp).toHaveBeenCalledTimes(1))
+    })
+
     it('dismissing the confirmation leaves the deposit untouched', () => {
         renderCancel()
 

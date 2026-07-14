@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import ActionModal from '@/components/Global/ActionModal'
 import ErrorAlert from '@/components/Global/ErrorAlert'
@@ -49,6 +49,10 @@ export function CancelDepositActions({
     // during the modal's fade-out (nulling it mid-fade flashed 'deposit'
     // over 'request' titles).
     const [confirmOpen, setConfirmOpen] = useState(false)
+    // Ref, not state: a double-tap on the confirm CTA during the modal's
+    // fade-out lands both clicks before a re-render, so a state guard would
+    // let the cancel fire twice. Refs are synchronous.
+    const isCancelRunning = useRef(false)
     if (!setIsLoading || !onClose) return null
 
     const refetchAndClose = () =>
@@ -78,9 +82,14 @@ export function CancelDepositActions({
     }
 
     const confirmThenRun = async () => {
-        if (!pendingCancel) return
+        if (!pendingCancel || isCancelRunning.current) return
+        isCancelRunning.current = true
         setConfirmOpen(false)
-        await wrapAction(pendingCancel.run)
+        try {
+            await wrapAction(pendingCancel.run)
+        } finally {
+            isCancelRunning.current = false
+        }
     }
 
     // Render the active cancel button (if any) alongside the shared
