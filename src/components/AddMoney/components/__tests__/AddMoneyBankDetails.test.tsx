@@ -48,7 +48,9 @@ jest.mock('@/components/Global/InfoCard', () => ({
         <div>
             {title}
             {description}
-            {items?.map((item) => <p key={item}>{item}</p>)}
+            {items?.map((item) => (
+                <p key={item}>{item}</p>
+            ))}
         </div>
     ),
 }))
