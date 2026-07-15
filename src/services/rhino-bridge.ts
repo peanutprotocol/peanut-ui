@@ -13,7 +13,7 @@
 
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { fetchWithSentry } from '@/utils/sentry.utils'
-import { getAuthHeaders } from '@/utils/auth-token'
+import { getAuthHeaders, authReady } from '@/utils/auth-token'
 
 export interface BridgeQuoteParams {
     amount: string
@@ -70,6 +70,7 @@ export interface BridgeChainConfig {
 }
 
 async function postJson<TReq, TRes>(path: string, body: TReq, errorLabel: string): Promise<TRes> {
+    await authReady()
     const response = await fetchWithSentry(`${PEANUT_API_URL}${path}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
@@ -83,6 +84,7 @@ async function postJson<TReq, TRes>(path: string, body: TReq, errorLabel: string
 }
 
 async function getJson<TRes>(path: string, errorLabel: string): Promise<TRes> {
+    await authReady()
     const response = await fetchWithSentry(`${PEANUT_API_URL}${path}`, {
         method: 'GET',
         headers: getAuthHeaders(),

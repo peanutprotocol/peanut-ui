@@ -8,6 +8,9 @@ import { Provider as ReduxProvider } from 'react-redux'
 import store from '@/redux/store'
 import 'react-tooltip/dist/react-tooltip.css'
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
+import { authReady } from '@/utils/auth-token'
+import { installNativeAuthCapture } from '@/utils/native-auth-capture'
+import { scheduleDirectFetchCanary } from '@/utils/native-canary'
 import { CRISP_WEBSITE_ID } from '@/constants/crisp'
 // Note: Sentry configs are auto-loaded by @sentry/nextjs via next.config.js
 // DO NOT import them here - it bundles server/edge configs into client code
@@ -20,10 +23,14 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
 
         // in capacitor, install the passkey shim so navigator.credentials.create/get
         // routes through native APIs instead of the browser (which doesn't work in webview).
-        // Session auth on native is cookie-based: the verify endpoints' Set-Cookie lands
-        // in CapacitorHttp's native jar and authenticates every api request — no JS
-        // token capture needed (see src/utils/auth-token.ts).
+        // Session auth on native is header-based: the verify endpoints return the token
+        // in the response body, the fetch wrapper below captures it into native
+        // Preferences, and every api request sends it as Authorization
+        // (see src/utils/auth-token.ts).
         if (isCapacitor()) {
+            void authReady() // start Preferences hydration before any API call needs it
+            installNativeAuthCapture()
+            scheduleDirectFetchCanary()
             import('@capgo/capacitor-passkey').then(({ CapacitorPasskey }) => {
                 const nativeRpId = getNativeRpId()
 

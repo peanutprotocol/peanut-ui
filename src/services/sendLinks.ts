@@ -2,7 +2,7 @@ import { jsonParse, jsonStringify, getFromLocalStorage, saveToLocalStorage } fro
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import type { SendLink } from '@/services/services.types'
 import { serverFetch } from '@/utils/api-fetch'
-import { getAuthHeaders } from '@/utils/auth-token'
+import { getAuthHeaders, authReady } from '@/utils/auth-token'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { isDemoMode } from '@/utils/demo'
@@ -123,6 +123,7 @@ export const sendLinksApi = {
             headers['Content-Type'] = 'application/json'
         }
 
+        await authReady()
         Object.assign(headers, getAuthHeaders())
         const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links`, {
             method: 'POST',

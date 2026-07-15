@@ -7,7 +7,7 @@ import {
     type CreateChargeRequest,
 } from './services.types'
 import { PEANUT_API_URL } from '@/constants/general.consts'
-import { getAuthToken } from '@/utils/auth-token'
+import { getAuthToken, authReady } from '@/utils/auth-token'
 import { apiFetch, serverFetch } from '@/utils/api-fetch'
 import { isDemoMode } from '@/utils/demo'
 
@@ -35,6 +35,7 @@ export const chargesApi = {
             }
         })
 
+        await authReady()
         const headers: Record<string, string> = {}
         const token = getAuthToken()
         if (token) headers['Authorization'] = `Bearer ${token}`

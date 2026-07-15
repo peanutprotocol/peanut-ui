@@ -354,16 +354,37 @@ export const fetchWithSentry = async (
         )
     }
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+    // Idempotent requests get one silent retry on timeout: stalled-transport
+    // failures (Android webview, flaky mobile networks) usually clear on a
+    // fresh attempt (PEANUT-UI-R44).
+    const method = (options.method || 'GET').toUpperCase()
+    const maxAttempts = method === 'GET' || method === 'HEAD' ? 2 : 1
+
+    const attemptFetch = async (): Promise<Response> => {
+        for (let attempt = 1; ; attempt++) {
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+            try {
+                return await fetch(url, {
+                    ...options,
+                    signal: controller.signal,
+                })
+            } catch (error) {
+                if (attempt < maxAttempts && error instanceof Error && error.name === 'AbortError') {
+                    console.warn(`Request to ${String(url).replace(/[\r\n]/g, '')} timed out — retrying`)
+                    await new Promise((resolve) => setTimeout(resolve, 300))
+                    continue
+                }
+                throw error
+            } finally {
+                clearTimeout(timeoutId)
+            }
+        }
+    }
 
     try {
-        const response = await fetch(url, {
-            ...options,
-            signal: controller.signal,
-        })
+        const response = await attemptFetch()
 
-        clearTimeout(timeoutId)
         // A response came back — the backend is reachable, clear any failure streak.
         reportNetworkOk()
 
@@ -405,7 +426,6 @@ export const fetchWithSentry = async (
 
         return response
     } catch (error: unknown) {
-        clearTimeout(timeoutId)
         // fetch rejected (timeout / DNS / connection refused) — the request never
         // reached the backend, so flag a connectivity failure.
         reportNetworkError()
