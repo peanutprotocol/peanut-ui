@@ -1,5 +1,6 @@
 'use client'
 
+import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useState, useCallback, useMemo, useEffect, useContext, useRef } from 'react'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -165,7 +166,7 @@ export default function QRPayPage() {
     //   manteca 'pending' → IDENTITY_VERIFICATION_IN_PROGRESS.
     //   otherwise → REQUIRES_IDENTITY_VERIFICATION. While loading → LOADING.
     // userMessage ← the rejecting rail's reason.userMessage (was useProviderRejectionStatus).
-    const { canDo, railsForProvider, isKycApproved, isLoading: isLoadingCapabilities } = useCapabilities()
+    const { canDo, railsForProvider, nextActions, isKycApproved, isLoading: isLoadingCapabilities } = useCapabilities()
     const { user, fetchUser } = useAuth()
 
     // On public routes (qr-pay) auth still auto-fetches via React Query, but trigger a one-shot
@@ -192,52 +193,59 @@ export default function QRPayPage() {
         if (canDo('pay', { provider: 'manteca' })) {
             return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: null as string | null }
         }
-        // Verdict-first (rail.resolved, BE-derived); legacy status fallback for
-        // older/cached responses. The US-nationality refinement is applied in
-        // the resolver itself (Sumsub-approved + US-restricted → operations.pay
-        // enabled, caught by canDo above), so a blocked verdict is genuine.
-        const mantecaRails = railsForProvider('manteca')
-        const message = (rail: (typeof mantecaRails)[number]) =>
-            rail.resolved?.blocking?.userMessage || rail.reason?.userMessage || null
-        const blockedRail = mantecaRails.find((rail) =>
-            rail.resolved ? rail.resolved.status === 'blocked' : rail.status === 'blocked'
+        // Verdict-first via the shared railVerdict collapse (rail.resolved,
+        // BE-derived; legacy fallback for older/cached responses). The
+        // US-nationality refinement is applied in the resolver itself
+        // (Sumsub-approved + US-restricted → operations.pay enabled, caught by
+        // canDo above), so a blocked verdict is genuine.
+        const actionByKey = new Map(nextActions.map((action) => [action.key, action]))
+        const candidates = railsForProvider('manteca').map((rail) => ({
+            rail,
+            verdict: railVerdict(rail, actionByKey),
+        }))
+        // provide-email is NOT a document fix: routing it into the Sumsub
+        // upload flow dead-ends the user, and this surface has no email form —
+        // map it to the blocked modal (same rule as deriveProviderRejection).
+        const isProvideEmail = ({ verdict }: (typeof candidates)[number]) =>
+            verdict.blocking?.selfHealKind === 'provide-email'
+        const blocked = candidates.find(
+            (candidate) => candidate.verdict.status === 'blocked' || isProvideEmail(candidate)
         )
-        if (blockedRail) {
+        if (blocked) {
             // Country-not-supported is self-fixable: user uploaded a non-AR/BR doc
             // and can verify again with a different one. Split out for the right CTA.
             // (selfHealKind is the verdict home; the reason-code check covers legacy
             // responses — the code rides on blocking.code verbatim.)
             if (
-                blockedRail.resolved?.blocking?.selfHealKind === 'restart-identity' ||
-                (blockedRail.resolved?.blocking?.code ?? blockedRail.reason?.code) === 'country_not_supported'
+                !isProvideEmail(blocked) &&
+                (blocked.verdict.blocking?.selfHealKind === 'restart-identity' ||
+                    blocked.verdict.blocking?.code === 'country_not_supported')
             ) {
                 return {
                     kycGateState: QrKycState.PROVIDER_RESTART_IDENTITY,
-                    qrKycUserMessage: message(blockedRail),
+                    qrKycUserMessage: railUserMessage(blocked.rail),
                 }
             }
             return {
                 kycGateState: QrKycState.PROVIDER_REJECTION_BLOCKED,
-                qrKycUserMessage: message(blockedRail),
+                qrKycUserMessage: railUserMessage(blocked.rail),
             }
         }
-        const fixableRail = mantecaRails.find((rail) =>
-            rail.resolved ? rail.resolved.status === 'fixable' : rail.status === 'requires-info'
-        )
-        if (fixableRail) {
+        const fixable = candidates.find((candidate) => candidate.verdict.status === 'fixable')
+        if (fixable) {
             return {
                 kycGateState: QrKycState.PROVIDER_REJECTION_FIXABLE,
-                qrKycUserMessage: message(fixableRail),
+                qrKycUserMessage: railUserMessage(fixable.rail),
             }
         }
-        if (mantecaRails.some((rail) => (rail.resolved?.status ?? rail.status) === 'pending')) {
+        if (candidates.some(({ verdict }) => verdict.status === 'pending')) {
             return {
                 kycGateState: QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS,
                 qrKycUserMessage: null as string | null,
             }
         }
         return { kycGateState: QrKycState.REQUIRES_IDENTITY_VERIFICATION, qrKycUserMessage: null as string | null }
-    }, [isLoadingCapabilities, canDo, railsForProvider, user, userFetchSettled])
+    }, [isLoadingCapabilities, canDo, railsForProvider, nextActions, user, userFetchSettled])
 
     const shouldBlockPay = kycGateState !== QrKycState.PROCEED_TO_PAY
 

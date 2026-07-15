@@ -1,5 +1,6 @@
 'use client'
 
+import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 import { Button } from '@/components/0_Bruddle/Button'
 import { type ActivationStep } from '@/hooks/useActivationStatus'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
@@ -79,7 +80,7 @@ const STEPS: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = {
 export default function ActivationCTAs({ activationStep, onDismissCard }: ActivationCTAsProps) {
     const router = useRouter()
     const { setIsQRScannerOpen, openSupportWithMessage } = useModalsContext()
-    const { rails, channelOf, nextActionsForRail } = useCapabilities()
+    const { rails, channelOf, nextActions } = useCapabilities()
     const { user } = useAuth()
     // Suppress the "Unlock payments" verify CTA while identity is mid-flight
     // (Sumsub processing / action_required). The user already took the verify
@@ -103,25 +104,19 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             const channel = channelOf(rail)
             return channel === 'bank' || channel === 'qr-only'
         })
-        // Verdict-first (rail.resolved, BE-derived); legacy status/action-kind
-        // fallback for older/cached responses.
+        // Verdict-first via the shared railVerdict collapse (rail.resolved,
+        // BE-derived; legacy fallback for older/cached responses).
+        const actionByKey = new Map(nextActions.map((action) => [action.key, action]))
         const isEmailFix = (rail: (typeof rejectableRails)[number]) =>
-            rail.resolved
-                ? rail.resolved.blocking?.selfHealKind === 'provide-email'
-                : rail.status === 'blocked' && nextActionsForRail(rail.id).some((a) => a.kind === 'provide-email')
-        const fixableRail = rejectableRails.find((rail) =>
-            rail.resolved ? rail.resolved.status === 'fixable' && !isEmailFix(rail) : rail.status === 'requires-info'
+            railVerdict(rail, actionByKey).blocking?.selfHealKind === 'provide-email'
+        const fixableRail = rejectableRails.find(
+            (rail) => railVerdict(rail, actionByKey).status === 'fixable' && !isEmailFix(rail)
         )
         // Email-blocked rails: prefer one over an earlier blocked rail with a
         // terminal reason, since one email fixes them all.
         const emailBlocked = rejectableRails.find(isEmailFix)
         const blocked =
-            emailBlocked ??
-            rejectableRails.find((rail) =>
-                rail.resolved ? rail.resolved.status === 'blocked' : rail.status === 'blocked'
-            )
-        const messageOf = (rail: (typeof rejectableRails)[number] | undefined) =>
-            rail?.resolved?.blocking?.userMessage || rail?.reason?.userMessage || null
+            emailBlocked ?? rejectableRails.find((rail) => railVerdict(rail, actionByKey).status === 'blocked')
         return {
             hasFixableRejection: !!fixableRail,
             fixableProvider:
@@ -130,11 +125,14 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     : null,
             hasBlockedRejection: !!blocked,
             // Same precedence the copy/onClick use: email-blocked → fixable → terminal.
-            primaryRejectionMessage: messageOf(emailBlocked ?? fixableRail ?? blocked),
+            primaryRejectionMessage: (() => {
+                const surfaced = emailBlocked ?? fixableRail ?? blocked
+                return surfaced ? railUserMessage(surfaced) : null
+            })(),
             blockedRail: blocked,
             isEmailBlocked: !!emailBlocked,
         }
-    }, [rails, channelOf, nextActionsForRail])
+    }, [rails, channelOf, nextActions])
 
     const [showProvideEmail, setShowProvideEmail] = useState(false)
 

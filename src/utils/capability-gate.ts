@@ -134,11 +134,27 @@ function railHintActions(rail: RailCapability, byKey: Map<string, NextAction>): 
  * The per-rail verdict the gate branches on. The BE's `resolved` field is the
  * single source of truth (derived server-side from the same emission as the
  * legacy fields, so it can never disagree with them); rails from an older BE
- * or a cached response fall back to a local collapse that mirrors the BE's
- * own rules. Delete the fallback when the BE's step-5 cleanup makes
- * `resolved` guaranteed.
+ * or a cached response fall back to a local collapse that reproduces the OLD
+ * ladder's per-rail semantics. Delete the fallback when the BE's step-5
+ * cleanup makes `resolved` guaranteed.
+ *
+ * Fallback rules (status first — action kinds only refine WITHIN a status,
+ * mirroring the pre-verdict ladder):
+ *   - enabled/pending pass through (the advisory hint rides as nextAction)
+ *   - blocked: provide-email action → fixable/provide-email (self-serve);
+ *     restart-identity action → blocked/restart-identity (the ladder splits
+ *     the CTA on the FIRST blocked rail only); anything else → blocked —
+ *     a stale sumsub/tos/wait action on a blocked rail must NOT resurrect a
+ *     self-heal CTA the old gate never offered.
+ *   - requires-info: wait-only → pending+wait; a non-wait self-serve action →
+ *     fixable with that action; actionless or contact-support-only → fixable
+ *     WITHOUT a nextAction (the old 7b document-punt tier, ranked below
+ *     pending in the ladder).
+ *
+ * Exported so every verdict consumer (provider-rejection.utils, qr-pay,
+ * ActivationCTAs) shares ONE collapse instead of hand-rolling diverging copies.
  */
-function railVerdict(rail: RailCapability, byKey: Map<string, NextAction>): ResolvedRail {
+export function railVerdict(rail: RailCapability, byKey: Map<string, NextAction>): ResolvedRail {
     if (rail.resolved) return rail.resolved
 
     if (rail.status === 'enabled' || rail.status === 'pending') {
@@ -148,39 +164,41 @@ function railVerdict(rail: RailCapability, byKey: Map<string, NextAction>): Reso
         return { status: rail.status, ...(hint ? { nextAction: hint } : {}) }
     }
 
-    // an actionable step outranks a wait marker on the same rail — a mixed
-    // wait+sumsub rail means "the user has something to do while we check"
     const actions = railActions(rail, byKey)
+    const blocking = (selfHealable: boolean, selfHealKind?: NonNullable<ResolvedRail['blocking']>['selfHealKind']) => ({
+        code: rail.reason?.code ?? 'unknown',
+        userMessage: rail.reason?.userMessage ?? '',
+        selfHealable,
+        ...(selfHealKind ? { selfHealKind } : {}),
+        ...(rail.reason?.details ? { details: rail.reason.details } : {}),
+    })
+
+    if (rail.status === 'blocked') {
+        const email = actions.find((action) => action.kind === 'provide-email')
+        if (email) return { status: 'fixable', blocking: blocking(true, 'provide-email'), nextAction: email }
+        const restart = actions.find((action) => action.kind === 'restart-identity')
+        if (restart) return { status: 'blocked', blocking: blocking(true, 'restart-identity'), nextAction: restart }
+        return { status: 'blocked', blocking: blocking(false, 'contact-support') }
+    }
+
+    // requires-info: an actionable step outranks a wait marker on the same rail
     const nextAction = actions.find((action) => action.kind !== 'wait') ?? actions[0]
     if (nextAction?.kind === 'wait') return { status: 'pending', nextAction }
-
-    // an action-less requires-info rail is COMPLETABLE, not terminal: the BE
-    // punts some document self-heals to the resubmit endpoint without
-    // emitting a capability action
-    const actionlessButCompletable = !nextAction && rail.status === 'requires-info'
-    const selfHealKind =
-        nextAction?.kind === 'sumsub' || actionlessButCompletable
-            ? ('document-resubmit' as const)
-            : nextAction?.kind === 'provide-email'
-              ? ('provide-email' as const)
-              : nextAction?.kind === 'restart-identity'
-                ? ('restart-identity' as const)
-                : nextAction?.kind === 'contact-support'
-                  ? ('contact-support' as const)
-                  : undefined
-    const selfHealable = selfHealKind !== undefined && selfHealKind !== 'contact-support'
-    const fixable = selfHealable || nextAction?.kind === 'accept-tos'
-    return {
-        status: fixable ? 'fixable' : 'blocked',
-        blocking: {
-            code: rail.reason?.code ?? 'unknown',
-            userMessage: rail.reason?.userMessage ?? '',
-            selfHealable: fixable,
-            ...(selfHealKind ? { selfHealKind } : {}),
-            ...(rail.reason?.details ? { details: rail.reason.details } : {}),
-        },
-        ...(nextAction ? { nextAction } : {}),
+    if (nextAction && nextAction.kind !== 'contact-support') {
+        const selfHealKind =
+            nextAction.kind === 'sumsub'
+                ? ('document-resubmit' as const)
+                : nextAction.kind === 'provide-email'
+                  ? ('provide-email' as const)
+                  : nextAction.kind === 'restart-identity'
+                    ? ('restart-identity' as const)
+                    : undefined
+        return { status: 'fixable', blocking: blocking(true, selfHealKind), nextAction }
     }
+    // actionless (or contact-support-only): the document-punt tier — the BE
+    // routes these through the resubmit endpoint without a capability action;
+    // NO nextAction on the verdict, which is what ranks it below pending
+    return { status: 'fixable', blocking: blocking(true, 'document-resubmit') }
 }
 
 /** verdict-carrying candidate — computed once per derive, shared across branches */
@@ -189,7 +207,15 @@ interface RailWithVerdict {
     verdict: ResolvedRail
 }
 
-/** the user-facing message for a verdict-driven gate kind */
+/**
+ * The user-facing message for a rail: verdict copy first (single BE source),
+ * legacy reason as fallback. Exported for the non-gate verdict consumers.
+ */
+export function railUserMessage(rail: RailCapability): string | null {
+    return rail.resolved?.blocking?.userMessage || rail.reason?.userMessage || null
+}
+
+/** message helper over a computed candidate (avoids re-deriving inside the ladder) */
 function verdictMessage({ rail, verdict }: RailWithVerdict): string | null {
     return verdict.blocking?.userMessage || rail.reason?.userMessage || null
 }
@@ -275,21 +301,20 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
         return { kind: 'provide-email', userMessage: verdictMessage(emailFix), reason: emailFix.rail.reason }
     }
 
-    // 4. restart-identity
-    const restart = candidates.find(({ verdict }) => verdict.blocking?.selfHealKind === 'restart-identity')
-    if (restart) {
-        return { kind: 'restart-identity', userMessage: verdictMessage(restart), reason: restart.rail.reason }
-    }
-
-    // 5. blocked — terminal, contact support
+    // 4. blocked family — decided on the FIRST blocked verdict in scope, so an
+    // account-wide terminal block wins over a sibling's restart-identity CTA
+    // (re-verifying cannot unblock a terminal rail and burns Sumsub attempts).
     const blocked = candidates.find(({ verdict }) => verdict.status === 'blocked')
     if (blocked) {
+        if (blocked.verdict.blocking?.selfHealKind === 'restart-identity') {
+            return { kind: 'restart-identity', userMessage: verdictMessage(blocked), reason: blocked.rail.reason }
+        }
         return { kind: 'blocked-rejection', userMessage: verdictMessage(blocked), reason: blocked.rail.reason }
     }
 
     const fixables = candidates.filter(({ verdict }) => verdict.status === 'fixable')
 
-    // 6. accept-tos
+    // 5. accept-tos
     const tos = fixables.find(({ verdict }) => verdict.nextAction?.kind === 'accept-tos')
     if (tos) {
         return {
@@ -300,16 +325,29 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
         }
     }
 
-    // 7. fixable-rejection (document resubmit / Sumsub RFI / self-heal punt)
-    if (fixables.length > 0) {
-        return { kind: 'fixable-rejection', userMessage: verdictMessage(fixables[0]), reason: fixables[0].rail.reason }
+    // 6. fixable with a concrete action (Sumsub RFI / restart) — the user has a
+    // step to take now, so it outranks provisioning
+    const actionableFixable = fixables.find(({ verdict }) => verdict.nextAction !== undefined)
+    if (actionableFixable) {
+        return {
+            kind: 'fixable-rejection',
+            userMessage: verdictMessage(actionableFixable),
+            reason: actionableFixable.rail.reason,
+        }
     }
 
-    // 8. pending — BE is provisioning, no user action needed
+    // 7. pending — BE is provisioning, no user action needed
     const hasPending = candidates.some(
         ({ verdict }) => verdict.status === 'pending' && verdict.nextAction?.kind !== 'wait'
     )
     if (hasPending) return { kind: 'pending' }
+
+    // 8. action-less fixable (the document-punt tier): completable via the
+    // resubmit endpoint but with nothing concrete to click — ranked below
+    // pending (matches the old 7b placement: mid-provisioning wins).
+    if (fixables.length > 0) {
+        return { kind: 'fixable-rejection', userMessage: verdictMessage(fixables[0]), reason: fixables[0].rail.reason }
+    }
 
     // 9. waiting-on-provider — only wait-marked verdicts remain in scope
     const waiting = candidates.find(
