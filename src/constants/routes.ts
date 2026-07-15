@@ -168,7 +168,7 @@ export function couldBeRecipient(segment: string): boolean {
     // strip the @chain suffix first so address@chainId deep links (e.g. the
     // QR scanner's EIP-681 path builds /0x…@42161/34.4USDC) pass the guard —
     // chain validation happens downstream in the url parser
-    const base = decoded.includes('@') ? decoded.split('@')[0] : decoded
+    const base = decoded.split('@')[0]
     // EVM address
     if (/^0x[0-9a-f]{40}$/.test(base)) return true
     // ENS name

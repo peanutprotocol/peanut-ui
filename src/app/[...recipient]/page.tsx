@@ -51,10 +51,14 @@ export async function generateMetadata({ params, searchParams }: any) {
     // Parse amount/token from URL for request links
     let amount, token
     if (resolvedParams.recipient[1]) {
-        const amountToken = resolvedParams.recipient[1]
-        const parsed = parseAmountAndToken(amountToken)
-        amount = parsed.amount
-        token = parsed.token
+        try {
+            const parsed = parseAmountAndToken(resolvedParams.recipient[1])
+            amount = parsed.amount
+            token = parsed.token
+        } catch {
+            // malformed amount segment (e.g. /0x…@42161/1.2.3usdc) — fall back
+            // to default metadata instead of 500ing the whole page render
+        }
     }
 
     // Check if recipient is ETH address or ENS name
