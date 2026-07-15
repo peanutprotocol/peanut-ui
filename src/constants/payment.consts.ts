@@ -2,6 +2,19 @@
 // bridge currently doesnt return account_holder_name for faster_payments requests
 export const BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME = 'Bridge Building S.A.'
 
+// Bridge migrated its legal entity (Sp. Z.o.o. -> S.A.) on 2026-06-27. Their
+// SEPA deposit instructions can still return the stale old name, and Faster
+// Payments omits the name entirely. Map both cases to the current entity so the
+// sender's Confirmation-of-Payee check matches (Banking Circle accepts either,
+// so payments still settle — this only removes the name-mismatch warning).
+// ponytail: drop the legacy check once Bridge's API stops returning "Z.o.o."
+export const resolveBridgeAccountHolderName = (name?: string | null): string => {
+    if (!name || name.toLowerCase().replace(/[\s.]/g, '').includes('zoo')) {
+        return BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME
+    }
+    return name
+}
+
 // minimum amount requirements for different payment methods (in USD)
 export const MIN_BANK_TRANSFER_AMOUNT = 5
 export const MIN_MERCADOPAGO_AMOUNT = 5
