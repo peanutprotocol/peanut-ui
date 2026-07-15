@@ -192,35 +192,45 @@ export default function QRPayPage() {
         if (canDo('pay', { provider: 'manteca' })) {
             return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: null as string | null }
         }
+        // Verdict-first (rail.resolved, BE-derived); legacy status fallback for
+        // older/cached responses. The US-nationality refinement is applied in
+        // the resolver itself (Sumsub-approved + US-restricted → operations.pay
+        // enabled, caught by canDo above), so a blocked verdict is genuine.
         const mantecaRails = railsForProvider('manteca')
-        const blockedRail = mantecaRails.find((rail) => rail.status === 'blocked')
+        const message = (rail: (typeof mantecaRails)[number]) =>
+            rail.resolved?.blocking?.userMessage || rail.reason?.userMessage || null
+        const blockedRail = mantecaRails.find((rail) =>
+            rail.resolved ? rail.resolved.status === 'blocked' : rail.status === 'blocked'
+        )
         if (blockedRail) {
-            // Blocked === blocked. The US-nationality refinement is now applied in
-            // the resolver itself (Sumsub-approved + US-restricted → status:enabled
-            // + operations.pay:enabled, caught by canDo above), so a `blocked`
-            // status here is a genuine block.
-            //
             // Country-not-supported is self-fixable: user uploaded a non-AR/BR doc
             // and can verify again with a different one. Split out for the right CTA.
-            if (blockedRail.reason?.code === 'country_not_supported') {
+            // (selfHealKind is the verdict home; the reason-code check covers legacy
+            // responses — the code rides on blocking.code verbatim.)
+            if (
+                blockedRail.resolved?.blocking?.selfHealKind === 'restart-identity' ||
+                (blockedRail.resolved?.blocking?.code ?? blockedRail.reason?.code) === 'country_not_supported'
+            ) {
                 return {
                     kycGateState: QrKycState.PROVIDER_RESTART_IDENTITY,
-                    qrKycUserMessage: blockedRail.reason.userMessage ?? null,
+                    qrKycUserMessage: message(blockedRail),
                 }
             }
             return {
                 kycGateState: QrKycState.PROVIDER_REJECTION_BLOCKED,
-                qrKycUserMessage: blockedRail.reason?.userMessage ?? null,
+                qrKycUserMessage: message(blockedRail),
             }
         }
-        const fixableRail = mantecaRails.find((rail) => rail.status === 'requires-info')
+        const fixableRail = mantecaRails.find((rail) =>
+            rail.resolved ? rail.resolved.status === 'fixable' : rail.status === 'requires-info'
+        )
         if (fixableRail) {
             return {
                 kycGateState: QrKycState.PROVIDER_REJECTION_FIXABLE,
-                qrKycUserMessage: fixableRail.reason?.userMessage ?? null,
+                qrKycUserMessage: message(fixableRail),
             }
         }
-        if (mantecaRails.some((rail) => rail.status === 'pending')) {
+        if (mantecaRails.some((rail) => (rail.resolved?.status ?? rail.status) === 'pending')) {
             return {
                 kycGateState: QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS,
                 qrKycUserMessage: null as string | null,

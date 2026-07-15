@@ -103,14 +103,25 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             const channel = channelOf(rail)
             return channel === 'bank' || channel === 'qr-only'
         })
-        const fixableRail = rejectableRails.find((rail) => rail.status === 'requires-info')
-        // Email-blocked rails carry a self-serve provide-email action (same
-        // contract the capability gate reads) — prefer one over an earlier
-        // blocked rail with a terminal reason, since one email fixes them all.
-        const emailBlocked = rejectableRails.find(
-            (rail) => rail.status === 'blocked' && nextActionsForRail(rail.id).some((a) => a.kind === 'provide-email')
+        // Verdict-first (rail.resolved, BE-derived); legacy status/action-kind
+        // fallback for older/cached responses.
+        const isEmailFix = (rail: (typeof rejectableRails)[number]) =>
+            rail.resolved
+                ? rail.resolved.blocking?.selfHealKind === 'provide-email'
+                : rail.status === 'blocked' && nextActionsForRail(rail.id).some((a) => a.kind === 'provide-email')
+        const fixableRail = rejectableRails.find((rail) =>
+            rail.resolved ? rail.resolved.status === 'fixable' && !isEmailFix(rail) : rail.status === 'requires-info'
         )
-        const blocked = emailBlocked ?? rejectableRails.find((rail) => rail.status === 'blocked')
+        // Email-blocked rails: prefer one over an earlier blocked rail with a
+        // terminal reason, since one email fixes them all.
+        const emailBlocked = rejectableRails.find(isEmailFix)
+        const blocked =
+            emailBlocked ??
+            rejectableRails.find((rail) =>
+                rail.resolved ? rail.resolved.status === 'blocked' : rail.status === 'blocked'
+            )
+        const messageOf = (rail: (typeof rejectableRails)[number] | undefined) =>
+            rail?.resolved?.blocking?.userMessage || rail?.reason?.userMessage || null
         return {
             hasFixableRejection: !!fixableRail,
             fixableProvider:
@@ -119,7 +130,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     : null,
             hasBlockedRejection: !!blocked,
             // Same precedence the copy/onClick use: email-blocked → fixable → terminal.
-            primaryRejectionMessage: (emailBlocked ?? fixableRail ?? blocked)?.reason?.userMessage ?? null,
+            primaryRejectionMessage: messageOf(emailBlocked ?? fixableRail ?? blocked),
             blockedRail: blocked,
             isEmailBlocked: !!emailBlocked,
         }
