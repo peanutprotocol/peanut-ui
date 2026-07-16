@@ -2154,5 +2154,399 @@
         "sessionExpired": "Tu sesión expiró. Actualiza la página e inténtalo de nuevo.",
         "sendFailed": "Error al enviar la transacción, inténtalo de nuevo",
         "txReverted": "La transacción fue revertida, inténtalo de nuevo"
+    },
+    "global": {
+        "tokenSelector": {
+            "selectAToken": "Elige un token",
+            "onChain": "en <c>{chainName}</c>",
+            "noFeesWithToken": "Sin comisiones con este token.",
+            "drawerTitle": "Elige token y red",
+            "crossChainUnavailable": "Las transacciones entre cadenas no están disponibles temporalmente. Puedes usar USDC en Arbitrum.",
+            "selectANetwork": "Elige una red",
+            "moreNetworksButton": "más",
+            "searchTokenPlaceholder": "Busca un token o pega una dirección",
+            "sponsoredHint": "Las transacciones con USDC en Arbitrum son patrocinadas",
+            "availableToken": "Token disponible",
+            "searchResults": "Resultados de búsqueda",
+            "popularTokensOnChain": "Tokens populares en {chainName}",
+            "popularTokens": "Tokens populares",
+            "noMatchingTokensTitle": "No se encontraron tokens populares que coincidan",
+            "noMatchingTokensDescription": "Intenta buscar otro token",
+            "noPopularTokensTitle": "No hay tokens populares disponibles",
+            "moreNetworksTitle": "Más redes",
+            "searchNetworkPlaceholder": "Busca una red",
+            "noNetworksFoundTitle": "No se encontraron redes que coincidan con {search}",
+            "noNetworksFoundDescription": "Intenta buscar otra red",
+            "searchPlaceholder": "Buscar...",
+            "clearSearch": "Borrar búsqueda"
+        },
+        "qrScanner": {
+            "scanToPay": "Escanea para pagar",
+            "clickToPaste": "Toca para pegar",
+            "close": "Cerrar",
+            "clipboardEmpty": "El portapapeles está vacío",
+            "clipboardUnavailable": "No se pudo acceder al portapapeles",
+            "startingCamera": "Iniciando la cámara…",
+            "qrRecognized": "Código QR reconocido",
+            "qrProcessingFailed": "No se pudo procesar el código QR",
+            "qrProcessingError": "Error al procesar el código QR",
+            "cameraPermissionDenied": "Permiso de cámara denegado. Permite el acceso a la cámara en la configuración de tu navegador.",
+            "cameraBusyRetrying": "Otra app está usando la cámara. Reintentando... ({attempt}/{maxAttempts})",
+            "cameraStillBusy": "La cámara sigue ocupada. Cierra otras apps e inténtalo de nuevo.",
+            "cameraNotFound": "No se encontró ninguna cámara en este dispositivo.",
+            "cameraUnavailable": "No se pudo acceder a la cámara. Asegúrate de haber concedido los permisos de cámara.",
+            "videoElementUnavailable": "El elemento de video no está disponible",
+            "cameraSwitchFailed": "No se pudo cambiar de cámara. Inténtalo de nuevo.",
+            "cameraPermission": {
+                "title": "Se necesita acceso a la cámara",
+                "tryAgain": "Intentar de nuevo",
+                "dismiss": "Descartar",
+                "withStepsHint": "Sigue estos pasos para habilitar el acceso a la cámara y vuelve a intentarlo.",
+                "noStepsHint": "Habilita el acceso a la cámara en la configuración de tu navegador o dispositivo y vuelve a intentarlo.",
+                "androidChrome1": "Paso 1: toca el ícono del candado en la barra de direcciones",
+                "androidChrome2": "Paso 2: toca “Permisos”",
+                "androidChrome3": "Paso 3: activa la cámara",
+                "iosChrome1": "Paso 1: abre Ajustes → Chrome",
+                "iosChrome2": "Paso 2: activa la cámara",
+                "iosSafari1": "Paso 1: toca “aA” en la barra de direcciones",
+                "iosSafari2": "Paso 2: toca “Ajustes del sitio web”",
+                "iosSafari3": "Paso 3: configura la cámara en “Permitir”"
+            }
+        },
+        "qrScannerOverlay": {
+            "notSupportedWorking": "Estamos trabajando en una integración.",
+            "notSupportedGetNotified": "¡Entérate cuando esté disponible!",
+            "getNotifiedCta": "¡Avísame!",
+            "willBeNotified": "Te avisaremos apenas {qrName} esté disponible.",
+            "close": "Cerrar",
+            "continue": "Continuar",
+            "okay": "Entendido",
+            "directSendCrossChain": "Peanut admite pagos entre cadenas.",
+            "directSendConfirm": "Confirma los datos del pago antes de enviarlo",
+            "directSendAcknowledge": "Entiendo y confirmaré los datos del pago.",
+            "externalUrlIntro": "Peanut no admite este QR, pero puedes abrirlo con tu navegador.",
+            "externalUrlTrust": "¡Asegúrate de confiar en este sitio web!",
+            "openLink": "Abrir enlace",
+            "unrecognized": "Lo sentimos, no se pudo reconocer este código QR.",
+            "pixRecurringIntro": "Este código QR es para un pago recurrente (PIX Automático).",
+            "pixRecurringBody": "Peanut no admite pagos PIX recurrentes: pide un código QR de PIX normal.",
+            "titleUnrecognized": "Código QR no reconocido",
+            "titlePixRecurring": "PIX Automático no compatible",
+            "titleNotSupported": "{qrName} aún no es compatible.",
+            "titleWillBeNotified": "¡Estás en la lista!",
+            "titleDirectSend": "ℹ️ Confirmación de pago",
+            "titleExternalUrl": "¡Este es un enlace externo!",
+            "eip681ParseError": "Error al analizar la URL EIP-681",
+            "notPeanutUrl": "El QR no se reconoce como una URL de Peanut",
+            "myQrCollapsedTitle": "Mi QR",
+            "myQrExpandedTitle": "Muestra tu QR para cobrar",
+            "myQrText": "Deja que otros escaneen esto para pagarte",
+            "myQrButtonText": "Comparte tu perfil"
+        },
+        "qrBottomDrawer": {
+            "or": "o",
+            "shareTitle": "Comparte tu perfil"
+        },
+        "inviteFriendsModal": {
+            "title": "¡Invita a tus amigos!",
+            "description": "Comparte tu enlace. Cada vez que un amigo que trajiste haga un pago, ganas recompensas.",
+            "shareSheetTitle": "Comparte tu enlace de invitación",
+            "shareCta": "Compartir enlace de invitación"
+        },
+        "confirmInviteModal": {
+            "title": "¡No pierdas tu invitación!",
+            "description": "Este enlace te permite saltarte la lista de espera de Peanut. Si usas {method}, perderás tu invitación.",
+            "joinCta": "Únete",
+            "continueWithMethod": "Continuar con {method}"
+        },
+        "earlyUserModal": {
+            "title": "Gana con tus invitaciones",
+            "inviteOnly": "Peanut ahora es solo por invitación, ¡y tú estás dentro!",
+            "earnRules": "<b>Amigos que invitas →</b> ganas una parte de sus comisiones. <b>Sus invitados →</b> ganas una parte de la parte de ellos.",
+            "shareSheetTitle": "Comparte tu enlace de invitación",
+            "shareCta": "Compartir enlace de invitación",
+            "learnMore": "Saber más"
+        },
+        "noMoreJailModal": {
+            "title": "¡Se acabó la cárcel de Peanut!",
+            "line1": "¡Ya eres parte de Peanut!",
+            "line2": "Explora, paga e invita a tus amigos.",
+            "startUsingCta": "Empezar a usar"
+        },
+        "easterEggModal": {
+            "gotItCta": "Entendido",
+            "AQ": {
+                "caption": "🐧 Aquí no hay bancos, solo pingüinos",
+                "subtitle": "La Antártida no es un país de verdad... todavía"
+            },
+            "BV": {
+                "caption": "🧊 Población: 0. Bancos: también 0.",
+                "subtitle": "Un glaciar noruego deshabitado en el Atlántico Sur"
+            },
+            "CX": {
+                "caption": "🦀 Los cangrejos rojos no necesitan cuentas bancarias",
+                "subtitle": "45 millones de cangrejos, cero cajeros"
+            },
+            "CC": {
+                "caption": "🥥 Aceptamos cocos, transferencias no tanto",
+                "subtitle": "Población: 544. Infraestructura financiera: buena onda"
+            },
+            "GS": {
+                "caption": "🐧 Más pingüinos que personas",
+                "subtitle": "Georgia del Sur: 30 investigadores, 3 millones de pingüinos, 0 bancos"
+            },
+            "HM": {
+                "caption": "🌋 Volcán activo, sector bancario inactivo",
+                "subtitle": "Isla Heard: deshabitada, si no cuentas a las focas"
+            },
+            "PN": {
+                "caption": "🏴‍☠️ 47 personas. 0 cajeros. Pura buena onda.",
+                "subtitle": "La jurisdicción menos poblada del mundo con dominio .pn"
+            },
+            "TK": {
+                "caption": "🌊 Sin carreteras, sin bancos, sin problema",
+                "subtitle": "Tres atolones, 1.500 personas y el imperio del dominio .tk"
+            }
+        },
+        "cancelSendLinkModal": {
+            "title": "¿Cancelar este enlace?",
+            "amountReturned": "Los <strong>{amount}</strong> bloqueados en el enlace volverán directo a tu saldo.",
+            "noLongerClaimable": "Una vez cancelado, nadie podrá reclamarlo.",
+            "cancelCta": "Cancelar y devolver fondos"
+        },
+        "balanceWarningModal": {
+            "title": "Saldo alto",
+            "congrats": "¡Eres rico! Felicitaciones por tener un saldo alto.",
+            "selfCustody": "Con Peanut, eres el único que puede acceder a tus fondos. Ningún banco, ninguna empresa, ninguna agencia — ni siquiera nuestro equipo de soporte — puede acceder a ellos.",
+            "passkey": "Tu passkey biométrica es tu llave al control total y a la seguridad. Si la pierdes, no se puede recuperar, porque solo tú tienes acceso.",
+            "learnMore": "Aprende a mantener tu passkey segura en <link>{platform}</link>.",
+            "yourDevice": "tu dispositivo",
+            "slideToContinue": "Desliza para continuar"
+        },
+        "guestLoginModal": {
+            "title": "Inicia sesión con tu Peanut Wallet",
+            "signInCta": "Iniciar sesión",
+            "noWallet": "¿No tienes una Peanut wallet? Consigue una ahora.",
+            "loginError": "Error al iniciar sesión"
+        },
+        "guestVerificationModal": {
+            "title": "Desbloquea este método de pago",
+            "getStartedCta": "Empezar"
+        },
+        "iosPwaInstallModal": {
+            "title": "Agrega Peanut a tu pantalla de inicio",
+            "description": "Sigue una guía rápida para agregar la app a tu pantalla de inicio, sin descargar nada.",
+            "firefoxDescription": "Firefox en iOS no permite instalar apps en la pantalla de inicio. Abre esta página en Safari para continuar.",
+            "gotItCta": "¡Entendido!",
+            "videoUnsupported": "Tu navegador no admite la etiqueta de video."
+        },
+        "unsupportedBrowserModal": {
+            "title": "Abre este enlace en tu navegador",
+            "description": "Todavía estamos trabajando para que Peanut funcione en tu navegador. Por ahora, usa Chrome o Safari.",
+            "copyLinkCta": "Copiar enlace",
+            "copied": "¡Copiado!",
+            "copySuccessToast": "¡Enlace copiado al portapapeles!",
+            "copyErrorToast": "No se pudo copiar el enlace.",
+            "pasteHint": "Luego pégalo en tu navegador preferido."
+        },
+        "tokenAndNetworkConfirmationModal": {
+            "title": "Envía solo tokens compatibles en redes compatibles",
+            "warning": "Enviar el token equivocado o usar la red equivocada resultará en una pérdida permanente.",
+            "supportedNetworks": "Redes compatibles",
+            "supportedTokens": "Tokens compatibles",
+            "slideToProceed": "Desliza para continuar"
+        },
+        "rainCooldownIntroModal": {
+            "title": "Espera un momento",
+            "description": "Tu tarjeta necesita un breve tiempo de espera entre gastos seguidos. Para evitar esto en el futuro, puedes bajar el límite de tu tarjeta por debajo del saldo de tu wallet; el resto siempre estará disponible.",
+            "gotItCta": "Entendido",
+            "readMore": "Leer más"
+        },
+        "staleCardApprovalModal": {
+            "title": "Reactiva tu tarjeta",
+            "description": "Tu tarjeta debe reactivarse antes de que puedas retirar. Solo toma un toque con tu passkey.",
+            "successTitle": "Tarjeta reactivada",
+            "successDescription": "Tu tarjeta está lista — intenta tu retiro de nuevo.",
+            "cancelledError": "Se canceló la reactivación. Toca Reactivar tarjeta para intentarlo otra vez.",
+            "unexpectedError": "No pudimos reactivar tu tarjeta. Inténtalo de nuevo.",
+            "reEnableCta": "Reactivar tarjeta",
+            "workingCta": "Procesando…",
+            "notNowCta": "Ahora no",
+            "doneCta": "Listo"
+        },
+        "securityVerificationOverlay": {
+            "message": "Verificando seguridad…"
+        },
+        "startVerification": {
+            "title": "Verificación segura. Uso limitado de datos.",
+            "provider": "La verificación se realiza con un proveedor de confianza, que comparte el estado de tu verificación con Peanut.",
+            "practices": "Opera con prácticas de seguridad y privacidad estándar de la industria.",
+            "privacy": "Peanut nunca ve ni almacena tus datos de verificación.",
+            "cta": "Iniciar verificación segura"
+        },
+        "iframeWrapper": {
+            "troubleTitle": "¿Necesitas ayuda?",
+            "troubleDescriptionLine1": "Si la verificación de identidad no carga aquí, complétala en tu navegador.",
+            "troubleDescriptionLine2": "Solo copia este enlace y ábrelo allí.",
+            "copyLink": "Copiar enlace",
+            "chatWithSupport": "Chatear con soporte",
+            "cancel": "Cancelar",
+            "exitTitle": "¿Salir y perder el progreso?",
+            "exitDescription": "Si sales ahora, tendrás que empezar la verificación de identidad desde cero.",
+            "exit": "Salir",
+            "continueVerifying": "Continuar verificando",
+            "stopVerification": "Detener el proceso de verificación",
+            "havingTrouble": "¿Tienes problemas?"
+        },
+        "supportDrawer": {
+            "chatLoadFailed": "No se pudo cargar el chat",
+            "chatLoadFailedDescription": "Hubo un problema al cargar el chat de soporte. Escríbenos por correo y te ayudamos:",
+            "tryAgain": "Intentar de nuevo",
+            "label": "Soporte",
+            "chatTitle": "Chat de soporte"
+        },
+        "supportCta": {
+            "needHelp": "¿Necesitas ayuda con esta transacción?",
+            "prefilledMessage": "Necesito ayuda con esta transacción: "
+        },
+        "offlineScreen": {
+            "title": "Estás sin conexión",
+            "description": "No se detectó conexión a internet. Revisa la configuración de tu red e inténtalo de nuevo.",
+            "checking": "Comprobando...",
+            "checkConnection": "Comprobar conexión"
+        },
+        "backendErrorScreen": {
+            "title": "Algo salió mal",
+            "description": "Estamos teniendo problemas para conectarnos con nuestros servidores.",
+            "tryAgain": "Intentar de nuevo",
+            "loggingOut": "Cerrando sesión...",
+            "logOut": "Cerrar sesión"
+        },
+        "infoCard": {
+            "noContent": "No se proporcionó contenido"
+        },
+        "copyToClipboard": {
+            "copyCode": "Copiar código"
+        },
+        "copyField": {
+            "copy": "Copiar",
+            "copied": "Copiado"
+        },
+        "peanutActionCard": {
+            "requestTitle": "Pide dinero a tus amigos",
+            "requestDescription": "No necesitan una cuenta para pagar",
+            "sendTitle": "Crea un enlace de pago",
+            "sendDescription": "Cualquiera con el enlace puede recibir el dinero",
+            "perfectToDm": "¡Ideal para enviar por mensaje!"
+        },
+        "peanutActionDetailsCard": {
+            "sendingTo": "Le estás enviando a {recipient}",
+            "youRequested": "Solicitaste",
+            "sentYou": "{sender} te envió",
+            "youJustClaimed": "Acabas de reclamar",
+            "youreAdding": "Estás agregando",
+            "youreSending": "Estás enviando",
+            "youWillReceive": "Recibirás",
+            "youreAboutToReceive": "Estás por recibir"
+        },
+        "createAccountButton": {
+            "label": "Crea una cuenta de <logo></logo>"
+        },
+        "generalRecipientInput": {
+            "walletAddress": "Dirección de billetera",
+            "invalidChainAddress": "Dirección de {chain} inválida",
+            "invalidIban": "IBAN inválido, país no admitido"
+        },
+        "shareButton": {
+            "share": "Compartir",
+            "linkCopied": "Enlace copiado",
+            "textCopied": "Texto copiado",
+            "sharingFailed": "No se pudo compartir"
+        },
+        "attachment": {
+            "viewAttachment": "Ver adjunto"
+        },
+        "successViewDetailsCard": {
+            "for": "por {description}"
+        },
+        "fileUploadInput": {
+            "addReference": "Agrega una referencia (opcional)"
+        },
+        "validatedInput": {
+            "paste": "Pegar <value></value>"
+        },
+        "progressBar": {
+            "goalExceeded": "¡Meta superada!",
+            "goalAchieved": "¡Meta alcanzada!",
+            "belowGoal": "{percentage}% por debajo de la meta",
+            "contributed": "{amount} aportado",
+            "remaining": "{amount} restante"
+        },
+        "routeExpiryTimer": {
+            "findingBestRate": "Buscando la mejor tasa...",
+            "noQuote": "No hay cotización disponible",
+            "quoteExpired": "La cotización venció",
+            "priceLocked": "Precio fijo por {time}"
+        },
+        "mantecaMaintenance": {
+            "title": "Servicio no disponible temporalmente",
+            "description": "Estamos teniendo problemas con {action, select, deposits {los depósitos} withdrawals {los retiros} other {las transferencias}} por una falla de un proveedor externo. Estamos trabajando para restablecer el servicio lo antes posible.",
+            "goBack": "Volver",
+            "havingTrouble": "¿Tienes problemas?"
+        },
+        "invitesGraph": {
+            "loadingNetwork": "Cargando la red...",
+            "goBack": "Volver",
+            "resetView": "Restablecer vista",
+            "back": "Atrás",
+            "clear": "Quitar",
+            "focusedOn": "Enfocado en:",
+            "searchPlaceholder": "Buscar usuario...",
+            "paymentNetwork": "Red de pagos",
+            "inviteNetwork": "Red de invitaciones",
+            "nodes": "{count, plural, one {# nodo} other {# nodos}}",
+            "edges": "{count, plural, one {# conexión} other {# conexiones}}"
+        },
+        "contactsList": {
+            "title": "Tus contactos"
+        },
+        "countryList": {
+            "searchPlaceholder": "Buscar país",
+            "noResultsTitle": "No se encontraron resultados",
+            "noResultsDescription": "Intenta buscar con otro término.",
+            "receiveTitle": "Recibir",
+            "flagAlt": "Bandera de {country}",
+            "cryptoDepositTitle": "Depósito en cripto",
+            "cryptoWithdrawTitle": "Cripto",
+            "cryptoDepositDescription": "Usa un exchange o tu billetera",
+            "cryptoWithdrawDescription": "Retira a una billetera o exchange"
+        },
+        "savedAccounts": {
+            "title": "Cuentas guardadas",
+            "or": "o",
+            "selectNewMethod": "Elegir otro método",
+            "flagAlt": "Bandera de {country}",
+            "flagAltGeneric": "Bandera del país"
+        },
+        "forceIosPwaInstall": {
+            "videoUnsupported": "Tu navegador no admite la etiqueta de video.",
+            "title": "Vive la experiencia completa",
+            "subtitle": "¡Este es el último paso!",
+            "description": "Agrega Peanut a tu pantalla de inicio para desbloquear tu billetera y empezar a usarla.",
+            "tapShare": "Toca el <share>ícono Compartir</share> en tu navegador",
+            "thenTapAddToHomeScreen": "y luego <bold>“Agregar a inicio”</bold>"
+        },
+        "pointsCard": {
+            "earned": "¡Ganaste {count, plural, one {# punto} other {# puntos}}!"
+        },
+        "userCard": {
+            "sendingMoneyTo": "Le estás enviando dinero a",
+            "requestingMoneyFrom": "Solicitando dinero a",
+            "youReceived": "Recibiste",
+            "isRequesting": "{name} está solicitando",
+            "sendingTo": "Enviando a {name}",
+            "payWhatYouWant": "Paga lo que quieras",
+            "sendExactAmount": "¡Envía el monto exacto!"
+        }
     }
 }

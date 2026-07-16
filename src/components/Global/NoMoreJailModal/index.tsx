@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import Image from 'next/image'
@@ -9,6 +10,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { PeanutWhistling } from '@/assets/mascot'
 
 const NoMoreJailModal = () => {
+    const t = useTranslations('global')
     const [isOpen, setisOpen] = useState(false)
 
     const onClose = () => {
@@ -39,21 +41,21 @@ const NoMoreJailModal = () => {
                     <div className="space-y-3 text-center">
                         <div className="w-full space-y-2">
                             <h3 className={'text-xl font-extrabold text-black dark:text-white'}>
-                                No more Peanut jail!
+                                {t('noMoreJailModal.title')}
                             </h3>
 
                             <div className="text-sm text-grey-1 dark:text-white">
                                 <p>
-                                    You’re now part of Peanut!
+                                    {t('noMoreJailModal.line1')}
                                     <br />
-                                    Explore, pay, and invite your friends.
+                                    {t('noMoreJailModal.line2')}
                                 </p>
                             </div>
                         </div>
                     </div>
 
                     <Button className="w-full" shadowSize="4" variant="purple" onClick={onClose}>
-                        <div>Start using</div>
+                        <div>{t('noMoreJailModal.startUsingCta')}</div>
                         <div className="flex items-center gap-1">
                             <Image src={PEANUTMAN} alt="Peanut Logo" className="size-5" />
                             <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />

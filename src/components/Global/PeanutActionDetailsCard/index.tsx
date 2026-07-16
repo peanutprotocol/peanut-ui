@@ -2,6 +2,7 @@ import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWit
 import { type RecipientType } from '@/lib/url-parser/types/payment'
 import { printableAddress } from '@/utils/general.utils'
 import { AVATAR_TEXT_DARK, getColorForUsername } from '@/utils/color.utils'
+import { useTranslations } from 'next-intl'
 import { useCallback } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Attachment from '../Attachment'
@@ -75,6 +76,7 @@ export default function PeanutActionDetailsCard({
     isLoading = false,
     logo,
 }: PeanutActionDetailsCardProps) {
+    const t = useTranslations('global')
     const renderRecipient = () => {
         if (recipientType === 'ADDRESS') return printableAddress(recipientName)
 
@@ -98,20 +100,24 @@ export default function PeanutActionDetailsCard({
     const getTitle = () => {
         let title = ''
         let icon = getIcon()
-        if (transactionType === 'REQUEST_PAYMENT') title = `You're sending ${renderRecipient()}`
-        if (transactionType === 'REQUEST') title = `You requested`
-        if (transactionType === 'RECEIVED_LINK') title = `${renderRecipient()} sent you`
+        if (transactionType === 'REQUEST_PAYMENT')
+            title = t('peanutActionDetailsCard.sendingTo', { recipient: renderRecipient() })
+        if (transactionType === 'REQUEST') title = t('peanutActionDetailsCard.youRequested')
+        if (transactionType === 'RECEIVED_LINK')
+            title = t('peanutActionDetailsCard.sentYou', { sender: renderRecipient() })
         if (transactionType === 'CLAIM_LINK') {
-            if (viewType === 'SUCCESS') title = `You just claimed`
-            else title = `${renderRecipient()} sent you`
+            if (viewType === 'SUCCESS') title = t('peanutActionDetailsCard.youJustClaimed')
+            else title = t('peanutActionDetailsCard.sentYou', { sender: renderRecipient() })
         }
-        if (transactionType === 'ADD_MONEY' || transactionType === 'ADD_MONEY_BANK_ACCOUNT') title = `You're adding`
-        if (transactionType === 'WITHDRAW' || transactionType === 'WITHDRAW_BANK_ACCOUNT') title = `You're sending`
+        if (transactionType === 'ADD_MONEY' || transactionType === 'ADD_MONEY_BANK_ACCOUNT')
+            title = t('peanutActionDetailsCard.youreAdding')
+        if (transactionType === 'WITHDRAW' || transactionType === 'WITHDRAW_BANK_ACCOUNT')
+            title = t('peanutActionDetailsCard.youreSending')
         if (transactionType === 'CLAIM_LINK_BANK_ACCOUNT') {
             if (viewType === 'SUCCESS') {
-                title = 'You will receive'
+                title = t('peanutActionDetailsCard.youWillReceive')
             } else {
-                title = `You're about to receive`
+                title = t('peanutActionDetailsCard.youreAboutToReceive')
             }
         }
         if (transactionType === 'REGIONAL_METHOD_CLAIM') title = recipientName // Render the string as is for regional method

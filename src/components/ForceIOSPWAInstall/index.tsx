@@ -4,8 +4,10 @@ import starImage from '@/assets/icons/star.png'
 import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from 'tailwind-merge'
 import { useGetBrowserType, BrowserType } from '@/hooks/useGetBrowserType'
+import { useTranslations } from 'next-intl'
 
 const ForceIOSPWAInstall = () => {
+    const t = useTranslations('global')
     const { browserType, isLoading } = useGetBrowserType()
 
     const STAR_POSITIONS = [
@@ -49,23 +51,27 @@ const ForceIOSPWAInstall = () => {
                 {!isLoading && (
                     <video className="h-96 w-96 object-contain" autoPlay loop muted playsInline key={videoSource}>
                         <source src={videoSource} type="video/quicktime" />
-                        Your browser does not support the video tag.
+                        {t('forceIosPwaInstall.videoUnsupported')}
                     </video>
                 )}
             </section>
             <section className="flex h-1/2 w-full flex-col gap-4 bg-white p-4">
-                <h1 className="text-3xl font-bold">Get the full experience</h1>
-                <h2 className="text-base font-medium">This is the final step!</h2>
-                <h3>Add Peanut to your home screen to unlock your wallet and start using it.</h3>
+                <h1 className="text-3xl font-bold">{t('forceIosPwaInstall.title')}</h1>
+                <h2 className="text-base font-medium">{t('forceIosPwaInstall.subtitle')}</h2>
+                <h3>{t('forceIosPwaInstall.description')}</h3>
                 <p className="flex items-center gap-1">
-                    Tap the{' '}
-                    <span className="flex items-center gap-1 font-bold">
-                        <Icon name="share" size={16} /> Share icon
-                    </span>
-                    on your browser
+                    {t.rich('forceIosPwaInstall.tapShare', {
+                        share: (chunks) => (
+                            <span className="flex items-center gap-1 font-bold">
+                                <Icon name="share" size={16} /> {chunks}
+                            </span>
+                        ),
+                    })}
                 </p>
                 <p>
-                    and then on <span className="font-bold"> “Add To Home Screen”</span>{' '}
+                    {t.rich('forceIosPwaInstall.thenTapAddToHomeScreen', {
+                        bold: (chunks) => <span className="font-bold">{chunks}</span>,
+                    })}
                 </p>
             </section>
         </main>

@@ -14,10 +14,19 @@
  * Anonymous visitors (no userId, no token by design) proceed immediately.
  */
 import React from 'react'
-import { render, screen, act, waitFor, fireEvent } from '@testing-library/react'
+import { render as rtlRender, screen, act, waitFor, fireEvent } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 import SupportDrawer from '../index'
 import { isCapacitor } from '@/utils/capacitor'
 import { SUPPORT_EMAIL } from '@/constants/crisp'
+
+const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const mockUseCrispUserData = jest.fn()
 const mockUseCrispTokenId = jest.fn()

@@ -5,6 +5,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
 import { useEffect, useState, Suspense, useRef } from 'react'
+import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { usePasskeySupportContext } from '@/context/passkeySupportContext'
 
@@ -43,9 +44,10 @@ const UnsupportedBrowserModalContent = ({
     allowClose?: boolean
     visible?: boolean
 }) => {
+    const t = useTranslations('global')
     const searchParams = useSearchParams()
     const [showInAppBrowserModalViaDetection, setShowInAppBrowserModalViaDetection] = useState(false)
-    const [copyButtonText, setCopyButtonText] = useState('Copy Link')
+    const [hasCopied, setHasCopied] = useState(false)
     const toast = useToast()
     const { isSupported: isPasskeySupported, isLoading: isLoadingPasskeySupport } = usePasskeySupportContext()
     const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -77,7 +79,7 @@ const UnsupportedBrowserModalContent = ({
 
     const copyLinkAction: ActionModalButtonProps[] = [
         {
-            text: copyButtonText,
+            text: hasCopied ? t('unsupportedBrowserModal.copied') : t('unsupportedBrowserModal.copyLinkCta'),
             icon: 'copy' as IconName,
             iconPosition: 'left',
             onClick: async () => {
@@ -93,12 +95,12 @@ const UnsupportedBrowserModalContent = ({
                         ? `${window.location.origin}${decodeURIComponent(redirectUri)}`
                         : window.location.href
                     await copyTextToClipboardWithFallback(urlToCopy)
-                    setCopyButtonText('Copied!')
-                    toast.success('Link copied to clipboard!')
-                    copyTimeoutRef.current = setTimeout(() => setCopyButtonText('Copy Link'), 2000)
+                    setHasCopied(true)
+                    toast.success(t('unsupportedBrowserModal.copySuccessToast'))
+                    copyTimeoutRef.current = setTimeout(() => setHasCopied(false), 2000)
                 } catch (err) {
                     console.error('Failed to copy: ', err)
-                    toast.error('Failed to copy link.')
+                    toast.error(t('unsupportedBrowserModal.copyErrorToast'))
                 }
             },
             className: 'bg-primary-1 hover:bg-primary-2 text-black sm:py-3',
@@ -107,7 +109,7 @@ const UnsupportedBrowserModalContent = ({
         {
             variant: 'transparent-dark',
             className: 'text-grey-1 text-xs font-medium h-2 mt-1 hover:text-grey-1 active:text-grey-1',
-            text: 'Then paste it in your preferred browser.',
+            text: t('unsupportedBrowserModal.pasteHint'),
         },
     ]
 
@@ -115,10 +117,8 @@ const UnsupportedBrowserModalContent = ({
         <ActionModal
             visible={true}
             onClose={handleModalClose}
-            title="Open this link in your browser"
-            description={
-                "We're still working on making Peanut work on your browser. For now, please use Chrome or Safari."
-            }
+            title={t('unsupportedBrowserModal.title')}
+            description={t('unsupportedBrowserModal.description')}
             icon={'alert' as IconName}
             iconContainerClassName="bg-primary-1"
             iconProps={{ className: 'text-black' }}

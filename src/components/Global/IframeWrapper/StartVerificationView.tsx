@@ -4,6 +4,7 @@ import { PeanutThinking } from '@/assets/mascot'
 import { Button } from '@/components/0_Bruddle/Button'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import NavHeader from '../NavHeader'
 
 const StartVerificationView = ({
@@ -13,6 +14,7 @@ const StartVerificationView = ({
     onStartVerification: () => void
     onClose: () => void
 }) => {
+    const t = useTranslations('global')
     return (
         <div className="flex h-full w-full flex-col">
             <div className="relative flex h-[45%] items-center justify-center bg-secondary-3/100">
@@ -31,19 +33,14 @@ const StartVerificationView = ({
             </div>
 
             <div className="flex h-[55%] flex-col bg-white p-4">
-                <h1 className="text-3xl font-extrabold">Secure Verification. Limited Data Use.</h1>
+                <h1 className="text-3xl font-extrabold">{t('startVerification.title')}</h1>
                 <div>
-                    <p className="mt-2 text-lg font-medium">
-                        The verification is done using a trusted provider, which shares your verification status with
-                        Peanut.
-                    </p>
-                    <p className="text-lg font-medium">
-                        It operates under industry-standard security and privacy practices.
-                    </p>
-                    <p className="text-lg font-bold">Peanut never sees or stores your verification data.</p>
+                    <p className="mt-2 text-lg font-medium">{t('startVerification.provider')}</p>
+                    <p className="text-lg font-medium">{t('startVerification.practices')}</p>
+                    <p className="text-lg font-bold">{t('startVerification.privacy')}</p>
                 </div>
                 <Button onClick={onStartVerification} className="my-auto" variant="purple" shadowSize="4">
-                    Start Secure Verification
+                    {t('startVerification.cta')}
                 </Button>
             </div>
         </div>

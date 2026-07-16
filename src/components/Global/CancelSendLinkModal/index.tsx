@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl'
 import ActionModal from '../ActionModal'
 
 interface CancelSendLinkModalProps {
@@ -15,6 +16,8 @@ const CancelSendLinkModal = ({
     onClick,
     isLoading = false,
 }: CancelSendLinkModalProps) => {
+    const t = useTranslations('global')
+
     const handleClick = (e?: React.MouseEvent<HTMLButtonElement>) => {
         // Stop event propagation to prevent Dialog from closing
         e?.preventDefault()
@@ -35,14 +38,17 @@ const CancelSendLinkModal = ({
             icon="link-slash"
             iconContainerClassName="bg-purple-1"
             iconProps={{ className: 'text-black' }}
-            title="Cancel this link?"
+            title={t('cancelSendLinkModal.title')}
             modalClassName="!z-[9999] pointer-events-auto"
             description={
                 <>
-                    The <strong>{amount}</strong> locked in the link will go straight back to your balance.
+                    {t.rich('cancelSendLinkModal.amountReturned', {
+                        amount,
+                        strong: (chunks) => <strong>{chunks}</strong>,
+                    })}
                     <br />
                     <br />
-                    Once cancelled, nobody will be able to claim it.
+                    {t('cancelSendLinkModal.noLongerClaimable')}
                 </>
             }
             preventClose={isLoading}
@@ -51,7 +57,7 @@ const CancelSendLinkModal = ({
             classOverlay="!bg-black/40 !z-[9998]"
             ctas={[
                 {
-                    text: 'Cancel & Return Funds',
+                    text: t('cancelSendLinkModal.cancelCta'),
                     shadowSize: '4',
                     className: 'md:py-2',
                     onClick: handleClick,

@@ -18,6 +18,7 @@ import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
 import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
 import { recipientPayUrl, qrClaimUrl } from '@/utils/native-routes'
 import * as Sentry from '@sentry/nextjs'
+import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
 import { useState, type ChangeEvent } from 'react'
@@ -40,10 +41,11 @@ interface ModalContentProps {
 }
 
 function NotSupportedContent({ setModalContent, qrType }: ModalContentProps) {
+    const t = useTranslations('global')
     return (
         <div className="flex flex-col justify-center p-6">
-            <span className="text-sm">We're working on an integration.</span>
-            <span className="text-sm">Get notified when it goes live!</span>
+            <span className="text-sm">{t('qrScannerOverlay.notSupportedWorking')}</span>
+            <span className="text-sm">{t('qrScannerOverlay.notSupportedGetNotified')}</span>
             <Button
                 onClick={() => {
                     setModalContent(EModalType.WILL_BE_NOTIFIED)
@@ -53,16 +55,19 @@ function NotSupportedContent({ setModalContent, qrType }: ModalContentProps) {
                 shadowType="primary"
                 shadowSize="4"
             >
-                Get notified!
+                {t('qrScannerOverlay.getNotifiedCta')}
             </Button>
         </div>
     )
 }
 
 function WillBeNotifiedContent({ qrType, setIsModalOpen }: ModalContentProps) {
+    const t = useTranslations('global')
     return (
         <div className="flex flex-col justify-center p-6">
-            <span className="text-sm">We'll let you know as soon as {NAME_BY_QR_TYPE[qrType]} is supported.</span>
+            <span className="text-sm">
+                {t('qrScannerOverlay.willBeNotified', { qrName: NAME_BY_QR_TYPE[qrType] ?? '' })}
+            </span>
             <Button
                 onClick={() => setIsModalOpen(false)}
                 className="mt-4 w-full"
@@ -70,26 +75,27 @@ function WillBeNotifiedContent({ qrType, setIsModalOpen }: ModalContentProps) {
                 shadowType="primary"
                 shadowSize="4"
             >
-                Close
+                {t('qrScannerOverlay.close')}
             </Button>
         </div>
     )
 }
 
 function DirectSendContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
+    const t = useTranslations('global')
     const [userAcknowledged, setUserAcknowledged] = useState(false)
     const router = useRouter()
     return (
         <div className="flex flex-col justify-center p-6">
-            <span className="text-sm">Peanut supports cross-chain payments.</span>
-            <span className="text-sm">Please confirm the payment details before sending</span>
+            <span className="text-sm">{t('qrScannerOverlay.directSendCrossChain')}</span>
+            <span className="text-sm">{t('qrScannerOverlay.directSendConfirm')}</span>
             <Checkbox
                 value={userAcknowledged}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => {
                     setUserAcknowledged(e.target.checked)
                 }}
                 className="mt-4"
-                label="I understand and will confirm payment details."
+                label={t('qrScannerOverlay.directSendAcknowledge')}
             />
             <Button
                 onClick={() => {
@@ -103,17 +109,18 @@ function DirectSendContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
                 shadowType="primary"
                 shadowSize="4"
             >
-                Continue
+                {t('qrScannerOverlay.continue')}
             </Button>
         </div>
     )
 }
 
 function ExternalUrlContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
+    const t = useTranslations('global')
     return (
         <div className="flex flex-col justify-center p-6">
-            <span className="text-sm">Peanut doesn't support this QR but you can open it with your browser. </span>
-            <span className="text-sm">Make sure you trust this website!</span>
+            <span className="text-sm">{t('qrScannerOverlay.externalUrlIntro')}</span>
+            <span className="text-sm">{t('qrScannerOverlay.externalUrlTrust')}</span>
             <div className="flex items-center justify-center gap-2">
                 <Button
                     onClick={() => {
@@ -126,7 +133,7 @@ function ExternalUrlContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
                     shadowType="primary"
                     shadowSize="4"
                 >
-                    Open link
+                    {t('qrScannerOverlay.openLink')}
                 </Button>
                 <Button
                     onClick={() => setIsModalOpen(false)}
@@ -135,7 +142,7 @@ function ExternalUrlContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
                     shadowType="primary"
                     shadowSize="4"
                 >
-                    Close
+                    {t('qrScannerOverlay.close')}
                 </Button>
             </div>
         </div>
@@ -143,43 +150,47 @@ function ExternalUrlContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
 }
 
 function UnrecognizedContent({ setIsModalOpen }: ModalContentProps) {
+    const t = useTranslations('global')
     return (
         <div className="flex flex-col justify-center p-6">
-            <span className="text-sm">Sorry, this QR code couldn't be recognized.</span>
+            <span className="text-sm">{t('qrScannerOverlay.unrecognized')}</span>
             <Button onClick={() => setIsModalOpen(false)} className="mt-4 w-full" shadowType="primary" shadowSize="4">
-                Okay
+                {t('qrScannerOverlay.okay')}
             </Button>
         </div>
     )
 }
 
 function PixRecurringContent({ setIsModalOpen }: ModalContentProps) {
+    const t = useTranslations('global')
     return (
         <div className="flex flex-col justify-center p-6">
-            <span className="text-sm">This QR code is for a recurring payment (PIX Automático).</span>
-            <span className="text-sm">
-                Peanut doesn't support recurring PIX payments — please ask for a regular PIX QR code instead.
-            </span>
+            <span className="text-sm">{t('qrScannerOverlay.pixRecurringIntro')}</span>
+            <span className="text-sm">{t('qrScannerOverlay.pixRecurringBody')}</span>
             <Button onClick={() => setIsModalOpen(false)} className="mt-4 w-full" shadowType="primary" shadowSize="4">
-                Okay
+                {t('qrScannerOverlay.okay')}
             </Button>
         </div>
     )
 }
 
-function getModalTitle(modalContent: EModalType | undefined, qrType: EQrType | undefined): string | undefined {
-    if (modalContent === EModalType.UNRECOGNIZED) return 'Unrecognized QR code'
-    if (modalContent === EModalType.PIX_RECURRING) return 'PIX Automático not supported'
+function getModalTitle(
+    t: ReturnType<typeof useTranslations<'global'>>,
+    modalContent: EModalType | undefined,
+    qrType: EQrType | undefined
+): string | undefined {
+    if (modalContent === EModalType.UNRECOGNIZED) return t('qrScannerOverlay.titleUnrecognized')
+    if (modalContent === EModalType.PIX_RECURRING) return t('qrScannerOverlay.titlePixRecurring')
     if (!modalContent || !qrType) return undefined
     switch (modalContent) {
         case EModalType.QR_NOT_SUPPORTED:
-            return `${NAME_BY_QR_TYPE[qrType]} not supported yet.`
+            return t('qrScannerOverlay.titleNotSupported', { qrName: NAME_BY_QR_TYPE[qrType] ?? '' })
         case EModalType.WILL_BE_NOTIFIED:
-            return "You're on the list!"
+            return t('qrScannerOverlay.titleWillBeNotified')
         case EModalType.DIRECT_SEND:
-            return 'ℹ️ Payment Confirmation'
+            return t('qrScannerOverlay.titleDirectSend')
         case EModalType.EXTERNAL_URL:
-            return 'This is an external link!'
+            return t('qrScannerOverlay.titleExternalUrl')
     }
 }
 
@@ -193,6 +204,7 @@ const MODAL_CONTENTS: Record<EModalType, React.ComponentType<ModalContentProps>>
 }
 
 export default function QRScannerOverlay() {
+    const t = useTranslations('global')
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [qrType, setQrType] = useState<EQrType | undefined>(undefined)
     const [redirectTo, setRedirectTo] = useState<string | undefined>(undefined)
@@ -306,7 +318,7 @@ export default function QRScannerOverlay() {
                         }
                         toConfirmUrl = recipientPayUrl(path)
                     } catch (error) {
-                        toast.error('Error parsing EIP-681 URL')
+                        toast.error(t('qrScannerOverlay.eip681ParseError'))
                         Sentry.captureException(error)
                     }
                 }
@@ -390,11 +402,11 @@ export default function QRScannerOverlay() {
 
         return {
             success: false,
-            error: 'QR not recognized as Peanut URL',
+            error: t('qrScannerOverlay.notPeanutUrl'),
         }
     }
 
-    const modalTitle = getModalTitle(modalContent, qrType)
+    const modalTitle = getModalTitle(t, modalContent, qrType)
 
     return (
         <>
@@ -428,10 +440,10 @@ export default function QRScannerOverlay() {
                     {/* z-[60] keeps this drawer above the QRScanner portal (z-50) */}
                     <QRBottomDrawer
                         url={payUserUrl}
-                        collapsedTitle="My QR"
-                        expandedTitle="Show QR to Get Paid"
-                        text="Let others scan this to pay you"
-                        buttonText="Share your profile"
+                        collapsedTitle={t('qrScannerOverlay.myQrCollapsedTitle')}
+                        expandedTitle={t('qrScannerOverlay.myQrExpandedTitle')}
+                        text={t('qrScannerOverlay.myQrText')}
+                        buttonText={t('qrScannerOverlay.myQrButtonText')}
                         className="z-[60]"
                     />
                 </>

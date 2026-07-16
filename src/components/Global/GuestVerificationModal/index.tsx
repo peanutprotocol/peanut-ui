@@ -3,6 +3,7 @@
 import { saveRedirectUrl } from '@/utils/general.utils'
 import ActionModal from '../ActionModal'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { generateInviteCodeLink } from '@/utils/general.utils'
 
 interface GuestVerificationModalProps {
@@ -22,19 +23,20 @@ export const GuestVerificationModal = ({
     redirectToVerification,
     inviterUsername,
 }: GuestVerificationModalProps) => {
+    const t = useTranslations('global')
     const router = useRouter()
     return (
         <ActionModal
             visible={isOpen}
             onClose={onClose}
-            title="Unlock this payment method"
+            title={t('guestVerificationModal.title')}
             description={description}
             icon="alert"
             iconContainerClassName="bg-yellow-400"
             ctaClassName="md:flex-col gap-4"
             ctas={[
                 {
-                    text: 'Get started',
+                    text: t('guestVerificationModal.getStartedCta'),
                     shadowSize: '4',
                     className: 'md:py-2.5',
                     onClick: () => {

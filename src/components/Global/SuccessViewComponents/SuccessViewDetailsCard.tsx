@@ -1,4 +1,5 @@
 import { Card } from '@/components/0_Bruddle/Card'
+import { useTranslations } from 'next-intl'
 import React from 'react'
 import StatusBadge, { type StatusType } from '../Badges/StatusBadge'
 import { Icon } from '../Icons/Icon'
@@ -16,6 +17,7 @@ export const SuccessViewDetailsCard: React.FC<SuccessViewDetailsCardProps> = ({
     description,
     status = 'completed',
 }) => {
+    const t = useTranslations('global')
     return (
         <Card className="p-6">
             <div className="flex items-start justify-between">
@@ -30,7 +32,11 @@ export const SuccessViewDetailsCard: React.FC<SuccessViewDetailsCardProps> = ({
                         <h1 className="text-lg font-bold">{title}</h1>
                         {amountDisplay && <h2 className="text-4xl font-extrabold">$ {amountDisplay}</h2>}
 
-                        {description && <p className="line-clamp-3 text-sm text-grey-1">for {description}</p>}
+                        {description && (
+                            <p className="line-clamp-3 text-sm text-grey-1">
+                                {t('successViewDetailsCard.for', { description })}
+                            </p>
+                        )}
                     </div>
                 </div>
 

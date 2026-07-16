@@ -2154,5 +2154,399 @@
         "sessionExpired": "Your session has expired. Please refresh the page and try again.",
         "sendFailed": "Error sending transaction, please try again",
         "txReverted": "Transaction reverted, please try again"
+    },
+    "global": {
+        "tokenSelector": {
+            "selectAToken": "Select a token",
+            "onChain": "on <c>{chainName}</c>",
+            "noFeesWithToken": "No fees with this token.",
+            "drawerTitle": "Select Token and Network",
+            "crossChainUnavailable": "Cross-chain transactions are temporarily unavailable. You can use USDC on Arbitrum.",
+            "selectANetwork": "Select a network",
+            "moreNetworksButton": "more",
+            "searchTokenPlaceholder": "Search for a token or paste address",
+            "sponsoredHint": "Transactions using USDC on Arbitrum are sponsored",
+            "availableToken": "Available token",
+            "searchResults": "Search Results",
+            "popularTokensOnChain": "Popular tokens on {chainName}",
+            "popularTokens": "Popular tokens",
+            "noMatchingTokensTitle": "No matching popular tokens found",
+            "noMatchingTokensDescription": "Try searching for a different token",
+            "noPopularTokensTitle": "No popular tokens available",
+            "moreNetworksTitle": "More networks",
+            "searchNetworkPlaceholder": "Search for a network",
+            "noNetworksFoundTitle": "No networks found matching {search}",
+            "noNetworksFoundDescription": "Try searching for a different network",
+            "searchPlaceholder": "Search...",
+            "clearSearch": "Clear search"
+        },
+        "qrScanner": {
+            "scanToPay": "Scan to pay",
+            "clickToPaste": "Click to paste",
+            "close": "Close",
+            "clipboardEmpty": "Clipboard is empty",
+            "clipboardUnavailable": "Could not access clipboard",
+            "startingCamera": "Starting camera…",
+            "qrRecognized": "QR code recognized",
+            "qrProcessingFailed": "QR code processing failed",
+            "qrProcessingError": "Error processing QR code",
+            "cameraPermissionDenied": "Camera permission denied. Please allow camera access in your browser settings.",
+            "cameraBusyRetrying": "Camera is in use by another app. Retrying... ({attempt}/{maxAttempts})",
+            "cameraStillBusy": "Camera remains busy. Please close other apps and try again.",
+            "cameraNotFound": "No camera found on this device.",
+            "cameraUnavailable": "Could not access camera. Please ensure you have granted camera permissions.",
+            "videoElementUnavailable": "Video element not available",
+            "cameraSwitchFailed": "Failed to switch camera. Please try again.",
+            "cameraPermission": {
+                "title": "Camera access needed",
+                "tryAgain": "Try again",
+                "dismiss": "Dismiss",
+                "withStepsHint": "Follow these steps to enable camera access, then try again.",
+                "noStepsHint": "Please enable camera access in your browser or device settings, then try again.",
+                "androidChrome1": "Step 1: tap the lock icon in the address bar",
+                "androidChrome2": "Step 2: tap “Permissions”",
+                "androidChrome3": "Step 3: enable Camera",
+                "iosChrome1": "Step 1: open Settings → Chrome",
+                "iosChrome2": "Step 2: enable Camera",
+                "iosSafari1": "Step 1: tap “aA” in the address bar",
+                "iosSafari2": "Step 2: tap “Website Settings”",
+                "iosSafari3": "Step 3: set Camera to “Allow”"
+            }
+        },
+        "qrScannerOverlay": {
+            "notSupportedWorking": "We're working on an integration.",
+            "notSupportedGetNotified": "Get notified when it goes live!",
+            "getNotifiedCta": "Get notified!",
+            "willBeNotified": "We’ll let you know as soon as {qrName} is supported.",
+            "close": "Close",
+            "continue": "Continue",
+            "okay": "Okay",
+            "directSendCrossChain": "Peanut supports cross-chain payments.",
+            "directSendConfirm": "Please confirm the payment details before sending",
+            "directSendAcknowledge": "I understand and will confirm payment details.",
+            "externalUrlIntro": "Peanut doesn't support this QR but you can open it with your browser.",
+            "externalUrlTrust": "Make sure you trust this website!",
+            "openLink": "Open link",
+            "unrecognized": "Sorry, this QR code couldn't be recognized.",
+            "pixRecurringIntro": "This QR code is for a recurring payment (PIX Automático).",
+            "pixRecurringBody": "Peanut doesn't support recurring PIX payments — please ask for a regular PIX QR code instead.",
+            "titleUnrecognized": "Unrecognized QR code",
+            "titlePixRecurring": "PIX Automático not supported",
+            "titleNotSupported": "{qrName} not supported yet.",
+            "titleWillBeNotified": "You're on the list!",
+            "titleDirectSend": "ℹ️ Payment Confirmation",
+            "titleExternalUrl": "This is an external link!",
+            "eip681ParseError": "Error parsing EIP-681 URL",
+            "notPeanutUrl": "QR not recognized as Peanut URL",
+            "myQrCollapsedTitle": "My QR",
+            "myQrExpandedTitle": "Show QR to Get Paid",
+            "myQrText": "Let others scan this to pay you",
+            "myQrButtonText": "Share your profile"
+        },
+        "qrBottomDrawer": {
+            "or": "or",
+            "shareTitle": "Share your profile"
+        },
+        "inviteFriendsModal": {
+            "title": "Invite friends!",
+            "description": "Share your link. Every time a friend you brought makes a payment, you earn rewards.",
+            "shareSheetTitle": "Share your invite link",
+            "shareCta": "Share Invite Link"
+        },
+        "confirmInviteModal": {
+            "title": "Don’t lose your invite!",
+            "description": "This link lets you skip the Peanut waitlist. Using {method} will skip your invite.",
+            "joinCta": "Join",
+            "continueWithMethod": "Continue with {method}"
+        },
+        "earlyUserModal": {
+            "title": "Earn from invites",
+            "inviteOnly": "Peanut is now invite-only and you're in!",
+            "earnRules": "<b>Friends you invite →</b> you earn a cut of their fees. <b>Their invites →</b> you earn a cut of their cut.",
+            "shareSheetTitle": "Share your invite link",
+            "shareCta": "Share Invite link",
+            "learnMore": "Learn more"
+        },
+        "noMoreJailModal": {
+            "title": "No more Peanut jail!",
+            "line1": "You’re now part of Peanut!",
+            "line2": "Explore, pay, and invite your friends.",
+            "startUsingCta": "Start using"
+        },
+        "easterEggModal": {
+            "gotItCta": "Got it",
+            "AQ": {
+                "caption": "🐧 No banks here, only penguins!",
+                "subtitle": "Antarctica isn't a real country... yet"
+            },
+            "BV": {
+                "caption": "🧊 Population: 0. Banks: also 0.",
+                "subtitle": "An uninhabited Norwegian glacier in the South Atlantic"
+            },
+            "CX": {
+                "caption": "🦀 Red crabs don't need bank accounts",
+                "subtitle": "45 million crabs, zero ATMs"
+            },
+            "CC": {
+                "caption": "🥥 Coconuts accepted, wire transfers not so much",
+                "subtitle": "Population: 544. Financial infrastructure: vibes"
+            },
+            "GS": {
+                "caption": "🐧 More penguins than people",
+                "subtitle": "South Georgia: 30 researchers, 3 million penguins, 0 banks"
+            },
+            "HM": {
+                "caption": "🌋 Active volcano, inactive banking sector",
+                "subtitle": "Heard Island: uninhabited, unless you count the seals"
+            },
+            "PN": {
+                "caption": "🏴‍☠️ 47 people. 0 ATMs. All vibes.",
+                "subtitle": "The world's least populated jurisdiction with a .pn domain"
+            },
+            "TK": {
+                "caption": "🌊 No roads, no banks, no problem",
+                "subtitle": "Three atolls, 1,500 people, and the .tk domain empire"
+            }
+        },
+        "cancelSendLinkModal": {
+            "title": "Cancel this link?",
+            "amountReturned": "The <strong>{amount}</strong> locked in the link will go straight back to your balance.",
+            "noLongerClaimable": "Once cancelled, nobody will be able to claim it.",
+            "cancelCta": "Cancel & Return Funds"
+        },
+        "balanceWarningModal": {
+            "title": "High Balance",
+            "congrats": "You're rich! Congrats on having a high balance.",
+            "selfCustody": "With Peanut, you’re the only one who can access your funds. No bank, no company, no agency — not even our support team — can ever access them.",
+            "passkey": "Your biometric passkey is your key to full control and security. If it’s lost, it can’t be recovered because only you ever have access.",
+            "learnMore": "Learn how to keep your passkey secure on <link>{platform}</link>.",
+            "yourDevice": "your device",
+            "slideToContinue": "Slide to Continue"
+        },
+        "guestLoginModal": {
+            "title": "Sign in with your Peanut Wallet",
+            "signInCta": "Sign In",
+            "noWallet": "Don't have a Peanut wallet? Get one now.",
+            "loginError": "Error logging in"
+        },
+        "guestVerificationModal": {
+            "title": "Unlock this payment method",
+            "getStartedCta": "Get started"
+        },
+        "iosPwaInstallModal": {
+            "title": "Add Peanut to your Home Screen",
+            "description": "Follow a quick guide to add the app to your home screen, no download needed.",
+            "firefoxDescription": "Firefox on iOS does not support installing apps to the home screen. Please open this page in Safari to continue.",
+            "gotItCta": "Got it!",
+            "videoUnsupported": "Your browser does not support the video tag."
+        },
+        "unsupportedBrowserModal": {
+            "title": "Open this link in your browser",
+            "description": "We're still working on making Peanut work on your browser. For now, please use Chrome or Safari.",
+            "copyLinkCta": "Copy Link",
+            "copied": "Copied!",
+            "copySuccessToast": "Link copied to clipboard!",
+            "copyErrorToast": "Failed to copy link.",
+            "pasteHint": "Then paste it in your preferred browser."
+        },
+        "tokenAndNetworkConfirmationModal": {
+            "title": "Send only supported tokens on supported networks",
+            "warning": "Sending the wrong token or using the wrong network will result in permanent loss.",
+            "supportedNetworks": "Supported Networks",
+            "supportedTokens": "Supported Tokens",
+            "slideToProceed": "Slide to Proceed"
+        },
+        "rainCooldownIntroModal": {
+            "title": "Please wait",
+            "description": "Your card needs a short cool-down between back-to-back spends. To avoid this in the future, you can lower your card limit to be below your wallet balance; the extra will always be available.",
+            "gotItCta": "Got it",
+            "readMore": "Read more"
+        },
+        "staleCardApprovalModal": {
+            "title": "Re-enable your card",
+            "description": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
+            "successTitle": "Card re-enabled",
+            "successDescription": "Your card is ready — please try your withdrawal again.",
+            "cancelledError": "Re-enabling was cancelled. Tap Re-enable card to try again.",
+            "unexpectedError": "We couldn't re-enable your card. Please try again.",
+            "reEnableCta": "Re-enable card",
+            "workingCta": "Working…",
+            "notNowCta": "Not now",
+            "doneCta": "Done"
+        },
+        "securityVerificationOverlay": {
+            "message": "Verifying security…"
+        },
+        "startVerification": {
+            "title": "Secure Verification. Limited Data Use.",
+            "provider": "The verification is done using a trusted provider, which shares your verification status with Peanut.",
+            "practices": "It operates under industry-standard security and privacy practices.",
+            "privacy": "Peanut never sees or stores your verification data.",
+            "cta": "Start Secure Verification"
+        },
+        "iframeWrapper": {
+            "troubleTitle": "Need a hand?",
+            "troubleDescriptionLine1": "If the ID check isn’t loading here, finish it in your browser.",
+            "troubleDescriptionLine2": "Just copy this link and open it there.",
+            "copyLink": "Copy link",
+            "chatWithSupport": "Chat with support",
+            "cancel": "Cancel",
+            "exitTitle": "Exit and lose progress?",
+            "exitDescription": "If you exit now, you’ll need to start the ID check again from scratch.",
+            "exit": "Exit",
+            "continueVerifying": "Continue verifying",
+            "stopVerification": "Stop verification process",
+            "havingTrouble": "Having trouble?"
+        },
+        "supportDrawer": {
+            "chatLoadFailed": "Chat couldn’t load",
+            "chatLoadFailedDescription": "Something went wrong loading support chat. Email us and we’ll help you out:",
+            "tryAgain": "Try again",
+            "label": "Support",
+            "chatTitle": "Support Chat"
+        },
+        "supportCta": {
+            "needHelp": "Need help with this transaction?",
+            "prefilledMessage": "Need help with this transaction: "
+        },
+        "offlineScreen": {
+            "title": "You’re Offline",
+            "description": "No internet connection detected. Please check your network settings and try again.",
+            "checking": "Checking...",
+            "checkConnection": "Check Connection"
+        },
+        "backendErrorScreen": {
+            "title": "Something went wrong",
+            "description": "We’re having trouble connecting to our servers.",
+            "tryAgain": "Try Again",
+            "loggingOut": "Logging out...",
+            "logOut": "Log out"
+        },
+        "infoCard": {
+            "noContent": "No content provided"
+        },
+        "copyToClipboard": {
+            "copyCode": "Copy code"
+        },
+        "copyField": {
+            "copy": "Copy",
+            "copied": "Copied"
+        },
+        "peanutActionCard": {
+            "requestTitle": "Request money from friends",
+            "requestDescription": "They don't need an account to pay",
+            "sendTitle": "Create a payment link",
+            "sendDescription": "Anyone with the link can receive the money",
+            "perfectToDm": "Perfect to DM friends!"
+        },
+        "peanutActionDetailsCard": {
+            "sendingTo": "You're sending {recipient}",
+            "youRequested": "You requested",
+            "sentYou": "{sender} sent you",
+            "youJustClaimed": "You just claimed",
+            "youreAdding": "You're adding",
+            "youreSending": "You're sending",
+            "youWillReceive": "You will receive",
+            "youreAboutToReceive": "You're about to receive"
+        },
+        "createAccountButton": {
+            "label": "Create a <logo></logo> account"
+        },
+        "generalRecipientInput": {
+            "walletAddress": "Wallet address",
+            "invalidChainAddress": "Invalid {chain} address",
+            "invalidIban": "Invalid IBAN, country not supported"
+        },
+        "shareButton": {
+            "share": "Share",
+            "linkCopied": "Link copied",
+            "textCopied": "Text copied",
+            "sharingFailed": "Sharing failed"
+        },
+        "attachment": {
+            "viewAttachment": "View Attachment"
+        },
+        "successViewDetailsCard": {
+            "for": "for {description}"
+        },
+        "fileUploadInput": {
+            "addReference": "Add reference (optional)"
+        },
+        "validatedInput": {
+            "paste": "Paste <value></value>"
+        },
+        "progressBar": {
+            "goalExceeded": "Goal exceeded!",
+            "goalAchieved": "Goal achieved!",
+            "belowGoal": "{percentage}% below goal",
+            "contributed": "{amount} contributed",
+            "remaining": "{amount} remaining"
+        },
+        "routeExpiryTimer": {
+            "findingBestRate": "Finding best rate...",
+            "noQuote": "No quote available",
+            "quoteExpired": "Quote expired",
+            "priceLocked": "Price locked for {time}"
+        },
+        "mantecaMaintenance": {
+            "title": "Service Temporarily Unavailable",
+            "description": "We’re experiencing issues with {action, select, deposits {deposits} withdrawals {withdrawals} other {transfers}} due to an external provider outage. We’re working to restore service as soon as possible.",
+            "goBack": "Go Back",
+            "havingTrouble": "Having trouble?"
+        },
+        "invitesGraph": {
+            "loadingNetwork": "Loading network...",
+            "goBack": "Go Back",
+            "resetView": "Reset View",
+            "back": "Back",
+            "clear": "Clear",
+            "focusedOn": "Focused on:",
+            "searchPlaceholder": "Search username...",
+            "paymentNetwork": "Payment Network",
+            "inviteNetwork": "Invite Network",
+            "nodes": "{count, plural, one {# node} other {# nodes}}",
+            "edges": "{count, plural, one {# edge} other {# edges}}"
+        },
+        "contactsList": {
+            "title": "Your contacts"
+        },
+        "countryList": {
+            "searchPlaceholder": "Search country",
+            "noResultsTitle": "No results found",
+            "noResultsDescription": "Try searching with a different term.",
+            "receiveTitle": "Receive",
+            "flagAlt": "{country} flag",
+            "cryptoDepositTitle": "Crypto Deposit",
+            "cryptoWithdrawTitle": "Crypto",
+            "cryptoDepositDescription": "Use an exchange or your wallet",
+            "cryptoWithdrawDescription": "Withdraw to a wallet or exchange"
+        },
+        "savedAccounts": {
+            "title": "Saved accounts",
+            "or": "or",
+            "selectNewMethod": "Select new method",
+            "flagAlt": "{country} flag",
+            "flagAltGeneric": "Country flag"
+        },
+        "forceIosPwaInstall": {
+            "videoUnsupported": "Your browser does not support the video tag.",
+            "title": "Get the full experience",
+            "subtitle": "This is the final step!",
+            "description": "Add Peanut to your home screen to unlock your wallet and start using it.",
+            "tapShare": "Tap the <share>Share icon</share> on your browser",
+            "thenTapAddToHomeScreen": "and then on <bold>“Add To Home Screen”</bold>"
+        },
+        "pointsCard": {
+            "earned": "You’ve earned {count, plural, one {# point} other {# points}}!"
+        },
+        "userCard": {
+            "sendingMoneyTo": "You're sending money to",
+            "requestingMoneyFrom": "Requesting money from",
+            "youReceived": "You received",
+            "isRequesting": "{name} is requesting",
+            "sendingTo": "Sending {name}",
+            "payWhatYouWant": "Pay what you want",
+            "sendExactAmount": "Send the exact amount!"
+        }
     }
 }

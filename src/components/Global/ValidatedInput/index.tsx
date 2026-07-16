@@ -5,6 +5,7 @@ import { useClipboardSuggestion } from '@/hooks/useClipboardSuggestion'
 import { useDebounce } from '@/hooks/useDebounce'
 import { AnimatePresence, motion } from 'framer-motion'
 import * as Sentry from '@sentry/nextjs'
+import { useTranslations } from 'next-intl'
 import { type ChangeEvent, useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '../Icons/Icon'
@@ -49,6 +50,7 @@ const ValidatedInput = ({
     isInputChanging = false,
     smartPasteKind,
 }: ValidatedInputProps) => {
+    const t = useTranslations('global')
     const [isValid, setIsValid] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
     const debouncedValue = useDebounce(value, debounceTime)
@@ -274,7 +276,9 @@ const ValidatedInput = ({
                         >
                             <Icon name="paste" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                             <span className="break-all">
-                                Paste <span className="notranslate">{suggestion}</span>
+                                {t.rich('validatedInput.paste', {
+                                    value: () => <span className="notranslate">{suggestion}</span>,
+                                })}
                             </span>
                         </button>
                     </motion.div>
