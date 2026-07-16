@@ -25,14 +25,16 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import InvitesGraph from '@/components/Global/InvitesGraph'
 import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
-import { formatPoints, shortenPoints } from '@/utils/format.utils'
+import { shortenPoints } from '@/utils/format.utils'
 import { profileUrl } from '@/utils/native-routes'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
+import { useTranslations } from 'next-intl'
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 
 const PointsPage = () => {
+    const t = useTranslations('rewards')
     const router = useRouter()
     const onBack = useSafeBack('/home')
     const { user, fetchUser } = useAuth()
@@ -107,14 +109,14 @@ const PointsPage = () => {
 
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
-                <EmptyState icon="alert" title="Error loading points!" description="Please contact Support." />
+                <EmptyState icon="alert" title={t('loadPointsFailed')} description={t('contactSupport')} />
             </div>
         )
     }
 
     return (
         <PageContainer className="flex flex-col">
-            <NavHeader title="Rewards" onPrev={onBack} />
+            <NavHeader title={t('title')} onPrev={onBack} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
                 {/* rewards hero — pending claimable as primary, lifetime as secondary */}
@@ -130,17 +132,15 @@ const PointsPage = () => {
                                 <div className="flex flex-col items-center gap-1">
                                     {pendingUsd > 0 ? (
                                         <>
-                                            <p className="text-sm text-grey-1">You have</p>
+                                            <p className="text-sm text-grey-1">{t('youHave')}</p>
                                             <h2 className="text-4xl font-black text-black">${pendingUsd.toFixed(2)}</h2>
-                                            <p className="text-center text-sm text-grey-1">
-                                                waiting for you. Start spending to claim.
-                                            </p>
+                                            <p className="text-center text-sm text-grey-1">{t('pendingCallout')}</p>
                                         </>
                                     ) : (
-                                        <p className="text-center text-sm text-grey-1">No pending rewards right now.</p>
+                                        <p className="text-center text-sm text-grey-1">{t('noPendingRewards')}</p>
                                     )}
                                     <p className="mt-2 text-center text-sm text-grey-1">
-                                        Lifetime rewards: ${lifetimeUsd.toFixed(2)}. To earn more, invite friends.
+                                        {t('lifetimeRewards', { amount: `$${lifetimeUsd.toFixed(2)}` })}
                                     </p>
                                 </div>
                             )
@@ -152,14 +152,14 @@ const PointsPage = () => {
                         onClick={() => setIsInviteModalOpen(true)}
                         className="w-full"
                     >
-                        Invite Now
+                        {t('inviteNow')}
                     </Button>
 
                     <div className="border-t border-grey-2" />
 
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-center gap-2">
-                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={16} height={16} />
+                            <Image src={STAR_STRAIGHT_ICON} alt={t('starAlt')} width={16} height={16} />
                             <p className="text-base font-medium text-grey-1">
                                 {(() => {
                                     const { number, suffix } = shortenPoints(animatedTotal)
@@ -170,7 +170,7 @@ const PointsPage = () => {
                                         </>
                                     )
                                 })()}{' '}
-                                {tierInfo.data.totalPoints === 1 ? 'point' : 'points'}
+                                {t('pointsLabel', { count: tierInfo.data.totalPoints })}
                             </p>
                         </div>
 
@@ -178,7 +178,7 @@ const PointsPage = () => {
                         <div className="flex items-center gap-2">
                             <Image
                                 src={getTierBadge(tierInfo?.data.currentTier)}
-                                alt={`Tier ${tierInfo?.data.currentTier}`}
+                                alt={t('tierBadgeAlt', { tier: tierInfo?.data.currentTier })}
                                 width={20}
                                 height={20}
                             />
@@ -206,7 +206,7 @@ const PointsPage = () => {
                             {tierInfo?.data.currentTier < 2 && (
                                 <Image
                                     src={getTierBadge(tierInfo?.data.currentTier + 1)}
-                                    alt={`Tier ${tierInfo?.data.currentTier + 1}`}
+                                    alt={t('tierBadgeAlt', { tier: tierInfo?.data.currentTier + 1 })}
                                     width={20}
                                     height={20}
                                 />
@@ -214,8 +214,7 @@ const PointsPage = () => {
                         </div>
                         {tierInfo?.data.currentTier < 2 && (
                             <p className="text-center text-xs text-grey-1">
-                                {formatPoints(tierInfo.data.pointsToNextTier)}{' '}
-                                {tierInfo.data.pointsToNextTier === 1 ? 'point' : 'points'} to next tier
+                                {t('pointsToNextTier', { count: tierInfo.data.pointsToNextTier })}
                             </p>
                         )}
                     </div>
@@ -246,10 +245,11 @@ const PointsPage = () => {
                                     >
                                         {user.invitedBy} <Icon name="invite-heart" size={14} />
                                     </span>{' '}
-                                    invited you.{' '}
+                                    {t('invitedYou')}{' '}
                                 </>
                             )}
-                            <br></br>You earn rewards whenever your friends use Peanut!
+                            <br></br>
+                            {t('earnWhenFriendsUse')}
                         </p>
                     </>
                 )}
@@ -262,7 +262,7 @@ const PointsPage = () => {
                             className="flex cursor-pointer items-center justify-between"
                             onClick={() => router.push('/rewards/invites')}
                         >
-                            <h2 className="font-bold">People you invited</h2>
+                            <h2 className="font-bold">{t('peopleYouInvited')}</h2>
                             <NavigationArrow className="text-black" />
                         </div>
 
@@ -317,18 +317,16 @@ const PointsPage = () => {
                             <div className="flex items-center justify-center rounded-full bg-primary-1 p-2">
                                 <Icon name="trophy" />
                             </div>
-                            <h2 className="font-medium">No invites yet</h2>
+                            <h2 className="font-medium">{t('noInvitesYet')}</h2>
 
-                            <p className="text-center text-sm text-grey-1">
-                                Send your invite link to start earning more rewards
-                            </p>
+                            <p className="text-center text-sm text-grey-1">{t('shareInviteLinkPrompt')}</p>
                             <Button
                                 variant="purple"
                                 shadowSize="4"
                                 onClick={() => setIsInviteModalOpen(true)}
                                 className="w-full"
                             >
-                                Share Invite link
+                                {t('shareInviteLink')}
                             </Button>
                         </Card>
                     </>
