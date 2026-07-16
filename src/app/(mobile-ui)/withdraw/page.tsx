@@ -120,8 +120,12 @@ export default function WithdrawPage() {
         enabled: rateAccountType !== AccountType.US && countryIso2 !== '',
     })
 
+    // crypto withdrawals are plain on-chain transfers — fiat-rail minimums don't apply
+    const isCryptoWithdraw = selectedMethod?.type === 'crypto' || isCryptoFromSend
+
     // compute minimum withdrawal in USD using the exchange rate
     const minUsdAmount = useMemo(() => {
+        if (isCryptoWithdraw) return 0 // any amount > 0 is valid, same as send-via-link
         const localMin = getMinimumAmount(countryIso2)
         // for US or unknown, minimum is already in USD
         if (!countryIso2 || countryIso2 === 'US') return localMin
@@ -131,7 +135,7 @@ export default function WithdrawPage() {
         const rate = parseFloat(exchangeRate || '0')
         if (rate <= 0) return 1 // fallback while rate is loading
         return Math.ceil(localMin / rate)
-    }, [countryIso2, exchangeRate])
+    }, [isCryptoWithdraw, countryIso2, exchangeRate])
 
     // validate against user's limits for bank withdrawals
     // note: crypto withdrawals don't have fiat limits

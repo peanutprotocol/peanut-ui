@@ -394,6 +394,39 @@ describe('GROUP 3: Amount Validation', () => {
         expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
         expect(screen.getByTestId('limits-warning-card')).toBeInTheDocument()
     })
+
+    test('Crypto withdrawal allows sub-$1 amounts (no fiat-rail minimum)', () => {
+        // Regression: the shared amount step applied the bank $1 minimum to
+        // crypto (getMinimumAmount('') → 1), blocking sub-$1 on-chain sends
+        // that send-via-link already allows.
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        mockWithdrawFlow.amountToWithdraw = '0.5'
+
+        renderWithdraw()
+
+        const continueBtn = screen.getByText('Continue')
+        expect(continueBtn).not.toBeDisabled()
+
+        fireEvent.click(continueBtn)
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto')
+    })
+
+    test('Bank withdrawal keeps the $1 minimum for sub-$1 amounts', async () => {
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
+        mockWithdrawFlow.amountToWithdraw = '0.5'
+
+        renderWithdraw()
+
+        expect(screen.getByText('Continue')).toBeDisabled()
+        // validation is debounced 300ms behind typing
+        await waitFor(() =>
+            expect(mockSetError).toHaveBeenCalledWith({
+                showError: true,
+                errorMessage: 'Minimum withdrawal is $1.',
+            })
+        )
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
 })
 
 // ============================================================
