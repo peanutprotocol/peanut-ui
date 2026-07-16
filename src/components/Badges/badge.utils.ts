@@ -203,6 +203,12 @@ export const BADGES: Record<string, BadgeMeta> = {
         description: 'You danced the quadrilha with us. Arraiá unlocked.',
         displayName: 'Arraiá Approved',
     },
+    // Argentine superfan in-joke badge — look closer. IYKYK.
+    MANICERO: {
+        path: '/badges/manicero.svg',
+        description: 'Small maní. Big energy. Manicero.',
+        displayName: 'Manicero',
+    },
     TOUCHED_GRASS: {
         path: '/badges/touched_grass.svg',
         description: 'You logged off and touched real grass with Peanut.',

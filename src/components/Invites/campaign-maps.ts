@@ -25,6 +25,7 @@ export const INVITE_CODE_TO_CAMPAIGN_MAP: Record<string, string> = {
     cardalpha: 'CARD_ALPHA',
     psyops: 'PSYOPS_DIVISION',
     founding: 'FOUNDING_PIONEER',
+    manicero: 'MANICERO',
 }
 
 // Map inbound `utm_campaign` values to the badge codes the backend whitelists.
@@ -41,6 +42,7 @@ export const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
     'festa-junina': 'FESTA_JUNINA_2026',
     'card-alpha': 'CARD_ALPHA',
     'irl-nomads': 'IRL_NOMADS',
+    manicero: 'MANICERO',
 }
 
 // Resolve the effective campaign (a badge code, or a raw passthrough tag) from
@@ -86,6 +88,7 @@ export const BARE_VANITY_CAMPAIGNS: ReadonlySet<string> = new Set([
     'festa_junina_2026',
     'irl_nomads',
     'offramp_user',
+    'manicero',
 ])
 
 export type CampaignClassification = {
