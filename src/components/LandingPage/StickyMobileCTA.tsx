@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
 
 export function StickyMobileCTA() {
@@ -42,11 +43,11 @@ export function StickyMobileCTA() {
                     transition={{ type: 'spring', damping: 20, stiffness: 300 }}
                     className="pointer-events-none fixed bottom-0 left-0 right-0 z-50 border-t-2 border-n-1 bg-white px-4 py-3 md:hidden"
                 >
-                    <a href="/setup" className="pointer-events-auto block">
+                    <Link href="/setup" className="pointer-events-auto block">
                         <Button variant="purple" shadowSize="4" className="w-full py-3 text-base font-extrabold">
                             SIGN UP NOW
                         </Button>
-                    </a>
+                    </Link>
                 </motion.div>
             )}
         </AnimatePresence>

@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
 
 export function SendInSecondsCTA() {
@@ -20,14 +21,14 @@ export function SendInSecondsCTA() {
                 whileHover={{ translateY: 6, translateX: 0, rotate: 0.75 }}
                 transition={{ type: 'spring', damping: 15 }}
             >
-                <a href="/send">
+                <Link href="/send">
                     <Button
                         shadowSize="4"
                         className="bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl"
                     >
                         SEND NOW
                     </Button>
-                </a>
+                </Link>
             </motion.div>
         </div>
     )
