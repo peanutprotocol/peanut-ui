@@ -76,7 +76,7 @@ export default function WithdrawPage() {
 
     // initialise the amount input with the value from context (if any)
     // state to keep track of the token input key to force-remount the component
-    const [tokenInputKey, setTokenInputKey] = useState<number>(0)
+    const [_tokenInputKey, setTokenInputKey] = useState<number>(0)
 
     // raw amount currently typed in the input
     const [rawTokenAmount, setRawTokenAmount] = useState<string>(amountFromContext || '')

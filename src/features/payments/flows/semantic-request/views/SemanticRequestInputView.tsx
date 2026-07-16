@@ -57,7 +57,6 @@ export function SemanticRequestInputView() {
         selectedChainID,
         selectedTokenAddress,
         supportedChainsAndTokens,
-        selectedTokenData,
     } = useContext(tokenSelectorContext)
 
     // initialize token/chain from parsed url

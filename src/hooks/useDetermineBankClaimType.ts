@@ -67,7 +67,7 @@ export function useDetermineBankClaimType(senderUserId: string): {
                         setClaimType(BankClaimType.GuestKycNeeded)
                     }
                 }
-            } catch (error) {
+            } catch {
                 if (user?.user.userId) {
                     setClaimType(BankClaimType.ReceiverKycNeeded)
                 } else {

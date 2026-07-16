@@ -99,7 +99,7 @@ export function QuestCard({
                     </div>
                 ) : (
                     <>
-                        {leaderboard.slice(0, 3).map((entry, index) => (
+                        {leaderboard.slice(0, 3).map((entry) => (
                             <div
                                 key={entry.userId}
                                 onClick={(e) => {

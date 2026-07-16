@@ -88,7 +88,6 @@ describe('capacitor utils', () => {
     })
 
     describe('getPlatform', () => {
-        const originalNavigator = window.navigator
         const originalMatchMedia = window.matchMedia
 
         afterEach(() => {

@@ -25,7 +25,6 @@ export const SuccessClaimLinkView = ({
     transactionHash,
     setTransactionHash,
     claimLinkData,
-    type,
     tokenPrice,
 }: _consts.IClaimScreenProps) => {
     const { user: authUser } = useUserStore()

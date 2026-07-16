@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect } from 'react'
-import { captureException } from '@sentry/nextjs'
 
 export function ScreenOrientationLocker() {
     useEffect(() => {

@@ -266,7 +266,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
     // Particle arrival popups for user mode (+1 pt animations)
     // Map: linkId → { timestamp, x, y, nodeId }
-    const particleArrivalsRef = useRef<Map<string, { timestamp: number; x: number; y: number; nodeId: string }>>(
+    const _particleArrivalsRef = useRef<Map<string, { timestamp: number; x: number; y: number; nodeId: string }>>(
         new Map()
     )
 
@@ -1047,7 +1047,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 showUsernames: showNames,
                 isMinimal: minimal,
                 activityFilter: filter,
-                visibilityConfig: visibility,
                 externalNodesConfig: extConfig,
             } = displaySettingsRef.current
 
@@ -1296,7 +1295,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         [getUserActivityStatus]
     )
 
-    const linkColor = useCallback(
+    const _linkColor = useCallback(
         (link: any) => {
             // P2P edges: cyan/teal - solid line, particles show movement
             if (link.isP2P) {
@@ -1316,12 +1315,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
     // Custom link rendering for arrows on invites and particles on P2P
     const linkCanvasObject = useCallback(
-        (link: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
-            const {
-                activityFilter,
-                visibilityConfig: visibility,
-                externalNodesConfig: extConfig,
-            } = displaySettingsRef.current
+        (link: any, ctx: CanvasRenderingContext2D, _globalScale: number) => {
+            const { externalNodesConfig: extConfig } = displaySettingsRef.current
             const source = link.source
             const target = link.target
 
@@ -1479,8 +1474,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 const baseColor = isDirect ? [255, 144, 232] : [186, 139, 255]
                 const alpha = inactive ? 0.12 : 0.35
                 const arrowAlpha = inactive ? 0.2 : 0.6
-                const { mode: currentMode } = displaySettingsRef.current
-
                 // Draw main line
                 ctx.strokeStyle = `rgba(${baseColor.join(',')}, ${alpha})`
                 ctx.lineWidth = isDirect ? 1 : 0.8
@@ -1779,10 +1772,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 }
                 return fc.inviteLinks.enabled ? Math.min(fc.inviteLinks.strength, 1.0) : 0
             })
-
-            const inviteStr = fc.inviteLinks.enabled ? Math.min(fc.inviteLinks.strength, 1.0) : 0
-            const p2pStr = fc.p2pLinks.enabled ? Math.min(fc.p2pLinks.strength, 1.0) : 0
-            const extStr = extConfig.enabled ? Math.min(extConfig.strength, 1.0) : 0
         }
 
         // CENTER: Pulls nodes toward origin. sizeBias controls how much bigger nodes are pulled more

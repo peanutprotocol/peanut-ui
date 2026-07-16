@@ -61,7 +61,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const router = useRouter()
+    const _router = useRouter()
     const dispatch = useAppDispatch()
     const toast = useToast()
     const queryClient = useQueryClient()

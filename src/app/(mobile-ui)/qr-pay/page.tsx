@@ -1296,9 +1296,6 @@ export default function QRPayPage() {
                                 <p className="text-sm text-gray-600">
                                     {(() => {
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
-                                        const transactionUsd =
-                                            parseFloat(qrPayment?.details?.paymentAgainstAmount || '0') || 0
-
                                         if (amountSponsored && typeof amountSponsored === 'number') {
                                             return `You earned $${amountSponsored.toFixed(2)}! Hold to claim your reward.`
                                         }

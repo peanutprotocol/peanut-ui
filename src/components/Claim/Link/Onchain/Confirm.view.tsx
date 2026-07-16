@@ -32,7 +32,6 @@ export const ConfirmClaimLinkView = ({
     recipient,
     tokenPrice,
     setTransactionHash,
-    estimatedPoints,
     attachment,
     selectedRoute,
 }: _consts.IClaimScreenProps) => {

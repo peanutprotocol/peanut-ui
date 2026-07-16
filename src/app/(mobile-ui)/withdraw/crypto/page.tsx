@@ -23,14 +23,12 @@ import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { captureMessage } from '@sentry/nextjs'
 import type { Address, Hex, TransactionReceipt } from 'viem'
 import { parseUnits } from 'viem'
 import { Slider } from '@/components/Slider'
 import { tokenSelectorContext } from '@/context'
 import { useHaptic } from 'use-haptic'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { isTxReverted } from '@/utils/general.utils'
@@ -42,12 +40,11 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 export default function WithdrawCryptoPage() {
     const router = useRouter()
     const onBack = useSafeBack('/withdraw')
-    const { isConnected: isPeanutWallet, address, sendTransactions, sendMoney, spendableBalance } = useWallet()
+    const { address, sendTransactions, sendMoney, spendableBalance } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
     const {
         amountToWithdraw,
         usdAmount,
-        setAmountToWithdraw,
         currentView,
         setCurrentView,
         withdrawData,
@@ -308,9 +305,6 @@ export default function WithdrawCryptoPage() {
             // recordPayment (smart-only) or rely on the Rain webhook →
             // TransactionIntent reconciliation path (collateral-only / mixed).
             let strategy: 'collateral-only' | 'smart-only' | 'mixed' | undefined
-            // Backend TransactionIntent id — used to navigate to the unified
-            // receipt page for collateral/mixed spends.
-            let intentId: string | undefined
 
             if (!isCrossChainWithdrawal) {
                 const {
@@ -318,11 +312,9 @@ export default function WithdrawCryptoPage() {
                     txHash,
                     receipt: r,
                     strategy: s,
-                    intentId: i,
                 } = await sendMoney(withdrawData.address as Address, amountToWithdraw, { kind: 'CRYPTO_WITHDRAW' })
                 receipt = r
                 strategy = s
-                intentId = i
                 if (receipt !== null && isTxReverted(receipt)) {
                     throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
                 }
@@ -342,7 +334,6 @@ export default function WithdrawCryptoPage() {
                 })
                 receipt = txResult.receipt
                 strategy = txResult.strategy
-                intentId = txResult.intentId
                 if (receipt !== null && isTxReverted(receipt)) {
                     throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
                 }

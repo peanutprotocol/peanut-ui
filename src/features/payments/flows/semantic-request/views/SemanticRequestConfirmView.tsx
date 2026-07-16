@@ -24,7 +24,6 @@ import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
 import { formatAmount, isStableCoin } from '@/utils/general.utils'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useMemo } from 'react'
-import { formatUnits } from 'viem'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import PeanutActionDetailsCard, {
     type PeanutActionDetailsCardRecipientType,

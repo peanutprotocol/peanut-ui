@@ -58,7 +58,7 @@ export default function RedirectQrClaimPage() {
                         console.error('Untrusted external redirect blocked:', redirectQrData.redirectUrl)
                         setError('Invalid QR code destination.')
                     }
-                } catch (error) {
+                } catch {
                     console.error('Invalid redirect URL:', redirectQrData.redirectUrl)
                     setError('Invalid QR code destination.')
                 }

@@ -18,10 +18,9 @@ import { sendLinksApi } from '@/services/sendLinks'
 import { areEvmAddressesEqual, formatTokenAmount, toInviteCode } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
-import { fetchWithSentry } from '@/utils/sentry.utils'
 import { apiFetch } from '@/utils/api-fetch'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
-import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS, checkTokenSupportsXChain } from '@/utils/token.utils'
+import { NATIVE_TOKEN_ADDRESS, checkTokenSupportsXChain } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -240,7 +239,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }, [recipientType, claimLinkData.chainId, isPeanutChain, claimLinkData.tokenAddress])
 
     const handleClaimLink = useCallback(
-        async (bypassModal = false, autoClaim = false) => {
+        async (bypassModal = false, _autoClaim = false) => {
             if (!selectedTokenData) return
 
             if (!isPeanutWallet && !bypassModal) {

@@ -140,7 +140,7 @@ export const sendLinksApi = {
                 throw new Error(
                     `HTTP error! status: ${response.status}, message: ${errorJson.message || errorJson.error || errorText}`
                 )
-            } catch (e) {
+            } catch {
                 // fallback to plain text error
                 console.error('API Error Text:', errorText)
                 throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`)

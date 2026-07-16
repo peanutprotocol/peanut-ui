@@ -1,19 +1,6 @@
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { NextRequest } from 'next/server'
 
-interface TransferDetails {
-    id: string
-    timestamp: string
-    chain: string
-    details: any
-}
-
-interface Portfolio {
-    id: string
-    ownerAddress: string
-    assetActivities: TransferDetails[]
-}
-
 const query = `
     query RecentTokenTransfers($address: String!) {
       portfolios(
@@ -79,7 +66,7 @@ const query = `
     }
   `
 
-export async function POST(request: NextRequest, context: { params: Promise<Record<string, string>> }) {
+export async function POST(request: NextRequest, _context: { params: Promise<Record<string, string>> }) {
     const body = await request.json()
 
     try {

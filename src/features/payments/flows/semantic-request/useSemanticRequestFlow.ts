@@ -13,7 +13,7 @@
  * supports route expiry handling - auto-refreshes routes when expired
  */
 
-import { useCallback, useMemo, useEffect, useContext, useState } from 'react'
+import { useCallback, useMemo, useEffect, useContext } from 'react'
 import { parseUnits, type Address, type Hash } from 'viem'
 import { useSemanticRequestFlowContext } from './SemanticRequestFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'

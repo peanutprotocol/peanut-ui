@@ -439,8 +439,7 @@ export async function copyTextToClipboardWithFallback(text: string) {
         textarea.style.left = '-9999px'
         document.body.appendChild(textarea)
         textarea.select()
-        const successful = document.execCommand('copy')
-        const msg = successful ? 'successful' : 'unsuccessful'
+        document.execCommand('copy')
         document.body.removeChild(textarea)
     } catch (err) {
         Sentry.captureException(err)
@@ -552,13 +551,6 @@ export const getExplorerUrl = (chainId: string) => {
     } else {
         return explorers?.[0].url
     }
-}
-
-interface TransferDetails {
-    id: string
-    timestamp: string
-    chain: string
-    details: any
 }
 
 export function formatDate(date: Date | null | undefined): string {

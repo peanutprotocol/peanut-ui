@@ -124,7 +124,7 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 
 jest.mock('@/components/0_Bruddle/Divider', () => ({
     __esModule: true,
-    default: (props: any) => <hr data-testid="divider" />,
+    default: (_props: any) => <hr data-testid="divider" />,
 }))
 
 jest.mock('@/components/ActionListCard', () => ({

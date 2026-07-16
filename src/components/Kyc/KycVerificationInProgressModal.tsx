@@ -24,7 +24,6 @@ export const KycVerificationInProgressModal = ({
     onClose,
     phase = 'verifying',
     onAcceptTerms,
-    onSkipTerms,
     onContinue,
     tosError,
     isLoadingTos,

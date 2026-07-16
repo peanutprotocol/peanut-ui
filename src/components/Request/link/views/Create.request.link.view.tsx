@@ -85,7 +85,7 @@ export const CreateRequestLinkView = () => {
         [balance, formattedSpendableBalance]
     )
 
-    const usdValue = useMemo(() => {
+    const _usdValue = useMemo(() => {
         if (!selectedTokenData?.price || !tokenValue) return ''
         return (parseFloat(tokenValue) * selectedTokenData.price).toString()
     }, [tokenValue, selectedTokenData?.price])
@@ -107,11 +107,11 @@ export const CreateRequestLinkView = () => {
         return harnessFallbackAddress
     }, [isConnected, address, harnessFallbackAddress])
 
-    const isValidRecipient = useMemo(() => {
+    const _isValidRecipient = useMemo(() => {
         return (isConnected && !!address) || !!harnessFallbackAddress
     }, [isConnected, address, harnessFallbackAddress])
 
-    const hasAttachment = useMemo(() => {
+    const _hasAttachment = useMemo(() => {
         return !!(attachmentOptions.rawFile || attachmentOptions.message)
     }, [attachmentOptions.rawFile, attachmentOptions.message])
 

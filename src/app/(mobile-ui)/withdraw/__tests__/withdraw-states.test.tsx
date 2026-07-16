@@ -8,7 +8,7 @@
  * per-test via mockReturnValue / mockImplementation.
  */
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
 
@@ -128,7 +128,7 @@ jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
 
 jest.mock('@/features/limits/components/LimitsWarningCard', () => ({
     __esModule: true,
-    default: (props: any) => <div data-testid="limits-warning-card" />,
+    default: (_props: any) => <div data-testid="limits-warning-card" />,
 }))
 
 jest.mock('@/features/limits/utils', () => ({

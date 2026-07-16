@@ -131,7 +131,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
         )
     }
 
-    const renderMarker = (color: string, position: string | number, isPercentage = true) => {
+    const renderMarker = (color: string, position: string | number, _isPercentage = true) => {
         const positionStyle = typeof position === 'string' ? { left: position } : { left: `${position}%` }
         return (
             <div

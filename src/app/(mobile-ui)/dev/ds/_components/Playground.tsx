@@ -17,7 +17,7 @@ interface PlaygroundProps {
     codeTemplate: (props: Record<string, any>) => string
 }
 
-export function Playground({ name, importPath, defaults, controls, render, codeTemplate }: PlaygroundProps) {
+export function Playground({ importPath, defaults, controls, render, codeTemplate }: PlaygroundProps) {
     const [props, setProps] = useState<Record<string, any>>(defaults)
 
     const updateProp = (key: string, value: any) => {

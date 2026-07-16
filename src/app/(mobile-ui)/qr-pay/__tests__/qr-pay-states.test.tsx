@@ -12,7 +12,7 @@ import posthog from 'posthog-js'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
-import type { RailCapability, CapabilityRestriction } from '@/types/capabilities'
+import type { RailCapability } from '@/types/capabilities'
 
 // Test-local subsets — only the fields the qr-pay page actually reads from each
 // fixture. Mirroring the full RailCapability/CapabilityRestriction types here
@@ -231,7 +231,7 @@ jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
 
 jest.mock('@/features/limits/components/LimitsWarningCard', () => ({
     __esModule: true,
-    default: (props: any) => <div data-testid="limits-warning-card" />,
+    default: (_props: any) => <div data-testid="limits-warning-card" />,
 }))
 
 jest.mock('@/features/limits/utils', () => ({
@@ -504,25 +504,12 @@ function setCapabilitiesGate(state: GateState, opts: { userMessage?: string | nu
     mockUseCapabilities.mockReturnValue(capabilitiesForGate(state, opts))
 }
 
-// Loading state context provider
-const LoadingStateProvider = ({ children }: { children: React.ReactNode }) => {
-    const loadingStateContext = require('@/context/loadingStates.context').loadingStateContext
-    const [loadingState, setLoadingState] = React.useState('Idle')
-    const isLoading = loadingState !== 'Idle'
-    return (
-        <loadingStateContext.Provider value={{ loadingState, setLoadingState, isLoading }}>
-            {children}
-        </loadingStateContext.Provider>
-    )
-}
-
 // We need to mock the context module itself (specific file, not the barrel — the page
 // imports from '@/context/loadingStates.context' per the no-barrel rule)
-const mockSetLoadingState = jest.fn()
 jest.mock('@/context/loadingStates.context', () => ({
     loadingStateContext: React.createContext({
         loadingState: 'Idle' as string,
-        setLoadingState: (s: string) => {},
+        setLoadingState: (_s: string) => {},
         isLoading: false,
     }),
 }))

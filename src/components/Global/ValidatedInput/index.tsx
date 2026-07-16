@@ -59,7 +59,7 @@ const ValidatedInput = ({
     } = useClipboardSuggestion(smartPasteKind ?? 'recipient', value, !!smartPasteKind)
     const previousValueRef = useRef(value)
     const currentValueRef = useRef(value)
-    const listId = useRef(`datalist-${Math.random().toString(36).substr(2, 9)}`)
+    const _listId = useRef(`datalist-${Math.random().toString(36).substr(2, 9)}`)
     const inputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {

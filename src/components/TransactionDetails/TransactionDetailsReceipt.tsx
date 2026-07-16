@@ -22,7 +22,6 @@ import { formatPoints } from '@/utils/format.utils'
 import { getAvatarUrl } from '@/utils/history.utils'
 import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
-import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
@@ -79,7 +78,6 @@ export const TransactionDetailsReceipt = ({
     contentRef,
     transactionAmount,
     className,
-    isModalOpen = false,
     setIsModalOpen,
     avatarUrl,
     isPublic = false,
@@ -128,7 +126,6 @@ export const TransactionDetailsReceipt = ({
         country,
         rowVisibilityConfig,
         shouldHideBorder,
-        shouldHideGroupBorder,
         shouldShowShareReceipt,
         requestPotContributors,
         formattedTotalAmountCollected,

@@ -35,7 +35,7 @@ const JoinWaitlist = () => {
     const toast = useToast()
     const { handleNext } = useSetupFlow()
     const dispatch = useAppDispatch()
-    const { handleLoginClick, isLoggingIn } = useLogin()
+    const { handleLoginClick } = useLogin()
     const router = useRouter()
     const queryClient = useQueryClient()
 
@@ -89,7 +89,7 @@ const JoinWaitlist = () => {
         Sentry.captureException(error, { extra: { errorCode: error.code } })
     }
 
-    const onLoginClick = async () => {
+    const _onLoginClick = async () => {
         try {
             await handleLoginClick()
         } catch (e) {

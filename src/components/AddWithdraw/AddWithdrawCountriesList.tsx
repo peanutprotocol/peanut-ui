@@ -166,7 +166,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     const handleFormSubmit = async (
         payload: AddBankAccountPayload,
-        rawData: IBankAccountDetails
+        _rawData: IBankAccountDetails
     ): Promise<{ error?: string; silent?: boolean }> => {
         // re-fetch user to ensure we have the latest KYC status
         // (the multi-phase flow may have completed but websocket/state not yet propagated)

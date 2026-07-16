@@ -27,6 +27,8 @@ module.exports = [
             'public/**',
             'src/content/**',
             'android/**',
+            'ios/**',
+            'build/**',
             'src/types/api.generated.ts',
             'coverage/**',
             'playwright-report/**',

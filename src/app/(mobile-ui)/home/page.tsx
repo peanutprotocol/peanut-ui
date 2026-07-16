@@ -35,7 +35,6 @@ import { useHaptic } from 'use-haptic'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -80,7 +79,7 @@ export default function Home() {
 
     // Track if this is a fresh signup session - captured once on mount so it persists
     // even after NoMoreJailModal clears the sessionStorage key
-    const [isPostSignupSession] = useState(() => {
+    const [_isPostSignupSession] = useState(() => {
         if (typeof window === 'undefined') return false
         return sessionStorage.getItem('showNoMoreJailModal') === 'true'
     })

@@ -72,7 +72,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         setBankDetails,
         justCompletedKyc,
         setJustCompletedKyc,
-        showVerificationModal: isKycModalOpen,
         setShowVerificationModal: setIsKycModalOpen,
     } = useClaimBankFlow()
 
@@ -112,7 +111,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const [error, setError] = useState<string | null>(null)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isProcessingKycSuccess, setIsProcessingKycSuccess] = useState(false)
-    const [offrampData, setOfframpData] = useState<TCreateOfframpResponse | null>(null)
+    const [_offrampData, setOfframpData] = useState<TCreateOfframpResponse | null>(null)
 
     /**
      * @name handleConfirmClaim
