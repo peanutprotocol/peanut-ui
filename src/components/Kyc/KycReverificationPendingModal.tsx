@@ -1,4 +1,5 @@
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 
 interface KycReverificationPendingModalProps {
@@ -19,6 +20,8 @@ interface KycReverificationPendingModalProps {
  */
 export const KycReverificationPendingModal = ({ isOpen, onClose, message }: KycReverificationPendingModalProps) => {
     const router = useRouter()
+    const t = useTranslations('kyc')
+    const tCommon = useTranslations('common')
 
     return (
         <ActionModal
@@ -26,16 +29,11 @@ export const KycReverificationPendingModal = ({ isOpen, onClose, message }: KycR
             onClose={onClose}
             icon="clock"
             iconContainerClassName="bg-yellow-1 text-black"
-            title="We're reviewing your details"
-            description={
-                <p>
-                    {message ??
-                        "Your verification is being reviewed — this usually takes a few minutes. We'll let you know as soon as you're ready to continue. You can wait here or head home."}
-                </p>
-            }
+            title={t('reverificationPending.title')}
+            description={<p>{message ?? t('reverificationPending.description')}</p>}
             ctas={[
                 {
-                    text: 'Go to Home',
+                    text: tCommon('goToHome'),
                     onClick: () => {
                         onClose()
                         router.push('/home')

@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
@@ -34,65 +35,67 @@ export const InitiateKycModal = ({
     providerMessage,
     regionName,
 }: InitiateKycModalProps) => {
+    const t = useTranslations('kyc')
+    const tCommon = useTranslations('common')
     const isProviderRejection = variant === 'provider_rejection'
     const isBlocked = variant === 'blocked'
     const isRestartIdentity = variant === 'restart_identity'
     const isCrossRegion = variant === 'cross_region'
 
     const getTitle = () => {
-        if (error) return 'Something went wrong'
-        if (isBlocked) return 'We couldn’t unlock this'
-        if (isRestartIdentity) return 'Verify with a different document'
-        if (isProviderRejection) return 'We need extra documents'
-        if (isCrossRegion) return regionName ? `Unlock ${regionName}` : 'Unlock this region'
-        return 'Unlock your account'
+        if (error) return tCommon('somethingWentWrong')
+        if (isBlocked) return t('initiate.titleBlocked')
+        if (isRestartIdentity) return t('initiate.titleRestartIdentity')
+        if (isProviderRejection) return t('initiate.titleProviderRejection')
+        if (isCrossRegion)
+            return regionName
+                ? t('initiate.titleCrossRegion', { region: regionName })
+                : t('initiate.titleCrossRegionGeneric')
+        return t('initiate.titleDefault')
     }
 
     const getDescription = () => {
-        if (error) return `${error} Please contact support for assistance.`
-        if (isBlocked) return providerMessage || "We couldn't confirm your ID. Please contact support for assistance."
-        if (isRestartIdentity)
-            return (
-                providerMessage ||
-                'This rail needs a document from a supported country. You can verify with a different ID.'
-            )
-        if (isProviderRejection) return providerMessage || 'Please upload a clearer photo of your ID to continue.'
+        if (error) return t('initiate.descriptionError', { error })
+        if (isBlocked) return providerMessage || t('initiate.descriptionBlocked')
+        if (isRestartIdentity) return providerMessage || t('initiate.descriptionRestartIdentity')
+        if (isProviderRejection) return providerMessage || t('initiate.descriptionProviderRejection')
         if (isCrossRegion) {
-            const region = regionName ? ` in ${regionName}` : ' here'
-            return `Your identity is already verified. To turn on payments${region}, we just need to confirm a few more details — about a minute.`
+            return regionName
+                ? t('initiate.descriptionCrossRegion', { region: regionName })
+                : t('initiate.descriptionCrossRegionGeneric')
         }
-        return 'Confirm your ID to unlock payments. Takes about a minute.'
+        return t('initiate.descriptionDefault')
     }
 
     const getCta = () => {
         if (error || isBlocked) {
             return {
-                text: 'Contact support',
+                text: tCommon('contactSupport'),
                 onClick: onContactSupport ?? onClose,
             }
         }
         if (isRestartIdentity) {
             return {
-                text: isLoading ? 'Loading...' : 'Verify with a different document',
+                text: isLoading ? tCommon('loading') : t('initiate.titleRestartIdentity'),
                 onClick: onVerify,
                 icon: 'upload' as IconName,
             }
         }
         if (isProviderRejection) {
             return {
-                text: isLoading ? 'Loading...' : 'Upload document',
+                text: isLoading ? tCommon('loading') : t('initiate.ctaUploadDocument'),
                 onClick: onVerify,
                 icon: 'upload' as IconName,
             }
         }
         if (isCrossRegion) {
             return {
-                text: isLoading ? 'Loading...' : 'Continue',
+                text: tCommon(isLoading ? 'loading' : 'continue'),
                 onClick: onVerify,
             }
         }
         return {
-            text: isLoading ? 'Loading...' : 'Unlock now',
+            text: isLoading ? tCommon('loading') : t('initiate.ctaUnlockNow'),
             onClick: onVerify,
             icon: 'check-circle' as IconName,
         }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import Modal from '@/components/Global/Modal'
 import ActionModal from '@/components/Global/ActionModal'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
@@ -43,6 +44,8 @@ export const SumsubKycWrapper = ({
     const sdkContainerRef = useRef<HTMLDivElement>(null)
     const sdkInstanceRef = useRef<SnsWebSdkInstance | null>(null)
     const { setIsSupportModalOpen } = useModalsContext()
+    const t = useTranslations('kyc')
+    const tCommon = useTranslations('common')
 
     // callback refs to avoid stale closures in sdk init effect
     const onCompleteRef = useRef(onComplete)
@@ -248,19 +251,19 @@ export const SumsubKycWrapper = ({
     const modalDetails = useMemo(() => {
         if (modalVariant === 'trouble') {
             return {
-                title: 'Need a hand?',
-                description: "If the ID check isn't loading or working properly, our support team will help.",
+                title: t('wrapper.troubleTitle'),
+                description: t('wrapper.troubleDescription'),
                 icon: 'question-mark' as IconName,
                 iconContainerClassName: 'bg-primary-1',
                 ctas: [
                     {
-                        text: 'Chat with support',
+                        text: t('wrapper.chatWithSupport'),
                         onClick: () => setIsSupportModalOpen(true),
                         variant: 'purple' as ButtonVariant,
                         shadowSize: '4' as const,
                     },
                     {
-                        text: 'Cancel',
+                        text: tCommon('cancel'),
                         onClick: () => setIsHelpModalOpen(false),
                         variant: 'transparent' as ButtonVariant,
                         className: 'underline text-sm font-medium w-full h-fit mt-3',
@@ -271,13 +274,13 @@ export const SumsubKycWrapper = ({
 
         return autoStart
             ? {
-                  title: 'Exit for now?',
-                  description: 'You can pick up where you left off later — your progress is saved.',
+                  title: t('wrapper.exitForNowTitle'),
+                  description: t('wrapper.exitForNowDescription'),
                   icon: 'alert' as IconName,
                   iconContainerClassName: 'bg-secondary-1',
                   ctas: [
                       {
-                          text: 'Exit',
+                          text: t('wrapper.exit'),
                           onClick: () => {
                               setIsHelpModalOpen(false)
                               onClose()
@@ -286,7 +289,7 @@ export const SumsubKycWrapper = ({
                           shadowSize: '4' as const,
                       },
                       {
-                          text: 'Continue',
+                          text: tCommon('continue'),
                           onClick: () => setIsHelpModalOpen(false),
                           variant: 'transparent' as ButtonVariant,
                           className: 'underline text-sm font-medium w-full h-fit mt-3',
@@ -294,13 +297,13 @@ export const SumsubKycWrapper = ({
                   ],
               }
             : {
-                  title: 'Exit and lose progress?',
-                  description: "If you exit now, you'll need to start the ID check again from scratch.",
+                  title: t('wrapper.exitAndLoseProgressTitle'),
+                  description: t('wrapper.exitAndLoseProgressDescription'),
                   icon: 'alert' as IconName,
                   iconContainerClassName: 'bg-secondary-1',
                   ctas: [
                       {
-                          text: 'Exit',
+                          text: t('wrapper.exit'),
                           onClick: () => {
                               setIsHelpModalOpen(false)
                               onClose()
@@ -309,14 +312,14 @@ export const SumsubKycWrapper = ({
                           shadowSize: '4' as const,
                       },
                       {
-                          text: 'Keep going',
+                          text: t('wrapper.keepGoing'),
                           onClick: () => setIsHelpModalOpen(false),
                           variant: 'transparent' as ButtonVariant,
                           className: 'underline text-sm font-medium w-full h-fit mt-3',
                       },
                   ],
               }
-    }, [autoStart, modalVariant, onClose, setIsSupportModalOpen])
+    }, [autoStart, modalVariant, onClose, setIsSupportModalOpen, t, tCommon])
 
     return (
         <>

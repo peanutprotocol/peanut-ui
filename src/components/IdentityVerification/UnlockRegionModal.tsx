@@ -1,50 +1,11 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import ActionModal from '../Global/ActionModal'
 import InfoCard from '../Global/InfoCard'
 import { Icon } from '../Global/Icons/Icon'
 import { type Region } from '@/utils/regions.utils'
 import React from 'react'
-
-const QR_PAYMENTS = (
-    <p key="qr">
-        QR Payments in <b>Argentina and Brazil</b>
-    </p>
-)
-
-const BRIDGE_UNLOCK_ITEMS: Array<string | React.ReactNode> = [
-    <p key="sepa">
-        <b>Europe</b> SEPA transfers (+30 countries)
-    </p>,
-    <p key="uk">
-        <b>UK</b> Faster payment transfers
-    </p>,
-    <p key="ach">
-        <b>United States</b> ACH and Wire transfers
-    </p>,
-    <p key="mx">
-        <b>Mexico</b> SPEI transfers
-    </p>,
-    QR_PAYMENTS,
-]
-
-// unlock benefits shown per region
-export const REGION_UNLOCK_ITEMS: Record<string, Array<string | React.ReactNode>> = {
-    latam: [
-        <p key="bank">
-            Bank transfers to your own accounts in <b>LATAM</b>
-        </p>,
-        QR_PAYMENTS,
-    ],
-
-    europe: BRIDGE_UNLOCK_ITEMS,
-
-    'north-america': BRIDGE_UNLOCK_ITEMS,
-
-    'rest-of-the-world': [QR_PAYMENTS],
-}
-
-const DEFAULT_UNLOCK_ITEMS = [<p key="bank">Bank transfers and local payment methods</p>]
 
 interface StartVerificationModalProps {
     visible: boolean
@@ -61,20 +22,40 @@ const UnlockRegionModal = ({
     selectedRegion,
     isLoading,
 }: StartVerificationModalProps) => {
+    const t = useTranslations('identity')
+    const tKyc = useTranslations('kyc')
+    const tCommon = useTranslations('common')
+
+    const bold = { b: (chunks: React.ReactNode) => <b>{chunks}</b> }
+    const qrPayments = <p key="qr">{t.rich('qrPayments', bold)}</p>
+    const bridgeUnlockItems: Array<string | React.ReactNode> = [
+        <p key="sepa">{t.rich('sepaTransfers', bold)}</p>,
+        <p key="uk">{t.rich('ukFasterPayments', bold)}</p>,
+        <p key="ach">{t.rich('usAchWire', bold)}</p>,
+        <p key="mx">{t.rich('mxSpei', bold)}</p>,
+        qrPayments,
+    ]
+
+    // unlock benefits shown per region
+    const regionUnlockItems: Record<string, Array<string | React.ReactNode>> = {
+        latam: [<p key="bank">{t.rich('latamBankTransfers', bold)}</p>, qrPayments],
+        europe: bridgeUnlockItems,
+        'north-america': bridgeUnlockItems,
+        'rest-of-the-world': [qrPayments],
+    }
+
+    const defaultUnlockItems = [<p key="bank">{t('defaultUnlockItem')}</p>]
+
     const unlockItems = selectedRegion
-        ? (REGION_UNLOCK_ITEMS[selectedRegion.path] ?? DEFAULT_UNLOCK_ITEMS)
-        : DEFAULT_UNLOCK_ITEMS
+        ? (regionUnlockItems[selectedRegion.path] ?? defaultUnlockItems)
+        : defaultUnlockItems
 
     return (
         <ActionModal
             visible={visible}
             onClose={onClose}
-            title={`Unlock ${selectedRegion?.name ?? 'this region'}`}
-            description={
-                <p>
-                    To send and receive money here, confirm your ID with a <b>government-issued document.</b>
-                </p>
-            }
+            title={selectedRegion?.name ? t('unlockTitle', { region: selectedRegion.name }) : t('unlockTitleGeneric')}
+            description={<p>{t.rich('unlockDescription', bold)}</p>}
             descriptionClassName="text-black"
             icon="shield"
             iconContainerClassName="bg-primary-1"
@@ -83,14 +64,14 @@ const UnlockRegionModal = ({
                 {
                     shadowSize: '4',
                     icon: 'check-circle',
-                    text: isLoading ? 'Loading...' : 'Unlock now',
+                    text: isLoading ? tCommon('loading') : t('unlockNow'),
                     onClick: onStartVerification,
                     disabled: isLoading,
                 },
             ]}
             content={
                 <div className="flex w-full flex-col items-start gap-2">
-                    <h2 className="text-xs font-bold">What you'll unlock:</h2>
+                    <h2 className="text-xs font-bold">{t('whatYoullUnlock')}</h2>
                     <InfoCard
                         variant="info"
                         itemIcon="check"
@@ -100,7 +81,7 @@ const UnlockRegionModal = ({
                     />
                     <div className="flex items-center gap-2">
                         <Icon name="info" size={12} className="text-gray-1" />
-                        <p className="text-xs text-gray-1">Peanut doesn't store any of your documents.</p>
+                        <p className="text-xs text-gray-1">{tKyc('doesntStoreDocumentsPeriod')}</p>
                     </div>
                 </div>
             }

@@ -1,4 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render as rtlRender, screen } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 import { type ReactNode } from 'react'
 import { KycActionRequired } from '../KycActionRequired'
 import { KycFailed } from '../KycFailed'
@@ -8,6 +10,13 @@ import { KycFailed } from '../KycFailed'
 // in as the first argument. The capabilities rehaul replaced KycNotStarted +
 // KycRequiresDocuments with KycActionRequired, so this now covers the two
 // surviving rejection/resubmit states.
+
+const IntlWrapper = ({ children }: { children: ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 jest.mock('../../KYCStatusDrawerItem', () => ({
     KYCStatusDrawerItem: () => <div data-testid="kyc-status-drawer-item" />,

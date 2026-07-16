@@ -7,6 +7,7 @@ import { twMerge } from 'tailwind-merge'
 import StatusPill from '../Global/StatusPill'
 import { KYCStatusIcon } from './KYCStatusIcon'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { useTranslations } from 'next-intl'
 
 // kyc history entry type + type guard — a marker the timeline injects so the
 // identity-verification row renders inline. Status is read from
@@ -31,6 +32,7 @@ export const KycStatusItem = ({
     position?: CardPosition
     className?: HTMLAttributes<HTMLDivElement>['className']
 }) => {
+    const t = useTranslations('kyc')
     const { status } = useIdentityVerification()
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     // keep drawer component mounted when SDK flow is active (so SumsubKycModals persists
@@ -44,17 +46,17 @@ export const KycStatusItem = ({
     const subtitle = useMemo(() => {
         switch (status) {
             case 'processing':
-                return 'Processing'
+                return t('statusProcessing')
             case 'verified':
-                return 'Verified'
+                return t('verified')
             case 'action_required':
-                return 'Action needed'
+                return t('actionNeeded')
             case 'failed':
-                return 'Failed'
+                return t('statusFailed')
             default:
-                return 'Unknown'
+                return t('statusUnknown')
         }
-    }, [status])
+    }, [status, t])
 
     // not_started ⇒ hide the card entirely.
     if (status === 'not_started') {
@@ -76,7 +78,7 @@ export const KycStatusItem = ({
                     <div className="flex items-center gap-4">
                         <KYCStatusIcon />
                         <div className="flex-1">
-                            <p className="font-semibold">Identity verification</p>
+                            <p className="font-semibold">{t('identityVerification')}</p>
                             <div className="flex items-center gap-2">
                                 <p className="text-sm text-grey-1">{subtitle}</p>
                                 <StatusPill status={pill} />

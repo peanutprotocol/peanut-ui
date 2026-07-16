@@ -1748,5 +1748,411 @@
         "enable": "Activar notificaciones",
         "requesting": "Solicitando...",
         "notNow": "Ahora no"
+    },
+    "kyc": {
+        "identityVerification": "Verificación de identidad",
+        "doesntStoreDocuments": "Peanut no guarda ninguno de tus documentos",
+        "doesntStoreDocumentsPeriod": "Peanut no guarda ninguno de tus documentos.",
+        "countryRegion": "País/Región",
+        "verified": "Verificado",
+        "actionNeeded": "Acción requerida",
+        "statusProcessing": "En proceso",
+        "statusFailed": "Fallida",
+        "statusUnknown": "Desconocido",
+        "verifiedOn": "Verificado el",
+        "pointsEarned": "Puntos ganados",
+        "starAlt": "estrella",
+        "submitted": "Enviado",
+        "status": "Estado",
+        "rejectedOn": "Rechazado el",
+        "reason": "Motivo",
+        "notAvailable": "N/D",
+        "resubmitVerification": "Volver a enviar la verificación",
+        "retryVerification": "Reintentar la verificación",
+        "rejectLabelsFallbackDescription": "Necesitamos un poco más de información para confirmar tu identidad. Envía los datos solicitados para continuar.",
+        "terminalDescription": "Tu verificación no se puede reintentar. Contacta a soporte para recibir ayuda.",
+        "failedTitleTerminal": "No pudimos verificar tu identidad",
+        "failedTitleRetry": "Intentémoslo de nuevo",
+        "failedDescriptionRetry": "No pudimos confirmar tu identidad. Puedes intentarlo otra vez.",
+        "actionRequiredTitle": "Un paso más",
+        "actionRequiredDescription": "Necesitamos un poco más de información para confirmar tu identidad.",
+        "processingTitle": "Configurando tu cuenta…",
+        "processingDescription": "Estamos confirmando tu identidad. Normalmente toma menos de un minuto.",
+        "unsupportedRegionError": "Los depósitos bancarios aún no están disponibles en tu región. Te avisaremos apenas se habiliten.",
+        "unexpectedError": "Ocurrió un error inesperado",
+        "processingStatusValue": "Estamos revisando tus documentos. Esto suele tomar de 5 a 10 min.",
+        "errorSdkUnavailable": "El SDK de KYC no está disponible. Actualiza la app.",
+        "errorVerificationFailed": "La verificación falló. Inténtalo de nuevo.",
+        "errorInitiateFailed": "No pudimos iniciar la verificación. Inténtalo de nuevo.",
+        "errorRestartFailed": "No pudimos reiniciar la verificación de identidad. Inténtalo de nuevo.",
+        "errorResubmitFailed": "No pudimos iniciar el reenvío de documentos. Inténtalo de nuevo.",
+        "errorNoResponse": "No hubo respuesta del servidor. Inténtalo de nuevo.",
+        "errorStartDocVerification": "No pudimos iniciar la verificación de documentos. Inténtalo de nuevo.",
+        "initiate": {
+            "titleBlocked": "No pudimos desbloquear esto",
+            "titleRestartIdentity": "Verifica con otro documento",
+            "titleProviderRejection": "Necesitamos documentos adicionales",
+            "titleCrossRegion": "Desbloquea {region}",
+            "titleCrossRegionGeneric": "Desbloquea esta región",
+            "titleDefault": "Desbloquea tu cuenta",
+            "descriptionError": "{error} Contacta a soporte para recibir ayuda.",
+            "descriptionBlocked": "No pudimos confirmar tu identidad. Contacta a soporte para recibir ayuda.",
+            "descriptionRestartIdentity": "Este medio de pago requiere un documento de un país compatible. Puedes verificarte con otro documento.",
+            "descriptionProviderRejection": "Sube una foto más nítida de tu documento para continuar.",
+            "descriptionCrossRegion": "Tu identidad ya está verificada. Para activar los pagos en {region}, solo necesitamos confirmar algunos datos más — alrededor de un minuto.",
+            "descriptionCrossRegionGeneric": "Tu identidad ya está verificada. Para activar los pagos aquí, solo necesitamos confirmar algunos datos más — alrededor de un minuto.",
+            "descriptionDefault": "Confirma tu identidad para desbloquear los pagos. Toma alrededor de un minuto.",
+            "ctaUploadDocument": "Subir documento",
+            "ctaUnlockNow": "Desbloquear ahora"
+        },
+        "advisory": {
+            "title": "Un paso rápido para continuar",
+            "descriptionByDate": "Para seguir usando las transferencias bancarias, completa una breve verificación (obligatoria antes del {deadline}). Solo toma un par de minutos.",
+            "description": "Para seguir usando las transferencias bancarias, completa una breve verificación. Solo toma un par de minutos.",
+            "completeNow": "Completar ahora"
+        },
+        "progress": {
+            "verifyingTitle": "Ya casi",
+            "verifyingDescription": "Estamos confirmando tu identidad — normalmente toma menos de un minuto. Puedes esperar aquí o volver al inicio y te avisamos cuando esté listo.",
+            "preparingTimedOutTitle": "Está tomando más de lo esperado",
+            "preparingTimedOutDescription": "Puedes continuar y te avisaremos cuando esté listo.",
+            "preparingTitle": "Configurando tu cuenta",
+            "preparingInitialDescription": "Preparando tus métodos de pago...",
+            "preparingConfiguringDescription": "Configurando tus regiones...",
+            "preparingSlowTitle": "Ya casi",
+            "preparingSlowDescription": "Esto está tardando un poco más de lo habitual. Espera un momento.",
+            "bridgeTosTitle": "Un paso más",
+            "bridgeTosDescription": "Último paso: acepta los términos de servicio para desbloquear las transferencias bancarias en Estados Unidos, Europa y México.",
+            "acceptTerms": "Aceptar términos",
+            "completeTitle": "Todo desbloqueado",
+            "completeDescription": "Tu cuenta está lista para usarse."
+        },
+        "wrapper": {
+            "troubleTitle": "¿Necesitas ayuda?",
+            "troubleDescription": "Si la verificación de identidad no carga o no funciona bien, nuestro equipo de soporte te ayudará.",
+            "chatWithSupport": "Chatear con soporte",
+            "exitForNowTitle": "¿Salir por ahora?",
+            "exitForNowDescription": "Puedes retomar donde lo dejaste más tarde — tu progreso se guarda.",
+            "exitAndLoseProgressTitle": "¿Salir y perder el progreso?",
+            "exitAndLoseProgressDescription": "Si sales ahora, tendrás que empezar la verificación de identidad desde cero.",
+            "exit": "Salir",
+            "keepGoing": "Continuar"
+        },
+        "provideEmail": {
+            "title": "Agrega tu correo para continuar",
+            "description": "No pudimos terminar de configurar tu cuenta porque falta una dirección de correo. Agrega una y lo reintentaremos automáticamente.",
+            "emailLabel": "Correo electrónico",
+            "emailPlaceholder": "you@example.com",
+            "save": "Guardar correo",
+            "saving": "Guardando...",
+            "notNow": "Ahora no",
+            "invalidEmail": "Ingresa una dirección de correo válida.",
+            "stillLoading": "Todavía estamos cargando tu cuenta — inténtalo de nuevo en un momento.",
+            "saveFailed": "Algo salió mal al guardar tu correo. Inténtalo de nuevo."
+        },
+        "bridgeTos": {
+            "baseTitle": "Aceptar los términos de servicio",
+            "baseDescription": "Para habilitar las transferencias bancarias, debes aceptar los términos de servicio de nuestro socio de pagos.",
+            "sepaTitle": "Aceptar los términos de servicio de SEPA",
+            "sepaDescription": "Para habilitar las transferencias bancarias en EUR (SEPA) y GBP (Faster Payments), debes aceptar los términos de servicio actualizados de nuestro socio de pagos.",
+            "errorTitle": "No se pudieron cargar los términos",
+            "loadFailed": "No se pudieron cargar los términos. Puedes aceptarlos más tarde desde tu historial de actividad.",
+            "genericError": "Algo salió mal. Puedes aceptar los términos más tarde desde tu historial de actividad.",
+            "confirmError": "Algo salió mal al confirmar tus términos. Inténtalo de nuevo.",
+            "acceptTerms": "Aceptar términos",
+            "notNow": "Ahora no"
+        },
+        "reverificationPending": {
+            "title": "Estamos revisando tus datos",
+            "description": "Tu verificación está en revisión — normalmente toma unos minutos. Te avisaremos apenas puedas continuar. Puedes esperar aquí o volver al inicio."
+        },
+        "rejectLabels": {
+            "PROBLEMATIC_APPLICANT_DATA": {
+                "title": "Los datos no coinciden",
+                "description": "La información que enviaste no coincide con nuestros registros. Revisa tu nombre, fecha de nacimiento y otros datos."
+            },
+            "WRONG_ADDRESS": {
+                "title": "La dirección no coincide",
+                "description": "La dirección que enviaste no coincide con tus documentos. Corrígela e inténtalo de nuevo."
+            },
+            "DB_DATA_MISMATCH": {
+                "title": "Datos inconsistentes",
+                "description": "Tu información no coincide con la base de datos gubernamental. Verifica que tus datos sean correctos."
+            },
+            "DB_DATA_NOT_FOUND": {
+                "title": "Datos no encontrados",
+                "description": "No se encontraron tus datos en la base de datos gubernamental. Vuelve a revisar tu información."
+            },
+            "REQUESTED_DATA_MISMATCH": {
+                "title": "Los datos del documento no coinciden",
+                "description": "Los datos del documento no coinciden con la información que enviaste."
+            },
+            "GPS_AS_POA_SKIPPED": {
+                "title": "Datos de dirección incompletos",
+                "description": "Los datos de dirección enviados son insuficientes. Indica tu dirección completa."
+            },
+            "DOCUMENT_BAD_QUALITY": {
+                "title": "Documento de baja calidad",
+                "description": "La imagen del documento salió borrosa, oscura o difícil de leer. Sube una foto más nítida."
+            },
+            "LOW_QUALITY": {
+                "title": "Documento de baja calidad",
+                "description": "La calidad del documento es demasiado baja para procesarlo. Sube una imagen más nítida."
+            },
+            "UNSATISFACTORY_PHOTOS": {
+                "title": "Foto ilegible",
+                "description": "La foto no se puede leer. Sube una imagen más nítida."
+            },
+            "DOCUMENT_DAMAGED": {
+                "title": "Documento dañado",
+                "description": "El documento parece dañado o desgastado. Usa un documento en buen estado."
+            },
+            "DOCUMENT_INCOMPLETE": {
+                "title": "Documento incompleto",
+                "description": "Parte del documento quedó cortada o falta. Asegúrate de que el documento se vea completo."
+            },
+            "INCOMPLETE_DOCUMENT": {
+                "title": "Documento incompleto",
+                "description": "Faltan algunas páginas o caras del documento. Sube el documento completo."
+            },
+            "DOCUMENT_PAGE_MISSING": {
+                "title": "Falta una página",
+                "description": "Falta una página obligatoria del documento. Sube todas las páginas."
+            },
+            "DOCUMENT_MISSING": {
+                "title": "Falta un documento",
+                "description": "No se envió un documento obligatorio. Sube todos los documentos solicitados."
+            },
+            "BLACK_AND_WHITE": {
+                "title": "Se requiere el documento a color",
+                "description": "El documento se envió en blanco y negro. Sube una imagen a color."
+            },
+            "SCREENSHOTS": {
+                "title": "No se aceptan capturas de pantalla",
+                "description": "No se aceptan capturas de pantalla. Sube una foto directa del documento."
+            },
+            "DIGITAL_DOCUMENT": {
+                "title": "Se requiere el documento original",
+                "description": "Se subió una versión digital. Sube una foto del documento original."
+            },
+            "DOCUMENT_EXPIRED": {
+                "title": "Documento vencido",
+                "description": "El documento está vencido. Usa un documento vigente."
+            },
+            "EXPIRATION_DATE": {
+                "title": "Problema con la fecha de vencimiento",
+                "description": "El documento está vencido o está por vencer. Usa un documento con una fecha de vencimiento vigente."
+            },
+            "ID_INVALID": {
+                "title": "Documento de identidad no válido",
+                "description": "El documento de identidad no es válido. Usa otro documento."
+            },
+            "UNSUPPORTED_DOCUMENT": {
+                "title": "Tipo de documento no admitido",
+                "description": "Este tipo de documento no se acepta. Usa un pasaporte, un documento nacional de identidad o una licencia de conducir."
+            },
+            "WRONG_DOCUMENT": {
+                "title": "Documento incorrecto",
+                "description": "El documento que subiste no coincide con el solicitado. Sube el documento correcto."
+            },
+            "NOT_DOCUMENT": {
+                "title": "No es un documento válido",
+                "description": "El archivo que subiste no es un documento. Sube el archivo correcto."
+            },
+            "DOCUMENT_TEMPLATE": {
+                "title": "Documento de muestra",
+                "description": "El documento enviado parece ser una plantilla. Sube tu documento real."
+            },
+            "OUTDATED_DOCUMENT_VERSION": {
+                "title": "Documento desactualizado",
+                "description": "Esta no es la versión más reciente del documento. Envía la versión más reciente."
+            },
+            "UNFILLED_ID": {
+                "title": "Documento ilegible",
+                "description": "No se pudo leer el documento. Sube una imagen más nítida."
+            },
+            "UNSUITABLE_DOCUMENT": {
+                "title": "Documento no apto",
+                "description": "El documento no cumple con los requisitos. Revisa los requisitos e inténtalo de nuevo."
+            },
+            "INCOMPATIBLE_LANGUAGE": {
+                "title": "Idioma no admitido",
+                "description": "El documento está en un idioma no admitido. Envía un documento traducido o alternativo."
+            },
+            "UNSUPPORTED_LANGUAGE": {
+                "title": "Idioma no admitido",
+                "description": "El documento está en un idioma no admitido."
+            },
+            "BAD_PROOF_OF_IDENTITY": {
+                "title": "Problema con el documento de identidad",
+                "description": "Hubo un problema con tu documento de identidad. Sube una copia válida y nítida."
+            },
+            "BAD_PROOF_OF_ADDRESS": {
+                "title": "Problema con el comprobante de domicilio",
+                "description": "Hubo un problema con tu comprobante de domicilio. Sube un documento válido con tu nombre completo y tu dirección."
+            },
+            "BAD_PROOF_OF_PAYMENT": {
+                "title": "Problema con el comprobante de pago",
+                "description": "Hubo un problema al verificar tu información de pago."
+            },
+            "ADDITIONAL_DOCUMENT_REQUIRED": {
+                "title": "Se necesita un documento adicional",
+                "description": "Se requiere un documento adicional. Revisa la solicitud y sube el documento necesario."
+            },
+            "SELFIE_MISMATCH": {
+                "title": "La selfie no coincide",
+                "description": "La selfie no coincidió con la foto de tu documento. Inténtalo de nuevo con una selfie nítida."
+            },
+            "BAD_FACE_MATCHING": {
+                "title": "El rostro no se ve con claridad",
+                "description": "Tu rostro no se veía con claridad. Tómate una selfie bien iluminada en la que se vea tu rostro completo."
+            },
+            "BAD_SELFIE": {
+                "title": "Problema con la selfie",
+                "description": "Hubo un problema con tu selfie. Tómate una selfie nítida y bien iluminada."
+            },
+            "BAD_VIDEO_SELFIE": {
+                "title": "Problema con la selfie en video",
+                "description": "No se pudo completar la verificación con selfie en video. Inténtalo de nuevo."
+            },
+            "SELFIE_BAD_QUALITY": {
+                "title": "Selfie de baja calidad",
+                "description": "La selfie salió borrosa o mal iluminada. Tómate una selfie nítida y bien iluminada."
+            },
+            "SELFIE_SPOOFING": {
+                "title": "Problema detectado con la selfie",
+                "description": "Se requiere una selfie en vivo. No uses la foto de otra foto ni de una pantalla."
+            },
+            "FRAUDULENT_LIVENESS": {
+                "title": "La prueba de vida no se completó",
+                "description": "No se pudo completar la prueba de vida. Inténtalo de nuevo con una selfie en vivo."
+            },
+            "DOCUMENT_FAKE": {
+                "title": "No se pudo verificar el documento",
+                "description": "No pudimos verificar la autenticidad de tu documento."
+            },
+            "FORGERY": {
+                "title": "No se pudo verificar el documento",
+                "description": "No se pudo verificar el documento. Usa un documento original y sin alteraciones."
+            },
+            "GRAPHIC_EDITOR": {
+                "title": "Se detectó un documento editado",
+                "description": "El documento parece haber sido alterado digitalmente."
+            },
+            "GRAPHIC_EDITOR_USAGE": {
+                "title": "Se detectó un documento editado",
+                "description": "El documento parece haber sido alterado digitalmente."
+            },
+            "FRAUDULENT_PATTERNS": {
+                "title": "La verificación no se completó",
+                "description": "Tu verificación no se pudo completar por un asunto de seguridad."
+            },
+            "THIRD_PARTY_INVOLVED": {
+                "title": "Se detectó a un tercero",
+                "description": "Se detectó a un tercero durante la verificación. Debes completar la verificación tú mismo."
+            },
+            "BLOCKLIST": {
+                "title": "Cuenta restringida",
+                "description": "Tu cuenta fue restringida. Contacta a soporte."
+            },
+            "SPAM": {
+                "title": "Demasiados intentos",
+                "description": "Se subieron demasiados archivos. Contacta a soporte."
+            },
+            "AGE_REQUIREMENT_MISMATCH": {
+                "title": "No se cumple el requisito de edad",
+                "description": "Debes cumplir con el requisito de edad mínima para usar este servicio."
+            },
+            "AGE_BELOW_ACCEPTED_LIMIT": {
+                "title": "No se cumple el requisito de edad",
+                "description": "Debes tener al menos 18 años para usar este servicio."
+            },
+            "REGULATIONS_VIOLATIONS": {
+                "title": "Restricción regulatoria",
+                "description": "La verificación no se pudo completar por requisitos regulatorios."
+            },
+            "WRONG_USER_REGION": {
+                "title": "Región no admitida",
+                "description": "Tu país o región no está disponible por el momento."
+            },
+            "DUPLICATE": {
+                "title": "Cuenta duplicada",
+                "description": "Ya existe una cuenta con tus datos."
+            },
+            "RESTRICTED_PERSON": {
+                "title": "Verificación restringida",
+                "description": "Tu verificación no se pudo completar. Contacta a soporte."
+            },
+            "ADVERSE_MEDIA": {
+                "title": "La verificación no se completó",
+                "description": "Tu verificación no se pudo completar. Contacta a soporte."
+            },
+            "CRIMINAL": {
+                "title": "La verificación no se completó",
+                "description": "Tu verificación no se pudo completar. Contacta a soporte."
+            },
+            "COMPROMISED_PERSONS": {
+                "title": "La verificación no se completó",
+                "description": "Tu verificación no se pudo completar. Contacta a soporte."
+            },
+            "PEP": {
+                "title": "La verificación no se completó",
+                "description": "Tu verificación no se pudo completar por requisitos de cumplimiento."
+            },
+            "SANCTIONS": {
+                "title": "La verificación no se completó",
+                "description": "Tu verificación no se pudo completar por requisitos de cumplimiento."
+            },
+            "INCONSISTENT_PROFILE": {
+                "title": "Documentos inconsistentes",
+                "description": "Los documentos enviados parecen pertenecer a personas distintas."
+            },
+            "CHECK_UNAVAILABLE": {
+                "title": "Verificación no disponible temporalmente",
+                "description": "La base de datos de verificación no está disponible en este momento. Inténtalo de nuevo más tarde."
+            },
+            "DUPLICATE_EMAIL": {
+                "title": "El correo ya está en uso",
+                "description": "Este correo ya está vinculado a otra cuenta de Peanut. Si es tuya, inicia sesión en esa cuenta para continuar; si no, contacta a soporte."
+            },
+            "FALLBACK": {
+                "title": "Problema con la verificación",
+                "description": "Hubo un problema con tu verificación. Inténtalo de nuevo o contacta a soporte."
+            }
+        }
+    },
+    "identity": {
+        "unlockTitle": "Desbloquea {region}",
+        "unlockTitleGeneric": "Desbloquea esta región",
+        "thisRegion": "esta región",
+        "unlockDescription": "Para enviar y recibir dinero aquí, confirma tu identidad con un <b>documento oficial.</b>",
+        "whatYoullUnlock": "Lo que vas a desbloquear:",
+        "unlockNow": "Desbloquear ahora",
+        "qrPayments": "Pagos con QR en <b>Argentina y Brasil</b>",
+        "sepaTransfers": "Transferencias SEPA en <b>Europa</b> (+30 países)",
+        "ukFasterPayments": "Transferencias Faster Payments en el <b>Reino Unido</b>",
+        "usAchWire": "Transferencias ACH y Wire en <b>Estados Unidos</b>",
+        "mxSpei": "Transferencias SPEI en <b>México</b>",
+        "latamBankTransfers": "Transferencias bancarias a tus propias cuentas en <b>LATAM</b>",
+        "defaultUnlockItem": "Transferencias bancarias y métodos de pago locales"
+    },
+    "recoverFunds": {
+        "title": "Recuperar fondos",
+        "selectToken": "Selecciona un token para recuperar",
+        "noTokens": "No hay tokens para recuperar",
+        "recipientPlaceholder": "Ingresa la dirección donde quieres recibir los fondos",
+        "review": "Revisar",
+        "youWillReceiveTo": "Vas a recibir en",
+        "sentTo": "Enviado a",
+        "amountInChain": "{amount} {symbol} en {chain}",
+        "unknownChain": "Red {chainId}",
+        "viewOnExplorer": "Ver en el explorador",
+        "goToHome": "Ir al inicio",
+        "recoverOtherToken": "Recuperar otro token",
+        "tokenLogoAlt": "Logo de {symbol}",
+        "recoveryUnavailable": "La recuperación aún no está disponible para {chain}. Contacta a soporte o inténtalo de nuevo más tarde.",
+        "sessionExpired": "Tu sesión expiró. Actualiza la página e inténtalo de nuevo.",
+        "sendFailed": "Error al enviar la transacción, inténtalo de nuevo",
+        "txReverted": "La transacción fue revertida, inténtalo de nuevo"
     }
 }

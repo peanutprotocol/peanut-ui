@@ -1748,5 +1748,411 @@
         "enable": "Enable notifications",
         "requesting": "Requesting...",
         "notNow": "Not now"
+    },
+    "kyc": {
+        "identityVerification": "Identity verification",
+        "doesntStoreDocuments": "Peanut doesn't store any of your documents",
+        "doesntStoreDocumentsPeriod": "Peanut doesn't store any of your documents.",
+        "countryRegion": "Country/Region",
+        "verified": "Verified",
+        "actionNeeded": "Action needed",
+        "statusProcessing": "Processing",
+        "statusFailed": "Failed",
+        "statusUnknown": "Unknown",
+        "verifiedOn": "Verified on",
+        "pointsEarned": "Points earned",
+        "starAlt": "star",
+        "submitted": "Submitted",
+        "status": "Status",
+        "rejectedOn": "Rejected on",
+        "reason": "Reason",
+        "notAvailable": "N/A",
+        "resubmitVerification": "Re-submit verification",
+        "retryVerification": "Retry verification",
+        "rejectLabelsFallbackDescription": "We need a bit more from you to confirm your ID. Please provide the requested details to continue.",
+        "terminalDescription": "Your verification cannot be retried. Please contact support for help.",
+        "failedTitleTerminal": "We couldn’t verify your ID",
+        "failedTitleRetry": "Let’s try that again",
+        "failedDescriptionRetry": "We weren’t able to confirm your ID. You can have another go.",
+        "actionRequiredTitle": "One more step",
+        "actionRequiredDescription": "We need a bit more from you to confirm your ID.",
+        "processingTitle": "Setting up your account…",
+        "processingDescription": "We're confirming your ID. This usually takes less than a minute.",
+        "unsupportedRegionError": "Bank deposits aren't available in your region yet. We'll let you know as soon as they go live.",
+        "unexpectedError": "An unexpected error occurred",
+        "processingStatusValue": "We're reviewing your documents. This usually takes 5-10 min.",
+        "errorSdkUnavailable": "KYC SDK not available. Please update the app.",
+        "errorVerificationFailed": "Verification failed. Please try again.",
+        "errorInitiateFailed": "Could not initiate verification. Please try again.",
+        "errorRestartFailed": "Could not restart identity verification. Please try again.",
+        "errorResubmitFailed": "Could not initiate document resubmission. Please try again.",
+        "errorNoResponse": "No response from server. Please try again.",
+        "errorStartDocVerification": "Could not start document verification. Please try again.",
+        "initiate": {
+            "titleBlocked": "We couldn’t unlock this",
+            "titleRestartIdentity": "Verify with a different document",
+            "titleProviderRejection": "We need extra documents",
+            "titleCrossRegion": "Unlock {region}",
+            "titleCrossRegionGeneric": "Unlock this region",
+            "titleDefault": "Unlock your account",
+            "descriptionError": "{error} Please contact support for assistance.",
+            "descriptionBlocked": "We couldn't confirm your ID. Please contact support for assistance.",
+            "descriptionRestartIdentity": "This rail needs a document from a supported country. You can verify with a different ID.",
+            "descriptionProviderRejection": "Please upload a clearer photo of your ID to continue.",
+            "descriptionCrossRegion": "Your identity is already verified. To turn on payments in {region}, we just need to confirm a few more details — about a minute.",
+            "descriptionCrossRegionGeneric": "Your identity is already verified. To turn on payments here, we just need to confirm a few more details — about a minute.",
+            "descriptionDefault": "Confirm your ID to unlock payments. Takes about a minute.",
+            "ctaUploadDocument": "Upload document",
+            "ctaUnlockNow": "Unlock now"
+        },
+        "advisory": {
+            "title": "One quick step to continue",
+            "descriptionByDate": "To continue using bank transfers, please complete a short verification (required by {deadline}). It only takes a couple of minutes.",
+            "description": "To continue using bank transfers, please complete a short verification. It only takes a couple of minutes.",
+            "completeNow": "Complete now"
+        },
+        "progress": {
+            "verifyingTitle": "Almost there",
+            "verifyingDescription": "We're confirming your ID — usually less than a minute. You can wait here, or head home and we'll let you know when it's done.",
+            "preparingTimedOutTitle": "Taking longer than expected",
+            "preparingTimedOutDescription": "You can continue and we'll notify you when it's ready.",
+            "preparingTitle": "Setting up your account",
+            "preparingInitialDescription": "Preparing your payment methods...",
+            "preparingConfiguringDescription": "Configuring your regions...",
+            "preparingSlowTitle": "Almost there",
+            "preparingSlowDescription": "This is taking a bit longer than usual. Hang tight.",
+            "bridgeTosTitle": "One more step",
+            "bridgeTosDescription": "Last step: accept terms of service to unlock bank transfers in the US, Europe, and Mexico.",
+            "acceptTerms": "Accept Terms",
+            "completeTitle": "You're unlocked",
+            "completeDescription": "Your account is ready to go."
+        },
+        "wrapper": {
+            "troubleTitle": "Need a hand?",
+            "troubleDescription": "If the ID check isn't loading or working properly, our support team will help.",
+            "chatWithSupport": "Chat with support",
+            "exitForNowTitle": "Exit for now?",
+            "exitForNowDescription": "You can pick up where you left off later — your progress is saved.",
+            "exitAndLoseProgressTitle": "Exit and lose progress?",
+            "exitAndLoseProgressDescription": "If you exit now, you'll need to start the ID check again from scratch.",
+            "exit": "Exit",
+            "keepGoing": "Keep going"
+        },
+        "provideEmail": {
+            "title": "Add your email to continue",
+            "description": "We couldn't finish setting up your account because we're missing an email address. Add one and we'll retry automatically.",
+            "emailLabel": "Email",
+            "emailPlaceholder": "you@example.com",
+            "save": "Save email",
+            "saving": "Saving...",
+            "notNow": "Not now",
+            "invalidEmail": "Please enter a valid email address.",
+            "stillLoading": "Still loading your account — please try again in a moment.",
+            "saveFailed": "Something went wrong saving your email. Please try again."
+        },
+        "bridgeTos": {
+            "baseTitle": "Accept Terms of Service",
+            "baseDescription": "To enable bank transfers, you need to accept our payment partner's Terms of Service.",
+            "sepaTitle": "Accept SEPA Terms of Service",
+            "sepaDescription": "To enable EUR (SEPA) and GBP (Faster Payments) bank transfers, you need to accept our payment partner's updated Terms of Service.",
+            "errorTitle": "Could not load terms",
+            "loadFailed": "Could not load terms. You can accept them later from your activity feed.",
+            "genericError": "Something went wrong. You can accept terms later from your activity feed.",
+            "confirmError": "Something went wrong confirming your terms. Please try again.",
+            "acceptTerms": "Accept Terms",
+            "notNow": "Not now"
+        },
+        "reverificationPending": {
+            "title": "We're reviewing your details",
+            "description": "Your verification is being reviewed — this usually takes a few minutes. We'll let you know as soon as you're ready to continue. You can wait here or head home."
+        },
+        "rejectLabels": {
+            "PROBLEMATIC_APPLICANT_DATA": {
+                "title": "Data mismatch",
+                "description": "Your provided information does not match our records. Please check your name, date of birth, and other details."
+            },
+            "WRONG_ADDRESS": {
+                "title": "Address mismatch",
+                "description": "The address you provided does not match your documents. Please correct it and try again."
+            },
+            "DB_DATA_MISMATCH": {
+                "title": "Data inconsistency",
+                "description": "Your information does not match the government database. Please verify your details are correct."
+            },
+            "DB_DATA_NOT_FOUND": {
+                "title": "Data not found",
+                "description": "Your data could not be found in the government database. Please double-check your details."
+            },
+            "REQUESTED_DATA_MISMATCH": {
+                "title": "Document details mismatch",
+                "description": "The document details do not match the information you provided."
+            },
+            "GPS_AS_POA_SKIPPED": {
+                "title": "Address details incomplete",
+                "description": "Insufficient address details were provided. Please provide your full address."
+            },
+            "DOCUMENT_BAD_QUALITY": {
+                "title": "Low quality document",
+                "description": "The document image was blurry, dark, or hard to read. Please upload a clearer photo."
+            },
+            "LOW_QUALITY": {
+                "title": "Low quality document",
+                "description": "The document quality is too low to process. Please upload a clearer image."
+            },
+            "UNSATISFACTORY_PHOTOS": {
+                "title": "Unreadable photo",
+                "description": "The photo is not readable. Please upload a clearer image."
+            },
+            "DOCUMENT_DAMAGED": {
+                "title": "Damaged document",
+                "description": "The document appears damaged or worn. Please use a document in good condition."
+            },
+            "DOCUMENT_INCOMPLETE": {
+                "title": "Incomplete document",
+                "description": "Part of the document was cut off or missing. Make sure the full document is visible."
+            },
+            "INCOMPLETE_DOCUMENT": {
+                "title": "Incomplete document",
+                "description": "Some pages or sides of the document are missing. Please upload the complete document."
+            },
+            "DOCUMENT_PAGE_MISSING": {
+                "title": "Missing page",
+                "description": "A required page of the document is missing. Please upload all pages."
+            },
+            "DOCUMENT_MISSING": {
+                "title": "Missing document",
+                "description": "A required document was not provided. Please upload all requested documents."
+            },
+            "BLACK_AND_WHITE": {
+                "title": "Color document required",
+                "description": "The document was provided in black and white. Please upload a color image."
+            },
+            "SCREENSHOTS": {
+                "title": "Screenshots not accepted",
+                "description": "Screenshots are not accepted. Please upload a direct photo of the document."
+            },
+            "DIGITAL_DOCUMENT": {
+                "title": "Original document required",
+                "description": "A digital version was uploaded. Please upload a photo of the original document."
+            },
+            "DOCUMENT_EXPIRED": {
+                "title": "Expired document",
+                "description": "The document has expired. Please use a valid, non-expired document."
+            },
+            "EXPIRATION_DATE": {
+                "title": "Expiration date issue",
+                "description": "The document is expired or expiring soon. Please use a document with a valid expiration date."
+            },
+            "ID_INVALID": {
+                "title": "Invalid ID",
+                "description": "The identity document is not valid. Please use a different document."
+            },
+            "UNSUPPORTED_DOCUMENT": {
+                "title": "Unsupported document type",
+                "description": "This type of document is not accepted. Please use a passport, national ID, or driver's license."
+            },
+            "WRONG_DOCUMENT": {
+                "title": "Wrong document provided",
+                "description": "The uploaded document does not match what was requested. Please upload the correct document."
+            },
+            "NOT_DOCUMENT": {
+                "title": "Not a valid document",
+                "description": "The uploaded file is not a document. Please upload the correct file."
+            },
+            "DOCUMENT_TEMPLATE": {
+                "title": "Template document",
+                "description": "The provided document appears to be a template. Please upload your actual document."
+            },
+            "OUTDATED_DOCUMENT_VERSION": {
+                "title": "Outdated document",
+                "description": "This is not the most recent version of the document. Please provide the latest version."
+            },
+            "UNFILLED_ID": {
+                "title": "Unreadable document",
+                "description": "The document could not be read. Please upload a clearer image."
+            },
+            "UNSUITABLE_DOCUMENT": {
+                "title": "Unsuitable document",
+                "description": "The document does not meet the requirements. Please check the requirements and try again."
+            },
+            "INCOMPATIBLE_LANGUAGE": {
+                "title": "Unsupported language",
+                "description": "The document is in an unsupported language. Please provide a translated or alternative document."
+            },
+            "UNSUPPORTED_LANGUAGE": {
+                "title": "Unsupported language",
+                "description": "The document is in an unsupported language."
+            },
+            "BAD_PROOF_OF_IDENTITY": {
+                "title": "Identity document issue",
+                "description": "There was an issue with your identity document. Please upload a valid, clear copy."
+            },
+            "BAD_PROOF_OF_ADDRESS": {
+                "title": "Proof of address issue",
+                "description": "There was an issue with your proof of address. Please upload a valid document with your full name and address."
+            },
+            "BAD_PROOF_OF_PAYMENT": {
+                "title": "Payment proof issue",
+                "description": "There was an issue verifying your payment information."
+            },
+            "ADDITIONAL_DOCUMENT_REQUIRED": {
+                "title": "Additional document needed",
+                "description": "An additional document is required. Please check the request and upload the needed document."
+            },
+            "SELFIE_MISMATCH": {
+                "title": "Selfie does not match",
+                "description": "The selfie did not match the photo on your document. Please try again with a clear selfie."
+            },
+            "BAD_FACE_MATCHING": {
+                "title": "Face not clearly visible",
+                "description": "Your face was not clearly visible. Please take a well-lit selfie showing your full face."
+            },
+            "BAD_SELFIE": {
+                "title": "Selfie issue",
+                "description": "There was an issue with your selfie. Please take a clear, well-lit selfie."
+            },
+            "BAD_VIDEO_SELFIE": {
+                "title": "Video selfie issue",
+                "description": "The video selfie check could not be completed. Please try again."
+            },
+            "SELFIE_BAD_QUALITY": {
+                "title": "Low quality selfie",
+                "description": "The selfie was blurry or poorly lit. Please take a clear, well-lit selfie."
+            },
+            "SELFIE_SPOOFING": {
+                "title": "Selfie issue detected",
+                "description": "A live selfie is required. Do not use a photo of a photo or a screen."
+            },
+            "FRAUDULENT_LIVENESS": {
+                "title": "Liveness check failed",
+                "description": "The liveness check could not be completed. Please try again with a live selfie."
+            },
+            "DOCUMENT_FAKE": {
+                "title": "Document could not be verified",
+                "description": "We were unable to verify the authenticity of your document."
+            },
+            "FORGERY": {
+                "title": "Document could not be verified",
+                "description": "The document could not be verified. Please use an original, unaltered document."
+            },
+            "GRAPHIC_EDITOR": {
+                "title": "Edited document detected",
+                "description": "The document appears to have been digitally altered."
+            },
+            "GRAPHIC_EDITOR_USAGE": {
+                "title": "Edited document detected",
+                "description": "The document appears to have been digitally altered."
+            },
+            "FRAUDULENT_PATTERNS": {
+                "title": "Verification failed",
+                "description": "Your verification could not be completed due to a security concern."
+            },
+            "THIRD_PARTY_INVOLVED": {
+                "title": "Third party detected",
+                "description": "A third party was detected during verification. You must complete verification yourself."
+            },
+            "BLOCKLIST": {
+                "title": "Account restricted",
+                "description": "Your account has been restricted. Please contact support."
+            },
+            "SPAM": {
+                "title": "Too many attempts",
+                "description": "Too many files were uploaded. Please contact support."
+            },
+            "AGE_REQUIREMENT_MISMATCH": {
+                "title": "Age requirement not met",
+                "description": "You must meet the minimum age requirement to use this service."
+            },
+            "AGE_BELOW_ACCEPTED_LIMIT": {
+                "title": "Age requirement not met",
+                "description": "You must be at least 18 years old to use this service."
+            },
+            "REGULATIONS_VIOLATIONS": {
+                "title": "Regulatory restriction",
+                "description": "Verification could not be completed due to regulatory requirements."
+            },
+            "WRONG_USER_REGION": {
+                "title": "Unsupported region",
+                "description": "Your country or region is not currently supported."
+            },
+            "DUPLICATE": {
+                "title": "Duplicate account",
+                "description": "An account with your details already exists."
+            },
+            "RESTRICTED_PERSON": {
+                "title": "Verification restricted",
+                "description": "Your verification could not be completed. Please contact support."
+            },
+            "ADVERSE_MEDIA": {
+                "title": "Verification failed",
+                "description": "Your verification could not be completed. Please contact support."
+            },
+            "CRIMINAL": {
+                "title": "Verification failed",
+                "description": "Your verification could not be completed. Please contact support."
+            },
+            "COMPROMISED_PERSONS": {
+                "title": "Verification failed",
+                "description": "Your verification could not be completed. Please contact support."
+            },
+            "PEP": {
+                "title": "Verification failed",
+                "description": "Your verification could not be completed due to compliance requirements."
+            },
+            "SANCTIONS": {
+                "title": "Verification failed",
+                "description": "Your verification could not be completed due to compliance requirements."
+            },
+            "INCONSISTENT_PROFILE": {
+                "title": "Inconsistent documents",
+                "description": "The documents provided appear to belong to different individuals."
+            },
+            "CHECK_UNAVAILABLE": {
+                "title": "Verification temporarily unavailable",
+                "description": "The verification database is currently unavailable. Please try again later."
+            },
+            "DUPLICATE_EMAIL": {
+                "title": "Email already in use",
+                "description": "This email is already linked to another Peanut account. If it’s yours, sign in to that account to continue — otherwise contact support."
+            },
+            "FALLBACK": {
+                "title": "Verification issue",
+                "description": "There was an issue with your verification. Please try again or contact support."
+            }
+        }
+    },
+    "identity": {
+        "unlockTitle": "Unlock {region}",
+        "unlockTitleGeneric": "Unlock this region",
+        "thisRegion": "this region",
+        "unlockDescription": "To send and receive money here, confirm your ID with a <b>government-issued document.</b>",
+        "whatYoullUnlock": "What you'll unlock:",
+        "unlockNow": "Unlock now",
+        "qrPayments": "QR Payments in <b>Argentina and Brazil</b>",
+        "sepaTransfers": "<b>Europe</b> SEPA transfers (+30 countries)",
+        "ukFasterPayments": "<b>UK</b> Faster payment transfers",
+        "usAchWire": "<b>United States</b> ACH and Wire transfers",
+        "mxSpei": "<b>Mexico</b> SPEI transfers",
+        "latamBankTransfers": "Bank transfers to your own accounts in <b>LATAM</b>",
+        "defaultUnlockItem": "Bank transfers and local payment methods"
+    },
+    "recoverFunds": {
+        "title": "Recover Funds",
+        "selectToken": "Select a token to recover",
+        "noTokens": "No tokens to recover",
+        "recipientPlaceholder": "Enter the address where you want to receive the funds",
+        "review": "Review",
+        "youWillReceiveTo": "You will receive to",
+        "sentTo": "Sent to",
+        "amountInChain": "{amount} {symbol} in {chain}",
+        "unknownChain": "Chain {chainId}",
+        "viewOnExplorer": "View on explorer",
+        "goToHome": "Go to home",
+        "recoverOtherToken": "Recover other token",
+        "tokenLogoAlt": "{symbol} logo",
+        "recoveryUnavailable": "Recovery not yet available for {chain}. Please contact support or try again later.",
+        "sessionExpired": "Your session has expired. Please refresh the page and try again.",
+        "sendFailed": "Error sending transaction, please try again",
+        "txReverted": "Transaction reverted, please try again"
     }
 }

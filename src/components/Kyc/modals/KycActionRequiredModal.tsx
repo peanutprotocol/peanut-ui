@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import { RejectLabelsList } from '../RejectLabelsList'
 
@@ -17,14 +18,17 @@ export const KycActionRequiredModal = ({
     isLoading,
     rejectLabels,
 }: KycActionRequiredModalProps) => {
+    const t = useTranslations('kyc')
+    const tCommon = useTranslations('common')
+
     return (
         <ActionModal
             visible={visible}
             onClose={onClose}
             icon="alert"
             iconContainerClassName="bg-yellow-1"
-            title="One more step"
-            description="We need a bit more from you to confirm your ID."
+            title={t('actionRequiredTitle')}
+            description={t('actionRequiredDescription')}
             content={
                 <div className="w-full">
                     <RejectLabelsList rejectLabels={rejectLabels} />
@@ -32,7 +36,7 @@ export const KycActionRequiredModal = ({
             }
             ctas={[
                 {
-                    text: isLoading ? 'Loading...' : 'Continue',
+                    text: tCommon(isLoading ? 'loading' : 'continue'),
                     icon: 'retry',
                     onClick: onResubmit,
                     disabled: isLoading,
