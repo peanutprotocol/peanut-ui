@@ -52,10 +52,11 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const t = useTranslations('claim')
+    const format = useFormatter()
     const tCommon = useTranslations('common')
     const tNav = useTranslations('navigation')
     // get campaign tag from claim link url
@@ -474,17 +475,19 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             if (tokenPrice) {
                 const cashoutUSDAmount =
                     Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
+                const usd = (amount: number) => format.number(amount, { style: 'currency', currency: 'USD' })
                 if (cashoutUSDAmount < MIN_CASHOUT_LIMIT) {
                     setErrorState({
                         showError: true,
-                        errorMessage: 'offramp_lt_minimum',
+                        errorMessage: t('errors.belowMinimum', { amount: usd(MIN_CASHOUT_LIMIT) }),
                     })
                     return
                 } else if (cashoutUSDAmount > MAX_CASHOUT_LIMIT) {
                     setErrorState({
                         showError: true,
-                        errorMessage: 'offramp_mt_maximum',
+                        errorMessage: t('errors.aboveMaximum', { amount: usd(MAX_CASHOUT_LIMIT) }),
                     })
+                    return
                 }
             }
 

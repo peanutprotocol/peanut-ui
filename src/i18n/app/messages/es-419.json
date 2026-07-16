@@ -720,7 +720,9 @@
             "missingInviter": "No se pudo aceptar la invitación: falta quien te invitó. Contacta a soporte.",
             "generic": "Algo salió mal. Inténtalo de nuevo o contacta a soporte.",
             "offrampUnavailable": "Retiro no disponible",
-            "bankClaimUnavailable": "No puedes reclamar este enlace a tu cuenta bancaria."
+            "bankClaimUnavailable": "No puedes reclamar este enlace a tu cuenta bancaria.",
+            "belowMinimum": "Este enlace está por debajo del mínimo de {amount} para retiros bancarios.",
+            "aboveMaximum": "Este enlace supera el máximo de {amount} para retiros bancarios."
         },
         "claimed": {
             "title": "El enlace ya no está disponible",

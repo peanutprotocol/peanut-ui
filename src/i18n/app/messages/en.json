@@ -720,7 +720,9 @@
             "missingInviter": "Unable to accept invite: missing inviter. Please contact support.",
             "generic": "Something went wrong. Please try again or contact support.",
             "offrampUnavailable": "Offramp unavailable",
-            "bankClaimUnavailable": "You can not claim this link to your bank account."
+            "bankClaimUnavailable": "You can not claim this link to your bank account.",
+            "belowMinimum": "This link is below the {amount} minimum for bank payouts.",
+            "aboveMaximum": "This link is above the {amount} maximum for bank payouts."
         },
         "claimed": {
             "title": "Link no longer available",

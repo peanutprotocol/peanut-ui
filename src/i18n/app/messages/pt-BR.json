@@ -720,7 +720,9 @@
             "missingInviter": "Não foi possível aceitar o convite: falta quem convidou. Fale com o suporte.",
             "generic": "Algo deu errado. Tente de novo ou fale com o suporte.",
             "offrampUnavailable": "Saque indisponível",
-            "bankClaimUnavailable": "Você não pode resgatar este link para sua conta bancária."
+            "bankClaimUnavailable": "Você não pode resgatar este link para sua conta bancária.",
+            "belowMinimum": "Este link está abaixo do mínimo de {amount} para saques bancários.",
+            "aboveMaximum": "Este link está acima do máximo de {amount} para saques bancários."
         },
         "claimed": {
             "title": "O link não está mais disponível",
