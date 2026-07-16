@@ -19,6 +19,7 @@ interface ProfileMenuItemProps {
     isExternalLink?: boolean
     endIcon?: IconName
     endIconClassName?: string
+    endText?: string
     showTooltip?: boolean
     toolTipText?: string
     badge?: string
@@ -36,6 +37,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
     isExternalLink,
     endIcon,
     endIconClassName,
+    endText,
     showTooltip = false,
     toolTipText,
     badge,
@@ -67,7 +69,8 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
                 )}
             </div>
 
-            <div className="flex items-center">
+            <div className="flex items-center gap-1">
+                {endText && <span className="text-sm text-grey-1">{endText}</span>}
                 {comingSoon ? (
                     <StatusBadge status="soon" size="medium" />
                 ) : endIcon ? (

@@ -8,6 +8,9 @@ import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
+import { LOCALE_LABELS } from '@/i18n/app/config'
+import { useAppLocale } from '@/i18n/app/AppIntlProvider'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardInfo } from '@/hooks/useCardInfo'
@@ -29,6 +32,8 @@ export const Profile = () => {
     // applicant state. Bridge/Manteca rail approval does NOT flip this badge.
     const { isVerified: isUserSumsubKycApproved } = useIdentityVerification()
     const { hasCardAccess } = useCardInfo()
+    const t = useTranslations('profile')
+    const { locale } = useAppLocale()
 
     const logout = async () => {
         await logoutUser()
@@ -87,6 +92,14 @@ export const Profile = () => {
                         />
 
                         <ProfileMenuItem icon="meter" label="Payment limits" href="/limits" position="middle" />
+
+                        <ProfileMenuItem
+                            icon="globe"
+                            label={t('language')}
+                            endText={LOCALE_LABELS[locale]}
+                            href="/settings/language"
+                            position="middle"
+                        />
 
                         <Card className="p-4" position="middle">
                             <div className="flex items-center justify-between py-1">
