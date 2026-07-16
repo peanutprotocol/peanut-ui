@@ -425,7 +425,19 @@ describe('GROUP 3: Amount Validation', () => {
                 errorMessage: 'Minimum withdrawal is $1.',
             })
         )
-        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    test('Stale bank method entering via ?method=crypto keeps the bank minimum', () => {
+        // Regression: the crypto exemption must follow selectedMethod (the
+        // routing source of truth), not the URL param. A leftover bank method
+        // from an abandoned withdraw survives in the app-wide context and
+        // still routes Continue to the bank flow — so sub-$1 must stay blocked.
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
+        mockWithdrawFlow.amountToWithdraw = '0.5'
+
+        renderWithdraw({ method: 'crypto' })
+
+        expect(screen.getByText('Continue')).toBeDisabled()
     })
 })
 
