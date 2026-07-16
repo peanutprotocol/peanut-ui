@@ -403,7 +403,12 @@
         "warningCard": {
             "blockingTitle": "Esse valor ultrapassa seu limite.",
             "warningTitle": "Você está perto do seu limite.",
-            "payUpTo": "Você pode pagar até {amount} por transação",
+            "addUpTo": "Você pode adicionar até {amount}",
+            "addUpToPerTransaction": "Você pode adicionar até {amount} por transação",
+            "withdrawUpTo": "Você pode sacar até {amount}",
+            "withdrawUpToPerTransaction": "Você pode sacar até {amount} por transação",
+            "payUpTo": "Você pode pagar até {amount}",
+            "payUpToPerTransaction": "Você pode pagar até {amount} por transação",
             "resetsInDays": "Seu limite será redefinido em {days, plural, one {# dia} other {# dias}}.",
             "checkLimits": "Ver meus limites."
         }
@@ -543,7 +548,27 @@
                 "tryTheseFixes": "Tente estas soluções:",
                 "importantNote": "Nota importante",
                 "stillHavingIssues": "Ainda com problemas?",
-                "contactSupport": "Fale com nosso time de suporte em <link>peanut.me/support</link>"
+                "contactSupport": "Fale com nosso time de suporte em <link>peanut.me/support</link>",
+                "steps": {
+                    "signInGoogle": "Entre em uma conta do Google neste dispositivo",
+                    "ensureSignedInGoogle": "Verifique se você está conectado a uma conta do Google neste dispositivo",
+                    "updatePlayServices": "Atualize o Google Play Services",
+                    "enableScreenLock": "Ative o bloqueio de tela (Configurações > Segurança)",
+                    "enableScreenLockSettings": "Ative o bloqueio de tela em Configurações > Segurança",
+                    "restartApp": "Reinicie o app e tente de novo",
+                    "restartDevice": "Reinicie seu dispositivo",
+                    "turnOffVpnPrivacy": "Desative temporariamente a VPN ou apps de privacidade",
+                    "turnOffVpn": "Desative a VPN temporariamente",
+                    "enableIcloudKeychain": "Ative o Chaveiro do iCloud nos Ajustes",
+                    "enableBiometrics": "Ative o Face ID/Touch ID nos Ajustes",
+                    "unlockPasswordManager": "Se você usa um gerenciador de senhas como o 1Password, abra e desbloqueie ele primeiro",
+                    "exitIncognito": "Saia do modo anônimo ou privado",
+                    "checkSecuritySettings": "Confira as configurações de segurança do seu dispositivo",
+                    "updateBrowserOs": "Atualize seu navegador e seu sistema operacional"
+                },
+                "warnings": {
+                    "lowEndAndroid": "Aparelhos Android mais simples podem precisar de atualizações de segurança recentes para as passkeys funcionarem direito."
+                }
             }
         },
         "testTransaction": {

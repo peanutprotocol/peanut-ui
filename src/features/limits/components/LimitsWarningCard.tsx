@@ -12,7 +12,9 @@ export type LimitsWarningType = 'warning' | 'error'
 
 export interface LimitsWarningCardProps {
     type: LimitsWarningType
+    /** English fallback; `titleKind` takes precedence when set */
     title: string
+    titleKind?: 'blocking' | 'warning'
     items: LimitsWarningItem[]
     showSupportLink?: boolean
     /** when set, shows an "Increase my limits" button instead of the support link */
@@ -29,6 +31,7 @@ export interface LimitsWarningCardProps {
 export default function LimitsWarningCard({
     type,
     title,
+    titleKind,
     items,
     showSupportLink = true,
     onIncreaseLimits,
@@ -39,12 +42,41 @@ export default function LimitsWarningCard({
     const tCommon = useTranslations('common')
     const { openSupportWithMessage } = useModalsContext()
 
+    // getLimitsWarningCardProps can't translate (it's a util), so it tags each
+    // item with a `kind` and we resolve the copy here — one place for every flow
+    const itemText = (item: LimitsWarningItem): string => {
+        switch (item.kind) {
+            case 'limit-amount': {
+                const amount = item.amount ?? ''
+                if (item.flowType === 'onramp') {
+                    return item.perTransaction
+                        ? t('warningCard.addUpToPerTransaction', { amount })
+                        : t('warningCard.addUpTo', { amount })
+                }
+                if (item.flowType === 'offramp') {
+                    return item.perTransaction
+                        ? t('warningCard.withdrawUpToPerTransaction', { amount })
+                        : t('warningCard.withdrawUpTo', { amount })
+                }
+                return item.perTransaction
+                    ? t('warningCard.payUpToPerTransaction', { amount })
+                    : t('warningCard.payUpTo', { amount })
+            }
+            case 'reset-days':
+                return t('warningCard.resetsInDays', { days: item.days ?? 0 })
+            case 'check-limits':
+                return t('warningCard.checkLimits')
+            default:
+                return item.text
+        }
+    }
+
     return (
         <InfoCard
             variant={type === 'error' ? 'warning' : 'warning'}
             icon="info-filled"
             iconClassName={type === 'error' ? 'text-error' : 'text-yellow-9'}
-            title={title}
+            title={titleKind ? t(`warningCard.${titleKind}Title`) : title}
             titleClassName="font-semibold"
             className={twMerge('p-4', className)}
             customContent={
@@ -57,10 +89,10 @@ export default function LimitsWarningCard({
                                         {item.icon && (
                                             <Icon name={item.icon} className="mr-1 text-yellow-11" size={12} />
                                         )}
-                                        <span className="text-yellow-11">{item.text}</span>
+                                        <span className="text-yellow-11">{itemText(item)}</span>
                                     </Link>
                                 ) : (
-                                    item.text
+                                    itemText(item)
                                 )}
                             </li>
                         ))}

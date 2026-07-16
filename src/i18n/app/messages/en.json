@@ -403,7 +403,12 @@
         "warningCard": {
             "blockingTitle": "This amount exceeds your limit.",
             "warningTitle": "You're close to your limit.",
-            "payUpTo": "You can pay up to {amount} per transaction",
+            "addUpTo": "You can add up to {amount}",
+            "addUpToPerTransaction": "You can add up to {amount} per transaction",
+            "withdrawUpTo": "You can withdraw up to {amount}",
+            "withdrawUpToPerTransaction": "You can withdraw up to {amount} per transaction",
+            "payUpTo": "You can pay up to {amount}",
+            "payUpToPerTransaction": "You can pay up to {amount} per transaction",
             "resetsInDays": "Limit resets in {days, plural, one {# day} other {# days}}.",
             "checkLimits": "Check my limits."
         }
@@ -543,7 +548,27 @@
                 "tryTheseFixes": "Try these fixes:",
                 "importantNote": "Important Note",
                 "stillHavingIssues": "Still having issues?",
-                "contactSupport": "Contact our support team at <link>peanut.me/support</link>"
+                "contactSupport": "Contact our support team at <link>peanut.me/support</link>",
+                "steps": {
+                    "signInGoogle": "Sign in to a Google account on this device",
+                    "ensureSignedInGoogle": "Make sure you're signed in to a Google account on this device",
+                    "updatePlayServices": "Update Google Play Services",
+                    "enableScreenLock": "Enable screen lock (Settings > Security)",
+                    "enableScreenLockSettings": "Enable screen lock in Settings > Security",
+                    "restartApp": "Restart the app and retry",
+                    "restartDevice": "Restart your device",
+                    "turnOffVpnPrivacy": "Turn off VPN or privacy apps temporarily",
+                    "turnOffVpn": "Turn off VPN temporarily",
+                    "enableIcloudKeychain": "Enable iCloud Keychain in Settings",
+                    "enableBiometrics": "Enable Face ID/Touch ID in Settings",
+                    "unlockPasswordManager": "If you use a password manager like 1Password, open it and unlock it first",
+                    "exitIncognito": "Exit Incognito/Private mode",
+                    "checkSecuritySettings": "Check your device security settings",
+                    "updateBrowserOs": "Update your browser and OS"
+                },
+                "warnings": {
+                    "lowEndAndroid": "Lower end Android devices may require recent security updates for passkeys to work properly."
+                }
             }
         },
         "testTransaction": {

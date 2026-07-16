@@ -93,7 +93,6 @@ export default function QRPayPage() {
     const t = useTranslations('qrPay')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
-    const tLimits = useTranslations('limits')
     // Shown wherever the backend rejects a Pix payment below the rail minimum
     // (typed 400 PIX_MIN_AMOUNT — fires at lock-init for merchant-encoded amounts
     // and at re-init for user-entered amounts on open-amount QRs).
@@ -1532,29 +1531,6 @@ export default function QRPayPage() {
                         return (
                             <LimitsWarningCard
                                 {...limitsCardProps}
-                                title={
-                                    limitsCardProps.type === 'error'
-                                        ? tLimits('warningCard.blockingTitle')
-                                        : tLimits('warningCard.warningTitle')
-                                }
-                                items={(limitsCardProps.items ?? []).map((item) => {
-                                    switch (item.kind) {
-                                        case 'limit-amount':
-                                            return {
-                                                ...item,
-                                                text: tLimits('warningCard.payUpTo', { amount: item.amount ?? '' }),
-                                            }
-                                        case 'reset-days':
-                                            return {
-                                                ...item,
-                                                text: tLimits('warningCard.resetsInDays', { days: item.days ?? 0 }),
-                                            }
-                                        case 'check-limits':
-                                            return { ...item, text: tLimits('warningCard.checkLimits') }
-                                        default:
-                                            return item
-                                    }
-                                })}
                                 onIncreaseLimits={
                                     isBrQrEligible && limitsValidation.isBlocking
                                         ? qrLimitIncreaseFlow.handleInitiate

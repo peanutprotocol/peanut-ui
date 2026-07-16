@@ -151,16 +151,19 @@ export interface LimitsWarningItem {
     isLink?: boolean
     href?: string
     icon?: IconName
-    // discriminator + values so components can map items to translated copy
-    // (this util can't call useTranslations; `text` stays the English fallback)
+    // discriminator + values so LimitsWarningCard can map items to translated
+    // copy (this util can't call useTranslations; `text` is the English fallback)
     kind?: 'limit-amount' | 'reset-days' | 'check-limits'
     amount?: string
     days?: number
+    flowType?: LimitFlowType
+    perTransaction?: boolean
 }
 
 export interface LimitsWarningCardPropsResult {
     type: 'warning' | 'error'
     title: string
+    titleKind: 'blocking' | 'warning'
     items: LimitsWarningItem[]
     showSupportLink: boolean
 }
@@ -193,18 +196,20 @@ export function getLimitsWarningCardProps({
     const formattedLimit = formatExtendedNumber(validation.remainingLimit ?? 0)
     const amountDisplay = currencySymbol === '$' ? `$${formattedLimit}` : `${currencySymbol} ${formattedLimit}`
 
-    // build the limit message based on flow type
+    // qr payments are always capped per transaction; onramp/offramp only when
+    // there's no period limit to reset
+    const perTransaction = flowType === 'qr-payment' || !validation.daysUntilReset
+    const perTransactionSuffix = perTransaction ? ' per transaction' : ''
     let limitMessage = ''
     if (flowType === 'onramp') {
-        limitMessage = `You can add up to ${amountDisplay}${validation.daysUntilReset ? '' : ' per transaction'}`
+        limitMessage = `You can add up to ${amountDisplay}${perTransactionSuffix}`
     } else if (flowType === 'offramp') {
-        limitMessage = `You can withdraw up to ${amountDisplay}${validation.daysUntilReset ? '' : ' per transaction'}`
+        limitMessage = `You can withdraw up to ${amountDisplay}${perTransactionSuffix}`
     } else {
-        // qr-payment
-        limitMessage = `You can pay up to ${amountDisplay} per transaction`
+        limitMessage = `You can pay up to ${amountDisplay}${perTransactionSuffix}`
     }
 
-    items.push({ text: limitMessage, kind: 'limit-amount', amount: amountDisplay })
+    items.push({ text: limitMessage, kind: 'limit-amount', amount: amountDisplay, flowType, perTransaction })
 
     // add days until reset if applicable
     if (validation.daysUntilReset) {
@@ -227,6 +232,7 @@ export function getLimitsWarningCardProps({
     return {
         type: validation.isBlocking ? 'error' : 'warning',
         title: validation.isBlocking ? LIMITS_COPY.BLOCKING_TITLE : LIMITS_COPY.WARNING_TITLE,
+        titleKind: validation.isBlocking ? 'blocking' : 'warning',
         items,
         showSupportLink: validation.isMantecaUser ?? false,
     }

@@ -14,7 +14,7 @@ interface PasskeySetupHelpModalProps {
     platform: 'android' | 'ios' | 'web'
 }
 
-const getTroubleshootingSteps = (errorName: string, platform: 'android' | 'ios' | 'web'): readonly string[] => {
+const getTroubleshootingStepIds = (errorName: string, platform: 'android' | 'ios' | 'web'): readonly string[] => {
     if (platform === 'android') {
         const steps = PASSKEY_TROUBLESHOOTING_STEPS.android
         return errorName in steps ? steps[errorName as keyof typeof steps] : steps.default
@@ -26,7 +26,7 @@ const getTroubleshootingSteps = (errorName: string, platform: 'android' | 'ios' 
     return PASSKEY_TROUBLESHOOTING_STEPS.web.default
 }
 
-const getWarningMessage = (errorName: string, platform: 'android' | 'ios' | 'web'): string | null => {
+const getWarningId = (errorName: string, platform: 'android' | 'ios' | 'web'): string | null => {
     if (platform === 'android' && errorName in PASSKEY_WARNINGS.android) {
         return PASSKEY_WARNINGS.android[errorName as keyof typeof PASSKEY_WARNINGS.android]
     }
@@ -62,8 +62,11 @@ export const PasskeySetupHelpModal = ({
 
     const title = getTitle()
     const description = getDescription()
-    const troubleshootingSteps = getTroubleshootingSteps(errorName, platform)
-    const warning = getWarningMessage(errorName, platform)
+    const troubleshootingSteps = getTroubleshootingStepIds(errorName, platform).map((id) =>
+        t(`steps.${id}` as Parameters<typeof t>[0])
+    )
+    const warningId = getWarningId(errorName, platform)
+    const warning = warningId ? t(`warnings.${warningId}` as Parameters<typeof t>[0]) : null
 
     return (
         <ActionModal
@@ -87,7 +90,7 @@ export const PasskeySetupHelpModal = ({
                         variant="info"
                         itemIcon="check"
                         itemIconClassName="text-secondary-7"
-                        items={[...troubleshootingSteps]}
+                        items={troubleshootingSteps}
                     />
 
                     {warning && (

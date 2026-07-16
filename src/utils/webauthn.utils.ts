@@ -176,61 +176,41 @@ export async function withWebAuthnRetry<T>(
  *
  * RISK: If Android/iOS change their credential manager behavior, these may become outdated
  */
+// Step ids, not copy — PasskeySetupHelpModal resolves them against
+// setup.passkey.help.steps.* so the guidance is translatable.
 export const PASSKEY_TROUBLESHOOTING_STEPS = {
     android: {
         // Native default — unknown/unclassified errors in the app shell.
-        default: [
-            'Sign in to a Google account on this device',
-            'Update Google Play Services',
-            'Enable screen lock (Settings > Security)',
-            'Restart the app and retry',
-        ],
-        NotReadableError: [
-            'Restart your device',
-            'Update Google Play Services',
-            'Enable screen lock in Settings > Security',
-        ],
-        NotAllowedError: [
-            "Make sure you're signed in to a Google account on this device",
-            'Enable screen lock (Settings > Security)',
-            'Update Google Play Services',
-            'Turn off VPN or privacy apps temporarily',
-        ],
+        default: ['signInGoogle', 'updatePlayServices', 'enableScreenLock', 'restartApp'],
+        NotReadableError: ['restartDevice', 'updatePlayServices', 'enableScreenLockSettings'],
+        NotAllowedError: ['ensureSignedInGoogle', 'enableScreenLock', 'updatePlayServices', 'turnOffVpnPrivacy'],
     },
     ios: {
-        default: [
-            'Enable iCloud Keychain in Settings',
-            'Enable Face ID/Touch ID in Settings',
-            'Restart the app and retry',
-        ],
+        default: ['enableIcloudKeychain', 'enableBiometrics', 'restartApp'],
         NotAllowedError: [
             // First because it's the dominant field case: a wedged third-party
             // credential provider refuses every assertion until unlocked or the
             // device restarts (TASK-20000).
-            'If you use a password manager like 1Password, open it and unlock it first',
-            'Enable Face ID/Touch ID in Settings',
-            'Enable iCloud Keychain in Settings',
-            'Turn off VPN temporarily',
-            'Restart your device',
+            'unlockPasswordManager',
+            'enableBiometrics',
+            'enableIcloudKeychain',
+            'turnOffVpn',
+            'restartDevice',
         ],
     },
     web: {
         // generic fallback for desktop/unsupported platforms
-        default: [
-            'Exit Incognito/Private mode',
-            'Check your device security settings',
-            'Restart your device',
-            'Update your browser and OS',
-        ],
+        default: ['exitIncognito', 'checkSecuritySettings', 'restartDevice', 'updateBrowserOs'],
     },
 } as const
 
 /**
- * Platform-specific warnings for common issues
+ * Platform-specific warnings for common issues — warning ids resolved against
+ * setup.passkey.help.warnings.* by PasskeySetupHelpModal.
  */
 export const PASSKEY_WARNINGS = {
     android: {
-        NotAllowedError: 'Lower end Android devices may require recent security updates for passkeys to work properly.',
+        NotAllowedError: 'lowEndAndroid',
     },
 } as const
 
