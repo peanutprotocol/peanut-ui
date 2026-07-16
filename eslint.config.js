@@ -157,4 +157,10 @@ module.exports = [
         files: ['src/components/Profile/components/PublicProfile.tsx'],
         rules: { 'no-restricted-syntax': 'off' },
     },
+    {
+        // require() inside test bodies is the Jest idiom for reading mocks after
+        // jest.mock()/resetModules(); hoisting them to imports changes semantics.
+        files: ['src/**/__tests__/**/*.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
+        rules: { '@typescript-eslint/no-require-imports': 'off' },
+    },
 ]
