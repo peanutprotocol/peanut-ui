@@ -32,6 +32,7 @@ import InvitesIcon from '@/components/Home/InvitesIcon'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { updateUserById } from '@/app/actions/users'
 import { useHaptic } from 'use-haptic'
+import { useTranslations } from 'next-intl'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
@@ -52,6 +53,8 @@ const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNI
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
 
 export default function Home() {
+    const t = useTranslations('home')
+    const tNav = useTranslations('navigation')
     const { showPermissionModal } = useNotifications()
     const { balance, isFetchingBalance, spendableBalance, isFetchingSpendableBalance } = useWallet()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
@@ -175,7 +178,9 @@ export default function Home() {
                     {isActivated && (
                         <Link onClick={() => triggerHaptic()} href="/rewards" className="flex items-center gap-0">
                             <InvitesIcon />
-                            <span className="whitespace-nowrap pl-1 text-sm font-semibold md:text-base">Rewards</span>
+                            <span className="whitespace-nowrap pl-1 text-sm font-semibold md:text-base">
+                                {t('rewards')}
+                            </span>
                             <NavigationArrow size={16} className="fill-black" />
                         </Link>
                     )}
@@ -183,8 +188,13 @@ export default function Home() {
                 </div>
                 <div className="space-y-4">
                     <ActionButtonGroup>
-                        <ActionButtonWithHref label="Add" action="add" href="/add-money" size="small" />
-                        <ActionButtonWithHref label="Withdraw" action="withdraw" href="/withdraw" size="small" />
+                        <ActionButtonWithHref label={tNav('add')} action="add" href="/add-money" size="small" />
+                        <ActionButtonWithHref
+                            label={tNav('withdraw')}
+                            action="withdraw"
+                            href="/withdraw"
+                            size="small"
+                        />
                     </ActionButtonGroup>
 
                     <WalletBalance
@@ -195,9 +205,15 @@ export default function Home() {
                     />
 
                     <ActionButtonGroup>
-                        <ActionButtonWithHref label="Send" action="send" href="/send" variant="purple" size="large" />
                         <ActionButtonWithHref
-                            label="Request"
+                            label={tNav('send')}
+                            action="send"
+                            href="/send"
+                            variant="purple"
+                            size="large"
+                        />
+                        <ActionButtonWithHref
+                            label={tNav('request')}
                             action="request"
                             href="/request"
                             variant="purple"

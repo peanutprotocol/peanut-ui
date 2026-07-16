@@ -1,9 +1,4 @@
-import {
-    nativeCurrencyAddresses,
-    supportedPeanutChains,
-    peanutTokenDetails,
-    pathTitles,
-} from '@/constants/general.consts'
+import { nativeCurrencyAddresses, supportedPeanutChains, peanutTokenDetails } from '@/constants/general.consts'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { shareableUrl } from '@/utils/url.utils'
 import * as Sentry from '@sentry/nextjs'
@@ -657,10 +652,6 @@ export function getChainName(chainId: string): string | undefined {
     }
     const chain = Object.entries(wagmiChains).find(([, chain]) => chain.id === Number(chainId))?.[1]
     return chain?.name ?? undefined
-}
-
-export const getHeaderTitle = (pathname: string) => {
-    return pathTitles[pathname] || 'Peanut' // default title if path not found
 }
 
 /**

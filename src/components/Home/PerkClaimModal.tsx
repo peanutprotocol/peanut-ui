@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { useQueryClient } from '@tanstack/react-query'
 import { perksApi, type PendingPerk } from '@/services/perks'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -22,18 +23,6 @@ import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts
 type ClaimPhase = 'idle' | 'holding' | 'opening' | 'revealed' | 'exiting'
 
 const SURPRISE_CLAIM_COUNT_KEY = 'rewards_surprise_claim_count'
-
-// Approved copy — see notion: notifs-copy-33083811757980638a27effc79a033f3
-const SURPRISE_COPY = {
-    first: {
-        title: (amount: number) => `You just earned $${amount}!`,
-        description: 'Check out your rewards now and earn more.',
-    },
-    subsequent: {
-        title: (amount: number) => `You just earned $${amount}!`,
-        description: 'Check out your rewards and how to earn more.',
-    },
-} as const
 
 interface PerkClaimModalProps {
     perk: PendingPerk
@@ -187,6 +176,8 @@ interface SuccessModalProps {
  * Uses icon/title/description props for standard vertical centered layout.
  */
 function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProps) {
+    const t = useTranslations('home.perk')
+    const tCommon = useTranslations('common')
     const inviteeName = perk.inviteeName ?? extractInviteeName(perk.reason)
     const { triggerHaptic } = useHaptic()
     const router = useRouter()
@@ -215,7 +206,6 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
     }, []) // eslint-disable-line react-hooks/exhaustive-deps — triggerHaptic is stable
 
     const isSurpriseMoment = claimCount < 2
-    const surpriseCopy = SURPRISE_COPY[claimCount === 0 ? 'first' : 'subsequent']
 
     return (
         <>
@@ -233,19 +223,24 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                         <p className="text-3xl font-extrabold text-black">+${perk.amountUsd}</p>
                         {isSurpriseMoment ? (
                             <>
+                                {/* Approved copy — see notion: notifs-copy-33083811757980638a27effc79a033f3 */}
                                 <p className="mt-2 text-center text-base font-semibold text-n-1">
-                                    {surpriseCopy.title(perk.amountUsd)}
+                                    {t('surpriseTitle', { amount: perk.amountUsd })}
                                 </p>
-                                <p className="mt-1 text-center text-sm text-grey-1">{surpriseCopy.description}</p>
+                                <p className="mt-1 text-center text-sm text-grey-1">
+                                    {claimCount === 0 ? t('surpriseDescriptionFirst') : t('surpriseDescriptionNext')}
+                                </p>
                             </>
                         ) : inviteeName ? (
                             <p className="mt-1 flex items-center justify-center gap-1 text-sm text-grey-1">
                                 <Icon name="invite-heart" size={14} />
-                                <span className="font-medium">{inviteeName}</span>
-                                <span>used Peanut</span>
+                                {t.rich('usedPeanut', {
+                                    inviteeName,
+                                    name: (chunks) => <span className="font-medium">{chunks}</span>,
+                                })}
                             </p>
                         ) : (
-                            <p className="mt-1 text-sm text-grey-1">Reward claimed!</p>
+                            <p className="mt-1 text-sm text-grey-1">{t('rewardClaimed')}</p>
                         )}
                     </div>
                 }
@@ -268,16 +263,16 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                                                 setIsInviteModalOpen(true)
                                             }}
                                         >
-                                            Share & earn
+                                            {t('shareAndEarn')}
                                         </Button>
                                         <button className="text-sm text-grey-1 underline" onClick={onDismiss}>
-                                            Maybe later
+                                            {tCommon('maybeLater')}
                                         </button>
                                     </>
                                 ) : (
                                     <>
                                         <Button variant="purple" shadowSize="4" className="w-full" onClick={onDismiss}>
-                                            Done
+                                            {tCommon('done')}
                                         </Button>
                                         <p
                                             className="cursor-pointer text-center text-sm text-grey-1 underline"
@@ -286,7 +281,7 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                                                 router.push('/rewards')
                                             }}
                                         >
-                                            Invite friends to earn more
+                                            {t('inviteFriendsToEarnMore')}
                                         </p>
                                     </>
                                 )}
@@ -317,6 +312,7 @@ interface GiftBoxContentProps {
  * Gift box with hold-to-claim interaction
  */
 function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProps) {
+    const t = useTranslations('home.perk')
     const { holdProgress, isShaking, shakeIntensity, buttonProps } = useHoldToClaim({
         onComplete: onHoldComplete,
         disabled: claimPhase !== 'idle',
@@ -347,7 +343,10 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
             {/* Title */}
             <p className="mb-6 text-center text-sm text-grey-1">
                 <Icon name="invite-heart" size={14} className="mr-1 inline" />
-                <span className="font-medium">{inviteeName}</span> used Peanut
+                {t.rich('usedPeanut', {
+                    inviteeName: inviteeName ?? '',
+                    name: (chunks) => <span className="font-medium">{chunks}</span>,
+                })}
             </p>
 
             {/* Gift box wrapper - only this shakes */}
@@ -470,7 +469,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
             </div>
 
             {/* Instructions */}
-            <p className="mt-6 text-center text-sm text-grey-1">Hold to unwrap your reward</p>
+            <p className="mt-6 text-center text-sm text-grey-1">{t('holdToUnwrap')}</p>
         </div>
     )
 }

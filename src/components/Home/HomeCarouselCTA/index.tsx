@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import Carousel from '@/components/Global/Carousel'
 import CarouselCTA from './CarouselCTA'
@@ -13,6 +14,7 @@ import { extractInviteeName } from '@/utils/general.utils'
 import PerkClaimModal from '../PerkClaimModal'
 
 const HomeCarouselCTA = () => {
+    const t = useTranslations('home.carousel')
     const { carouselCTAs, dismissCTA } = useHomeCarouselCTAs()
     const { user } = useAuth()
     const queryClient = useQueryClient()
@@ -53,20 +55,14 @@ const HomeCarouselCTA = () => {
         return claimablePerks.map((perk) => {
             const inviteeName = extractInviteeName(perk.reason)
             const description = inviteeName ? (
-                <p>
-                    <b>{inviteeName}</b> used Peanut. Tap to claim.
-                </p>
+                <p>{t.rich('usedPeanutTapToClaim', { inviteeName, name: (chunks) => <b>{chunks}</b> })}</p>
             ) : (
-                <p>Tap to claim your reward.</p>
+                <p>{t('tapToClaim')}</p>
             )
 
             return {
                 id: `perk-${perk.id}`,
-                title: (
-                    <p>
-                        <b>+${perk.amountUsd}</b> reward ready!
-                    </p>
-                ),
+                title: <p>{t.rich('rewardReady', { amount: perk.amountUsd, b: (chunks) => <b>{chunks}</b> })}</p>,
                 description,
                 icon: 'gift' as IconName,
                 iconContainerClassName: 'bg-primary-1',
@@ -75,7 +71,7 @@ const HomeCarouselCTA = () => {
                 iconSize: 16,
             }
         })
-    }, [claimablePerks])
+    }, [claimablePerks, t])
 
     // Combine perk CTAs (first) with regular CTAs
     const allCTAs = useMemo(() => {

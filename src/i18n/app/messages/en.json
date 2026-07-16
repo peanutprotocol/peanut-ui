@@ -10,7 +10,160 @@
         "close": "Close",
         "loading": "Loading...",
         "somethingWentWrong": "Something went wrong",
-        "copiedToClipboard": "Copied to clipboard"
+        "copiedToClipboard": "Copied to clipboard",
+        "maybeLater": "Maybe later",
+        "tryAgain": "Try again",
+        "skipForNow": "Skip for now"
+    },
+    "navigation": {
+        "home": "Home",
+        "send": "Send",
+        "request": "Request",
+        "add": "Add",
+        "withdraw": "Withdraw",
+        "history": "History",
+        "docs": "Docs",
+        "support": "Support",
+        "logout": "Logout",
+        "loggingOut": "Logging out...",
+        "dashboard": "Dashboard",
+        "pay": "Pay",
+        "cashout": "Cashout",
+        "claim": "Claim",
+        "peanutLogoAlt": "Peanut Logo"
+    },
+    "home": {
+        "rewards": "Rewards",
+        "activation": {
+            "steps": {
+                "verify": {
+                    "title": "Unlock payments",
+                    "description": "Bank deposits, QR codes, and local payment methods",
+                    "cta": "Unlock now"
+                },
+                "deposit": {
+                    "title": "Deposit",
+                    "description": "Add money to make your first payment",
+                    "cta": "Add money"
+                },
+                "card": {
+                    "title": "Spend anywhere Visa is accepted",
+                    "description": "Use your balance at 150M+ merchants. Online, contactless.",
+                    "cta": "Get your card"
+                },
+                "outbound": {
+                    "title": "Make your first payment",
+                    "description": "Start paying to Pix and MercadoPago QR codes",
+                    "cta": "Start Spending"
+                }
+            },
+            "addEmail": {
+                "title": "Add your email",
+                "description": "We need an email address to finish setting up your account.",
+                "cta": "Add email"
+            },
+            "completeSetup": {
+                "title": "Complete your setup",
+                "description": "We need an updated document before you can add money.",
+                "cta": "Upload document"
+            },
+            "verificationIssue": {
+                "title": "Verification issue",
+                "description": "Contact support for help with your verification.",
+                "cta": "Contact support"
+            }
+        },
+        "autoBalance": {
+            "title": "Finish setting up your card",
+            "description": "One passkey tap to start using your card.",
+            "descriptionError": "We couldn't finish setting up your card. Please try again, or skip for now — we'll prompt you again on your first card payment.",
+            "working": "Working…"
+        },
+        "cardLaunch": {
+            "title": "shhhh",
+            "subtitle": "Tap to find out if you're in",
+            "cta": "Try the door →",
+            "dismissAriaLabel": "Dismiss launch announcement"
+        },
+        "history": {
+            "activity": "Activity",
+            "pendingTransactions": "Pending transactions",
+            "latestTransactions": "Latest Transactions",
+            "networkErrorTitle": "Couldn't load activity",
+            "networkErrorDescription": "Check your connection and try again.",
+            "errorTitle": "Error loading activity!",
+            "errorDescription": "Please contact Support.",
+            "noActivityTitle": "No activity yet!",
+            "noTransactionsTitle": "No transactions yet!",
+            "emptyDescription": "Start by sending or requesting money"
+        },
+        "welcomeUnlock": {
+            "title": "🎉 You're unlocked",
+            "cta": "Start sending money",
+            "youCanNow": "You can now:",
+            "yourCountry": "your country",
+            "items": {
+                "qrArBr": "QR Payments in <b>Argentina and Brazil</b>",
+                "usTransfers": "<b>United States</b> ACH and Wire transfers",
+                "euTransfers": "<b>Europe</b> SEPA transfers (+30 countries)",
+                "mxTransfers": "<b>Mexico</b> SPEI transfers",
+                "ownCountryTransfers": "Bank transfers to your own accounts in {country}",
+                "qrBrAr": "QR Payments in Brazil and Argentina"
+            }
+        },
+        "perk": {
+            "surpriseTitle": "You just earned ${amount}!",
+            "surpriseDescriptionFirst": "Check out your rewards now and earn more.",
+            "surpriseDescriptionNext": "Check out your rewards and how to earn more.",
+            "usedPeanut": "<name>{inviteeName}</name> used Peanut",
+            "rewardClaimed": "Reward claimed!",
+            "shareAndEarn": "Share & earn",
+            "inviteFriendsToEarnMore": "Invite friends to earn more",
+            "holdToUnwrap": "Hold to unwrap your reward"
+        },
+        "carousel": {
+            "rewardReady": "<b>+${amount}</b> reward ready!",
+            "usedPeanutTapToClaim": "<name>{inviteeName}</name> used Peanut. Tap to claim.",
+            "tapToClaim": "Tap to claim your reward.",
+            "card": {
+                "title": "Get your <b>Peanut Card</b>",
+                "description": "Closed beta. <b>Badges skip the line.</b> $10 unlocks on your first $100 spend."
+            },
+            "invite": {
+                "title": "Invite friends. Earn rewards",
+                "description": "Earn rewards every time your friends use Peanut."
+            },
+            "notifications": {
+                "title": "Stay in the loop!",
+                "description": "Turn on notifications and get alerts for all your wallet activity.",
+                "blockedToast": "Notifications blocked by your browser. Enable them in site settings and reload."
+            },
+            "iosPwa": {
+                "title": "Add Peanut to your home screen",
+                "description": "Follow a quick guide to add the app to your home screen, no download needed."
+            },
+            "qrPay": {
+                "title": "Pay with <b>QR code payments</b>",
+                "description": "Get the best exchange rate, pay like a <b>local</b> and earn <b>rewards</b>."
+            },
+            "latamInvite": {
+                "title": "Earn <b>rewards</b> on QR payments",
+                "description": "Invite friends to <b>earn more rewards</b>. The more they use, the more you earn!"
+            },
+            "bugBounty": {
+                "title": "Help us improve and <b>get $5!</b>",
+                "description": "Report a bug. Get rewarded! No questions asked."
+            },
+            "kyc": {
+                "title": "Unlock <b>QR code payments</b>",
+                "description": "Confirm your ID to pay with <b>Mercado Pago</b> and <b>PIX</b> QR codes"
+            },
+            "closePrompt": "Close prompt",
+            "closeTitled": "Close {title}",
+            "closeVerificationPrompt": "Close verification prompt",
+            "closeNotificationPrompt": "Close notification prompt",
+            "claimablePerk": "Claimable perk"
+        }
     },
     "profile": {
         "language": "Language"

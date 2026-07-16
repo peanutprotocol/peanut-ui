@@ -10,7 +10,160 @@
         "close": "Fechar",
         "loading": "Carregando...",
         "somethingWentWrong": "Algo deu errado",
-        "copiedToClipboard": "Copiado para a área de transferência"
+        "copiedToClipboard": "Copiado para a área de transferência",
+        "maybeLater": "Talvez depois",
+        "tryAgain": "Tentar de novo",
+        "skipForNow": "Pular por enquanto"
+    },
+    "navigation": {
+        "home": "Início",
+        "send": "Enviar",
+        "request": "Cobrar",
+        "add": "Adicionar",
+        "withdraw": "Sacar",
+        "history": "Histórico",
+        "docs": "Docs",
+        "support": "Suporte",
+        "logout": "Sair",
+        "loggingOut": "Saindo...",
+        "dashboard": "Painel",
+        "pay": "Pagar",
+        "cashout": "Saque",
+        "claim": "Resgatar",
+        "peanutLogoAlt": "Logo da Peanut"
+    },
+    "home": {
+        "rewards": "Recompensas",
+        "activation": {
+            "steps": {
+                "verify": {
+                    "title": "Desbloqueie pagamentos",
+                    "description": "Depósitos bancários, códigos QR e métodos de pagamento locais",
+                    "cta": "Desbloquear agora"
+                },
+                "deposit": {
+                    "title": "Deposite",
+                    "description": "Adicione dinheiro para fazer seu primeiro pagamento",
+                    "cta": "Adicionar dinheiro"
+                },
+                "card": {
+                    "title": "Gaste onde a Visa é aceita",
+                    "description": "Use seu saldo em mais de 150M de estabelecimentos. Online e por aproximação.",
+                    "cta": "Peça seu cartão"
+                },
+                "outbound": {
+                    "title": "Faça seu primeiro pagamento",
+                    "description": "Comece a pagar códigos QR do Pix e do MercadoPago",
+                    "cta": "Começar a gastar"
+                }
+            },
+            "addEmail": {
+                "title": "Adicione seu e-mail",
+                "description": "Precisamos de um e-mail para terminar de configurar sua conta.",
+                "cta": "Adicionar e-mail"
+            },
+            "completeSetup": {
+                "title": "Complete sua configuração",
+                "description": "Precisamos de um documento atualizado antes que você possa adicionar dinheiro.",
+                "cta": "Enviar documento"
+            },
+            "verificationIssue": {
+                "title": "Problema na verificação",
+                "description": "Fale com o suporte para receber ajuda com sua verificação.",
+                "cta": "Falar com o suporte"
+            }
+        },
+        "autoBalance": {
+            "title": "Termine de configurar seu cartão",
+            "description": "Um toque com sua passkey para começar a usar seu cartão.",
+            "descriptionError": "Não conseguimos terminar de configurar seu cartão. Tente de novo ou pule por enquanto — vamos pedir de novo no seu primeiro pagamento com o cartão.",
+            "working": "Processando…"
+        },
+        "cardLaunch": {
+            "title": "shhhh",
+            "subtitle": "Toque para saber se você está dentro",
+            "cta": "Tente a porta →",
+            "dismissAriaLabel": "Fechar anúncio de lançamento"
+        },
+        "history": {
+            "activity": "Atividade",
+            "pendingTransactions": "Transações pendentes",
+            "latestTransactions": "Últimas transações",
+            "networkErrorTitle": "Não foi possível carregar a atividade",
+            "networkErrorDescription": "Verifique sua conexão e tente de novo.",
+            "errorTitle": "Erro ao carregar a atividade!",
+            "errorDescription": "Por favor, fale com o Suporte.",
+            "noActivityTitle": "Ainda não há atividade!",
+            "noTransactionsTitle": "Ainda não há transações!",
+            "emptyDescription": "Comece enviando ou cobrando dinheiro"
+        },
+        "welcomeUnlock": {
+            "title": "🎉 Acesso liberado",
+            "cta": "Comece a enviar dinheiro",
+            "youCanNow": "Agora você pode:",
+            "yourCountry": "seu país",
+            "items": {
+                "qrArBr": "Pagamentos QR na <b>Argentina e no Brasil</b>",
+                "usTransfers": "Transferências ACH e Wire nos <b>Estados Unidos</b>",
+                "euTransfers": "Transferências SEPA na <b>Europa</b> (+30 países)",
+                "mxTransfers": "Transferências SPEI no <b>México</b>",
+                "ownCountryTransfers": "Transferências bancárias para suas próprias contas em {country}",
+                "qrBrAr": "Pagamentos QR no Brasil e na Argentina"
+            }
+        },
+        "perk": {
+            "surpriseTitle": "Você acabou de ganhar ${amount}!",
+            "surpriseDescriptionFirst": "Confira suas recompensas agora e ganhe mais.",
+            "surpriseDescriptionNext": "Confira suas recompensas e como ganhar mais.",
+            "usedPeanut": "<name>{inviteeName}</name> usou o Peanut",
+            "rewardClaimed": "Recompensa resgatada!",
+            "shareAndEarn": "Compartilhe e ganhe",
+            "inviteFriendsToEarnMore": "Convide amigos para ganhar mais",
+            "holdToUnwrap": "Segure para abrir sua recompensa"
+        },
+        "carousel": {
+            "rewardReady": "Recompensa de <b>+${amount}</b> pronta!",
+            "usedPeanutTapToClaim": "<name>{inviteeName}</name> usou o Peanut. Toque para resgatar.",
+            "tapToClaim": "Toque para resgatar sua recompensa.",
+            "card": {
+                "title": "Peça seu <b>Peanut Card</b>",
+                "description": "Beta fechado. <b>Emblemas furam a fila.</b> Desbloqueie $10 no seu primeiro gasto de $100."
+            },
+            "invite": {
+                "title": "Convide amigos. Ganhe recompensas",
+                "description": "Ganhe recompensas sempre que seus amigos usarem o Peanut."
+            },
+            "notifications": {
+                "title": "Fique por dentro!",
+                "description": "Ative as notificações e receba alertas de toda a atividade da sua carteira.",
+                "blockedToast": "Seu navegador bloqueou as notificações. Ative nas configurações do site e recarregue."
+            },
+            "iosPwa": {
+                "title": "Adicione o Peanut à sua tela inicial",
+                "description": "Siga um guia rápido para adicionar o app à sua tela inicial, sem precisar baixar."
+            },
+            "qrPay": {
+                "title": "Pague com <b>códigos QR</b>",
+                "description": "Tenha a melhor taxa de câmbio, pague como um <b>local</b> e ganhe <b>recompensas</b>."
+            },
+            "latamInvite": {
+                "title": "Ganhe <b>recompensas</b> em pagamentos QR",
+                "description": "Convide amigos para <b>ganhar mais recompensas</b>. Quanto mais eles usam, mais você ganha!"
+            },
+            "bugBounty": {
+                "title": "Ajude a gente a melhorar e <b>ganhe $5!</b>",
+                "description": "Relate um bug. Ganhe uma recompensa! Sem perguntas."
+            },
+            "kyc": {
+                "title": "Desbloqueie <b>pagamentos com QR</b>",
+                "description": "Confirme sua identidade para pagar códigos QR do <b>Mercado Pago</b> e do <b>PIX</b>"
+            },
+            "closePrompt": "Fechar aviso",
+            "closeTitled": "Fechar {title}",
+            "closeVerificationPrompt": "Fechar aviso de verificação",
+            "closeNotificationPrompt": "Fechar aviso de notificações",
+            "claimablePerk": "Recompensa disponível"
+        }
     },
     "profile": {
         "language": "Idioma"
