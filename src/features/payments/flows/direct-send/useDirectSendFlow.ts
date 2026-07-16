@@ -21,8 +21,10 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAuth } from '@/context/authContext'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
+import { useTranslations } from 'next-intl'
 
 export function useDirectSendFlow() {
+    const t = useTranslations('payment')
     const toFriendlyError = useFriendlyError()
     const {
         amount,
@@ -110,7 +112,7 @@ export function useDirectSendFlow() {
     // execute the payment (called from input view)
     const executePayment = useCallback(async () => {
         if (!recipient || !amount || !walletAddress) {
-            setError({ showError: true, errorMessage: 'missing required data' })
+            setError({ showError: true, errorMessage: t('errors.missingData') })
             return
         }
 
@@ -188,6 +190,7 @@ export function useDirectSendFlow() {
         setIsLoading,
         clearError,
         toFriendlyError,
+        t,
     ])
 
     return {

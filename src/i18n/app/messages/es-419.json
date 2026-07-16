@@ -697,6 +697,77 @@
             "title": "¡Algo salió mal!",
             "description": "Ocurrió un error al cargar la página de pago.",
             "contactSupport": "Contactar a soporte"
+        },
+        "headers": {
+            "pay": "Pagar",
+            "send": "Enviar",
+            "receipt": "Recibo",
+            "confirmPayment": "Confirmar pago",
+            "contribute": "Contribuir"
+        },
+        "actions": {
+            "send": "Enviar"
+        },
+        "success": {
+            "addedExternal": "Agregaste con éxito",
+            "withdrew": "Acabas de retirar",
+            "sent": "Enviaste ",
+            "requested": "Solicitaste ",
+            "added": "Agregaste ",
+            "toPrefix": "a",
+            "forPrefix": "por",
+            "backToHome": "Volver al inicio",
+            "seeReceipt": "Ver recibo"
+        },
+        "cta": {
+            "join": "Únete a",
+            "addFundsTo": "Agrega fondos a",
+            "sendWith": "Enviar con"
+        },
+        "confirm": {
+            "sponsoredByPeanut": "¡Patrocinado por Peanut!",
+            "minReceived": "Mínimo a recibir",
+            "requested": "Solicitado",
+            "sending": "Enviando",
+            "tokenAndNetwork": "Token y red",
+            "networkFee": "Comisión de red",
+            "peanutFee": "Comisión de Peanut",
+            "slippageInfo": "Esta transacción puede sufrir slippage debido a la conversión de tokens o al puente entre cadenas."
+        },
+        "input": {
+            "freeTransactionsHint": "¡Usa USDC en Arbitrum para transacciones gratis!"
+        },
+        "receipt": {
+            "unableToLoad": "No se pudieron cargar los detalles del recibo"
+        },
+        "minAmount": {
+            "title": "Monto mínimo",
+            "description": "El monto mínimo para este método de pago es de ${minAmount}. Ingresa un monto mayor o prueba con otro método."
+        },
+        "usePeanutBalance": {
+            "title": "Usa tu saldo de Peanut",
+            "description": "Ya tienes fondos suficientes en tu cuenta de Peanut. Este método es instantáneo y evita demoras.",
+            "payWithPeanut": "Pagar con Peanut"
+        },
+        "requiresVerification": "REQUIERE VERIFICACIÓN",
+        "contributors": {
+            "seeAll": "Ver todos los contribuyentes",
+            "title": "Contribuyentes ({count})"
+        },
+        "errors": {
+            "insufficientPayment": "No tienes saldo suficiente para completar este pago con Peanut",
+            "insufficientRequest": "No tienes saldo suficiente para completar esta solicitud con Peanut",
+            "missingData": "faltan datos requeridos",
+            "pleaseLoginToContinue": "Inicia sesión para continuar",
+            "logInToContinue": "inicia sesión para continuar",
+            "paymentDetailsLoadFailed": "no se pudieron cargar los detalles del pago",
+            "noRequestId": "no se proporcionó un id de solicitud",
+            "requestLoadFailed": "no se pudo cargar la solicitud. es posible que no exista o que haya sido eliminada.",
+            "requestNotFound": "solicitud no encontrada",
+            "invalidUrlFormat": "Formato de URL no válido",
+            "invalidPaymentUrl": "url de pago no válida",
+            "userNotFound": "el usuario @{username} no existe o no tiene una billetera de peanut",
+            "usernameArbitrumOnly": "Los pagos a nombres de usuario de Peanut solo se pueden hacer en Arbitrum"
         }
     },
     "claim": {
@@ -1750,6 +1821,7 @@
         "notNow": "Ahora no"
     },
     "kyc": {
+        "statusDrawerTitle": "Estado de KYC",
         "identityVerification": "Verificación de identidad",
         "doesntStoreDocuments": "Peanut no guarda ninguno de tus documentos",
         "doesntStoreDocumentsPeriod": "Peanut no guarda ninguno de tus documentos.",
@@ -1836,7 +1908,8 @@
             "exitAndLoseProgressTitle": "¿Salir y perder el progreso?",
             "exitAndLoseProgressDescription": "Si sales ahora, tendrás que empezar la verificación de identidad desde cero.",
             "exit": "Salir",
-            "keepGoing": "Continuar"
+            "keepGoing": "Continuar",
+            "loadError": "No se pudo cargar la verificación. Revisa tu conexión e inténtalo de nuevo."
         },
         "provideEmail": {
             "title": "Agrega tu correo para continuar",
@@ -2156,6 +2229,9 @@
         "txReverted": "La transacción fue revertida, inténtalo de nuevo"
     },
     "global": {
+        "amountInput": {
+            "balance": "Saldo:"
+        },
         "tokenSelector": {
             "selectAToken": "Elige un token",
             "onChain": "en <c>{chainName}</c>",

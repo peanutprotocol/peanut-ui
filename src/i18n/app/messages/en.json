@@ -697,6 +697,77 @@
             "title": "Something went wrong!",
             "description": "An error occurred while loading the payment page.",
             "contactSupport": "Contact Support"
+        },
+        "headers": {
+            "pay": "Pay",
+            "send": "Send",
+            "receipt": "Receipt",
+            "confirmPayment": "Confirm Payment",
+            "contribute": "Contribute"
+        },
+        "actions": {
+            "send": "Send"
+        },
+        "success": {
+            "addedExternal": "You successfully added",
+            "withdrew": "You just withdrew",
+            "sent": "You sent ",
+            "requested": "You requested ",
+            "added": "You added ",
+            "toPrefix": "to",
+            "forPrefix": "for",
+            "backToHome": "Back to home",
+            "seeReceipt": "See receipt"
+        },
+        "cta": {
+            "join": "Join",
+            "addFundsTo": "Add funds to",
+            "sendWith": "Send with"
+        },
+        "confirm": {
+            "sponsoredByPeanut": "Sponsored by Peanut!",
+            "minReceived": "Min Received",
+            "requested": "Requested",
+            "sending": "Sending",
+            "tokenAndNetwork": "Token and network",
+            "networkFee": "Network fee",
+            "peanutFee": "Peanut fee",
+            "slippageInfo": "This transaction may face slippage due to token conversion or cross-chain bridging."
+        },
+        "input": {
+            "freeTransactionsHint": "Use USDC on Arbitrum for free transactions!"
+        },
+        "receipt": {
+            "unableToLoad": "Unable to load receipt details"
+        },
+        "minAmount": {
+            "title": "Minimum Amount",
+            "description": "The minimum amount for this payment method is ${minAmount}. Please enter a higher amount or try a different method."
+        },
+        "usePeanutBalance": {
+            "title": "Use your Peanut balance instead",
+            "description": "You already have enough funds in your Peanut account. Using this method is instant and avoids delays.",
+            "payWithPeanut": "Pay with Peanut"
+        },
+        "requiresVerification": "REQUIRES VERIFICATION",
+        "contributors": {
+            "seeAll": "See all contributors",
+            "title": "Contributors ({count})"
+        },
+        "errors": {
+            "insufficientPayment": "Not enough balance to fulfill this payment with Peanut",
+            "insufficientRequest": "Not enough balance to fulfill this request with Peanut",
+            "missingData": "missing required data",
+            "pleaseLoginToContinue": "Please login to continue",
+            "logInToContinue": "please log in to continue",
+            "paymentDetailsLoadFailed": "failed to load payment details",
+            "noRequestId": "no request id provided",
+            "requestLoadFailed": "failed to load request. it may not exist or has been deleted.",
+            "requestNotFound": "request not found",
+            "invalidUrlFormat": "Invalid URL format",
+            "invalidPaymentUrl": "invalid payment url",
+            "userNotFound": "user @{username} not found or has no peanut wallet",
+            "usernameArbitrumOnly": "Payments to Peanut usernames can only be made on Arbitrum"
         }
     },
     "claim": {
@@ -1750,6 +1821,7 @@
         "notNow": "Not now"
     },
     "kyc": {
+        "statusDrawerTitle": "KYC Status",
         "identityVerification": "Identity verification",
         "doesntStoreDocuments": "Peanut doesn't store any of your documents",
         "doesntStoreDocumentsPeriod": "Peanut doesn't store any of your documents.",
@@ -1836,7 +1908,8 @@
             "exitAndLoseProgressTitle": "Exit and lose progress?",
             "exitAndLoseProgressDescription": "If you exit now, you'll need to start the ID check again from scratch.",
             "exit": "Exit",
-            "keepGoing": "Keep going"
+            "keepGoing": "Keep going",
+            "loadError": "Failed to load verification. Please check your connection and try again."
         },
         "provideEmail": {
             "title": "Add your email to continue",
@@ -2156,6 +2229,9 @@
         "txReverted": "Transaction reverted, please try again"
     },
     "global": {
+        "amountInput": {
+            "balance": "Balance:"
+        },
         "tokenSelector": {
             "selectAToken": "Select a token",
             "onChain": "on <c>{chainName}</c>",

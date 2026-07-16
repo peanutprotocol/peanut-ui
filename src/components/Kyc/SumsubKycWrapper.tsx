@@ -342,11 +342,9 @@ export const SumsubKycWrapper = ({
                 ) : sdkLoadError ? (
                     <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
                         <Icon name="alert" size={24} className="text-red-500" />
-                        <p className="text-center text-lg font-medium">
-                            Failed to load verification. Please check your connection and try again.
-                        </p>
+                        <p className="text-center text-lg font-medium">{t('wrapper.loadError')}</p>
                         <Button variant="purple" shadowSize="4" onClick={onClose}>
-                            Close
+                            {tCommon('close')}
                         </Button>
                     </div>
                 ) : (

@@ -697,6 +697,77 @@
             "title": "Algo deu errado!",
             "description": "Ocorreu um erro ao carregar a página de pagamento.",
             "contactSupport": "Contatar o suporte"
+        },
+        "headers": {
+            "pay": "Pagar",
+            "send": "Enviar",
+            "receipt": "Recibo",
+            "confirmPayment": "Confirmar pagamento",
+            "contribute": "Contribuir"
+        },
+        "actions": {
+            "send": "Enviar"
+        },
+        "success": {
+            "addedExternal": "Você adicionou com sucesso",
+            "withdrew": "Você acabou de sacar",
+            "sent": "Você enviou ",
+            "requested": "Você solicitou ",
+            "added": "Você adicionou ",
+            "toPrefix": "para",
+            "forPrefix": "por",
+            "backToHome": "Voltar ao início",
+            "seeReceipt": "Ver recibo"
+        },
+        "cta": {
+            "join": "Junte-se à",
+            "addFundsTo": "Adicionar fundos à",
+            "sendWith": "Enviar com"
+        },
+        "confirm": {
+            "sponsoredByPeanut": "Patrocinado pela Peanut!",
+            "minReceived": "Mínimo a receber",
+            "requested": "Solicitado",
+            "sending": "Enviando",
+            "tokenAndNetwork": "Token e rede",
+            "networkFee": "Taxa de rede",
+            "peanutFee": "Taxa da Peanut",
+            "slippageInfo": "Esta transação pode sofrer slippage devido à conversão de tokens ou à ponte entre redes."
+        },
+        "input": {
+            "freeTransactionsHint": "Use USDC na Arbitrum para transações gratuitas!"
+        },
+        "receipt": {
+            "unableToLoad": "Não foi possível carregar os detalhes do recibo"
+        },
+        "minAmount": {
+            "title": "Valor mínimo",
+            "description": "O valor mínimo para este método de pagamento é ${minAmount}. Insira um valor maior ou tente outro método."
+        },
+        "usePeanutBalance": {
+            "title": "Use seu saldo da Peanut",
+            "description": "Você já tem fundos suficientes na sua conta Peanut. Este método é instantâneo e evita atrasos.",
+            "payWithPeanut": "Pagar com Peanut"
+        },
+        "requiresVerification": "REQUER VERIFICAÇÃO",
+        "contributors": {
+            "seeAll": "Ver todos os contribuidores",
+            "title": "Contribuidores ({count})"
+        },
+        "errors": {
+            "insufficientPayment": "Saldo insuficiente para concluir este pagamento com a Peanut",
+            "insufficientRequest": "Saldo insuficiente para concluir esta solicitação com a Peanut",
+            "missingData": "dados obrigatórios ausentes",
+            "pleaseLoginToContinue": "Faça login para continuar",
+            "logInToContinue": "faça login para continuar",
+            "paymentDetailsLoadFailed": "não foi possível carregar os detalhes do pagamento",
+            "noRequestId": "nenhum id de solicitação fornecido",
+            "requestLoadFailed": "não foi possível carregar a solicitação. ela pode não existir ou ter sido excluída.",
+            "requestNotFound": "solicitação não encontrada",
+            "invalidUrlFormat": "Formato de URL inválido",
+            "invalidPaymentUrl": "url de pagamento inválida",
+            "userNotFound": "o usuário @{username} não existe ou não tem uma carteira peanut",
+            "usernameArbitrumOnly": "Pagamentos para nomes de usuário da Peanut só podem ser feitos na Arbitrum"
         }
     },
     "claim": {
@@ -1750,6 +1821,7 @@
         "notNow": "Agora não"
     },
     "kyc": {
+        "statusDrawerTitle": "Status do KYC",
         "identityVerification": "Verificação de identidade",
         "doesntStoreDocuments": "A Peanut não armazena nenhum dos seus documentos",
         "doesntStoreDocumentsPeriod": "A Peanut não armazena nenhum dos seus documentos.",
@@ -1836,7 +1908,8 @@
             "exitAndLoseProgressTitle": "Sair e perder o progresso?",
             "exitAndLoseProgressDescription": "Se sair agora, você vai precisar refazer a verificação do documento do zero.",
             "exit": "Sair",
-            "keepGoing": "Continuar"
+            "keepGoing": "Continuar",
+            "loadError": "Não foi possível carregar a verificação. Verifique sua conexão e tente novamente."
         },
         "provideEmail": {
             "title": "Adicione seu e-mail para continuar",
@@ -2156,6 +2229,9 @@
         "txReverted": "A transação foi revertida, tente novamente"
     },
     "global": {
+        "amountInput": {
+            "balance": "Saldo:"
+        },
         "tokenSelector": {
             "selectAToken": "Escolha um token",
             "onChain": "em <c>{chainName}</c>",

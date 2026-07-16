@@ -5,8 +5,10 @@ import { useQuery } from '@tanstack/react-query'
 import { rhinoApi } from '@/services/rhino'
 import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
 import type { RhinoChainType } from '@/services/services.types'
+import { useTranslations } from 'next-intl'
 
 const SemanticRequestExternalWalletView = () => {
+    const t = useTranslations('payment')
     const { charge, setCurrentView, setIsExternalWalletPayment, amount } = useSemanticRequestFlow()
     const [chainType, setChainType] = useState<RhinoChainType>('EVM')
     const { address: peanutWalletAddress } = useWallet()
@@ -30,7 +32,7 @@ const SemanticRequestExternalWalletView = () => {
 
     return (
         <RhinoDepositView
-            headerTitle="Pay"
+            headerTitle={t('headers.pay')}
             chainType={chainType}
             setChainType={setChainType}
             depositAddressData={depositAddressData}
