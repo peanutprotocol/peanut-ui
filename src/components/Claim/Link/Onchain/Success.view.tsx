@@ -20,6 +20,7 @@ import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import { PeanutCheering } from '@/assets/mascot'
 import Image from 'next/image'
 import { useHaptic } from 'use-haptic'
+import { useTranslations } from 'next-intl'
 
 export const SuccessClaimLinkView = ({
     transactionHash,
@@ -27,6 +28,7 @@ export const SuccessClaimLinkView = ({
     claimLinkData,
     tokenPrice,
 }: _consts.IClaimScreenProps) => {
+    const t = useTranslations('claim')
     const { user: authUser } = useUserStore()
     const { fetchUser } = useAuth()
     const router = useRouter()
@@ -117,20 +119,20 @@ export const SuccessClaimLinkView = ({
 
     const maskedAccountNumber = useMemo(() => {
         if (bankDetails?.iban) {
-            return `to ${shortenStringLong(bankDetails.iban)}`
+            return t('success.toAccount', { account: shortenStringLong(bankDetails.iban) })
         }
         if (bankDetails?.clabe) {
-            return `to ${shortenStringLong(bankDetails.clabe)}`
+            return t('success.toAccount', { account: shortenStringLong(bankDetails.clabe) })
         }
         if (bankDetails?.accountNumber) {
-            return `to ${shortenStringLong(bankDetails.accountNumber)}`
+            return t('success.toAccount', { account: shortenStringLong(bankDetails.accountNumber) })
         }
-        return 'to your bank account'
-    }, [bankDetails])
+        return t('success.toYourBankAccount')
+    }, [bankDetails, t])
 
     const isBankClaim = claimType === 'claim-bank'
 
-    const navHeaderTitle = 'Receive'
+    const navHeaderTitle = t('receive')
 
     const cardProps = {
         viewType: 'SUCCESS' as const,
@@ -145,8 +147,8 @@ export const SuccessClaimLinkView = ({
               ) ?? '')
             : formatUnits(claimLinkData.amount, tokenDetails?.decimals ?? 6),
         tokenSymbol: isBankClaim ? (offrampDetails?.quote.destination_currency ?? '') : claimLinkData.tokenSymbol,
-        message: isBankClaim ? maskedAccountNumber : `from ${senderDisplay.displayName}`,
-        title: isBankClaim ? 'You will receive' : 'You claimed',
+        message: isBankClaim ? maskedAccountNumber : t('success.fromSender', { sender: senderDisplay.displayName }),
+        title: isBankClaim ? t('success.youWillReceive') : t('success.youClaimed'),
     }
 
     const renderButtons = () => {
@@ -160,7 +162,7 @@ export const SuccessClaimLinkView = ({
                     }}
                     className="w-full"
                 >
-                    Back to home
+                    {t('backToHome')}
                 </Button>
             )
         }
@@ -188,7 +190,7 @@ export const SuccessClaimLinkView = ({
                 <Image
                     src={PeanutCheering.src}
                     unoptimized
-                    alt="Peanut Mascot"
+                    alt={t('success.peanutMascotAlt')}
                     width={240}
                     height={240}
                     className="absolute -top-32 left-1/2 -z-10 h-60 w-60 -translate-x-1/2"
@@ -196,9 +198,7 @@ export const SuccessClaimLinkView = ({
                 <PeanutActionDetailsCard {...cardProps} />
                 {renderButtons()}
                 {campaignTag === 'devconnect_ba_2025' && (
-                    <p className="text-center text-xs text-grey-1">
-                        Tap the X button at the top left to return to the Devconnect app
-                    </p>
+                    <p className="text-center text-xs text-grey-1">{t('success.devconnectReturnHint')}</p>
                 )}
             </div>
         </div>

@@ -10,6 +10,7 @@ import { type Dispatch, type FC, type SetStateAction, useState } from 'react'
 import useClaimLink from '@/components/Claim/useClaimLink'
 import * as Sentry from '@sentry/nextjs'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
+import { useTranslations } from 'next-intl'
 
 interface MantecaReviewStepProps {
     setCurrentStep: Dispatch<SetStateAction<MercadoPagoStep>>
@@ -26,6 +27,8 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
     amount,
     currency,
 }) => {
+    const t = useTranslations('claim')
+    const tNav = useTranslations('navigation')
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const { price, isLoading } = useCurrency(currency)
@@ -34,19 +37,19 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
     const detailsCardRows: MantecaCardRow[] = [
         {
             key: 'destinationAddress',
-            label: 'Destination Address',
+            label: t('manteca.destinationAddress'),
             value: destinationAddress,
             allowCopy: true,
         },
         {
             key: 'exchangeRate',
-            label: 'Exchange Rate',
+            label: t('manteca.exchangeRate'),
             value: `1 USD = ${price?.buy} ${currency}`,
         },
         {
             key: 'fee',
-            label: 'Fee',
-            value: 'Sponsored by Peanut',
+            label: t('fee'),
+            value: t('manteca.sponsoredByPeanut'),
             hideBottomBorder: true,
         },
     ]
@@ -63,7 +66,7 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
                 })
 
                 if (!txHash) {
-                    setError('Claim failed: missing transaction hash.')
+                    setError(t('manteca.errors.missingTxHash'))
                     return
                 }
 
@@ -86,10 +89,7 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
                     } catch (retryError) {
                         console.error('Failed to associate claim after retry:', retryError)
                         // Show warning but don't block - user's funds are safe
-                        setError(
-                            'Withdrawal successful! Your funds are being processed. ' +
-                                "If the transaction doesn't appear in your history within 5 minutes, please contact support."
-                        )
+                        setError(t('manteca.errors.withdrawalProcessing'))
                         Sentry.captureException(retryError, {
                             tags: { feature: 'manteca-claim-association-retry-failed' },
                             extra: { txHash, claimLink },
@@ -108,15 +108,15 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
                 if (withdrawError || !data) {
                     // handle third-party account error with user-friendly message
                     if (withdrawError === 'TAX_ID_MISMATCH' || withdrawError === 'CUIT_MISMATCH') {
-                        setError('You can only withdraw to accounts under your name.')
+                        setError(t('manteca.ownAccountOnly'))
                     } else {
-                        setError(withdrawError || 'Something went wrong. Please contact Support')
+                        setError(withdrawError || t('manteca.errors.generic'))
                     }
                     return
                 }
                 setCurrentStep(MercadoPagoStep.SUCCESS)
             } catch (error) {
-                setError(error instanceof Error ? error.message : 'Something went wrong. Please contact Support')
+                setError(error instanceof Error ? error.message : t('manteca.errors.generic'))
                 console.error('Error claiming link:', error)
             } finally {
                 setIsSubmitting(false)
@@ -134,7 +134,7 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
 
             {error && <ErrorAlert description={error} />}
             <Button disabled={isSubmitting} loading={isSubmitting} shadowSize="4" onClick={handleWithdraw}>
-                Withdraw
+                {tNav('withdraw')}
             </Button>
         </>
     )

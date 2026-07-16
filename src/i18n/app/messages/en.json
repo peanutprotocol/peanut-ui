@@ -695,6 +695,112 @@
             "contactSupport": "Contact Support"
         }
     },
+    "claim": {
+        "receive": "Receive",
+        "receiveNow": "Receive now",
+        "receiving": "Receiving",
+        "review": "Review",
+        "backToHome": "Back to home",
+        "fee": "Fee",
+        "loading": {
+            "loadingYourLink": "Loading your link...",
+            "takingLonger": "This is taking longer than usual. The link might have just been created.",
+            "stillTrying": "We're still trying... (attempt {attempt}/{total})"
+        },
+        "errors": {
+            "sadPeanutAlt": "Sad peanut 😢",
+            "talkToSupport": "Talk to support",
+            "goBackToHome": "Go back to home",
+            "supportPrefill": "I clicked on this link but got an error: {url}",
+            "wrongPasswordTitle": "Wrong password!",
+            "wrongPasswordMessage": "Are you sure you clicked on the right link?",
+            "brokenLinkTitle": "This link seems broken!",
+            "brokenLinkMessage": "Are you sure you clicked on the right link? Was this link just created? Try again in a few seconds.",
+            "retryLoadingLink": "Retry Loading Link",
+            "missingInviter": "Unable to accept invite: missing inviter. Please contact support.",
+            "generic": "Something went wrong. Please try again or contact support.",
+            "offrampUnavailable": "Offramp unavailable",
+            "bankClaimUnavailable": "You can not claim this link to your bank account."
+        },
+        "claimed": {
+            "title": "Link no longer available",
+            "description": "The <b>${amount}</b> has already been claimed.",
+            "descriptionWithSender": "The <b>${amount}</b> sent by <b>{sender}</b> has already been claimed.",
+            "createWalletHint": "Create a wallet to receive future links.",
+            "getStarted": "Get Started"
+        },
+        "initial": {
+            "receiveOn": "Receive on",
+            "recipientPlaceholder": "Enter a username, an address or ENS",
+            "usdcArbitrumOnly": "You can only claim USDC on Arbitrum for Peanut Wallet users."
+        },
+        "addressCompatible": {
+            "title": "Is this address compatible?",
+            "line1": "Only claim to an address that support the selected network and token.",
+            "line2": "Incorrect transfers may be lost. If you're unsure, do not proceed.",
+            "claimToPeanut": "Not sure? Claim to peanut instead"
+        },
+        "guestVerification": {
+            "otherMethod": "Claim with other method",
+            "description": "The sender isn't verified for this method. You'll have to create an account, verify your identity, and then your funds will be deposited to your bank."
+        },
+        "actions": {
+            "claimOn": "Claim on",
+            "continueWith": "Continue with",
+            "devconnectApp": "Devconnect app",
+            "devconnectLogoAlt": "Devconnect Logo",
+            "starAlt": "star",
+            "invitedBy": "Invited by {username}, you have early access!",
+            "requiresVerification": "REQUIRES VERIFICATION"
+        },
+        "minAmount": {
+            "title": "Minimum Amount",
+            "thisPaymentMethod": "this payment method",
+            "description": "The minimum amount for {method} is ${amount}. Please try a different method."
+        },
+        "confirm": {
+            "minReceived": "Min Received",
+            "slippageInfo": "This transaction may face slippage due to token conversion or cross-chain bridging.",
+            "tokenAndNetwork": "Token and network",
+            "tokenAlt": "token",
+            "chainAlt": "chain",
+            "tokenOnChain": "{token} on <c>{chain}</c>",
+            "maxNetworkFee": "Max network fee",
+            "peanutFee": "Peanut fee",
+            "sponsoredByPeanut": "Sponsored by Peanut!"
+        },
+        "success": {
+            "peanutMascotAlt": "Peanut Mascot",
+            "toAccount": "to {account}",
+            "toYourBankAccount": "to your bank account",
+            "fromSender": "from {sender}",
+            "youWillReceive": "You will receive",
+            "youClaimed": "You claimed",
+            "devconnectReturnHint": "Tap the X button at the top left to return to the Devconnect app"
+        },
+        "bank": {
+            "selectCountry": "Select your bank account's country",
+            "fullName": "Full name",
+            "accountNumber": "Account Number",
+            "routingNumber": "Routing Number",
+            "countryNotSelected": "Country not selected",
+            "processAccountFailed": "Failed to process bank account. Please try again."
+        },
+        "manteca": {
+            "youWillReceive": "You’ll receive",
+            "receiveIn": "Receive in {method}",
+            "enterAccountDetails": "Enter account details",
+            "ownAccountOnly": "You can only withdraw to accounts under your name.",
+            "destinationAddress": "Destination Address",
+            "exchangeRate": "Exchange Rate",
+            "sponsoredByPeanut": "Sponsored by Peanut",
+            "errors": {
+                "missingTxHash": "Claim failed: missing transaction hash.",
+                "withdrawalProcessing": "Withdrawal successful! Your funds are being processed. If the transaction doesn't appear in your history within 5 minutes, please contact support.",
+                "generic": "Something went wrong. Please contact Support"
+            }
+        }
+    },
     "qrPay": {
         "youArePaying": "You're paying",
         "paymentMethodAlt": "Payment method",

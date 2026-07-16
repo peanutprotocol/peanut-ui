@@ -8,6 +8,8 @@
  */
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 
 // ---------- module-level mocks (before importing the component) ----------
 
@@ -126,7 +128,11 @@ const claimLinkData = {
 } as any
 
 function renderList() {
-    return render(<SendLinkActionList claimLinkData={claimLinkData} isLoggedIn isInviteLink={false} />)
+    return render(
+        <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+            <SendLinkActionList claimLinkData={claimLinkData} isLoggedIn isInviteLink={false} />
+        </NextIntlClientProvider>
+    )
 }
 
 beforeEach(() => {

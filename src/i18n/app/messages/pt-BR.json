@@ -695,6 +695,112 @@
             "contactSupport": "Contatar o suporte"
         }
     },
+    "claim": {
+        "receive": "Receber",
+        "receiveNow": "Receber agora",
+        "receiving": "Recebendo",
+        "review": "Revisar",
+        "backToHome": "Voltar ao início",
+        "fee": "Taxa",
+        "loading": {
+            "loadingYourLink": "Carregando seu link...",
+            "takingLonger": "Isso está demorando mais que o normal. O link pode ter sido criado agora há pouco.",
+            "stillTrying": "Ainda estamos tentando... (tentativa {attempt}/{total})"
+        },
+        "errors": {
+            "sadPeanutAlt": "Peanut triste 😢",
+            "talkToSupport": "Falar com o suporte",
+            "goBackToHome": "Voltar ao início",
+            "supportPrefill": "Cliquei neste link mas deu erro: {url}",
+            "wrongPasswordTitle": "Senha incorreta!",
+            "wrongPasswordMessage": "Tem certeza de que clicou no link certo?",
+            "brokenLinkTitle": "Este link parece quebrado!",
+            "brokenLinkMessage": "Tem certeza de que clicou no link certo? O link acabou de ser criado? Tente de novo em alguns segundos.",
+            "retryLoadingLink": "Tentar carregar o link de novo",
+            "missingInviter": "Não foi possível aceitar o convite: falta quem convidou. Fale com o suporte.",
+            "generic": "Algo deu errado. Tente de novo ou fale com o suporte.",
+            "offrampUnavailable": "Saque indisponível",
+            "bankClaimUnavailable": "Você não pode resgatar este link para sua conta bancária."
+        },
+        "claimed": {
+            "title": "O link não está mais disponível",
+            "description": "Os <b>${amount}</b> já foram resgatados.",
+            "descriptionWithSender": "Os <b>${amount}</b> enviados por <b>{sender}</b> já foram resgatados.",
+            "createWalletHint": "Crie uma carteira para receber links no futuro.",
+            "getStarted": "Começar"
+        },
+        "initial": {
+            "receiveOn": "Receber em",
+            "recipientPlaceholder": "Digite um usuário, um endereço ou ENS",
+            "usdcArbitrumOnly": "Você só pode resgatar USDC na Arbitrum para usuários da Peanut Wallet."
+        },
+        "addressCompatible": {
+            "title": "Este endereço é compatível?",
+            "line1": "Resgate apenas para um endereço que aceite a rede e o token selecionados.",
+            "line2": "Transferências incorretas podem ser perdidas. Se tiver dúvida, não continue.",
+            "claimToPeanut": "Na dúvida? Resgate na Peanut"
+        },
+        "guestVerification": {
+            "otherMethod": "Resgatar com outro método",
+            "description": "Quem enviou não está verificado para este método. Você vai precisar criar uma conta, verificar sua identidade e então seus fundos serão depositados no seu banco."
+        },
+        "actions": {
+            "claimOn": "Resgatar no",
+            "continueWith": "Continuar com",
+            "devconnectApp": "app da Devconnect",
+            "devconnectLogoAlt": "Logo da Devconnect",
+            "starAlt": "estrela",
+            "invitedBy": "{username} te convidou, você tem acesso antecipado!",
+            "requiresVerification": "EXIGE VERIFICAÇÃO"
+        },
+        "minAmount": {
+            "title": "Valor mínimo",
+            "thisPaymentMethod": "este método de pagamento",
+            "description": "O valor mínimo para {method} é ${amount}. Tente outro método."
+        },
+        "confirm": {
+            "minReceived": "Mínimo a receber",
+            "slippageInfo": "Esta transação pode ter slippage por causa da conversão de tokens ou da ponte entre redes.",
+            "tokenAndNetwork": "Token e rede",
+            "tokenAlt": "token",
+            "chainAlt": "rede",
+            "tokenOnChain": "{token} na <c>{chain}</c>",
+            "maxNetworkFee": "Taxa máxima de rede",
+            "peanutFee": "Taxa do Peanut",
+            "sponsoredByPeanut": "Patrocinada pelo Peanut!"
+        },
+        "success": {
+            "peanutMascotAlt": "Mascote do Peanut",
+            "toAccount": "para {account}",
+            "toYourBankAccount": "para sua conta bancária",
+            "fromSender": "de {sender}",
+            "youWillReceive": "Você vai receber",
+            "youClaimed": "Você resgatou",
+            "devconnectReturnHint": "Toque no botão X no canto superior esquerdo para voltar ao app da Devconnect"
+        },
+        "bank": {
+            "selectCountry": "Selecione o país da sua conta bancária",
+            "fullName": "Nome completo",
+            "accountNumber": "Número da conta",
+            "routingNumber": "Número de routing",
+            "countryNotSelected": "País não selecionado",
+            "processAccountFailed": "Não foi possível processar a conta bancária. Tente de novo."
+        },
+        "manteca": {
+            "youWillReceive": "Você vai receber",
+            "receiveIn": "Receber no {method}",
+            "enterAccountDetails": "Digite os dados da conta",
+            "ownAccountOnly": "Você só pode sacar para contas no seu nome.",
+            "destinationAddress": "Endereço de destino",
+            "exchangeRate": "Taxa de câmbio",
+            "sponsoredByPeanut": "Patrocinada pelo Peanut",
+            "errors": {
+                "missingTxHash": "Falha no resgate: hash da transação ausente.",
+                "withdrawalProcessing": "Saque realizado! Seus fundos estão sendo processados. Se a transação não aparecer no seu histórico em 5 minutos, fale com o suporte.",
+                "generic": "Algo deu errado. Fale com o suporte"
+            }
+        }
+    },
     "qrPay": {
         "youArePaying": "Você está pagando",
         "paymentMethodAlt": "Método de pagamento",

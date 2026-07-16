@@ -40,6 +40,7 @@ import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useModalsContext } from '@/context/ModalsContext'
+import { useTranslations } from 'next-intl'
 
 type BankAccountWithId = IBankAccountDetails &
     (
@@ -55,6 +56,7 @@ type BankAccountWithId = IBankAccountDetails &
  * It handles creating off-ramps, adding bank accounts, and orchestrating the KYC process.
  */
 export const BankFlowManager = (props: IClaimScreenProps) => {
+    const t = useTranslations('claim')
     // props and basic setup
     const { onCustom, claimLinkData, setTransactionHash } = props
     const { user, fetchUser } = useAuth()
@@ -378,7 +380,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     setReceiverFullName(`${bankDetails.firstName} ${bankDetails.lastName}`)
                     setClaimBankFlowStep(ClaimBankFlowStep.BankConfirmClaim)
                 } else {
-                    return { error: 'Failed to process bank account. Please try again.' }
+                    return { error: t('bank.processAccountFailed') }
                 }
             } finally {
                 setIsProcessingKycSuccess(false)
@@ -388,7 +390,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         // scenario 3: guest user is claiming (using sender's KYC)
         else if (bankClaimType === BankClaimType.GuestBankClaim) {
             if (!selectedCountry) {
-                const err = 'Country not selected'
+                const err = t('bank.countryNotSelected')
                 setError(err)
                 return { error: err }
             }
@@ -486,7 +488,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         case ClaimBankFlowStep.SavedAccountsList:
             return (
                 <SavedAccountsView
-                    pageTitle="Receive"
+                    pageTitle={t('receive')}
                     onPrev={() => setClaimBankFlowStep(null)}
                     savedAccounts={savedAccounts}
                     onAccountClick={async (account) => {
@@ -538,13 +540,13 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 />
             )
         case ClaimBankFlowStep.BankCountryList:
-            return <CountryListRouter claimLinkData={claimLinkData} inputTitle="Select your bank account's country" />
+            return <CountryListRouter claimLinkData={claimLinkData} inputTitle={t('bank.selectCountry')} />
         case ClaimBankFlowStep.BankDetailsForm:
             return (
                 <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
                     <div>
                         <NavHeader
-                            title="Receive"
+                            title={t('receive')}
                             onPrev={() => {
                                 dispatch(bankFormActions.clearFormData()) // clear DynamicBankAccountForm data
                                 if (savedAccounts.length > 0) {
