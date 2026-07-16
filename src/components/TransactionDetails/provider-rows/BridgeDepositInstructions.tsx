@@ -6,7 +6,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME } from '@/constants/payment.consts'
+import { resolveBridgeAccountHolderName } from '@/constants/payment.consts'
 import { shortDepositReference } from '@/utils/format.utils'
 import { formatIban } from '@/utils/general.utils'
 
@@ -67,11 +67,10 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
             {/* Collapsible bank details */}
             {showBankDetails && (
                 <>
-                    {/* Fallback to bridge as account holder name — covers faster_payments
-                        onramps where bridge doesn't return an account holder name. */}
+                    {/* resolveBridgeAccountHolderName maps Bridge's stale/absent legal entity name to the current one (Sp. Z.o.o. -> S.A.) */}
                     <PaymentInfoRow
                         label="Account Holder Name"
-                        value={instructions.account_holder_name || BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME}
+                        value={resolveBridgeAccountHolderName(instructions.account_holder_name)}
                         allowCopy
                         hideBottomBorder={false}
                     />

@@ -1,3 +1,4 @@
+import DocsLink from '@/components/Global/DocsLink'
 import { Button } from '@/components/0_Bruddle/Button'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useAppDispatch } from '@/redux/hooks'
@@ -198,14 +199,9 @@ const SignTestTransaction = () => {
                 </div>
                 <div>
                     <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
-                        <a
-                            className="underline underline-offset-2"
-                            href="/en/help/passkeys"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
+                        <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
                             Learn more about what Passkeys are
-                        </a>{' '}
+                        </DocsLink>{' '}
                     </p>
                 </div>
             </div>
@@ -216,14 +212,9 @@ const SignTestTransaction = () => {
 export const PasskeyDocsLink = ({ className }: { className?: string }) => {
     return (
         <p className={twMerge('border-t border-grey-1 pt-2 text-center text-xs text-grey-1', className)}>
-            <a
-                className="underline underline-offset-2"
-                href="/en/help/passkeys"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
+            <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
                 Learn more about what Passkeys are
-            </a>{' '}
+            </DocsLink>{' '}
         </p>
     )
 }

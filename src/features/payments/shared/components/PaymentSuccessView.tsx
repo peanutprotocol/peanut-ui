@@ -31,6 +31,8 @@ import { useUserStore } from '@/redux/hooks'
 import type { TRequestChargeResponse, PaymentCreationResponse, ChargeEntry } from '@/services/services.types'
 import { formatAmount, getInitialsFromName } from '@/utils/general.utils'
 import { resolveRecipientDisplay } from '@/utils/recipient-display'
+import { isDemoMode } from '@/utils/demo'
+import { recordDemoTransaction } from '@/utils/demo-transactions'
 import { useQueryClient } from '@tanstack/react-query'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -220,8 +222,24 @@ const PaymentSuccessView = ({
     }, [points, isWithdrawFlow, type, authUser?.invitedBy])
 
     useEffect(() => {
+        // demo: log this send so it shows up in Activity (no backend to fetch it from).
+        if (isDemoMode() && (type === 'SEND' || isWithdrawFlow)) {
+            const txHash = paymentDetails?.payerTransactionHash
+            if (txHash) {
+                recordDemoTransaction({
+                    amount: String(amountValue),
+                    recipientName,
+                    recipientUsername: user?.username,
+                    recipientAddress: chargeDetails?.requestLink?.recipientAddress,
+                    txHash,
+                    createdAt: paymentDetails?.createdAt ?? chargeDetails?.createdAt,
+                    memo: chargeDetails?.requestLink?.reference || undefined,
+                })
+            }
+        }
         // invalidate queries to refetch history
         queryClient?.invalidateQueries({ queryKey: [TRANSACTIONS] })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [queryClient])
 
     const handleDone = () => {

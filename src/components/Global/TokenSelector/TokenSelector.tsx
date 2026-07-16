@@ -15,7 +15,13 @@ import { twMerge } from 'tailwind-merge'
 
 import { Button } from '@/components/0_Bruddle/Button'
 import Divider from '@/components/0_Bruddle/Divider'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import {
+    PEANUT_WALLET_CHAIN,
+    PEANUT_WALLET_TOKEN,
+    PEANUT_WALLET_TOKEN_SYMBOL,
+    PEANUT_WALLET_TOKEN_DECIMALS,
+    PEANUT_WALLET_TOKEN_NAME,
+} from '@/constants/zerodev.consts'
 import { tokenSelectorContext } from '@/context'
 import { type IToken, type IUserBalance } from '@/interfaces'
 import { areEvmAddressesEqual, isNativeCurrency, getChainName } from '@/utils/general.utils'
@@ -33,8 +39,13 @@ import {
     TOKEN_SELECTOR_POPULAR_NETWORK_IDS,
     TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS,
 } from './TokenSelector.consts'
+import { useChainRollout } from '@/hooks/useChainRollout'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
+
+// USDC logo for the hardcoded USDC-on-Arbitrum fallback (when the token list
+// hasn't loaded — e.g. demo mode — and cross-chain is disabled).
+const USDC_ARBITRUM_LOGO = 'https://assets.coingecko.com/coins/images/33000/thumb/usdc.png?1700119918'
 
 interface SectionProps {
     title: string
@@ -131,7 +142,13 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     // selected network name memo, being used ui
     const selectedNetworkName = useMemo(() => {
         if (!selectedChainID) return null
-        return getChainName(selectedChainID) || `Chain ${selectedChainID}`
+        // record first — non-EVM slugs ('solana'/'tron') aren't in the
+        // chain-details-backed getChainName lookup
+        return (
+            supportedChainsAndTokens?.[selectedChainID]?.networkName ||
+            getChainName(selectedChainID) ||
+            `Chain ${selectedChainID}`
+        )
     }, [selectedChainID, supportedChainsAndTokens])
 
     const peanutWalletTokenDetails = useMemo(() => {
@@ -174,14 +191,17 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     // list — the destination needs no wallet connection or balance reads, and
     // several deliverable chains (Avalanche, Linea, Ink, …) are intentionally
     // not source chains. Names/icons come from supportedChainsAndTokens.
+    // Per-chain rollout flags (PostHog) gate the newly-added withdraw
+    // destinations on prod so marketing can launch chains one by one.
+    const isChainRolledOut = useChainRollout()
     const allowedChainIds = useMemo(
         () =>
             new Set(
                 restrictToRhino
-                    ? Object.keys(RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN)
+                    ? Object.keys(RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN).filter(isChainRolledOut)
                     : TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS
             ),
-        [restrictToRhino]
+        [restrictToRhino, isChainRolledOut]
     )
 
     const popularChainsForButtons = useMemo(() => {
@@ -203,27 +223,26 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
 
     // build list of popular tokens (usdc, usdt, native) for display
     const popularTokensList = useMemo(() => {
-        // when xchain withdraw is disabled, only show USDC on Arbitrum
-        if (isCrossChainDisabled) {
-            if (!supportedChainsAndTokens) return []
+        // USDC on Arbitrum — the always-available token. Uses the loaded token
+        // metadata when present, else a hardcoded entry so the selector is never
+        // empty (e.g. demo mode, or the token list failing to load).
+        const usdcArbitrumEntry = (): IUserBalance => {
             const arbitrumChainId = PEANUT_WALLET_CHAIN.id.toString()
-            const chainData = supportedChainsAndTokens[arbitrumChainId]
-            if (!chainData?.tokens) return []
-
-            const usdcToken = chainData.tokens.find((t) => areEvmAddressesEqual(t.address, PEANUT_WALLET_TOKEN))
-            if (!usdcToken) return []
-
-            return [
-                {
-                    ...usdcToken,
-                    chainId: arbitrumChainId,
-                    amount: 0,
-                    price: 0,
-                    currency: usdcToken.symbol,
-                    value: '',
-                },
-            ]
+            const usdcToken = supportedChainsAndTokens?.[arbitrumChainId]?.tokens?.find((t) =>
+                areEvmAddressesEqual(t.address, PEANUT_WALLET_TOKEN)
+            )
+            const base = usdcToken ?? {
+                address: PEANUT_WALLET_TOKEN,
+                name: PEANUT_WALLET_TOKEN_NAME,
+                symbol: PEANUT_WALLET_TOKEN_SYMBOL,
+                decimals: PEANUT_WALLET_TOKEN_DECIMALS,
+                logoURI: USDC_ARBITRUM_LOGO,
+            }
+            return { ...base, chainId: arbitrumChainId, amount: 0, price: 0, currency: base.symbol, value: '' }
         }
+
+        // when cross-chain is disabled, USDC on Arbitrum is the only allowed token
+        if (isCrossChainDisabled) return [usdcArbitrumEntry()]
 
         const popularSymbolsToFind = ['USDC', 'USDT']
         const createPopularTokenEntry = (token: IToken, chainId: string): IUserBalance => ({
@@ -317,13 +336,15 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             // source list otherwise.
             return buildTokensForChainArray(Array.from(allowedChainIds), searchValue)
         }
-        if (selectedChainID) {
-            // specific chain selected: show popular (USDC, USDT, Native) for that chain
-            return buildTokensForChainArray([selectedChainID])
-        }
-        // default: popular tokens on popular chains
-        const popularChainIds = popularChainsForButtons.map((pc) => pc.chainId)
-        return buildTokensForChainArray(popularChainIds)
+
+        const result = selectedChainID
+            ? // specific chain selected: show popular (USDC, USDT, Native) for that chain
+              buildTokensForChainArray([selectedChainID])
+            : // default: popular tokens on popular chains
+              buildTokensForChainArray(popularChainsForButtons.map((pc) => pc.chainId))
+
+        // never leave the selector empty — USDC on Arbitrum is always usable
+        return result.length > 0 ? result : [usdcArbitrumEntry()]
     }, [
         searchValue,
         selectedChainID,
@@ -444,7 +465,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                 setSearchValue={setNetworkSearchValue}
                                 selectedChainID={selectedChainID}
                                 allowedChainIds={allowedChainIds}
-                                comingSoonNetworks={TOKEN_SELECTOR_COMING_SOON_NETWORKS}
+                                comingSoonNetworks={restrictToRhino ? [] : TOKEN_SELECTOR_COMING_SOON_NETWORKS}
                             />
                         ) : (
                             <div className="relative flex flex-col space-y-4">

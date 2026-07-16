@@ -20,6 +20,9 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
 
         // in capacitor, install the passkey shim so navigator.credentials.create/get
         // routes through native APIs instead of the browser (which doesn't work in webview).
+        // Session auth on native is cookie-based: the verify endpoints' Set-Cookie lands
+        // in CapacitorHttp's native jar and authenticates every api request — no JS
+        // token capture needed (see src/utils/auth-token.ts).
         if (isCapacitor()) {
             import('@capgo/capacitor-passkey').then(({ CapacitorPasskey }) => {
                 const nativeRpId = getNativeRpId()
@@ -39,13 +42,21 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
                         const shimInstalled = (globalThis as any).__capgoPasskeyShimInstalled === true
                         console.log('[PeanutProvider] passkey shim installed:', shimInstalled)
 
-                        // the shim's credentialFromJSON overrides the prototype with
-                        // PublicKeyCredential.prototype, which in webview is a stub without
-                        // getClientExtensionResults. patch it so @simplewebauthn/browser works.
+                        // the shim's credentialFromJSON replaces its credential's prototype with
+                        // PublicKeyCredential.prototype. WKWebView's native getClientExtensionResults
+                        // brand-checks `this` and throws on shim credentials ("Can only call ... on
+                        // instances of PublicKeyCredential"), breaking both registration and login.
+                        // Wrap it unconditionally: native credentials keep the real behavior, shim
+                        // credentials fall back to their JSON payload.
                         const PKC = globalThis.PublicKeyCredential
-                        if (PKC && !PKC.prototype.getClientExtensionResults) {
+                        if (PKC) {
+                            const nativeGetter = PKC.prototype.getClientExtensionResults
                             PKC.prototype.getClientExtensionResults = function () {
-                                return (this as any).json?.clientExtensionResults ?? {}
+                                try {
+                                    return nativeGetter ? nativeGetter.call(this) : {}
+                                } catch {
+                                    return (this as any).json?.clientExtensionResults ?? {}
+                                }
                             }
                         }
                     })

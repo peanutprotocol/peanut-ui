@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces'
+import { isDemoMode } from '@/utils/demo'
 
 /**
  * hook to check if logged-in user needs to complete account setup
@@ -16,6 +17,8 @@ export const useAccountSetupRedirect = () => {
     // synchronously check if user needs redirect (runs during render, not after)
     const needsRedirect = useMemo(() => {
         if (!user || isFetchingUser || pathName === '/setup/finish') return false
+        // Demo mode: synthetic user is complete; never bounce to setup.
+        if (isDemoMode()) return false
 
         const hasPeanutWalletAccount = user.accounts.some((a) => a.type === AccountType.PEANUT_WALLET)
         return !hasPeanutWalletAccount

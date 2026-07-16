@@ -24,6 +24,21 @@ const SupportDrawer = () => {
 
     const crispProxyUrl = useCrispProxyUrl(userData, prefilledMessage, crispTokenId)
 
+    /*
+     * The proxy iframe boots the ENTIRE Next.js app at /crisp-proxy, and its src
+     * recomputes from a dozen async user-data fields — every change reloads it.
+     * Mounted eagerly, that meant a hidden full app instance rebooting over and
+     * over behind every screen; on low-memory iPhones the accumulated pressure
+     * crashed the WKWebView content process mid-signup, hard-resetting the app
+     * to the start of setup. Mount it only after the drawer has actually been
+     * opened — and never on Capacitor, where support opens the native Crisp
+     * messenger instead.
+     */
+    const [hasBeenOpened, setHasBeenOpened] = useState(false)
+    useEffect(() => {
+        if (isSupportModalOpen) setHasBeenOpened(true)
+    }, [isSupportModalOpen])
+
     const handleRetry = useCallback(() => {
         setIsCrispFailed(false)
         setIsCrispReady(false)
@@ -191,7 +206,7 @@ const SupportDrawer = () => {
                                 </Button>
                             </div>
                         )}
-                        {!isAwaitingToken && (
+                        {!isCapacitor() && hasBeenOpened && !isAwaitingToken && (
                             <iframe
                                 key={iframeKey}
                                 src={crispProxyUrl}

@@ -515,7 +515,7 @@ export default function OnrampBankPage() {
                     message={pendingModal.message}
                 />
 
-                <SumsubKycModals flow={sumsubFlow} autoStartSdk />
+                <SumsubKycModals flow={sumsubFlow} />
 
                 <BridgeTosStep
                     visible={showBridgeTos}

@@ -18,6 +18,9 @@ import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey } from './useGrantSessionKey'
 import { usdcUnitsToRainCents } from '@/utils/balance.utils'
 import { useModalsContextOptional } from '@/context/ModalsContext'
+import { smartUsdcBalanceQueryOptions } from './useBalance'
+import { isDemoMode } from '@/utils/demo'
+import { debitDemoBalance } from '@/utils/demo-balance'
 import {
     resolveSpendStrategy,
     runCollateralSpendPreflight,
@@ -123,6 +126,15 @@ export const useSpendBundle = () => {
                 onStrategyDecided,
                 onGrantRequired,
             } = input
+
+            // demo mode: simulated success, no chain. Debit the persisted demo
+            // balance so the displayed balance updates (and survives relaunch).
+            if (isDemoMode()) {
+                onStrategyDecided?.('smart-only')
+                await new Promise((resolve) => setTimeout(resolve, 600))
+                debitDemoBalance(requiredUsdcAmount)
+                return { strategy: 'smart-only', userOpHash: `0x${'de'.repeat(32)}` as Hash, receipt: null }
+            }
 
             const hasSubsequent = subsequentCalls.length > 0
             const collateralOnlyAllowed = !hasSubsequent && !!recipient

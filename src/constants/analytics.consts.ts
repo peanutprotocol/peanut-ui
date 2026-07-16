@@ -12,6 +12,9 @@ export const ANALYTICS_EVENTS = {
     SIGNUP_CREATE_WALLET_CLICKED: 'signup_create_wallet_clicked',
     SIGNUP_WAITLIST_VIEWED: 'signup_waitlist_viewed',
     SIGNUP_USERNAME_VALIDATED: 'signup_username_validated',
+    SIGNUP_EXISTING_SESSION_PROMPTED: 'signup_existing_session_prompted',
+    SIGNUP_EXISTING_SESSION_CONTINUED: 'signup_existing_session_continued',
+    SIGNUP_EXISTING_SESSION_LOGGED_OUT: 'signup_existing_session_logged_out',
     SIGNUP_PASSKEY_STARTED: 'signup_passkey_started',
     SIGNUP_PASSKEY_SUCCEEDED: 'signup_passkey_succeeded',
     SIGNUP_PASSKEY_FAILED: 'signup_passkey_failed',
@@ -157,6 +160,11 @@ export const ANALYTICS_EVENTS = {
     CARD_SESSION_KEY_PROMPTED: 'card_session_key_prompted',
     CARD_SESSION_KEY_GRANTED: 'card_session_key_granted',
     CARD_SESSION_KEY_FAILED: 'card_session_key_failed',
+    // Grant preflight found a repair-needing kernel (nonce floor from the
+    // 2025-09-18 migration wave, or an undeployed pre-cutoff account) and
+    // completed the repair before signing (captured on success), or fell back
+    // on a flaky floor read. `mode`: invalidate | deploy | floor-read-failed.
+    CARD_SESSION_KEY_PREFLIGHT_REPAIR: 'card_session_key_preflight_repair',
     // Withdraw refused with 409 STALE_CARD_APPROVAL — stored session-key
     // approval is bound to a deprecated validator; user must re-enable the card.
     CARD_STALE_APPROVAL_HIT: 'card_stale_approval_hit',

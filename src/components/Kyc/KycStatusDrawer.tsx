@@ -89,7 +89,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
                     {sumsubFlow.error && <p className="text-red-500 mt-3 text-center text-sm">{sumsubFlow.error}</p>}
                 </DrawerContent>
             </Drawer>
-            <SumsubKycModals flow={sumsubFlow} autoStartSdk />
+            <SumsubKycModals flow={sumsubFlow} />
         </>
     )
 }

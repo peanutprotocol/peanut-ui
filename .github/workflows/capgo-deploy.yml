@@ -1,8 +1,11 @@
 name: Deploy OTA Update (Capgo)
 
 on:
+    # Only `dev` auto-ships (→ staging channel). Production is workflow_dispatch-only
+    # and gated by the Production environment's required reviewers, so a merge to
+    # `main` can never push OTA JS to devices without an explicit approved run.
     push:
-        branches: [main, dev]
+        branches: [dev]
     workflow_dispatch:
         inputs:
             channel:
@@ -15,6 +18,9 @@ on:
                     - staging
                     - production
 
+permissions:
+    contents: read
+
 concurrency:
     group: capgo-deploy-${{ github.ref }}
     cancel-in-progress: true
@@ -22,19 +28,22 @@ concurrency:
 jobs:
     deploy:
         runs-on: ubuntu-latest
+        # Gate ONLY the production deploy behind the Production environment (required
+        # reviewers, set in repo Settings → Environments → Production). Resolving to an
+        # empty string means no environment, so the dev→staging auto-push is never
+        # paused for approval. Production is reachable only via workflow_dispatch.
+        environment: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.channel == 'production') && 'Production' || '' }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
               with:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
 
-            - uses: pnpm/action-setup@v4
-              with:
-                  version: 10
+            - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
 
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@v6
               with:
-                  node-version: '21.1.0'
+                  node-version: '20'
                   cache: 'pnpm'
 
             - name: Install dependencies
@@ -60,13 +69,24 @@ jobs:
                   fi
 
             - name: Upload bundle to Capgo
+              # Commit message via env, never inline — a multi-line message (or one
+              # with quotes) injected into the run script breaks --comment quoting.
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+                  # Private E2E signing key (PEM contents of .capgo_key_v2). Its
+                  # public half is baked into capacitor.config.ts, so the app only
+                  # accepts bundles signed here.
+                  CAPGO_PRIVATE_KEY: ${{ secrets.CAPGO_PRIVATE_KEY }}
+                  COMMIT_MSG: ${{ github.event.head_commit.message }}
               run: |
+                  COMMENT="${GITHUB_SHA:0:7} — $(printf '%s' "${COMMIT_MSG:-Manual deploy}" | head -n1)"
                   npx @capgo/cli@latest bundle upload \
-                    --channel ${{ steps.channel.outputs.name }} \
-                    --apikey ${{ secrets.CAPGO_API_KEY }} \
+                    --channel "${{ steps.channel.outputs.name }}" \
+                    --apikey "$CAPGO_API_KEY" \
+                    --key-data-v2 "$CAPGO_PRIVATE_KEY" \
                     --path ./out \
                     --auto-min-update-version \
-                    --comment "${{ github.event.head_commit.message || 'Manual deploy' }}"
+                    --comment "$COMMENT"
 
             - name: Deployment summary
               run: |

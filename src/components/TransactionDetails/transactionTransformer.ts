@@ -248,8 +248,17 @@ function computeDerivedFields(entry: HistoryEntry): {
 } {
     // For crypto deposits, force the explorer URL to Peanut's wallet chain
     // (Arbitrum) — the underlying chainId field is the deposit-source chain.
+    // CRYPTO_DEPOSIT and CRYPTO_WITHDRAW both record the tx hash on Peanut's
+    // wallet chain (Arbitrum) — for withdrawals entry.chainId is the
+    // DESTINATION, so linking it with the recorded hash mislinked receipts on
+    // destinations that have an explorer (e.g. Avalanche) and left them
+    // linkless on ones that don't (Tempo, Solana, Tron). Always link the
+    // chain the recorded hash actually lives on. (Known residual: a withdraw
+    // completed via the BRIDGE_EXECUTED webhook carries the destination-side
+    // hash — rare; linking source keeps the dominant case correct.)
+    const kind = intentKindOf(entry)
     const explorerUrlChainID =
-        intentKindOf(entry) === 'CRYPTO_DEPOSIT' ? PEANUT_WALLET_CHAIN.id.toString() : entry.chainId
+        kind === 'CRYPTO_DEPOSIT' || kind === 'CRYPTO_WITHDRAW' ? PEANUT_WALLET_CHAIN.id.toString() : entry.chainId
     const baseUrl = getExplorerUrl(explorerUrlChainID)
 
     let explorerUrlWithTx: string | undefined

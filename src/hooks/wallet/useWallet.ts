@@ -23,6 +23,8 @@ import {
 import { useSpendBundle } from './useSpendBundle'
 import type { SpendStrategy } from './spendPreflight'
 import type { RainCollateralKind } from '@/services/rain'
+import { isDemoMode } from '@/utils/demo'
+import { useDemoBalanceUnits } from '@/utils/demo-balance'
 
 type SendTransactionsOptions = {
     chainId?: string
@@ -195,16 +197,23 @@ export const useWallet = () => {
         await refetchBalance()
     }, [isAddressReady, refetchBalance])
 
+    // demo mode: mutable, persisted balance overlay (utils/demo-balance.ts) —
+    // debited on each simulated send so the displayed balance updates and
+    // survives relaunch.
+    const demoMode = isDemoMode()
+    const demoBalanceUnits = useDemoBalanceUnits()
+
     // Use balance from query if available, otherwise fall back to Redux
-    const balance =
-        balanceFromQuery !== undefined
-            ? balanceFromQuery
-            : reduxBalance !== undefined
-              ? BigInt(reduxBalance)
-              : undefined
+    const balance = demoMode
+        ? demoBalanceUnits
+        : balanceFromQuery !== undefined
+          ? balanceFromQuery
+          : reduxBalance !== undefined
+            ? BigInt(reduxBalance)
+            : undefined
 
     // consider balance as fetching until: address is validated and query has resolved
-    const isBalanceLoading = !isAddressReady || isFetchingBalance
+    const isBalanceLoading = demoMode ? false : !isAddressReady || isFetchingBalance
 
     // Total spendable balance: smart-account balance + Rain collateral (landed +
     // in-transit). Display AND the affordability gate both run on THIS number.
@@ -253,7 +262,7 @@ export const useWallet = () => {
     const spendableBalance = stableSpendable ?? rawSpendableBalance
     // Block on both smart-account and rain queries to avoid a flicker from
     // the balance jumping when the rain number arrives.
-    const isSpendableBalanceLoading = isBalanceLoading || isRainOverviewLoading
+    const isSpendableBalanceLoading = demoMode ? false : isBalanceLoading || isRainOverviewLoading
 
     // formatted balance for display (e.g. "1,234.56"). Smart-account only —
     // use `formattedSpendableBalance` below for user-facing widgets that

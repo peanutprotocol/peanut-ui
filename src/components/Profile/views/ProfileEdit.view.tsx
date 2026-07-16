@@ -47,6 +47,10 @@ export const ProfileEditView = () => {
     // check if email is already set
     const isEmailSet = !!user?.user.email
 
+    // once identity-verified the name is provider-owned, so the name/surname
+    // fields are locked and never sent. one source of truth for that invariant.
+    const canEditName = !isKycApproved
+
     // populate name and surname from fullName
     useEffect(() => {
         if (user?.user.fullName) {
@@ -74,19 +78,23 @@ export const ProfileEditView = () => {
             setIsLoading(true)
             setErrorMessage('')
 
-            // validate form data
-            if (!formData.name?.trim()) {
+            // only require the name when the field is editable — requiring it
+            // while it's locked (verified user, provider owns the name) would
+            // trap users whose fullName is empty at load (can't type, can't
+            // save) when all they want is to set their email.
+            if (canEditName && !formData.name?.trim()) {
                 setErrorMessage('Please provide your name.')
                 return
             }
 
-            // combine name and surname for fullName
-            const fullName = `${formData.name} ${formData.surname}`.trim()
-
             // prepare request payload
-            const payload: Record<string, any> = {
+            const payload: { userId?: string; fullName?: string; email?: string } = {
                 userId: user?.user.userId,
-                fullName: fullName,
+            }
+
+            // only include name when the field is editable (not provider-locked)
+            if (canEditName) {
+                payload.fullName = `${formData.name} ${formData.surname}`.trim()
             }
 
             // only include email if it's not already set and has a value
@@ -98,8 +106,21 @@ export const ProfileEditView = () => {
                 throw new Error('User ID is undefined.')
             }
 
-            // update user profile
-            await updateUserById(payload)
+            // nothing substantive to update (e.g. a verified user with email
+            // already set clicking Save unchanged) — skip the no-op round-trip.
+            if (payload.fullName === undefined && payload.email === undefined) {
+                router.replace('/profile')
+                return
+            }
+
+            // updateUserById resolves with { error } on a non-2xx response
+            // instead of throwing (e.g. 400 invalid email, 409 email already in
+            // use). Surface it instead of navigating away as a false success.
+            const result = await updateUserById(payload)
+            if (result?.error) {
+                setErrorMessage(result.error)
+                return
+            }
 
             // refresh user data
             await fetchUser()
@@ -112,7 +133,7 @@ export const ProfileEditView = () => {
         } finally {
             setIsLoading(false)
         }
-    }, [formData, user, fetchUser, router, isEmailSet])
+    }, [formData, user, fetchUser, router, isEmailSet, canEditName])
 
     const fullName = user?.user.fullName || user?.user?.username || ''
     const username = user?.user.username || ''
@@ -129,7 +150,7 @@ export const ProfileEditView = () => {
                     value={formData.name}
                     onChange={(value) => handleChange('name', value)}
                     placeholder="Add your name"
-                    disabled={isKycApproved}
+                    disabled={!canEditName}
                 />
 
                 <ProfileEditField
@@ -137,7 +158,7 @@ export const ProfileEditView = () => {
                     value={formData.surname}
                     onChange={(value) => handleChange('surname', value)}
                     placeholder="Add your surname"
-                    disabled={isKycApproved}
+                    disabled={!canEditName}
                 />
 
                 <ProfileEditField

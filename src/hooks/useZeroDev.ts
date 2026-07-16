@@ -9,7 +9,7 @@ import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import { getFromCookie, removeFromCookie, saveToCookie } from '@/utils/general.utils'
 import { clearAuthState } from '@/utils/auth.utils'
 import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
-import { capturePasskeySignFailure } from '@/utils/webauthn.utils'
+import { capturePasskeySignFailure, classifyPasskeyError } from '@/utils/webauthn.utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
@@ -18,6 +18,7 @@ import { invitesApi } from '@/services/invites'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
+import { isDemoMode } from '@/utils/demo'
 
 // types
 type UserOpEncodedParams = {
@@ -25,6 +26,9 @@ type UserOpEncodedParams = {
     value?: bigint | undefined
     data?: Hex | undefined
 }
+
+// Placeholder hash for simulated demo spends.
+const DEMO_USEROP_HASH = `0x${'de'.repeat(32)}` as Hash
 
 // custom error class for passkey-related errors
 class PasskeyError extends Error {
@@ -80,6 +84,15 @@ export const useZeroDev = () => {
             const campaignTag = getFromCookie('campaignTag')
 
             if (userInviteCode?.trim().length > 0) {
+                /*
+                 * Fail-open by design: a broken accept must not block signup. But a
+                 * failure here strands the user in the waitlist, so (1) persist the
+                 * code in the cookie — JoinWaitlistPage auto-retries from it, even
+                 * after an app restart — and (2) report to Sentry, not just PostHog:
+                 * a systematic accept failure looks like a completed signup otherwise.
+                 * The cookie is only cleared on confirmed success.
+                 */
+                const keepInviteCodeForRetry = () => saveToCookie('inviteCode', userInviteCode, 30)
                 try {
                     const result = await invitesApi.acceptInvite(userInviteCode, inviteType, campaignTag)
                     if (result.success) {
@@ -88,24 +101,34 @@ export const useZeroDev = () => {
                             invite_type: inviteType,
                             campaign_tag: campaignTag,
                         })
+                        if (inviteCodeFromCookie) {
+                            removeFromCookie('inviteCode')
+                        }
+                        if (campaignTag) {
+                            removeFromCookie('campaignTag')
+                        }
                     } else {
                         posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
                             invite_code: userInviteCode,
                             error_message: 'API returned unsuccessful',
                         })
+                        captureException(new Error('register-time invite accept returned unsuccessful'), {
+                            tags: { error_type: 'invite_accept_failed' },
+                            extra: { inviteCode: userInviteCode, result },
+                        })
+                        keepInviteCodeForRetry()
                         console.error('Error accepting invite', result)
-                    }
-                    if (inviteCodeFromCookie) {
-                        removeFromCookie('inviteCode')
-                    }
-                    if (campaignTag) {
-                        removeFromCookie('campaignTag')
                     }
                 } catch (e) {
                     posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
                         invite_code: userInviteCode,
                         error_message: String(e),
                     })
+                    captureException(e, {
+                        tags: { error_type: 'invite_accept_failed' },
+                        extra: { inviteCode: userInviteCode },
+                    })
+                    keepInviteCodeForRetry()
                     console.error('Error accepting invite', e)
                 }
             } else if (campaignTag) {
@@ -130,8 +153,9 @@ export const useZeroDev = () => {
                 return
             }
             const err = e as Error
-            console.error('[useZeroDev] registration failed:', err.name, err.message, err)
-            console.error('[useZeroDev] shim installed:', (globalThis as any).__capgoPasskeyShimInstalled)
+            console.error('[useZeroDev] registration failed:', err.name, err.message, err, {
+                shimInstalled: (globalThis as any).__capgoPasskeyShimInstalled,
+            })
             dispatch(zerodevActions.setIsRegistering(false))
             throw e
         }
@@ -160,22 +184,28 @@ export const useZeroDev = () => {
             setWebAuthnKey(webAuthnKey)
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
         } catch (e) {
-            const error = e as Error
-            if (error.name === 'NotAllowedError') {
-                // User cancelled - no state was saved, just let them retry
-                dispatch(zerodevActions.setIsLoggingIn(false))
-                throw new PasskeyError(
-                    'Login was canceled or no passkey found. Please try again or register.',
-                    'LOGIN_CANCELED'
-                )
-            }
-
-            // Other login errors - clear any stale state
-            console.error('Error logging in', e)
-            clearAuthState(user?.user.userId)
-            captureException(e, { tags: { error_type: 'login_error' } })
+            // zerodev's toWebAuthnKey login path reads loginVerifyResult.verification.verified
+            // with no HTTP-status check, so a non-2xx /login/verify (e.g. a 401 when this
+            // device's passkey doesn't verify) throws a raw TypeError. Normalize it to a
+            // clean auth error so it classifies and reports as a login failure instead of a
+            // confusing "undefined is not an object (…verification.verified)" crash (PEANUT-UI-R0V).
+            const err =
+                e instanceof TypeError && /verif(ication|ied)/i.test(e.message ?? '')
+                    ? new Error('Login not verified')
+                    : e
+            const { code, message } = classifyPasskeyError(err)
             dispatch(zerodevActions.setIsLoggingIn(false))
-            throw new PasskeyError('An unexpected error occurred during login.', 'LOGIN_ERROR')
+            // Cancel saved no state; everything else clears stale state and reports the error to Sentry.
+            if (code !== 'LOGIN_CANCELED') {
+                console.error('Error logging in', err)
+                clearAuthState(user?.user.userId)
+                captureException(err, { tags: { error_type: 'login_error' } })
+            } else if (isCapacitor()) {
+                // the native plugin maps ceremony failures (.failed/.notHandled) to the
+                // same NotAllowedError as a user cancel — keep visibility without alerting.
+                captureException(err, { level: 'warning', tags: { error_type: 'login_canceled_native' } })
+            }
+            throw new PasskeyError(message, code)
         }
     }
 
@@ -184,6 +214,12 @@ export const useZeroDev = () => {
             calls: UserOpEncodedParams[],
             chainId: string
         ): Promise<{ userOpHash: Hash; receipt: TransactionReceipt | null }> => {
+            // demo mode: simulated success, no chain.
+            if (isDemoMode()) {
+                await new Promise((resolve) => setTimeout(resolve, 600))
+                return { userOpHash: DEMO_USEROP_HASH, receipt: null }
+            }
+
             // Non-Arb chains (recover-funds) aren't pre-built — wait for lazy build.
             await ensureClientForChain(chainId)
             const client = getClientForChain(chainId)

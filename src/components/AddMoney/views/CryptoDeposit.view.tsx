@@ -313,6 +313,12 @@ const CryptoDepositView = ({
                                     {depositAddressData.maxDepositLimitUsd.toLocaleString()} USD
                                 </p>
                             </div>
+                            {!isOfframp && (
+                                <p className="pt-1 text-sm text-grey-1">
+                                    A small bridging fee (~0.1%) applies — you&apos;ll receive slightly less than you
+                                    send.
+                                </p>
+                            )}
                             {isOfframp && (
                                 <p className="pt-1 text-sm text-grey-1">
                                     Moving more than the max? Send it in multiple transfers.

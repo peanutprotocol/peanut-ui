@@ -1,5 +1,6 @@
 import { SOLANA_ICON, TRON_ICON } from '@/assets'
 import { networks } from '@/config'
+import { CHAIN_REGISTRY } from '@/constants/chainRegistry.consts'
 import type { IPeanutChainDetails, IToken } from '@/interfaces/interfaces'
 import { celo, linea, scroll, worldchain } from 'viem/chains'
 
@@ -100,20 +101,6 @@ export const TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS = networks
  *   Rhino. KAIA/opBNB deliberately absent: quotes pass but SDA create rejects
  *   (DepositAddressTokenOutNotSupported).
  */
-export const RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN: Record<string, readonly string[]> = {
-    '42161': ['ETH', 'USDC', 'USDT'], // Arbitrum
-    '1': ['ETH', 'USDC', 'USDT'], // Ethereum
-    '10': ['ETH', 'USDC', 'USDT'], // Optimism
-    '137': ['USDC', 'USDT'], // Polygon (native POL not bridged by Rhino)
-    '100': ['USDC', 'USDT'], // Gnosis (native xDAI not bridged by Rhino)
-    '56': ['BNB', 'USDC', 'USDT'], // BNB Chain
-    '43114': ['USDC', 'USDT'], // Avalanche
-    '999': ['USDC', 'USDT'], // HyperEVM
-    '57073': ['USDC', 'USDT'], // Ink
-    '747474': ['USDC', 'USDT'], // Katana (delivered as vbUSDC/vbUSDT)
-    '59144': ['USDC', 'USDT'], // Linea
-    '5000': ['USDC', 'USDT'], // Mantle (USDT delivered as USDT0)
-    '9745': ['USDT'], // Plasma (USDT0-only chain)
-    '988': ['USDT'], // Stable (USDT0-only chain)
-    '4217': ['USDC', 'USDT'], // Tempo (delivered as USDC.e/USDT0)
-}
+export const RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN: Record<string, readonly string[]> = Object.fromEntries(
+    CHAIN_REGISTRY.filter((c) => c.withdraw).map((c) => [c.id, c.withdraw!.tokens])
+)

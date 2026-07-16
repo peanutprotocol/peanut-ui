@@ -5,8 +5,7 @@
  * aborted so the caller can show a retry message (or stop entirely).
  *
  * Without this, the immediate post-Sumsub re-apply races against Sumsub and
- * dumps the user back on the "Start Secure Verification" interstitial when
- * the WebSDK re-opens against an already-approved applicant. The signal lets
+ * re-opens the WebSDK against an already-approved applicant. The signal lets
  * the caller stop the loop on unmount so we don't burn 15 sequential fetches
  * after the user navigates away from the pending screen.
  */

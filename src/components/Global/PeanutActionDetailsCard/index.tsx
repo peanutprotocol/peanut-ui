@@ -106,7 +106,7 @@ export default function PeanutActionDetailsCard({
             else title = `${renderRecipient()} sent you`
         }
         if (transactionType === 'ADD_MONEY' || transactionType === 'ADD_MONEY_BANK_ACCOUNT') title = `You're adding`
-        if (transactionType === 'WITHDRAW' || transactionType === 'WITHDRAW_BANK_ACCOUNT') title = `You're sending`
+        if (transactionType === 'WITHDRAW' || transactionType === 'WITHDRAW_BANK_ACCOUNT') title = `You're withdrawing`
         if (transactionType === 'CLAIM_LINK_BANK_ACCOUNT') {
             if (viewType === 'SUCCESS') {
                 title = 'You will receive'

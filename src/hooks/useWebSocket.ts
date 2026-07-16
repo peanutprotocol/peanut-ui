@@ -10,6 +10,10 @@ import { type HistoryEntry } from './useTransactionHistory'
 
 type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
 
+// Consumers only render a handful of recent entries; cap the buffer so a long
+// session with many live updates can't grow the array (and re-processing) unbounded.
+const MAX_WS_HISTORY_ENTRIES = 50
+
 interface UseWebSocketOptions {
     autoConnect?: boolean
     username?: string
@@ -163,7 +167,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
                 // Ignore pending requests from the server
                 return
             }
-            setHistoryEntries((prev) => [entry, ...prev])
+            setHistoryEntries((prev) => [entry, ...prev].slice(0, MAX_WS_HISTORY_ENTRIES))
             if (callbacksRef.current.onHistoryEntry) {
                 callbacksRef.current.onHistoryEntry(entry)
             }
