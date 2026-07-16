@@ -36,9 +36,12 @@ import { appBaseUrl } from '@/utils/url.utils'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useTranslations } from 'next-intl'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
+    const t = useTranslations('withdraw')
+    const tNav = useTranslations('navigation')
     const onBack = useSafeBack('/withdraw')
     const { address, sendTransactions, sendMoney, spendableBalance } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
@@ -162,7 +165,7 @@ export default function WithdrawCryptoPage() {
         async (data: Omit<WithdrawData, 'amount'>) => {
             if (!amountToWithdraw) {
                 console.error('Amount to withdraw is not set or not available from context')
-                setError('Withdrawal amount is missing.')
+                setError(t('errors.amountMissing'))
                 return
             }
 
@@ -199,7 +202,7 @@ export default function WithdrawCryptoPage() {
                 const newRequest: TRequestResponse = await requestsApi.create(apiRequestPayload)
 
                 if (!newRequest || !newRequest.uuid) {
-                    throw new Error('Failed to create request for withdrawal.')
+                    throw new Error(t('errors.requestFailed'))
                 }
 
                 const chargePayload: CreateChargeRequest = {
@@ -224,7 +227,7 @@ export default function WithdrawCryptoPage() {
                 const createdCharge: TCharge = await chargesApi.create(chargePayload)
 
                 if (!createdCharge || !createdCharge.data || !createdCharge.data.id) {
-                    throw new Error('Failed to create charge for withdrawal or charge ID missing.')
+                    throw new Error(t('errors.chargeFailed'))
                 }
 
                 const fullChargeDetails = await chargesApi.get(createdCharge.data.id)
@@ -233,7 +236,7 @@ export default function WithdrawCryptoPage() {
                 setShowCompatibilityModal(true)
             } catch (err: any) {
                 console.error('Error during setup review (request/charge creation):', err)
-                const errorMessage = err.message || 'Could not prepare withdrawal. Please try again.'
+                const errorMessage = err.message || t('errors.prepareFailed')
                 setError(errorMessage)
             } finally {
                 setIsPreparingReview(false)
@@ -247,6 +250,7 @@ export default function WithdrawCryptoPage() {
             setWithdrawData,
             setShowCompatibilityModal,
             setError,
+            t,
         ]
     )
 
@@ -256,9 +260,9 @@ export default function WithdrawCryptoPage() {
             setCurrentView('CONFIRM')
         } else {
             console.error('Proceeding to confirm, but charge details or withdraw data are missing.')
-            setError('Failed to load withdrawal details for confirmation. Please go back and try again.')
+            setError(t('errors.confirmDetailsFailed'))
         }
-    }, [chargeDetails, withdrawData, setCurrentView, setShowCompatibilityModal, setError])
+    }, [chargeDetails, withdrawData, setCurrentView, setShowCompatibilityModal, setError, t])
 
     // True when the withdraw needs a Rhino path (SDA or bridge swap) rather
     // than a direct USDC transfer. Crosses a chain boundary OR a token
@@ -273,13 +277,13 @@ export default function WithdrawCryptoPage() {
     const handleConfirmWithdrawal = useCallback(async () => {
         if (!chargeDetails || !withdrawData || !amountToWithdraw || !address) {
             console.error('Withdraw data, active charge details, or amount missing for final confirmation')
-            setError('Essential withdrawal information is missing.')
+            setError(t('errors.essentialInfoMissing'))
             return
         }
 
         if (!transactions || transactions.length === 0) {
             console.error('No transactions prepared for withdrawal')
-            setError('Transaction not prepared. Please try again.')
+            setError(t('errors.txNotPrepared'))
             return
         }
 
@@ -407,6 +411,7 @@ export default function WithdrawCryptoPage() {
         clearErrors,
         setError,
         triggerHaptic,
+        t,
     ])
 
     const handleBackFromConfirm = useCallback(() => {
@@ -503,7 +508,7 @@ export default function WithdrawCryptoPage() {
             {currentView === 'STATUS' && withdrawData && chargeDetails && (
                 <>
                     <PaymentSuccessView
-                        headerTitle="Withdraw"
+                        headerTitle={tNav('withdraw')}
                         recipientType="ADDRESS"
                         type="SEND"
                         amount={usdAmount}
@@ -529,8 +534,8 @@ export default function WithdrawCryptoPage() {
                     setShowCompatibilityModal(false)
                 }}
                 preventClose={isPreparingReview}
-                title="Is this address compatible?"
-                description="Only send to address that support the selected network and token. Incorrect transfers may be lost."
+                title={t('compatibilityModal.title')}
+                description={t('compatibilityModal.description')}
                 icon="alert"
                 footer={
                     <div className="w-full">

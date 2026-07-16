@@ -8,6 +8,7 @@ import { updateUserById } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useTranslations } from 'next-intl'
 
 interface OfframpHandleGateViewProps {
     onBack: () => void
@@ -22,6 +23,8 @@ interface OfframpHandleGateViewProps {
 // enough of a deterrent against farming the public campaign link.
 const OfframpHandleGateView = ({ onBack, onDone }: OfframpHandleGateViewProps) => {
     const { user, fetchUser } = useAuth()
+    const t = useTranslations('addMoney')
+    const tCommon = useTranslations('common')
     const [handle, setHandle] = useState('')
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -37,7 +40,7 @@ const OfframpHandleGateView = ({ onBack, onDone }: OfframpHandleGateViewProps) =
             offrampHandle: trimmedHandle,
         })
         if (apiError) {
-            setError('Could not save your Offramp account. Please try again.')
+            setError(t('offrampGate.error'))
             setIsSaving(false)
             return
         }
@@ -50,14 +53,11 @@ const OfframpHandleGateView = ({ onBack, onDone }: OfframpHandleGateViewProps) =
 
     return (
         <div className="flex min-h-[inherit] w-full flex-col gap-8 pb-5 md:pb-0">
-            <NavHeader title="Migrate from Offramp" onPrev={onBack} />
+            <NavHeader title={t('methods.migrateFromOfframp')} onPrev={onBack} />
             <div className="my-auto flex flex-col gap-6">
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-xl font-extrabold">Which Offramp account is this?</h2>
-                    <p className="text-base font-medium text-grey-1">
-                        Enter the username or email of the Offramp account you're migrating from, so we can match your
-                        balance to your new Peanut wallet.
-                    </p>
+                    <h2 className="text-xl font-extrabold">{t('offrampGate.title')}</h2>
+                    <p className="text-base font-medium text-grey-1">{t('offrampGate.description')}</p>
                 </div>
                 <div className="flex flex-col gap-2">
                     <BaseInput
@@ -65,7 +65,7 @@ const OfframpHandleGateView = ({ onBack, onDone }: OfframpHandleGateViewProps) =
                         value={handle}
                         onChange={(e) => setHandle(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                        placeholder="Offramp username or email"
+                        placeholder={t('offrampGate.placeholder')}
                         maxLength={320}
                         autoFocus
                         autoComplete="off"
@@ -82,7 +82,7 @@ const OfframpHandleGateView = ({ onBack, onDone }: OfframpHandleGateViewProps) =
                     loading={isSaving}
                     onClick={handleSubmit}
                 >
-                    Continue
+                    {tCommon('continue')}
                 </Button>
             </div>
         </div>

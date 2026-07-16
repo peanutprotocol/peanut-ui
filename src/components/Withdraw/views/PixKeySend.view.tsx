@@ -10,6 +10,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdraw.utils'
 import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
+import { useTranslations } from 'next-intl'
 
 /**
  * Send to any PIX key via the Manteca QR-payment endpoint.
@@ -23,6 +24,8 @@ import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
 export default function PixKeySendView({ destinationParam }: { destinationParam?: string | null }) {
     const router = useRouter()
     const onBack = useSafeBack('/send')
+    const t = useTranslations('withdraw')
+    const tCommon = useTranslations('common')
     const [pixKey, setPixKey] = useState<string>(destinationParam ?? '')
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
@@ -32,7 +35,7 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
         const normalized = isPixEmvcoQr(value.trim()) ? value.trim() : value.replace(/\s/g, '')
         const result = validatePixKey(normalized)
         if (!result.valid) {
-            setErrorMessage(result.message ?? 'Invalid Pix key')
+            setErrorMessage(result.message ?? t('pixKey.invalid'))
         }
         return result.valid
     }
@@ -40,7 +43,7 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
     const handleContinue = () => {
         const url = pixKeyToQrPayUrl(pixKey)
         if (!url) {
-            setErrorMessage('Invalid Pix key')
+            setErrorMessage(t('pixKey.invalid'))
             return
         }
         router.push(url)
@@ -48,14 +51,14 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">
-            <NavHeader title="Send with Pix" onPrev={onBack} />
+            <NavHeader title={t('pixKey.title')} onPrev={onBack} />
             <div className="my-auto flex flex-col gap-6">
                 <div className="space-y-4">
-                    <h2 className="text-lg font-bold">Enter Pix key</h2>
+                    <h2 className="text-lg font-bold">{t('pixKey.heading')}</h2>
                     <div className="space-y-2">
                         <ValidatedInput
                             value={pixKey}
-                            placeholder="PIX Key (Include +55 in case of phone number)"
+                            placeholder={t('pixKey.placeholder')}
                             onUpdate={(update) => {
                                 setPixKey(normalizePixInput(update.value))
                                 setIsValid(update.isValid)
@@ -69,7 +72,7 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
                         />
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                             <Icon name="info" size={16} />
-                            <span>Send to any Pix key — email, phone, CPF/CNPJ or random key.</span>
+                            <span>{t('pixKey.info')}</span>
                         </div>
                     </div>
 
@@ -80,7 +83,7 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
                         className="w-full"
                         shadowSize="4"
                     >
-                        Continue
+                        {tCommon('continue')}
                     </Button>
 
                     {errorMessage && <ErrorAlert description={errorMessage} />}

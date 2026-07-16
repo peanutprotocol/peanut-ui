@@ -37,6 +37,7 @@ import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { useModalsContext } from '@/context/ModalsContext'
 import underMaintenanceConfig, { PIX_BRAZIL_ONRAMP_MAINTENANCE } from '@/config/underMaintenance.config'
+import { useTranslations } from 'next-intl'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -47,6 +48,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const params = useParams()
     const searchParams = useSearchParams()
     const onBack = useSafeBack(flow === 'add' ? '/add-money' : '/withdraw')
+    const t = useTranslations('withdraw')
+    const tAddMoney = useTranslations('addMoney')
+    const tNav = useTranslations('navigation')
+    const tCommon = useTranslations('common')
 
     // check if coming from send flow and what type
     const methodParam = searchParams.get('method')
@@ -204,7 +209,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 return { error: result.error }
             }
             if (!result.data) {
-                return { error: 'Failed to process bank account. Please try again or contact support.' }
+                return { error: tAddMoney('errors.bankAccountFailed') }
             }
 
             // after successfully adding, we refetch user data to get the new account
@@ -225,7 +230,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 // a bridgeAccountId the confirm step dead-ends on "Bank account is
                 // missing", so surface a retryable error rather than navigating.
                 if (!newAccountFromResponse?.bridgeAccountId) {
-                    return { error: 'Your bank account is still being set up. Please try again in a moment.' }
+                    return { error: tAddMoney('errors.bankAccountSettingUp') }
                 }
                 // ensure details has accountOwnerName for confirmation page display
                 newAccountFromResponse.details = {
@@ -343,8 +348,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     if (!currentCountry) {
         return (
             <div className="space-y-8 self-start">
-                <NavHeader title="Not Found" onPrev={onBack} />
-                <EmptyState title="Country not found" description="Please try a different country." icon="search" />
+                <NavHeader title={tCommon('notFound')} onPrev={onBack} />
+                <EmptyState
+                    title={tCommon('countryNotFound')}
+                    description={tCommon('tryDifferentCountry')}
+                    icon="search"
+                />
             </div>
         )
     }
@@ -402,7 +411,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         return (
             <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
                 <NavHeader
-                    title={flow === 'withdraw' ? (isBankFromSend ? 'Send' : 'Withdraw') : 'Add money'}
+                    title={
+                        flow === 'withdraw' ? (isBankFromSend ? tNav('send') : tNav('withdraw')) : tAddMoney('title')
+                    }
                     onPrev={() => {
                         // clear dynamicbankaccountform data
                         dispatch(bankFormActions.clearFormData())
@@ -549,10 +560,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 }}
             />
             <div className="flex-1 overflow-y-auto">
-                {flow === 'add' && methods?.add && renderPaymentMethods('Add money via', methods.add)}
+                {flow === 'add' && methods?.add && renderPaymentMethods(tAddMoney('addMoneyVia'), methods.add)}
                 {flow === 'withdraw' &&
                     methods?.withdraw &&
-                    renderPaymentMethods('Choose withdrawing method', methods.withdraw)}
+                    renderPaymentMethods(t('chooseWithdrawingMethod'), methods.withdraw)}
             </div>
             {flow === 'add' && (
                 <TokenAndNetworkConfirmationModal

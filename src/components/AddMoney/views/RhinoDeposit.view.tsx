@@ -17,6 +17,7 @@ import { useAutoTruncatedAddress } from '@/hooks/useAutoTruncatedAddress'
 import { CHAIN_LOGOS, SUPPORTED_EVM_CHAINS, NETWORK_LABELS, getSupportedTokens } from '@/constants/rhino.consts'
 import UserCard from '@/components/User/UserCard'
 import { isCryptoAddress, printableAddress } from '@/utils/general.utils'
+import { useTranslations } from 'next-intl'
 
 interface RhinoDepositViewProps {
     onBack?: () => void
@@ -43,6 +44,8 @@ const RhinoDepositView = ({
     amount,
     identifier,
 }: RhinoDepositViewProps) => {
+    const t = useTranslations('addMoney.crypto')
+    const tCommon = useTranslations('common')
     const copyRef = useRef<CopyToClipboardRef>(null)
     const {
         status: depositAddressStatus,
@@ -52,7 +55,7 @@ const RhinoDepositView = ({
 
     const { containerRef, truncatedAddress } = useAutoTruncatedAddress(depositAddressData?.depositAddress ?? '')
 
-    const amountLimitsTitle = chainType === 'EVM' ? 'EVM networks' : NETWORK_LABELS[chainType]
+    const amountLimitsTitle = chainType === 'EVM' ? t('evmNetworks') : NETWORK_LABELS[chainType]
 
     if (depositAddressStatus === 'failed') {
         return (
@@ -65,19 +68,15 @@ const RhinoDepositView = ({
                             <div className="flex size-9 items-center justify-center rounded-full bg-secondary-1">
                                 <Icon name="alert" size={20} />
                             </div>
-                            <h1 className="text-base font-bold">Oops! Market moved</h1>
+                            <h1 className="text-base font-bold">{t('marketMovedTitle')}</h1>
 
-                            <p className="text-center text-sm text-grey-1">
-                                The exchange rate changed too much to complete your deposit.
-                            </p>
+                            <p className="text-center text-sm text-grey-1">{t('marketMovedDescription')}</p>
 
-                            <p className="text-center text-sm font-bold text-grey-1">
-                                Your money is on its way back to your wallet.
-                            </p>
+                            <p className="text-center text-sm font-bold text-grey-1">{t('marketMovedNote')}</p>
                         </div>
                     </Card>
                     <Button onClick={resetStatus} shadowSize="4" loading={isResetting} disabled={isResetting}>
-                        Try Again
+                        {tCommon('tryAgain')}
                     </Button>
                 </div>
             </div>
@@ -105,7 +104,10 @@ const RhinoDepositView = ({
                     defaultValue="EVM"
                     className="w-full"
                 >
-                    <List className="flex w-full items-center rounded-xl bg-white p-0" aria-label="Select network type">
+                    <List
+                        className="flex w-full items-center rounded-xl bg-white p-0"
+                        aria-label={t('selectNetworkType')}
+                    >
                         <Trigger
                             value="EVM"
                             className="flex-1 rounded-xl border border-transparent py-1.5 text-sm font-medium text-grey-1 transition-all data-[state=active]:border-primary-1 data-[state=active]:bg-primary-1/10 data-[state=active]:text-primary-1"
@@ -159,7 +161,7 @@ const RhinoDepositView = ({
                             containerClassName="items-center"
                             customContent={
                                 <div className="flex items-center gap-2">
-                                    <p className="text-sm">Supported tokens:</p>
+                                    <p className="text-sm">{t('supportedTokensInline')}</p>
                                     {getSupportedTokens(chainType).map((token) => (
                                         <ChainChip
                                             key={token.name}
@@ -175,7 +177,9 @@ const RhinoDepositView = ({
                             <div className="flex w-full items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <Icon name="info" size={18} className="text-grey-1" />
-                                    <p className="text-sm text-grey-1">Min deposit for {amountLimitsTitle}</p>
+                                    <p className="text-sm text-grey-1">
+                                        {t('minDepositForLabel', { network: amountLimitsTitle })}
+                                    </p>
                                 </div>
 
                                 <p className="text-sm font-medium text-grey-1">
@@ -186,7 +190,9 @@ const RhinoDepositView = ({
                             <div className="flex w-full items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <Icon name="info" size={18} className="text-grey-1" />
-                                    <p className="text-sm text-grey-1">Max deposit for {amountLimitsTitle}</p>
+                                    <p className="text-sm text-grey-1">
+                                        {t('maxDepositForLabel', { network: amountLimitsTitle })}
+                                    </p>
                                 </div>
 
                                 <p className="text-sm font-medium text-grey-1">
@@ -197,7 +203,7 @@ const RhinoDepositView = ({
 
                         {chainType === 'EVM' && (
                             <Card className="space-y-2 p-4">
-                                <h3 className="text-sm font-bold text-black">Supported EVM networks</h3>
+                                <h3 className="text-sm font-bold text-black">{t('supportedEvmNetworks')}</h3>
                                 <div className="flex flex-wrap gap-2">
                                     {SUPPORTED_EVM_CHAINS.map((chain) => (
                                         <ChainChip key={chain} chainName={chain} chainSymbol={CHAIN_LOGOS[chain]} />

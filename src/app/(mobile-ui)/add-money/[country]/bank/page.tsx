@@ -45,6 +45,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { getRegionIntent } from '@/utils/regions.utils'
+import { useTranslations } from 'next-intl'
 
 // Step type for URL state
 type BridgeBankStep = 'inputAmount' | 'showDetails'
@@ -52,6 +53,8 @@ type BridgeBankStep = 'inputAmount' | 'showDetails'
 export default function OnrampBankPage() {
     const params = useParams()
     const _searchParams = useSearchParams()
+    const t = useTranslations('addMoney')
+    const tCommon = useTranslations('common')
 
     // URL state - persisted in query params
     // Example: /add-money/mexico/bank?step=inputAmount&amount=500
@@ -225,17 +228,17 @@ export default function OnrampBankPage() {
             }
             const amount = Number(amountStr)
             if (!Number.isFinite(amount)) {
-                setError({ showError: true, errorMessage: 'Please enter a valid number.' })
+                setError({ showError: true, errorMessage: t('errors.invalidNumber') })
                 return false
             }
             if (amount && amount < minimumAmount) {
-                setError({ showError: true, errorMessage: `Minimum deposit is ${minimumAmount}.` })
+                setError({ showError: true, errorMessage: t('errors.minimumDeposit', { amount: minimumAmount }) })
                 return false
             }
             setError({ showError: false, errorMessage: '' })
             return true
         },
-        [setError, minimumAmount]
+        [setError, minimumAmount, t]
     )
 
     // Handle amount change - sync to URL state
@@ -306,7 +309,7 @@ export default function OnrampBankPage() {
         if (!selectedCountry) {
             setError({
                 showError: true,
-                errorMessage: 'Please select a country first.',
+                errorMessage: t('errors.selectCountryFirst'),
             })
             return
         }
@@ -329,7 +332,7 @@ export default function OnrampBankPage() {
             } else {
                 setError({
                     showError: true,
-                    errorMessage: 'Could not get onramp details. Please try again.',
+                    errorMessage: t('errors.onrampDetails'),
                 })
             }
         } catch (error) {
@@ -369,8 +372,12 @@ export default function OnrampBankPage() {
     if (!selectedCountry) {
         return (
             <div className="space-y-8 self-start">
-                <NavHeader title="Not Found" onPrev={onBack} />
-                <EmptyState title="Country not found" description="Please try a different country." icon="search" />
+                <NavHeader title={tCommon('notFound')} onPrev={onBack} />
+                <EmptyState
+                    title={tCommon('countryNotFound')}
+                    description={tCommon('tryDifferentCountry')}
+                    icon="search"
+                />
             </div>
         )
     }
@@ -393,9 +400,9 @@ export default function OnrampBankPage() {
 
         return (
             <div className="flex flex-col justify-start space-y-8">
-                <NavHeader title="Add Money" onPrev={onBack} />
+                <NavHeader title={t('title')} onPrev={onBack} />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
-                    <div className="text-sm font-bold">How much do you want to add?</div>
+                    <div className="text-sm font-bold">{t('howMuchToAdd')}</div>
                     <AmountInput
                         initialAmount={rawTokenAmount}
                         setPrimaryAmount={handleTokenAmountChange}
@@ -426,11 +433,7 @@ export default function OnrampBankPage() {
                         })()}
 
                     {!limitsValidation.isBlocking && (
-                        <InfoCard
-                            variant="warning"
-                            icon="alert"
-                            description="Amount must match what you send from your bank!"
-                        />
+                        <InfoCard variant="warning" icon="alert" description={t('amountMustMatchBank')} />
                     )}
 
                     {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
@@ -438,8 +441,8 @@ export default function OnrampBankPage() {
                         <InfoCard
                             variant="info"
                             icon="info"
-                            title="EUR accounts only"
-                            description="Only EUR accounts with IBAN work for onramps. Your local currency account may not work."
+                            title={t('eurAccountsOnlyTitle')}
+                            description={t('eurAccountsOnlyDescription')}
                         />
                     )}
                     <Button
@@ -457,7 +460,7 @@ export default function OnrampBankPage() {
                         className="w-full"
                         loading={isCreatingOnramp}
                     >
-                        Continue
+                        {tCommon('continue')}
                     </Button>
                     {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                     {error.showError && !!error.errorMessage && !limitsValidation.isBlocking && (

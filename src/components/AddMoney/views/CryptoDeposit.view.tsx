@@ -29,6 +29,7 @@ import InfoCard from '@/components/Global/InfoCard'
 import { Tooltip } from '@/components/Tooltip'
 import { useState } from 'react'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 
 interface CryptoDepositViewProps {
     network: RhinoChainType
@@ -48,12 +49,6 @@ interface CryptoDepositViewProps {
 // The offramp migration surface advertises exactly one safe token.
 const OFFRAMP_DISPLAY_TOKENS = [{ name: 'USDC', logoUrl: TOKEN_LOGOS.USDC }]
 
-const TOOLTIP_TEXT: Record<RhinoChainType, string> = {
-    EVM: `${SUPPORTED_EVM_CHAINS.length} EVM networks supported. For exact amounts, deposit USDC on Arbitrum. Other chains/tokens are bridged (±0.1%).`,
-    SOL: 'Your Solana deposit address. Deposits are bridged to Arbitrum (±0.1% variance).',
-    TRON: 'Your Tron deposit address. Deposits are bridged to Arbitrum (±0.1% variance).',
-}
-
 const CryptoDepositView = ({
     network,
     depositAddressData,
@@ -64,6 +59,9 @@ const CryptoDepositView = ({
     onBack,
     variant = 'default',
 }: CryptoDepositViewProps) => {
+    const t = useTranslations('addMoney.crypto')
+    const tAddMoney = useTranslations('addMoney')
+    const tCommon = useTranslations('common')
     const [showHowToDeposit, setShowHowToDeposit] = useState(false)
     const [showSupportedNetworks, setShowSupportedNetworks] = useState(false)
     const { status, resetStatus, isResetting } = useCryptoDepositPolling(depositAddressData?.depositAddress, onSuccess)
@@ -74,8 +72,14 @@ const CryptoDepositView = ({
 
     const supportedTokens = getSupportedTokens(network)
 
-    const amountLimitsLabel = isOfframp ? 'Arbitrum' : isEvm ? 'EVM networks' : networkLabel
-    const headerTitle = isOfframp ? 'Migrate from Offramp' : 'Deposit Crypto'
+    const tooltipText: Record<RhinoChainType, string> = {
+        EVM: t('tooltipEvm', { count: SUPPORTED_EVM_CHAINS.length }),
+        SOL: t('tooltipSol'),
+        TRON: t('tooltipTron'),
+    }
+
+    const amountLimitsLabel = isOfframp ? 'Arbitrum' : isEvm ? t('evmNetworks') : networkLabel
+    const headerTitle = isOfframp ? tAddMoney('methods.migrateFromOfframp') : t('title')
 
     // failed state
     if (status === 'failed') {
@@ -89,32 +93,27 @@ const CryptoDepositView = ({
                                 <Icon name="alert" size={20} />
                             </div>
                             <h1 className="text-base font-bold">
-                                {isOfframp ? 'Transfer sent back' : 'Oops! Market moved'}
+                                {isOfframp ? t('transferSentBackTitle') : t('marketMovedTitle')}
                             </h1>
                             {isOfframp ? (
                                 <>
                                     <p className="text-center text-sm text-grey-1">
-                                        We couldn't complete your migration transfer.
+                                        {t('transferSentBackDescription')}
                                     </p>
                                     <p className="text-center text-sm font-bold text-grey-1">
-                                        Your money was returned to your Offramp account — start the withdrawal again
-                                        from there.
+                                        {t('transferSentBackNote')}
                                     </p>
                                 </>
                             ) : (
                                 <>
-                                    <p className="text-center text-sm text-grey-1">
-                                        The exchange rate changed too much to complete your deposit.
-                                    </p>
-                                    <p className="text-center text-sm font-bold text-grey-1">
-                                        Your money is on its way back to your wallet.
-                                    </p>
+                                    <p className="text-center text-sm text-grey-1">{t('marketMovedDescription')}</p>
+                                    <p className="text-center text-sm font-bold text-grey-1">{t('marketMovedNote')}</p>
                                 </>
                             )}
                         </div>
                     </Card>
                     <Button onClick={resetStatus} shadowSize="4" loading={isResetting} disabled={isResetting}>
-                        Try Again
+                        {tCommon('tryAgain')}
                     </Button>
                 </div>
             </div>
@@ -128,15 +127,14 @@ const CryptoDepositView = ({
             <div className="my-auto flex w-full flex-col gap-4">
                 {/* subtitle */}
                 <p className="text-center text-sm text-grey-1">
-                    {isOfframp ? (
-                        <>
-                            Send <span className="font-bold text-n-1">USDC on Arbitrum</span> to migrate your balance
-                        </>
-                    ) : (
-                        <>
-                            Send tokens to this <span className="font-bold text-n-1">{networkLabel}</span> address
-                        </>
-                    )}
+                    {isOfframp
+                        ? t.rich('sendUsdcOnArbitrum', {
+                              b: (chunks) => <span className="font-bold text-n-1">{chunks}</span>,
+                          })
+                        : t.rich('sendTokensToAddress', {
+                              network: networkLabel,
+                              b: (chunks) => <span className="font-bold text-n-1">{chunks}</span>,
+                          })}
                 </p>
 
                 {/* loading state */}
@@ -153,12 +151,12 @@ const CryptoDepositView = ({
                         <InfoCard
                             variant="warning"
                             icon="alert"
-                            title="We couldn't prepare your deposit address"
-                            description="Nothing was sent. Please try again — if this keeps happening, contact support."
+                            title={t('addressErrorTitle')}
+                            description={t('addressErrorDescription')}
                         />
                         {onRetry && (
                             <Button variant="stroke" className="w-full bg-white" shadowSize="4" onClick={onRetry}>
-                                Try Again
+                                {tCommon('tryAgain')}
                             </Button>
                         )}
                     </div>
@@ -180,20 +178,19 @@ const CryptoDepositView = ({
                             <div className="flex flex-col gap-2 p-4">
                                 <div className="flex items-center gap-1">
                                     {isOfframp ? (
-                                        <Tooltip
-                                            content="Use this address for your Offramp migration. It only accepts USDC on Arbitrum — don't save it as a general wallet address."
-                                            position="bottom"
-                                        >
+                                        <Tooltip content={t('migrationAddressTooltip')} position="bottom">
                                             <span className="flex items-center gap-1">
-                                                <span className="text-sm font-bold">Migration deposit address</span>
+                                                <span className="text-sm font-bold">
+                                                    {t('migrationDepositAddress')}
+                                                </span>
                                                 <Icon name="info" size={18} className="text-grey-1" />
                                             </span>
                                         </Tooltip>
                                     ) : (
-                                        <Tooltip content={TOOLTIP_TEXT[network]} position="bottom">
+                                        <Tooltip content={tooltipText[network]} position="bottom">
                                             <span className="flex items-center gap-1">
                                                 <span className="text-sm font-bold">
-                                                    {isEvm ? 'Universal Deposit Address' : 'Deposit Address'}
+                                                    {isEvm ? t('universalDepositAddress') : t('depositAddress')}
                                                 </span>
                                                 <Icon name="info" size={18} className="text-grey-1" />
                                             </span>
@@ -228,7 +225,7 @@ const CryptoDepositView = ({
                                 className={`border-t border-black p-4 ${isEvm && !isOfframp ? 'cursor-pointer' : ''}`}
                             >
                                 <p className="mb-2 text-sm font-bold">
-                                    {isOfframp ? 'Network:' : 'Supported Networks:'}
+                                    {isOfframp ? t('network') : t('supportedNetworks')}
                                 </p>
                                 <div className="flex items-center gap-2">
                                     <div className="flex flex-wrap gap-2">
@@ -270,7 +267,9 @@ const CryptoDepositView = ({
 
                             {/* supported tokens section */}
                             <div className="border-t border-black p-4">
-                                <p className="mb-2 text-sm font-bold">{isOfframp ? 'Token:' : 'Supported Tokens:'}</p>
+                                <p className="mb-2 text-sm font-bold">
+                                    {isOfframp ? t('token') : t('supportedTokens')}
+                                </p>
                                 <div className="flex flex-wrap gap-1.5">
                                     {(isOfframp ? OFFRAMP_DISPLAY_TOKENS : supportedTokens).map((token) => (
                                         <ChainChip
@@ -287,19 +286,17 @@ const CryptoDepositView = ({
                         <InfoCard
                             variant="warning"
                             icon="alert"
-                            title={isOfframp ? 'Send USDC on Arbitrum only' : 'Send to supported networks only'}
-                            description={
-                                isOfframp
-                                    ? 'Other tokens or networks may cause permanent loss.'
-                                    : 'Wrong token or network may cause permanent loss.'
-                            }
+                            title={isOfframp ? t('warningTitleOfframp') : t('warningTitle')}
+                            description={isOfframp ? t('warningDescriptionOfframp') : t('warningDescription')}
                         />
 
                         {/* min/max limits */}
                         <div className="w-full space-y-1">
                             <div className="flex w-full items-center justify-between">
                                 <p className="text-sm text-grey-1">
-                                    {isOfframp ? 'Min per transfer:' : `Min deposit for ${amountLimitsLabel}:`}
+                                    {isOfframp
+                                        ? t('minPerTransfer')
+                                        : t('minDepositFor', { network: amountLimitsLabel })}
                                 </p>
                                 <p className="text-sm font-bold">
                                     {depositAddressData.minDepositLimitUsd.toLocaleString()} USD
@@ -307,23 +304,16 @@ const CryptoDepositView = ({
                             </div>
                             <div className="flex w-full items-center justify-between">
                                 <p className="text-sm text-grey-1">
-                                    {isOfframp ? 'Max per transfer:' : `Max deposit for ${amountLimitsLabel}:`}
+                                    {isOfframp
+                                        ? t('maxPerTransfer')
+                                        : t('maxDepositFor', { network: amountLimitsLabel })}
                                 </p>
                                 <p className="text-sm font-bold">
                                     {depositAddressData.maxDepositLimitUsd.toLocaleString()} USD
                                 </p>
                             </div>
-                            {!isOfframp && (
-                                <p className="pt-1 text-sm text-grey-1">
-                                    A small bridging fee (~0.1%) applies — you&apos;ll receive slightly less than you
-                                    send.
-                                </p>
-                            )}
-                            {isOfframp && (
-                                <p className="pt-1 text-sm text-grey-1">
-                                    Moving more than the max? Send it in multiple transfers.
-                                </p>
-                            )}
+                            {!isOfframp && <p className="pt-1 text-sm text-grey-1">{t('bridgingFeeNote')}</p>}
+                            {isOfframp && <p className="pt-1 text-sm text-grey-1">{t('multipleTransfersNote')}</p>}
                         </div>
 
                         {/* how to deposit button */}
@@ -334,7 +324,7 @@ const CryptoDepositView = ({
                             onClick={() => setShowHowToDeposit(true)}
                         >
                             <Icon name="info" size={16} className="mr-1.5" />
-                            {isOfframp ? 'How to Migrate' : 'How to Deposit'}
+                            {isOfframp ? tAddMoney('howToDeposit.titleOfframp') : tAddMoney('howToDeposit.title')}
                         </Button>
                     </>
                 )}

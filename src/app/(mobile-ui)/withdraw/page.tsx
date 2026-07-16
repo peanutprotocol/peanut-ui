@@ -22,12 +22,16 @@ import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawBankUrl, withdrawCountryUrl } from '@/utils/native-routes'
+import { useTranslations } from 'next-intl'
 
 type WithdrawStep = 'inputAmount' | 'selectMethod'
 
 export default function WithdrawPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const t = useTranslations('withdraw')
+    const tNav = useTranslations('navigation')
+    const tCommon = useTranslations('common')
     const { selectedTokenData } = useContext(tokenSelectorContext)
 
     // check if coming from send flow based on method query param
@@ -183,7 +187,7 @@ export default function WithdrawPage() {
 
             const amount = Number(amountStr)
             if (!Number.isFinite(amount) || amount <= 0) {
-                setError({ showError: true, errorMessage: 'Please enter a valid number.' })
+                setError({ showError: true, errorMessage: t('errors.invalidNumber') })
                 return false
             }
 
@@ -205,17 +209,17 @@ export default function WithdrawPage() {
             if (usdEquivalent < minUsdAmount) {
                 const minDisplay = minUsdAmount % 1 === 0 ? `$${minUsdAmount}` : `$${minUsdAmount.toFixed(2)}`
                 message = isFromSendFlow
-                    ? `Minimum send amount is ${minDisplay}.`
-                    : `Minimum withdrawal is ${minDisplay}.`
+                    ? t('errors.minimumSend', { amount: minDisplay })
+                    : t('errors.minimumWithdrawal', { amount: minDisplay })
             } else if (balanceLoaded && amount > maxDecimalAmount) {
                 message = INSUFFICIENT_BALANCE_MESSAGE
             } else {
-                message = 'Please enter a valid amount.'
+                message = t('errors.invalidAmount')
             }
             setError({ showError: true, errorMessage: message })
             return false
         },
-        [balance, maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow, minUsdAmount]
+        [balance, maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow, minUsdAmount, t]
     )
 
     const handleTokenAmountChange = useCallback(
@@ -310,7 +314,7 @@ export default function WithdrawPage() {
                     })
                     setError({
                         showError: true,
-                        errorMessage: "We couldn't determine this account's country. Please contact support.",
+                        errorMessage: t('errors.countryUnresolved'),
                     })
                 }
             } else if (selectedMethod.type === 'bridge' && selectedMethod.countryPath) {
@@ -331,7 +335,7 @@ export default function WithdrawPage() {
                 })
                 setError({
                     showError: true,
-                    errorMessage: 'Something went wrong setting up your withdrawal. Please contact support.',
+                    errorMessage: t('errors.setupFailed'),
                 })
             }
         }
@@ -381,7 +385,7 @@ export default function WithdrawPage() {
         return (
             <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
                 <NavHeader
-                    title={isFromSendFlow ? 'Send' : 'Withdraw'}
+                    title={isFromSendFlow ? tNav('send') : tNav('withdraw')}
                     onPrev={() => {
                         // if crypto from send, go back to send page
                         if (isCryptoFromSend) {
@@ -401,7 +405,7 @@ export default function WithdrawPage() {
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                     <div className="space-y-1">
                         <div className="text-xl font-bold">
-                            {isFromSendFlow ? 'Amount to send' : 'Amount to withdraw'}
+                            {isFromSendFlow ? t('amountToSend') : t('amountToWithdraw')}
                         </div>
                     </div>
                     <AmountInput
@@ -438,7 +442,7 @@ export default function WithdrawPage() {
                         }
                         className="w-full"
                     >
-                        Continue
+                        {tCommon('continue')}
                     </Button>
                     {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                     {error.showError && !!error.errorMessage && !limitsValidation.isBlocking && (
@@ -453,8 +457,8 @@ export default function WithdrawPage() {
         return (
             <AddWithdrawRouterView
                 flow="withdraw"
-                pageTitle={isBankFromSend ? 'Send' : 'Withdraw'}
-                mainHeading={isBankFromSend ? 'How would you like to send?' : 'How would you like to withdraw?'}
+                pageTitle={isBankFromSend ? tNav('send') : tNav('withdraw')}
+                mainHeading={isBankFromSend ? t('howWouldYouLikeToSend') : t('howWouldYouLikeToWithdraw')}
                 onBackClick={() => {
                     // if bank from send flow, go back to send page
                     if (isBankFromSend) {
