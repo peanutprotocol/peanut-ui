@@ -17,7 +17,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
 import { areEvmAddressesEqual, formatTokenAmount, toInviteCode } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
-import { ErrorHandler } from '@/utils/friendly-error.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { apiFetch } from '@/utils/api-fetch'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
 import { NATIVE_TOKEN_ADDRESS, checkTokenSupportsXChain } from '@/utils/token.utils'
@@ -56,6 +56,7 @@ import { useFormatter, useTranslations } from 'next-intl'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const t = useTranslations('claim')
+    const toFriendlyError = useFriendlyError()
     const format = useFormatter()
     const tCommon = useTranslations('common')
     const tNav = useTranslations('navigation')
@@ -344,7 +345,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 // check if cross-chain claiming is needed
                 if (isXChain) {
                     if (underMaintenanceConfig.disableXchainSend) {
-                        // skip throwing through ErrorHandler — surface the friendly maintenance message directly
+                        // skip throwing through the friendly-error mapper — surface the friendly maintenance message directly
                         setErrorState({ showError: true, errorMessage: CROSS_CHAIN_DISABLED_MESSAGE })
                         setLoadingState('Idle')
                         return
@@ -421,7 +422,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     })
                 }
             } catch (error) {
-                const errorString = ErrorHandler(error)
+                const errorString = toFriendlyError(error)
                 setErrorState({
                     showError: true,
                     errorMessage: errorString,
@@ -457,6 +458,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             campaignTag,
             fetchUser,
             t,
+            toFriendlyError,
         ]
     )
 

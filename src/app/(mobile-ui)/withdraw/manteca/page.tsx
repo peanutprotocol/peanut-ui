@@ -5,12 +5,7 @@ import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
-import {
-    rainCentsToUsdcUnits,
-    INSUFFICIENT_BALANCE_MESSAGE,
-    BALANCE_SETTLING_MESSAGE,
-    isAmountWithinBalance,
-} from '@/utils/balance.utils'
+import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -105,6 +100,7 @@ function MantecaBankWithdrawFlow() {
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
+    const tErrors = useTranslations('errors')
     const flowId = useId() // Unique ID per flow instance to prevent cache collisions
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>(undefined)
     const [usdAmount, setUsdAmount] = useState<string | undefined>(undefined)
@@ -118,7 +114,15 @@ function MantecaBankWithdrawFlow() {
     const [destinationAddress, setDestinationAddress] = useState<string>(paramAddress ?? '')
     const [selectedBank, setSelectedBank] = useState<MantecaBankCode | null>(null)
     const [accountType, setAccountType] = useState<MantecaAccountType | null>(null)
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [errorMessage, setErrorMessageRaw] = useState<string | null>(null)
+    // Companion code for `errorMessage` so the retry-vs-block gate compares a
+    // stable identifier, never the localized string. Every set clears it unless
+    // a code is passed explicitly.
+    const [errorCode, setErrorCode] = useState<string | null>(null)
+    const setErrorMessage = useCallback((message: string | null, errCode: string | null = null) => {
+        setErrorMessageRaw(message)
+        setErrorCode(errCode)
+    }, [])
     const [isDestinationAddressValid, setIsDestinationAddressValid] = useState(false)
     const [isDestinationAddressChanging, setIsDestinationAddressChanging] = useState(false)
     // price lock state - holds the locked price from /withdraw/init
@@ -282,7 +286,7 @@ function MantecaBankWithdrawFlow() {
             (!countryConfig?.needsBankCode || selectedBank != null) &&
             (!countryConfig?.needsAccountType || accountType != null)
         )
-    }, [selectedBank, accountType, countryConfig, destinationAddress])
+    }, [selectedBank, accountType, countryConfig, destinationAddress, setErrorMessage])
 
     const handleBankDetailsSubmit = useCallback(async () => {
         // prevent duplicate requests from rapid clicks
@@ -347,6 +351,7 @@ function MantecaBankWithdrawFlow() {
         isLockingPrice,
         handleOnboardingError,
         t,
+        setErrorMessage,
     ])
 
     const handleWithdraw = async () => {
@@ -382,7 +387,7 @@ function MantecaBankWithdrawFlow() {
             } catch (error) {
                 const rainMsg = rainCollateralErrorMessage(error)
                 if (error instanceof InsufficientSpendableError) {
-                    setErrorMessage(BALANCE_SETTLING_MESSAGE)
+                    setErrorMessage(tErrors('balanceSettling'), 'balanceSettling')
                 } else if (error instanceof SessionKeyGrantRequiredError) {
                     // Grant prompt was attempted inside signSpend and failed.
                     // Telling the user "you'll be asked" is misleading — they
@@ -523,11 +528,11 @@ function MantecaBankWithdrawFlow() {
         } else if (!isAmountWithinBalance(usdAmount, balance)) {
             // gate on the displayed total; an in-transit shortfall passes here and
             // fails late with the settling message at execution.
-            setBalanceErrorMessage(INSUFFICIENT_BALANCE_MESSAGE)
+            setBalanceErrorMessage(tErrors('notEnoughBalanceAddFunds'))
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, hasPendingTransactions, isLoading, t])
+    }, [usdAmount, balance, hasPendingTransactions, isLoading, t, tErrors])
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // Use flowId as uniqueId to prevent cache collisions between different withdrawal flows
@@ -928,7 +933,7 @@ function MantecaBankWithdrawFlow() {
                         onClick={handleWithdraw}
                         loading={isLoading}
                         // settling failure is retryable — don't dead-end the button on it
-                        disabled={(!!errorMessage && errorMessage !== BALANCE_SETTLING_MESSAGE) || isLoading}
+                        disabled={(!!errorMessage && errorCode !== 'balanceSettling') || isLoading}
                         shadowSize="4"
                     >
                         {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('withdraw')}

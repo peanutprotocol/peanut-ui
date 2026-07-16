@@ -23,12 +23,7 @@ import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
-import {
-    rainCentsToUsdcUnits,
-    INSUFFICIENT_BALANCE_MESSAGE,
-    BALANCE_SETTLING_MESSAGE,
-    isAmountWithinBalance,
-} from '@/utils/balance.utils'
+import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
 import { formatNumberForDisplay } from '@/utils/general.utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
 import { calculateSavingsInCents, hasCardMarkupComparison, getSavingsMessage } from '@/utils/qr-payment.utils'
@@ -93,6 +88,7 @@ export default function QRPayPage() {
     const t = useTranslations('qrPay')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
+    const tErrors = useTranslations('errors')
     // Shown wherever the backend rejects a Pix payment below the rail minimum
     // (typed 400 PIX_MIN_AMOUNT — fires at lock-init for merchant-encoded amounts
     // and at re-init for user-entered amounts on open-amount QRs).
@@ -113,7 +109,15 @@ export default function QRPayPage() {
     const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
     const [isSuccess, setIsSuccess] = useState(false)
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [errorMessage, setErrorMessageRaw] = useState<string | null>(null)
+    // Companion code for `errorMessage` so retry-vs-block logic compares a stable
+    // identifier, never the localized string. Every set clears it unless a code
+    // is passed explicitly.
+    const [errorCode, setErrorCode] = useState<string | null>(null)
+    const setErrorMessage = useCallback((message: string | null, code: string | null = null) => {
+        setErrorMessageRaw(message)
+        setErrorCode(code)
+    }, [])
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const [errorInitiatingPayment, setErrorInitiatingPayment] = useState<string | null>(null)
     const [paymentLock, setPaymentLock] = useState<QrPaymentLock | null>(null)
@@ -423,12 +427,8 @@ export default function QRPayPage() {
     const isBlockingError = useMemo(() => {
         // The settling failure says "try again in a few seconds" — keep the Pay
         // button enabled so the user can retry, don't dead-end it like a hard error.
-        return (
-            !!errorMessage &&
-            errorMessage !== t('errors.confirmTransaction') &&
-            errorMessage !== BALANCE_SETTLING_MESSAGE
-        )
-    }, [errorMessage, t])
+        return !!errorMessage && errorCode !== 'confirmTransaction' && errorCode !== 'balanceSettling'
+    }, [errorMessage, errorCode])
 
     const usdAmount = useMemo(() => {
         if (!paymentLock) return null
@@ -654,13 +654,13 @@ export default function QRPayPage() {
         } catch (error) {
             const rainMsg = rainCollateralErrorMessage(error)
             if (error instanceof InsufficientSpendableError) {
-                setErrorMessage(BALANCE_SETTLING_MESSAGE)
+                setErrorMessage(tErrors('balanceSettling'), 'balanceSettling')
             } else if (error instanceof SessionKeyGrantRequiredError) {
                 setErrorMessage(t('errors.cardAuthNeeded'))
             } else if (rainMsg) {
                 setErrorMessage(rainMsg)
             } else if ((error as Error).toString().includes('not allowed')) {
-                setErrorMessage(t('errors.confirmTransaction'))
+                setErrorMessage(t('errors.confirmTransaction'), 'confirmTransaction')
             } else {
                 captureException(error)
                 setErrorMessage(t('errors.signFailed'))
@@ -760,6 +760,8 @@ export default function QRPayPage() {
         qrType,
         handleStaleSession,
         t,
+        tErrors,
+        setErrorMessage,
         pixMinAmountErrorMessage,
     ])
 
@@ -950,11 +952,11 @@ export default function QRPayPage() {
         } else if (!isAmountWithinBalance(usdAmount, balance)) {
             // gate on the displayed total; an in-transit shortfall passes here and
             // fails late with the settling message at execution.
-            setBalanceErrorMessage(INSUFFICIENT_BALANCE_MESSAGE)
+            setBalanceErrorMessage(tErrors('notEnoughBalanceAddFunds'))
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, paymentProcessor, currency?.code, currencyAmount, t])
+    }, [usdAmount, balance, paymentProcessor, currency?.code, currencyAmount, t, tErrors])
 
     // Use points confetti hook for animation - must be called unconditionally
     usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)

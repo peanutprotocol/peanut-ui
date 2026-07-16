@@ -9,7 +9,6 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import { INSUFFICIENT_BALANCE_MESSAGE } from '@/utils/balance.utils'
 import { getCountryFromAccount, getCountryFromPath, getMinimumAmount } from '@/utils/bridge.utils'
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { AccountType } from '@/interfaces'
@@ -32,6 +31,7 @@ export default function WithdrawPage() {
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
+    const tErrors = useTranslations('errors')
     const { selectedTokenData } = useContext(tokenSelectorContext)
 
     // check if coming from send flow based on method query param
@@ -212,14 +212,14 @@ export default function WithdrawPage() {
                     ? t('errors.minimumSend', { amount: minDisplay })
                     : t('errors.minimumWithdrawal', { amount: minDisplay })
             } else if (balanceLoaded && amount > maxDecimalAmount) {
-                message = INSUFFICIENT_BALANCE_MESSAGE
+                message = tErrors('notEnoughBalanceAddFunds')
             } else {
                 message = t('errors.invalidAmount')
             }
             setError({ showError: true, errorMessage: message })
             return false
         },
-        [balance, maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow, minUsdAmount, t]
+        [balance, maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow, minUsdAmount, t, tErrors]
     )
 
     const handleTokenAmountChange = useCallback(

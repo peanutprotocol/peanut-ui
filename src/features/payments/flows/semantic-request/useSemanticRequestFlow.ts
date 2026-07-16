@@ -23,12 +23,13 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAuth } from '@/context/authContext'
 import { tokenSelectorContext } from '@/context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { ErrorHandler } from '@/utils/friendly-error.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 
 export function useSemanticRequestFlow() {
+    const toFriendlyError = useFriendlyError()
     const {
         amount,
         setAmount,
@@ -340,7 +341,7 @@ export function useSemanticRequestFlow() {
                 setIsLoading(false)
                 return { success: true }
             } catch (err) {
-                const errorMessage = ErrorHandler(err)
+                const errorMessage = toFriendlyError(err)
                 setError({ showError: true, errorMessage })
                 setIsLoading(false)
                 return { success: false }
@@ -372,6 +373,7 @@ export function useSemanticRequestFlow() {
             setError,
             setIsLoading,
             clearError,
+            toFriendlyError,
         ]
     )
 
@@ -562,7 +564,7 @@ export function useSemanticRequestFlow() {
             })
             queryClient.invalidateQueries({ queryKey: ['balance'] })
         } catch (err) {
-            const errorMessage = ErrorHandler(err)
+            const errorMessage = toFriendlyError(err)
             setError({ showError: true, errorMessage })
         } finally {
             setIsLoading(false)
@@ -589,6 +591,7 @@ export function useSemanticRequestFlow() {
         setError,
         setIsLoading,
         clearError,
+        toFriendlyError,
     ])
 
     // go back from confirm to initial

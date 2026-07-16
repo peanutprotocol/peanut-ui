@@ -21,9 +21,10 @@ import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentR
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAuth } from '@/context/authContext'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { ErrorHandler } from '@/utils/friendly-error.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 
 export function useContributePotFlow() {
+    const toFriendlyError = useFriendlyError()
     const {
         amount,
         setAmount,
@@ -225,7 +226,7 @@ export function useContributePotFlow() {
                 setIsLoading(false)
                 return { success: true }
             } catch (err) {
-                const errorMessage = ErrorHandler(err)
+                const errorMessage = toFriendlyError(err)
                 setError({ showError: true, errorMessage })
                 setIsLoading(false)
                 return { success: false }
@@ -249,6 +250,7 @@ export function useContributePotFlow() {
             setError,
             setIsLoading,
             clearError,
+            toFriendlyError,
         ]
     )
 

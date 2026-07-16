@@ -19,8 +19,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
-import { ErrorHandler } from '@/utils/friendly-error.utils'
-import { INSUFFICIENT_BALANCE_MESSAGE, isAmountWithinBalance } from '@/utils/balance.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
+import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
 import { getOfframpConfigFromAccount, getCountryFromPath, railJurisdictionForBank } from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
@@ -56,6 +56,8 @@ export default function WithdrawBankPage() {
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
+    const tErrors = useTranslations('errors')
+    const toFriendlyError = useFriendlyError()
     // Copy shown when the on-chain deposit to the Bridge address succeeded but the
     // subsequent `/bridge/transfers/:id/confirm` call failed (most often a
     // fetchWithSentry timeout). The Bridge transfer row exists on the BE; the
@@ -348,7 +350,7 @@ export default function WithdrawBankPage() {
                 country,
             })
         } catch (e: any) {
-            const error = ErrorHandler(e)
+            const error = toFriendlyError(e)
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
                 method_type: 'bridge',
                 error_message: error,
@@ -400,8 +402,10 @@ export default function WithdrawBankPage() {
 
         // gate on the displayed total; an in-transit shortfall passes here and
         // fails late with the settling message at execution.
-        setBalanceErrorMessage(isAmountWithinBalance(amountToWithdraw, balance) ? null : INSUFFICIENT_BALANCE_MESSAGE)
-    }, [amountToWithdraw, balance, hasPendingTransactions, isLoading])
+        setBalanceErrorMessage(
+            isAmountWithinBalance(amountToWithdraw, balance) ? null : tErrors('notEnoughBalanceAddFunds')
+        )
+    }, [amountToWithdraw, balance, hasPendingTransactions, isLoading, tErrors])
 
     if (!bankAccount) {
         return null

@@ -12,7 +12,6 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { type ITokenPriceData } from '@/interfaces'
 import { formatAmount, isStableCoin } from '@/utils/general.utils'
-import { INSUFFICIENT_BALANCE_MESSAGE } from '@/utils/balance.utils'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { useMemo } from 'react'
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
@@ -81,6 +80,7 @@ export default function ConfirmWithdrawView({
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
+    const tErrors = useTranslations('errors')
     const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
         chainId: chain.chainId,
         tokenAddress: token.address,
@@ -222,7 +222,7 @@ export default function ConfirmWithdrawView({
                     </Button>
                 )}
 
-                {insufficientBalance && !error && <ErrorAlert description={INSUFFICIENT_BALANCE_MESSAGE} />}
+                {insufficientBalance && !error && <ErrorAlert description={tErrors('notEnoughBalanceAddFunds')} />}
                 {error && <ErrorAlert description={error} />}
             </div>
         </div>

@@ -20,9 +20,10 @@ import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentR
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAuth } from '@/context/authContext'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { ErrorHandler } from '@/utils/friendly-error.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 
 export function useDirectSendFlow() {
+    const toFriendlyError = useFriendlyError()
     const {
         amount,
         setAmount,
@@ -164,7 +165,7 @@ export function useDirectSendFlow() {
             setIsSuccess(true)
             setCurrentView('STATUS')
         } catch (err) {
-            const errorMessage = ErrorHandler(err)
+            const errorMessage = toFriendlyError(err)
             setError({ showError: true, errorMessage })
         } finally {
             setIsLoading(false)
@@ -186,6 +187,7 @@ export function useDirectSendFlow() {
         setError,
         setIsLoading,
         clearError,
+        toFriendlyError,
     ])
 
     return {

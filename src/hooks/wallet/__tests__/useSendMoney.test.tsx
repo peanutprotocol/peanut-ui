@@ -27,6 +27,11 @@ jest.mock('@/constants/query.consts', () => ({
     SEND_MONEY: 'send-money',
 }))
 
+// No intl provider in these hook tests — echo the key so copy assertions stay stable.
+jest.mock('next-intl', () => ({
+    useTranslations: () => (key: string) => key,
+}))
+
 // Mock the spend-bundle primitive — the hook under test only cares that
 // `spend()` is invoked, returns either resolved or rejected. No kernel
 // client / passkey needed here.

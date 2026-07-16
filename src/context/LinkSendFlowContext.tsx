@@ -27,6 +27,9 @@ export interface LinkSendAttachmentOptions {
 export interface LinkSendErrorState {
     showError: boolean
     errorMessage: string
+    // stable identifier for logic that must distinguish a specific error from
+    // the rendered (localized) message — e.g. clearing only the balance-gate error
+    errorCode?: string
 }
 
 // context type

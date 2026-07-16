@@ -33,7 +33,7 @@ import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCross
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { isTxReverted } from '@/utils/general.utils'
 import { appBaseUrl } from '@/utils/url.utils'
-import { ErrorHandler } from '@/utils/friendly-error.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
@@ -42,6 +42,7 @@ export default function WithdrawCryptoPage() {
     const router = useRouter()
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
+    const toFriendlyError = useFriendlyError()
     const onBack = useSafeBack('/withdraw')
     const { address, sendTransactions, sendMoney, spendableBalance } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
@@ -384,7 +385,7 @@ export default function WithdrawCryptoPage() {
             })
         } catch (err) {
             console.error('Withdrawal execution failed:', err)
-            const errMsg = ErrorHandler(err)
+            const errMsg = toFriendlyError(err)
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
                 method_type: 'crypto',
                 error_message: errMsg,
@@ -412,6 +413,7 @@ export default function WithdrawCryptoPage() {
         setError,
         triggerHaptic,
         t,
+        toFriendlyError,
     ])
 
     const handleBackFromConfirm = useCallback(() => {

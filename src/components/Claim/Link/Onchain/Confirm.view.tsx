@@ -11,7 +11,7 @@ import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatTokenAmount, isStableCoin } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
-import { ErrorHandler } from '@/utils/friendly-error.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 import * as Sentry from '@sentry/nextjs'
 import { useContext, useState, useMemo } from 'react'
 import { formatUnits } from 'viem'
@@ -38,6 +38,7 @@ export const ConfirmClaimLinkView = ({
 }: _consts.IClaimScreenProps) => {
     const t = useTranslations('claim')
     const tNav = useTranslations('navigation')
+    const toFriendlyError = useFriendlyError()
     const { address } = useWallet()
     const { user } = useAuth()
     const { claimLinkXchain, claimLink } = useClaimLink()
@@ -150,7 +151,7 @@ export const ConfirmClaimLinkView = ({
             onNext()
             // Note: Balance/transaction refresh handled by mutation or SUCCESS view
         } catch (error) {
-            const errorString = ErrorHandler(error)
+            const errorString = toFriendlyError(error)
             setErrorState({
                 showError: true,
                 errorMessage: errorString,
