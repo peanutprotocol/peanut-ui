@@ -42,6 +42,7 @@ export const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
     'festa-junina': 'FESTA_JUNINA_2026',
     'card-alpha': 'CARD_ALPHA',
     'irl-nomads': 'IRL_NOMADS',
+    manicero: 'MANICERO',
 }
 
 // Resolve the effective campaign (a badge code, or a raw passthrough tag) from
