@@ -192,6 +192,14 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
         }
     }
 
+    // A request link stays OPEN until the requester closes it, so its raw status
+    // never reports that the goal was met — derive that from the collected sum.
+    // Goal 0 is the "no goal set" pot, which can never be fully funded.
+    if (entry.isRequestLink && status === 'OPEN') {
+        const goal = Number(entry.amount ?? 0)
+        return goal > 0 && (entry.totalAmountCollected ?? 0) >= goal ? 'completed' : 'pending'
+    }
+
     switch (status) {
         case 'NEW':
         case 'PENDING':
