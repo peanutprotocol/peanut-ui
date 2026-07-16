@@ -14,6 +14,7 @@ import { INSUFFICIENT_BALANCE_MESSAGE, isAmountWithinBalance } from '@/utils/bal
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import { parseUnits } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import FileUploadInput from '../../../Global/FileUploadInput'
@@ -23,6 +24,9 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const LinkSendInitialView = () => {
+    const t = useTranslations('send')
+    const tCommon = useTranslations('common')
+    const tLoading = useTranslations('loadingStates')
     const {
         attachmentOptions,
         setAttachmentOptions,
@@ -179,7 +183,7 @@ const LinkSendInitialView = () => {
 
             <FileUploadInput
                 className="h-11"
-                placeholder="Comment"
+                placeholder={tCommon('comment')}
                 attachmentOptions={attachmentOptions}
                 setAttachmentOptions={setAttachmentOptions}
             />
@@ -187,7 +191,7 @@ const LinkSendInitialView = () => {
             <div className="flex flex-col gap-4">
                 {errorState?.showError ? (
                     <Button shadowSize="4" icon="retry" onClick={handleOnNext} loading={isLoading} disabled={isLoading}>
-                        Retry
+                        {tCommon('retry')}
                     </Button>
                 ) : (
                     <Button
@@ -196,7 +200,7 @@ const LinkSendInitialView = () => {
                         loading={isLoading}
                         disabled={isLoading || !tokenValue || !!errorState?.showError}
                     >
-                        {isLoading ? 'Creating link' : 'Create link'}
+                        {isLoading ? tLoading('creatingLink') : t('link.createLink')}
                     </Button>
                 )}
                 {errorState?.showError && <ErrorAlert description={errorState.errorMessage} />}

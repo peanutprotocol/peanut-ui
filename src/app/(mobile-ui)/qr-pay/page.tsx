@@ -1,6 +1,7 @@
 'use client'
 
 import { useSearchParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useState, useCallback, useMemo, useEffect, useContext, useRef } from 'react'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
@@ -86,19 +87,20 @@ const NON_RETRYABLE_QR_PAY_ERRORS = [
     'PIX_RECURRING_NOT_SUPPORTED',
 ]
 
-// Shown wherever the backend rejects a Pix payment below the rail minimum
-// (typed 400 PIX_MIN_AMOUNT — fires at lock-init for merchant-encoded amounts
-// and at re-init for user-entered amounts on open-amount QRs).
-const PIX_MIN_AMOUNT_ERROR_MESSAGE = `This Pix charge is below the ${MIN_PIX_AMOUNT_BRL} BRL minimum for Pix payments.`
-
-// PIX Automático (recurring) codes — rejected at the entry guard for scanned/pasted
-// deep links, and mapped from the backend's typed 400 PIX_RECURRING_NOT_SUPPORTED.
-const PIX_RECURRING_ERROR_MESSAGE =
-    "This QR code is for a recurring payment (PIX Automático). Peanut doesn't support recurring PIX payments — please ask for a regular PIX QR code instead."
-
 type PaymentProcessor = 'MANTECA'
 
 export default function QRPayPage() {
+    const t = useTranslations('qrPay')
+    const tNav = useTranslations('navigation')
+    const tCommon = useTranslations('common')
+    const tLimits = useTranslations('limits')
+    // Shown wherever the backend rejects a Pix payment below the rail minimum
+    // (typed 400 PIX_MIN_AMOUNT — fires at lock-init for merchant-encoded amounts
+    // and at re-init for user-entered amounts on open-amount QRs).
+    const pixMinAmountErrorMessage = t('errors.pixMinAmount', { amount: MIN_PIX_AMOUNT_BRL })
+    // PIX Automático (recurring) codes — rejected at the entry guard for scanned/pasted
+    // deep links, and mapped from the backend's typed 400 PIX_RECURRING_NOT_SUPPORTED.
+    const pixRecurringErrorMessage = t('errors.pixRecurring')
     const searchParams = useSearchParams()
     const router = useRouter()
     // QR-pay screens are terminal — leaving /qr-pay in history would let browser back from
@@ -370,12 +372,12 @@ export default function QRPayPage() {
         // Before isPaymentProcessorQR: recurrence codes can match PIX_REGEX, and the
         // specific message must win over the generic "Invalid QR code scanned".
         if (qrCode && isPixRecurringCode(qrCode)) {
-            setErrorInitiatingPayment(PIX_RECURRING_ERROR_MESSAGE)
+            setErrorInitiatingPayment(pixRecurringErrorMessage)
             return
         }
 
         if (!qrCode || !isPaymentProcessorQR(qrCode)) {
-            setErrorInitiatingPayment('Invalid QR code scanned')
+            setErrorInitiatingPayment(t('errors.invalidQr'))
             return
         }
 
@@ -424,10 +426,10 @@ export default function QRPayPage() {
         // button enabled so the user can retry, don't dead-end it like a hard error.
         return (
             !!errorMessage &&
-            errorMessage !== 'Please confirm the transaction.' &&
+            errorMessage !== t('errors.confirmTransaction') &&
             errorMessage !== BALANCE_SETTLING_MESSAGE
         )
-    }, [errorMessage])
+    }, [errorMessage, t])
 
     const usdAmount = useMemo(() => {
         if (!paymentLock) return null
@@ -561,25 +563,21 @@ export default function QRPayPage() {
                 // Pix has no fallback rail in Brazil — ask the merchant to regenerate.
                 // For Argentina (MERCADO_PAGO and ARGENTINA_QR3), MP is the dominant
                 // rail, so suggesting an MP QR is the most useful fallback.
-                setErrorInitiatingPayment(
-                    qrType === EQrType.PIX
-                        ? 'We could not decode this Pix QR code. Please ask the merchant to generate a new one.'
-                        : 'We could not decode this particular QR code. Please ask the Merchant if they can generate a Mercado Pago QR'
-                )
+                setErrorInitiatingPayment(qrType === EQrType.PIX ? t('errors.pixDecode') : t('errors.genericDecode'))
                 posthog.capture(ANALYTICS_EVENTS.QR_DECODING_ERROR_SHOWN, { qr_type: qrType })
                 setWaitingForMerchantAmount(false)
             } else if (error.message.includes('PIX_MIN_AMOUNT')) {
                 // Deterministic rejection — the merchant-encoded amount is below
                 // the rail minimum, so there's no merchant amount to wait for.
                 setWaitingForMerchantAmount(false)
-                setErrorInitiatingPayment(PIX_MIN_AMOUNT_ERROR_MESSAGE)
+                setErrorInitiatingPayment(pixMinAmountErrorMessage)
             } else if (error.message.includes('PIX_RECURRING_NOT_SUPPORTED')) {
                 setWaitingForMerchantAmount(false)
-                setErrorInitiatingPayment(PIX_RECURRING_ERROR_MESSAGE)
+                setErrorInitiatingPayment(pixRecurringErrorMessage)
             } else {
                 // Network/timeout errors after all retries exhausted
                 setErrorInitiatingPayment(
-                    `We are currently experiencing issues with ${qrType ? NAME_BY_QR_TYPE[qrType as QrType] : 'QR'} payments. We are working to fix it as soon as possible`
+                    t('errors.providerIssues', { method: (qrType && NAME_BY_QR_TYPE[qrType as QrType]) || 'QR' })
                 )
                 setWaitingForMerchantAmount(false)
             }
@@ -593,6 +591,9 @@ export default function QRPayPage() {
         qrType,
         paymentProcessor,
         setLoadingState,
+        t,
+        pixMinAmountErrorMessage,
+        pixRecurringErrorMessage,
     ])
 
     const merchantName = useMemo(() => {
@@ -617,10 +618,10 @@ export default function QRPayPage() {
                 if (error instanceof Error && error.message.includes('PIX_MIN_AMOUNT')) {
                     // Deterministic rejection (user-entered amount below the rail
                     // minimum) — actionable copy, not a Sentry-worthy surprise.
-                    setErrorMessage(PIX_MIN_AMOUNT_ERROR_MESSAGE)
+                    setErrorMessage(pixMinAmountErrorMessage)
                 } else {
                     captureException(error)
-                    setErrorMessage('Could not initiate payment due to unexpected error. Please contact support')
+                    setErrorMessage(t('errors.initiateUnexpected'))
                 }
                 setIsSuccess(false)
                 setLoadingState('Idle')
@@ -628,7 +629,7 @@ export default function QRPayPage() {
             }
         }
         if (finalPaymentLock.code === '') {
-            setErrorMessage('Could not fetch qr payment details')
+            setErrorMessage(t('errors.fetchDetails'))
             setIsSuccess(false)
             setLoadingState('Idle')
             return
@@ -656,14 +657,14 @@ export default function QRPayPage() {
             if (error instanceof InsufficientSpendableError) {
                 setErrorMessage(BALANCE_SETTLING_MESSAGE)
             } else if (error instanceof SessionKeyGrantRequiredError) {
-                setErrorMessage("One-time card authorization needed. You'll be asked to confirm once.")
+                setErrorMessage(t('errors.cardAuthNeeded'))
             } else if (rainMsg) {
                 setErrorMessage(rainMsg)
             } else if ((error as Error).toString().includes('not allowed')) {
-                setErrorMessage('Please confirm the transaction.')
+                setErrorMessage(t('errors.confirmTransaction'))
             } else {
                 captureException(error)
-                setErrorMessage('Could not sign the transaction.')
+                setErrorMessage(t('errors.signFailed'))
             }
             setIsSuccess(false)
             setLoadingState('Idle')
@@ -737,19 +738,13 @@ export default function QRPayPage() {
 
             // Handle specific error cases
             if (errorMsg.toLowerCase().includes('nonce')) {
-                setErrorMessage(
-                    'Transaction failed due to account state change. Please try again. If the problem persists, contact support.'
-                )
+                setErrorMessage(t('errors.accountStateChanged'))
             } else if (errorMsg.toLowerCase().includes('expired') || errorMsg.toLowerCase().includes('stale')) {
-                setErrorMessage('Payment session expired. Please scan the QR code again.')
+                setErrorMessage(t('errors.sessionExpired'))
             } else if (qrType === EQrType.PIX) {
-                setErrorMessage(
-                    'This specific QR code or merchant is not supported. Please try again with a different QR code.'
-                )
+                setErrorMessage(t('errors.merchantNotSupported'))
             } else {
-                setErrorMessage(
-                    'Could not complete payment. Please scan the QR code again. If problem persists contact support'
-                )
+                setErrorMessage(t('errors.completeFailed'))
             }
             setIsSuccess(false)
         } finally {
@@ -765,6 +760,8 @@ export default function QRPayPage() {
         setLoadingState,
         qrType,
         handleStaleSession,
+        t,
+        pixMinAmountErrorMessage,
     ])
 
     const payQR = useCallback(async () => {
@@ -936,21 +933,21 @@ export default function QRPayPage() {
         // Manteca-specific validation (PIX, MercadoPago, QR3)
         if (paymentProcessor === 'MANTECA') {
             if (paymentAmount < parseUnits(MIN_MANTECA_QR_PAYMENT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
-                setBalanceErrorMessage(`Payment amount must be at least $${MIN_MANTECA_QR_PAYMENT_AMOUNT}`)
+                setBalanceErrorMessage(t('errors.minMantecaAmount', { amount: MIN_MANTECA_QR_PAYMENT_AMOUNT }))
                 return
             }
             // PIX rail enforces a 1 BRL minimum, stricter than the USD floor above
             if (currency?.code === 'BRL' && currencyAmount && parseFloat(currencyAmount) < MIN_PIX_AMOUNT_BRL) {
-                setBalanceErrorMessage(`Minimum PIX amount is ${MIN_PIX_AMOUNT_BRL} BRL`)
+                setBalanceErrorMessage(t('errors.minPixAmountBrl', { amount: MIN_PIX_AMOUNT_BRL }))
                 return
             }
         }
 
         // Common validations for all payment processors
         if (paymentAmount > parseUnits(MAX_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setBalanceErrorMessage(`QR payment amount exceeds maximum limit of $${MAX_QR_PAYMENT_AMOUNT}`)
+            setBalanceErrorMessage(t('errors.maxQrAmount', { amount: MAX_QR_PAYMENT_AMOUNT }))
         } else if (paymentAmount < parseUnits(MIN_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setBalanceErrorMessage(`QR payment amount must be at least $${MIN_QR_PAYMENT_AMOUNT}`)
+            setBalanceErrorMessage(t('errors.minQrAmount', { amount: MIN_QR_PAYMENT_AMOUNT }))
         } else if (!isAmountWithinBalance(usdAmount, balance)) {
             // gate on the displayed total; an in-transit shortfall passes here and
             // fails late with the settling message at execution.
@@ -958,7 +955,7 @@ export default function QRPayPage() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, paymentProcessor, currency?.code, currencyAmount])
+    }, [usdAmount, balance, paymentProcessor, currency?.code, currencyAmount, t])
 
     // Use points confetti hook for animation - must be called unconditionally
     usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)
@@ -1016,35 +1013,33 @@ export default function QRPayPage() {
         const isRestartIdentity = kycGateState === QrKycState.PROVIDER_RESTART_IDENTITY
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
-                <NavHeader title="Pay" />
+                <NavHeader title={tNav('pay')} />
                 <ActionModal
                     visible
                     onClose={onBack}
                     title={
                         isFixable
-                            ? 'We need an updated document'
+                            ? t('kyc.fixableTitle')
                             : isRestartIdentity
-                              ? 'Verify with a different document'
-                              : 'QR payments are not available'
+                              ? t('kyc.restartTitle')
+                              : t('kyc.blockedTitle')
                     }
                     description={
                         isFixable
-                            ? 'We need an updated document to enable QR payments. Please upload a clearer photo of your ID.'
+                            ? t('kyc.fixableDescription')
                             : isRestartIdentity
-                              ? (qrKycUserMessage ??
-                                'QR payments need a document from a supported country. You can verify with a different ID.')
-                              : (qrKycUserMessage ??
-                                'QR payments are not available for your account. Contact support for help.')
+                              ? (qrKycUserMessage ?? t('kyc.restartDescription'))
+                              : (qrKycUserMessage ?? t('kyc.blockedDescription'))
                     }
                     icon={
                         methodIcon ? (
-                            <Image src={methodIcon} alt="Payment method" width={48} height={48} priority />
+                            <Image src={methodIcon} alt={t('paymentMethodAlt')} width={48} height={48} priority />
                         ) : undefined
                     }
                     ctas={[
                         isFixable
                             ? {
-                                  text: 'Upload document',
+                                  text: t('kyc.uploadDocument'),
                                   onClick: () => sumsubFlow.handleSelfHealResubmit('MANTECA'),
                                   variant: 'purple' as const,
                                   shadowSize: '4' as const,
@@ -1052,14 +1047,14 @@ export default function QRPayPage() {
                               }
                             : isRestartIdentity
                               ? {
-                                    text: 'Verify with a different document',
+                                    text: t('kyc.restartTitle'),
                                     onClick: () => sumsubFlow.handleRestartIdentity(),
                                     variant: 'purple' as const,
                                     shadowSize: '4' as const,
                                     icon: 'upload',
                                 }
                               : {
-                                    text: 'Contact support',
+                                    text: tCommon('contactSupport'),
                                     onClick: () => setIsSupportModalOpen(true),
                                     variant: 'stroke' as const,
                                 },
@@ -1078,20 +1073,20 @@ export default function QRPayPage() {
     if (needsKycVerification) {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
-                <NavHeader title="Pay" />
+                <NavHeader title={tNav('pay')} />
                 <ActionModal
                     visible={kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION}
                     onClose={onBack}
-                    title="Unlock QR payments"
-                    description="Confirm your ID to pay with a QR code. Takes about a minute."
+                    title={t('kyc.unlockTitle')}
+                    description={t('kyc.unlockDescription')}
                     icon={
                         methodIcon ? (
-                            <Image src={methodIcon} alt="Payment method" width={48} height={48} priority />
+                            <Image src={methodIcon} alt={t('paymentMethodAlt')} width={48} height={48} priority />
                         ) : undefined
                     }
                     ctas={[
                         {
-                            text: 'Unlock now',
+                            text: t('kyc.unlockCta'),
                             onClick: () =>
                                 sumsubFlow.handleInitiateKyc(
                                     'LATAM',
@@ -1109,12 +1104,12 @@ export default function QRPayPage() {
                 <ActionModal
                     visible={kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS}
                     onClose={onBack}
-                    title="Almost there"
-                    description="We're confirming your ID. Pick up where you left off and you'll be paying in no time."
+                    title={t('kyc.inProgressTitle')}
+                    description={t('kyc.inProgressDescription')}
                     icon="shield"
                     ctas={[
                         {
-                            text: 'Continue',
+                            text: tCommon('continue'),
                             onClick: () =>
                                 sumsubFlow.handleInitiateKyc(
                                     'LATAM',
@@ -1127,7 +1122,7 @@ export default function QRPayPage() {
                             icon: 'check-circle',
                         },
                         {
-                            text: 'Not now',
+                            text: t('kyc.notNow'),
                             onClick: onBack,
                             variant: 'transparent',
                             className: 'underline text-sm font-medium w-full h-fit mt-3',
@@ -1147,21 +1142,20 @@ export default function QRPayPage() {
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
                         <Icon name="alert" size={24} />
                     </div>
-                    <span className="text-lg font-bold">Service Temporarily Unavailable</span>
+                    <span className="text-lg font-bold">{t('maintenance.title')}</span>
                     <p className="text-center font-normal text-grey-1">
-                        We're experiencing issues with {paymentMethodName} payments due to an external provider outage.
-                        We're working to restore service as soon as possible.
+                        {t('maintenance.description', { method: paymentMethodName })}
                     </p>
                 </Card>
                 <Button onClick={onBack} variant="purple" shadowSize="4">
-                    Go Back
+                    {t('maintenance.goBack')}
                 </Button>
                 <button
                     onClick={() => setIsSupportModalOpen(true)}
                     className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 transition-colors hover:text-black"
                 >
                     <Icon name="peanut-support" size={16} className="text-grey-1" />
-                    Having trouble?
+                    {t('havingTrouble')}
                 </button>
             </div>
         )
@@ -1174,13 +1168,10 @@ export default function QRPayPage() {
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
                         <Icon name="alert" size={24} />
                     </div>
-                    <p className="font-medium">
-                        {' '}
-                        {errorInitiatingPayment || 'An error occurred while getting the QR details.'}
-                    </p>
+                    <p className="font-medium"> {errorInitiatingPayment || t('errors.genericQrDetails')}</p>
 
                     <Button onClick={onBack} variant="purple">
-                        Go Back
+                        {t('maintenance.goBack')}
                     </Button>
                 </Card>
             </div>
@@ -1191,7 +1182,7 @@ export default function QRPayPage() {
     const isLoadingPaymentData = isFirstLoad || (paymentProcessor === 'MANTECA' && !paymentLock) || !currency
 
     if (waitingForMerchantAmount) {
-        return <QrPayPageLoading message="Waiting for the merchant to set the amount" />
+        return <QrPayPageLoading message={t('waitingForMerchant')} />
     }
 
     if (showOrderNotReadyModal) {
@@ -1201,10 +1192,8 @@ export default function QRPayPage() {
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
                         <Icon name="qr-code" size={24} />
                     </div>
-                    <span className="text-lg font-bold">We couldn't get the amount</span>
-                    <p className="max-w-52 text-center font-normal text-grey-1">
-                        Ask the merchant to enter it and scan the QR again.
-                    </p>
+                    <span className="text-lg font-bold">{t('orderNotReady.title')}</span>
+                    <p className="max-w-52 text-center font-normal text-grey-1">{t('orderNotReady.description')}</p>
                 </Card>
                 <Button
                     onClick={() => {
@@ -1216,14 +1205,14 @@ export default function QRPayPage() {
                     variant="purple"
                     shadowSize="4"
                 >
-                    Scan the code again
+                    {t('orderNotReady.cta')}
                 </Button>
                 <button
                     onClick={() => setIsSupportModalOpen(true)}
                     className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 transition-colors hover:text-black"
                 >
                     <Icon name="peanut-support" size={16} className="text-grey-1" />
-                    Having trouble?
+                    {t('havingTrouble')}
                 </button>
             </div>
         )
@@ -1248,7 +1237,7 @@ export default function QRPayPage() {
         return (
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
                 <SoundPlayer sound="success" />
-                <NavHeader title="Pay" />
+                <NavHeader title={tNav('pay')} />
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
                     {/* Only show payment card if reward was not claimed */}
                     {!perkClaimed && !qrPayment?.perk?.claimed && (
@@ -1265,7 +1254,10 @@ export default function QRPayPage() {
 
                             <div className="space-y-1">
                                 <h1 className="text-sm font-normal text-grey-1">
-                                    You paid {qrPayment?.details.merchant.name ?? paymentLock?.paymentRecipientName}
+                                    {t('success.youPaid', {
+                                        merchant:
+                                            qrPayment?.details.merchant.name ?? paymentLock?.paymentRecipientName ?? '',
+                                    })}
                                 </h1>
                                 <div className="text-2xl font-extrabold">
                                     {currency.symbol}{' '}
@@ -1292,15 +1284,17 @@ export default function QRPayPage() {
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <h2 className="text-lg font-bold">You earned a reward!</h2>
+                                <h2 className="text-lg font-bold">{t('success.earnedRewardTitle')}</h2>
                                 <p className="text-sm text-gray-600">
                                     {(() => {
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
                                         if (amountSponsored && typeof amountSponsored === 'number') {
-                                            return `You earned $${amountSponsored.toFixed(2)}! Hold to claim your reward.`
+                                            return t('success.earnedHoldToClaim', {
+                                                amount: amountSponsored.toFixed(2),
+                                            })
                                         }
 
-                                        return 'You earned a reward! Hold to claim.'
+                                        return t('success.holdToClaim')
                                     })()}
                                 </p>
                             </div>
@@ -1314,16 +1308,18 @@ export default function QRPayPage() {
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={28} height={28} />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <h2 className="text-2xl font-bold">You earned a reward!</h2>
+                                <h2 className="text-2xl font-bold">{t('success.earnedRewardTitle')}</h2>
                                 <p className="text-base text-gray-900">
                                     {(() => {
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
 
                                         if (amountSponsored && typeof amountSponsored === 'number') {
-                                            return `You earned $${amountSponsored.toFixed(2)}! Invite friends to earn even more.`
+                                            return t('success.earnedInviteFriends', {
+                                                amount: amountSponsored.toFixed(2),
+                                            })
                                         }
 
-                                        return 'Invite friends to earn even more rewards.'
+                                        return t('success.inviteFriends')
                                     })()}
                                 </p>
                             </div>
@@ -1374,7 +1370,7 @@ export default function QRPayPage() {
                                     }}
                                 />
                                 {(() => {
-                                    const label = 'Claim Reward'
+                                    const label = t('success.claimReward')
                                     return (
                                         <>
                                             <span className="relative z-10">{label}</span>
@@ -1393,7 +1389,7 @@ export default function QRPayPage() {
                                 {/* after claiming a reward, primary CTA is "Done" — not "Split this bill" */}
                                 {perkClaimed || qrPayment?.perk?.claimed ? (
                                     <Button shadowSize="4" onClick={() => router.push('/home')}>
-                                        Go to Home
+                                        {tCommon('goToHome')}
                                     </Button>
                                 ) : (
                                     <Button
@@ -1407,7 +1403,7 @@ export default function QRPayPage() {
                                         icon="split"
                                         shadowSize="4"
                                     >
-                                        Split this bill
+                                        {t('success.splitThisBill')}
                                     </Button>
                                 )}
                                 <Button
@@ -1445,7 +1441,7 @@ export default function QRPayPage() {
                                         })
                                     }}
                                 >
-                                    See receipt
+                                    {t('success.seeReceipt')}
                                 </Button>
                             </>
                         )}
@@ -1472,7 +1468,7 @@ export default function QRPayPage() {
                 isMultiLevel
             />
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
-                <NavHeader title="Pay" />
+                <NavHeader title={tNav('pay')} />
 
                 {/* Payment Content */}
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
@@ -1482,7 +1478,7 @@ export default function QRPayPage() {
                             <div className="flex flex-shrink-0 items-center justify-center rounded-full bg-white">
                                 <Image
                                     src={methodIcon}
-                                    alt="Payment method"
+                                    alt={t('paymentMethodAlt')}
                                     width={48}
                                     height={48}
                                     className="h-12 w-12 rounded-full object-cover"
@@ -1490,7 +1486,7 @@ export default function QRPayPage() {
                             </div>
                             <div className="min-w-0 flex-1">
                                 <p className="flex items-center gap-1 text-center text-sm text-gray-600">
-                                    <Icon name="arrow-up-right" size={10} /> You're paying
+                                    <Icon name="arrow-up-right" size={10} /> {t('youArePaying')}
                                 </p>
                                 <p className="break-words text-xl font-semibold">{merchantName}</p>
                             </div>
@@ -1536,6 +1532,29 @@ export default function QRPayPage() {
                         return (
                             <LimitsWarningCard
                                 {...limitsCardProps}
+                                title={
+                                    limitsCardProps.type === 'error'
+                                        ? tLimits('warningCard.blockingTitle')
+                                        : tLimits('warningCard.warningTitle')
+                                }
+                                items={(limitsCardProps.items ?? []).map((item) => {
+                                    switch (item.kind) {
+                                        case 'limit-amount':
+                                            return {
+                                                ...item,
+                                                text: tLimits('warningCard.payUpTo', { amount: item.amount ?? '' }),
+                                            }
+                                        case 'reset-days':
+                                            return {
+                                                ...item,
+                                                text: tLimits('warningCard.resetsInDays', { days: item.days ?? 0 }),
+                                            }
+                                        case 'check-limits':
+                                            return { ...item, text: tLimits('warningCard.checkLimits') }
+                                        default:
+                                            return item
+                                    }
+                                })}
                                 onIncreaseLimits={
                                     isBrQrEligible && limitsValidation.isBlocking
                                         ? qrLimitIncreaseFlow.handleInitiate
@@ -1549,9 +1568,9 @@ export default function QRPayPage() {
                     {/* Information Card */}
                     <Card className="space-y-0 px-4">
                         <PaymentInfoRow
-                            label="Exchange Rate"
+                            label={t('info.exchangeRate')}
                             value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
-                            moreInfoText="Rate shown is current but may vary slightly (~$1-5 ARS) until payment is confirmed."
+                            moreInfoText={t('info.exchangeRateTooltip')}
                         />
                         {(() => {
                             if (!hasCardMarkupComparison(currency.code)) return null
@@ -1560,17 +1579,21 @@ export default function QRPayPage() {
                             const savingsUsd = (savingsInCents / 100).toFixed(2)
                             return (
                                 <PaymentInfoRow
-                                    label="Save vs card"
+                                    label={t('info.saveVsCard')}
                                     value={`~$${savingsUsd}`}
                                     moreInfoText={
                                         currency.code.toUpperCase() === 'BRL'
-                                            ? 'Foreign cards pay IOF (~3.5%) plus a typical ~3% issuer FX fee. Peanut routes via PIX at the current market rate.'
-                                            : 'Foreign cards apply the official rate plus a typical ~3% issuer FX fee. Peanut routes via MercadoPago at the current market rate.'
+                                            ? t('info.saveVsCardTooltipBrl')
+                                            : t('info.saveVsCardTooltipArs')
                                     }
                                 />
                             )
                         })()}
-                        <PaymentInfoRow label="Peanut fee" value="Sponsored by Peanut!" hideBottomBorder />
+                        <PaymentInfoRow
+                            label={t('info.peanutFee')}
+                            value={t('info.sponsoredByPeanut')}
+                            hideBottomBorder
+                        />
                     </Card>
 
                     {/* Send Button */}
@@ -1590,7 +1613,7 @@ export default function QRPayPage() {
                             limitsValidation.isBlocking
                         }
                     >
-                        {isLoading ? 'Loading...' : 'Pay'}
+                        {isLoading ? tCommon('loading') : tNav('pay')}
                     </Button>
 
                     {/* Error State */}
@@ -1602,13 +1625,14 @@ export default function QRPayPage() {
 }
 
 const QrPayPageLoading = ({ message }: { message: string }) => {
+    const t = useTranslations('qrPay')
     return (
         <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
             <div className="relative">
                 <Image
                     src={PeanutThinking}
                     unoptimized
-                    alt="Peanut Man"
+                    alt={t('peanutManAlt')}
                     layout="fill"
                     objectFit="contain"
                     className="absolute z-0 h-32 w-32 -translate-y-20 "

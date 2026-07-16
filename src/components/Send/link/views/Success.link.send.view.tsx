@@ -13,6 +13,7 @@ import { useUserStore } from '@/redux/hooks'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import useClaimLink from '@/components/Claim/useClaimLink'
 import { useToast } from '@/components/0_Bruddle/Toast'
@@ -21,6 +22,8 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const LinkSendSuccessView = () => {
+    const t = useTranslations('send')
+    const tNav = useTranslations('navigation')
     const router = useRouter()
     const { link, attachmentOptions, tokenValue, resetLinkSendFlow } = useLinkSendFlow()
     const queryClient = useQueryClient()
@@ -31,7 +34,13 @@ const LinkSendSuccessView = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [showCancelLinkModal, setshowCancelLinkModal] = useState(false)
 
-    const [cancelLinkText, setCancelLinkText] = useState<'Cancelling' | 'Cancelled' | 'Cancel link'>('Cancel link')
+    const [cancelStatus, setCancelStatus] = useState<'idle' | 'cancelling' | 'cancelled'>('idle')
+    const cancelLinkText =
+        cancelStatus === 'cancelling'
+            ? t('link.cancelling')
+            : cancelStatus === 'cancelled'
+              ? t('link.cancelled')
+              : t('link.cancelLink')
 
     useEffect(() => {
         return () => {
@@ -44,7 +53,7 @@ const LinkSendSuccessView = () => {
         <div className="flex  w-full flex-col justify-start space-y-8">
             <NavHeader
                 icon="cancel"
-                title="Send"
+                title={tNav('send')}
                 onPrev={() => {
                     router.push('/home')
                     resetLinkSendFlow()
@@ -53,7 +62,7 @@ const LinkSendSuccessView = () => {
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 {link && (
                     <SuccessViewDetailsCard
-                        title="Link created!"
+                        title={t('link.linkCreated')}
                         amountDisplay={tokenValue}
                         description={attachmentOptions.message}
                         status={'completed'}
@@ -66,21 +75,21 @@ const LinkSendSuccessView = () => {
                     <div className="flex w-full flex-col items-center justify-center gap-4">
                         <ShareButton
                             url={link}
-                            title="Share link"
+                            title={t('link.shareLink')}
                             onSuccess={() => {
                                 posthog.capture(ANALYTICS_EVENTS.SEND_LINK_SHARED, {
                                     amount: tokenValue,
                                 })
                             }}
                         >
-                            Share link
+                            {t('link.shareLink')}
                         </ShareButton>
                         <Button
                             onClick={() => setshowCancelLinkModal(true)}
                             variant={'primary-soft'}
                             className="flex w-full items-center gap-1"
                             shadowSize="4"
-                            disabled={isLoading || cancelLinkText === 'Cancelled'}
+                            disabled={isLoading || cancelStatus === 'cancelled'}
                             loading={isLoading}
                         >
                             {!isLoading && (
@@ -104,7 +113,7 @@ const LinkSendSuccessView = () => {
                     onClick={async () => {
                         try {
                             setIsLoading(true)
-                            setCancelLinkText('Cancelling')
+                            setCancelStatus('cancelling')
 
                             if (!user?.accounts) {
                                 throw new Error('User not found for cancellation')
@@ -135,8 +144,8 @@ const LinkSendSuccessView = () => {
 
                                 setIsLoading(false)
                                 setshowCancelLinkModal(false)
-                                setCancelLinkText('Cancelled')
-                                toast.success('Link cancelled successfully!')
+                                setCancelStatus('cancelled')
+                                toast.success(t('link.cancelSuccess'))
 
                                 // Brief delay for toast visibility
                                 await new Promise((resolve) => setTimeout(resolve, 1500))
@@ -151,8 +160,8 @@ const LinkSendSuccessView = () => {
                                 // Still navigate even if invalidation fails
                                 setIsLoading(false)
                                 setshowCancelLinkModal(false)
-                                setCancelLinkText('Cancelled')
-                                toast.success('Link cancelled! Refresh to see updated balance.')
+                                setCancelStatus('cancelled')
+                                toast.success(t('link.cancelSuccessRefresh'))
                                 await new Promise((resolve) => setTimeout(resolve, 1500))
                                 router.push('/home')
                             }
@@ -160,8 +169,8 @@ const LinkSendSuccessView = () => {
                             captureException(error)
                             console.error('Error claiming link:', error)
                             setIsLoading(false)
-                            setCancelLinkText('Cancel link')
-                            toast.error('Failed to cancel link. Please try again.')
+                            setCancelStatus('idle')
+                            toast.error(t('link.cancelFailed'))
                         }
                     }}
                 />

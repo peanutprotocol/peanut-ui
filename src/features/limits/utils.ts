@@ -151,6 +151,11 @@ export interface LimitsWarningItem {
     isLink?: boolean
     href?: string
     icon?: IconName
+    // discriminator + values so components can map items to translated copy
+    // (this util can't call useTranslations; `text` stays the English fallback)
+    kind?: 'limit-amount' | 'reset-days' | 'check-limits'
+    amount?: string
+    days?: number
 }
 
 export interface LimitsWarningCardPropsResult {
@@ -186,23 +191,28 @@ export function getLimitsWarningCardProps({
     const limitCurrency = validation.limitCurrency ?? currency ?? 'USD'
     const currencySymbol = getCurrencySymbol(limitCurrency)
     const formattedLimit = formatExtendedNumber(validation.remainingLimit ?? 0)
+    const amountDisplay = currencySymbol === '$' ? `$${formattedLimit}` : `${currencySymbol} ${formattedLimit}`
 
     // build the limit message based on flow type
     let limitMessage = ''
     if (flowType === 'onramp') {
-        limitMessage = `You can add up to ${currencySymbol === '$' ? '' : currencySymbol + ' '}${currencySymbol === '$' ? '$' : ''}${formattedLimit}${validation.daysUntilReset ? '' : ' per transaction'}`
+        limitMessage = `You can add up to ${amountDisplay}${validation.daysUntilReset ? '' : ' per transaction'}`
     } else if (flowType === 'offramp') {
-        limitMessage = `You can withdraw up to ${currencySymbol === '$' ? '' : currencySymbol + ' '}${currencySymbol === '$' ? '$' : ''}${formattedLimit}${validation.daysUntilReset ? '' : ' per transaction'}`
+        limitMessage = `You can withdraw up to ${amountDisplay}${validation.daysUntilReset ? '' : ' per transaction'}`
     } else {
         // qr-payment
-        limitMessage = `You can pay up to ${currencySymbol === '$' ? '' : currencySymbol + ' '}${currencySymbol === '$' ? '$' : ''}${formattedLimit} per transaction`
+        limitMessage = `You can pay up to ${amountDisplay} per transaction`
     }
 
-    items.push({ text: limitMessage })
+    items.push({ text: limitMessage, kind: 'limit-amount', amount: amountDisplay })
 
     // add days until reset if applicable
     if (validation.daysUntilReset) {
-        items.push({ text: `Limit resets in ${validation.daysUntilReset} days.` })
+        items.push({
+            text: `Limit resets in ${validation.daysUntilReset} days.`,
+            kind: 'reset-days',
+            days: validation.daysUntilReset,
+        })
     }
 
     // add check limits link
@@ -211,6 +221,7 @@ export function getLimitsWarningCardProps({
         isLink: true,
         href: '/limits',
         icon: 'external-link',
+        kind: 'check-limits',
     })
 
     return {

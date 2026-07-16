@@ -3,6 +3,7 @@
 import { tokenSelectorContext } from '@/context'
 import { LinkSendFlowProvider, useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useContext, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import NavHeader from '../../Global/NavHeader'
 import LinkSendInitialView from './views/Initial.link.send.view'
 import LinkSendSuccessView from './views/Success.link.send.view'
@@ -14,6 +15,7 @@ interface LinkSendFlowManagerProps {
 
 // inner component that uses the context
 const LinkSendFlowContent = ({ onPrev }: LinkSendFlowManagerProps) => {
+    const tNav = useTranslations('navigation')
     const { view } = useLinkSendFlow()
     const { resetTokenContextProvider, setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
 
@@ -32,7 +34,7 @@ const LinkSendFlowContent = ({ onPrev }: LinkSendFlowManagerProps) => {
         <>
             {view === 'INITIAL' && (
                 <div className="flex w-full flex-col justify-start space-y-8">
-                    <NavHeader onPrev={onPrev} title="Send" />
+                    <NavHeader onPrev={onPrev} title={tNav('send')} />
                     <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                         <LinkSendInitialView />
                     </div>

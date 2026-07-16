@@ -17,7 +17,11 @@
         "gotIt": "Entendi",
         "contactSupport": "Falar com o suporte",
         "pending": "Pendente",
-        "comingSoon": "Em breve"
+        "comingSoon": "Em breve",
+        "or": "ou",
+        "comment": "Comentário",
+        "goToHome": "Ir para o início",
+        "reset": "Redefinir"
     },
     "navigation": {
         "home": "Início",
@@ -395,7 +399,14 @@
             "description": "Não foi possível carregar os limites. Tente de novo."
         },
         "docsLink": "Saiba mais sobre limites",
-        "needHigherLimits": "Precisa de limites maiores? Fale com o suporte."
+        "needHigherLimits": "Precisa de limites maiores? Fale com o suporte.",
+        "warningCard": {
+            "blockingTitle": "Esse valor ultrapassa seu limite.",
+            "warningTitle": "Você está perto do seu limite.",
+            "payUpTo": "Você pode pagar até {amount} por transação",
+            "resetsInDays": "Seu limite será redefinido em {days, plural, one {# dia} other {# dias}}.",
+            "checkLimits": "Ver meus limites."
+        }
     },
     "exchangeRate": {
         "title": "Câmbio e taxas",
@@ -581,5 +592,180 @@
         "loggingOut": "Saindo",
         "paying": "Pagando",
         "withdrawing": "Sacando"
+    },
+    "send": {
+        "linkCard": {
+            "title": "Envie dinheiro com um link",
+            "description": "Não precisa de conta para receber.",
+            "cta": "Enviar por link"
+        },
+        "methods": {
+            "contactsTitle": "Contatos do Peanut",
+            "contactsDescription": "Peanuts com quem você já interagiu",
+            "bankTitle": "Banco",
+            "bankDescription": "EUR, USD, MXN, ARS e mais",
+            "instantTransfers": "Transferências instantâneas",
+            "exchangeOrWalletTitle": "Exchange ou carteira",
+            "exchangeOrWalletDescription": "Binance, Metamask e mais",
+            "yourAccountsOnly": "SOMENTE SUAS CONTAS"
+        },
+        "contacts": {
+            "searchPlaceholder": "Buscar contatos...",
+            "yourContacts": "Seus contatos",
+            "loadingMore": "Carregando mais...",
+            "errorTitle": "Não foi possível carregar os contatos",
+            "errorDescription": "Não conseguimos carregar seus contatos. Tente de novo.",
+            "noResultsTitle": "Nenhum contato encontrado",
+            "noResultsDescription": "Tente buscar outro contato.",
+            "emptyTitle": "Nenhum contato ainda",
+            "emptyDescription": "Os contatos aparecem quando você envia, solicita ou convida alguém"
+        },
+        "link": {
+            "createLink": "Criar link",
+            "linkCreated": "Link criado!",
+            "shareLink": "Compartilhar link",
+            "cancelLink": "Cancelar link",
+            "cancelling": "Cancelando",
+            "cancelled": "Cancelado",
+            "cancelSuccess": "Link cancelado com sucesso!",
+            "cancelSuccessRefresh": "Link cancelado! Atualize para ver o saldo atualizado.",
+            "cancelFailed": "Não foi possível cancelar o link. Tente de novo."
+        }
+    },
+    "request": {
+        "leaveEmptyHint": "Deixe vazio para quem paga escolher o valor.",
+        "createRequest": "Criar solicitação",
+        "shareOpenRequest": "Compartilhar solicitação aberta",
+        "shareAmountRequest": "Compartilhar solicitação de ${amount}",
+        "billSplitFor": "Divisão de conta em {merchant}",
+        "linkCreatedToast": "Link criado com sucesso!",
+        "requestUpdatedToast": "Solicitação atualizada com sucesso!",
+        "recipientPlaceholder": "Insira um nome de usuário, um endereço ou ENS",
+        "errors": {
+            "createFailed": "Não foi possível criar o link",
+            "updateFailed": "Não foi possível atualizar a solicitação",
+            "enterRecipient": "Insira um endereço de destinatário",
+            "missingUsernameOrAmount": "Falta o nome de usuário ou o valor",
+            "createRequestFailed": "Não foi possível criar a solicitação.",
+            "validatingRecipient": "Validando destinatário..."
+        },
+        "validation": {
+            "invalidRecipientTitle": "Destinatário inválido",
+            "missingRecipientTitle": "Destinatário ausente",
+            "invalidRecipientMessage": "O usuário de quem você está tentando solicitar não é um usuário válido do Peanut ou não existe. Confira se você tem o nome de usuário correto do Peanut.",
+            "missingRecipientMessage": "Nenhum nome de usuário informado na URL. Verifique o link e tente de novo.",
+            "goToHome": "Ir para o início",
+            "createWallet": "Crie sua Peanut Wallet"
+        }
+    },
+    "payment": {
+        "validation": {
+            "talkToSupport": "Falar com o suporte",
+            "learnHow": "Saiba como receber dinheiro pelo Peanut",
+            "sadPeanutAlt": "Peanut triste 😢"
+        },
+        "errorPage": {
+            "title": "Algo deu errado!",
+            "description": "Ocorreu um erro ao carregar a página de pagamento.",
+            "contactSupport": "Contatar o suporte"
+        }
+    },
+    "qrPay": {
+        "youArePaying": "Você está pagando",
+        "paymentMethodAlt": "Método de pagamento",
+        "peanutManAlt": "Peanut Man",
+        "waitingForMerchant": "Aguardando o lojista definir o valor",
+        "havingTrouble": "Está com problemas?",
+        "orderNotReady": {
+            "title": "Não conseguimos obter o valor",
+            "description": "Peça ao lojista para inseri-lo e escaneie o QR de novo.",
+            "cta": "Escanear o código de novo"
+        },
+        "maintenance": {
+            "title": "Serviço temporariamente indisponível",
+            "description": "Estamos com problemas nos pagamentos de {method} por uma falha de um provedor externo. Estamos trabalhando para restaurar o serviço o quanto antes.",
+            "goBack": "Voltar"
+        },
+        "kyc": {
+            "unlockTitle": "Desbloqueie pagamentos com QR",
+            "unlockDescription": "Confirme sua identidade para pagar com código QR. Leva cerca de um minuto.",
+            "unlockCta": "Desbloquear agora",
+            "inProgressTitle": "Quase lá",
+            "inProgressDescription": "Estamos confirmando sua identidade. Continue de onde parou e logo você estará pagando.",
+            "notNow": "Agora não",
+            "fixableTitle": "Precisamos de um documento atualizado",
+            "restartTitle": "Verifique com outro documento",
+            "blockedTitle": "Pagamentos com QR não estão disponíveis",
+            "fixableDescription": "Precisamos de um documento atualizado para habilitar pagamentos com QR. Envie uma foto mais nítida do seu documento.",
+            "restartDescription": "Pagamentos com QR precisam de um documento de um país compatível. Você pode verificar com outro documento.",
+            "blockedDescription": "Pagamentos com QR não estão disponíveis para a sua conta. Fale com o suporte para receber ajuda.",
+            "uploadDocument": "Enviar documento"
+        },
+        "info": {
+            "exchangeRate": "Taxa de câmbio",
+            "exchangeRateTooltip": "A taxa mostrada é a atual, mas pode variar um pouco (~$1-5 ARS) até o pagamento ser confirmado.",
+            "saveVsCard": "Economia vs. cartão",
+            "saveVsCardTooltipBrl": "Cartões estrangeiros pagam IOF (~3,5%) mais uma taxa de câmbio típica do emissor de ~3%. O Peanut usa o PIX na taxa atual de mercado.",
+            "saveVsCardTooltipArs": "Cartões estrangeiros aplicam a taxa oficial mais uma taxa de câmbio típica do emissor de ~3%. O Peanut usa o MercadoPago na taxa atual de mercado.",
+            "peanutFee": "Taxa do Peanut",
+            "sponsoredByPeanut": "Patrocinada pelo Peanut!"
+        },
+        "success": {
+            "youPaid": "Você pagou {merchant}",
+            "earnedRewardTitle": "Você ganhou uma recompensa!",
+            "earnedHoldToClaim": "Você ganhou ${amount}! Segure para resgatar sua recompensa.",
+            "holdToClaim": "Você ganhou uma recompensa! Segure para resgatar.",
+            "earnedInviteFriends": "Você ganhou ${amount}! Convide amigos para ganhar ainda mais.",
+            "inviteFriends": "Convide amigos para ganhar ainda mais recompensas.",
+            "claimReward": "Resgatar recompensa",
+            "splitThisBill": "Dividir essa conta",
+            "seeReceipt": "Ver recibo"
+        },
+        "errors": {
+            "invalidQr": "O código QR escaneado não é válido",
+            "pixMinAmount": "Essa cobrança Pix está abaixo do mínimo de {amount} BRL para pagamentos Pix.",
+            "pixRecurring": "Este código QR é de um pagamento recorrente (PIX Automático). O Peanut não aceita pagamentos PIX recorrentes — peça um código QR PIX comum.",
+            "pixDecode": "Não conseguimos decodificar este código QR do Pix. Peça ao lojista para gerar um novo.",
+            "genericDecode": "Não conseguimos decodificar este código QR. Pergunte ao lojista se ele pode gerar um QR do Mercado Pago",
+            "providerIssues": "Estamos com problemas nos pagamentos de {method}. Estamos trabalhando para resolver o quanto antes",
+            "initiateUnexpected": "Não foi possível iniciar o pagamento por um erro inesperado. Fale com o suporte",
+            "fetchDetails": "Não foi possível obter os detalhes do pagamento QR",
+            "cardAuthNeeded": "É necessária uma autorização única do cartão. Você vai confirmar uma vez.",
+            "confirmTransaction": "Confirme a transação.",
+            "signFailed": "Não foi possível assinar a transação.",
+            "accountStateChanged": "A transação falhou por uma mudança no estado da conta. Tente de novo. Se o problema continuar, fale com o suporte.",
+            "sessionExpired": "A sessão de pagamento expirou. Escaneie o código QR de novo.",
+            "merchantNotSupported": "Este código QR ou lojista não é aceito. Tente de novo com outro código QR.",
+            "completeFailed": "Não foi possível concluir o pagamento. Escaneie o código QR de novo. Se o problema continuar, fale com o suporte",
+            "minMantecaAmount": "O valor do pagamento deve ser de pelo menos ${amount}",
+            "minPixAmountBrl": "O valor mínimo do PIX é {amount} BRL",
+            "maxQrAmount": "O valor do pagamento QR ultrapassa o limite máximo de ${amount}",
+            "minQrAmount": "O valor do pagamento QR deve ser de pelo menos ${amount}",
+            "genericQrDetails": "Ocorreu um erro ao obter os detalhes do QR."
+        },
+        "claim": {
+            "navTitle": "Resgatar código QR",
+            "unavailableTitle": "Código QR indisponível",
+            "alreadyClaimed": "Este código QR já foi resgatado por outro usuário.",
+            "notAvailable": "Este código QR não está disponível para resgate.",
+            "inviteQrTitle": "Seu QR de convite",
+            "inviteQrDescription": "Compartilhe onde quiser. Os pontos continuam chegando com a atividade dos seus amigos e dos amigos deles.",
+            "permanentNote": "<strong>Obs.:</strong> é permanente depois de resgatado.",
+            "claiming": "Resgatando...",
+            "holdToClaim": "Segure para torná-lo seu para sempre",
+            "invalidDestination": "O destino do código QR não é válido.",
+            "claimFailed": "Não foi possível resgatar o código QR. Tente de novo."
+        },
+        "claimSuccess": {
+            "navTitle": "Sucesso",
+            "title": "Este QR agora é seu!",
+            "description": "Seu adesivo agora está vinculado ao seu perfil para sempre.",
+            "putItAnywhere": "Cole onde quiser!",
+            "stickerDescription": "Cole no seu notebook, na garrafa de água ou onde quiser que as pessoas te encontrem. Quem escanear vai poder entrar no Peanut com o seu convite e contribuir para os seus pontos para sempre.",
+            "shareQr": "Compartilhar código QR",
+            "linkCopied": "Link copiado",
+            "shareTitle": "Meu código QR do Peanut",
+            "shareText": "Escaneie meu código QR para se conectar comigo no Peanut!"
+        }
     }
 }

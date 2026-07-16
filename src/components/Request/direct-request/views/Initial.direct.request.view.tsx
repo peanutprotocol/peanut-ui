@@ -16,6 +16,8 @@ import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { usersApi } from '@/services/users'
 import { formatAmount } from '@/utils/general.utils'
 import { captureException } from '@sentry/nextjs'
+import { useTranslations } from 'next-intl'
+import { loadingStateKey } from '@/i18n/app/loading-states'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
@@ -26,6 +28,10 @@ interface DirectRequestInitialViewProps {
 }
 
 const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) => {
+    const t = useTranslations('request')
+    const tNav = useTranslations('navigation')
+    const tCommon = useTranslations('common')
+    const tLoading = useTranslations('loadingStates')
     const onBack = useSafeBack('/home')
     const { user: authUser } = useUserStore()
     const { spendableBalance: balance, formattedSpendableBalance, address } = useWallet()
@@ -86,7 +92,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
 
     const createRequestCharge = useCallback(async () => {
         if (isButtonDisabled) {
-            setErrorState({ showError: true, errorMessage: 'Username or amount is missing' })
+            setErrorState({ showError: true, errorMessage: t('errors.missingUsernameOrAmount') })
             return
         }
         setLoadingState('Requesting')
@@ -109,7 +115,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         } catch (error: any) {
             console.error('Error creating request charge:', error)
             captureException(error)
-            setErrorState({ showError: true, errorMessage: error.message || 'Failed to create request.' })
+            setErrorState({ showError: true, errorMessage: error.message || t('errors.createRequestFailed') })
             setLoadingState('Idle')
         }
     }, [
@@ -122,6 +128,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         authUser,
         recipient.address,
         setErrorState,
+        t,
     ])
 
     useEffect(() => {
@@ -130,36 +137,33 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         }
 
         const getValidationErrorObject = (
-            title: 'Invalid Recipient' | 'Missing Recipient',
+            kind: 'invalid' | 'missing',
             specificMessage?: string
         ): ValidationErrorViewProps => {
-            let message = specificMessage
-            if (!message) {
-                message =
-                    title === 'Invalid Recipient'
-                        ? 'The user you are trying to request from is not a valid Peanut user or does not exist. Please ensure you have the correct Peanut username.'
-                        : 'No username provided in the URL. Please check the link and try again.'
-            }
+            const message =
+                specificMessage ??
+                (kind === 'invalid' ? t('validation.invalidRecipientMessage') : t('validation.missingRecipientMessage'))
             return {
-                title,
+                title:
+                    kind === 'invalid' ? t('validation.invalidRecipientTitle') : t('validation.missingRecipientTitle'),
                 message,
-                buttonText: authUser?.user.userId ? 'Go to home' : 'Create your Peanut Wallet',
+                buttonText: authUser?.user.userId ? t('validation.goToHome') : t('validation.createWallet'),
                 redirectTo: authUser?.user.userId ? '/home' : '/setup',
             }
         }
 
         if (!username) {
-            setValidationError(getValidationErrorObject('Missing Recipient'))
+            setValidationError(getValidationErrorObject('missing'))
             return
         }
 
         if (recipientUserError || !recipientUser) {
-            setValidationError(getValidationErrorObject('Invalid Recipient'))
+            setValidationError(getValidationErrorObject('invalid'))
             return
         }
 
         setValidationError(null)
-    }, [username, authUser, recipientUser, recipientUserError, isRecipientUserLoading])
+    }, [username, authUser, recipientUser, recipientUserError, isRecipientUserLoading, t])
 
     if (isRecipientUserLoading || authUser === undefined) {
         return (
@@ -172,7 +176,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     if (validationError) {
         return (
             <div className="flex flex-col items-center justify-center gap-8">
-                {!!authUser?.user.userId ? <NavHeader onPrev={onBack} title="Request" /> : null}
+                {!!authUser?.user.userId ? <NavHeader onPrev={onBack} title={tNav('request')} /> : null}
                 <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4 md:w-6/12">
                     <ValidationErrorView {...validationError} />
                 </div>
@@ -185,9 +189,9 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         return (
             <div className="flex min-h-[inherit] flex-col justify-between gap-8">
                 {!!authUser?.user.userId ? (
-                    <NavHeader onPrev={() => resetRequestState()} title="Request" />
+                    <NavHeader onPrev={() => resetRequestState()} title={tNav('request')} />
                 ) : (
-                    <div className="text-center text-xl font-extrabold md:hidden">Request</div>
+                    <div className="text-center text-xl font-extrabold md:hidden">{tNav('request')}</div>
                 )}
 
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
@@ -206,9 +210,9 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             {!!authUser?.user.userId ? (
-                <NavHeader onPrev={onBack} title="Request" />
+                <NavHeader onPrev={onBack} title={tNav('request')} />
             ) : (
-                <div className="text-center text-xl font-extrabold md:hidden">Request</div>
+                <div className="text-center text-xl font-extrabold md:hidden">{tNav('request')}</div>
             )}
 
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
@@ -232,14 +236,14 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                     />
 
                     <FileUploadInput
-                        placeholder="Comment"
+                        placeholder={tCommon('comment')}
                         attachmentOptions={attachmentOptions}
                         setAttachmentOptions={setAttachmentOptions}
                         className="h-11"
                     />
                     {!authUser?.user.userId && (
                         <GeneralRecipientInput
-                            placeholder="Enter a username, an address or ENS"
+                            placeholder={t('recipientPlaceholder')}
                             recipient={recipient}
                             onUpdate={(update: GeneralRecipientUpdate) => {
                                 setRecipient(update.recipient)
@@ -257,7 +261,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                                         } else {
                                             setErrorState({
                                                 showError: true,
-                                                errorMessage: update.errorMessage || 'Validating recipient...',
+                                                errorMessage: update.errorMessage || t('errors.validatingRecipient'),
                                             })
                                         }
                                     }
@@ -279,7 +283,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                             className="w-full"
                             icon="retry"
                         >
-                            Reset
+                            {tCommon('reset')}
                         </Button>
                     ) : (
                         <Button
@@ -290,7 +294,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                             icon="arrow-down-left"
                             iconSize={12}
                         >
-                            {isButtonLoading ? loadingState : 'Request'}
+                            {isButtonLoading ? tLoading(loadingStateKey(loadingState)) : tNav('request')}
                         </Button>
                     )}
 

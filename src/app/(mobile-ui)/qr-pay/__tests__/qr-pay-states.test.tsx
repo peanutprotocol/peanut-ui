@@ -11,6 +11,8 @@ import React from 'react'
 import posthog from 'posthog-js'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 import { parseUnits } from 'viem'
 import type { RailCapability } from '@/types/capabilities'
 
@@ -530,11 +532,13 @@ function renderQrPay(params: Record<string, string> = {}) {
     }
 
     return render(
-        <QueryClientProvider client={queryClient}>
-            <LoadingProvider>
-                <QRPayPage />
-            </LoadingProvider>
-        </QueryClientProvider>
+        <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+            <QueryClientProvider client={queryClient}>
+                <LoadingProvider>
+                    <QRPayPage />
+                </LoadingProvider>
+            </QueryClientProvider>
+        </NextIntlClientProvider>
     )
 }
 
