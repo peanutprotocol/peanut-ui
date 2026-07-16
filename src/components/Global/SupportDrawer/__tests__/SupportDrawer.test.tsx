@@ -124,13 +124,13 @@ describe('SupportDrawer — Crisp load-failure fallback', () => {
 
         // spinner up, no fallback yet
         expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
-        expect(screen.queryByText(/chat couldn’t load/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(/chat couldn't load/i)).not.toBeInTheDocument()
 
         postCrispMessage('CRISP_FAILED')
 
         // spinner replaced by a fallback with a mailto link to the real support inbox
         expect(screen.queryByTestId('peanut-loading')).not.toBeInTheDocument()
-        expect(screen.getByText(/chat couldn’t load/i)).toBeInTheDocument()
+        expect(screen.getByText(/chat couldn't load/i)).toBeInTheDocument()
         const mailto = screen.getByRole('link', { name: SUPPORT_EMAIL })
         expect(mailto).toHaveAttribute('href', `mailto:${SUPPORT_EMAIL}`)
         expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
@@ -142,18 +142,18 @@ describe('SupportDrawer — Crisp load-failure fallback', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /try again/i }))
 
-        expect(screen.queryByText(/chat couldn’t load/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(/chat couldn't load/i)).not.toBeInTheDocument()
         expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
     })
 
     it('a later CRISP_READY dismisses the fallback', () => {
         render(<SupportDrawer />)
         postCrispMessage('CRISP_FAILED')
-        expect(screen.getByText(/chat couldn’t load/i)).toBeInTheDocument()
+        expect(screen.getByText(/chat couldn't load/i)).toBeInTheDocument()
 
         postCrispMessage('CRISP_READY')
 
-        expect(screen.queryByText(/chat couldn’t load/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(/chat couldn't load/i)).not.toBeInTheDocument()
         expect(screen.queryByTestId('peanut-loading')).not.toBeInTheDocument()
     })
 })

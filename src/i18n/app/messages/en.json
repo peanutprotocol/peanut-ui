@@ -331,7 +331,7 @@
             "joinPeanut": "Join Peanut!",
             "inviteOnlyLine1": "Peanut is invite-only.",
             "inviteOnlyLine2": "Go beg your friend for an invite link!",
-            "begShareText": "Bro… I’m on my knees. Peanut is invite-only and I’m locked outside. Save my life and send me your invite",
+            "begShareText": "Bro… I'm on my knees. Peanut is invite-only and I'm locked outside. Save my life and send me your invite",
             "begForInvite": "Beg for an invite",
             "activityPrivateNote": "Activity is only visible for you, it is not public.",
             "noInviteTitle": "No invite, no Peanut"
@@ -500,7 +500,7 @@
         },
         "next": "Next",
         "logIn": "Log In",
-        "loginFailed": "We couldn’t log you in. Please try again.",
+        "loginFailed": "We couldn't log you in. Please try again.",
         "landing": {
             "signUp": "Sign up",
             "recoverWallet": "Need to recover your Peanut wallet?"
@@ -530,7 +530,7 @@
         },
         "passkey": {
             "setItUp": "Set it up",
-            "notAvailable": "Passkeys aren’t available on this device yet. Please try again.",
+            "notAvailable": "Passkeys aren't available on this device yet. Please try again.",
             "cancelled": "Passkey setup was cancelled. Please try again when ready.",
             "usernameTaken": "This username is already registered — possibly from an earlier attempt on this device. If that was you, your passkey is ready: just log in.",
             "learnMore": "Learn more about what Passkeys are",
@@ -544,7 +544,7 @@
                 },
                 "descriptions": {
                     "notReadable": "There's an issue with your device's passkey settings. Please try again.",
-                    "notAllowedAndroid": "We couldn’t create a passkey. This usually means you’re not signed in to a Google account, Google Play Services is out of date, or screen lock isn’t set up. Fix one of these and retry — or it may have been cancelled.",
+                    "notAllowedAndroid": "We couldn't create a passkey. This usually means you're not signed in to a Google account, Google Play Services is out of date, or screen lock isn't set up. Fix one of these and retry — or it may have been cancelled.",
                     "notAllowed": "Passkeys are not enabled on your device. Check your device settings to enable them",
                     "invalidState": "A passkey already exists for this account on your device.",
                     "default": "Something went wrong during passkey setup. This is likely a device issue."
@@ -793,7 +793,7 @@
             "processAccountFailed": "Failed to process bank account. Please try again."
         },
         "manteca": {
-            "youWillReceive": "You’ll receive",
+            "youWillReceive": "You'll receive",
             "receiveIn": "Receive in {method}",
             "enterAccountDetails": "Enter account details",
             "ownAccountOnly": "You can only withdraw to accounts under your name.",
@@ -954,8 +954,8 @@
             "headlineArbiverse": "Arbiverse. You skipped the line.",
             "headlineSkip": "You skipped the line.",
             "headlineNoBadge": "You're in.",
-            "sublineBadge": "You hold a badge that skips the closed-beta queue. Card’s yours.",
-            "sublineNoBadge": "Welcome to the closed beta. Card’s yours.",
+            "sublineBadge": "You hold a badge that skips the closed-beta queue. Card's yours.",
+            "sublineNoBadge": "Welcome to the closed beta. Card's yours.",
             "hideUsername": "Hide username",
             "continueToCard": "Continue to your card"
         },
@@ -1400,7 +1400,7 @@
             "fee": "Fee",
             "bankAccount": "Bank Account",
             "transferProcessing": "Transfer processing",
-            "confirmPending": "Your transfer is processing. Funds were sent on-chain successfully — this can take a few minutes to confirm. If you don’t see the withdrawal in your activity within 30 minutes, please contact support."
+            "confirmPending": "Your transfer is processing. Funds were sent on-chain successfully — this can take a few minutes to confirm. If you don't see the withdrawal in your activity within 30 minutes, please contact support."
         },
         "manteca": {
             "youJustWithdrew": "You just withdrew",
@@ -1433,7 +1433,7 @@
             "iban": "IBAN",
             "ibanRequired": "IBAN is required",
             "ibanInvalid": "Invalid IBAN",
-            "ibanUnsupported": "This IBAN isn’t supported for withdrawals",
+            "ibanUnsupported": "This IBAN isn't supported for withdrawals",
             "accountNumber": "Account Number",
             "accountNumberRequired": "Account number is required",
             "accountNumberUk": "Account number must be 6-8 digits",
@@ -1771,9 +1771,9 @@
         "retryVerification": "Retry verification",
         "rejectLabelsFallbackDescription": "We need a bit more from you to confirm your ID. Please provide the requested details to continue.",
         "terminalDescription": "Your verification cannot be retried. Please contact support for help.",
-        "failedTitleTerminal": "We couldn’t verify your ID",
-        "failedTitleRetry": "Let’s try that again",
-        "failedDescriptionRetry": "We weren’t able to confirm your ID. You can have another go.",
+        "failedTitleTerminal": "We couldn't verify your ID",
+        "failedTitleRetry": "Let's try that again",
+        "failedDescriptionRetry": "We weren't able to confirm your ID. You can have another go.",
         "actionRequiredTitle": "One more step",
         "actionRequiredDescription": "We need a bit more from you to confirm your ID.",
         "processingTitle": "Setting up your account…",
@@ -1789,7 +1789,7 @@
         "errorNoResponse": "No response from server. Please try again.",
         "errorStartDocVerification": "Could not start document verification. Please try again.",
         "initiate": {
-            "titleBlocked": "We couldn’t unlock this",
+            "titleBlocked": "We couldn't unlock this",
             "titleRestartIdentity": "Verify with a different document",
             "titleProviderRejection": "We need extra documents",
             "titleCrossRegion": "Unlock {region}",
@@ -2113,7 +2113,7 @@
             },
             "DUPLICATE_EMAIL": {
                 "title": "Email already in use",
-                "description": "This email is already linked to another Peanut account. If it’s yours, sign in to that account to continue — otherwise contact support."
+                "description": "This email is already linked to another Peanut account. If it's yours, sign in to that account to continue — otherwise contact support."
             },
             "FALLBACK": {
                 "title": "Verification issue",
@@ -2217,7 +2217,7 @@
             "notSupportedWorking": "We're working on an integration.",
             "notSupportedGetNotified": "Get notified when it goes live!",
             "getNotifiedCta": "Get notified!",
-            "willBeNotified": "We’ll let you know as soon as {qrName} is supported.",
+            "willBeNotified": "We'll let you know as soon as {qrName} is supported.",
             "close": "Close",
             "continue": "Continue",
             "okay": "Okay",
@@ -2254,7 +2254,7 @@
             "shareCta": "Share Invite Link"
         },
         "confirmInviteModal": {
-            "title": "Don’t lose your invite!",
+            "title": "Don't lose your invite!",
             "description": "This link lets you skip the Peanut waitlist. Using {method} will skip your invite.",
             "joinCta": "Join",
             "continueWithMethod": "Continue with {method}"
@@ -2269,7 +2269,7 @@
         },
         "noMoreJailModal": {
             "title": "No more Peanut jail!",
-            "line1": "You’re now part of Peanut!",
+            "line1": "You're now part of Peanut!",
             "line2": "Explore, pay, and invite your friends.",
             "startUsingCta": "Start using"
         },
@@ -2317,8 +2317,8 @@
         "balanceWarningModal": {
             "title": "High Balance",
             "congrats": "You're rich! Congrats on having a high balance.",
-            "selfCustody": "With Peanut, you’re the only one who can access your funds. No bank, no company, no agency — not even our support team — can ever access them.",
-            "passkey": "Your biometric passkey is your key to full control and security. If it’s lost, it can’t be recovered because only you ever have access.",
+            "selfCustody": "With Peanut, you're the only one who can access your funds. No bank, no company, no agency — not even our support team — can ever access them.",
+            "passkey": "Your biometric passkey is your key to full control and security. If it's lost, it can't be recovered because only you ever have access.",
             "learnMore": "Learn how to keep your passkey secure on <link>{platform}</link>.",
             "yourDevice": "your device",
             "slideToContinue": "Slide to Continue"
@@ -2386,21 +2386,21 @@
         },
         "iframeWrapper": {
             "troubleTitle": "Need a hand?",
-            "troubleDescriptionLine1": "If the ID check isn’t loading here, finish it in your browser.",
+            "troubleDescriptionLine1": "If the ID check isn't loading here, finish it in your browser.",
             "troubleDescriptionLine2": "Just copy this link and open it there.",
             "copyLink": "Copy link",
             "chatWithSupport": "Chat with support",
             "cancel": "Cancel",
             "exitTitle": "Exit and lose progress?",
-            "exitDescription": "If you exit now, you’ll need to start the ID check again from scratch.",
+            "exitDescription": "If you exit now, you'll need to start the ID check again from scratch.",
             "exit": "Exit",
             "continueVerifying": "Continue verifying",
             "stopVerification": "Stop verification process",
             "havingTrouble": "Having trouble?"
         },
         "supportDrawer": {
-            "chatLoadFailed": "Chat couldn’t load",
-            "chatLoadFailedDescription": "Something went wrong loading support chat. Email us and we’ll help you out:",
+            "chatLoadFailed": "Chat couldn't load",
+            "chatLoadFailedDescription": "Something went wrong loading support chat. Email us and we'll help you out:",
             "tryAgain": "Try again",
             "label": "Support",
             "chatTitle": "Support Chat"
@@ -2410,14 +2410,14 @@
             "prefilledMessage": "Need help with this transaction: "
         },
         "offlineScreen": {
-            "title": "You’re Offline",
+            "title": "You're Offline",
             "description": "No internet connection detected. Please check your network settings and try again.",
             "checking": "Checking...",
             "checkConnection": "Check Connection"
         },
         "backendErrorScreen": {
             "title": "Something went wrong",
-            "description": "We’re having trouble connecting to our servers.",
+            "description": "We're having trouble connecting to our servers.",
             "tryAgain": "Try Again",
             "loggingOut": "Logging out...",
             "logOut": "Log out"
@@ -2490,7 +2490,7 @@
         },
         "mantecaMaintenance": {
             "title": "Service Temporarily Unavailable",
-            "description": "We’re experiencing issues with {action, select, deposits {deposits} withdrawals {withdrawals} other {transfers}} due to an external provider outage. We’re working to restore service as soon as possible.",
+            "description": "We're experiencing issues with {action, select, deposits {deposits} withdrawals {withdrawals} other {transfers}} due to an external provider outage. We're working to restore service as soon as possible.",
             "goBack": "Go Back",
             "havingTrouble": "Having trouble?"
         },
@@ -2537,7 +2537,7 @@
             "thenTapAddToHomeScreen": "and then on <bold>“Add To Home Screen”</bold>"
         },
         "pointsCard": {
-            "earned": "You’ve earned {count, plural, one {# point} other {# points}}!"
+            "earned": "You've earned {count, plural, one {# point} other {# points}}!"
         },
         "userCard": {
             "sendingMoneyTo": "You're sending money to",

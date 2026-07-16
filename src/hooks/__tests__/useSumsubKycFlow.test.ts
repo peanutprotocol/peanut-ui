@@ -1,4 +1,7 @@
-import { act, renderHook, waitFor } from '@testing-library/react'
+import React from 'react'
+import { act, renderHook as rtlRenderHook, waitFor } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { initiateSumsubKyc } from '@/app/actions/sumsub'
 
@@ -7,6 +10,11 @@ import { initiateSumsubKyc } from '@/app/actions/sumsub'
 // asserts hook behaviour (does onKycSuccess fire? is an error surfaced?) and nothing else.
 // The websocket mock captures the status-update handler so a test can simulate a
 // late/stale APPROVED event arriving after the flow has resolved.
+// the hook calls useTranslations, so it needs an intl context to render at all
+const IntlWrapper = ({ children }: { children: React.ReactNode }) =>
+    React.createElement(NextIntlClientProvider, { locale: 'en', messages: en, timeZone: 'UTC', children })
+const renderHook = <T>(cb: () => T) => rtlRenderHook(cb, { wrapper: IntlWrapper })
+
 const mockWs: { handler?: (status: string, labels?: string[]) => void } = {}
 jest.mock('@/app/actions/sumsub', () => ({
     initiateSumsubKyc: jest.fn(),
