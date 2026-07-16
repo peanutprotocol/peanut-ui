@@ -20,6 +20,145 @@
             "title": "Idioma"
         }
     },
+    "setup": {
+        "steps": {
+            "unsupported-browser": {
+                "title": "Navegador no compatible",
+                "description": "Abre Peanut en el navegador principal de tu dispositivo (Safari, Chrome, Firefox) para continuar con la configuración. Si ya estás en tu navegador principal, puede que tu dispositivo no sea compatible con Peanut."
+            },
+            "android-initial-pwa-install": {
+                "title": "Vive la experiencia completa",
+                "description": "Tu billetera a un toque de distancia. Segura, rápida y en tu pantalla de inicio."
+            },
+            "pwa-install": {
+                "title": "Instala Peanut en tu teléfono",
+                "description": "¡Instala Peanut en tu teléfono para una mejor experiencia!"
+            },
+            "landing": {
+                "title": "Peanut hace que los dólares sean fáciles.",
+                "description": "Crea tu billetera en segundos para ahorrar, enviar o retirar dólares rápido."
+            },
+            "welcome": {
+                "title": "Peanut es solo con invitación",
+                "description": "¿Quién te invitó? Ingresa su nombre de usuario para continuar, o únete a la lista de espera y te avisaremos cuando puedas entrar."
+            },
+            "signup": {
+                "title": "¿Cómo te llamamos?",
+                "description": "Elige tu nombre de usuario. Será tu ID para enviar y recibir dinero."
+            },
+            "passkey-permission": {
+                "title": "Configuremos tu passkey",
+                "description": "Usa tu cara o tu huella para iniciar sesión. Sin contraseñas ni complicaciones. Solo tú."
+            },
+            "sign-test-transaction": {
+                "title": "Tu cuenta está lista",
+                "description": "Solo confirma que eres tú: un toque y listo."
+            }
+        },
+        "existingSession": {
+            "title": "Ya tienes una sesión iniciada",
+            "description": "Este dispositivo tiene una sesión iniciada como {username}. Continúa con esa cuenta o cierra sesión para crear una nueva.",
+            "continueAs": "Continuar como {username}",
+            "logoutAndStartFresh": "Cerrar sesión y empezar de cero"
+        },
+        "navigation": {
+            "goBack": "Volver",
+            "skip": "Omitir",
+            "logout": "Cerrar sesión"
+        },
+        "wrapper": {
+            "starAlt": "estrella",
+            "illustrationAlt": "Ilustración de la sección"
+        },
+        "braveInstall": {
+            "title": "¡Listo!",
+            "description": "Abre la app de Peanut desde tu pantalla de inicio para continuar con la configuración."
+        },
+        "installPwa": {
+            "openPeanutApp": "Abrir la app de Peanut",
+            "installing": "Instalando",
+            "addToHomeScreen": "Agregar Peanut a la pantalla de inicio",
+            "installCancelled": "Instalación cancelada. Puedes intentar agregarlo a la pantalla de inicio de nuevo.",
+            "manualInstallHint": "Para instalar la app, agrégala a tu pantalla de inicio desde el menú de tu navegador.",
+            "mobileFirstTitle": "¡Peanut está hecho para el celular!",
+            "mobileFirstDescription": "Para una mejor experiencia, usa Peanut en tu teléfono.",
+            "openInApp": "Abrir en la app",
+            "installApp": "Instalar la app",
+            "gotIt": "¡Entendido!"
+        },
+        "next": "Siguiente",
+        "logIn": "Iniciar sesión",
+        "loginFailed": "No pudimos iniciar tu sesión. Inténtalo de nuevo.",
+        "landing": {
+            "signUp": "Regístrate",
+            "recoverWallet": "¿Necesitas recuperar tu billetera de Peanut?"
+        },
+        "waitlist": {
+            "inviterUsernamePlaceholder": "Su nombre de usuario",
+            "inviterNotFound": "No hay ningún miembro de Peanut con ese nombre de usuario. Verifica el usuario exacto de quien te invitó.",
+            "or": "o",
+            "joinWaitlist": "Unirme a la lista de espera",
+            "loginCanceled": "El inicio de sesión fue cancelado. Inténtalo de nuevo.",
+            "noPasskey": "No se encontró ninguna passkey. Primero crea una billetera.",
+            "loginUnexpectedError": "Ocurrió un error inesperado al iniciar sesión."
+        },
+        "signupStep": {
+            "usernamePlaceholder": "Escribe un nombre de usuario",
+            "errors": {
+                "required": "El nombre de usuario es obligatorio",
+                "tooShort": "El nombre de usuario debe tener al menos 4 caracteres",
+                "tooLong": "El nombre de usuario debe tener como máximo 12 caracteres",
+                "invalidFormat": "El nombre de usuario solo puede tener letras minúsculas y números, y debe empezar con una letra",
+                "taken": "Ese nombre de usuario ya está en uso",
+                "invalid": "El nombre de usuario no es válido, usa uno diferente",
+                "checkFailed": "No pudimos verificar la disponibilidad del usuario. Inténtalo de nuevo.",
+                "checkFailedSupport": "No pudimos verificar la disponibilidad del usuario. Inténtalo de nuevo o contacta a soporte."
+            },
+            "termsAgreement": "Al crear una cuenta aceptas los <terms>Términos y Condiciones</terms> y la <privacy>Política de Privacidad</privacy>"
+        },
+        "passkey": {
+            "setItUp": "Configurar",
+            "notAvailable": "Las passkeys aún no están disponibles en este dispositivo. Inténtalo de nuevo.",
+            "cancelled": "La configuración de la passkey fue cancelada. Inténtalo de nuevo cuando quieras.",
+            "usernameTaken": "Este nombre de usuario ya está registrado, posiblemente por un intento anterior en este dispositivo. Si fuiste tú, tu passkey está lista: solo inicia sesión.",
+            "learnMore": "Aprende más sobre qué son las passkeys",
+            "help": {
+                "titles": {
+                    "notReadable": "Problema con la passkey",
+                    "notAllowed": "Passkeys no habilitadas",
+                    "invalidState": "La passkey ya existe",
+                    "notSupported": "Passkeys no compatibles",
+                    "default": "Problema con la passkey"
+                },
+                "descriptions": {
+                    "notReadable": "Hay un problema con la configuración de passkeys de tu dispositivo. Inténtalo de nuevo.",
+                    "notAllowedAndroid": "No pudimos crear una passkey. Esto suele pasar cuando no has iniciado sesión en una cuenta de Google, Google Play Services está desactualizado o no tienes bloqueo de pantalla configurado. Corrige uno de estos puntos y reintenta, o puede que se haya cancelado.",
+                    "notAllowed": "Las passkeys no están habilitadas en tu dispositivo. Revisa la configuración de tu dispositivo para habilitarlas",
+                    "invalidState": "Ya existe una passkey para esta cuenta en tu dispositivo.",
+                    "default": "Algo salió mal al configurar la passkey. Probablemente es un problema del dispositivo."
+                },
+                "tryTheseFixes": "Prueba estas soluciones:",
+                "importantNote": "Nota importante",
+                "stillHavingIssues": "¿Sigues con problemas?",
+                "contactSupport": "Contacta a nuestro equipo de soporte en <link>peanut.me/support</link>"
+            }
+        },
+        "testTransaction": {
+            "confirmAndFinish": "Confirmar y terminar",
+            "retryAccountSetup": "Reintentar la configuración de la cuenta",
+            "errors": {
+                "loadUserFailed": "No pudimos cargar tus datos. Recarga la página.",
+                "noWalletAddress": "No se encontró la dirección de la billetera. Intenta recargar la página.",
+                "userNotLoaded": "Tus datos no se han cargado. Recarga la página.",
+                "setupFailed": "No pudimos completar la configuración de tu cuenta. Inténtalo de nuevo con el botón de abajo.",
+                "supportNeeded": "Estamos teniendo problemas para configurar tu cuenta. Nuestro equipo ya fue notificado. Contacta a soporte para recibir ayuda."
+            }
+        },
+        "finish": {
+            "title": "Firma una transacción de prueba",
+            "description": "Asegurémonos de que tu passkey funciona y de que todo está configurado correctamente."
+        }
+    },
     "loadingStates": {
         "idle": "Inactivo",
         "loading": "Cargando",

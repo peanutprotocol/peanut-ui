@@ -8,6 +8,7 @@ import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import classNames from 'classnames'
 import { motion, useReducedMotion } from 'framer-motion'
+import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { Children, type ReactNode, cloneElement, memo, type ReactElement, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -74,13 +75,15 @@ const Navigation = memo(function Navigation({
     SetupWrapperProps,
     'showBackButton' | 'showSkipButton' | 'showLogoutButton' | 'onBack' | 'onSkip' | 'onLogout' | 'isLoggingOut'
 >) {
+    const t = useTranslations('setup.navigation')
+
     if (!showBackButton && !showSkipButton && !showLogoutButton) return null
 
     return (
         <div className="absolute top-8 z-20 flex w-full items-center justify-between px-6">
             <div>
                 {showBackButton && (
-                    <Button variant="stroke" onClick={onBack} className="h-8 w-8 p-0" aria-label="Go back">
+                    <Button variant="stroke" onClick={onBack} className="h-8 w-8 p-0" aria-label={t('goBack')}>
                         <Icon name="chevron-up" fill="black" size={20} className="-rotate-90" />
                     </Button>
                 )}
@@ -88,7 +91,7 @@ const Navigation = memo(function Navigation({
             <div className="flex items-center gap-3">
                 {showSkipButton && (
                     <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
-                        <span className="text-grey-1">Skip</span>
+                        <span className="text-grey-1">{t('skip')}</span>
                     </Button>
                 )}
                 {showLogoutButton && (
@@ -97,7 +100,7 @@ const Navigation = memo(function Navigation({
                         loading={isLoggingOut}
                         variant="stroke"
                         className={twMerge('h-7 w-7 p-0', isLoggingOut && 'pl-3')}
-                        aria-label="Logout"
+                        aria-label={t('logout')}
                         disabled={isLoggingOut}
                     >
                         <Icon name="logout" fill="black" size={24} />
@@ -118,6 +121,8 @@ const ImageSection = ({
     screenId,
     imageClassName,
 }: Pick<SetupWrapperProps, 'layoutType' | 'image' | 'screenId' | 'imageClassName'>) => {
+    const t = useTranslations('setup.wrapper')
+
     if (!image) return null
 
     const isSignup = layoutType === 'signup'
@@ -140,7 +145,7 @@ const ImageSection = ({
                     <Image
                         key={index}
                         src={starImage.src}
-                        alt="star"
+                        alt={t('starAlt')}
                         width={56}
                         height={56}
                         className={twMerge(positions, 'absolute z-10')}
@@ -152,7 +157,7 @@ const ImageSection = ({
                 {/* main illustration image */}
                 <Image
                     src={image}
-                    alt="Section illustration"
+                    alt={t('illustrationAlt')}
                     width={500}
                     height={500}
                     className={imageClass}
@@ -173,7 +178,7 @@ const ImageSection = ({
         >
             <Image
                 src={image}
-                alt="Section illustration"
+                alt={t('illustrationAlt')}
                 width={500}
                 height={500}
                 className={twMerge(imageClass)}
@@ -209,6 +214,7 @@ export const SetupWrapper = memo(function SetupWrapper({
     deviceType,
     titleClassName,
 }: SetupWrapperProps) {
+    const t = useTranslations('setup.braveInstall')
     const { isBrave } = useBravePWAInstallState()
     const [showBraveSuccessMessage, setShowBraveSuccessMessage] = useState(false)
     const prefersReducedMotion = useReducedMotion()
@@ -223,10 +229,8 @@ export const SetupWrapper = memo(function SetupWrapper({
     const shouldShowBraveInstalledHeaderOnly =
         (screenId === 'pwa-install' || screenId === 'android-initial-pwa-install') && isBrave && showBraveSuccessMessage
 
-    const headingTitle = shouldShowBraveInstalledHeaderOnly ? 'Success!' : title
-    const headingDescription = shouldShowBraveInstalledHeaderOnly
-        ? 'Please open the Peanut app from your home screen to continue setup.'
-        : description
+    const headingTitle = shouldShowBraveInstalledHeaderOnly ? t('title') : title
+    const headingDescription = shouldShowBraveInstalledHeaderOnly ? t('description') : description
 
     return (
         <div className="flex min-h-[calc(100dvh_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))] flex-col overflow-hidden">

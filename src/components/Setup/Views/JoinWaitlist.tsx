@@ -14,8 +14,8 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import { useLogin } from '@/hooks/useLogin'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { INVITER_NOT_FOUND_ERROR } from '@/constants/invites.consts'
 import { enableDemoMode, isDemoInviteCode } from '@/utils/demo'
+import { useTranslations } from 'next-intl'
 import { isCapacitor } from '@/utils/capacitor'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
@@ -26,6 +26,7 @@ import { toInviteCode } from '@/utils/general.utils'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 
 const JoinWaitlist = () => {
+    const t = useTranslations('setup')
     const [inviteCode, setInviteCode] = useState('')
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
@@ -62,7 +63,7 @@ const JoinWaitlist = () => {
                 invite_code: inviteCode,
             })
             if (!isValid) {
-                setError(INVITER_NOT_FOUND_ERROR)
+                setError(t('waitlist.inviterNotFound'))
             }
             return isValid
         } catch {
@@ -71,7 +72,7 @@ const JoinWaitlist = () => {
                 source: 'setup',
                 invite_code: inviteCode,
             })
-            setError(INVITER_NOT_FOUND_ERROR)
+            setError(t('waitlist.inviterNotFound'))
             return false
         } finally {
             setisLoading(false)
@@ -81,10 +82,10 @@ const JoinWaitlist = () => {
     const handleError = (error: any) => {
         const errorMessage =
             error.code === 'LOGIN_CANCELED'
-                ? 'Login was canceled. Please try again.'
+                ? t('waitlist.loginCanceled')
                 : error.code === 'NO_PASSKEY'
-                  ? 'No passkey found. Please create a wallet first.'
-                  : 'An unexpected error occurred during login.'
+                  ? t('waitlist.noPasskey')
+                  : t('waitlist.loginUnexpectedError')
         toast.error(errorMessage)
         Sentry.captureException(error, { extra: { errorCode: error.code } })
     }
@@ -101,7 +102,7 @@ const JoinWaitlist = () => {
         <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
                 <ValidatedInput
-                    placeholder="Their username"
+                    placeholder={t('waitlist.inviterUsernamePlaceholder')}
                     value={inviteCode}
                     debounceTime={750}
                     validate={validateInviteCode}
@@ -140,7 +141,7 @@ const JoinWaitlist = () => {
                     shadowSize="4"
                     className="h-12 w-4/12"
                 >
-                    Next
+                    {t('next')}
                 </Button>
             </div>
 
@@ -152,7 +153,7 @@ const JoinWaitlist = () => {
 
             <div className="flex items-center gap-4 py-2">
                 <div className="h-px flex-1 bg-grey-1" />
-                <span className="text-sm text-grey-1">or</span>
+                <span className="text-sm text-grey-1">{t('waitlist.or')}</span>
                 <div className="h-px flex-1 bg-grey-1" />
             </div>
 
@@ -162,7 +163,7 @@ const JoinWaitlist = () => {
                 }}
                 shadowSize="4"
             >
-                Join waitlist
+                {t('waitlist.joinWaitlist')}
             </Button>
         </div>
     )

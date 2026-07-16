@@ -20,6 +20,145 @@
             "title": "Language"
         }
     },
+    "setup": {
+        "steps": {
+            "unsupported-browser": {
+                "title": "Browser Not Supported",
+                "description": "Please open Peanut in your device's main browser (Safari, Chrome, Firefox) to continue setup. If you are already in your main browser your device may not support Peanut."
+            },
+            "android-initial-pwa-install": {
+                "title": "Get the full experience",
+                "description": "Keep your wallet one tap away. Safe, fast, and on your home screen."
+            },
+            "pwa-install": {
+                "title": "Install Peanut on your phone",
+                "description": "Please install Peanut on your phone for the best experience!"
+            },
+            "landing": {
+                "title": "Peanut makes dollars easy.",
+                "description": "Create your wallet in seconds to save, send, or cash out dollars fast."
+            },
+            "welcome": {
+                "title": "Peanut is invite-only",
+                "description": "Who invited you? Enter their username to continue, or join the waitlist and we'll reach out when you're eligible."
+            },
+            "signup": {
+                "title": "How should we call you?",
+                "description": "Choose your username. It'll be your ID to send and receive money."
+            },
+            "passkey-permission": {
+                "title": "Let's set up your passkey",
+                "description": "Use your face or fingerprint to log in. No passwords, no hassle. Just you."
+            },
+            "sign-test-transaction": {
+                "title": "Your account is ready",
+                "description": "Just confirm it's you — one tap and you're in."
+            }
+        },
+        "existingSession": {
+            "title": "You're already signed in",
+            "description": "This device is signed in as {username}. Continue with that account, or log out to create a new one.",
+            "continueAs": "Continue as {username}",
+            "logoutAndStartFresh": "Log out & start fresh"
+        },
+        "navigation": {
+            "goBack": "Go back",
+            "skip": "Skip",
+            "logout": "Logout"
+        },
+        "wrapper": {
+            "starAlt": "star",
+            "illustrationAlt": "Section illustration"
+        },
+        "braveInstall": {
+            "title": "Success!",
+            "description": "Please open the Peanut app from your home screen to continue setup."
+        },
+        "installPwa": {
+            "openPeanutApp": "Open Peanut app",
+            "installing": "Installing",
+            "addToHomeScreen": "Add Peanut to Home Screen",
+            "installCancelled": "Installation cancelled. You can try adding to Home Screen again.",
+            "manualInstallHint": "To install the app, please add it to your Home Screen from your browser menu.",
+            "mobileFirstTitle": "Peanut is mobile first!",
+            "mobileFirstDescription": "For a better experience, use Peanut on your phone.",
+            "openInApp": "Open in the App",
+            "installApp": "Install App",
+            "gotIt": "Got it!"
+        },
+        "next": "Next",
+        "logIn": "Log In",
+        "loginFailed": "We couldn’t log you in. Please try again.",
+        "landing": {
+            "signUp": "Sign up",
+            "recoverWallet": "Need to recover your Peanut wallet?"
+        },
+        "waitlist": {
+            "inviterUsernamePlaceholder": "Their username",
+            "inviterNotFound": "No Peanut member with that username. Double-check your inviter's exact handle.",
+            "or": "or",
+            "joinWaitlist": "Join waitlist",
+            "loginCanceled": "Login was canceled. Please try again.",
+            "noPasskey": "No passkey found. Please create a wallet first.",
+            "loginUnexpectedError": "An unexpected error occurred during login."
+        },
+        "signupStep": {
+            "usernamePlaceholder": "Enter a username",
+            "errors": {
+                "required": "Username is required",
+                "tooShort": "Username must be at least 4 characters long",
+                "tooLong": "Username must be at most 12 characters long",
+                "invalidFormat": "Username must contain only lowercase letters and numbers and start with a letter",
+                "taken": "Username already taken",
+                "invalid": "Username is invalid, please use a different one",
+                "checkFailed": "Failed to check handle availability. Please try again.",
+                "checkFailedSupport": "Failed to check handle availability. Please try again or contact support."
+            },
+            "termsAgreement": "By creating account you agree with <terms>T&C</terms> and <privacy>Privacy Policy</privacy>"
+        },
+        "passkey": {
+            "setItUp": "Set it up",
+            "notAvailable": "Passkeys aren’t available on this device yet. Please try again.",
+            "cancelled": "Passkey setup was cancelled. Please try again when ready.",
+            "usernameTaken": "This username is already registered — possibly from an earlier attempt on this device. If that was you, your passkey is ready: just log in.",
+            "learnMore": "Learn more about what Passkeys are",
+            "help": {
+                "titles": {
+                    "notReadable": "Passkey Issue",
+                    "notAllowed": "Passkeys Not Enabled",
+                    "invalidState": "Passkey Already Exists",
+                    "notSupported": "Passkeys Not Supported",
+                    "default": "Passkey Issue"
+                },
+                "descriptions": {
+                    "notReadable": "There's an issue with your device's passkey settings. Please try again.",
+                    "notAllowedAndroid": "We couldn’t create a passkey. This usually means you’re not signed in to a Google account, Google Play Services is out of date, or screen lock isn’t set up. Fix one of these and retry — or it may have been cancelled.",
+                    "notAllowed": "Passkeys are not enabled on your device. Check your device settings to enable them",
+                    "invalidState": "A passkey already exists for this account on your device.",
+                    "default": "Something went wrong during passkey setup. This is likely a device issue."
+                },
+                "tryTheseFixes": "Try these fixes:",
+                "importantNote": "Important Note",
+                "stillHavingIssues": "Still having issues?",
+                "contactSupport": "Contact our support team at <link>peanut.me/support</link>"
+            }
+        },
+        "testTransaction": {
+            "confirmAndFinish": "Confirm & finish",
+            "retryAccountSetup": "Retry account setup",
+            "errors": {
+                "loadUserFailed": "Failed to load user data. Please refresh the page.",
+                "noWalletAddress": "No wallet address found. Please try refreshing the page.",
+                "userNotLoaded": "User data not loaded. Please refresh the page.",
+                "setupFailed": "Failed to complete account setup. Please try again by clicking the button below.",
+                "supportNeeded": "We're having trouble setting up your account. Our team has been notified. Please contact support for help."
+            }
+        },
+        "finish": {
+            "title": "Sign a test transaction",
+            "description": "Let's make sure your passkey is working and you have everything set up correctly."
+        }
+    },
     "loadingStates": {
         "idle": "Idle",
         "loading": "Loading",
