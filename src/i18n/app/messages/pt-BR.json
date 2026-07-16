@@ -1,0 +1,54 @@
+{
+    "common": {
+        "cancel": "Cancelar",
+        "continue": "Continuar",
+        "back": "Voltar",
+        "done": "Concluído",
+        "save": "Salvar",
+        "confirm": "Confirmar",
+        "retry": "Tentar novamente",
+        "close": "Fechar",
+        "loading": "Carregando...",
+        "somethingWentWrong": "Algo deu errado",
+        "copiedToClipboard": "Copiado para a área de transferência"
+    },
+    "profile": {
+        "language": "Idioma"
+    },
+    "settings": {
+        "language": {
+            "title": "Idioma"
+        }
+    },
+    "loadingStates": {
+        "idle": "Inativo",
+        "loading": "Carregando",
+        "preparingTransaction": "Preparando a transação",
+        "approveTransaction": "Aprove a transação",
+        "signInWallet": "Assine na sua carteira",
+        "executingTransaction": "Executando a transação",
+        "allowNetworkSwitch": "Permita a troca de rede",
+        "creatingLink": "Criando o link",
+        "switchingNetwork": "Trocando de rede",
+        "fetchingRoute": "Buscando a rota",
+        "fetchingDetails": "Obtendo os detalhes",
+        "awaitingRouteFulfillment": "Aguardando a execução da rota",
+        "assertingValues": "Verificando os valores",
+        "generatingDetails": "Gerando os detalhes",
+        "estimatingPoints": "Estimando os pontos",
+        "gettingDepositDetails": "Obtendo os dados do depósito",
+        "gettingKycStatus": "Consultando o status do KYC",
+        "awaitingTosConfirmation": "Aguardando a aceitação dos termos",
+        "awaitingKycConfirmation": "Aguardando a confirmação do KYC",
+        "linkingIban": "Vinculando o IBAN",
+        "linkingAccount": "Vinculando a conta",
+        "submittingOfframp": "Enviando o saque",
+        "gettingProfile": "Obtendo o perfil",
+        "registering": "Registrando",
+        "requesting": "Solicitando",
+        "loggingIn": "Entrando",
+        "loggingOut": "Saindo",
+        "paying": "Pagando",
+        "withdrawing": "Sacando"
+    }
+}

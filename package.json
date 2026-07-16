@@ -181,10 +181,17 @@
                     "tsconfig": "tsconfig.test.json",
                     "useESM": true
                 }
+            ],
+            "^.+\\.(js|mjs)$": [
+                "ts-jest",
+                {
+                    "tsconfig": "tsconfig.test.json",
+                    "isolatedModules": true
+                }
             ]
         },
         "transformIgnorePatterns": [
-            "node_modules/(?!(@wagmi|wagmi|viem|@viem|@walletconnect|@justaname\\.id|@zerodev|permissionless)/)"
+            "node_modules/(?!(\\.pnpm/)?(next-intl|use-intl|@formatjs|intl-messageformat)([@+/]|$))"
         ],
         "moduleNameMapper": {
             "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/src/utils/__mocks__/static-image.ts",

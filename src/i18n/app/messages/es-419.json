@@ -1,0 +1,54 @@
+{
+    "common": {
+        "cancel": "Cancelar",
+        "continue": "Continuar",
+        "back": "Atrás",
+        "done": "Listo",
+        "save": "Guardar",
+        "confirm": "Confirmar",
+        "retry": "Reintentar",
+        "close": "Cerrar",
+        "loading": "Cargando...",
+        "somethingWentWrong": "Algo salió mal",
+        "copiedToClipboard": "Copiado al portapapeles"
+    },
+    "profile": {
+        "language": "Idioma"
+    },
+    "settings": {
+        "language": {
+            "title": "Idioma"
+        }
+    },
+    "loadingStates": {
+        "idle": "Inactivo",
+        "loading": "Cargando",
+        "preparingTransaction": "Preparando la transacción",
+        "approveTransaction": "Aprueba la transacción",
+        "signInWallet": "Firma en tu billetera",
+        "executingTransaction": "Ejecutando la transacción",
+        "allowNetworkSwitch": "Permite el cambio de red",
+        "creatingLink": "Creando el enlace",
+        "switchingNetwork": "Cambiando de red",
+        "fetchingRoute": "Buscando la ruta",
+        "fetchingDetails": "Obteniendo los detalles",
+        "awaitingRouteFulfillment": "Esperando la ejecución de la ruta",
+        "assertingValues": "Verificando los valores",
+        "generatingDetails": "Generando los detalles",
+        "estimatingPoints": "Estimando los puntos",
+        "gettingDepositDetails": "Obteniendo los datos del depósito",
+        "gettingKycStatus": "Consultando el estado de KYC",
+        "awaitingTosConfirmation": "Esperando la aceptación de los términos",
+        "awaitingKycConfirmation": "Esperando la confirmación de KYC",
+        "linkingIban": "Vinculando el IBAN",
+        "linkingAccount": "Vinculando la cuenta",
+        "submittingOfframp": "Enviando el retiro",
+        "gettingProfile": "Obteniendo el perfil",
+        "registering": "Registrando",
+        "requesting": "Solicitando",
+        "loggingIn": "Iniciando sesión",
+        "loggingOut": "Cerrando sesión",
+        "paying": "Pagando",
+        "withdrawing": "Retirando"
+    }
+}

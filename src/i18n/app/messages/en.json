@@ -1,0 +1,54 @@
+{
+    "common": {
+        "cancel": "Cancel",
+        "continue": "Continue",
+        "back": "Back",
+        "done": "Done",
+        "save": "Save",
+        "confirm": "Confirm",
+        "retry": "Retry",
+        "close": "Close",
+        "loading": "Loading...",
+        "somethingWentWrong": "Something went wrong",
+        "copiedToClipboard": "Copied to clipboard"
+    },
+    "profile": {
+        "language": "Language"
+    },
+    "settings": {
+        "language": {
+            "title": "Language"
+        }
+    },
+    "loadingStates": {
+        "idle": "Idle",
+        "loading": "Loading",
+        "preparingTransaction": "Preparing transaction",
+        "approveTransaction": "Approve transaction",
+        "signInWallet": "Sign in wallet",
+        "executingTransaction": "Executing transaction",
+        "allowNetworkSwitch": "Allow network switch",
+        "creatingLink": "Creating link",
+        "switchingNetwork": "Switching network",
+        "fetchingRoute": "Fetching route",
+        "fetchingDetails": "Fetching details",
+        "awaitingRouteFulfillment": "Awaiting route fulfillment",
+        "assertingValues": "Asserting values",
+        "generatingDetails": "Generating details",
+        "estimatingPoints": "Estimating points",
+        "gettingDepositDetails": "Getting deposit details",
+        "gettingKycStatus": "Getting KYC status",
+        "awaitingTosConfirmation": "Awaiting TOS confirmation",
+        "awaitingKycConfirmation": "Awaiting KYC confirmation",
+        "linkingIban": "Linking IBAN",
+        "linkingAccount": "Linking account",
+        "submittingOfframp": "Submitting Offramp",
+        "gettingProfile": "Getting profile",
+        "registering": "Registering",
+        "requesting": "Requesting",
+        "loggingIn": "Logging in",
+        "loggingOut": "Logging out",
+        "paying": "Paying",
+        "withdrawing": "Withdrawing"
+    }
+}
