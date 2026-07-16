@@ -39,13 +39,25 @@ jest.mock('@/constants/manteca.consts', () => ({
     isMantecaCountry: jest.fn(() => false),
 }))
 
-let mockUser: any
+interface MockUser {
+    user: { userId: string }
+    accounts: Array<{ type: string; identifier: string; details: Record<string, unknown> }>
+}
+
+let mockUser: MockUser | null
 jest.mock('@/redux/hooks', () => ({
     useUserStore: () => ({ user: mockUser }),
 }))
 
 // stateful withdraw-flow mock, wired up per-render by the harness below
-let withdrawFlow: any
+interface MockWithdrawFlow {
+    showAllWithdrawMethods: boolean
+    setShowAllWithdrawMethods: (show: boolean) => void
+    setSelectedMethod: jest.Mock
+    setSelectedBankAccount: jest.Mock
+}
+
+let withdrawFlow: MockWithdrawFlow
 jest.mock('@/context/WithdrawFlowContext', () => ({
     useWithdrawFlow: () => withdrawFlow,
 }))
@@ -55,7 +67,7 @@ jest.mock('@/context/OnrampFlowContext', () => ({
 }))
 
 jest.mock('@/components/0_Bruddle/Button', () => ({
-    Button: (props: any) => (
+    Button: (props: { onClick?: () => void; disabled?: boolean; children?: React.ReactNode }) => (
         <button onClick={props.onClick} disabled={props.disabled}>
             {props.children}
         </button>
@@ -68,12 +80,12 @@ jest.mock('@/components/AddMoney/components/DepositMethodList', () => ({
 
 jest.mock('@/components/Global/NavHeader', () => ({
     __esModule: true,
-    default: (props: any) => <div data-testid="nav-header">{props.title}</div>,
+    default: (props: { title?: string }) => <div data-testid="nav-header">{props.title}</div>,
 }))
 
 jest.mock('@/components/Global/Card', () => ({
     __esModule: true,
-    default: (props: any) => <div>{props.children}</div>,
+    default: (props: { children?: React.ReactNode }) => <div>{props.children}</div>,
 }))
 
 jest.mock('@/components/Profile/AvatarWithBadge', () => ({
@@ -82,7 +94,7 @@ jest.mock('@/components/Profile/AvatarWithBadge', () => ({
 }))
 
 jest.mock('../../Common/CountryList', () => ({
-    CountryList: (props: any) => (
+    CountryList: (props: { onCryptoClick?: () => void }) => (
         <div data-testid="country-list">
             <button data-testid="crypto-option" onClick={props.onCryptoClick}>
                 Crypto
@@ -98,7 +110,7 @@ jest.mock('../../Global/PeanutLoading', () => ({
 
 jest.mock('../../Common/SavedAccountsView', () => ({
     __esModule: true,
-    default: (props: any) => (
+    default: (props: { onSelectNewMethodClick?: () => void }) => (
         <div data-testid="saved-accounts-view">
             <button data-testid="select-new-method" onClick={props.onSelectNewMethodClick}>
                 Select new method
@@ -114,7 +126,7 @@ jest.mock('../../Global/TokenAndNetworkConfirmationModal', () => ({
 
 import { AddWithdrawRouterView } from '../AddWithdrawRouterView'
 
-const makeUser = () => ({
+const makeUser = (): MockUser => ({
     user: { userId: 'user-1' },
     accounts: [{ type: 'iban', identifier: 'BE10905272880104', details: {} }],
 })
@@ -122,7 +134,7 @@ const makeUser = () => ({
 const mockSetSelectedMethod = jest.fn()
 
 // harness giving the context mock real state so setShowAllWithdrawMethods re-renders
-function Harness({ user }: { user: any }) {
+function Harness({ user }: { user: MockUser }) {
     const [showAll, setShowAll] = React.useState(false)
     mockUser = user
     withdrawFlow = {
