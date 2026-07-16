@@ -482,47 +482,6 @@ describe('mapTransactionDataForDrawer', () => {
         })
     })
 
-    describe('request pot rollup status', () => {
-        const pot = (overrides: Partial<HistoryEntry>): HistoryEntry =>
-            baseEntry({
-                userRole: EHistoryUserRole.RECIPIENT,
-                status: EHistoryStatus.OPEN,
-                amount: '1750',
-                isRequestLink: true,
-                extraData: { kind: 'P2P_REQUEST_FULFILL', provider: 'PEANUT', isRequestPotRollup: true },
-                ...overrides,
-            })
-
-        it('an open pot that met its goal reads as completed', () => {
-            const result = mapTransactionDataForDrawer(pot({ totalAmountCollected: 1750 })).transactionDetails
-            expect(result.status).toBe('completed')
-        })
-
-        it('an over-funded open pot reads as completed', () => {
-            const result = mapTransactionDataForDrawer(pot({ totalAmountCollected: 2000 })).transactionDetails
-            expect(result.status).toBe('completed')
-        })
-
-        it('a partially funded open pot stays pending', () => {
-            const result = mapTransactionDataForDrawer(pot({ totalAmountCollected: 500 })).transactionDetails
-            expect(result.status).toBe('pending')
-        })
-
-        it('a goal-less pot stays pending no matter what it collected', () => {
-            const result = mapTransactionDataForDrawer(
-                pot({ amount: '0', totalAmountCollected: 500 })
-            ).transactionDetails
-            expect(result.status).toBe('pending')
-        })
-
-        it('a closed pot still reads as closed, not completed', () => {
-            const result = mapTransactionDataForDrawer(
-                pot({ status: EHistoryStatus.CLOSED, totalAmountCollected: 1750 })
-            ).transactionDetails
-            expect(result.status).toBe('closed')
-        })
-    })
-
     describe('refund credit rows (status + sign + flag)', () => {
         const negativeAuth = baseEntry({
             userRole: EHistoryUserRole.SENDER,

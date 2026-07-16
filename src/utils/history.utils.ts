@@ -52,7 +52,6 @@ export enum EHistoryStatus {
     refunded = 'refunded',
     canceled = 'canceled', // from simplefi, canceled with only one l
     expired = 'expired',
-    OPEN = 'OPEN',
     CLOSED = 'CLOSED',
 }
 
