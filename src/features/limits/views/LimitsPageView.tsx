@@ -10,6 +10,7 @@ import { deriveRegionAccess, pendingBankRailRegionPaths, type Region } from '@/u
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useLimits } from '@/hooks/useLimits'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
@@ -21,6 +22,8 @@ import InfoCard from '@/components/Global/InfoCard'
 import { getProviderRoute } from '../utils'
 
 const LimitsPageView = () => {
+    const t = useTranslations('limits')
+    const tCommon = useTranslations('common')
     const router = useRouter()
     const goBack = useSafeBack('/profile', { replace: true })
     const { isKycApproved, rails } = useCapabilities()
@@ -47,7 +50,7 @@ const LimitsPageView = () => {
     // rest of world region config (static)
     const restOfWorldRegion: Region = {
         path: 'rest-of-the-world',
-        name: 'Rest of the world',
+        name: t('restOfWorld'),
         icon: REST_OF_WORLD_GLOBE_ICON,
     }
 
@@ -67,13 +70,10 @@ const LimitsPageView = () => {
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-6">
-            <NavHeader title="Payment limits" onPrev={goBack} titleClassName="text-xl md:text-2xl" />
+            <NavHeader title={t('title')} onPrev={goBack} titleClassName="text-xl md:text-2xl" />
 
             {/* page description */}
-            <InfoCard
-                variant="info"
-                description="Payment limits control how much you can send and receive. Limits vary by region and reset monthly or yearly."
-            />
+            <InfoCard variant="info" description={t('pageDescription')} />
 
             {/* fiat limits section */}
             {!hasAnyKyc && <FiatLimitsLockedCard />}
@@ -91,7 +91,7 @@ const LimitsPageView = () => {
             {/* rest of world - always shown with coming soon */}
             {hasRestOfWorld && (
                 <div className="space-y-2">
-                    <h2 className="font-bold">Other regions</h2>
+                    <h2 className="font-bold">{t('otherRegions')}</h2>
                     <ActionListCard
                         leftIcon={
                             <Image
@@ -106,7 +106,7 @@ const LimitsPageView = () => {
                         title={restOfWorldRegion.name}
                         onClick={() => {}}
                         isDisabled={true}
-                        rightContent={<StatusBadge status="custom" customText="Coming soon" />}
+                        rightContent={<StatusBadge status="custom" customText={tCommon('comingSoon')} />}
                     />
                 </div>
             )}
@@ -114,12 +114,12 @@ const LimitsPageView = () => {
             {/* card limits — separate from KYC/region limits; managed per-card via Rain */}
             {activeCard && (
                 <div className="space-y-2">
-                    <h2 className="font-bold">Card limits</h2>
+                    <h2 className="font-bold">{t('cardLimits.title')}</h2>
                     <ActionListCard
                         position="single"
                         leftIcon={<Icon name="credit-card" size={28} />}
-                        title="Manage card limits"
-                        description="Transaction cap for your Peanut card."
+                        title={t('cardLimits.manage')}
+                        description={t('cardLimits.description')}
                         onClick={() => router.push('/card/limit')}
                     />
                 </div>
@@ -139,11 +139,12 @@ interface UnlockedRegionsListProps {
 }
 
 const UnlockedRegionsList = ({ regions, hasMantecaKyc }: UnlockedRegionsListProps) => {
+    const t = useTranslations('limits')
     const router = useRouter()
 
     return (
         <div>
-            {regions.length > 0 && <h2 className="mb-2 font-bold">Unlocked regions</h2>}
+            {regions.length > 0 && <h2 className="mb-2 font-bold">{t('unlockedRegions')}</h2>}
             {regions.map((region, index) => (
                 <ActionListCard
                     key={region.path}
@@ -176,6 +177,8 @@ interface LockedRegionsListProps {
 }
 
 const LockedRegionsList = ({ regions, pendingRegionPaths }: LockedRegionsListProps) => {
+    const t = useTranslations('limits')
+    const tCommon = useTranslations('common')
     const router = useRouter()
 
     // a region shows pending only when one of ITS bank rails is mid-flight
@@ -183,7 +186,7 @@ const LockedRegionsList = ({ regions, pendingRegionPaths }: LockedRegionsListPro
 
     return (
         <div>
-            {regions.length > 0 && <h2 className="mb-2 font-bold">Locked regions</h2>}
+            {regions.length > 0 && <h2 className="mb-2 font-bold">{t('lockedRegions')}</h2>}
             {regions.map((region, index) => {
                 const isPending = isPendingRegion(region.path)
                 return (
@@ -208,7 +211,7 @@ const LockedRegionsList = ({ regions, pendingRegionPaths }: LockedRegionsListPro
                         isDisabled={isPending}
                         description={region.description}
                         descriptionClassName="text-xs"
-                        rightContent={isPending && <StatusBadge status="pending" />}
+                        rightContent={isPending && <StatusBadge status="pending" customText={tCommon('pending')} />}
                     />
                 )
             })}

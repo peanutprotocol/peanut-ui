@@ -2,6 +2,7 @@
 
 import InfoCard from '@/components/Global/InfoCard'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useModalsContext } from '@/context/ModalsContext'
 import { twMerge } from 'tailwind-merge'
@@ -34,6 +35,8 @@ export default function LimitsWarningCard({
     isIncreaseLimitsLoading,
     className,
 }: LimitsWarningCardProps) {
+    const t = useTranslations('limits')
+    const tCommon = useTranslations('common')
     const { openSupportWithMessage } = useModalsContext()
 
     return (
@@ -72,7 +75,7 @@ export default function LimitsWarningCard({
                             >
                                 <Icon name="plus-circle" className="text-yellow-11" size={12} />
                                 <span className="font-semibold text-yellow-11 underline">
-                                    {isIncreaseLimitsLoading ? 'Loading...' : 'Increase my limits'}
+                                    {isIncreaseLimitsLoading ? tCommon('loading') : t('increase.cta')}
                                 </span>
                             </button>
                         </>
@@ -84,9 +87,7 @@ export default function LimitsWarningCard({
                                 className="flex items-center gap-1 text-xs md:text-sm"
                             >
                                 <Icon name="plus-circle" className="text-yellow-11" size={12} />
-                                <span className="font-semibold text-yellow-11 underline">
-                                    Need higher limits? Contact support.
-                                </span>
+                                <span className="font-semibold text-yellow-11 underline">{t('needHigherLimits')}</span>
                             </button>
                         </>
                     ) : null}

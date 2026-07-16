@@ -13,7 +13,11 @@
         "copiedToClipboard": "Copiado para a área de transferência",
         "maybeLater": "Talvez depois",
         "tryAgain": "Tentar de novo",
-        "skipForNow": "Pular por enquanto"
+        "skipForNow": "Pular por enquanto",
+        "gotIt": "Entendi",
+        "contactSupport": "Falar com o suporte",
+        "pending": "Pendente",
+        "comingSoon": "Em breve"
     },
     "navigation": {
         "home": "Início",
@@ -166,11 +170,246 @@
         }
     },
     "profile": {
-        "language": "Idioma"
+        "language": "Idioma",
+        "menu": {
+            "inviteFriends": "Convide amigos para o Peanut",
+            "yourCard": "Seu cartão",
+            "peanutCard": "Cartão Peanut",
+            "newBadge": "Novo!",
+            "yourBadges": "Seus emblemas",
+            "points": "Pontos",
+            "personalDetails": "Dados pessoais",
+            "unlockedRegions": "Regiões desbloqueadas",
+            "paymentLimits": "Limites de pagamento",
+            "showMyFullName": "Mostrar meu nome completo",
+            "backup": "Backup",
+            "exchangeRatesAndFees": "Câmbio e taxas",
+            "starAlt": "estrela"
+        },
+        "logOut": "Sair",
+        "edit": {
+            "title": "Editar perfil",
+            "fields": {
+                "name": "Nome",
+                "surname": "Sobrenome",
+                "bio": "Bio",
+                "email": "Email",
+                "phoneNumber": "Número de telefone",
+                "website": "Site"
+            },
+            "placeholders": {
+                "name": "Adicione seu nome",
+                "surname": "Adicione seu sobrenome",
+                "bio": "Adicione uma bio",
+                "email": "Adicione seu email",
+                "phone": "Adicione seu número",
+                "website": "Adicione seu site"
+            },
+            "soonBadge": "Em breve!",
+            "saveChanges": "Salvar alterações",
+            "errors": {
+                "nameRequired": "Informe seu nome.",
+                "generic": "Algo deu errado. Tente de novo ou fale com o suporte."
+            }
+        },
+        "regions": {
+            "title": "Regiões desbloqueadas",
+            "description": "Transfira e receba de qualquer conta bancária e use os métodos de pagamento disponíveis.",
+            "empty": {
+                "title": "Nenhuma região desbloqueada ainda",
+                "description": "Toque em uma região abaixo para confirmar sua identidade e desbloquear pagamentos lá."
+            },
+            "lockedTitle": "Regiões bloqueadas",
+            "lockedDescription": "Para onde você quer enviar e receber dinheiro?",
+            "providerRejection": {
+                "fixableTitle": "Precisamos de um documento atualizado",
+                "restartTitle": "Verifique com outro documento",
+                "unavailableTitle": "Região indisponível",
+                "fixableDescription": "Envie uma foto mais nítida do seu documento para desbloquear esta região.",
+                "restartDescription": "Esta região exige um documento de um país compatível. Você pode verificar com outro documento.",
+                "unavailableDescription": "Esta região não está disponível para a sua conta. Fale com o suporte para receber ajuda.",
+                "uploadDocument": "Enviar documento"
+            },
+            "initError": {
+                "retriableTitle": "Não foi possível iniciar a verificação",
+                "notAvailableTitle": "Ainda não disponível",
+                "fallbackDescription": "Algo deu errado. Tente de novo ou fale com o suporte."
+            }
+        },
+        "backup": {
+            "title": "Backup",
+            "nonCustodial": {
+                "title": "Carteira sem custódia",
+                "description": "Só você controla esta carteira. Não podemos recuperá-la se você perder o acesso. O backup é sua responsabilidade."
+            },
+            "enableNow": "Ative o backup agora",
+            "steps": {
+                "android": {
+                    "step1": {
+                        "title": "Abra as Configurações",
+                        "description": "Google → Todos os serviços"
+                    },
+                    "step2": {
+                        "title": "Encontre o Gerenciador de senhas",
+                        "description": "Preenchimento automático → Gerenciador de senhas do Google → Ative a sincronização"
+                    },
+                    "step3": {
+                        "title": "Confira no Chrome",
+                        "description": "Configurações → Senhas → Busque \"Peanut\""
+                    }
+                },
+                "ios": {
+                    "step1": {
+                        "title": "Vá em Ajustes",
+                        "description": "[Seu nome] → iCloud"
+                    },
+                    "step2": {
+                        "title": "Encontre Senhas e Chaves",
+                        "description": "Ative a opção"
+                    },
+                    "step3": {
+                        "title": "Confira se funcionou",
+                        "description": "Ajustes → Senhas → Busque \"Peanut\""
+                    }
+                }
+            },
+            "noBackupWarning": {
+                "title": "Sem backup = Sem recuperação",
+                "description": "Se você perder o celular sem o backup ativado, seu dinheiro se perde para sempre."
+            },
+            "faqHeading": "Perguntas frequentes",
+            "faq": {
+                "losePhone": "E se eu perder meu celular?",
+                "changePhone": "E se eu trocar de celular?",
+                "exportKeys": "Por que não consigo exportar minha chave privada?"
+            },
+            "losePhoneModal": {
+                "enabledTitle": "Backup ativado",
+                "enabledDescription": "{platform, select, android {Entre no novo celular com a sua conta do Google.} other {Entre no novo celular com o seu ID Apple.}} Baixe o Peanut. Sua carteira é restaurada automaticamente",
+                "noBackupTitle": "Sem backup",
+                "noBackupDescription": "Seus fundos se perdem para sempre, não podemos recuperar sua carteira. É assim que a autocustódia funciona."
+            },
+            "changePhoneModal": {
+                "step1": "Confira se o backup está funcionando (veja o passo 3 acima)",
+                "step2": "{platform, select, android {Saiba a senha da sua conta do Google} other {Saiba a senha do seu ID Apple}}",
+                "step3": "Fique com o celular antigo até o novo funcionar",
+                "iphoneToIphoneTitle": "iPhone → iPhone",
+                "iphoneToIphoneDescription": "É só entrar. Tudo é transferido.",
+                "androidToAndroidTitle": "Android → Android",
+                "androidToAndroidDescription": "Entre no Google. Sua carteira vai junto.",
+                "crossPlatformTitle": "iPhone ↔ Android",
+                "crossPlatformDescription": "Crie uma carteira nova no novo aparelho. Transfira seus fundos. Passkeys não funcionam entre plataformas, a menos que você use um gerenciador de senhas de terceiros como o 1Password."
+            },
+            "exportKeysModal": {
+                "saferTitle": "Passkeys são mais seguras por design",
+                "saferIntro": "Diferente das chaves privadas tradicionais, que podem ser copiadas como texto, passkeys são credenciais criptográficas que não podem ser:",
+                "bullets": {
+                    "screenshot": "Capturadas por acidente em um print",
+                    "textMessage": "Enviadas por mensagem de texto",
+                    "noteApp": "Salvas em um app de notas inseguro",
+                    "malware": "Roubadas por malware"
+                },
+                "tradeoffTitle": "O outro lado",
+                "tradeoffDescription": "Você ganha mais segurança, mas as passkeys ficam presas ao ecossistema do seu aparelho (Apple ou Google). Por isso o backup na nuvem é essencial.",
+                "futureNote": "Estamos explorando opções avançadas de exportação para usuários avançados em atualizações futuras."
+            }
+        },
+        "publicProfile": {
+            "peanutMascotAlt": "Mascote do Peanut",
+            "peanutLogoTextAlt": "Logo do Peanut",
+            "joinPeanutAlt": "Entre no Peanut",
+            "allSetTitle": "Tudo pronto",
+            "allSetDescription": "Agora envie ou solicite dinheiro para começar.",
+            "joinPeanut": "Entre no Peanut!",
+            "inviteOnlyLine1": "O Peanut é só por convite.",
+            "inviteOnlyLine2": "Vá implorar um link de convite para o seu amigo!",
+            "begShareText": "Mano… estou de joelhos. O Peanut é só por convite e fiquei de fora. Salva minha vida e me manda seu convite",
+            "begForInvite": "Implorar por um convite",
+            "activityPrivateNote": "A atividade é visível só para você, não é pública.",
+            "noInviteTitle": "Sem convite, sem Peanut"
+        }
     },
     "settings": {
         "language": {
             "title": "Idioma"
+        },
+        "deleteAccount": {
+            "button": "Excluir minha conta",
+            "confirmTitle": "Ah, você vai embora?",
+            "confirmDescription": "Excluir sua conta é permanente. Vamos desativá-la imediatamente e apagar seus dados em até 30 dias. Este carinha preferia que você ficasse.",
+            "confirmCta": "Sim, excluir",
+            "cancelCta": "Deixa pra lá, vou ficar",
+            "doneTitle": "Vamos sentir sua falta",
+            "doneDescription": "Sua conta foi desativada e seus dados serão apagados em até 30 dias. Obrigado por abrir o Peanut com a gente — se cuida!",
+            "doneCta": "Tchau",
+            "error": "Não foi possível excluir sua conta. Tente de novo.",
+            "sadPeanutAlt": "Peanut triste",
+            "cryingPeanutAlt": "Peanut chorando"
+        }
+    },
+    "limits": {
+        "title": "Limites de pagamento",
+        "pageDescription": "Os limites de pagamento controlam quanto você pode enviar e receber. Variam por região e são renovados todo mês ou ano.",
+        "unlockedRegions": "Regiões desbloqueadas",
+        "lockedRegions": "Regiões bloqueadas",
+        "otherRegions": "Outras regiões",
+        "restOfWorld": "Resto do mundo",
+        "cardLimits": {
+            "title": "Limites do cartão",
+            "manage": "Gerenciar limites do cartão",
+            "description": "Teto por transação do seu cartão Peanut."
+        },
+        "fiatLocked": {
+            "title": "Desbloqueie pagamentos fiat",
+            "locked": "Bloqueado",
+            "description": "Confirme sua identidade para desbloquear pagamentos fiat e ver seus limites.",
+            "cta": "Desbloquear agora"
+        },
+        "crypto": {
+            "title": "Limites cripto",
+            "noLimits": "Sem limites",
+            "tooltip": "Transações cripto são globais e não dependem de regiões."
+        },
+        "provider": {
+            "title": "Limites",
+            "fiatLimits": "Limites fiat:",
+            "addMoneyLimit": "<medium>Adicionar dinheiro:</medium> até {amount} por transação",
+            "withdrawLimit": "<medium>Saques:</medium> até {amount} por transação",
+            "qrPaymentLimits": "Limites de pagamento QR:",
+            "qrPayLimit": "Pagando com QR: até {amount} por transação",
+            "noData": "Dados de limites indisponíveis",
+            "totalAllowed": "{asset} total permitido",
+            "remaining": "{period, select, monthly {Restante neste mês} other {Restante neste ano}}",
+            "appliesTo": "Vale para adicionar dinheiro, saques e pagamentos QR"
+        },
+        "period": {
+            "monthly": "Mensal",
+            "yearly": "Anual",
+            "selectAriaLabel": "Selecionar período"
+        },
+        "increase": {
+            "cta": "Aumentar meus limites",
+            "submitted": "Documento enviado! Seus limites serão atualizados em breve."
+        },
+        "error": {
+            "description": "Não foi possível carregar os limites. Tente de novo."
+        },
+        "docsLink": "Saiba mais sobre limites",
+        "needHigherLimits": "Precisa de limites maiores? Fale com o suporte."
+    },
+    "exchangeRate": {
+        "title": "Câmbio e taxas",
+        "tryIt": "Experimente!",
+        "widget": {
+            "youSend": "Você envia",
+            "recipientGets": "O destinatário recebe",
+            "swapCurrencies": "Trocar moedas",
+            "rateUnavailable": "Câmbio indisponível no momento",
+            "bankFee": "Taxa do banco",
+            "peanutFee": "Taxa do Peanut",
+            "free": "Grátis!",
+            "arrivesHours": "Deve chegar em horas.",
+            "arrivesMinutes": "Deve chegar em minutos."
         }
     },
     "setup": {

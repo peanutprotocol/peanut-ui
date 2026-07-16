@@ -13,7 +13,11 @@
         "copiedToClipboard": "Copied to clipboard",
         "maybeLater": "Maybe later",
         "tryAgain": "Try again",
-        "skipForNow": "Skip for now"
+        "skipForNow": "Skip for now",
+        "gotIt": "Got it",
+        "contactSupport": "Contact support",
+        "pending": "Pending",
+        "comingSoon": "Coming soon"
     },
     "navigation": {
         "home": "Home",
@@ -166,11 +170,246 @@
         }
     },
     "profile": {
-        "language": "Language"
+        "language": "Language",
+        "menu": {
+            "inviteFriends": "Invite friends to Peanut",
+            "yourCard": "Your Card",
+            "peanutCard": "Peanut Card",
+            "newBadge": "New!",
+            "yourBadges": "Your Badges",
+            "points": "Points",
+            "personalDetails": "Personal details",
+            "unlockedRegions": "Unlocked regions",
+            "paymentLimits": "Payment limits",
+            "showMyFullName": "Show my full name",
+            "backup": "Backup",
+            "exchangeRatesAndFees": "Exchange rates and fees",
+            "starAlt": "star"
+        },
+        "logOut": "Log out",
+        "edit": {
+            "title": "Edit Profile",
+            "fields": {
+                "name": "Name",
+                "surname": "Surname",
+                "bio": "Bio",
+                "email": "Email",
+                "phoneNumber": "Phone number",
+                "website": "Website"
+            },
+            "placeholders": {
+                "name": "Add your name",
+                "surname": "Add your surname",
+                "bio": "Add a bio",
+                "email": "Add your email",
+                "phone": "Add your number",
+                "website": "Add your website"
+            },
+            "soonBadge": "Soon!",
+            "saveChanges": "Save Changes",
+            "errors": {
+                "nameRequired": "Please provide your name.",
+                "generic": "Something went wrong. Please try again or contact support."
+            }
+        },
+        "regions": {
+            "title": "Unlocked regions",
+            "description": "Transfer to and receive from any bank account and use supported payments methods.",
+            "empty": {
+                "title": "No regions unlocked yet",
+                "description": "Tap a region below to confirm your ID and unlock payments there."
+            },
+            "lockedTitle": "Locked regions",
+            "lockedDescription": "Where do you want to send and receive money?",
+            "providerRejection": {
+                "fixableTitle": "We need an updated document",
+                "restartTitle": "Verify with a different document",
+                "unavailableTitle": "Region unavailable",
+                "fixableDescription": "Please upload a clearer photo of your ID to unlock this region.",
+                "restartDescription": "This region needs a document from a supported country. You can verify with a different ID.",
+                "unavailableDescription": "This region is not available for your account. Contact support for help.",
+                "uploadDocument": "Upload document"
+            },
+            "initError": {
+                "retriableTitle": "Verification couldn't start",
+                "notAvailableTitle": "Not available yet",
+                "fallbackDescription": "Something went wrong. Please try again or contact support."
+            }
+        },
+        "backup": {
+            "title": "Backup",
+            "nonCustodial": {
+                "title": "Non-custodial wallet",
+                "description": "Only you control this wallet. We can't recover it if you lose access. Your backup is your responsibility."
+            },
+            "enableNow": "Enable backup now",
+            "steps": {
+                "android": {
+                    "step1": {
+                        "title": "Open Settings",
+                        "description": "Google → All services"
+                    },
+                    "step2": {
+                        "title": "Find Password Manager",
+                        "description": "Autofill → Google Password Manager → Turn ON sync"
+                    },
+                    "step3": {
+                        "title": "Verify in Chrome",
+                        "description": "Settings → Passwords → Search \"Peanut\""
+                    }
+                },
+                "ios": {
+                    "step1": {
+                        "title": "Go to Settings",
+                        "description": "[Your Name] → iCloud"
+                    },
+                    "step2": {
+                        "title": "Find Passwords & Keychain",
+                        "description": "Turn it on"
+                    },
+                    "step3": {
+                        "title": "Verify it worked",
+                        "description": "Settings → Passwords → Search \"Peanut\""
+                    }
+                }
+            },
+            "noBackupWarning": {
+                "title": "No backup = No recovery",
+                "description": "If you lose your phone without backup enabled, your money is gone forever."
+            },
+            "faqHeading": "Common questions",
+            "faq": {
+                "losePhone": "What if I lose my phone?",
+                "changePhone": "What if I change phone?",
+                "exportKeys": "Why can't I export my private key?"
+            },
+            "losePhoneModal": {
+                "enabledTitle": "Backup is enabled",
+                "enabledDescription": "Sign into your new phone with your {platform, select, android {Google account} other {Apple ID}}. Download Peanut. Your wallet restores automatically",
+                "noBackupTitle": "No backup",
+                "noBackupDescription": "Your funds are permanently lost, we can't recover your wallet. This is how self-custody works."
+            },
+            "changePhoneModal": {
+                "step1": "Verify backup is working (check step 3 above)",
+                "step2": "{platform, select, android {Know your Google account password} other {Know your Apple ID password}}",
+                "step3": "Keep old phone until new one works",
+                "iphoneToIphoneTitle": "iPhone → iPhone",
+                "iphoneToIphoneDescription": "Just sign in. Everything transfers.",
+                "androidToAndroidTitle": "Android → Android",
+                "androidToAndroidDescription": "Sign into Google. Your wallet follows.",
+                "crossPlatformTitle": "iPhone ↔ Android",
+                "crossPlatformDescription": "Create new wallet on new device. Transfer your funds. Passkeys don't work cross-platform unless you are using a third party password manager such as 1Password."
+            },
+            "exportKeysModal": {
+                "saferTitle": "Passkeys are safer by design",
+                "saferIntro": "Unlike traditional private keys that can be copied as text, passkeys are cryptographic credentials that can't be:",
+                "bullets": {
+                    "screenshot": "Screenshot by accident",
+                    "textMessage": "Sent in a text message",
+                    "noteApp": "Saved in an unsafe note app",
+                    "malware": "Stolen by malware"
+                },
+                "tradeoffTitle": "The tradeoff",
+                "tradeoffDescription": "You get better security, but passkeys are locked to your device ecosystem (Apple or Google). That's why cloud backup is critical.",
+                "futureNote": "We're exploring advanced export options for power users in future updates."
+            }
+        },
+        "publicProfile": {
+            "peanutMascotAlt": "Peanut mascot",
+            "peanutLogoTextAlt": "Peanut Text",
+            "joinPeanutAlt": "Join Peanut",
+            "allSetTitle": "You're all set",
+            "allSetDescription": "Now send or request money to get started.",
+            "joinPeanut": "Join Peanut!",
+            "inviteOnlyLine1": "Peanut is invite-only.",
+            "inviteOnlyLine2": "Go beg your friend for an invite link!",
+            "begShareText": "Bro… I’m on my knees. Peanut is invite-only and I’m locked outside. Save my life and send me your invite",
+            "begForInvite": "Beg for an invite",
+            "activityPrivateNote": "Activity is only visible for you, it is not public.",
+            "noInviteTitle": "No invite, no Peanut"
+        }
     },
     "settings": {
         "language": {
             "title": "Language"
+        },
+        "deleteAccount": {
+            "button": "Delete My Account",
+            "confirmTitle": "Aw, you're leaving?",
+            "confirmDescription": "Deleting your account is permanent. We'll switch it off right away and wipe your data within 30 days. This little guy would really rather you stayed.",
+            "confirmCta": "Yes, delete it",
+            "cancelCta": "Never mind, I'll stay",
+            "doneTitle": "We'll miss you",
+            "doneDescription": "Your account is off and your data will be gone within 30 days. Thanks for cracking open Peanut with us — take care out there!",
+            "doneCta": "Goodbye",
+            "error": "Could not delete your account. Please try again.",
+            "sadPeanutAlt": "Sad peanut",
+            "cryingPeanutAlt": "Crying peanut"
+        }
+    },
+    "limits": {
+        "title": "Payment limits",
+        "pageDescription": "Payment limits control how much you can send and receive. Limits vary by region and reset monthly or yearly.",
+        "unlockedRegions": "Unlocked regions",
+        "lockedRegions": "Locked regions",
+        "otherRegions": "Other regions",
+        "restOfWorld": "Rest of the world",
+        "cardLimits": {
+            "title": "Card limits",
+            "manage": "Manage card limits",
+            "description": "Transaction cap for your Peanut card."
+        },
+        "fiatLocked": {
+            "title": "Unlock fiat payments",
+            "locked": "Locked",
+            "description": "Confirm your ID to unlock fiat payments and see your limits.",
+            "cta": "Unlock now"
+        },
+        "crypto": {
+            "title": "Crypto limits",
+            "noLimits": "No limits",
+            "tooltip": "Crypto transactions are global and are not affected by regions."
+        },
+        "provider": {
+            "title": "Limits",
+            "fiatLimits": "Fiat limits:",
+            "addMoneyLimit": "<medium>Add money:</medium> up to {amount} per transaction",
+            "withdrawLimit": "<medium>Withdrawing:</medium> up to {amount} per transaction",
+            "qrPaymentLimits": "QR payment limits:",
+            "qrPayLimit": "Paying with QR: up to {amount} per transaction",
+            "noData": "Limits data not available",
+            "totalAllowed": "{asset} total allowed",
+            "remaining": "{period, select, monthly {Remaining this month} other {Remaining this year}}",
+            "appliesTo": "Applies to adding money, withdraws and QR payments"
+        },
+        "period": {
+            "monthly": "Monthly",
+            "yearly": "Yearly",
+            "selectAriaLabel": "Select period"
+        },
+        "increase": {
+            "cta": "Increase my limits",
+            "submitted": "Document submitted! Your limits will be updated shortly."
+        },
+        "error": {
+            "description": "Failed to load limits. Please try again."
+        },
+        "docsLink": "See more about limits",
+        "needHigherLimits": "Need higher limits? Contact support."
+    },
+    "exchangeRate": {
+        "title": "Exchange rate & fees",
+        "tryIt": "Try it!",
+        "widget": {
+            "youSend": "You Send",
+            "recipientGets": "Recipient Gets",
+            "swapCurrencies": "Swap currencies",
+            "rateUnavailable": "Rate currently unavailable",
+            "bankFee": "Bank fee",
+            "peanutFee": "Peanut fee",
+            "free": "Free!",
+            "arrivesHours": "Should arrive in hours.",
+            "arrivesMinutes": "Should arrive in minutes."
         }
     },
     "setup": {
