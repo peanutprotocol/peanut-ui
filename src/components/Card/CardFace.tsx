@@ -1,6 +1,7 @@
 'use client'
 import { type FC, useState } from 'react'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { PEANUT_CARD_HAND, VISA_BRAND_MARK } from '@/assets/cards'
@@ -52,6 +53,7 @@ const CardFace: FC<Props> = ({
     locked = false,
     className,
 }) => {
+    const t = useTranslations('card.face')
     const showingDetails = revealed != null
     const [copiedField, setCopiedField] = useState<'pan' | 'cvv' | null>(null)
 
@@ -99,11 +101,11 @@ const CardFace: FC<Props> = ({
                             <span className="text-xl font-extrabold tracking-wider">???? ???? ???? ????</span>
                             <div className="mt-1 flex items-end justify-between gap-6 text-xs">
                                 <div>
-                                    <div className="opacity-70">Peanut Pioneer</div>
+                                    <div className="opacity-70">{t('peanutPioneer')}</div>
                                     <div className="font-bold">????</div>
                                 </div>
                                 <div>
-                                    <div className="opacity-70">Valid</div>
+                                    <div className="opacity-70">{t('valid')}</div>
                                     <div className="font-bold">??/??</div>
                                 </div>
                             </div>
@@ -120,7 +122,7 @@ const CardFace: FC<Props> = ({
                                 {onCopy && (
                                     <button
                                         type="button"
-                                        aria-label="Copy card number"
+                                        aria-label={t('copyCardNumber')}
                                         onClick={() => handleCopy(revealed.pan, 'pan')}
                                         className="p-1"
                                     >
@@ -154,7 +156,7 @@ const CardFace: FC<Props> = ({
                                         {onCopy && (
                                             <button
                                                 type="button"
-                                                aria-label="Copy CVV"
+                                                aria-label={t('copyCvv')}
                                                 onClick={() => handleCopy(revealed.cvv, 'cvv')}
                                                 className="p-1"
                                             >
@@ -166,7 +168,7 @@ const CardFace: FC<Props> = ({
                                 {onToggleReveal && (
                                     <button
                                         type="button"
-                                        aria-label="Hide card details"
+                                        aria-label={t('hideDetails')}
                                         onClick={onToggleReveal}
                                         className="p-1"
                                     >
@@ -195,7 +197,7 @@ const CardFace: FC<Props> = ({
                             <div className="mt-1 flex items-end justify-between">
                                 {isVirtual ? (
                                     <span className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold">
-                                        Virtual
+                                        {t('virtual')}
                                     </span>
                                 ) : (
                                     <span />
@@ -203,7 +205,7 @@ const CardFace: FC<Props> = ({
                                 {onToggleReveal && (
                                     <button
                                         type="button"
-                                        aria-label="Retry showing card details"
+                                        aria-label={t('retryDetails')}
                                         onClick={onToggleReveal}
                                         className="p-1"
                                     >
@@ -218,7 +220,7 @@ const CardFace: FC<Props> = ({
                             <div className="mt-1 flex items-end justify-between">
                                 {isVirtual ? (
                                     <span className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold">
-                                        Virtual
+                                        {t('virtual')}
                                     </span>
                                 ) : (
                                     <span />
@@ -226,7 +228,7 @@ const CardFace: FC<Props> = ({
                                 {onToggleReveal && (
                                     <button
                                         type="button"
-                                        aria-label="Show card details"
+                                        aria-label={t('showDetails')}
                                         onClick={onToggleReveal}
                                         className="p-1"
                                     >

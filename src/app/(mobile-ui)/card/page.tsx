@@ -2,6 +2,7 @@
 import { type FC, useCallback, useEffect, useRef, useState } from 'react'
 import { notFound } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { cardApi, type CardInfoResponse } from '@/services/card'
@@ -51,6 +52,8 @@ function markSkipCelebrationSeen(): void {
 // they don't re-see the gate after celebration / add-card transitions.
 
 const CardPage: FC = () => {
+    const t = useTranslations('card')
+    const tCommon = useTranslations('common')
     const queryClient = useQueryClient()
     const { user, fetchUser } = useAuth()
     const userId = user?.user?.userId
@@ -272,13 +275,13 @@ const CardPage: FC = () => {
                 }
                 advanceFromApplyResponse(res)
             } catch (e) {
-                const message = e instanceof Error ? e.message : 'Failed to confirm country'
+                const message = e instanceof Error ? e.message : t('page.confirmCountryFailed')
                 console.error('[card apply] country confirm error:', e)
                 setApplyError(message)
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [advanceFromApplyResponse]
+        [advanceFromApplyResponse, t]
     )
 
     const handleApply = useCallback(
@@ -298,13 +301,13 @@ const CardPage: FC = () => {
                 }
                 advanceFromApplyResponse(res)
             } catch (e) {
-                const message = e instanceof Error ? e.message : 'Failed to apply for card'
+                const message = e instanceof Error ? e.message : t('page.applyFailed')
                 console.error('[card apply] error:', e)
                 setApplyError(message)
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [advanceFromApplyResponse]
+        [advanceFromApplyResponse, t]
     )
 
     const handleAcceptTerms = useCallback(async () => {
@@ -340,18 +343,14 @@ const CardPage: FC = () => {
                 // the backend — no card should be created without consent.
                 setIsIssuing(false)
                 setPendingTerms({ isUsResident: isUsResidentSnapshot })
-                setApplyError(
-                    tap.error.kind === 'user-cancelled'
-                        ? 'Setup cancelled — please try again.'
-                        : 'Could not complete setup — please try again.'
-                )
+                setApplyError(tap.error.kind === 'user-cancelled' ? t('page.setupCancelled') : t('page.setupFailed'))
                 return
             }
             await handleApply(true, tap.serialized)
         } finally {
             setIsIssuing(false)
         }
-    }, [handleApply, overview, pendingTerms, serializeGrant])
+    }, [handleApply, overview, pendingTerms, serializeGrant, t])
 
     // Distinguishes "user finished the applicant action" from "user closed the
     // modal without finishing" — without this both paths would fire
@@ -394,7 +393,7 @@ const CardPage: FC = () => {
             })
             if (controller.signal.aborted) return
             if (readyResult === false) {
-                setApplyError('Verification is taking longer than expected. Please try again.')
+                setApplyError(t('page.verificationSlow'))
                 return
             }
 
@@ -410,21 +409,21 @@ const CardPage: FC = () => {
             })
             if (controller.signal.aborted) return
             if (!res) {
-                setApplyError('Verification is taking longer than expected. Please try again.')
+                setApplyError(t('page.verificationSlow'))
                 return
             }
             posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
             advanceFromApplyResponse(res)
         } catch (e) {
             if (controller.signal.aborted) return
-            const message = e instanceof Error ? e.message : 'Failed to apply for card'
+            const message = e instanceof Error ? e.message : t('page.applyFailed')
             console.error('[card apply] post-sumsub poll error:', e)
             setApplyError(message)
             posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
         } finally {
             if (!controller.signal.aborted) setIsIssuing(false)
         }
-    }, [advanceFromApplyResponse])
+    }, [advanceFromApplyResponse, t])
 
     const handleSumsubClose = useCallback(() => {
         if (!sumsubCompletedRef.current) {
@@ -473,9 +472,9 @@ const CardPage: FC = () => {
         return (
             <PageContainer>
                 <div className="flex min-h-[inherit] w-full flex-col items-center justify-center gap-4 p-4">
-                    <p className="text-center text-n-1">Failed to load card info. Please try again.</p>
+                    <p className="text-center text-n-1">{t('page.loadFailed')}</p>
                     <Button onClick={() => refetchCardInfo()} variant="purple" shadowSize="4">
-                        Retry
+                        {tCommon('retry')}
                     </Button>
                 </div>
             </PageContainer>
