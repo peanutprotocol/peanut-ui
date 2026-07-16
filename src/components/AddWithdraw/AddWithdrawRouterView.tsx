@@ -115,14 +115,15 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             } else {
                 setSavedAccounts([])
             }
-        } else {
-            // 'add' flow logic
+        } else if (!hasAppliedDefaultView.current) {
+            // 'add' flow: the default view is a one-shot decision, so skip the
+            // localstorage re-read + state churn on later user refetches
             const prefs = user ? getUserPreferences(user.user.userId) : undefined
             const currentRecentMethods = prefs?.recentAddMethods ?? []
             if (currentRecentMethods.length > 0) {
                 setRecentMethodsState(currentRecentMethods)
-                if (!hasAppliedDefaultView.current) setShouldShowAllMethods(false)
-            } else if (!hasAppliedDefaultView.current) {
+                setShouldShowAllMethods(false)
+            } else {
                 setShouldShowAllMethods(true)
             }
         }
@@ -375,19 +376,12 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                         })
                         setIsSupportedTokensModalOpen(true)
                     } else {
-                        posthog.capture(ANALYTICS_EVENTS.WITHDRAW_METHOD_SELECTED, {
-                            method_type: 'crypto',
-                            country: 'crypto',
-                        })
-                        // set crypto method in context only — the withdraw page switches to the
-                        // amount step and navigates to /withdraw/crypto after Continue. navigating
-                        // here (pre-amount) trips the crypto page's "no amount" redirect guard,
-                        // whose unmount cleanup resets the whole flow back to saved accounts.
-                        setSelectedMethod({
-                            type: 'crypto',
-                            countryPath: 'crypto',
-                            title: 'Crypto',
-                        })
+                        // shared withdraw handler: analytics + set method in context, no
+                        // navigation — the withdraw page owns the amount step and navigates
+                        // to /withdraw/crypto after Continue. navigating here (pre-amount)
+                        // trips the crypto page's "no amount" redirect guard, whose unmount
+                        // cleanup resets the whole flow back to saved accounts.
+                        handleMethodSelected({ id: 'crypto', type: 'crypto', title: 'Crypto', path: 'crypto' })
                     }
                 }}
                 flow={flow}

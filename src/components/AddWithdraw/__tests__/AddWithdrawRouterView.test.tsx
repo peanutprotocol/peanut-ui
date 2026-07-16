@@ -1,14 +1,17 @@
 /**
  * AddWithdrawRouterView — regression tests for the withdraw method-selection bounce.
  *
- * Two regressions pinned here:
+ * two regressions pinned here:
  * 1. clicking "Crypto" must set the method in context WITHOUT navigating to
  *    /withdraw/crypto (navigating pre-amount trips that page's "no amount"
  *    redirect guard, whose unmount cleanup resets the whole flow).
  * 2. a user-object refetch (new identity, same data) must NOT force the view
  *    back from the country list to saved accounts.
+ *
+ * uses the real WithdrawFlowContextProvider (pure useState, no heavy deps) so
+ * the tests exercise the actual context wiring instead of a hand-rolled copy.
  */
-import React from 'react'
+import React, { useEffect } from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 
 const mockRouterPush = jest.fn()
@@ -47,19 +50,6 @@ interface MockUser {
 let mockUser: MockUser | null
 jest.mock('@/redux/hooks', () => ({
     useUserStore: () => ({ user: mockUser }),
-}))
-
-// stateful withdraw-flow mock, wired up per-render by the harness below
-interface MockWithdrawFlow {
-    showAllWithdrawMethods: boolean
-    setShowAllWithdrawMethods: (show: boolean) => void
-    setSelectedMethod: jest.Mock
-    setSelectedBankAccount: jest.Mock
-}
-
-let withdrawFlow: MockWithdrawFlow
-jest.mock('@/context/WithdrawFlowContext', () => ({
-    useWithdrawFlow: () => withdrawFlow,
 }))
 
 jest.mock('@/context/OnrampFlowContext', () => ({
@@ -125,25 +115,31 @@ jest.mock('../../Global/TokenAndNetworkConfirmationModal', () => ({
 }))
 
 import { AddWithdrawRouterView } from '../AddWithdrawRouterView'
+import { WithdrawFlowContextProvider, useWithdrawFlow } from '@/context/WithdrawFlowContext'
 
 const makeUser = (): MockUser => ({
     user: { userId: 'user-1' },
     accounts: [{ type: 'iban', identifier: 'BE10905272880104', details: {} }],
 })
 
-const mockSetSelectedMethod = jest.fn()
+// exposes the real context's selectedMethod so tests can assert on it
+const onSelectedMethodChange = jest.fn()
+function SelectedMethodProbe() {
+    const { selectedMethod } = useWithdrawFlow()
+    useEffect(() => {
+        if (selectedMethod) onSelectedMethodChange(selectedMethod)
+    }, [selectedMethod])
+    return null
+}
 
-// harness giving the context mock real state so setShowAllWithdrawMethods re-renders
 function Harness({ user }: { user: MockUser }) {
-    const [showAll, setShowAll] = React.useState(false)
     mockUser = user
-    withdrawFlow = {
-        showAllWithdrawMethods: showAll,
-        setShowAllWithdrawMethods: setShowAll,
-        setSelectedMethod: mockSetSelectedMethod,
-        setSelectedBankAccount: jest.fn(),
-    }
-    return <AddWithdrawRouterView flow="withdraw" pageTitle="Withdraw" mainHeading="How?" />
+    return (
+        <WithdrawFlowContextProvider>
+            <AddWithdrawRouterView flow="withdraw" pageTitle="Withdraw" mainHeading="How?" />
+            <SelectedMethodProbe />
+        </WithdrawFlowContextProvider>
+    )
 }
 
 describe('AddWithdrawRouterView — withdraw method selection', () => {
@@ -161,7 +157,9 @@ describe('AddWithdrawRouterView — withdraw method selection', () => {
         fireEvent.click(screen.getByTestId('select-new-method'))
         fireEvent.click(screen.getByTestId('crypto-option'))
 
-        expect(mockSetSelectedMethod).toHaveBeenCalledWith(expect.objectContaining({ type: 'crypto', title: 'Crypto' }))
+        expect(onSelectedMethodChange).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'crypto', title: 'Crypto' })
+        )
         expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
