@@ -1487,5 +1487,178 @@
             "completeAccountSetup": "Completa la configuración de tu cuenta. Ve a Ajustes para actualizar tu perfil.",
             "minWithdrawAmount": "El monto del retiro debe ser de al menos ${amount}"
         }
+    },
+    "transaction": {
+        "drawerTitle": "Detalles de la transacción",
+        "noGoalSet": "Sin meta definida",
+        "amountCollected": "${amount} recaudados",
+        "contributors": "Contribuyentes ({count})",
+        "pendingLinkDeviceNote": "Usa el dispositivo donde lo creaste para cancelar o volver a compartir este enlace.",
+        "type": {
+            "send": "Envío",
+            "receive": "Recepción",
+            "request": "Solicitud",
+            "withdraw": "Retiro",
+            "cashout": "Retiro",
+            "add": "Ingreso",
+            "pay": "Pago",
+            "claim_external": "Reclamo",
+            "bank_claim": "Reclamo",
+            "bank_withdraw": "Retiro",
+            "bank_deposit": "Ingreso",
+            "bank_request_fulfillment": "Solicitud pagada por banco",
+            "card_pay": "Pago",
+            "refund": "Reembolso",
+            "setup": "Configuración",
+            "reward": "Recompensa"
+        },
+        "title": {
+            "sentViaLink": "Enviaste por enlace",
+            "receivedViaLink": "Recibiste por enlace",
+            "requestedViaLink": "Solicitado por enlace",
+            "requestViaLink": "Solicitud por enlace",
+            "linkTransaction": "Transacción por enlace",
+            "sentTo": "Enviado a {name}",
+            "sendingTo": "Enviando a {name}",
+            "isRequesting": "{name} está solicitando",
+            "receivedFrom": "Recibido de {name}",
+            "requestedFrom": "Solicitado a {name}",
+            "requestingFrom": "Solicitando a {name}",
+            "withdrewTo": "Retirado a {name}",
+            "withdrawingTo": "Retirando a {name}",
+            "addedFrom": "Ingresado desde {name}",
+            "addingFrom": "Ingresando desde {name}",
+            "claimedTo": "Reclamado a {name}",
+            "claimTo": "Reclamo a {name}",
+            "claimingTo": "Reclamando a {name}",
+            "paidTo": "Pagado a {name}",
+            "payingTo": "Pagando a {name}"
+        },
+        "rows": {
+            "created": "Creado",
+            "cancelled": "Cancelado",
+            "claimed": "Reclamado",
+            "completed": "Completado",
+            "sent": "Enviado",
+            "received": "Recibido",
+            "refunded": "Reembolsado",
+            "closedAt": "Cerrado el",
+            "to": "Para",
+            "tokenAmount": "Monto del token",
+            "tokenAndNetwork": "Token y red",
+            "tokenOnChain": "{token} en {chain}",
+            "txId": "ID de TX",
+            "fee": "Comisión",
+            "exchangeRate": "Tipo de cambio",
+            "transferId": "ID de transferencia",
+            "pointsEarned": "Puntos ganados",
+            "networkFee": "Comisión de red",
+            "peanutFee": "Comisión de Peanut",
+            "peanutFeeSponsored": "¡Patrocinada por Peanut!",
+            "attachment": "Adjunto",
+            "download": "Descargar",
+            "reason": "Motivo",
+            "accountNumber": "Número de cuenta"
+        },
+        "perkBanner": {
+            "title": "¡Ganaste una recompensa!",
+            "capped": "Recompensa de ${amount} — ¡se alcanzó el límite de la campaña!",
+            "received": "¡Recibiste una recompensa de ${amount}!",
+            "generic": "¡Recibiste una recompensa de Peanut!"
+        },
+        "perk": {
+            "title": "Recompensa de Peanut",
+            "subtitle": "Gana recompensas cada vez que tus amigos usan Peanut.",
+            "statusCompleted": "Completado",
+            "statusProcessing": "Procesando",
+            "received": "Recibido"
+        },
+        "actions": {
+            "shareLink": "Compartir enlace",
+            "shareLinkTitle": "compartir transacción",
+            "cancelLink": "Cancelar enlace",
+            "cancelling": "Cancelando",
+            "cancelled": "Cancelado",
+            "closeRequest": "Cerrar solicitud",
+            "cancelRequest": "Cancelar solicitud",
+            "pay": "Pagar",
+            "rejectRequest": "Rechazar solicitud",
+            "splitBill": "Dividir esta cuenta",
+            "shareReceipt": "Compartir comprobante",
+            "inviteFriends": "Invita amigos y gana más recompensas",
+            "reportIssue": "¿Problemas con esta transacción?",
+            "cancelDeposit": "Cancelar depósito",
+            "cancelDepositRequest": "Cancelar solicitud",
+            "cancelDepositFailed": "No pudimos cancelar este depósito. Inténtalo de nuevo o contacta a soporte."
+        },
+        "toast": {
+            "inviteLinkCopied": "¡Enlace de invitación copiado!",
+            "linkCancelled": "¡Enlace cancelado!",
+            "linkCancelledRefresh": "¡Enlace cancelado! Actualiza para ver el saldo actualizado.",
+            "cancelLinkFailed": "No se pudo cancelar el enlace. Inténtalo de nuevo."
+        },
+        "cardRows": {
+            "location": "Ubicación",
+            "originalAmount": "Monto original",
+            "declineReason": "Motivo del rechazo",
+            "note": "Nota",
+            "autoClosed": "Cancelada automáticamente — el comercio no la completó",
+            "authReversed": "Retención liberada — el comercio canceló la autorización. Los fondos están de vuelta en tu tarjeta.",
+            "authExpired": "Retención liberada — el comercio no cobró el pago a tiempo. Los fondos están de vuelta en tu tarjeta.",
+            "status": "Estado",
+            "pendingNote": "Autorizada, esperando liquidación o reversión",
+            "dispute": "Disputa",
+            "evidenceRequested": "Evidencia solicitada",
+            "flagAlt": "Bandera de {country}"
+        },
+        "dispute": {
+            "pending": "En disputa — Esperando revisión",
+            "inReview": "En disputa — En revisión",
+            "accepted": "En disputa — Aceptada (reembolso emitido)",
+            "rejected": "En disputa — Rechazada",
+            "canceled": "En disputa — Cancelada",
+            "resolvedByMerchant": "En disputa — Resuelta con el reembolso del comercio"
+        },
+        "decline": {
+            "limitTooLow": "Límite de la tarjeta alcanzado — aumenta tu límite",
+            "insufficientBalance": "Saldo insuficiente",
+            "spendingLimitReached": "Límite de gasto alcanzado",
+            "blockedMerchant": "Este comercio no es compatible",
+            "cardLocked": "Tu tarjeta está bloqueada",
+            "invalidPin": "PIN incorrecto",
+            "generic": "Transacción rechazada"
+        },
+        "nudge": {
+            "localRailTitle": "Paga como local la próxima vez",
+            "localRailDescription": "En {country}, pagar con {rail} cuesta alrededor de {percent}% menos que usar tu tarjeta.",
+            "usdAbroadTitle": "Paga en moneda local la próxima vez",
+            "usdAbroadDescription": "Te cobraron en dólares. Cuando una terminal ofrezca cobrar en dólares, elige la moneda local — el tipo de cambio de Peanut suele ser mejor."
+        },
+        "bridge": {
+            "depositMessage": "Mensaje del depósito",
+            "depositMessageInfo": "Asegúrate de ingresar este mensaje exacto como concepto o descripción de la transferencia. Si no se incluye, el depósito no se puede procesar.",
+            "seeBankDetails": "Ver datos bancarios",
+            "hideBankDetails": "Ocultar datos bancarios",
+            "accountHolderName": "Nombre del titular",
+            "bankName": "Nombre del banco",
+            "bankAddress": "Dirección del banco",
+            "routingNumber": "Número de ruta",
+            "beneficiaryName": "Nombre del beneficiario",
+            "beneficiaryAddress": "Dirección del beneficiario",
+            "sortCode": "Sort Code"
+        },
+        "manteca": {
+            "depositAddress": "Dirección de depósito"
+        }
+    },
+    "history": {
+        "title": "Actividad",
+        "transactions": "Transacciones",
+        "errorTitle": "¡Error al cargar las transacciones!",
+        "errorDescription": "Contacta a soporte.",
+        "empty": "No has hecho ninguna transacción",
+        "loadingMore": "Cargando más...",
+        "today": "Hoy",
+        "yesterday": "Ayer"
     }
 }

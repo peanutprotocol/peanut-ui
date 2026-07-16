@@ -4,6 +4,7 @@ import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusB
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import { printableUserHandle } from '@/utils/general.utils'
+import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import React from 'react'
 import Card from '../Global/Card'
@@ -38,7 +39,10 @@ interface TransactionDetailsHeaderCardProps {
     countryCode?: string | null
 }
 
+type TransactionTranslator = ReturnType<typeof useTranslations<'transaction'>>
+
 const getTitle = (
+    t: TransactionTranslator,
     direction: TransactionDirection,
     userName: string,
     isLinkTransaction?: boolean,
@@ -51,12 +55,12 @@ const getTitle = (
     if (isLinkTransaction) {
         const completed = status === 'completed'
         const titleByDirection: Partial<Record<TransactionDirection, string>> = {
-            send: completed ? 'You sent via link' : userName,
-            receive: completed ? 'You received via link' : userName,
-            request_sent: 'Requested via Link',
-            request_received: 'Request via Link',
+            send: completed ? t('title.sentViaLink') : userName,
+            receive: completed ? t('title.receivedViaLink') : userName,
+            request_sent: t('title.requestedViaLink'),
+            request_received: t('title.requestViaLink'),
         }
-        titleText = titleByDirection[direction] ?? userName ?? 'Link Transaction'
+        titleText = titleByDirection[direction] ?? userName ?? t('title.linkTransaction')
     } else {
         // Shorten crypto addresses AND raw UUIDs (usernameless Peanut users
         // whose `identifier` arrives as a userId) so the header never renders
@@ -73,28 +77,34 @@ const getTitle = (
                     titleText = displayName
                 } else {
                     if (displayName === "You're sending via link") {
-                        titleText = 'You sent via link'
+                        titleText = t('title.sentViaLink')
                     } else {
-                        titleText = `${status === 'completed' ? 'Sent' : 'Sending'} to ${displayName}`
+                        titleText = t(status === 'completed' ? 'title.sentTo' : 'title.sendingTo', {
+                            name: displayName,
+                        })
                     }
                 }
                 break
             case 'request_received':
-                titleText = `${displayName} is requesting`
+                titleText = t('title.isRequesting', { name: displayName })
                 break
             case 'receive':
                 if (displayName === 'Received via Link') {
-                    titleText = 'You received via link'
+                    titleText = t('title.receivedViaLink')
                 } else {
-                    titleText = `Received from ${displayName}`
+                    titleText = t('title.receivedFrom', { name: displayName })
                 }
                 break
             case 'request_sent':
-                titleText = `${status === 'completed' ? 'Requested' : 'Requesting'} from ${displayName}`
+                titleText = t(status === 'completed' ? 'title.requestedFrom' : 'title.requestingFrom', {
+                    name: displayName,
+                })
                 break
             case 'withdraw':
             case 'bank_withdraw':
-                titleText = `${status === 'completed' ? 'Withdrew' : 'Withdrawing'} to ${displayName}`
+                titleText = t(status === 'completed' ? 'title.withdrewTo' : 'title.withdrawingTo', {
+                    name: displayName,
+                })
                 break
             case 'bank_claim':
                 titleText = displayName
@@ -104,28 +114,30 @@ const getTitle = (
                 if (isTestTransaction) {
                     titleText = 'Enjoy Peanut!'
                 } else {
-                    titleText = `${status === 'completed' ? 'Added' : 'Adding'} from ${displayName}`
+                    titleText = t(status === 'completed' ? 'title.addedFrom' : 'title.addingFrom', {
+                        name: displayName,
+                    })
                 }
                 break
             case 'claim_external':
                 if (status === 'completed') {
-                    titleText = `Claimed to ${displayName}`
+                    titleText = t('title.claimedTo', { name: displayName })
                 } else if (status === 'failed') {
-                    titleText = `Claim to ${displayName}`
+                    titleText = t('title.claimTo', { name: displayName })
                 } else {
-                    titleText = `Claiming to ${displayName}`
+                    titleText = t('title.claimingTo', { name: displayName })
                 }
                 break
             case 'qr_payment':
                 if (status === 'completed') {
-                    titleText = `Paid to ${displayName}`
+                    titleText = t('title.paidTo', { name: displayName })
                 } else if (status === 'failed') {
                     // Failed QR-pays carry a self-contained label from the
                     // transformer ("Failed QR payment attempt") — no "Payment to"
                     // prefix, which would read "Payment to Failed QR payment attempt".
                     titleText = displayName
                 } else {
-                    titleText = `Paying to ${displayName}`
+                    titleText = t('title.payingTo', { name: displayName })
                 }
                 break
             default:
@@ -190,6 +202,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     countryCode,
 }) => {
     const router = useRouter()
+    const t = useTranslations('transaction')
     const typeForAvatar =
         transactionType ?? (direction === 'add' ? 'add' : direction === 'withdraw' ? 'withdraw' : 'send')
 
@@ -252,7 +265,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                                 name={
                                     isRequestPotTransaction
                                         ? userName
-                                        : (getTitle(direction, userName, isLinkTransaction, status) as string)
+                                        : (getTitle(t, direction, userName, isLinkTransaction, status) as string)
                                 }
                                 isVerified={isVerified}
                                 className="flex items-center gap-1"
@@ -277,7 +290,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
 
                         {convertedAmount && <h2 className="font-bold">≈ {convertedAmount}</h2>}
 
-                        {isNoGoalSet && <h4 className="text-sm font-medium text-black">No goal set</h4>}
+                        {isNoGoalSet && <h4 className="text-sm font-medium text-black">{t('noGoalSet')}</h4>}
                     </div>
                 </div>
             )}

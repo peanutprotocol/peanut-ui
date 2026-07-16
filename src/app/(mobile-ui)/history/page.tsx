@@ -10,7 +10,7 @@ import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useUserStore } from '@/redux/hooks'
-import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
+import { DateGroup, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
 import { isKycStatusItem } from '@/components/Kyc/KycStatusItem'
 import { buildKycHistoryEntry } from '@/utils/kyc-grouping.utils'
@@ -22,6 +22,7 @@ import { deriveCardUnlockEntry, isCardUnlockHistoryItem } from '@/components/Car
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import React, { useMemo } from 'react'
+import { useFormatter, useTranslations } from 'next-intl'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
@@ -36,6 +37,8 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
  * displays the user's transaction history with infinite scrolling and date grouping.
  */
 const HistoryPage = () => {
+    const t = useTranslations('history')
+    const format = useFormatter()
     const { user } = useUserStore()
     const queryClient = useQueryClient()
     const { fetchUser } = useAuth()
@@ -226,8 +229,8 @@ const HistoryPage = () => {
         Sentry.captureException(error)
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
-                <h2 className="text-base font-bold">Transactions</h2>{' '}
-                <EmptyState icon="alert" title="Error loading transactions!" description="Please contact support." />
+                <h2 className="text-base font-bold">{t('transactions')}</h2>{' '}
+                <EmptyState icon="alert" title={t('errorTitle')} description={t('errorDescription')} />
             </div>
         )
     }
@@ -235,12 +238,18 @@ const HistoryPage = () => {
     if (!isLoading && combinedAndSortedEntries.length === 0) {
         return (
             <div className="flex h-[80dvh] flex-col items-center justify-center">
-                <NavHeader title={'Activity'} />
+                <NavHeader title={t('title')} />
                 <div className="flex flex-grow items-center justify-center">
-                    <NoDataEmptyState animSize="lg" message="You haven't done any transactions" />
+                    <NoDataEmptyState animSize="lg" message={t('empty')} />
                 </div>
             </div>
         )
+    }
+
+    const groupHeader = (date: Date, group: DateGroup): string => {
+        if (group === DateGroup.Today) return t('today')
+        if (group === DateGroup.Yesterday) return t('yesterday')
+        return format.dateTime(date, { month: 'long', day: 'numeric', year: 'numeric' })
     }
 
     let lastGroupHeaderKey: string | null = null
@@ -248,7 +257,7 @@ const HistoryPage = () => {
 
     return (
         <div className="mx-auto w-full space-y-6 md:max-w-2xl md:space-y-3">
-            <NavHeader title={'Activity'} />
+            <NavHeader title={t('title')} />
             <div className="h-full w-full">
                 {combinedAndSortedEntries.map((item, index) => {
                     const itemDate = new Date(item.timestamp)
@@ -278,7 +287,7 @@ const HistoryPage = () => {
                         <React.Fragment key={item.uuid}>
                             {showHeader && (
                                 <div className="mb-2 mt-4 px-1 text-sm font-semibold capitalize">
-                                    {formatGroupHeaderDate(itemDate, group, today)}
+                                    {groupHeader(itemDate, group)}
                                 </div>
                             )}
                             {isKycStatusItem(item) ? (
@@ -315,7 +324,7 @@ const HistoryPage = () => {
                 })}
 
                 <div ref={loaderRef} className="w-full py-4">
-                    {isFetchingNextPage && <div className="w-full text-center">Loading more...</div>}
+                    {isFetchingNextPage && <div className="w-full text-center">{t('loadingMore')}</div>}
                 </div>
             </div>
         </div>

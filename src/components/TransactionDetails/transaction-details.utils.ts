@@ -47,16 +47,20 @@ export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
     'attachment',
 ]
 
+/** Which label a bank-account row carries. Callers map it to display text —
+ *  this module stays copy-free. */
+export type BankAccountLabelKey = 'iban' | 'clabe' | 'accountNumber'
+
 /**
  * BE sends Prisma `AccountType` enum values like `BANK_IBAN` / `BANK_CLABE`
- * (not raw `'iban'`). Match by suffix so `BANK_IBAN` → "IBAN" without a
+ * (not raw `'iban'`). Match by suffix so `BANK_IBAN` → `'iban'` without a
  * separate normalisation layer at every call site.
  */
-export const getBankAccountLabel = (type: string) => {
+export const bankAccountLabelKey = (type: string): BankAccountLabelKey => {
     const t = type.toLowerCase()
-    if (t.endsWith('iban')) return 'IBAN'
-    if (t.endsWith('clabe')) return 'CLABE'
-    return 'Account Number'
+    if (t.endsWith('iban')) return 'iban'
+    if (t.endsWith('clabe')) return 'clabe'
+    return 'accountNumber'
 }
 
 /**

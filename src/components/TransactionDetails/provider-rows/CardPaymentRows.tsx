@@ -4,9 +4,10 @@ import Image from 'next/image'
 import { type ReactNode } from 'react'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { type DisputeStatus, type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { friendlyDeclineReason } from '@/utils/cardDeclineReason'
+import { declineReasonCode, type DeclineReasonCode } from '@/utils/cardDeclineReason'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { extractMerchantIso2 } from '@/components/TransactionDetails/transaction-details.utils'
+import { useTranslations } from 'next-intl'
 
 /** Strings from Rain's sandbox arrive whitespace-padded ("  ", " - ") and
  *  legacy intents in the DB pre-date the backend cleanField pass — treat any
@@ -28,28 +29,30 @@ function parseCents(value: string | null | undefined): number | null {
 }
 
 /**
- * Friendly copy for the dispute status row. The drawer shows ONE row labeled
+ * Catalog key for the dispute status row. The drawer shows ONE row labeled
  * "Dispute" with the status-mapped text. Keep terminal-state copy actionable:
  * "Resolved by merchant refund" / "Accepted (refund issued)" both signal that
  * money has been returned (or is being returned), which is the user's actual
  * concern at that point.
  */
-export function disputeStatusLabel(status: DisputeStatus): string {
-    switch (status) {
-        case 'pending':
-            return 'Disputed — Awaiting review'
-        case 'inReview':
-            return 'Disputed — In review'
-        case 'accepted':
-            return 'Disputed — Accepted (refund issued)'
-        case 'rejected':
-            return 'Disputed — Rejected'
-        case 'canceled':
-            return 'Disputed — Cancelled'
-        case 'resolvedByMerchant':
-            return 'Disputed — Resolved by merchant refund'
-    }
-}
+export const DISPUTE_STATUS_KEYS = {
+    pending: 'dispute.pending',
+    inReview: 'dispute.inReview',
+    accepted: 'dispute.accepted',
+    rejected: 'dispute.rejected',
+    canceled: 'dispute.canceled',
+    resolvedByMerchant: 'dispute.resolvedByMerchant',
+} as const satisfies Record<DisputeStatus, string>
+
+const DECLINE_REASON_KEYS = {
+    limitTooLow: 'decline.limitTooLow',
+    insufficientBalance: 'decline.insufficientBalance',
+    spendingLimitReached: 'decline.spendingLimitReached',
+    blockedMerchant: 'decline.blockedMerchant',
+    cardLocked: 'decline.cardLocked',
+    invalidPin: 'decline.invalidPin',
+    generic: 'decline.generic',
+} as const satisfies Record<DeclineReasonCode, string>
 
 /**
  * Whether CardPaymentRows would render any visible sub-row for this
@@ -116,6 +119,7 @@ export function CardPaymentRows({
      *  `shouldHideBorder('cardPayment')`. */
     isLastRow: boolean
 }) {
+    const t = useTranslations('transaction')
     const card = transaction.extraDataForDrawer?.cardPayment
     if (!card) return null
 
@@ -135,11 +139,11 @@ export function CardPaymentRows({
     if (iso2) {
         subRows.push({
             key: 'location',
-            label: 'Location',
+            label: t('cardRows.location'),
             value: (
                 <Image
                     src={getFlagUrl(iso2)}
-                    alt={`${iso2.toUpperCase()} flag`}
+                    alt={t('cardRows.flagAlt', { country: iso2.toUpperCase() })}
                     width={80}
                     height={80}
                     className="h-5 w-5 rounded-full object-cover object-center shadow-sm"
@@ -156,7 +160,7 @@ export function CardPaymentRows({
         if (authCents != null) {
             subRows.push({
                 key: 'adjustedFrom',
-                label: 'Original amount',
+                label: t('cardRows.originalAmount'),
                 value: `$${(authCents / 100).toFixed(2)}`,
             })
         }
@@ -173,8 +177,8 @@ export function CardPaymentRows({
     if (transaction.status === 'failed' && (declineReasonClean || card.declineCategory)) {
         subRows.push({
             key: 'declineReason',
-            label: 'Decline reason',
-            value: friendlyDeclineReason(declineReasonClean, card.declineCategory),
+            label: t('cardRows.declineReason'),
+            value: t(DECLINE_REASON_KEYS[declineReasonCode(declineReasonClean, card.declineCategory)]),
         })
     }
 
@@ -183,8 +187,8 @@ export function CardPaymentRows({
     if (card.cancellationReason === 'auto_closed') {
         subRows.push({
             key: 'autoCloseNote',
-            label: 'Note',
-            value: "Automatically cancelled — the merchant didn't complete it",
+            label: t('cardRows.note'),
+            value: t('cardRows.autoClosed'),
         })
     }
 
@@ -200,14 +204,14 @@ export function CardPaymentRows({
     if (card.cancellationReason === 'auth_reversed') {
         subRows.push({
             key: 'authReversedNote',
-            label: 'Note',
-            value: 'Hold released — the merchant cancelled the authorization. Funds are back on your card.',
+            label: t('cardRows.note'),
+            value: t('cardRows.authReversed'),
         })
     } else if (card.cancellationReason === 'auth_expired_uncaptured') {
         subRows.push({
             key: 'authExpiredNote',
-            label: 'Note',
-            value: "Hold released — the merchant didn't capture the payment in time. Funds are back on your card.",
+            label: t('cardRows.note'),
+            value: t('cardRows.authExpired'),
         })
     }
 
@@ -230,8 +234,8 @@ export function CardPaymentRows({
     if (transaction.status === 'pending' && !card.isRefund && !hasCancellationNote && !hasActiveDispute) {
         subRows.push({
             key: 'pendingNote',
-            label: 'Status',
-            value: 'Authorized, awaiting settlement or reversal',
+            label: t('cardRows.status'),
+            value: t('cardRows.pendingNote'),
         })
     }
 
@@ -241,8 +245,8 @@ export function CardPaymentRows({
     if (card.dispute) {
         subRows.push({
             key: 'disputeStatus',
-            label: 'Dispute',
-            value: disputeStatusLabel(card.dispute.status),
+            label: t('cardRows.dispute'),
+            value: t(DISPUTE_STATUS_KEYS[card.dispute.status]),
         })
         // Rain prompt text is free-form prose; the same nonBlank gate the
         // decline-reason row uses keeps whitespace-only payloads from
@@ -251,7 +255,7 @@ export function CardPaymentRows({
         if (evidenceMessage) {
             subRows.push({
                 key: 'disputeEvidenceRequest',
-                label: 'Evidence requested',
+                label: t('cardRows.evidenceRequested'),
                 value: evidenceMessage,
             })
         }

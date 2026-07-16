@@ -6,6 +6,7 @@ import { extractMerchantIso2 } from '@/components/TransactionDetails/transaction
 import { LOCAL_RAIL_BY_COUNTRY } from '@/components/TransactionDetails/provider-rows/local-rail-countries'
 import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import { CARD_FX_MARKUP_BY_CURRENCY } from '@/constants/payment.consts'
+import { useTranslations } from 'next-intl'
 
 /**
  * Informational nudge on a card-spend receipt: when the merchant is in a
@@ -31,6 +32,7 @@ export function LocalRailNudge({ transaction }: { transaction: TransactionDetail
 }
 
 function LocalRailNudgeBody({ local }: { local: (typeof LOCAL_RAIL_BY_COUNTRY)[string] }) {
+    const t = useTranslations('transaction')
     const { data: cardMarkup } = useCardMarkupRate(local.currency)
     const rate = cardMarkup?.rate ?? CARD_FX_MARKUP_BY_CURRENCY[local.currency]
     const percent = rate && rate > 0 ? Math.round(rate * 100) : null
@@ -40,8 +42,12 @@ function LocalRailNudgeBody({ local }: { local: (typeof LOCAL_RAIL_BY_COUNTRY)[s
         <InfoCard
             variant="info"
             icon="info"
-            title="Pay like a local next time"
-            description={`In ${local.countryName}, paying with ${local.rail} costs around ${percent}% less than using your card.`}
+            title={t('nudge.localRailTitle')}
+            description={t('nudge.localRailDescription', {
+                country: local.countryName,
+                rail: local.rail,
+                percent,
+            })}
         />
     )
 }

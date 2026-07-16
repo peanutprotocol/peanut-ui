@@ -1487,5 +1487,178 @@
             "completeAccountSetup": "Please complete your account setup. Go to Settings to update your profile.",
             "minWithdrawAmount": "Withdraw amount must be at least ${amount}"
         }
+    },
+    "transaction": {
+        "drawerTitle": "Transaction Details",
+        "noGoalSet": "No goal set",
+        "amountCollected": "${amount} collected",
+        "contributors": "Contributors ({count})",
+        "pendingLinkDeviceNote": "Use the device where you created it to cancel or re-share this link.",
+        "type": {
+            "send": "Send",
+            "receive": "Receive",
+            "request": "Request",
+            "withdraw": "Withdraw",
+            "cashout": "Cashout",
+            "add": "Add",
+            "pay": "Pay",
+            "claim_external": "Claim",
+            "bank_claim": "Claim",
+            "bank_withdraw": "Withdraw",
+            "bank_deposit": "Add",
+            "bank_request_fulfillment": "Request paid via bank",
+            "card_pay": "Pay",
+            "refund": "Refund",
+            "setup": "Setup",
+            "reward": "Reward"
+        },
+        "title": {
+            "sentViaLink": "You sent via link",
+            "receivedViaLink": "You received via link",
+            "requestedViaLink": "Requested via Link",
+            "requestViaLink": "Request via Link",
+            "linkTransaction": "Link Transaction",
+            "sentTo": "Sent to {name}",
+            "sendingTo": "Sending to {name}",
+            "isRequesting": "{name} is requesting",
+            "receivedFrom": "Received from {name}",
+            "requestedFrom": "Requested from {name}",
+            "requestingFrom": "Requesting from {name}",
+            "withdrewTo": "Withdrew to {name}",
+            "withdrawingTo": "Withdrawing to {name}",
+            "addedFrom": "Added from {name}",
+            "addingFrom": "Adding from {name}",
+            "claimedTo": "Claimed to {name}",
+            "claimTo": "Claim to {name}",
+            "claimingTo": "Claiming to {name}",
+            "paidTo": "Paid to {name}",
+            "payingTo": "Paying to {name}"
+        },
+        "rows": {
+            "created": "Created",
+            "cancelled": "Cancelled",
+            "claimed": "Claimed",
+            "completed": "Completed",
+            "sent": "Sent",
+            "received": "Received",
+            "refunded": "Refunded",
+            "closedAt": "Closed at",
+            "to": "To",
+            "tokenAmount": "Token amount",
+            "tokenAndNetwork": "Token and network",
+            "tokenOnChain": "{token} on {chain}",
+            "txId": "TX ID",
+            "fee": "Fee",
+            "exchangeRate": "Exchange rate",
+            "transferId": "Transfer ID",
+            "pointsEarned": "Points earned",
+            "networkFee": "Network fee",
+            "peanutFee": "Peanut fee",
+            "peanutFeeSponsored": "Sponsored by Peanut!",
+            "attachment": "Attachment",
+            "download": "Download",
+            "reason": "Reason",
+            "accountNumber": "Account Number"
+        },
+        "perkBanner": {
+            "title": "You earned a reward!",
+            "capped": "${amount} reward — campaign limit reached!",
+            "received": "You received a ${amount} reward!",
+            "generic": "You received a Peanut reward!"
+        },
+        "perk": {
+            "title": "Peanut Reward",
+            "subtitle": "Earn rewards every time your friends use Peanut.",
+            "statusCompleted": "Completed",
+            "statusProcessing": "Processing",
+            "received": "Received"
+        },
+        "actions": {
+            "shareLink": "Share Link",
+            "shareLinkTitle": "share transaction",
+            "cancelLink": "Cancel link",
+            "cancelling": "Cancelling",
+            "cancelled": "Cancelled",
+            "closeRequest": "Close request",
+            "cancelRequest": "Cancel request",
+            "pay": "Pay",
+            "rejectRequest": "Reject request",
+            "splitBill": "Split this bill",
+            "shareReceipt": "Share Receipt",
+            "inviteFriends": "Invite friends to earn more rewards",
+            "reportIssue": "Issues with this transaction?",
+            "cancelDeposit": "Cancel deposit",
+            "cancelDepositRequest": "Cancel Request",
+            "cancelDepositFailed": "We couldn't cancel this deposit. Please try again or contact support."
+        },
+        "toast": {
+            "inviteLinkCopied": "Invite link copied!",
+            "linkCancelled": "Link cancelled successfully!",
+            "linkCancelledRefresh": "Link cancelled! Refresh to see updated balance.",
+            "cancelLinkFailed": "Failed to cancel link. Please try again."
+        },
+        "cardRows": {
+            "location": "Location",
+            "originalAmount": "Original amount",
+            "declineReason": "Decline reason",
+            "note": "Note",
+            "autoClosed": "Automatically cancelled — the merchant didn't complete it",
+            "authReversed": "Hold released — the merchant cancelled the authorization. Funds are back on your card.",
+            "authExpired": "Hold released — the merchant didn't capture the payment in time. Funds are back on your card.",
+            "status": "Status",
+            "pendingNote": "Authorized, awaiting settlement or reversal",
+            "dispute": "Dispute",
+            "evidenceRequested": "Evidence requested",
+            "flagAlt": "{country} flag"
+        },
+        "dispute": {
+            "pending": "Disputed — Awaiting review",
+            "inReview": "Disputed — In review",
+            "accepted": "Disputed — Accepted (refund issued)",
+            "rejected": "Disputed — Rejected",
+            "canceled": "Disputed — Cancelled",
+            "resolvedByMerchant": "Disputed — Resolved by merchant refund"
+        },
+        "decline": {
+            "limitTooLow": "Card limit reached — increase your limit",
+            "insufficientBalance": "Insufficient balance",
+            "spendingLimitReached": "Spending limit reached",
+            "blockedMerchant": "This merchant isn't supported",
+            "cardLocked": "Your card is locked",
+            "invalidPin": "Incorrect PIN",
+            "generic": "Transaction declined"
+        },
+        "nudge": {
+            "localRailTitle": "Pay like a local next time",
+            "localRailDescription": "In {country}, paying with {rail} costs around {percent}% less than using your card.",
+            "usdAbroadTitle": "Pay in local currency next time",
+            "usdAbroadDescription": "You were charged in US dollars. When a terminal offers to bill in dollars, choose the local currency instead — Peanut's exchange rate is usually better."
+        },
+        "bridge": {
+            "depositMessage": "Deposit Message",
+            "depositMessageInfo": "Make sure you enter this exact message as the transfer concept or description. If it's not included, the deposit can't be processed.",
+            "seeBankDetails": "See bank details",
+            "hideBankDetails": "Hide bank details",
+            "accountHolderName": "Account Holder Name",
+            "bankName": "Bank Name",
+            "bankAddress": "Bank Address",
+            "routingNumber": "Routing Number",
+            "beneficiaryName": "Beneficiary Name",
+            "beneficiaryAddress": "Beneficiary Address",
+            "sortCode": "Sort Code"
+        },
+        "manteca": {
+            "depositAddress": "Deposit Address"
+        }
+    },
+    "history": {
+        "title": "Activity",
+        "transactions": "Transactions",
+        "errorTitle": "Error loading transactions!",
+        "errorDescription": "Please contact support.",
+        "empty": "You haven't done any transactions",
+        "loadingMore": "Loading more...",
+        "today": "Today",
+        "yesterday": "Yesterday"
     }
 }

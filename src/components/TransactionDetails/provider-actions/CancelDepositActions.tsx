@@ -13,6 +13,7 @@ import { chargesApi } from '@/services/charges'
 import { mantecaApi } from '@/services/manteca'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 
 /**
  * Cancel-deposit buttons for pending bank-deposit-shaped flows.
@@ -38,6 +39,7 @@ export function CancelDepositActions({
     setIsLoading: ((loading: boolean) => void) | undefined
     onClose: (() => void) | undefined
 }) {
+    const t = useTranslations('transaction')
     const queryClient = useQueryClient()
     const [error, setError] = useState<string | null>(null)
     if (!setIsLoading || !onClose) return null
@@ -58,7 +60,7 @@ export function CancelDepositActions({
             captureException(err)
             // A cancel that fails silently makes the user believe the deposit is
             // cancelled when it isn't — surface it instead of only logging.
-            setError("We couldn't cancel this deposit. Please try again or contact support.")
+            setError(t('actions.cancelDepositFailed'))
             setIsLoading(false)
         }
     }
@@ -120,7 +122,7 @@ export function CancelDepositActions({
         return withError(
             <div className="pr-1">
                 <CancelButton
-                    label="Cancel Request"
+                    label={t('actions.cancelDepositRequest')}
                     disabled={!!isLoading}
                     onClick={() =>
                         wrapAction(async () => {
@@ -144,15 +146,8 @@ export function CancelDepositActions({
     return null
 }
 
-function CancelButton({
-    label = 'Cancel deposit',
-    disabled,
-    onClick,
-}: {
-    label?: string
-    disabled: boolean
-    onClick: () => void
-}) {
+function CancelButton({ label, disabled, onClick }: { label?: string; disabled: boolean; onClick: () => void }) {
+    const t = useTranslations('transaction')
     return (
         <Button
             disabled={disabled}
@@ -164,7 +159,7 @@ function CancelButton({
             <div className="flex items-center">
                 <Icon name="ban" size={18} />
             </div>
-            <span>{label}</span>
+            <span>{label ?? t('actions.cancelDeposit')}</span>
         </Button>
     )
 }
