@@ -330,3 +330,20 @@ export const validatePixKey = (pixKey: string): { valid: boolean; message?: stri
         message: 'Invalid PIX key format. Must be phone, CPF, CNPJ, email, random key, or QR code',
     }
 }
+
+/**
+ * True when a cross-chain (Rhino SDA) withdrawal's on-chain deposit would fall
+ * below the route's minimum. Rhino accepts sub-minimum SDA deposits on-chain
+ * but never bridges them — the funds strand at the SDA and the user is never
+ * credited — so the confirm CTA must block. `payAmount` is the actual SDA
+ * deposit (principal + fee, USD-stable). Unknown values (quote still loading,
+ * no limit reported) return false — the CTA is already gated by isCalculating.
+ */
+export const isBelowRhinoMinDeposit = (
+    payAmount: string | null | undefined,
+    minDepositLimitUsd: number | null | undefined
+): boolean => {
+    if (payAmount == null || minDepositLimitUsd == null) return false
+    const pay = parseFloat(payAmount)
+    return Number.isFinite(pay) && pay < minDepositLimitUsd
+}
