@@ -464,6 +464,12 @@
 																	"type": "string"
 																}
 															},
+															"hintActions": {
+																"type": "array",
+																"items": {
+																	"type": "string"
+																}
+															},
 															"reason": {
 																"type": "object",
 																"properties": {
@@ -478,6 +484,122 @@
 																	}
 																},
 																"required": ["code", "userMessage"]
+															},
+															"resolved": {
+																"type": "object",
+																"properties": {
+																	"status": {
+																		"anyOf": [
+																			{
+																				"type": "string",
+																				"enum": ["enabled"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["pending"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["fixable"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["blocked"]
+																			}
+																		]
+																	},
+																	"blocking": {
+																		"type": "object",
+																		"properties": {
+																			"code": {
+																				"type": "string"
+																			},
+																			"userMessage": {
+																				"type": "string"
+																			},
+																			"selfHealable": {
+																				"type": "boolean"
+																			},
+																			"selfHealKind": {
+																				"anyOf": [
+																					{
+																						"type": "string",
+																						"enum": ["document-resubmit"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["restart-identity"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["provide-email"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["contact-support"]
+																					}
+																				]
+																			},
+																			"details": {
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"code",
+																			"userMessage",
+																			"selfHealable"
+																		]
+																	},
+																	"nextAction": {
+																		"type": "object",
+																		"properties": {
+																			"key": {
+																				"type": "string"
+																			},
+																			"kind": {
+																				"anyOf": [
+																					{
+																						"type": "string",
+																						"enum": ["sumsub"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["accept-tos"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["wait"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["contact-support"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["provide-email"]
+																					}
+																				]
+																			},
+																			"purpose": {
+																				"type": "string"
+																			},
+																			"levelKey": {
+																				"type": "string"
+																			},
+																			"tosUrl": {
+																				"type": "string"
+																			},
+																			"effectiveDate": {
+																				"type": "string"
+																			},
+																			"requirementKey": {
+																				"type": "string"
+																			}
+																		},
+																		"required": ["key", "kind", "purpose"]
+																	}
+																},
+																"required": ["status"]
 															}
 														},
 														"required": [
@@ -516,6 +638,10 @@
 																	{
 																		"type": "string",
 																		"enum": ["contact-support"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["provide-email"]
 																	}
 																]
 															},
@@ -526,6 +652,12 @@
 																"type": "string"
 															},
 															"tosUrl": {
+																"type": "string"
+															},
+															"effectiveDate": {
+																"type": "string"
+															},
+															"requirementKey": {
 																"type": "string"
 															}
 														},
@@ -706,6 +838,10 @@
 									"telegramUsername": {
 										"type": "string"
 									},
+									"offrampHandle": {
+										"maxLength": 320,
+										"type": "string"
+									},
 									"pushSubscriptionId": {
 										"type": "string"
 									},
@@ -765,6 +901,25 @@
 						"in": "header",
 						"name": "api-key",
 						"required": false
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/users/me/delete": {
+			"post": {
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "header",
+						"name": "Authorization",
+						"required": true
 					}
 				],
 				"responses": {
@@ -1147,19 +1302,6 @@
 												}
 											]
 										},
-										"email": {
-											"type": "string"
-										},
-										"bridgeCustomerId": {
-											"anyOf": [
-												{
-													"type": "string"
-												},
-												{
-													"type": "null"
-												}
-											]
-										},
 										"username": {
 											"anyOf": [
 												{
@@ -1183,8 +1325,6 @@
 									"required": [
 										"userId",
 										"fullName",
-										"email",
-										"bridgeCustomerId",
 										"username",
 										"showFullName",
 										"canReceiveBankOfframp",
@@ -1441,6 +1581,12 @@
 																	"type": "string"
 																}
 															},
+															"hintActions": {
+																"type": "array",
+																"items": {
+																	"type": "string"
+																}
+															},
 															"reason": {
 																"type": "object",
 																"properties": {
@@ -1455,6 +1601,122 @@
 																	}
 																},
 																"required": ["code", "userMessage"]
+															},
+															"resolved": {
+																"type": "object",
+																"properties": {
+																	"status": {
+																		"anyOf": [
+																			{
+																				"type": "string",
+																				"enum": ["enabled"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["pending"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["fixable"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["blocked"]
+																			}
+																		]
+																	},
+																	"blocking": {
+																		"type": "object",
+																		"properties": {
+																			"code": {
+																				"type": "string"
+																			},
+																			"userMessage": {
+																				"type": "string"
+																			},
+																			"selfHealable": {
+																				"type": "boolean"
+																			},
+																			"selfHealKind": {
+																				"anyOf": [
+																					{
+																						"type": "string",
+																						"enum": ["document-resubmit"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["restart-identity"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["provide-email"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["contact-support"]
+																					}
+																				]
+																			},
+																			"details": {
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"code",
+																			"userMessage",
+																			"selfHealable"
+																		]
+																	},
+																	"nextAction": {
+																		"type": "object",
+																		"properties": {
+																			"key": {
+																				"type": "string"
+																			},
+																			"kind": {
+																				"anyOf": [
+																					{
+																						"type": "string",
+																						"enum": ["sumsub"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["accept-tos"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["wait"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["contact-support"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["provide-email"]
+																					}
+																				]
+																			},
+																			"purpose": {
+																				"type": "string"
+																			},
+																			"levelKey": {
+																				"type": "string"
+																			},
+																			"tosUrl": {
+																				"type": "string"
+																			},
+																			"effectiveDate": {
+																				"type": "string"
+																			},
+																			"requirementKey": {
+																				"type": "string"
+																			}
+																		},
+																		"required": ["key", "kind", "purpose"]
+																	}
+																},
+																"required": ["status"]
 															}
 														},
 														"required": [
@@ -1493,6 +1755,10 @@
 																	{
 																		"type": "string",
 																		"enum": ["contact-support"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["provide-email"]
 																	}
 																]
 															},
@@ -1503,6 +1769,12 @@
 																"type": "string"
 															},
 															"tosUrl": {
+																"type": "string"
+															},
+															"effectiveDate": {
+																"type": "string"
+															},
+															"requirementKey": {
 																"type": "string"
 															}
 														},
@@ -3114,33 +3386,6 @@
 				}
 			}
 		},
-		"/bridge/kyc-links/{uuid}": {
-			"get": {
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "uuid",
-						"required": true
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "header",
-						"name": "api-key",
-						"required": false
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Default Response"
-					}
-				}
-			}
-		},
 		"/bridge/kyc-links": {
 			"post": {
 				"requestBody": {
@@ -3206,287 +3451,6 @@
 						},
 						"in": "path",
 						"name": "uuid",
-						"required": true
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "header",
-						"name": "api-key",
-						"required": false
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Default Response"
-					}
-				}
-			}
-		},
-		"/bridge/customers/{customerId}/liquidation-addresses": {
-			"post": {
-				"requestBody": {
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"chain": {
-										"anyOf": [
-											{
-												"type": "string",
-												"enum": ["arbitrum"]
-											},
-											{
-												"type": "string",
-												"enum": ["base"]
-											},
-											{
-												"type": "string",
-												"enum": ["avalance_c_chain"]
-											},
-											{
-												"type": "string",
-												"enum": ["ethereum"]
-											},
-											{
-												"type": "string",
-												"enum": ["optimism"]
-											},
-											{
-												"type": "string",
-												"enum": ["polygon"]
-											},
-											{
-												"type": "string",
-												"enum": ["solana"]
-											},
-											{
-												"type": "string",
-												"enum": ["stellar"]
-											}
-										]
-									},
-									"currency": {
-										"anyOf": [
-											{
-												"type": "string",
-												"enum": ["dai"]
-											},
-											{
-												"type": "string",
-												"enum": ["usdc"]
-											},
-											{
-												"type": "string",
-												"enum": ["eurc"]
-											},
-											{
-												"type": "string",
-												"enum": ["usdt"]
-											}
-										]
-									},
-									"externalAccountId": {
-										"type": "string"
-									},
-									"prefundedAccountId": {
-										"type": "string"
-									},
-									"destinationWireMessage": {
-										"type": "string"
-									},
-									"destinationSepaReference": {
-										"type": "string"
-									},
-									"destinationSwiftReference": {
-										"type": "string"
-									},
-									"destinationAchReference": {
-										"type": "string"
-									},
-									"destinationPaymentRail": {
-										"anyOf": [
-											{
-												"type": "string",
-												"enum": ["arbitrum"]
-											},
-											{
-												"type": "string",
-												"enum": ["base"]
-											},
-											{
-												"type": "string",
-												"enum": ["avalance_c_chain"]
-											},
-											{
-												"type": "string",
-												"enum": ["ethereum"]
-											},
-											{
-												"type": "string",
-												"enum": ["optimism"]
-											},
-											{
-												"type": "string",
-												"enum": ["polygon"]
-											},
-											{
-												"type": "string",
-												"enum": ["solana"]
-											},
-											{
-												"type": "string",
-												"enum": ["stellar"]
-											},
-											{
-												"type": "string",
-												"enum": ["ach"]
-											},
-											{
-												"type": "string",
-												"enum": ["ach_push"]
-											},
-											{
-												"type": "string",
-												"enum": ["ach_same_day"]
-											},
-											{
-												"type": "string",
-												"enum": ["sepa"]
-											},
-											{
-												"type": "string",
-												"enum": ["swift"]
-											},
-											{
-												"type": "string",
-												"enum": ["wire"]
-											}
-										]
-									},
-									"destinationCurrency": {
-										"anyOf": [
-											{
-												"type": "string",
-												"enum": ["eur"]
-											},
-											{
-												"type": "string",
-												"enum": ["usd"]
-											}
-										]
-									},
-									"destinationAddress": {
-										"type": "string"
-									},
-									"destinationBlockchainMemo": {
-										"type": "string"
-									},
-									"customDeveloperFeePercent": {
-										"type": "string"
-									}
-								},
-								"required": ["chain", "currency", "externalAccountId"]
-							}
-						}
-					},
-					"required": true
-				},
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "customerId",
-						"required": true
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "header",
-						"name": "api-key",
-						"required": false
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Default Response"
-					}
-				}
-			}
-		},
-		"/bridge/customers/{uuid}/liquidation-addresses": {
-			"get": {
-				"parameters": [
-					{
-						"schema": {
-							"type": "number"
-						},
-						"in": "query",
-						"name": "limit",
-						"required": false
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "query",
-						"name": "startingAfter",
-						"required": false
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "query",
-						"name": "endingBefore",
-						"required": false
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "uuid",
-						"required": true
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "header",
-						"name": "api-key",
-						"required": false
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Default Response"
-					}
-				}
-			}
-		},
-		"/bridge/customers/{customerId}/liquidation-addresses/{liquidationAddressId}/drains": {
-			"get": {
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "customerId",
-						"required": true
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "liquidationAddressId",
 						"required": true
 					},
 					{
@@ -4034,6 +3998,31 @@
 											}
 										},
 										"required": ["currency", "paymentRail", "externalAccountId"]
+									},
+									"beneficiaryName": {
+										"minLength": 1,
+										"type": "string"
+									},
+									"beneficiaryAddress": {
+										"type": "object",
+										"properties": {
+											"street": {
+												"type": "string"
+											},
+											"city": {
+												"type": "string"
+											},
+											"country": {
+												"type": "string"
+											},
+											"state": {
+												"type": "string"
+											},
+											"postalCode": {
+												"type": "string"
+											}
+										},
+										"required": ["street", "city", "country"]
 									}
 								},
 								"required": ["userId", "source", "destination"]
@@ -4142,6 +4131,22 @@
 						}
 					},
 					"404": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"503": {
 						"description": "Default Response",
 						"content": {
 							"application/json": {
@@ -5308,6 +5313,10 @@
 									"properties": {
 										"error": {
 											"type": "string"
+										},
+										"code": {
+											"type": "string",
+											"enum": ["STALE_CARD_APPROVAL"]
 										}
 									},
 									"required": ["error"]
@@ -5676,6 +5685,36 @@
 				"summary": "Cancel deposit order",
 				"tags": ["manteca"],
 				"description": "Cancel a deposit order created via Manteca.",
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "path",
+						"name": "depositId",
+						"required": true
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "header",
+						"name": "Authorization",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/manteca/deposit/{depositId}/status": {
+			"get": {
+				"summary": "Get deposit order status",
+				"tags": ["manteca"],
+				"description": "Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only \u2014 the webhook/poller remain the authoritative completion trigger.",
 				"parameters": [
 					{
 						"schema": {
@@ -6751,6 +6790,16 @@
 					},
 					"required": true
 				},
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "header",
+						"name": "x-admin-token",
+						"required": true
+					}
+				],
 				"responses": {
 					"200": {
 						"description": "Default Response"
@@ -7692,6 +7741,15 @@
 									},
 									"senderPeanutWalletAddress": {
 										"type": "string"
+									},
+									"feeUsd": {
+										"type": "number"
+									},
+									"payAmount": {
+										"type": "string"
+									},
+									"receiveAmount": {
+										"type": "string"
 									}
 								},
 								"required": [
@@ -7918,6 +7976,9 @@
 										"flowEarlyAccess": {
 											"type": "boolean"
 										},
+										"isPublicLaunched": {
+											"type": "boolean"
+										},
 										"waitlistJoinedAt": {
 											"anyOf": [
 												{
@@ -7953,16 +8014,25 @@
 											"items": {
 												"type": "string"
 											}
+										},
+										"waitlistTotal": {
+											"type": "number"
+										},
+										"admittedTotal": {
+											"type": "number"
 										}
 									},
 									"required": [
 										"hasCardAccess",
 										"isEligible",
 										"flowEarlyAccess",
+										"isPublicLaunched",
 										"waitlistJoinedAt",
 										"waitlistPosition",
 										"waitlistReleasedAt",
-										"skipBadges"
+										"skipBadges",
+										"waitlistTotal",
+										"admittedTotal"
 									]
 								}
 							}
@@ -8045,7 +8115,7 @@
 		},
 		"/card/waitlist/state": {
 			"get": {
-				"summary": "Get the user’s current waitlist state",
+				"summary": "Get the user\u2019s current waitlist state",
 				"tags": ["card"],
 				"responses": {
 					"200": {
@@ -9614,6 +9684,9 @@
 										},
 										"network": {
 											"type": "string"
+										},
+										"cardholderName": {
+											"type": "string"
 										}
 									},
 									"required": ["pan", "cvv", "expiryMonth", "expiryYear", "last4", "network"]
@@ -10426,7 +10499,7 @@
 			"post": {
 				"summary": "Run one polling cycle synchronously",
 				"tags": ["dev"],
-				"description": "Triggers runPollingCycle() on demand — used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
+				"description": "Triggers runPollingCycle() on demand \u2014 used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
 				"responses": {
 					"200": {
 						"description": "Default Response",
@@ -10646,7 +10719,7 @@
 			"post": {
 				"summary": "Run KYC provider submission synchronously for the given user/applicant",
 				"tags": ["dev"],
-				"description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user → Manteca, US user → Bridge) end-to-end.",
+				"description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user \u2192 Manteca, US user \u2192 Bridge) end-to-end.",
 				"requestBody": {
 					"content": {
 						"application/json": {
@@ -10714,7 +10787,7 @@
 			"post": {
 				"summary": "Synthesise a Sumsub webhook and run the status-processor",
 				"tags": ["dev"],
-				"description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) — same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub → routing chain without real webhook delivery.",
+				"description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) \u2014 same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub \u2192 routing chain without real webhook delivery.",
 				"requestBody": {
 					"content": {
 						"application/json": {
@@ -11827,6 +11900,10 @@
 											},
 											{
 												"type": "string",
+												"enum": ["NOT_SO_SHHHH"]
+											},
+											{
+												"type": "string",
 												"enum": ["CARD_FIRST_SWIPE"]
 											},
 											{
@@ -11847,7 +11924,31 @@
 											},
 											{
 												"type": "string",
+												"enum": ["IRL_NOMADS"]
+											},
+											{
+												"type": "string",
+												"enum": ["EVENT_ALUMNI"]
+											},
+											{
+												"type": "string",
+												"enum": ["TOUCHED_GRASS"]
+											},
+											{
+												"type": "string",
+												"enum": ["OFFRAMP_USER"]
+											},
+											{
+												"type": "string",
+												"enum": ["PSYOPS_DIVISION"]
+											},
+											{
+												"type": "string",
 												"enum": ["WAITLIST_SKIP"]
+											},
+											{
+												"type": "string",
+												"enum": ["FESTA_JUNINA_2026"]
 											}
 										]
 									},
