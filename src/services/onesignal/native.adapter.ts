@@ -1,6 +1,7 @@
-import OneSignal from '@onesignal/capacitor-plugin'
+import OneSignal, { LogLevel } from '@onesignal/capacitor-plugin'
 import type { PushSubscriptionChangedState } from '@onesignal/capacitor-plugin'
 import type { NotificationPermissionState, OneSignalAdapter } from './types'
+import { isOneSignalDebug } from './debug'
 
 async function nativePermission(): Promise<NotificationPermissionState> {
     if (await OneSignal.Notifications.hasPermission()) return 'granted'
@@ -37,6 +38,7 @@ export const nativeOneSignalAdapter: OneSignalAdapter = {
             if (!appId) {
                 throw new Error('OneSignal configuration missing: NEXT_PUBLIC_ONESIGNAL_APP_ID is required')
             }
+            if (isOneSignalDebug()) OneSignal.Debug.setLogLevel(LogLevel.Verbose)
             await OneSignal.initialize(appId)
             attachUnderlyingListeners()
         })()

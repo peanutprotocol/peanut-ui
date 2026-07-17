@@ -1,5 +1,6 @@
 import OneSignal from 'react-onesignal'
 import type { NotificationPermissionState, OneSignalAdapter } from './types'
+import { isOneSignalDebug } from './debug'
 
 function browserPermission(): NotificationPermissionState {
     if (typeof Notification === 'undefined') return 'default'
@@ -65,6 +66,8 @@ export const webOneSignalAdapter: OneSignalAdapter = {
                     'notification.clicked': webhookUrl,
                 },
             })
+
+            if (isOneSignalDebug()) OneSignal.Debug.setLogLevel('trace')
 
             attachUnderlyingListeners()
         })()
