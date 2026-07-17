@@ -283,6 +283,7 @@ jest.mock('@/constants/zerodev.consts', () => ({
 jest.mock('@/constants/payment.consts', () => ({
     MIN_MANTECA_DEPOSIT_AMOUNT: 1,
     BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME: 'Bridge Financial',
+    resolveBridgeAccountHolderName: (name?: string | null) => name || 'Bridge Financial',
 }))
 
 jest.mock('@/constants/manteca.consts', () => ({

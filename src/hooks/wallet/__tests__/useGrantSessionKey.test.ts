@@ -97,6 +97,19 @@ let mockClientSudoValidatorAddress = V003_VALIDATOR
 // The patched validator also signs the enable typed data (hotfix #2313 path).
 const mockPatchedValidator = { address: V003_VALIDATOR, signTypedData: jest.fn(() => Promise.resolve('0xENABLESIG')) }
 const mockGetPatchedSudoValidator = jest.fn(() => Promise.resolve(mockPatchedValidator))
+const mockHandleSendUserOpEncoded = jest.fn(() => Promise.resolve({ userOpHash: '0xhash', receipt: null }))
+jest.mock('@/hooks/useZeroDev', () => ({
+    useZeroDev: () => ({ handleSendUserOpEncoded: mockHandleSendUserOpEncoded }),
+}))
+
+// The preflight repair itself is unit-tested in kernelNonceRepair.utils.test.ts;
+// here we only assert the hook routes floored accounts through it and binds
+// the post-repair nonce.
+const mockRepairEnableNonce = jest.fn()
+jest.mock('@/utils/kernelNonceRepair.utils', () => ({
+    repairEnableNonce: (...args: unknown[]) => mockRepairEnableNonce(...args),
+}))
+
 jest.mock('@/context/kernelClient.context', () => ({
     useKernelClient: () => ({
         getClientForChain: () => ({

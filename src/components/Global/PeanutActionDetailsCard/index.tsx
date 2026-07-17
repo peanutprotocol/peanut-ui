@@ -112,7 +112,7 @@ export default function PeanutActionDetailsCard({
         if (transactionType === 'ADD_MONEY' || transactionType === 'ADD_MONEY_BANK_ACCOUNT')
             title = t('peanutActionDetailsCard.youreAdding')
         if (transactionType === 'WITHDRAW' || transactionType === 'WITHDRAW_BANK_ACCOUNT')
-            title = t('peanutActionDetailsCard.youreSending')
+            title = t('peanutActionDetailsCard.youreWithdrawing')
         if (transactionType === 'CLAIM_LINK_BANK_ACCOUNT') {
             if (viewType === 'SUCCESS') {
                 title = t('peanutActionDetailsCard.youWillReceive')

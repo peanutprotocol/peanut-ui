@@ -14,7 +14,7 @@ const countryCurrencyMappings: CountryCurrencyMapping[] = [
     { currencyCode: 'EUR', currencyName: 'Euro', country: 'Eurozone', flagCode: 'eu' },
 
     // Non-Eurozone SEPA Countries
-    { currencyCode: 'BGN', currencyName: 'Bulgarian Lev', country: 'Bulgaria', flagCode: 'bg', path: 'bulgaria' },
+    { currencyCode: 'ALL', currencyName: 'Albanian Lek', country: 'Albania', flagCode: 'al', path: 'albania' },
     {
         currencyCode: 'CZK',
         currencyName: 'Czech Koruna',
@@ -25,9 +25,18 @@ const countryCurrencyMappings: CountryCurrencyMapping[] = [
     { currencyCode: 'DKK', currencyName: 'Danish Krone', country: 'Denmark', flagCode: 'dk', path: 'denmark' },
     { currencyCode: 'HUF', currencyName: 'Hungarian Forint', country: 'Hungary', flagCode: 'hu', path: 'hungary' },
     { currencyCode: 'ISK', currencyName: 'Icelandic Krona', country: 'Iceland', flagCode: 'is', path: 'iceland' },
+    { currencyCode: 'MDL', currencyName: 'Moldovan Leu', country: 'Moldova', flagCode: 'md', path: 'moldova' },
+    {
+        currencyCode: 'MKD',
+        currencyName: 'Macedonian Denar',
+        country: 'North Macedonia',
+        flagCode: 'mk',
+        path: 'macedonia',
+    },
     { currencyCode: 'NOK', currencyName: 'Norwegian Krone', country: 'Norway', flagCode: 'no', path: 'norway' },
     { currencyCode: 'PLN', currencyName: 'Polish Zloty', country: 'Poland', flagCode: 'pl', path: 'poland' },
     { currencyCode: 'RON', currencyName: 'Romanian Leu', country: 'Romania', flagCode: 'ro', path: 'romania' },
+    { currencyCode: 'RSD', currencyName: 'Serbian Dinar', country: 'Serbia', flagCode: 'rs', path: 'serbia' },
     { currencyCode: 'SEK', currencyName: 'Swedish Krona', country: 'Sweden', flagCode: 'se', path: 'sweden' },
     { currencyCode: 'CHF', currencyName: 'Swiss Franc', country: 'Switzerland', flagCode: 'ch', path: 'switzerland' },
     {
@@ -136,7 +145,22 @@ export function isNonEuroSepaCountry(currencyCode: string | undefined): boolean 
 
     // explicit list of non-EUR SEPA currencies
     // SEPA includes EU countries that use their own currency
-    const nonEurSepaCurrencies = ['GBP', 'PLN', 'SEK', 'DKK', 'CZK', 'HUF', 'RON', 'BGN', 'ISK', 'NOK', 'CHF']
+    const nonEurSepaCurrencies = [
+        'GBP',
+        'PLN',
+        'SEK',
+        'DKK',
+        'CZK',
+        'HUF',
+        'RON',
+        'ISK',
+        'NOK',
+        'CHF',
+        'ALL',
+        'MDL',
+        'MKD',
+        'RSD',
+    ]
 
     return nonEurSepaCurrencies.includes(upper)
 }

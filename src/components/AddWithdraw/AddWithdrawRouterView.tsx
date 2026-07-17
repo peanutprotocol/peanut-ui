@@ -10,7 +10,7 @@ import {
 } from '@/utils/general.utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { addMoneyCountryUrl, withdrawCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
-import { type FC, useEffect, useState, useTransition, useCallback } from 'react'
+import { type FC, useEffect, useRef, useState, useTransition, useCallback } from 'react'
 import { useUserStore } from '@/redux/hooks'
 import { AccountType, type Account } from '@/interfaces/interfaces'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
@@ -94,7 +94,11 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         shouldShowAllMethods = true
     }
 
-    const baseRoute = flow === 'add' ? '/add-money' : '/withdraw'
+    // apply the default view (saved accounts vs all methods) only once per mount.
+    // the user query re-dispatches a fresh `user` object on every refetch (window
+    // focus, 4s pending-rail poll), and re-running the default unconditionally
+    // yanked an open country list back to the saved-accounts view.
+    const hasAppliedDefaultView = useRef(false)
 
     useEffect(() => {
         setIsLoadingPreferences(true)
@@ -111,12 +115,13 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
             if (bankAccounts.length > 0) {
                 setSavedAccounts(bankAccounts as unknown as Account[])
-                setShouldShowAllMethods(false)
+                if (!hasAppliedDefaultView.current) setShouldShowAllMethods(false)
             } else {
                 setSavedAccounts([])
             }
-        } else {
-            // 'add' flow logic
+        } else if (!hasAppliedDefaultView.current) {
+            // 'add' flow: the default view is a one-shot decision, so skip the
+            // localstorage re-read + state churn on later user refetches
             const prefs = user ? getUserPreferences(user.user.userId) : undefined
             const currentRecentMethods = prefs?.recentAddMethods ?? []
             if (currentRecentMethods.length > 0) {
@@ -126,6 +131,9 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 setShouldShowAllMethods(true)
             }
         }
+        // latch only once the user has loaded, so the first real resolution
+        // (not the pre-auth null render) decides the default view
+        if (user) hasAppliedDefaultView.current = true
         setIsLoadingPreferences(false)
     }, [flow, user, setShouldShowAllMethods])
 
@@ -370,22 +378,12 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                         })
                         setIsSupportedTokensModalOpen(true)
                     } else {
-                        posthog.capture(ANALYTICS_EVENTS.WITHDRAW_METHOD_SELECTED, {
-                            method_type: 'crypto',
-                            country: 'crypto',
-                        })
-                        // preserve method param if coming from send flow (though crypto shouldn't show this screen)
-                        const queryParams = methodParam ? `?method=${methodParam}` : ''
-                        const cryptoPath = `${baseRoute}/crypto${queryParams}`
-                        // Set crypto method and navigate to main page for amount input
-                        setSelectedMethod({
-                            type: 'crypto',
-                            countryPath: 'crypto',
-                            title: 'Crypto',
-                        })
-                        startTransition(() => {
-                            router.push(cryptoPath)
-                        })
+                        // shared withdraw handler: analytics + set method in context, no
+                        // navigation — the withdraw page owns the amount step and navigates
+                        // to /withdraw/crypto after Continue. navigating here (pre-amount)
+                        // trips the crypto page's "no amount" redirect guard, whose unmount
+                        // cleanup resets the whole flow back to saved accounts.
+                        handleMethodSelected({ id: 'crypto', type: 'crypto', title: 'Crypto', path: 'crypto' })
                     }
                 }}
                 flow={flow}

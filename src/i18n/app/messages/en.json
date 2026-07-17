@@ -1476,7 +1476,7 @@
         "manteca": {
             "youJustWithdrew": "You just withdrew",
             "toDestination": "to {destination}",
-            "youreSending": "You're sending",
+            "youreWithdrawing": "You're withdrawing",
             "enterMethodDetails": "Enter {method} details",
             "selectAccountType": "Select account type",
             "selectBank": "Select bank",
@@ -2454,13 +2454,6 @@
         "securityVerificationOverlay": {
             "message": "Verifying security…"
         },
-        "startVerification": {
-            "title": "Secure Verification. Limited Data Use.",
-            "provider": "The verification is done using a trusted provider, which shares your verification status with Peanut.",
-            "practices": "It operates under industry-standard security and privacy practices.",
-            "privacy": "Peanut never sees or stores your verification data.",
-            "cta": "Start Secure Verification"
-        },
         "iframeWrapper": {
             "troubleTitle": "Need a hand?",
             "troubleDescriptionLine1": "If the ID check isn't loading here, finish it in your browser.",
@@ -2468,8 +2461,8 @@
             "copyLink": "Copy link",
             "chatWithSupport": "Chat with support",
             "cancel": "Cancel",
-            "exitTitle": "Exit and lose progress?",
-            "exitDescription": "If you exit now, you'll need to start the ID check again from scratch.",
+            "exitTitle": "Exit for now?",
+            "exitDescription": "You can come back and finish this anytime.",
             "exit": "Exit",
             "continueVerifying": "Continue verifying",
             "stopVerification": "Stop verification process",
@@ -2522,7 +2515,7 @@
             "sentYou": "{sender} sent you",
             "youJustClaimed": "You just claimed",
             "youreAdding": "You're adding",
-            "youreSending": "You're sending",
+            "youreWithdrawing": "You're withdrawing",
             "youWillReceive": "You will receive",
             "youreAboutToReceive": "You're about to receive"
         },

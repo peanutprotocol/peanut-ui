@@ -39,6 +39,7 @@ jest.mock('@/hooks/useCapabilities', () => ({
         rails: mockRails,
         channelOf: (rail: { channel: string }) => rail.channel,
         nextActionsForRail: () => [],
+        nextActions: [],
     }),
 }))
 jest.mock('@/context/authContext', () => ({

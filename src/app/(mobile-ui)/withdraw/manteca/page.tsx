@@ -681,7 +681,6 @@ function MantecaBankWithdrawFlow() {
                 onClose={limitIncreaseFlow.handleClose}
                 onComplete={limitIncreaseFlow.handleSdkComplete}
                 onRefreshToken={limitIncreaseFlow.refreshToken}
-                autoStart
                 isMultiLevel
             />
             <NavHeader
@@ -788,7 +787,7 @@ function MantecaBankWithdrawFlow() {
                             </div>
                             <div>
                                 <p className="flex items-center gap-1 text-center text-sm text-gray-600">
-                                    <Icon name="arrow-up" size={10} /> {t('manteca.youreSending')}
+                                    <Icon name="arrow-up" size={10} /> {t('manteca.youreWithdrawing')}
                                 </p>
                                 <p className="text-2xl font-bold">
                                     {currencyCode} {formatNumberForDisplay(currencyAmount, { maxDecimals: 2 })}
@@ -899,7 +898,7 @@ function MantecaBankWithdrawFlow() {
                             </div>
                             <div>
                                 <p className="flex items-center gap-1 text-center text-sm text-gray-600">
-                                    <Icon name="arrow-up" size={10} /> {t('manteca.youreSending')}
+                                    <Icon name="arrow-up" size={10} /> {t('manteca.youreWithdrawing')}
                                 </p>
                                 <p className="text-2xl font-bold">
                                     {currencyCode}{' '}

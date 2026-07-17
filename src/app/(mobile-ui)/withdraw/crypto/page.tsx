@@ -19,6 +19,7 @@ import type {
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { isWithdrawFeeDisproportionate } from '@/utils/cross-chain-fee.utils'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
+import { isBelowRhinoMinDeposit } from '@/utils/withdraw.utils'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
@@ -74,6 +75,7 @@ export default function WithdrawCryptoPage() {
         receiveAmount,
         payAmount,
         feeUsd,
+        minDepositLimitUsd,
         isCalculating,
         isXChain,
         isDiffToken,
@@ -468,6 +470,17 @@ export default function WithdrawCryptoPage() {
         [isCrossChainWithdrawal, payAmount, spendableBalance]
     )
 
+    // Rhino accepts SDA deposits below the route minimum on-chain but never
+    // bridges them — funds strand at the SDA, uncredited. Block the CTA before
+    // the user signs. Same-chain USDC transfers have no minimum.
+    const belowMinimumMessage = useMemo<string | null>(
+        () =>
+            isCrossChainWithdrawal && isBelowRhinoMinDeposit(payAmount, minDepositLimitUsd)
+                ? `The minimum withdrawal to this network is $${minDepositLimitUsd}. Enter a larger amount.`
+                : null,
+        [isCrossChainWithdrawal, payAmount, minDepositLimitUsd]
+    )
+
     if (!amountToWithdraw && currentView !== 'STATUS') {
         // Redirect to main withdraw page for amount input
         // Guard against STATUS view: resetWithdrawFlow() clears amountToWithdraw,
@@ -504,6 +517,7 @@ export default function WithdrawCryptoPage() {
                     payAmount={payAmount}
                     showHighFeeWarning={showHighFeeWarning}
                     insufficientBalance={insufficientForFee}
+                    belowMinimumMessage={belowMinimumMessage}
                 />
             )}
 

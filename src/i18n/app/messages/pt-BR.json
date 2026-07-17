@@ -1476,7 +1476,7 @@
         "manteca": {
             "youJustWithdrew": "Você acabou de sacar",
             "toDestination": "para {destination}",
-            "youreSending": "Você está enviando",
+            "youreWithdrawing": "Você está sacando",
             "enterMethodDetails": "Digite os dados do {method}",
             "selectAccountType": "Selecione o tipo de conta",
             "selectBank": "Selecione o banco",
@@ -2454,13 +2454,6 @@
         "securityVerificationOverlay": {
             "message": "Verificando segurança…"
         },
-        "startVerification": {
-            "title": "Verificação segura. Uso limitado de dados.",
-            "provider": "A verificação é feita por um provedor confiável, que compartilha o status da sua verificação com a Peanut.",
-            "practices": "Ele opera com práticas de segurança e privacidade padrão do setor.",
-            "privacy": "A Peanut nunca vê nem armazena seus dados de verificação.",
-            "cta": "Iniciar verificação segura"
-        },
         "iframeWrapper": {
             "troubleTitle": "Precisa de ajuda?",
             "troubleDescriptionLine1": "Se a verificação de identidade não carregar aqui, conclua no seu navegador.",
@@ -2468,8 +2461,8 @@
             "copyLink": "Copiar link",
             "chatWithSupport": "Falar com o suporte",
             "cancel": "Cancelar",
-            "exitTitle": "Sair e perder o progresso?",
-            "exitDescription": "Se você sair agora, vai precisar começar a verificação de identidade do zero.",
+            "exitTitle": "Sair por enquanto?",
+            "exitDescription": "Você pode voltar e terminar isso a qualquer momento.",
             "exit": "Sair",
             "continueVerifying": "Continuar verificando",
             "stopVerification": "Interromper o processo de verificação",
@@ -2522,7 +2515,7 @@
             "sentYou": "{sender} enviou para você",
             "youJustClaimed": "Você acabou de resgatar",
             "youreAdding": "Você está adicionando",
-            "youreSending": "Você está enviando",
+            "youreWithdrawing": "Você está sacando",
             "youWillReceive": "Você vai receber",
             "youreAboutToReceive": "Você está prestes a receber"
         },

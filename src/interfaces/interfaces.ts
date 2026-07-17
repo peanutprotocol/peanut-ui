@@ -167,8 +167,6 @@ export interface User {
     email: string
     profile_picture: string | null
     username: string | null
-    tosStatus?: string
-    tosAcceptedAt?: string
     bridgeCustomerId: string | null
     fullName: string
     telegram: string | null

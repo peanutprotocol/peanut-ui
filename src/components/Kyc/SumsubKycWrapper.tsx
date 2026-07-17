@@ -6,8 +6,8 @@ import Modal from '@/components/Global/Modal'
 import ActionModal from '@/components/Global/ActionModal'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
+import Loading from '@/components/Global/Loading'
 import { useModalsContext } from '@/context/ModalsContext'
-import StartVerificationView from '../Global/IframeWrapper/StartVerificationView'
 import { evaluateSumsubStatusEvent, type SumsubStatusEventPayload } from './sumsubStatusEvent.utils'
 
 // todo: move to consts
@@ -20,8 +20,6 @@ interface SumsubKycWrapperProps {
     onComplete: () => void
     onError?: (error: unknown) => void
     onRefreshToken: () => Promise<string>
-    /** skip StartVerificationView and launch SDK immediately (for re-submissions) */
-    autoStart?: boolean
     /** multi-level workflow (e.g. LATAM) — don't close SDK on Level 1 submission */
     isMultiLevel?: boolean
 }
@@ -33,15 +31,17 @@ export const SumsubKycWrapper = ({
     onComplete,
     onError,
     onRefreshToken,
-    autoStart,
     isMultiLevel,
 }: SumsubKycWrapperProps) => {
-    const [isVerificationStarted, setIsVerificationStarted] = useState(false)
     const [sdkLoaded, setSdkLoaded] = useState(false)
     const [sdkLoadError, setSdkLoadError] = useState(false)
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
     const [modalVariant, setModalVariant] = useState<'stop-verification' | 'trouble'>('trouble')
-    const sdkContainerRef = useRef<HTMLDivElement>(null)
+    // Callback ref, NOT useRef: the modal renders through a headlessui Portal, so
+    // the container mounts a commit AFTER `visible` flips true. A plain ref is not
+    // reactive — the init effect below would read null on its only run and never
+    // launch the SDK. State re-runs the effect the moment the node attaches.
+    const [sdkContainer, setSdkContainer] = useState<HTMLDivElement | null>(null)
     const sdkInstanceRef = useRef<SnsWebSdkInstance | null>(null)
     const { setIsSupportModalOpen } = useModalsContext()
     const t = useTranslations('kyc')
@@ -71,27 +71,46 @@ export const SumsubKycWrapper = ({
 
     // load sumsub websdk script
     useEffect(() => {
+        if (window.snsWebSdk) {
+            setSdkLoaded(true)
+            return undefined
+        }
+
+        const handleLoaded = () => setSdkLoaded(true)
+        const handleError = () => {
+            console.error('[sumsub] failed to load websdk script')
+            setSdkLoadError(true)
+        }
+
         const existingScript = document.getElementById('sumsub-websdk')
         if (existingScript) {
-            setSdkLoaded(true)
-            return
+            // another wrapper instance appended the script and it's still
+            // downloading — a bare existence check would init against an
+            // undefined window.snsWebSdk
+            existingScript.addEventListener('load', handleLoaded)
+            existingScript.addEventListener('error', handleError)
+            // the script may have finished between the snsWebSdk check above
+            // and the listener attach — re-check so we don't wait forever
+            if (window.snsWebSdk) handleLoaded()
+            return () => {
+                existingScript.removeEventListener('load', handleLoaded)
+                existingScript.removeEventListener('error', handleError)
+            }
         }
 
         const script = document.createElement('script')
         script.id = 'sumsub-websdk'
         script.src = SUMSUB_SDK_URL
         script.async = true
-        script.onload = () => setSdkLoaded(true)
-        script.onerror = () => {
-            console.error('[sumsub] failed to load websdk script')
-            setSdkLoadError(true)
-        }
+        script.onload = handleLoaded
+        script.onerror = handleError
         document.head.appendChild(script)
+        return undefined
     }, [])
 
-    // initialize sdk when verification starts and all deps are ready
+    // initialize sdk as soon as the modal is visible and all deps are ready
     useEffect(() => {
-        if (!isVerificationStarted || !accessToken || !sdkLoaded || !sdkContainerRef.current) return
+        if (!visible || !accessToken || !sdkLoaded || !sdkContainer) return
 
         // clean up previous instance
         if (sdkInstanceRef.current) {
@@ -176,7 +195,7 @@ export const SumsubKycWrapper = ({
                 })
                 .build()
 
-            sdk.launch(sdkContainerRef.current)
+            sdk.launch(sdkContainer)
             sdkInstanceRef.current = sdk
 
             // ensure the sdk-created iframe gets camera/microphone permissions.
@@ -191,15 +210,17 @@ export const SumsubKycWrapper = ({
                     }
                 }
             })
-            iframeObserver.observe(sdkContainerRef.current, { childList: true })
+            iframeObserver.observe(sdkContainer, { childList: true })
 
             // also patch any iframe that was added before the observer
-            const existingIframe = sdkContainerRef.current.querySelector('iframe')
+            const existingIframe = sdkContainer.querySelector('iframe')
             if (existingIframe && !existingIframe.allow?.includes('camera')) {
                 existingIframe.allow = 'camera; microphone; fullscreen'
             }
         } catch (error) {
             console.error('[sumsub] failed to initialize sdk', error)
+            // surface the error UI — without this the modal stays blank
+            setSdkLoadError(true)
             stableOnError(error)
         }
 
@@ -214,27 +235,16 @@ export const SumsubKycWrapper = ({
                 sdkInstanceRef.current = null
             }
         }
-    }, [isVerificationStarted, accessToken, sdkLoaded, stableOnComplete, stableOnError, stableOnRefreshToken])
+    }, [visible, accessToken, sdkLoaded, sdkContainer, stableOnComplete, stableOnError, stableOnRefreshToken])
 
-    // reset state when modal closes, auto-start on re-submission
+    // reset state when modal closes (the init effect's cleanup already
+    // destroys the SDK instance — visible is one of its deps)
     useEffect(() => {
         if (!visible) {
-            setIsVerificationStarted(false)
             setSdkLoadError(false)
             hasSubmittedRef.current = false
-            if (sdkInstanceRef.current) {
-                try {
-                    sdkInstanceRef.current.destroy()
-                } catch {
-                    // ignore cleanup errors
-                }
-                sdkInstanceRef.current = null
-            }
-        } else if (autoStart) {
-            // skip StartVerificationView on re-submission (user already consented)
-            setIsVerificationStarted(true)
         }
-    }, [visible, autoStart])
+    }, [visible])
 
     // Close-button handler. After the user has submitted, the "are you sure
     // you want to stop?" modal is misleading — they're done, not abandoning.
@@ -272,54 +282,30 @@ export const SumsubKycWrapper = ({
             }
         }
 
-        return autoStart
-            ? {
-                  title: t('wrapper.exitForNowTitle'),
-                  description: t('wrapper.exitForNowDescription'),
-                  icon: 'alert' as IconName,
-                  iconContainerClassName: 'bg-secondary-1',
-                  ctas: [
-                      {
-                          text: t('wrapper.exit'),
-                          onClick: () => {
-                              setIsHelpModalOpen(false)
-                              onClose()
-                          },
-                          variant: 'purple' as ButtonVariant,
-                          shadowSize: '4' as const,
-                      },
-                      {
-                          text: tCommon('continue'),
-                          onClick: () => setIsHelpModalOpen(false),
-                          variant: 'transparent' as ButtonVariant,
-                          className: 'underline text-sm font-medium w-full h-fit mt-3',
-                      },
-                  ],
-              }
-            : {
-                  title: t('wrapper.exitAndLoseProgressTitle'),
-                  description: t('wrapper.exitAndLoseProgressDescription'),
-                  icon: 'alert' as IconName,
-                  iconContainerClassName: 'bg-secondary-1',
-                  ctas: [
-                      {
-                          text: t('wrapper.exit'),
-                          onClick: () => {
-                              setIsHelpModalOpen(false)
-                              onClose()
-                          },
-                          variant: 'purple' as ButtonVariant,
-                          shadowSize: '4' as const,
-                      },
-                      {
-                          text: t('wrapper.keepGoing'),
-                          onClick: () => setIsHelpModalOpen(false),
-                          variant: 'transparent' as ButtonVariant,
-                          className: 'underline text-sm font-medium w-full h-fit mt-3',
-                      },
-                  ],
-              }
-    }, [autoStart, modalVariant, onClose, setIsSupportModalOpen, t, tCommon])
+        return {
+            title: t('wrapper.exitForNowTitle'),
+            description: t('wrapper.exitForNowDescription'),
+            icon: 'alert' as IconName,
+            iconContainerClassName: 'bg-secondary-1',
+            ctas: [
+                {
+                    text: t('wrapper.exit'),
+                    onClick: () => {
+                        setIsHelpModalOpen(false)
+                        onClose()
+                    },
+                    variant: 'purple' as ButtonVariant,
+                    shadowSize: '4' as const,
+                },
+                {
+                    text: tCommon('continue'),
+                    onClick: () => setIsHelpModalOpen(false),
+                    variant: 'transparent' as ButtonVariant,
+                    className: 'underline text-sm font-medium w-full h-fit mt-3',
+                },
+            ],
+        }
+    }, [modalVariant, onClose, setIsSupportModalOpen, t, tCommon])
 
     return (
         <>
@@ -334,12 +320,7 @@ export const SumsubKycWrapper = ({
                 preventClose={true}
                 hideOverlay={false}
             >
-                {!isVerificationStarted ? (
-                    <StartVerificationView
-                        onClose={onClose}
-                        onStartVerification={() => setIsVerificationStarted(true)}
-                    />
-                ) : sdkLoadError ? (
+                {sdkLoadError ? (
                     <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
                         <Icon name="alert" size={24} className="text-red-500" />
                         <p className="text-center text-lg font-medium">{t('wrapper.loadError')}</p>
@@ -363,7 +344,16 @@ export const SumsubKycWrapper = ({
                                 <Icon name="cancel" size={24} />
                             </button>
                         </div>
-                        <div ref={sdkContainerRef} className="w-full flex-1 overflow-auto [&>iframe]:!min-h-full" />
+                        <div className="relative w-full flex-1">
+                            {/* sits behind the SDK iframe — covered once it paints */}
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <Loading className="h-8 w-8" />
+                            </div>
+                            <div
+                                ref={setSdkContainer}
+                                className="relative h-full w-full overflow-auto [&>iframe]:!min-h-full"
+                            />
+                        </div>
                     </div>
                 )}
             </Modal>

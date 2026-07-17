@@ -9,13 +9,13 @@ import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
 import { countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
-import { formatBankAccountDisplay } from '@/utils/format.utils'
+import { formatBankAccountDisplay, shortDepositReference } from '@/utils/format.utils'
 import { applyBridgeCrossCurrencyFee, getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { formatAmount } from '@/utils/general.utils'
 import InfoCard from '@/components/Global/InfoCard'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
-import { BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME } from '@/constants/payment.consts'
+import { resolveBridgeAccountHolderName } from '@/constants/payment.consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useOnrampQuote } from '@/hooks/useOnrampQuote'
 import { currencyToAccountType } from '@/utils/bridge.utils'
@@ -249,7 +249,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
         lines.push(
             line(
                 t('bankDetails.depositReference'),
-                onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || loading
+                shortDepositReference(onrampData?.depositInstructions?.depositMessage) || loading
             ),
             '',
             t('bankDetails.shareOutro')
@@ -294,11 +294,12 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                     <p className="text-xs font-normal text-gray-1">{t('bankDetails.depositReference')}</p>
                     <div className="flex items-baseline gap-2">
                         <p className="text-xl font-extrabold text-black md:text-4xl">
-                            {onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || tCommon('loading')}
+                            {shortDepositReference(onrampData?.depositInstructions?.depositMessage) ||
+                                tCommon('loading')}
                         </p>
                         {onrampData?.depositInstructions?.depositMessage && (
                             <CopyToClipboard
-                                textToCopy={onrampData.depositInstructions.depositMessage?.slice(0, 10)}
+                                textToCopy={shortDepositReference(onrampData.depositInstructions.depositMessage)}
                                 fill="black"
                                 iconSize="4"
                             />
@@ -316,10 +317,10 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                 <Card className="gap-2 rounded-sm">
                     <h1 className="text-xs">{t('bankDetails.title')}</h1>
 
-                    {/* note: fallback to bridge as account holder name, to cover faster_payments onramp requests as bridge currently doesnt retrun a account holder name in api response */}
+                    {/* resolveBridgeAccountHolderName maps Bridge's stale/absent legal entity name to the current one (Sp. Z.o.o. -> S.A.) */}
                     <PaymentInfoRow
                         label={t('bankDetails.accountHolderName')}
-                        value={onrampData?.depositInstructions?.accountHolderName || BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME}
+                        value={resolveBridgeAccountHolderName(onrampData?.depositInstructions?.accountHolderName)}
                         allowCopy
                         hideBottomBorder
                     />
@@ -446,7 +447,8 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                         t('bankDetails.doubleCheckAmount', { amount: formattedCurrencyAmount }),
                         t('bankDetails.doubleCheckReference', {
                             reference:
-                                onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || tCommon('loading'),
+                                shortDepositReference(onrampData?.depositInstructions?.depositMessage) ||
+                                tCommon('loading'),
                         }),
                     ]}
                 />
