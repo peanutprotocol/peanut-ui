@@ -96,3 +96,17 @@ describe('ApplicationStatusScreen — proof-of-address upload CTA', () => {
         expect(screen.queryByText('Upload proof of address')).not.toBeInTheDocument()
     })
 })
+
+describe('ApplicationStatusScreen — upload error', () => {
+    it('renders the inline error under the upload CTA', () => {
+        render(
+            <ApplicationStatusScreen
+                variant="requires-info"
+                onContactSupport={jest.fn()}
+                onUploadProofOfAddress={jest.fn()}
+                uploadError="Could not start the upload. Please try again."
+            />
+        )
+        expect(screen.getByText('Could not start the upload. Please try again.')).toBeInTheDocument()
+    })
+})

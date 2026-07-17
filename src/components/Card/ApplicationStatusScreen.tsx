@@ -19,6 +19,9 @@ interface Props {
      *  the Sumsub upload flow — rendered as the primary CTA so users fix it
      *  themselves instead of messaging support. */
     onUploadProofOfAddress?: () => void
+    /** Inline failure from starting the upload (a silent primary CTA on a
+     *  stuck-application screen reads as broken). */
+    uploadError?: string
     onPrev?: () => void
 }
 
@@ -56,6 +59,7 @@ const ApplicationStatusScreen: FC<Props> = ({
     reasonMessage,
     onContactSupport,
     onUploadProofOfAddress,
+    uploadError,
     onPrev,
 }) => {
     const copy = COPY[variant]
@@ -81,9 +85,12 @@ const ApplicationStatusScreen: FC<Props> = ({
                     <p className="text-grey-1">{copy.body}</p>
                 </div>
                 {SUPPORT_VARIANTS.has(variant) && onUploadProofOfAddress && (
-                    <Button variant="purple" shadowSize="4" className="w-full" onClick={onUploadProofOfAddress}>
-                        Upload proof of address
-                    </Button>
+                    <div className="flex w-full flex-col gap-2">
+                        <Button variant="purple" shadowSize="4" className="w-full" onClick={onUploadProofOfAddress}>
+                            Upload proof of address
+                        </Button>
+                        {uploadError && <p className="text-sm text-error">{uploadError}</p>}
+                    </div>
                 )}
                 {SUPPORT_VARIANTS.has(variant) && onContactSupport && (
                     <button type="button" onClick={onContactSupport} className="text-black underline">

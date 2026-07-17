@@ -77,7 +77,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // prevents stale websocket events or mount-time fetches from auto-closing the drawer.
     const userInitiatedRef = useRef(false)
     // tracks self-heal provider for token refresh — null when in regular KYC flow
-    const selfHealProviderRef = useRef<'BRIDGE' | 'MANTECA' | 'RAIN' | null>(null)
+    const selfHealProviderRef = useRef<'BRIDGE' | 'MANTECA' | null>(null)
 
     useEffect(() => {
         regionIntentRef.current = regionIntent
@@ -470,42 +470,39 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // and opens the sumsub SDK with the action token. `requirementKey` targets a
     // specific (e.g. future-dated advisory) Bridge requirement; omitted for the
     // legacy blocking flow.
-    const handleSelfHealResubmit = useCallback(
-        async (provider: 'BRIDGE' | 'MANTECA' | 'RAIN', requirementKey?: string) => {
-            setIsLoading(true)
-            setError(null)
-            userInitiatedRef.current = true
-            selfHealProviderRef.current = provider
+    const handleSelfHealResubmit = useCallback(async (provider: 'BRIDGE' | 'MANTECA', requirementKey?: string) => {
+        setIsLoading(true)
+        setError(null)
+        userInitiatedRef.current = true
+        selfHealProviderRef.current = provider
 
-            try {
-                const response = await initiateSelfHealResubmission(provider, requirementKey)
+        try {
+            const response = await initiateSelfHealResubmission(provider, requirementKey)
 
-                if (response.error) {
-                    userInitiatedRef.current = false
-                    selfHealProviderRef.current = null
-                    setError(response.error)
-                    return
-                }
-
-                if (response.data?.token) {
-                    setAccessToken(response.data.token)
-                    setShowWrapper(true)
-                } else {
-                    userInitiatedRef.current = false
-                    selfHealProviderRef.current = null
-                    setError('Could not initiate document resubmission. Please try again.')
-                }
-            } catch (e: unknown) {
+            if (response.error) {
                 userInitiatedRef.current = false
                 selfHealProviderRef.current = null
-                const message = e instanceof Error ? e.message : 'An unexpected error occurred'
-                setError(message)
-            } finally {
-                setIsLoading(false)
+                setError(response.error)
+                return
             }
-        },
-        []
-    )
+
+            if (response.data?.token) {
+                setAccessToken(response.data.token)
+                setShowWrapper(true)
+            } else {
+                userInitiatedRef.current = false
+                selfHealProviderRef.current = null
+                setError('Could not initiate document resubmission. Please try again.')
+            }
+        } catch (e: unknown) {
+            userInitiatedRef.current = false
+            selfHealProviderRef.current = null
+            const message = e instanceof Error ? e.message : 'An unexpected error occurred'
+            setError(message)
+        } finally {
+            setIsLoading(false)
+        }
+    }, [])
 
     // Start a capability nextAction by key (POST /users/kyc/start-action) and
     // open the WebSDK with the returned token. Unlike handleInitiateKyc (which

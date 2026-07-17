@@ -21,8 +21,7 @@ import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
-import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
-import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { rainApi, type ApplyForCardResponse } from '@/services/rain'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useCapabilities } from '@/hooks/useCapabilities'
@@ -214,12 +213,19 @@ const CardPage: FC = () => {
         void queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
     }, [queryClient])
 
-    // Self-heal Sumsub flow for the requires-info/rejected states (e.g. the
-    // proof-of-address upload). Separate surface from the card-application
-    // SumsubKycWrapper below — that one is driven by applyForCard tokens with
-    // its own refresh/poll semantics; multiplexing them would fight over the
-    // token. On completion the overview refetches so the screen advances.
-    const selfHealKycFlow = useMultiPhaseKycFlow({ onKycSuccess: invalidateOverview })
+    // Proof-of-address self-heal — a dedicated, deliberately tiny flow. The
+    // multi-phase KYC machinery (useMultiPhaseKycFlow) is bank-onboarding
+    // shaped: its post-approval phase machine polls a mutating endpoint, can
+    // fan out to Bridge ToS modals, and completes on rail semantics that never
+    // match the Rain PoA lifecycle. Here we only need: mint an action token →
+    // open the SDK → on submit, thank the user and refetch. Separate surface
+    // from the card-application SumsubKycWrapper below — that one is driven by
+    // applyForCard tokens with its own refresh/poll semantics.
+    const [poaToken, setPoaToken] = useState<string | null>(null)
+    const [poaError, setPoaError] = useState<string | null>(null)
+    // Optimistic "we got your document" until the backend webhook flips the
+    // rail reason to its own review-wait state (may lag the SDK by seconds).
+    const [poaSubmitted, setPoaSubmitted] = useState(false)
 
     // The rain rail's self-serve proof-of-address action, when the backend
     // classified the application as PoA-fixable (kind 'sumsub' + levelKey
@@ -231,12 +237,19 @@ const CardPage: FC = () => {
               (action) => action.kind === 'sumsub' && action.levelKey === 'proof_of_address'
           )
         : undefined
-    const onUploadProofOfAddress = poaAction
-        ? () => {
-              posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { source: 'poa-self-heal' })
-              void selfHealKycFlow.handleSelfHealResubmit('RAIN')
-          }
-        : undefined
+    const startPoaUpload = useCallback(async () => {
+        posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { source: 'poa-self-heal' })
+        setPoaError(null)
+        const response = await initiateSelfHealResubmission('RAIN')
+        if (response.error || !response.data?.token) {
+            // Surfaced inline on the status screen — a silent primary CTA on a
+            // stuck-application screen is worse than no CTA.
+            setPoaError(response.error ?? 'Could not start the upload. Please try again.')
+            return
+        }
+        setPoaToken(response.data.token)
+    }, [])
+    const onUploadProofOfAddress = poaAction && !poaSubmitted ? () => void startPoaUpload() : undefined
 
     // Routes a non-incomplete apply response to the right next screen. Shared
     // by the user-initiated apply path and the post-Sumsub poll, since both
@@ -625,13 +638,16 @@ const CardPage: FC = () => {
                         </div>
                     )
                 }
-                const cardRailReason = railsForProvider('rain')[0]?.reason?.userMessage
+                const cardRailReason = poaSubmitted
+                    ? 'We received your proof of address — it’s being reviewed.'
+                    : railsForProvider('rain')[0]?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
                         variant="requires-info"
                         reasonMessage={cardRailReason}
                         onContactSupport={() => setIsSupportModalOpen(true)}
                         onUploadProofOfAddress={onUploadProofOfAddress}
+                        uploadError={poaError ?? undefined}
                         onPrev={onBack}
                     />
                 )
@@ -660,15 +676,18 @@ const CardPage: FC = () => {
                 // (meaningless without its reason), the rejected screen is useful
                 // on its own (reassurance + support CTA), so show it now and let
                 // the reason fill in once capabilities resolve.
-                const cardRailReason = capabilitiesLoading
-                    ? undefined
-                    : railsForProvider('rain')[0]?.reason?.userMessage
+                const cardRailReason = poaSubmitted
+                    ? 'We received your proof of address — it’s being reviewed.'
+                    : capabilitiesLoading
+                      ? undefined
+                      : railsForProvider('rain')[0]?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
                         variant="rejected"
                         reasonMessage={cardRailReason}
                         onContactSupport={() => setIsSupportModalOpen(true)}
                         onUploadProofOfAddress={onUploadProofOfAddress}
+                        uploadError={poaError ?? undefined}
                         onPrev={onBack}
                     />
                 )
@@ -685,7 +704,25 @@ const CardPage: FC = () => {
     return (
         <PageContainer>
             {renderState()}
-            <SumsubKycModals flow={selfHealKycFlow} />
+            <SumsubKycWrapper
+                visible={poaToken !== null}
+                accessToken={poaToken}
+                onClose={() => setPoaToken(null)}
+                onComplete={() => {
+                    // Document submitted to Sumsub. Review + the backend webhook
+                    // stamp happen async — flip the optimistic banner and refetch
+                    // so the screen picks up the backend's wait state when ready.
+                    setPoaToken(null)
+                    setPoaSubmitted(true)
+                    invalidateOverview()
+                    void fetchUser()
+                }}
+                onRefreshToken={async () => {
+                    const response = await initiateSelfHealResubmission('RAIN')
+                    if (!response.data?.token) throw new Error(response.error ?? 'Failed to refresh token')
+                    return response.data.token
+                }}
+            />
             <SumsubKycWrapper
                 visible={sumsubToken !== null}
                 accessToken={sumsubToken}
