@@ -164,8 +164,23 @@ module.exports = [
     {
         // require() inside test bodies is the Jest idiom for reading mocks after
         // jest.mock()/resetModules(); hoisting them to imports changes semantics.
+        // no-img-element: these files mock next/image down to a raw <img>.
         files: ['src/**/__tests__/**/*.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
-        rules: { '@typescript-eslint/no-require-imports': 'off' },
+        rules: { '@typescript-eslint/no-require-imports': 'off', '@next/next/no-img-element': 'off' },
+    },
+    {
+        // OG images render through Satori (next/og ImageResponse), which supports
+        // only a subset of HTML/CSS and cannot render next/image — raw <img> with
+        // explicit width/height is the required form here, not an oversight.
+        files: ['src/components/og/**', 'src/app/api/og/**'],
+        rules: { '@next/next/no-img-element': 'off' },
+    },
+    {
+        // Rasterized to PNG by html-to-image (see share-asset/captureShareAsset.ts).
+        // next/image's lazy loading and wrapper markup break the capture — the same
+        // class of bug as the runtime <canvas> that file already documents.
+        files: ['src/components/Card/share-asset/**', 'src/components/Global/ImageGeneration/**'],
+        rules: { '@next/next/no-img-element': 'off' },
     },
     {
         // Localization guard: product-UI copy must come from next-intl, not JSX

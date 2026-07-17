@@ -9,7 +9,7 @@
  */
 
 import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
-import PEANUTMAN from '@/assets/mascot/peanutman.svg'
+import { PEANUTMAN } from '@/assets/mascot'
 import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
 import type { IconName } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'

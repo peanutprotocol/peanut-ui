@@ -2,7 +2,7 @@
 
 import HandThumbsUpV2 from '@/assets/illustrations/hand-thumbs-up-v2.svg'
 import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
-import PEANUTMAN from '@/assets/mascot/peanutman.svg'
+import { PEANUTMAN } from '@/assets/mascot'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
