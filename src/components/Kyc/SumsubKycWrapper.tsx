@@ -36,11 +36,7 @@ export const SumsubKycWrapper = ({
     const [sdkLoadError, setSdkLoadError] = useState(false)
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
     const [modalVariant, setModalVariant] = useState<'stop-verification' | 'trouble'>('trouble')
-    // Callback ref, NOT useRef: the modal renders through a headlessui Portal, so
-    // the container mounts a commit AFTER `visible` flips true. A plain ref is not
-    // reactive — the init effect below would read null on its only run and never
-    // launch the SDK. State re-runs the effect the moment the node attaches.
-    const [sdkContainer, setSdkContainer] = useState<HTMLDivElement | null>(null)
+    const sdkContainerRef = useRef<HTMLDivElement>(null)
     const sdkInstanceRef = useRef<SnsWebSdkInstance | null>(null)
     const { setIsSupportModalOpen } = useModalsContext()
 
@@ -107,7 +103,7 @@ export const SumsubKycWrapper = ({
 
     // initialize sdk as soon as the modal is visible and all deps are ready
     useEffect(() => {
-        if (!visible || !accessToken || !sdkLoaded || !sdkContainer) return
+        if (!visible || !accessToken || !sdkLoaded || !sdkContainerRef.current) return
 
         // clean up previous instance
         if (sdkInstanceRef.current) {
@@ -192,7 +188,7 @@ export const SumsubKycWrapper = ({
                 })
                 .build()
 
-            sdk.launch(sdkContainer)
+            sdk.launch(sdkContainerRef.current)
             sdkInstanceRef.current = sdk
 
             // ensure the sdk-created iframe gets camera/microphone permissions.
@@ -207,10 +203,10 @@ export const SumsubKycWrapper = ({
                     }
                 }
             })
-            iframeObserver.observe(sdkContainer, { childList: true })
+            iframeObserver.observe(sdkContainerRef.current, { childList: true })
 
             // also patch any iframe that was added before the observer
-            const existingIframe = sdkContainer.querySelector('iframe')
+            const existingIframe = sdkContainerRef.current.querySelector('iframe')
             if (existingIframe && !existingIframe.allow?.includes('camera')) {
                 existingIframe.allow = 'camera; microphone; fullscreen'
             }
@@ -232,7 +228,7 @@ export const SumsubKycWrapper = ({
                 sdkInstanceRef.current = null
             }
         }
-    }, [visible, accessToken, sdkLoaded, sdkContainer, stableOnComplete, stableOnError, stableOnRefreshToken])
+    }, [visible, accessToken, sdkLoaded, stableOnComplete, stableOnError, stableOnRefreshToken])
 
     // reset state when modal closes (the init effect's cleanup already
     // destroys the SDK instance — visible is one of its deps)
@@ -349,7 +345,7 @@ export const SumsubKycWrapper = ({
                                 <Loading className="h-8 w-8" />
                             </div>
                             <div
-                                ref={setSdkContainer}
+                                ref={sdkContainerRef}
                                 className="relative h-full w-full overflow-auto [&>iframe]:!min-h-full"
                             />
                         </div>

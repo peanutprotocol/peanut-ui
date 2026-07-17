@@ -10,10 +10,13 @@ import { SumsubKycWrapper } from '../SumsubKycWrapper'
 // reactive, so the effect never re-runs and the SDK is never launched.
 jest.mock('@/components/Global/Modal', () => ({
     __esModule: true,
-    default: ({ visible, children }: { visible: boolean; children: React.ReactNode }) => {
+    // Named + capitalised so eslint's rules-of-hooks recognises it as a component.
+    default: function MockPortalModal({ visible, children }: { visible: boolean; children: React.ReactNode }) {
+        // `mounted` resets on close so a close/re-open cycle replays the late
+        // mount, exactly like the real portal tearing down and rebuilding.
         const [mounted, setMounted] = useState(false)
         useEffect(() => {
-            if (visible) setMounted(true)
+            setMounted(visible)
         }, [visible])
         if (!visible || !mounted) return null
         return <div data-testid="modal">{children}</div>
@@ -41,6 +44,12 @@ describe('SumsubKycWrapper', () => {
         installSdk()
     })
 
+    afterEach(() => {
+        // don't leak the global — a later test may need the script-loading path
+        // (snsWebSdk absent -> script injected -> onload) to be reachable.
+        delete (window as unknown as { snsWebSdk?: unknown }).snsWebSdk
+    })
+
     it('launches the SDK when an already-mounted wrapper is opened (portal mounts container late)', async () => {
         // Faithful to prod: SumsubKycModals keeps this wrapper mounted, so the
         // websdk script resolves and `sdkLoaded` settles true while hidden. Only
@@ -54,8 +63,13 @@ describe('SumsubKycWrapper', () => {
             onComplete: jest.fn(),
             onRefreshToken: jest.fn().mockResolvedValue('tok_abc'),
         }
+        // window.snsWebSdk is pre-installed, so the script effect resolves
+        // sdkLoaded->true on mount and render() flushes it inside act(). That is
+        // what makes `visible` the LAST dep to flip — if sdkLoaded flipped after
+        // it instead, that flip would re-run the init effect with the container
+        // already mounted and mask the bug entirely.
         const { rerender } = render(<SumsubKycWrapper visible={false} {...props} />)
-        await waitFor(() => expect(launch).not.toHaveBeenCalled())
+        expect(launch).not.toHaveBeenCalled()
 
         rerender(<SumsubKycWrapper visible {...props} />)
 
