@@ -304,6 +304,9 @@ importers:
       '@types/canvas-confetti':
         specifier: ^1.9.0
         version: 1.9.0
+      '@types/d3-force':
+        specifier: ^3.0.10
+        version: 3.0.10
       '@types/jest':
         specifier: ^29.5.12
         version: 29.5.14
@@ -3108,6 +3111,9 @@ packages:
 
   '@types/connect@3.4.36':
     resolution: {integrity: sha512-P63Zd/JUGq+PdrM1lv0Wv5SBYeA2+CORvbrXbngriYY0jzLUWfQMQQxOhjONEz/wlHOAxOdY7CY65rgQdTjq2w==}
+
+  '@types/d3-force@3.0.10':
+    resolution: {integrity: sha512-ZYeSaCF3p73RdOKcjj+swRlZfnYpK1EbaDiYICEEp5Q6sUiqFaFQ9qgoshp5CzIyyb/yD09kD9o2zEltCexlgw==}
 
   '@types/debug@4.1.12':
     resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
@@ -11822,6 +11828,8 @@ snapshots:
   '@types/connect@3.4.36':
     dependencies:
       '@types/node': 20.4.2
+
+  '@types/d3-force@3.0.10': {}
 
   '@types/debug@4.1.12':
     dependencies:
