@@ -38,9 +38,12 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
         <NuqsAdapter>
             <PeanutProvider>
-                <ContextProvider>
-                    <FooterVisibilityProvider>
-                        <AppIntlProvider>
+                {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet
+                    → useSendMoney calls useTranslations, so the intl context has to
+                    exist by the time ContextProvider renders. */}
+                <AppIntlProvider>
+                    <ContextProvider>
+                        <FooterVisibilityProvider>
                             <TranslationSafeWrapper>
                                 <ConsoleGreeting />
                                 <ScreenOrientationLocker />
@@ -64,9 +67,9 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                                 )}
                                 {children}
                             </TranslationSafeWrapper>
-                        </AppIntlProvider>
-                    </FooterVisibilityProvider>
-                </ContextProvider>
+                        </FooterVisibilityProvider>
+                    </ContextProvider>
+                </AppIntlProvider>
             </PeanutProvider>
         </NuqsAdapter>
     )
