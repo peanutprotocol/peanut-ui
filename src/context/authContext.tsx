@@ -194,20 +194,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // clear user preferences (webauthn key in localStorage)
         updateUserPreferences(user?.user.userId, { webAuthnKey: undefined })
 
+        /*
+         * Cancel queries BEFORE wiping the token: an in-flight /users/me can carry a
+         * sliding-refresh token and would re-persist it into native Preferences right
+         * after the clear, so logout never sticks (Android splash-loop, kuxhagra).
+         */
+        try {
+            await queryClient.cancelQueries()
+            queryClient.clear()
+        } catch (e) {
+            console.warn('failed to clear queries on logout:', e)
+        }
+
         // clear auth tokens (localStorage in capacitor, cookie on web)
         removeFromCookie(WEB_AUTHN_COOKIE_KEY)
         await clearAuthToken()
 
         // clear redirect url
         clearRedirectUrl()
-
-        // cancel + remove all queries to prevent refetches with cleared jwt
-        try {
-            queryClient.cancelQueries()
-            queryClient.clear()
-        } catch (e) {
-            console.warn('failed to clear queries on logout:', e)
-        }
 
         // reset redux state (user, setup, zerodev)
         dispatch(userActions.setUser(null))

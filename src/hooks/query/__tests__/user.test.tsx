@@ -10,6 +10,7 @@ jest.mock('@/utils/api-fetch', () => ({ apiFetch: jest.fn() }))
 jest.mock('@/utils/auth-token', () => ({
     setAuthToken: jest.fn(),
     clearAuthToken: jest.fn(),
+    getClearEpoch: jest.fn(() => 0),
 }))
 jest.mock('@/hooks/usePWAStatus', () => ({ usePWAStatus: () => false }))
 jest.mock('@/hooks/useGetDeviceType', () => ({ useDeviceType: () => ({ deviceType: 'desktop' }) }))
@@ -56,6 +57,21 @@ describe('useUserQuery — JWT sliding refresh', () => {
 
         expect(mockSetAuthToken).toHaveBeenCalledWith(refreshed)
         expect(mockSetAuthToken).toHaveBeenCalledTimes(1)
+    })
+
+    it('drops a refreshed token when the session was cleared mid-flight (epoch changed)', async () => {
+        const { getClearEpoch } = jest.requireMock('@/utils/auth-token')
+        // epoch reads: once before the request, once after — logout in between
+        getClearEpoch.mockReturnValueOnce(0).mockReturnValueOnce(1)
+        mockApiFetch.mockResolvedValueOnce(
+            mockResponse(200, { user: { userId: 'u1', username: 'alice' }, token: 'resurrected.jwt' })
+        )
+
+        const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
+        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+        expect(mockSetAuthToken).not.toHaveBeenCalled()
+        expect(result.current.data).not.toHaveProperty('token')
     })
 
     it('does NOT call setAuthToken when the response has no token field', async () => {

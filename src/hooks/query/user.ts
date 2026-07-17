@@ -8,7 +8,7 @@ import { usePWAStatus } from '../usePWAStatus'
 import { useDeviceType } from '../useGetDeviceType'
 import { USER } from '@/constants/query.consts'
 import { apiFetch } from '@/utils/api-fetch'
-import { clearAuthToken, setAuthToken } from '@/utils/auth-token'
+import { clearAuthToken, getClearEpoch, setAuthToken } from '@/utils/auth-token'
 import { isDemoMode } from '@/utils/demo'
 import { DEMO_USER } from '@/constants/demo-data'
 
@@ -35,6 +35,7 @@ export const useUserQuery = (dependsOn: boolean = true) => {
             return DEMO_USER
         }
 
+        const epochAtRequest = getClearEpoch()
         const userResponse = await apiFetch('/users/me', { method: 'GET' })
         if (userResponse.ok) {
             const payload: (IUserProfile & { token?: string }) | null = await userResponse.json()
@@ -44,8 +45,11 @@ export const useUserQuery = (dependsOn: boolean = true) => {
             // it in client-side so active users never hit the 30d hard logout.
             // Strip `token` unconditionally so auth state never leaks into the
             // user store, even if the backend ever sends a falsy value.
+            // epoch guard: if logout cleared the session while this request
+            // was in flight, re-persisting the refreshed token would resurrect
+            // it (Android stuck-splash loop) — drop it instead.
             if (payload && 'token' in payload) {
-                if (payload.token) setAuthToken(payload.token)
+                if (payload.token && getClearEpoch() === epochAtRequest) setAuthToken(payload.token)
                 delete payload.token
             }
 
@@ -68,8 +72,11 @@ export const useUserQuery = (dependsOn: boolean = true) => {
         // DB re-seeded out from under a stale cookie) both mean the JWT is
         // irrecoverable. Wipe the token so the next render escapes to /setup
         // instead of looping on the same dead JWT.
+        // await: the native Preferences.remove must be dispatched before the
+        // redirect-to-/setup teardown, or the dead JWT survives into the next
+        // cold start and re-enters the home→401→setup loop.
         if (userResponse.status === 401 || userResponse.status === 404) {
-            clearAuthToken()
+            await clearAuthToken()
         }
 
         // 4xx = auth failure, clear stale redux so layout redirects to /setup

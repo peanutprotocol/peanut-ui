@@ -8,6 +8,8 @@ import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Bridge;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 
 public class MainActivity extends BridgeActivity {
@@ -55,7 +57,7 @@ public class MainActivity extends BridgeActivity {
                     // 1. try exact path
                     try {
                         String cleanPath = path.endsWith("/") ? path : path + "/";
-                        InputStream is = view.getContext().getAssets().open("public" + cleanPath + "index.html");
+                        InputStream is = openAppContent(view, cleanPath);
                         return new WebResourceResponse("text/html", "UTF-8", is);
                     } catch (Exception ignored) {}
 
@@ -69,7 +71,7 @@ public class MainActivity extends BridgeActivity {
                             String tryPath = String.join("/", segments);
                             if (!tryPath.endsWith("/")) tryPath += "/";
                             try {
-                                InputStream is = view.getContext().getAssets().open("public" + tryPath + "index.html");
+                                InputStream is = openAppContent(view, tryPath);
                                 return new WebResourceResponse("text/html", "UTF-8", is);
                             } catch (Exception ignored) {
                                 segments[i] = original;
@@ -85,18 +87,41 @@ public class MainActivity extends BridgeActivity {
                         parentPath = parentPath.substring(0, parentPath.lastIndexOf("/"));
                         if (parentPath.isEmpty()) break;
                         try {
-                            InputStream is = view.getContext().getAssets().open("public" + parentPath + "/index.html");
+                            InputStream is = openAppContent(view, parentPath + "/");
                             return new WebResourceResponse("text/html", "UTF-8", is);
                         } catch (Exception ignored) {}
                     }
 
                     // 4. root fallback
                     try {
-                        InputStream is = view.getContext().getAssets().open("public/index.html");
+                        InputStream is = openAppContent(view, "/");
                         return new WebResourceResponse("text/html", "UTF-8", is);
                     } catch (Exception ignored) {}
 
                     return null;
+                }
+
+                /**
+                 * Opens the index.html for a directory-style path ("/setup/"),
+                 * honoring an active OTA bundle. When CapacitorUpdater has
+                 * pointed the server base path at an on-disk bundle, HTML must
+                 * come from that bundle — the APK's assets are a stale export
+                 * whose chunk references no longer exist, and serving them
+                 * bricks navigation (stuck splash loop after logout). Only when
+                 * no bundle is active (base path isn't a directory) do we read
+                 * the bundled assets.
+                 */
+                private InputStream openAppContent(WebView view, String cleanPath) throws Exception {
+                    String rel = (cleanPath.startsWith("/") ? cleanPath.substring(1) : cleanPath) + "index.html";
+                    Bridge activeBridge = getBridge();
+                    String basePath = activeBridge != null ? activeBridge.getServerBasePath() : null;
+                    if (basePath != null && !basePath.isEmpty()) {
+                        File base = new File(basePath);
+                        if (base.isDirectory()) {
+                            return new FileInputStream(new File(base, rel));
+                        }
+                    }
+                    return view.getContext().getAssets().open("public/" + rel);
                 }
             });
         }
