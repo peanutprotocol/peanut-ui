@@ -95,7 +95,7 @@ jest.mock('@/redux/hooks', () => ({
     useAppDispatch: () => jest.fn(),
 }))
 
-jest.mock('@/context', () => ({
+jest.mock('@/context/tokenSelector.context', () => ({
     tokenSelectorContext: React.createContext({
         setSelectedTokenAddress: jest.fn(),
         setSelectedChainID: jest.fn(),

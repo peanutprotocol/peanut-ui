@@ -10,7 +10,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { captureException } from '@sentry/nextjs'
 
 import { CLAIM_LINK, CLAIM_LINK_XCHAIN, TRANSACTIONS } from '@/constants/query.consts'
-import { loadingStateContext } from '@/context'
+import { loadingStateContext } from '@/context/loadingStates.context'
 import { getTokenSymbol, isTestnetChain } from '@/utils/general.utils'
 import { sendLinksApi, ESendLinkStatus } from '@/services/sendLinks'
 import { PEANUT_API_URL } from '@/constants/general.consts'

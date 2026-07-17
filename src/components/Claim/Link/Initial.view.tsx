@@ -11,7 +11,8 @@ import {
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import { loadingStateContext, tokenSelectorContext } from '@/context'
+import { loadingStateContext } from '@/context/loadingStates.context'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'

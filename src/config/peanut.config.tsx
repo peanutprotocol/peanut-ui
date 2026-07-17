@@ -1,5 +1,5 @@
 'use client'
-import { ContextProvider } from '@/config'
+import { ContextProvider } from '@/config/wagmi.config'
 import countries from 'i18n-iso-countries'
 import enLocale from 'i18n-iso-countries/langs/en.json'
 import { useEffect } from 'react'

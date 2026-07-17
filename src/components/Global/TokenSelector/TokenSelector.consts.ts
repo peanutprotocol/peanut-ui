@@ -1,6 +1,6 @@
 import SOLANA_ICON from '@/assets/chains/solana.svg'
 import TRON_ICON from '@/assets/chains/tron.svg'
-import { networks } from '@/config'
+import { networks } from '@/config/wagmi.config'
 import { CHAIN_REGISTRY } from '@/constants/chainRegistry.consts'
 import type { IPeanutChainDetails, IToken } from '@/interfaces/interfaces'
 import { celo, linea, scroll, worldchain } from 'viem/chains'

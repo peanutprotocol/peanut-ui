@@ -1,6 +1,6 @@
 'use client'
 
-import { tokenSelectorContext } from '@/context'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { LinkSendFlowProvider, useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useContext, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
