@@ -28,7 +28,7 @@ const LinkSendFlowContent = ({ onPrev }: LinkSendFlowManagerProps) => {
     useEffect(() => {
         setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
         setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-    }, [])
+    }, [setSelectedChainID, setSelectedTokenAddress])
 
     return (
         <>

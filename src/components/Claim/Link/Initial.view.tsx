@@ -222,7 +222,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
             setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
         }
-    }, [claimLinkData, isPeanutWallet])
+    }, [claimLinkData, isPeanutWallet, setSelectedChainID, setSelectedTokenAddress])
 
     const isPeanutChain = useMemo(() => {
         return claimLinkData.chainId === PEANUT_WALLET_CHAIN.id.toString()
@@ -244,7 +244,16 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             }
         }
         prevRecipientType.current = recipientType
-    }, [recipientType, claimLinkData.chainId, isPeanutChain, claimLinkData.tokenAddress])
+    }, [
+        recipientType,
+        claimLinkData.chainId,
+        isPeanutChain,
+        claimLinkData.tokenAddress,
+        setIsXChain,
+        setRefetchXchainRoute,
+        setSelectedChainID,
+        setSelectedTokenAddress,
+    ])
 
     const handleClaimLink = useCallback(
         async (bypassModal = false, _autoClaim = false) => {
@@ -772,7 +781,15 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 setIsXChain(true)
             }
         }
-    }, [isPeanutWallet, isPeanutChain, claimToExternalWallet])
+    }, [
+        isPeanutWallet,
+        isPeanutChain,
+        claimToExternalWallet,
+        setIsXChain,
+        setRefetchXchainRoute,
+        setSelectedChainID,
+        setSelectedTokenAddress,
+    ])
 
     // Clear recipient when switching to external wallet
     useEffect(() => {
