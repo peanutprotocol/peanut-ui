@@ -1,6 +1,6 @@
 import { render, waitFor } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
-import { ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import en from '@/i18n/app/messages/en.json'
 import { SumsubKycWrapper } from '../SumsubKycWrapper'
 
