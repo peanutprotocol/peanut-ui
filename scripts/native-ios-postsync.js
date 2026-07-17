@@ -24,14 +24,53 @@ const { execSync } = require('child_process')
 const SUMSUB_VERSION = '1.42.0'
 
 const repoRoot = path.join(__dirname, '..')
+const pluginPkg = '@sumsub/cordova-idensic-mobile-sdk-plugin'
 const pluginDir = path.join(repoRoot, 'ios/capacitor-cordova-ios-plugins/sources/SumsubCordovaIdensicMobileSdkPlugin')
 const frameworksDir = path.join(pluginDir, 'Frameworks')
 const xcframework = path.join(frameworksDir, 'IdensicMobileSDK.xcframework')
 const pkgSwiftPath = path.join(pluginDir, 'Package.swift')
+const capAppPkgSwift = path.join(repoRoot, 'ios/App/CapApp-SPM/Package.swift')
+
+const pluginInstalled = (() => {
+    try {
+        require.resolve(`${pluginPkg}/package.json`, { paths: [repoRoot] })
+        return true
+    } catch {
+        return false
+    }
+})()
+
+const capAppReferencesPlugin = (() => {
+    try {
+        return fs.readFileSync(capAppPkgSwift, 'utf8').includes('SumsubCordovaIdensicMobileSdkPlugin')
+    } catch {
+        return false
+    }
+})()
 
 if (!fs.existsSync(pluginDir)) {
-    console.log('[postsync] SumSub plugin dir not present — skipping (plugin removed?)')
-    process.exit(0)
+    // `cap sync ios` regenerates this dir from the installed Cordova plugin, but
+    // when node_modules isn't fully materialized (a partial/interrupted pnpm
+    // install) cap sync silently drops the plugin and STILL exits 0 — so the dir
+    // is absent even though the committed CapApp-SPM/Package.swift hard-references
+    // it, and the archive then dies a minute later with a cryptic SwiftPM
+    // "folder doesn't exist" error. Skip only when the plugin is genuinely gone.
+    if (!pluginInstalled && !capAppReferencesPlugin) {
+        console.log(
+            `[postsync] ${pluginPkg} not installed and not referenced by CapApp-SPM — plugin removed; nothing to vendor.`
+        )
+        process.exit(0)
+    }
+    console.error(
+        `[postsync] ERROR: ${pluginDir} is missing after \`cap sync ios\`.\n` +
+            `  It is generated from ${pluginPkg}, which ${pluginInstalled ? 'IS installed' : 'is NOT installed'} in node_modules.\n` +
+            (pluginInstalled
+                ? '  cap sync failed to detect it — usually a partial/interrupted `pnpm install` that left the package unresolved at sync time.\n'
+                : '  The package is missing from node_modules — `pnpm install` did not materialize it.\n') +
+            `  ios/App/CapApp-SPM/Package.swift ${capAppReferencesPlugin ? 'references' : 'does not reference'} this package, so the archive would fail with a cryptic SwiftPM error.\n` +
+            '  Fix: re-run `pnpm install && npx cap sync ios && node scripts/native-ios-postsync.js`.'
+    )
+    process.exit(1)
 }
 
 // 1. Vendor the xcframework (download once; it survives within a single CI run).

@@ -65,6 +65,20 @@ jobs:
             - name: Install dependencies
               run: pnpm install
 
+            - name: Verify SumSub Cordova plugin materialized
+              # `cap sync ios` silently drops a Cordova plugin (exit 0, no folder)
+              # when node_modules isn't fully materialized, and the archive then
+              # fails a minute later with a cryptic SwiftPM error. Catch the real
+              # cause — a partial pnpm install — here, where a re-run recovers.
+              run: |
+                  P=node_modules/@sumsub/cordova-idensic-mobile-sdk-plugin
+                  if [ ! -f "$P/package.json" ] || [ ! -f "$P/plugin.xml" ]; then
+                      echo "::error::$P is not fully installed (package.json/plugin.xml missing). This is the intermittent iOS-release flake — cap sync would drop the plugin and the archive would fail cryptically. Re-run the job (pnpm install did not materialize the plugin)."
+                      ls -la "$P" 2>&1 || true
+                      exit 1
+                  fi
+                  echo "SumSub Cordova plugin materialized."
+
             - name: Production web env
               run: |
                   # NEXT_PUBLIC_* values are baked into the static export at build time.
