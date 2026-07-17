@@ -6,6 +6,11 @@
 import { demoRespond } from '@/utils/demo-api'
 import { DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_USER } from '@/constants/demo-data'
 
+// The web-safe test requires @/utils/demo → general.utils → app/actions/clients, whose
+// module-scope viem clients start 60s RPC-ranking timers (fallback rank) that keep the
+// Jest worker alive → "force exited" warning. Nothing here needs the clients.
+jest.mock('@/app/actions/clients', () => ({}))
+
 const body = async (path: string, options?: RequestInit) => {
     const res = await demoRespond(path, options)
     return { res, data: await res.json() }
