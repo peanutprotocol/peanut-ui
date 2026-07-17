@@ -32,6 +32,11 @@ on:
                 description: 'versionName override (optional; defaults to package.json)'
                 required: false
                 type: string
+            pushDebug:
+                description: 'Enable OneSignal verbose logging in this build'
+                required: false
+                default: false
+                type: boolean
 
 concurrency:
     group: android-release-${{ github.ref }}
@@ -103,20 +108,28 @@ jobs:
                   NEXT_PUBLIC_SAFARI_WEB_ID=${{ vars.NEXT_PUBLIC_SAFARI_WEB_ID }}
                   NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
                   EOF
+                  if [ "${{ github.event.inputs.pushDebug }}" = "true" ]; then
+                      echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true" >> .env.production.local
+                  fi
 
             - name: Decode google-services.json
-              # FCM credentials for native push. When the secret is unset the file
-              # is skipped and build.gradle simply omits the google-services plugin
-              # (push disabled, build still succeeds).
+              # FCM credentials for native push. Must come from the Firebase project
+              # wired to OneSignal's Android (FCM v1) config or token registration fails.
               env:
                   ANDROID_GOOGLE_SERVICES_JSON: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON }}
               run: |
-                  if [ -n "$ANDROID_GOOGLE_SERVICES_JSON" ]; then
-                      echo "$ANDROID_GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
-                      echo "✅ google-services.json written"
-                  else
-                      echo "⚠️  ANDROID_GOOGLE_SERVICES_JSON unset — native push disabled for this build"
+                  if [ -z "$ANDROID_GOOGLE_SERVICES_JSON" ]; then
+                      echo "::error::ANDROID_GOOGLE_SERVICES_JSON unset — release builds must ship FCM push. See docs/NATIVE-RELEASE.md"
+                      exit 1
                   fi
+                  echo "$ANDROID_GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+                  python3 -c "
+                  import json
+                  d = json.load(open('android/app/google-services.json'))
+                  clients = [c['client_info']['android_client_info']['package_name'] for c in d['client']]
+                  assert 'me.peanut.wallet' in clients, f'google-services.json has no client for me.peanut.wallet (found: {clients})'
+                  "
+                  echo "✅ google-services.json written and validated"
 
             - name: Build signed AAB
               run: |
