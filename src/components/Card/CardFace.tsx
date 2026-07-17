@@ -4,7 +4,8 @@ import Image from 'next/image'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { PEANUT_CARD_HAND, VISA_BRAND_MARK } from '@/assets/cards'
-import { PEANUT_LOGO } from '@/assets/logos'
+import { PEANUTMAN } from '@/assets/mascot'
+import { PEANUT_LOGO_BLACK } from '@/assets/logos'
 
 export interface RevealedCardDetails {
     pan: string
@@ -53,6 +54,10 @@ const CardFace: FC<Props> = ({
     className,
 }) => {
     const showingDetails = revealed != null
+    // The hand slides out of the way while details are shown OR being fetched,
+    // so it never covers the PAN / expiry / CVV (or the loading skeletons).
+    // It slides back when the card is re-masked.
+    const detailsShown = showingDetails || loading
     const [copiedField, setCopiedField] = useState<'pan' | 'cvv' | null>(null)
 
     const handleCopy = (value: string, field: 'pan' | 'cvv') => {
@@ -71,25 +76,34 @@ const CardFace: FC<Props> = ({
                 className
             )}
         >
-            {/* Hand + yellow stripe artwork. Decorative — sits behind content.
-             * Upright and bottom-anchored to match the finalised Rain card art:
-             * fingertips clear the top logos and the arm sweeps to the
-             * bottom-right corner. */}
+            {/* Hand + yellow stripe artwork. Decorative — sits behind content,
+             * bottom-anchored to match the finalised Rain card art. On reveal
+             * (or while fetching) it slides diagonally off the bottom-right
+             * corner so it never covers the card details; slides back when
+             * re-masked. pointer-events-none so it never intercepts the eye tap. */}
             <Image
                 src={PEANUT_CARD_HAND}
                 alt=""
                 aria-hidden
-                className="pointer-events-none absolute bottom-0 right-0 h-[90%] w-auto select-none"
+                className={twMerge(
+                    'pointer-events-none absolute bottom-0 right-0 h-[90%] w-auto select-none transition-transform duration-500',
+                    detailsShown && 'translate-x-full translate-y-full'
+                )}
                 priority
             />
 
             <div className="relative flex h-full w-full flex-col p-4">
                 {/* Top row: peanut mascot + wordmark (left) + Visa Platinum (right).
-                 * Matches the finalised Rain card art (Apple Wallet): black PEANUT
-                 * lockup and a dark VISA with a "Platinum" tier line beneath it —
-                 * not the old inverted-white Visa with no tier. */}
+                 * Matches the finalised Rain card art (Apple Wallet): yellow mascot +
+                 * black PEANUT wordmark (PEANUT_LOGO_BLACK is the text-only black
+                 * variant; PEANUT_LOGO bakes in a white wordmark for dark bgs) and a
+                 * dark VISA with a "Platinum" tier line — not the old inverted-white
+                 * Visa with no tier. */}
                 <div className="flex items-start justify-between">
-                    <Image src={PEANUT_LOGO} alt="Peanut" className="h-7 w-auto" />
+                    <div className="flex items-center gap-2">
+                        <Image src={PEANUTMAN} alt="" aria-hidden className="h-8 w-auto" />
+                        <Image src={PEANUT_LOGO_BLACK} alt="Peanut" className="h-3 w-auto" />
+                    </div>
                     <div className="flex flex-col items-end leading-none">
                         <Image src={VISA_BRAND_MARK} alt="Visa" className="h-6 w-auto brightness-0" />
                         <span className="mt-0.5 text-[11px] font-semibold tracking-wide">Platinum</span>
@@ -197,38 +211,36 @@ const CardFace: FC<Props> = ({
                         </>
                     ) : error ? (
                         <>
-                            <span className="text-sm font-bold leading-snug">{error}</span>
-                            <div className="mt-1 flex items-end justify-between">
-                                {isVirtual ? (
-                                    <span className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold">
-                                        Virtual
-                                    </span>
-                                ) : (
-                                    <span />
-                                )}
+                            {/* Retry eye inline with the message — hand is still present
+                             * in the error state, so keep the control in the left zone. */}
+                            <div className="flex items-start gap-3">
+                                <span className="text-sm font-bold leading-snug">{error}</span>
                                 {onToggleReveal && (
                                     <button
                                         type="button"
                                         aria-label="Retry showing card details"
                                         onClick={onToggleReveal}
-                                        className="p-1"
+                                        className="shrink-0 p-1"
                                     >
                                         <Icon name="eye" size={22} />
                                     </button>
                                 )}
                             </div>
-                        </>
-                    ) : (
-                        <>
-                            <span className="text-2xl font-extrabold tracking-wider">•••• {last4}</span>
-                            <div className="mt-1 flex items-end justify-between">
-                                {isVirtual ? (
+                            {isVirtual && (
+                                <div className="mt-1">
                                     <span className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold">
                                         Virtual
                                     </span>
-                                ) : (
-                                    <span />
-                                )}
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            {/* Eye sits inline with the number — the bottom-right corner
+                             * is where the hand's arm rests when masked, so the reveal
+                             * toggle lives in the hand-free left zone instead. */}
+                            <div className="flex items-center gap-3">
+                                <span className="text-2xl font-extrabold tracking-wider">•••• {last4}</span>
                                 {onToggleReveal && (
                                     <button
                                         type="button"
@@ -240,6 +252,13 @@ const CardFace: FC<Props> = ({
                                     </button>
                                 )}
                             </div>
+                            {isVirtual && (
+                                <div className="mt-1">
+                                    <span className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold">
+                                        Virtual
+                                    </span>
+                                </div>
+                            )}
                         </>
                     )}
                 </div>
