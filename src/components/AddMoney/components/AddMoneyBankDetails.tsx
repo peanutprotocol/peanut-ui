@@ -296,6 +296,14 @@ Please use these details to complete your bank transfer.`
                 <Card className="gap-2 rounded-sm">
                     <h1 className="text-xs">Bank Details</h1>
 
+                    {/* name-match is the top cause of returned deposits (Bridge BE01): send from an
+                        account in the user's own name and enter the recipient name exactly as shown */}
+                    <InfoCard
+                        variant="warning"
+                        icon="alert"
+                        description="Send from a bank account in your own name, and enter the recipient name exactly as shown. A name mismatch will bounce the transfer."
+                    />
+
                     {/* resolveBridgeAccountHolderName maps Bridge's stale/absent legal entity name to the current one (Sp. Z.o.o. -> S.A.) */}
                     <PaymentInfoRow
                         label={'Account Holder Name'}
