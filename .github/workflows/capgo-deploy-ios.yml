@@ -8,7 +8,7 @@ name: Deploy OTA Update — iOS only (Capgo)
 
 on:
     push:
-        branches: [feat/mobile-release]
+        branches: [mobile-release]
     workflow_dispatch:
         inputs:
             channel:
