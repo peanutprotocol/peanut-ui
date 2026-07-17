@@ -263,9 +263,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             setIsLoggingOut(true)
             try {
-                // No server-side session to invalidate — the JWT lives client-side
-                // only (the old logout-user route just dropped a cookie). Once we
-                // add a tokenVersion column we can revoke server-side too.
+                /*
+                 * Revoke server-side FIRST (needs the still-valid JWT): POST
+                 * /users/logout bumps the account's tokenVersion so every
+                 * outstanding JWT — this device and any other — stops
+                 * verifying. Best-effort: a dead backend must never trap the
+                 * user in a session, so failures fall through to local logout.
+                 */
+                if (!options?.skipBackendCall) {
+                    try {
+                        await apiFetch('/users/logout', { method: 'POST' })
+                    } catch (e) {
+                        console.warn('server-side session revocation failed, continuing local logout:', e)
+                    }
+                }
+
                 await clearLocalAuthState()
 
                 // fetch user (should return null after logout) - skip for capacitor
