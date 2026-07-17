@@ -5,7 +5,6 @@ import { type useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 
 interface SumsubKycModalsProps {
     flow: ReturnType<typeof useMultiPhaseKycFlow>
-    autoStartSdk?: boolean
 }
 
 /**
@@ -15,7 +14,7 @@ interface SumsubKycModalsProps {
  *
  * pair with useMultiPhaseKycFlow hook for the logic.
  */
-export const SumsubKycModals = ({ flow, autoStartSdk }: SumsubKycModalsProps) => {
+export const SumsubKycModals = ({ flow }: SumsubKycModalsProps) => {
     return (
         <>
             <SumsubKycWrapper
@@ -24,7 +23,6 @@ export const SumsubKycModals = ({ flow, autoStartSdk }: SumsubKycModalsProps) =>
                 onClose={flow.handleSdkClose}
                 onComplete={flow.handleSdkComplete}
                 onRefreshToken={flow.refreshToken}
-                autoStart={autoStartSdk}
                 isMultiLevel={flow.isMultiLevel}
             />
 
@@ -42,12 +40,7 @@ export const SumsubKycModals = ({ flow, autoStartSdk }: SumsubKycModalsProps) =>
             />
 
             {flow.tosLink && (
-                <IframeWrapper
-                    src={flow.tosLink}
-                    visible={flow.showTosIframe}
-                    onClose={flow.handleTosIframeClose}
-                    skipStartView
-                />
+                <IframeWrapper src={flow.tosLink} visible={flow.showTosIframe} onClose={flow.handleTosIframeClose} />
             )}
         </>
     )

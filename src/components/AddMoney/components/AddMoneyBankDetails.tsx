@@ -9,13 +9,13 @@ import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
 import { countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
-import { formatBankAccountDisplay } from '@/utils/format.utils'
+import { formatBankAccountDisplay, shortDepositReference } from '@/utils/format.utils'
 import { applyBridgeCrossCurrencyFee, getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { formatAmount } from '@/utils/general.utils'
 import InfoCard from '@/components/Global/InfoCard'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
-import { BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME } from '@/constants/payment.consts'
+import { resolveBridgeAccountHolderName } from '@/constants/payment.consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useOnrampQuote } from '@/hooks/useOnrampQuote'
 import { currencyToAccountType } from '@/utils/bridge.utils'
@@ -236,7 +236,7 @@ ${routingLabel}: ${routingValue}`
         }
 
         bankDetails += `
-Deposit Reference: ${onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || 'Loading...'}
+Deposit Reference: ${shortDepositReference(onrampData?.depositInstructions?.depositMessage) || 'Loading...'}
 
 Please use these details to complete your bank transfer.`
 
@@ -274,11 +274,11 @@ Please use these details to complete your bank transfer.`
                     <p className="text-xs font-normal text-gray-1">Deposit reference</p>
                     <div className="flex items-baseline gap-2">
                         <p className="text-xl font-extrabold text-black md:text-4xl">
-                            {onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || 'Loading...'}
+                            {shortDepositReference(onrampData?.depositInstructions?.depositMessage) || 'Loading...'}
                         </p>
                         {onrampData?.depositInstructions?.depositMessage && (
                             <CopyToClipboard
-                                textToCopy={onrampData.depositInstructions.depositMessage?.slice(0, 10)}
+                                textToCopy={shortDepositReference(onrampData.depositInstructions.depositMessage)}
                                 fill="black"
                                 iconSize="4"
                             />
@@ -296,10 +296,10 @@ Please use these details to complete your bank transfer.`
                 <Card className="gap-2 rounded-sm">
                     <h1 className="text-xs">Bank Details</h1>
 
-                    {/* note: fallback to bridge as account holder name, to cover faster_payments onramp requests as bridge currently doesnt retrun a account holder name in api response */}
+                    {/* resolveBridgeAccountHolderName maps Bridge's stale/absent legal entity name to the current one (Sp. Z.o.o. -> S.A.) */}
                     <PaymentInfoRow
                         label={'Account Holder Name'}
-                        value={onrampData?.depositInstructions?.accountHolderName || BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME}
+                        value={resolveBridgeAccountHolderName(onrampData?.depositInstructions?.accountHolderName)}
                         allowCopy
                         hideBottomBorder
                     />
@@ -416,7 +416,7 @@ Please use these details to complete your bank transfer.`
                     title="Double check in your bank before sending:"
                     items={[
                         `Amount: ${formattedCurrencyAmount} (exact)`,
-                        `Reference: ${onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || 'Loading...'} (included)`,
+                        `Reference: ${shortDepositReference(onrampData?.depositInstructions?.depositMessage) || 'Loading...'} (included)`,
                     ]}
                 />
 

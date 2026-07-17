@@ -385,18 +385,40 @@ export interface paths {
                                         withdraw?: "enabled" | "pending" | "requires-info" | "blocked";
                                     };
                                     blockingActions?: string[];
+                                    hintActions?: string[];
                                     reason?: {
                                         code: string;
                                         userMessage: string;
                                         details?: string;
                                     };
+                                    resolved?: {
+                                        status: "enabled" | "pending" | "fixable" | "blocked";
+                                        blocking?: {
+                                            code: string;
+                                            userMessage: string;
+                                            selfHealable: boolean;
+                                            selfHealKind?: "document-resubmit" | "restart-identity" | "provide-email" | "contact-support";
+                                            details?: string;
+                                        };
+                                        nextAction?: {
+                                            key: string;
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email";
+                                            purpose: string;
+                                            levelKey?: string;
+                                            tosUrl?: string;
+                                            effectiveDate?: string;
+                                            requirementKey?: string;
+                                        };
+                                    };
                                 }[];
                                 nextActions: {
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email";
                                     purpose: string;
                                     levelKey?: string;
                                     tosUrl?: string;
+                                    effectiveDate?: string;
+                                    requirementKey?: string;
                                 }[];
                                 restrictions: {
                                     code: string;
@@ -536,6 +558,7 @@ export interface paths {
                         fullName?: string;
                         bridge_customer_id?: string;
                         telegramUsername?: string;
+                        offrampHandle?: string;
                         pushSubscriptionId?: string;
                         showFullName?: boolean;
                         hasSeenEarlyUserModal?: boolean;
@@ -544,6 +567,41 @@ export interface paths {
                     };
                 };
             };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
             responses: {
                 /** @description Default Response */
                 200: {
@@ -910,8 +968,6 @@ export interface paths {
                         "application/json": {
                             userId: string;
                             fullName: string | null;
-                            email: string;
-                            bridgeCustomerId: string | null;
                             username: string | null;
                             showFullName: boolean;
                             canReceiveBankOfframp: boolean;
@@ -1128,18 +1184,40 @@ export interface paths {
                                         withdraw?: "enabled" | "pending" | "requires-info" | "blocked";
                                     };
                                     blockingActions?: string[];
+                                    hintActions?: string[];
                                     reason?: {
                                         code: string;
                                         userMessage: string;
                                         details?: string;
                                     };
+                                    resolved?: {
+                                        status: "enabled" | "pending" | "fixable" | "blocked";
+                                        blocking?: {
+                                            code: string;
+                                            userMessage: string;
+                                            selfHealable: boolean;
+                                            selfHealKind?: "document-resubmit" | "restart-identity" | "provide-email" | "contact-support";
+                                            details?: string;
+                                        };
+                                        nextAction?: {
+                                            key: string;
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email";
+                                            purpose: string;
+                                            levelKey?: string;
+                                            tosUrl?: string;
+                                            effectiveDate?: string;
+                                            requirementKey?: string;
+                                        };
+                                    };
                                 }[];
                                 nextActions: {
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email";
                                     purpose: string;
                                     levelKey?: string;
                                     tosUrl?: string;
+                                    effectiveDate?: string;
+                                    requirementKey?: string;
                                 }[];
                                 restrictions: {
                                     code: string;
@@ -2517,43 +2595,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/bridge/kyc-links/{uuid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: {
-                    "api-key"?: string;
-                };
-                path: {
-                    uuid: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/bridge/kyc-links": {
         parameters: {
             query?: never;
@@ -2614,140 +2655,6 @@ export interface paths {
                 };
                 path: {
                     uuid: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bridge/customers/{customerId}/liquidation-addresses": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: {
-                    "api-key"?: string;
-                };
-                path: {
-                    customerId: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        chain: "arbitrum" | "base" | "avalance_c_chain" | "ethereum" | "optimism" | "polygon" | "solana" | "stellar";
-                        currency: "dai" | "usdc" | "eurc" | "usdt";
-                        externalAccountId: string;
-                        prefundedAccountId?: string;
-                        destinationWireMessage?: string;
-                        destinationSepaReference?: string;
-                        destinationSwiftReference?: string;
-                        destinationAchReference?: string;
-                        destinationPaymentRail?: "arbitrum" | "base" | "avalance_c_chain" | "ethereum" | "optimism" | "polygon" | "solana" | "stellar" | "ach" | "ach_push" | "ach_same_day" | "sepa" | "swift" | "wire";
-                        destinationCurrency?: "eur" | "usd";
-                        destinationAddress?: string;
-                        destinationBlockchainMemo?: string;
-                        customDeveloperFeePercent?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bridge/customers/{uuid}/liquidation-addresses": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: {
-                    limit?: number;
-                    startingAfter?: string;
-                    endingBefore?: string;
-                };
-                header?: {
-                    "api-key"?: string;
-                };
-                path: {
-                    uuid: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bridge/customers/{customerId}/liquidation-addresses/{liquidationAddressId}/drains": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: {
-                    "api-key"?: string;
-                };
-                path: {
-                    customerId: string;
-                    liquidationAddressId: string;
                 };
                 cookie?: never;
             };
@@ -2992,6 +2899,14 @@ export interface paths {
                             sepaReference?: string;
                             achReference?: string;
                         };
+                        beneficiaryName?: string;
+                        beneficiaryAddress?: {
+                            street: string;
+                            city: string;
+                            country: string;
+                            state?: string;
+                            postalCode?: string;
+                        };
                     };
                 };
             };
@@ -3037,6 +2952,17 @@ export interface paths {
                 };
                 /** @description Default Response */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -3788,6 +3714,8 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            /** @enum {string} */
+                            code?: "STALE_CARD_APPROVAL";
                         };
                     };
                 };
@@ -4047,6 +3975,47 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/manteca/deposit/{depositId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get deposit order status
+         * @description Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only — the webhook/poller remain the authoritative completion trigger.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path: {
+                    depositId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/manteca/withdraw/init": {
@@ -4756,7 +4725,9 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    "x-admin-token": string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -5801,6 +5772,9 @@ export interface paths {
                         destinationAddress: string;
                         tokenOut: string;
                         senderPeanutWalletAddress?: string;
+                        feeUsd?: number;
+                        payAmount?: string;
+                        receiveAmount?: string;
                     };
                 };
             };
@@ -6013,10 +5987,13 @@ export interface paths {
                             isEligible: boolean;
                             eligibilityReason?: string;
                             flowEarlyAccess: boolean;
+                            isPublicLaunched: boolean;
                             waitlistJoinedAt: string | null;
                             waitlistPosition: number | null;
                             waitlistReleasedAt: string | null;
                             skipBadges: string[];
+                            waitlistTotal: number;
+                            admittedTotal: number;
                         };
                     };
                 };
@@ -7310,6 +7287,7 @@ export interface paths {
                             expiryYear: number;
                             last4: string;
                             network: string;
+                            cardholderName?: string;
                         };
                     };
                 };
@@ -8913,7 +8891,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         userId: string;
-                        code: "BETA_TESTER" | "DEVCONNECT_BA_2025" | "PRODUCT_HUNT" | "OG_2025_10_12" | "SEEDLING_DEVCONNECT_BA_2025" | "ARBIVERSE_DEVCONNECT_BA_2025" | "CARD_PIONEER" | "FOUNDER_HOUSE" | "BUG_WHISPERER" | "SHHHHH" | "CARD_FIRST_SWIPE" | "CARD_SPENT_1K" | "CARD_ALPHA" | "TOKEN_NATION_SP_2026" | "ETHFLORIPA_HUB" | "WAITLIST_SKIP";
+                        code: "BETA_TESTER" | "DEVCONNECT_BA_2025" | "PRODUCT_HUNT" | "OG_2025_10_12" | "SEEDLING_DEVCONNECT_BA_2025" | "ARBIVERSE_DEVCONNECT_BA_2025" | "CARD_PIONEER" | "FOUNDER_HOUSE" | "BUG_WHISPERER" | "SHHHHH" | "NOT_SO_SHHHH" | "CARD_FIRST_SWIPE" | "CARD_SPENT_1K" | "CARD_ALPHA" | "TOKEN_NATION_SP_2026" | "ETHFLORIPA_HUB" | "IRL_NOMADS" | "EVENT_ALUMNI" | "TOUCHED_GRASS" | "OFFRAMP_USER" | "PSYOPS_DIVISION" | "WAITLIST_SKIP" | "FESTA_JUNINA_2026";
                         revoke?: boolean;
                     };
                 };
