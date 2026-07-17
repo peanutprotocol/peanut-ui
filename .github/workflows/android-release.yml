@@ -113,28 +113,6 @@ jobs:
                       echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true" >> .env.production.local
                   fi
 
-            - name: Decode google-services.json
-              # Optional. OneSignal's SDK does not read this file — it builds
-              # FirebaseOptions in code from its own defaults plus the sender ID
-              # configured on the OneSignal dashboard, and pulls firebase-messaging
-              # in transitively. The file is only needed if a future dependency
-              # wants Firebase's automatic initialization. Validated when present.
-              env:
-                  ANDROID_GOOGLE_SERVICES_JSON: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON }}
-              run: |
-                  if [ -z "$ANDROID_GOOGLE_SERVICES_JSON" ]; then
-                      echo "ℹ️  ANDROID_GOOGLE_SERVICES_JSON unset — building without it (OneSignal push does not require it)"
-                      exit 0
-                  fi
-                  echo "$ANDROID_GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
-                  python3 -c "
-                  import json
-                  d = json.load(open('android/app/google-services.json'))
-                  clients = [c['client_info']['android_client_info']['package_name'] for c in d['client']]
-                  assert 'me.peanut.wallet' in clients, f'google-services.json has no client for me.peanut.wallet (found: {clients})'
-                  "
-                  echo "✅ google-services.json written and validated"
-
             - name: Build signed AAB
               run: |
                   # versionName: manual dispatch input wins; else the tag name minus

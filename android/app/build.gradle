@@ -100,9 +100,7 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
-// Optional: OneSignal registers with FCM without it (FirebaseOptions built in
-// code from the dashboard's sender ID), so its absence does not disable push.
-def servicesJSON = file('google-services.json')
-if (servicesJSON.exists() && servicesJSON.text) {
-    apply plugin: 'com.google.gms.google-services'
-}
+// No google-services plugin: OneSignal registers with FCM on its own —
+// PushRegistratorFCM builds FirebaseOptions in code from the sender ID served
+// by the OneSignal dashboard, and firebase-messaging arrives transitively via
+// com.onesignal:notifications. See docs/NATIVE-RELEASE.md §Android push.

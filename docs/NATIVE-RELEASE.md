@@ -264,28 +264,26 @@ with **no backend or sequence changes**. The web/native split lives behind
   deps autolink on `cap sync`.
 - `AndroidManifest.xml`: `POST_NOTIFICATIONS` (the Android 13+ runtime prompt, driven by
   the plugin's `requestPermission()`).
-- `android/app/build.gradle` already conditionally applies the `google-services` plugin
-  **only when `google-services.json` is present** — its absence disables push but never
-  fails the build.
+- No `google-services.json` and no `google-services` Gradle plugin: OneSignal's Android
+  SDK never reads that file. `PushRegistratorFCM` builds `FirebaseOptions` in code from its
+  own baked-in defaults plus the sender ID served by the OneSignal dashboard, and
+  `com.onesignal:notifications` pulls `firebase-messaging` in transitively. The plugin only
+  wires Firebase's *automatic* initialization, which OneSignal bypasses.
 - `scripts/native-build.js` warns when `NEXT_PUBLIC_ONESIGNAL_APP_ID` is unset (the app id
   is inlined into the static bundle; without it the native SDK can't initialize).
 
-**Provider setup (do once, no code):**
-1. **Firebase:** create/locate the Firebase project for `me.peanut.wallet`, download
-   `google-services.json`, place it at `android/app/google-services.json` (gitignored).
-2. **OneSignal dashboard** → the existing app → **Google Android (FCM)** platform →
+**Provider setup (do once, no code, dashboard only):**
+1. **OneSignal dashboard** → the existing app → **Google Android (FCM)** platform →
    upload the **FCM v1 service account JSON** (Firebase → Project settings → Service
-   accounts → Generate private key).
-3. **CI:** `ANDROID_GOOGLE_SERVICES_JSON` is **optional** and currently unset. OneSignal's
-   Android SDK never reads `google-services.json`: `PushRegistratorFCM` builds
-   `FirebaseOptions` in code from its own baked-in defaults plus the sender ID served by
-   the OneSignal dashboard, and `com.onesignal:notifications` pulls `firebase-messaging`
-   in transitively. The `google-services` Gradle plugin only wires up Firebase's
-   *automatic* initialization, which OneSignal bypasses. Set the secret only if a future
-   dependency needs that path; the workflow validates the file when present and skips it
-   when absent.
+   accounts → Generate private key) and set the **Sender ID** (Firebase project number).
+   This is the *only* thing Android push depends on — there is no build-side FCM config.
 
-   Android push therefore depends on the **dashboard** config in step 2, not on this file.
+   Note: the file OneSignal wants here is the **service account private key**, not
+   `google-services.json`. The two are different Firebase files: `google-services.json` is
+   an app-side client config; the service account JSON is a server credential OneSignal
+   uses to send. Uploading `google-services.json` into OneSignal will not work.
+
+No `ANDROID_GOOGLE_SERVICES_JSON` secret is needed; it has been removed from the build.
 
 **Verify (real device/emulator with Play Services):**
 `node scripts/native-build.js && npx cap sync android && ./gradlew assembleDebug`, install,
