@@ -255,6 +255,10 @@ export default function QRPayPage() {
         if (sumsubFlow.showWrapper || sumsubFlow.isModalOpen) {
             sumsubFlow.completeFlow()
         }
+        // Field-level deps are complete for this body. useMultiPhaseKycFlow returns a fresh
+        // object each render, so depending on sumsubFlow itself would re-fire every render
+        // and call completeFlow() repeatedly.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [kycGateState, sumsubFlow.showWrapper, sumsubFlow.isModalOpen, sumsubFlow.completeFlow])
 
     const queryClient = useQueryClient()
@@ -385,6 +389,11 @@ export default function QRPayPage() {
         }
 
         setIsFirstLoad(false)
+        // Keyed on the scan (timestamp/processor/qrCode) on purpose: this resets payment
+        // state for each new QR. resetState is a render-body function and t/
+        // pixRecurringErrorMessage derive from it, so including them would re-run the
+        // reset on every render and wipe the amount mid-entry.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [timestamp, paymentProcessor, qrCode])
 
     // Get amount from payment lock (Manteca)
@@ -400,7 +409,7 @@ export default function QRPayPage() {
             setAmount(paymentLock.paymentAgainstAmount)
             setCurrencyAmount(paymentLock.paymentAssetAmount)
         }
-    }, [paymentLock?.code, paymentProcessor])
+    }, [paymentLock, paymentProcessor])
 
     // Get currency object from payment lock (Manteca)
     useEffect(() => {
@@ -422,7 +431,7 @@ export default function QRPayPage() {
             }
         }
         getCurrencyObject().then(setCurrency)
-    }, [paymentLock?.code, paymentProcessor])
+    }, [paymentLock, paymentProcessor])
 
     const isBlockingError = useMemo(() => {
         // The settling failure says "try again in a few seconds" — keep the Pay
@@ -440,7 +449,7 @@ export default function QRPayPage() {
             // For dynamic QR codes, backend provides the USD amount
             return paymentLock.paymentAgainstAmount
         }
-    }, [paymentLock?.code, paymentLock?.paymentAgainstAmount, amount])
+    }, [paymentLock, amount])
 
     // Live card-vs-local-rail markup, driven by Manteca's rate + (for ARS)
     // BCRA's official rate. Used by both the confirm-screen "Save vs card"
@@ -752,7 +761,6 @@ export default function QRPayPage() {
     }, [
         paymentLock,
         signSpend,
-        balance,
         rainCardOverview,
         qrCode,
         currencyAmount,
