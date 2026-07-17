@@ -52,9 +52,12 @@ describe('PhysicalCardScreen — joined waitlist copy', () => {
         expect(body.textContent).not.toMatch(/#/)
     })
 
+    // Derived rather than hardcoded: the separator is locale-dependent, and the
+    // contract is that the copy delegates to toLocaleString, not that it says "1,234".
     it('formats large positions with thousands separators', async () => {
         mockGet.mockResolvedValue({ joinedAt: '2026-01-01T00:00:00Z', position: 1234 })
         renderScreen()
-        expect(await screen.findByText(/You are #1,234 on the list\./)).toBeInTheDocument()
+        const body = await screen.findByText(/on the list\./)
+        expect(body.textContent).toContain(`You are #${(1234).toLocaleString()} on the list.`)
     })
 })
