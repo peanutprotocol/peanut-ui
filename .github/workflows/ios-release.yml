@@ -147,11 +147,15 @@ jobs:
                   # Monotonic, always-increments-even-on-rerun. TestFlight requires each
                   # upload's build number to exceed the last.
                   IOS_BUILD_NUMBER: ${{ github.run_number }}
-                  IOS_VERSION_NAME: ${{ github.event.inputs.versionName || '' }}
+                  IOS_VERSION_INPUT: ${{ github.event.inputs.versionName || '' }}
+                  IOS_TAG_NAME: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
               run: |
-                  # Only override MARKETING_VERSION when an explicit versionName is supplied;
-                  # otherwise keep the project's MARKETING_VERSION. CURRENT_PROJECT_VERSION is
-                  # always the CI run number. Info.plist reads both via $(...) build settings.
+                  # MARKETING_VERSION comes from the explicit versionName input, else from
+                  # the pushed tag (v1.0.31 -> 1.0.31); a bare tag push must not silently
+                  # ship the project default 1.0. CURRENT_PROJECT_VERSION is always the CI
+                  # run number. Info.plist reads both via $(...) build settings.
+                  IOS_VERSION_NAME="$IOS_VERSION_INPUT"
+                  if [ -z "$IOS_VERSION_NAME" ] && [ -n "$IOS_TAG_NAME" ]; then IOS_VERSION_NAME="${IOS_TAG_NAME#v}"; fi
                   MARKETING_ARG=()
                   if [ -n "$IOS_VERSION_NAME" ]; then MARKETING_ARG=("MARKETING_VERSION=$IOS_VERSION_NAME"); fi
 
