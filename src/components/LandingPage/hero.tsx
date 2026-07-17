@@ -4,6 +4,7 @@ import { PeanutWhistling } from '@/assets/mascot'
 import { GlobalCashLocalFeel, Star } from '@/assets/illustrations'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from './CloudsCss'
@@ -61,9 +62,10 @@ function PeanutMascot() {
     }, [position])
 
     return (
-        <img
+        <Image
             ref={imgRef}
-            src={PeanutWhistling.src}
+            src={PeanutWhistling}
+            unoptimized
             alt="Peanut Guy"
             className="absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain"
         />
@@ -147,9 +149,11 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
         >
             <CloudsCss />
             <div className="relative mt-10 w-full md:mt-0">
-                <img
-                    src={GlobalCashLocalFeel.src}
-                    className="z-0 mx-auto w-full max-w-[1000px] object-contain md:w-[50%]"
+                <Image
+                    src={GlobalCashLocalFeel}
+                    priority
+                    sizes="(min-width: 768px) 50vw, 100vw"
+                    className="z-0 mx-auto h-auto w-full max-w-[1000px] object-contain md:w-[50%]"
                     alt="Global Cash Local Feel"
                 />
 

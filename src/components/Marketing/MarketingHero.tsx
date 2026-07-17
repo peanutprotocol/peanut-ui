@@ -1,4 +1,5 @@
 import Title from '@/components/0_Bruddle/Title'
+import Image from 'next/image'
 import Link from 'next/link'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
@@ -31,9 +32,11 @@ export function MarketingHero({
                 <CloudsCss clouds={marketingClouds} />
                 <div className="relative z-10 mx-auto max-w-3xl">
                     {image && (
-                        <img
+                        <Image
                             src={image}
                             alt=""
+                            width={64}
+                            height={64}
                             className="mx-auto mb-4 h-16 w-16 rounded-xl object-contain"
                             onError={(e) => {
                                 e.currentTarget.style.display = 'none'

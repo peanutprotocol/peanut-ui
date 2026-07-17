@@ -1,5 +1,6 @@
 import Star from '@/assets/illustrations/star.svg'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
+import Image from 'next/image'
 
 interface StarPlacement {
     className: string
@@ -76,7 +77,7 @@ export function ProseStars() {
         <>
             {set.map((star, i) => (
                 <AnimateOnView key={i} className={star.className} delay={star.delay} x={star.x} rotate={star.rotate}>
-                    <img src={Star.src} alt="" width={star.width} height={star.height} />
+                    <Image src={Star} alt="" width={star.width} height={star.height} />
                 </AnimateOnView>
             ))}
         </>

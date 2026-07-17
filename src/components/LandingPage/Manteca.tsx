@@ -35,7 +35,7 @@ const Manteca = () => {
                         x="5px"
                         rotate={config.rotate}
                     >
-                        <img src={Star.src} alt="" width={50} height={50} />
+                        <Image src={Star} alt="" width={50} height={50} />
                     </AnimateOnView>
                 ))}
             </div>

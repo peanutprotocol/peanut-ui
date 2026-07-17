@@ -48,7 +48,7 @@ export function SendInSeconds() {
                     x={config.x}
                     rotate={config.rotate}
                 >
-                    <img src={Star.src} alt="" width={config.width} height={config.height} />
+                    <Image src={Star} alt="" width={config.width} height={config.height} />
                 </AnimateOnView>
             ))}
 
