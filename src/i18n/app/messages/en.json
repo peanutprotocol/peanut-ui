@@ -1396,7 +1396,9 @@
             "shareIntro": "Bank Transfer Details:",
             "shareOutro": "Please use these details to complete your bank transfer.",
             "shareLine": "{label}: {value}",
-            "amountLabel": "Amount"
+            "amountLabel": "Amount",
+            "doubleCheckSenderName": "Sender: use a bank account in your own name (a name mismatch bounces the transfer)",
+            "doubleCheckRecipientName": "Recipient: enter the name exactly as shown above"
         },
         "errors": {
             "invalidNumber": "Please enter a valid number.",

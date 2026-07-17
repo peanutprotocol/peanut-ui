@@ -450,6 +450,12 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                                 shortDepositReference(onrampData?.depositInstructions?.depositMessage) ||
                                 tCommon('loading'),
                         }),
+                        // name mismatch is the top cause of returned deposits (Bridge BE01). the
+                        // own-name rule holds for ACH/SEPA/wire; MX SPEI supports paying from a
+                        // third-party/client account, so this item is omitted there.
+                        ...(currentCountryDetails?.id !== 'MX'
+                            ? [t('bankDetails.doubleCheckSenderName'), t('bankDetails.doubleCheckRecipientName')]
+                            : []),
                     ]}
                 />
 

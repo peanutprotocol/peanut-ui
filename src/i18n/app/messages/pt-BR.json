@@ -1396,7 +1396,9 @@
             "shareIntro": "Dados da transferência bancária:",
             "shareOutro": "Use estes dados para concluir sua transferência bancária.",
             "shareLine": "{label}: {value}",
-            "amountLabel": "Valor"
+            "amountLabel": "Valor",
+            "doubleCheckSenderName": "Remetente: use uma conta bancária no seu próprio nome (se o nome não corresponder, a transferência é devolvida)",
+            "doubleCheckRecipientName": "Destinatário: digite o nome exatamente como mostrado acima"
         },
         "errors": {
             "invalidNumber": "Digite um número válido.",
