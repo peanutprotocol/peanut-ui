@@ -22,6 +22,7 @@ import type { RailCapability } from '@/types/capabilities'
 // reason message even when the page never touches them.
 type TestRail = Pick<RailCapability, 'id' | 'provider' | 'status' | 'operations'> & {
     reason?: { userMessage: string | null }
+    resolved?: RailCapability['resolved']
 }
 type TestRestriction = { code: string; affectedRailIds: string[]; userMessage?: string | null }
 
@@ -498,6 +499,7 @@ function capabilitiesForGate(state: GateState, opts: { userMessage?: string | nu
         canDo: (_op: string, o?: { provider?: string }) =>
             payEnabled && (o?.provider === undefined || o.provider === 'manteca'),
         railsForProvider: (provider: string) => rails.filter((r) => r.provider === provider),
+        nextActions: [],
         restrictionForRail: (railId: string) => restrictions.find((r) => r.affectedRailIds.includes(railId)),
     }
 }
@@ -688,6 +690,36 @@ describe('GROUP 1: Loading & KYC Gate', () => {
 
         expect(screen.getByText('QR payments are not available')).toBeInTheDocument()
         expect(screen.getByText('Contact support to continue.')).toBeInTheDocument()
+    })
+
+    test('provide-email verdict maps to the unavailable modal, never the document-upload flow', () => {
+        // a fixable verdict whose only fix is adding an email must not open
+        // the Sumsub upload flow (this surface has no email form) — same
+        // mapping rule as deriveProviderRejection
+        mockUseCapabilities.mockReturnValue({
+            ...capabilitiesForGate('provider_rejection_fixable', { userMessage: 'Add your email to continue.' }),
+            railsForProvider: () => [
+                {
+                    id: MANTECA_RAIL_ID,
+                    provider: 'manteca',
+                    status: 'blocked',
+                    resolved: {
+                        status: 'fixable',
+                        blocking: {
+                            code: 'email_required',
+                            userMessage: 'Add your email to continue.',
+                            selfHealable: true,
+                            selfHealKind: 'provide-email',
+                        },
+                    },
+                } as TestRail,
+            ],
+        })
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        expect(screen.getByText('QR payments are not available')).toBeInTheDocument()
+        expect(screen.queryByText('Upload document')).not.toBeInTheDocument()
     })
 
     test('Manteca fixable rejection shows updated-document modal', () => {

@@ -56,6 +56,12 @@ interface WithdrawConfirmViewProps {
      * sign into the misleading "balance still settling" send error.
      */
     insufficientBalance?: boolean
+    /**
+     * Set when the cross-chain deposit falls below Rhino's route minimum — the
+     * bridge would accept the funds on-chain but never deliver them. Blocks the
+     * CTA and shows the message.
+     */
+    belowMinimumMessage?: string | null
 }
 
 export default function ConfirmWithdrawView({
@@ -75,6 +81,7 @@ export default function ConfirmWithdrawView({
     payAmount,
     showHighFeeWarning = false,
     insufficientBalance = false,
+    belowMinimumMessage = null,
 }: WithdrawConfirmViewProps) {
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
@@ -214,7 +221,7 @@ export default function ConfirmWithdrawView({
                         variant="purple"
                         shadowSize="4"
                         onClick={onConfirm}
-                        disabled={isProcessing || isCalculating || insufficientBalance}
+                        disabled={isProcessing || isCalculating || insufficientBalance || !!belowMinimumMessage}
                         loading={isProcessing}
                         className="w-full"
                     >
@@ -223,6 +230,9 @@ export default function ConfirmWithdrawView({
                 )}
 
                 {insufficientBalance && !error && <ErrorAlert description={tErrors('notEnoughBalanceAddFunds')} />}
+                {belowMinimumMessage && !insufficientBalance && !error && (
+                    <ErrorAlert description={belowMinimumMessage} />
+                )}
                 {error && <ErrorAlert description={error} />}
             </div>
         </div>

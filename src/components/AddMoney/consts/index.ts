@@ -361,7 +361,7 @@ export const countryData: CountryData[] = [
         id: 'BGR',
         type: 'country',
         title: 'Bulgaria',
-        currency: 'BGN',
+        currency: 'EUR',
         path: 'bulgaria',
         iso2: 'BG',
         iso3: 'BGR',
@@ -2597,10 +2597,12 @@ export const countryData: CountryData[] = [
 
 export const COUNTRY_SPECIFIC_METHODS: Record<string, CountrySpecificMethods> = {}
 
-// bridge EAA country codes, source: https://apidocs.bridge.xyz/docs/sepa-euro-transactions
+// countries enabled for Bridge bank transfers — SEPA zone (source: https://apidocs.bridge.xyz/docs/sepa-euro-transactions,
+// incl. the 2025/26 SEPA joiners AL/MD/ME/MK/RS) plus US
 // note: this is a map of 3-letter country codes to 2-letter country codes, for flags to work, bridge expects 3 letter codes
 export const BRIDGE_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     ALA: 'AX',
+    ALB: 'AL',
     AND: 'AD',
     AUT: 'AT',
     BEL: 'BE',
@@ -2627,13 +2629,17 @@ export const BRIDGE_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     MLT: 'MT',
     MTQ: 'MQ',
     MYT: 'YT',
+    MDA: 'MD',
+    MNE: 'ME',
     NLD: 'NL',
+    MKD: 'MK',
     NOR: 'NO',
     POL: 'PL',
     PRT: 'PT',
     REU: 'RE',
     ROU: 'RO',
     MAF: 'MF',
+    SRB: 'RS',
     SVK: 'SK',
     SVN: 'SI',
     ESP: 'ES',

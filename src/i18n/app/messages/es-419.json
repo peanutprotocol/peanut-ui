@@ -1224,6 +1224,27 @@
             "signWithPasskey": "Firmar con passkey…",
             "submitting": "Enviando…",
             "cta": "Recuperar fondos"
+        },
+        "fixSignature": {
+            "navTitle": "Reparar la firma de la tarjeta",
+            "intro": "Esta herramienta repara un problema de estado de la billetera que impide que tu tarjeta se recargue automáticamente. Requiere hasta dos confirmaciones rápidas con tu passkey.",
+            "checkingWallet": "Revisando tu billetera…",
+            "checkAgain": "Revisar de nuevo",
+            "step1": "1. Reparar el estado de la billetera",
+            "needed": "requerido",
+            "nonceBricked": "Tu billetera está bloqueando los nuevos permisos de la tarjeta tras una actualización de seguridad anterior. Una confirmación lo resuelve.",
+            "undeployed": "Tu billetera necesita una activación en cadena por única vez antes de que los permisos de la tarjeta funcionen.",
+            "repairing": "Reparando…",
+            "repairNow": "Reparar ahora",
+            "step2": "2. Reactivar la recarga automática",
+            "allSet": "¡Listo! La recarga automática está activa de nuevo y ya se inició una recarga: el saldo de tu tarjeta debería actualizarse en unos minutos.",
+            "oneMoreConfirmation": "Una confirmación más reactiva la recarga automática de la tarjeta con un permiso nuevo.",
+            "waitingForConfirmation": "Esperando la confirmación…",
+            "loadingCard": "Cargando tu tarjeta…",
+            "reEnableFunding": "Reactivar la recarga",
+            "noActiveCard": "No se encontró una tarjeta activa en esta cuenta. Contacta al soporte.",
+            "regrantFailed": "La reactivación no se completó. Inténtalo de nuevo o contacta al soporte.",
+            "diagnostics": "Diagnóstico: nonce {nonce} / piso {floor}"
         }
     },
     "addMoney": {
@@ -1476,7 +1497,7 @@
         "manteca": {
             "youJustWithdrew": "Acabas de retirar",
             "toDestination": "a {destination}",
-            "youreSending": "Estás enviando",
+            "youreWithdrawing": "Estás retirando",
             "enterMethodDetails": "Ingresa los datos de {method}",
             "selectAccountType": "Selecciona el tipo de cuenta",
             "selectBank": "Selecciona el banco",
@@ -1660,7 +1681,12 @@
             "reportIssue": "¿Problemas con esta transacción?",
             "cancelDeposit": "Cancelar depósito",
             "cancelDepositRequest": "Cancelar solicitud",
-            "cancelDepositFailed": "No pudimos cancelar este depósito. Inténtalo de nuevo o contacta a soporte."
+            "cancelDepositFailed": "No pudimos cancelar este depósito. Inténtalo de nuevo o contacta a soporte.",
+            "cancelDepositTitle": "¿Cancelar este depósito?",
+            "cancelRequestTitle": "¿Cancelar esta solicitud?",
+            "cancelWarning": "Esto no se puede deshacer. Si ya enviaste la transferencia bancaria, <strong>no canceles</strong>: un depósito cancelado ya no se puede asociar a tu cuenta y el dinero se devolverá a tu banco.",
+            "confirmCancelDeposit": "Sí, cancelar el depósito",
+            "confirmCancelRequest": "Sí, cancelar la solicitud"
         },
         "toast": {
             "inviteLinkCopied": "¡Enlace de invitación copiado!",
@@ -1906,10 +1932,7 @@
             "chatWithSupport": "Chatear con soporte",
             "exitForNowTitle": "¿Salir por ahora?",
             "exitForNowDescription": "Puedes retomar donde lo dejaste más tarde — tu progreso se guarda.",
-            "exitAndLoseProgressTitle": "¿Salir y perder el progreso?",
-            "exitAndLoseProgressDescription": "Si sales ahora, tendrás que empezar la verificación de identidad desde cero.",
             "exit": "Salir",
-            "keepGoing": "Continuar",
             "loadError": "No se pudo cargar la verificación. Revisa tu conexión e inténtalo de nuevo."
         },
         "provideEmail": {
@@ -2454,13 +2477,6 @@
         "securityVerificationOverlay": {
             "message": "Verificando seguridad…"
         },
-        "startVerification": {
-            "title": "Verificación segura. Uso limitado de datos.",
-            "provider": "La verificación se realiza con un proveedor de confianza, que comparte el estado de tu verificación con Peanut.",
-            "practices": "Opera con prácticas de seguridad y privacidad estándar de la industria.",
-            "privacy": "Peanut nunca ve ni almacena tus datos de verificación.",
-            "cta": "Iniciar verificación segura"
-        },
         "iframeWrapper": {
             "troubleTitle": "¿Necesitas ayuda?",
             "troubleDescriptionLine1": "Si la verificación de identidad no carga aquí, complétala en tu navegador.",
@@ -2468,8 +2484,8 @@
             "copyLink": "Copiar enlace",
             "chatWithSupport": "Chatear con soporte",
             "cancel": "Cancelar",
-            "exitTitle": "¿Salir y perder el progreso?",
-            "exitDescription": "Si sales ahora, tendrás que empezar la verificación de identidad desde cero.",
+            "exitTitle": "¿Salir por ahora?",
+            "exitDescription": "Puedes volver y terminar esto cuando quieras.",
             "exit": "Salir",
             "continueVerifying": "Continuar verificando",
             "stopVerification": "Detener el proceso de verificación",
@@ -2522,7 +2538,7 @@
             "sentYou": "{sender} te envió",
             "youJustClaimed": "Acabas de reclamar",
             "youreAdding": "Estás agregando",
-            "youreSending": "Estás enviando",
+            "youreWithdrawing": "Estás retirando",
             "youWillReceive": "Recibirás",
             "youreAboutToReceive": "Estás por recibir"
         },

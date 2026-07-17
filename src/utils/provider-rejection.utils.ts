@@ -1,4 +1,5 @@
-import { type RailCapability } from '@/types/capabilities'
+import { type NextAction, type RailCapability } from '@/types/capabilities'
+import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 
 /**
  * Per-provider rejection state for the KYC status surfaces, derived from the
@@ -50,31 +51,51 @@ const PROVIDER_CODE: Record<'BRIDGE' | 'MANTECA', 'bridge' | 'manteca'> = {
 }
 
 /**
- * Derive the rejection state for a single provider from the capability rails.
+ * Derive the rejection state for a single provider from the per-rail VERDICT
+ * ({@link railVerdict}: `rail.resolved` BE-derived, shared legacy fallback).
  *
- * `restart-identity` is detected via the rail's `reason.code` — keeps the
- * signature backwards-compatible (no nextActions param) and mirrors the
- * backend resolver's split: country-not-supported on a Manteca rail emits a
- * `restart-identity` action; on Bridge/Rain it stays `contact-support`.
+ * Mapping notes:
+ *   - a `provide-email` verdict maps to `blocked` here — these surfaces would
+ *     otherwise open a document-upload flow for a user whose only fix is
+ *     adding an email (matches the legacy blocked-status shape).
+ *   - `restart-identity` comes from the verdict's selfHealKind, with the
+ *     legacy `country_not_supported` reason-code check kept for older
+ *     responses (the code rides on `blocking.code` verbatim).
+ *   - wait-marked rails resolve `pending` → `happy`: nothing user-actionable,
+ *     so no fixable CTA (the legacy status check surfaced one that dead-ended).
+ *
+ * `nextActions` powers the legacy fallback's action-kind refinement; callers
+ * without it get pure status semantics (what this util always had).
  */
 export function deriveProviderRejection(
     rails: RailCapability[],
-    provider: 'BRIDGE' | 'MANTECA'
+    provider: 'BRIDGE' | 'MANTECA',
+    nextActions: NextAction[] = []
 ): ProviderRejectionInfo {
-    const providerRails = rails.filter((rail) => rail.provider === PROVIDER_CODE[provider])
-    const fixableRail = providerRails.find((rail) => rail.status === 'requires-info')
-    const blockedRail = providerRails.find((rail) => rail.status === 'blocked')
-    const isRestartIdentity = provider === 'MANTECA' && blockedRail?.reason?.code === 'country_not_supported'
-    const state: ProviderRejectionState = fixableRail
+    const byKey = new Map(nextActions.map((action) => [action.key, action]))
+    const candidates = rails
+        .filter((rail) => rail.provider === PROVIDER_CODE[provider])
+        .map((rail) => ({ rail, verdict: railVerdict(rail, byKey) }))
+
+    const isProvideEmail = ({ verdict }: (typeof candidates)[number]) =>
+        verdict.blocking?.selfHealKind === 'provide-email'
+    const fixable = candidates.find((candidate) => candidate.verdict.status === 'fixable' && !isProvideEmail(candidate))
+    const blocked = candidates.find((candidate) => candidate.verdict.status === 'blocked' || isProvideEmail(candidate))
+    const isRestartIdentity =
+        provider === 'MANTECA' &&
+        (blocked?.verdict.blocking?.selfHealKind === 'restart-identity' ||
+            blocked?.verdict.blocking?.code === 'country_not_supported')
+    const state: ProviderRejectionState = fixable
         ? 'fixable'
         : isRestartIdentity
           ? 'restart-identity'
-          : blockedRail
+          : blocked
             ? 'blocked'
             : 'happy'
+    const surfaced = fixable ?? blocked
     return {
         provider,
         state,
-        userMessage: (fixableRail ?? blockedRail)?.reason?.userMessage ?? null,
+        userMessage: surfaced ? railUserMessage(surfaced.rail) || surfaced.verdict.blocking?.userMessage || null : null,
     }
 }
