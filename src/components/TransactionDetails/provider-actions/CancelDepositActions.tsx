@@ -104,13 +104,13 @@ export function CancelDepositActions({
                 visible={confirmOpen}
                 onClose={() => setConfirmOpen(false)}
                 icon="ban"
-                title={`Cancel this ${pendingCancel?.noun ?? 'deposit'}?`}
+                title={t('actions.cancelConfirm.title', { kind: pendingCancel?.noun ?? 'deposit' })}
                 modalClassName="!z-[9999] pointer-events-auto"
                 description={
                     <>
-                        This can't be undone. If you already sent the bank transfer, <strong>don't cancel</strong> — a
-                        cancelled deposit can no longer be matched to your account, and the money will be returned to
-                        your bank instead.
+                        {t.rich('actions.cancelConfirm.description', {
+                            strong: (chunks) => <strong>{chunks}</strong>,
+                        })}
                     </>
                 }
                 modalPanelClassName="max-w-sm mx-8 !z-[9999] pointer-events-auto"
@@ -118,7 +118,7 @@ export function CancelDepositActions({
                 classOverlay="!bg-black/40 !z-[9998]"
                 ctas={[
                     {
-                        text: `Yes, cancel ${pendingCancel?.noun ?? 'deposit'}`,
+                        text: t('actions.cancelConfirm.confirm', { kind: pendingCancel?.noun ?? 'deposit' }),
                         shadowSize: '4',
                         className: 'md:py-2',
                         onClick: confirmThenRun,

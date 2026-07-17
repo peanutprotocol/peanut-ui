@@ -1660,7 +1660,12 @@
             "reportIssue": "Problemas com esta transação?",
             "cancelDeposit": "Cancelar depósito",
             "cancelDepositRequest": "Cancelar cobrança",
-            "cancelDepositFailed": "Não conseguimos cancelar este depósito. Tente de novo ou fale com o suporte."
+            "cancelDepositFailed": "Não conseguimos cancelar este depósito. Tente de novo ou fale com o suporte.",
+            "cancelConfirm": {
+                "title": "{kind, select, deposit {Cancelar este depósito?} request {Cancelar esta solicitação?} other {Cancelar?}}",
+                "description": "Isso não pode ser desfeito. Se você já enviou a transferência bancária, <strong>não cancele</strong> — um depósito cancelado não pode mais ser associado à sua conta e o dinheiro voltará para o seu banco.",
+                "confirm": "{kind, select, deposit {Sim, cancelar o depósito} request {Sim, cancelar a solicitação} other {Sim, cancelar}}"
+            }
         },
         "toast": {
             "inviteLinkCopied": "Link de convite copiado!",
