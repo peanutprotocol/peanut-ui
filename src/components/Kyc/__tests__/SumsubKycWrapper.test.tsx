@@ -1,6 +1,14 @@
 import { render, waitFor } from '@testing-library/react'
-import { useEffect, useState } from 'react'
+import { NextIntlClientProvider } from 'next-intl'
+import { ReactNode, useEffect, useState } from 'react'
+import en from '@/i18n/app/messages/en.json'
 import { SumsubKycWrapper } from '../SumsubKycWrapper'
+
+const IntlWrapper = ({ children }: { children: ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
 
 // The real Modal is a headlessui <Transition>/<Dialog>, which renders through a
 // Portal: the portal target is created in the portal's OWN effect, so children
@@ -68,7 +76,7 @@ describe('SumsubKycWrapper', () => {
         // what makes `visible` the LAST dep to flip — if sdkLoaded flipped after
         // it instead, that flip would re-run the init effect with the container
         // already mounted and mask the bug entirely.
-        const { rerender } = render(<SumsubKycWrapper visible={false} {...props} />)
+        const { rerender } = render(<SumsubKycWrapper visible={false} {...props} />, { wrapper: IntlWrapper })
         expect(launch).not.toHaveBeenCalled()
 
         rerender(<SumsubKycWrapper visible {...props} />)
@@ -87,7 +95,8 @@ describe('SumsubKycWrapper', () => {
                 onClose={jest.fn()}
                 onComplete={jest.fn()}
                 onRefreshToken={jest.fn().mockResolvedValue('tok_abc')}
-            />
+            />,
+            { wrapper: IntlWrapper }
         )
         await new Promise((r) => setTimeout(r, 0))
         expect(launch).not.toHaveBeenCalled()
@@ -101,7 +110,8 @@ describe('SumsubKycWrapper', () => {
                 onClose={jest.fn()}
                 onComplete={jest.fn()}
                 onRefreshToken={jest.fn().mockResolvedValue('tok_abc')}
-            />
+            />,
+            { wrapper: IntlWrapper }
         )
         await new Promise((r) => setTimeout(r, 0))
         expect(launch).not.toHaveBeenCalled()
