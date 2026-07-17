@@ -222,6 +222,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
             setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
         }
+        // claimLinkData is unused in the body but load-bearing: it is what gives this
+        // callback a new identity per link, and the effects below depend on that
+        // identity to reset the token selection when new link data arrives. Dropping
+        // it would silently stop those resets.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [claimLinkData, isPeanutWallet, setSelectedChainID, setSelectedTokenAddress])
 
     const isPeanutChain = useMemo(() => {
@@ -608,7 +613,14 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         } else {
             setIsXChain(true)
         }
-    }, [selectedTokenData, claimLinkData.chainId, claimLinkData.tokenAddress])
+    }, [
+        selectedTokenData,
+        claimLinkData.chainId,
+        claimLinkData.tokenAddress,
+        setHasFetchedRoute,
+        setIsXChain,
+        setSelectedRoute,
+    ])
 
     // We may need this when we re add rewards via specific tokens
     // If not, feel free to remove
@@ -695,7 +707,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 setLoadingState('Idle')
             }
         },
-        [claimLinkData, isXChain, selectedTokenData, setLoadingState, routes]
+        [claimLinkData, isXChain, selectedTokenData, setLoadingState, routes, setHasFetchedRoute, setSelectedRoute]
     )
 
     useEffect(() => {
@@ -920,7 +932,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         if (claimToMercadoPago && !user) {
             setShowVerificationModal(true)
         }
-    }, [claimToMercadoPago, user])
+    }, [claimToMercadoPago, user, setShowVerificationModal])
 
     if (claimBankFlowStep) {
         return <BankFlowManager {...props} />
