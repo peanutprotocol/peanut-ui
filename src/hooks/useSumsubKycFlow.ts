@@ -20,6 +20,17 @@ interface UseSumsubKycFlowOptions {
     regionIntent?: KYCRegionIntent
 }
 
+// minimal shape of the native Sumsub SDK the capacitor shell injects on window
+interface SumsubNativeSdkBuilder {
+    withHandlers(handlers: { onStatusChanged: (event: { newStatus?: string }) => void }): SumsubNativeSdkBuilder
+    withLocale(locale: string): SumsubNativeSdkBuilder
+    withDebug(debug: boolean): SumsubNativeSdkBuilder
+    build(): { launch(): Promise<{ status?: string } | undefined> }
+}
+interface SumsubNativeSdk {
+    init(token: string, tokenRefresh: () => Promise<string>): SumsubNativeSdkBuilder
+}
+
 // Time-escalating schedule for the verification-progress-modal status poll.
 // initiateSumsubKyc is a MUTATING endpoint — for approved-LATAM users in the
 // self-recovery state each call re-runs a full provider submission. A fixed 5s
@@ -311,7 +322,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     // in capacitor, launch native sumsub sdk instead of web wrapper
                     if (isCapacitor()) {
                         try {
-                            const SNSMobileSDK = (window as any).SNSMobileSDK
+                            const SNSMobileSDK = (window as Window & { SNSMobileSDK?: SumsubNativeSdk }).SNSMobileSDK
                             if (!SNSMobileSDK) {
                                 userInitiatedRef.current = false
                                 setError(t('errorSdkUnavailable'))
@@ -330,7 +341,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                                 return r.data?.token || ''
                             })
                                 .withHandlers({
-                                    onStatusChanged: (event: any) => {
+                                    onStatusChanged: (event) => {
                                         console.log('[useSumsubKycFlow] native onStatusChanged:', JSON.stringify(event))
                                         if (event?.newStatus === 'Approved') {
                                             onKycSuccess?.()

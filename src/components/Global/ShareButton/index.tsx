@@ -91,9 +91,10 @@ const ShareButton = ({
             }
 
             onSuccess?.()
-        } catch (error: any) {
+        } catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error))
             // Only show error toast for actual sharing failures (not user cancellations)
-            if (error.name !== 'AbortError') {
+            if (err.name !== 'AbortError') {
                 console.error('Sharing error:', error)
                 Sentry.captureException(error)
 
@@ -108,7 +109,7 @@ const ShareButton = ({
                     }
                 }
 
-                onError?.(error)
+                onError?.(err)
             }
         }
     }, [url, generateUrl, generateText, title, text, onSuccess, onError, t, toast])

@@ -4,7 +4,7 @@ import { type CounterpartyUser } from '@/interfaces/interfaces'
 import { type ContactsResponse } from '@/interfaces/interfaces'
 import { serverFetch } from '@/utils/api-fetch'
 
-export const updateUserById = async (payload: Record<string, any>): Promise<{ data?: ApiUser; error?: string }> => {
+export const updateUserById = async (payload: Record<string, unknown>): Promise<{ data?: ApiUser; error?: string }> => {
     try {
         const response = await serverFetch('/update-user', {
             method: 'POST',
@@ -16,8 +16,8 @@ export const updateUserById = async (payload: Record<string, any>): Promise<{ da
             return { error: responseJson.message || responseJson.error || 'Failed to update user' }
         }
         return { data: responseJson }
-    } catch (e: any) {
-        return { error: e.message || 'An unexpected error occurred' }
+    } catch (e) {
+        return { error: e instanceof Error ? e.message : 'An unexpected error occurred' }
     }
 }
 
@@ -41,12 +41,28 @@ export const getKycDetails = async (params?: {
             }
         }
         return { data: responseJson }
-    } catch (e: any) {
-        return { error: e.message || 'An unexpected error occurred' }
+    } catch (e) {
+        return { error: e instanceof Error ? e.message : 'An unexpected error occurred' }
     }
 }
 
-export const addBankAccount = async (payload: AddBankAccountPayload): Promise<{ data?: any; error?: string }> => {
+// shape of the account returned by POST /users/accounts, as consumed by callers
+export interface AddedBankAccount {
+    id: string
+    type: string
+    identifier?: string
+    bridgeAccountId?: string
+    bic?: string
+    routingNumber?: string
+    sortCode?: string
+    firstName?: string
+    lastName?: string
+    details: { accountOwnerName?: string; countryCode?: string }
+}
+
+export const addBankAccount = async (
+    payload: AddBankAccountPayload
+): Promise<{ data?: AddedBankAccount; error?: string }> => {
     try {
         const response = await serverFetch('/users/accounts', {
             method: 'POST',
@@ -63,8 +79,8 @@ export const addBankAccount = async (payload: AddBankAccountPayload): Promise<{ 
             }
         }
         return { data: responseJson }
-    } catch (e: any) {
-        return { error: e.message || 'An unexpected error occurred' }
+    } catch (e) {
+        return { error: e instanceof Error ? e.message : 'An unexpected error occurred' }
     }
 }
 

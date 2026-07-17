@@ -110,7 +110,7 @@ export default function RedirectQrClaimPage() {
 
             // Success! Show success page, then redirect to invite (which goes to profile for logged-in users)
             router.push(qrSuccessUrl(code))
-        } catch (err: any) {
+        } catch (err) {
             console.error('Error claiming QR:', err)
             // Always show generic error message (don't expose backend details)
             setError(t('claim.claimFailed'))

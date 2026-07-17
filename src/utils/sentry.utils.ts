@@ -309,10 +309,10 @@ const getErrorLevelFromStatus = (status: number): Sentry.SeverityLevel => {
     return 'info'
 }
 
-const sanitizeHeaders = (headers: any): any => {
-    if (!headers) return headers
+const sanitizeHeaders = (headers: RequestInit['headers']): Record<string, unknown> | undefined => {
+    if (!headers) return undefined
 
-    const sanitized = { ...headers }
+    const sanitized: Record<string, unknown> = { ...headers }
     const sensitiveHeaders = [
         'authorization',
         'cookie',
@@ -466,7 +466,7 @@ export const fetchWithSentry = async (
             errorName = error.name
             errorStack = error.stack
         } else {
-            errorMessage = (error as any).toString()
+            errorMessage = String(error)
             errorName = 'Unknown Error'
         }
 

@@ -29,10 +29,10 @@ export interface IOfframpConfirmScreenProps {
     preparedCreateLinkWrapperResponse?:
         | {
               type: string
-              response: any
+              response: unknown
               linkDetails: peanutInterfaces.IPeanutLinkDetails
               password: string
-              feeOptions?: any
+              feeOptions?: unknown
               usdValue?: string
           }
         | undefined

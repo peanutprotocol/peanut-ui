@@ -237,9 +237,9 @@ export default function WithdrawCryptoPage() {
 
                 setChargeDetails(fullChargeDetails)
                 setShowCompatibilityModal(true)
-            } catch (err: any) {
+            } catch (err) {
                 console.error('Error during setup review (request/charge creation):', err)
-                const errorMessage = err.message || t('errors.prepareFailed')
+                const errorMessage = err instanceof Error && err.message ? err.message : t('errors.prepareFailed')
                 setError(errorMessage)
             } finally {
                 setIsPreparingReview(false)

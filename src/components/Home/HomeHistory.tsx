@@ -25,7 +25,7 @@ import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
-import { isBadgeHistoryItem } from '@/components/Badges/badge.types'
+import { isBadgeHistoryItem, type BadgeHistoryEntry } from '@/components/Badges/badge.types'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { formatUnits } from 'viem'
@@ -126,7 +126,9 @@ const HomeHistory = ({
     })
 
     // Combine fetched history with real-time updates
-    const [combinedEntries, setCombinedEntries] = useState<Array<any>>([])
+    const [combinedEntries, setCombinedEntries] = useState<
+        Array<HistoryEntry | KycHistoryEntry | CardUnlockHistoryEntry | BadgeHistoryEntry>
+    >([])
 
     // get all the user ids from the combined entries to check for interactions
     const userIds = useMemo(() => {
@@ -135,7 +137,8 @@ const HomeHistory = ({
             new Set(
                 combinedEntries
                     .map((entry) => {
-                        if (isKycStatusItem(entry)) return null
+                        if (isKycStatusItem(entry) || isBadgeHistoryItem(entry) || isCardUnlockHistoryItem(entry))
+                            return null
                         if (entry.userRole === 'SENDER') return entry.recipientAccount.userId
                         if (entry.userRole === 'RECIPIENT') return entry.senderAccount?.userId
                         return null
@@ -155,7 +158,9 @@ const HomeHistory = ({
             // Process entries asynchronously to handle completeHistoryEntry
             const processEntries = async () => {
                 // Start with the fetched entries
-                const entries: Array<HistoryEntry | KycHistoryEntry | CardUnlockHistoryEntry> = [...historyData.entries]
+                const entries: Array<HistoryEntry | KycHistoryEntry | CardUnlockHistoryEntry | BadgeHistoryEntry> = [
+                    ...historyData.entries,
+                ]
 
                 // inject badge entries using user's badges (newest first) and earnedAt chronology
                 // filter out beta tester badge — it creates confusing first impressions for new users
@@ -165,13 +170,13 @@ const HomeHistory = ({
                         if (!b.earnedAt) return
                         entries.push({
                             isBadge: true,
-                            uuid: b.id,
+                            uuid: b.id ?? b.code,
                             timestamp: new Date(b.earnedAt).toISOString(),
                             code: b.code,
                             name: b.name,
                             description: b.description ?? undefined,
                             iconUrl: b.iconUrl ?? undefined,
-                        } as any)
+                        })
                     })
                 }
 
@@ -284,9 +289,11 @@ const HomeHistory = ({
     const pendingRequests = useMemo(() => {
         if (!combinedEntries.length) return []
         return combinedEntries.filter(
-            (entry) =>
+            (entry): entry is HistoryEntry =>
                 !isKycStatusItem(entry) &&
-                entry.type === 'REQUEST' &&
+                !isBadgeHistoryItem(entry) &&
+                !isCardUnlockHistoryItem(entry) &&
+                String(entry.type) === 'REQUEST' &&
                 entry.userRole === 'SENDER' &&
                 entry.status === 'NEW'
         )
@@ -472,7 +479,9 @@ const HomeHistory = ({
 
                         const haveSentMoneyToUser =
                             item.userRole === 'SENDER'
-                                ? interactions[item.recipientAccount.userId]
+                                ? item.recipientAccount.userId
+                                    ? interactions[item.recipientAccount.userId]
+                                    : false
                                 : item.senderAccount?.userId
                                   ? interactions[item.senderAccount.userId]
                                   : false

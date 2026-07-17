@@ -916,7 +916,7 @@ export const TransactionDetailsReceipt = ({
                                 await new Promise((resolve) => setTimeout(resolve, 1500))
                                 onClose()
                             }
-                        } catch (error: any) {
+                        } catch (error) {
                             captureException(error)
                             console.error('Error claiming link:', error)
                             setIsLoading(false)

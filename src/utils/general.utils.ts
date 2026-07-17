@@ -100,7 +100,7 @@ export const validateEnsName = (ensName: string = ''): boolean => {
     return ENS_NAME_REGEX.test(ensName)
 }
 
-export function jsonStringify(data: any): string {
+export function jsonStringify(data: unknown): string {
     return JSON.stringify(data, (_key, value) => {
         if ('bigint' === typeof value) {
             return {
@@ -112,7 +112,8 @@ export function jsonStringify(data: any): string {
     })
 }
 
-export function jsonParse<T = any>(data: string): T {
+// Default matches JSON.parse's own return type so legacy untyped call sites keep compiling.
+export function jsonParse<T = ReturnType<typeof JSON.parse>>(data: string): T {
     return JSON.parse(data, (_key, value) => {
         if (value && typeof value === 'object' && value['@type'] === 'BigInt') {
             return BigInt(value.value)
@@ -121,7 +122,7 @@ export function jsonParse<T = any>(data: string): T {
     })
 }
 
-export const saveToLocalStorage = (key: string, data: any, expirySeconds?: number) => {
+export const saveToLocalStorage = (key: string, data: unknown, expirySeconds?: number) => {
     if (typeof localStorage === 'undefined') return
     try {
         // Convert the data to a string before storing it in localStorage
@@ -163,7 +164,7 @@ export const getFromLocalStorage = (key: string) => {
     }
 }
 
-export const saveToCookie = (key: string, data: any, expiryDays?: number) => {
+export const saveToCookie = (key: string, data: unknown, expiryDays?: number) => {
     if (typeof document === 'undefined') return
     try {
         // Convert the data to a string before storing it in cookies

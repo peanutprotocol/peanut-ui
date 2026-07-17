@@ -153,8 +153,8 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 onVerify={async () => {
                     if (mantecaRejection.state === 'blocked') {
                         // blocked users cannot self-heal — route to support
-                        if (typeof window !== 'undefined' && (window as any).$crisp) {
-                            ;(window as any).$crisp.push(['do', 'chat:open'])
+                        if (typeof window !== 'undefined' && window.$crisp) {
+                            window.$crisp.push(['do', 'chat:open'])
                         }
                         setShowKycModal(false)
                         return

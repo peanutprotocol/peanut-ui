@@ -54,7 +54,7 @@ export const resolveClaimLink = (currentLink: string): string => {
 type CreateLinkBody = {
     pubKey: string
     reference?: string
-    attachment?: any
+    attachment?: File | Blob
     mimetype?: string
     filename?: string
     txHash?: string

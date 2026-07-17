@@ -112,10 +112,13 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             })
             setLoadingState('Idle')
             setView('success')
-        } catch (error: any) {
+        } catch (error) {
             console.error('Error creating request charge:', error)
             captureException(error)
-            setErrorState({ showError: true, errorMessage: error.message || t('errors.createRequestFailed') })
+            setErrorState({
+                showError: true,
+                errorMessage: error instanceof Error && error.message ? error.message : t('errors.createRequestFailed'),
+            })
             setLoadingState('Idle')
         }
     }, [

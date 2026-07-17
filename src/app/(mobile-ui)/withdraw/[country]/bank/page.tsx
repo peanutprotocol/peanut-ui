@@ -349,14 +349,14 @@ export default function WithdrawBankPage() {
                 method_type: 'bridge',
                 country,
             })
-        } catch (e: any) {
+        } catch (e) {
             const error = toFriendlyError(e)
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
                 method_type: 'bridge',
                 error_message: error,
             })
             if (error.includes('Something failed. Please try again.')) {
-                setError({ showError: true, errorMessage: e.message })
+                setError({ showError: true, errorMessage: e instanceof Error ? e.message : String(e) })
             } else {
                 setError({ showError: true, errorMessage: error })
             }

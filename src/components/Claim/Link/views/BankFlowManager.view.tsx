@@ -153,7 +153,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
 
                 try {
                     await confirmOfframp(details.transferId, claimTx)
-                } catch (confirmErr: any) {
+                } catch (confirmErr) {
                     // On-chain claim already executed; the BE has the transfer row
                     // and Bridge will process the deposit. Log + fall through to the
                     // SUCCESS view rather than throwing — re-confirming retries are
@@ -164,7 +164,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
 
                 if (setClaimType) setClaimType('claim-bank')
                 onCustom('SUCCESS')
-            } catch (e: any) {
+            } catch (e) {
                 if (claimTxSubmitted) {
                     // Defensive: even if a post-claim step throws (e.g.
                     // setClaimType), do not surface a retryable error — the funds
@@ -298,7 +298,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
 
             // claim send link to deposit address received from offramp response
             await handleConfirmClaim(offrampData)
-        } catch (e: any) {
+        } catch (e) {
             const errorString = toFriendlyError(e)
             setError(errorString)
             Sentry.captureException(e)
@@ -473,7 +473,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 setReceiverFullName(payload.accountOwnerName.firstName + ' ' + payload.accountOwnerName.lastName)
                 setClaimBankFlowStep(ClaimBankFlowStep.BankConfirmClaim)
                 return {}
-            } catch (e: any) {
+            } catch (e) {
                 const errorString = toFriendlyError(e)
                 Sentry.captureException(e)
                 return { error: errorString }

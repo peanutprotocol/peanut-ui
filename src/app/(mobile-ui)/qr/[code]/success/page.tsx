@@ -102,9 +102,9 @@ export default function RedirectQrSuccessPage() {
                                         url: qrUrl,
                                     })
                                 }
-                            } catch (error: any) {
+                            } catch (error) {
                                 // Ignore user cancellation
-                                if (error.name !== 'AbortError') {
+                                if (!(error instanceof Error) || error.name !== 'AbortError') {
                                     console.error('Share error:', error)
                                 }
                             }

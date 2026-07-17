@@ -165,7 +165,7 @@ const LinkSendSuccessView = () => {
                                 await new Promise((resolve) => setTimeout(resolve, 1500))
                                 router.push('/home')
                             }
-                        } catch (error: any) {
+                        } catch (error) {
                             captureException(error)
                             console.error('Error claiming link:', error)
                             setIsLoading(false)

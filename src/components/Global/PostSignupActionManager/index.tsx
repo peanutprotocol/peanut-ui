@@ -18,7 +18,7 @@ export const PostSignupActionManager = ({
         cta: string
         title: string
         description: string
-        icon: any
+        icon: IconName
         action: () => void
     } | null>(null)
     const router = useRouter()
@@ -66,7 +66,7 @@ export const PostSignupActionManager = ({
             preventClose // Prevent closing the modal by clicking outside
             title={actionConfig.title}
             description={actionConfig.description}
-            icon={actionConfig.icon as IconName}
+            icon={actionConfig.icon}
             ctas={[
                 {
                     text: actionConfig.cta,

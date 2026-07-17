@@ -93,7 +93,7 @@ export async function POST(request: NextRequest, _context: { params: Promise<Rec
         return Response.json(JSON.parse(responseJson), {
             status: 200,
         })
-    } catch (error: any) {
+    } catch (error) {
         console.error('Error occured while fetching recent transactions:', error)
 
         return Response.json(

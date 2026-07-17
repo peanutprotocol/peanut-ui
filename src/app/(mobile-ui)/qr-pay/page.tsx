@@ -550,7 +550,7 @@ export default function QRPayPage() {
             !isPixRecurringCode(qrCode) &&
             !paymentLock &&
             !shouldBlockPay,
-        retry: (failureCount, error: any) => {
+        retry: (failureCount, error) => {
             // Don't retry provider-specific errors
             if (NON_RETRYABLE_QR_PAY_ERRORS.some((code) => error?.message?.includes(code))) {
                 return false
@@ -578,8 +578,8 @@ export default function QRPayPage() {
             setLoadingState('Idle')
         }
 
-        if (paymentLockError || paymentLockFailureReason) {
-            const error = paymentLockError ?? paymentLockFailureReason
+        const error = paymentLockError ?? paymentLockFailureReason
+        if (error) {
             setLoadingState('Idle')
 
             // Provider-specific errors: show appropriate message

@@ -10,7 +10,7 @@ export interface PaymentMethod {
     identifierIcon?: React.ReactNode
     title: string
     description: string
-    icons: any[]
+    icons: string[]
     soon: boolean
 }
 

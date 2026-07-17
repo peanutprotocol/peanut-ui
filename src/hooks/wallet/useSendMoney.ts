@@ -142,7 +142,7 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
                 }
                 return
             }
-            if ((error as any)?.isStaleKeyError) {
+            if ((error as Error & { isStaleKeyError?: boolean })?.isStaleKeyError) {
                 toast.error((error as Error).message)
             }
         },
