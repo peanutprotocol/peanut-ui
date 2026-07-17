@@ -1,12 +1,17 @@
-import { render, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import { useEffect, useState } from 'react'
 import { SumsubKycWrapper } from '../SumsubKycWrapper'
 
-// The real Modal is a headlessui <Transition>/<Dialog>, which renders through a
-// Portal: the portal target is created in the portal's OWN effect, so children
-// mount a commit AFTER `visible` flips true. That one-commit delay is the whole
-// bug this suite guards — a plain useRef read in the init effect is null on the
-// pass where visible/accessToken/sdkLoaded are all ready, and a ref is not
+const capture = jest.fn()
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: unknown[]) => capture(...a) } }))
+
+// The real Modal is a headlessui <Transition>/<Dialog>. The <Transition> promotes
+// tree state to Visible inside an EFFECT, so children mount a commit AFTER
+// `visible` flips true. (Isolation-tested: dialog-only mounts the container
+// synchronously; transition-only and transition+dialog do not — so the Portal is
+// not the culprit, despite the original diagnosis.) That one-commit delay is the
+// whole bug this suite guards — a plain useRef read in the init effect is null on
+// the pass where visible/accessToken/sdkLoaded are all ready, and a ref is not
 // reactive, so the effect never re-runs and the SDK is never launched.
 jest.mock('@/components/Global/Modal', () => ({
     __esModule: true,
@@ -41,6 +46,7 @@ function installSdk() {
 describe('SumsubKycWrapper', () => {
     beforeEach(() => {
         launch.mockClear()
+        capture.mockClear()
         installSdk()
     })
 
@@ -105,5 +111,66 @@ describe('SumsubKycWrapper', () => {
         )
         await new Promise((r) => setTimeout(r, 0))
         expect(launch).not.toHaveBeenCalled()
+    })
+
+    describe('launch watchdog', () => {
+        // The outage lasted 19h because a non-launching SDK is completely silent.
+        // These assert the silence is now broken — both on screen and in analytics.
+        it('surfaces the error UI instead of spinning forever when the SDK never launches', async () => {
+            jest.useFakeTimers()
+            try {
+                // accessToken never arrives -> init effect can never run -> the exact
+                // shape of a silent stall.
+                render(
+                    <SumsubKycWrapper
+                        visible
+                        accessToken={null}
+                        onClose={jest.fn()}
+                        onComplete={jest.fn()}
+                        onRefreshToken={jest.fn().mockResolvedValue('tok_abc')}
+                    />
+                )
+                expect(screen.queryByText(/failed to load verification/i)).not.toBeInTheDocument()
+
+                await act(async () => {
+                    jest.advanceTimersByTime(20_000)
+                })
+
+                expect(screen.getByText(/failed to load verification/i)).toBeInTheDocument()
+                expect(capture).toHaveBeenCalledWith(
+                    'kyc_sdk_launch_timeout',
+                    expect.objectContaining({ hadAccessToken: false })
+                )
+            } finally {
+                jest.useRealTimers()
+            }
+        })
+
+        it('does not fire once the SDK has launched', async () => {
+            jest.useFakeTimers()
+            try {
+                const props = {
+                    accessToken: 'tok_abc',
+                    onClose: jest.fn(),
+                    onComplete: jest.fn(),
+                    onRefreshToken: jest.fn().mockResolvedValue('tok_abc'),
+                }
+                const { rerender } = render(<SumsubKycWrapper visible={false} {...props} />)
+                await act(async () => {
+                    rerender(<SumsubKycWrapper visible {...props} />)
+                })
+                expect(launch).toHaveBeenCalledTimes(1)
+                expect(capture).toHaveBeenCalledWith('kyc_sdk_launched', expect.anything())
+
+                await act(async () => {
+                    jest.advanceTimersByTime(20_000)
+                })
+
+                expect(capture).not.toHaveBeenCalledWith('kyc_sdk_launch_timeout', expect.anything())
+                expect(screen.queryByText(/failed to load verification/i)).not.toBeInTheDocument()
+            } finally {
+                jest.useRealTimers()
+            }
+        })
     })
 })
