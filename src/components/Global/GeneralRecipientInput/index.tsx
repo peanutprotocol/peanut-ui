@@ -4,6 +4,7 @@ import type { RecipientType } from '@/interfaces/interfaces'
 import { validateBankAccount } from '@/utils/bridge-accounts.utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import * as Senty from '@sentry/nextjs'
+import { useTranslations } from 'next-intl'
 import { useCallback, useRef } from 'react'
 import { isIBAN } from 'validator'
 import { validateAndResolveRecipient } from '@/lib/validation/recipient'
@@ -42,6 +43,7 @@ const GeneralRecipientInput = ({
     isWithdrawal = false,
     addressFamily = 'evm',
 }: GeneralRecipientInputProps) => {
+    const t = useTranslations('global')
     const recipientType = useRef<RecipientType>('address')
     const errorMessage = useRef('')
     const resolvedAddress = useRef('')
@@ -63,7 +65,9 @@ const GeneralRecipientInput = ({
                     if (familyValid) {
                         resolvedAddress.current = trimmedInput
                     } else {
-                        errorMessage.current = `Invalid ${addressFamily === 'solana' ? 'Solana' : 'Tron'} address`
+                        errorMessage.current = t('generalRecipientInput.invalidChainAddress', {
+                            chain: addressFamily === 'solana' ? 'Solana' : 'Tron',
+                        })
                     }
                     recipientType.current = 'address'
                     return familyValid
@@ -72,7 +76,7 @@ const GeneralRecipientInput = ({
                 if (isIBAN(sanitizedInput)) {
                     type = 'iban'
                     isValid = await validateBankAccount(sanitizedInput)
-                    if (!isValid) errorMessage.current = 'Invalid IBAN, country not supported'
+                    if (!isValid) errorMessage.current = t('generalRecipientInput.invalidIban')
                 } else if (/^[0-9]{1,17}$/.test(sanitizedInput)) {
                     type = 'us'
                     isValid = true
@@ -101,7 +105,7 @@ const GeneralRecipientInput = ({
                 return false
             }
         },
-        [isWithdrawal, addressFamily]
+        [isWithdrawal, addressFamily, t]
     )
 
     const onInputUpdate = useCallback(
@@ -148,7 +152,7 @@ const GeneralRecipientInput = ({
 
     return (
         <div className="w-full">
-            <label className="mb-2 block text-left text-sm font-bold">Wallet address</label>
+            <label className="mb-2 block text-left text-sm font-bold">{t('generalRecipientInput.walletAddress')}</label>
             <ValidatedInput
                 value={recipient.name ?? recipient.address}
                 placeholder={placeholder}

@@ -20,8 +20,10 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { PeanutWavingHello } from '@/assets/mascot'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useTranslations } from 'next-intl'
 
 function SetupPageContent() {
+    const t = useTranslations('setup')
     const { steps, inviteCode } = useSetupStore()
     const { step, handleNext, handleBack } = useSetupFlow()
     const { logoutUser, isLoggingOut, user, isFetchingUser } = useAuth()
@@ -53,12 +55,23 @@ function SetupPageContent() {
         if (sessionChecked || isFetchingUser) return
         setSessionChecked(true)
         if (user?.user?.username) {
+            /*
+             * A COMPLETED session (hasAppAccess) that lands back on /setup — e.g. a
+             * native cold start that restored this route — goes straight home; the
+             * interstitial is reserved for the half-finished-signup case it was
+             * written for (durable credentials, setup never completed).
+             */
+            if (user.user.hasAppAccess) {
+                posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED, { auto: true })
+                router.replace('/home')
+                return
+            }
             setExistingSessionUsername(user.user.username)
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_PROMPTED, {
                 has_app_access: !!user.user.hasAppAccess,
             })
         }
-    }, [sessionChecked, isFetchingUser, user])
+    }, [sessionChecked, isFetchingUser, user, router])
 
     const handleContinueSession = () => {
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED)
@@ -252,16 +265,16 @@ function SetupPageContent() {
                 layoutType="signup"
                 screenId="welcome"
                 image={PeanutWavingHello.src}
-                title="You're already signed in"
-                description={`This device is signed in as ${existingSessionUsername}. Continue with that account, or log out to create a new one.`}
+                title={t('existingSession.title')}
+                description={t('existingSession.description', { username: existingSessionUsername })}
                 contentClassName="flex flex-col items-center justify-center gap-5"
             >
                 <div className="flex w-full flex-col gap-3">
                     <Button shadowSize="4" onClick={handleContinueSession} disabled={isLoggingOut}>
-                        Continue as {existingSessionUsername}
+                        {t('existingSession.continueAs', { username: existingSessionUsername })}
                     </Button>
                     <Button variant="stroke" onClick={handleStartFresh} loading={isLoggingOut} disabled={isLoggingOut}>
-                        Log out & start fresh
+                        {t('existingSession.logoutAndStartFresh')}
                     </Button>
                 </div>
             </SetupWrapper>
@@ -292,13 +305,16 @@ function SetupPageContent() {
         )
     }
 
+    const titleKey = `steps.${step.screenId}.title` as Parameters<typeof t>[0]
+    const descriptionKey = `steps.${step.screenId}.description` as Parameters<typeof t>[0]
+
     return (
         <SetupWrapper
             layoutType={step.layoutType}
             screenId={step.screenId}
             image={step.image}
-            title={step.title}
-            description={step.description}
+            title={t(titleKey)}
+            description={t.has(descriptionKey) ? t(descriptionKey) : undefined}
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}
             showLogoutButton={step.screenId === 'sign-test-transaction'}

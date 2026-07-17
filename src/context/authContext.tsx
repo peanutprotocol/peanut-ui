@@ -61,7 +61,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const router = useRouter()
+    const _router = useRouter()
     const dispatch = useAppDispatch()
     const toast = useToast()
     const queryClient = useQueryClient()
@@ -194,20 +194,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // clear user preferences (webauthn key in localStorage)
         updateUserPreferences(user?.user.userId, { webAuthnKey: undefined })
 
+        /*
+         * Cancel queries BEFORE wiping the token: an in-flight /users/me can carry a
+         * sliding-refresh token and would re-persist it into native Preferences right
+         * after the clear, so logout never sticks (Android splash-loop, kuxhagra).
+         */
+        try {
+            await queryClient.cancelQueries()
+            queryClient.clear()
+        } catch (e) {
+            console.warn('failed to clear queries on logout:', e)
+        }
+
         // clear auth tokens (localStorage in capacitor, cookie on web)
         removeFromCookie(WEB_AUTHN_COOKIE_KEY)
         await clearAuthToken()
 
         // clear redirect url
         clearRedirectUrl()
-
-        // cancel + remove all queries to prevent refetches with cleared jwt
-        try {
-            queryClient.cancelQueries()
-            queryClient.clear()
-        } catch (e) {
-            console.warn('failed to clear queries on logout:', e)
-        }
 
         // reset redux state (user, setup, zerodev)
         dispatch(userActions.setUser(null))
@@ -259,9 +263,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             setIsLoggingOut(true)
             try {
-                // No server-side session to invalidate — the JWT lives client-side
-                // only (the old logout-user route just dropped a cookie). Once we
-                // add a tokenVersion column we can revoke server-side too.
+                /*
+                 * Revoke server-side FIRST (needs the still-valid JWT): POST
+                 * /users/logout bumps the account's tokenVersion so every
+                 * outstanding JWT — this device and any other — stops
+                 * verifying. Best-effort: a dead backend must never trap the
+                 * user in a session, so failures fall through to local logout.
+                 */
+                if (!options?.skipBackendCall) {
+                    try {
+                        await apiFetch('/users/logout', { method: 'POST' })
+                    } catch (e) {
+                        console.warn('server-side session revocation failed, continuing local logout:', e)
+                    }
+                }
+
                 await clearLocalAuthState()
 
                 // fetch user (should return null after logout) - skip for capacitor

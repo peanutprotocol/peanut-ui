@@ -11,6 +11,8 @@
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
 
@@ -179,7 +181,7 @@ jest.mock('@/components/TransactionDetails/transactionTransformer', () => ({
 }))
 
 jest.mock('@/components/TransactionDetails/TransactionDetailsReceipt', () => ({
-    TransactionDetailsReceipt: (props: any) => <div data-testid="transaction-details-receipt">Receipt</div>,
+    TransactionDetailsReceipt: (_props: any) => <div data-testid="transaction-details-receipt">Receipt</div>,
 }))
 
 jest.mock('@/context/ModalsContext', () => ({
@@ -192,7 +194,7 @@ jest.mock('@/context/ModalsContext', () => ({
 // Mock the sub-components
 jest.mock('../Link/FlowManager', () => ({
     __esModule: true,
-    default: (props: any) => <div data-testid="flow-manager">Claim Flow</div>,
+    default: (_props: any) => <div data-testid="flow-manager">Claim Flow</div>,
 }))
 
 jest.mock('../Generic', () => ({
@@ -224,7 +226,7 @@ jest.mock('@/components/0_Bruddle/PageContainer', () => ({
 
 jest.mock('@/components/Global/PeanutLoading', () => ({
     __esModule: true,
-    default: (props: any) => <div data-testid="peanut-loading">Loading...</div>,
+    default: (_props: any) => <div data-testid="peanut-loading">Loading...</div>,
 }))
 
 jest.mock('@/assets/mascot', () => ({
@@ -248,9 +250,11 @@ function createQueryClient() {
 function renderClaim() {
     const queryClient = createQueryClient()
     return render(
-        <QueryClientProvider client={queryClient}>
-            <Claim />
-        </QueryClientProvider>
+        <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+            <QueryClientProvider client={queryClient}>
+                <Claim />
+            </QueryClientProvider>
+        </NextIntlClientProvider>
     )
 }
 

@@ -5,6 +5,7 @@ import ShareButton from '@/components/Global/ShareButton'
 import { generateInviteCodeLink } from '@/utils/general.utils'
 import { ANALYTICS_EVENTS, MODAL_TYPES, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
+import { useTranslations } from 'next-intl'
 import { useEffect, useRef } from 'react'
 import QRCode from 'react-qr-code'
 
@@ -23,6 +24,7 @@ interface InviteFriendsModalProps {
  * Used in: CardSuccessScreen, Profile, PointsPage
  */
 export default function InviteFriendsModal({ visible, onClose, username, source }: InviteFriendsModalProps) {
+    const t = useTranslations('global')
     const { inviteLink } = generateInviteCodeLink(username)
 
     const hasTrackedShow = useRef(false)
@@ -44,8 +46,8 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
         <ActionModal
             visible={visible}
             onClose={handleClose}
-            title="Invite friends!"
-            description="Share your link. Every time a friend you brought makes a payment, you earn rewards."
+            title={t('inviteFriendsModal.title')}
+            description={t('inviteFriendsModal.description')}
             icon="user-plus"
             content={
                 <>
@@ -62,7 +64,7 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
                     )}
                     <ShareButton
                         url={inviteLink}
-                        title="Share your invite link"
+                        title={t('inviteFriendsModal.shareSheetTitle')}
                         onSuccess={() => {
                             posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, { source })
                             posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
@@ -70,7 +72,7 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
                             })
                         }}
                     >
-                        Share Invite Link
+                        {t('inviteFriendsModal.shareCta')}
                     </ShareButton>
                 </>
             }

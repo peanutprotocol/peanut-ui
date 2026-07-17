@@ -63,8 +63,9 @@ export async function initCapgoUpdater(
                 })
                 onUpdateAvailable?.(bundle)
                 // apply on next launch (no mid-session reload — avoids yanking the
-                // UI out from under the user).
-                await CapacitorUpdater.set({ id: bundle.id })
+                // UI out from under the user). set() reloads IMMEDIATELY; next()
+                // is the deferred variant.
+                await CapacitorUpdater.next({ id: bundle.id })
             }
         } catch (err) {
             const message = err instanceof Error ? err.message : String(err ?? '')

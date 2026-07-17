@@ -1,6 +1,7 @@
 'use client'
 import { type FC, useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import Modal from '@/components/Global/Modal'
@@ -21,6 +22,7 @@ interface Props {
 }
 
 const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmountCents, isOpen, onClose }) => {
+    const t = useTranslations('card.limits')
     const queryClient = useQueryClient()
     const [value, setValue] = useState<string>(initialAmountCents != null ? (initialAmountCents / 100).toFixed(2) : '')
     const [saving, setSaving] = useState(false)
@@ -40,7 +42,7 @@ const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmount
     const save = async () => {
         const dollars = Number(value)
         if (!Number.isFinite(dollars) || dollars < 0) {
-            setError('Enter a valid amount')
+            setError(t('invalidAmount'))
             return
         }
         const amountCents = Math.round(dollars * 100)
@@ -60,7 +62,7 @@ const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmount
             })
             onClose()
         } catch (e) {
-            const message = e instanceof Error ? e.message : 'Failed to save limit'
+            const message = e instanceof Error ? e.message : t('saveFailed')
             setError(message)
             posthog.capture(ANALYTICS_EVENTS.CARD_LIMIT_CHANGE_FAILED, { frequency, error_message: message })
         } finally {
@@ -80,7 +82,7 @@ const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmount
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-1">
                         <Icon name="credit-card" size={20} />
                     </div>
-                    <div className="text-xl font-extrabold">Change limit</div>
+                    <div className="text-xl font-extrabold">{t('editTitle')}</div>
                     <div className="flex w-full flex-col gap-2 text-left">
                         <label htmlFor="card-limit-input" className="text-sm font-bold">
                             {label}
@@ -109,7 +111,7 @@ const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmount
                         loading={saving}
                         disabled={saving}
                     >
-                        Save changes
+                        {t('saveChanges')}
                     </Button>
                 </div>
             </div>

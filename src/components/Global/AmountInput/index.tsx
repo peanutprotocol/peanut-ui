@@ -6,6 +6,7 @@ import { twMerge } from 'tailwind-merge'
 import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
 import { Slider } from '../Slider'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { useTranslations } from 'next-intl'
 
 // Used for internal calculations, not displayed to the user
 const DECIMAL_SCALE = 18 // Max expected decimal places for any denomination
@@ -59,6 +60,7 @@ const AmountInput = ({
     defaultSliderValue,
     defaultSliderSuggestedAmount,
 }: AmountInputProps) => {
+    const t = useTranslations('global')
     const [isFocused, setIsFocused] = useState(false)
     const { deviceType } = useDeviceType()
     // Only autofocus on desktop (WEB), not on mobile devices (IOS/ANDROID)
@@ -285,7 +287,7 @@ const AmountInput = ({
                 {/* Balance */}
                 {walletBalance && !hideBalance && (
                     <div className="text-center text-grey-1">
-                        Balance: {secondaryDenomination ? 'USD ' : '$ '}
+                        {t('amountInput.balance')} {secondaryDenomination ? 'USD ' : '$ '}
                         {walletBalance}
                     </div>
                 )}

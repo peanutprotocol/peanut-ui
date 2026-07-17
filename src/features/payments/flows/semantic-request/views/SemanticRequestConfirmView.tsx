@@ -24,16 +24,18 @@ import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
 import { formatAmount, isStableCoin } from '@/utils/general.utils'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useMemo } from 'react'
-import { formatUnits } from 'viem'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import PeanutActionDetailsCard, {
     type PeanutActionDetailsCardRecipientType,
 } from '@/components/Global/PeanutActionDetailsCard'
 import { useSearchParams, useRouter } from 'next/navigation'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
+import { useTranslations } from 'next-intl'
 
 export function SemanticRequestConfirmView() {
     const router = useRouter()
+    const t = useTranslations('payment')
+    const tCommon = useTranslations('common')
     const searchParams = useSearchParams()
     const context = searchParams.get('context')
     const isCardPioneer = context === 'card-pioneer'
@@ -110,19 +112,19 @@ export function SemanticRequestConfirmView() {
     const networkFee = useMemo<string | React.ReactNode>(() => {
         if (isFeeEstimationError) return '-'
         if (calculatedGasCost === undefined) {
-            return 'Sponsored by Peanut!'
+            return t('confirm.sponsoredByPeanut')
         }
         if (calculatedGasCost < 0.01) {
-            return 'Sponsored by Peanut!'
+            return t('confirm.sponsoredByPeanut')
         }
         return (
             <>
                 <span className="line-through">$ {calculatedGasCost.toFixed(2)}</span>
                 {' - '}
-                <span className="font-medium text-gray-500">Sponsored by Peanut!</span>
+                <span className="font-medium text-gray-500">{t('confirm.sponsoredByPeanut')}</span>
             </>
         )
-    }, [calculatedGasCost, isFeeEstimationError])
+    }, [calculatedGasCost, isFeeEstimationError, t])
 
     // Receive amount from Rhino preview. Same-token bridges are 1:1 minus flat
     // fee (no slippage) — the preview value is deterministic, not a "minimum".
@@ -182,7 +184,7 @@ export function SemanticRequestConfirmView() {
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader onPrev={handleBack} title="Confirm Payment" />
+            <NavHeader onPrev={handleBack} title={t('headers.confirmPayment')} />
 
             <div className="my-auto flex h-full flex-col justify-center space-y-4 pb-5">
                 {recipient && recipient.recipientType && (
@@ -201,16 +203,16 @@ export function SemanticRequestConfirmView() {
                 <Card className="rounded-sm">
                     {!isCardPioneer && (
                         <PaymentInfoRow
-                            label="Min Received"
+                            label={t('confirm.minReceived')}
                             loading={!minReceived || isCalculatingRoute}
                             value={minReceived ?? '-'}
-                            moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
+                            moreInfoText={t('confirm.slippageInfo')}
                         />
                     )}
 
                     {!isCardPioneer && isCrossChainPayment && (
                         <PaymentInfoRow
-                            label="Requested"
+                            label={t('confirm.requested')}
                             value={
                                 <TokenChainInfoDisplay
                                     tokenIconUrl={requestedTokenIconUrl}
@@ -226,7 +228,7 @@ export function SemanticRequestConfirmView() {
 
                     {!isCardPioneer && (
                         <PaymentInfoRow
-                            label={isCrossChainPayment ? 'Sending' : 'Token and network'}
+                            label={isCrossChainPayment ? t('confirm.sending') : t('confirm.tokenAndNetwork')}
                             value={
                                 <TokenChainInfoDisplay
                                     tokenIconUrl={sendingTokenIconUrl}
@@ -242,12 +244,14 @@ export function SemanticRequestConfirmView() {
 
                     <PaymentInfoRow
                         loading={isCalculatingRoute}
-                        label="Network fee"
+                        label={t('confirm.networkFee')}
                         value={networkFee}
                         hideBottomBorder={isCardPioneer}
                     />
 
-                    {!isCardPioneer && <PaymentInfoRow hideBottomBorder label="Peanut fee" value="$ 0.00" />}
+                    {!isCardPioneer && (
+                        <PaymentInfoRow hideBottomBorder label={t('confirm.peanutFee')} value="$ 0.00" />
+                    )}
                 </Card>
 
                 {/* buttons and error */}
@@ -262,7 +266,7 @@ export function SemanticRequestConfirmView() {
                             icon="retry"
                             iconSize={14}
                         >
-                            Retry
+                            {tCommon('retry')}
                         </Button>
                     ) : isCardPioneer ? (
                         <SendWithPeanutCta
@@ -280,7 +284,7 @@ export function SemanticRequestConfirmView() {
                             icon="arrow-up-right"
                             iconSize={14}
                         >
-                            Send
+                            {t('actions.send')}
                         </Button>
                     )}
                     {errorMessage && (
@@ -312,6 +316,7 @@ function TokenChainInfoDisplay({
     resolvedChainName,
     fallbackChainName,
 }: TokenChainInfoDisplayProps) {
+    const tGlobal = useTranslations('global')
     const tokenSymbol = resolvedTokenSymbol || fallbackTokenSymbol
     const chainName = resolvedChainName || fallbackChainName
 
@@ -341,7 +346,11 @@ function TokenChainInfoDisplay({
                 </div>
             )}
             <span>
-                {tokenSymbol} on <span className="capitalize">{chainName}</span>
+                {tokenSymbol}{' '}
+                {tGlobal.rich('tokenSelector.onChain', {
+                    chainName,
+                    c: (chunks) => <span className="capitalize">{chunks}</span>,
+                })}
             </span>
         </div>
     )

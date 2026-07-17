@@ -52,6 +52,7 @@
         "@capacitor/cli": "8.2.0",
         "@capacitor/clipboard": "^8.0.1",
         "@capacitor/core": "8.2.0",
+        "@capacitor/device": "^8.0.2",
         "@capacitor/haptics": "^8.0.2",
         "@capacitor/ios": "8.2.0",
         "@capacitor/keyboard": "^8.0.3",
@@ -99,6 +100,7 @@
         "js-cookie": "^3.0.5",
         "lucide-react": "^1.8.0",
         "next": "16.2.3",
+        "next-intl": "^4.13.1",
         "next-mdx-remote": "^6.0.0",
         "nuqs": "^2.8.6",
         "p2-es": "1.2.3",
@@ -179,10 +181,17 @@
                     "tsconfig": "tsconfig.test.json",
                     "useESM": true
                 }
+            ],
+            "^.+\\.(js|mjs)$": [
+                "ts-jest",
+                {
+                    "tsconfig": "tsconfig.test.json",
+                    "isolatedModules": true
+                }
             ]
         },
         "transformIgnorePatterns": [
-            "node_modules/(?!(@wagmi|wagmi|viem|@viem|@walletconnect|@justaname\\.id|@zerodev|permissionless)/)"
+            "node_modules/(?!(\\.pnpm/)?(next-intl|use-intl|@formatjs|intl-messageformat)([@+/]|$))"
         ],
         "moduleNameMapper": {
             "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/src/utils/__mocks__/static-image.ts",

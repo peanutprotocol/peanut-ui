@@ -58,7 +58,7 @@ export async function GET() {
                 responseTime: lookupResponseTime,
                 httpStatus: lookupResponse.status,
             }
-        } catch (error) {
+        } catch {
             // If lookup fails, that's okay - not all endpoints may be available
             lookupHealth = {
                 status: 'degraded',

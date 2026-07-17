@@ -1,6 +1,15 @@
-import { render, screen, act } from '@testing-library/react'
-import type { ComponentProps } from 'react'
+import { render as rtlRender, screen, act } from '@testing-library/react'
+import type { ComponentProps, ReactNode } from 'react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 import BadgeEarnToast from '@/components/Badges/BadgeEarnToast'
+
+const IntlWrapper = ({ children }: { children: ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 // next/navigation — mutable pathname so we can exercise the /home gate; stable
 // router object so the effect doesn't re-fire on the tap-triggered re-render.

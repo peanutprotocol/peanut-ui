@@ -26,7 +26,7 @@ const ProfileEditField: React.FC<ProfileEditFieldProps> = ({
         <div className="space-y-2">
             <div className="flex items-center justify-between">
                 <label className={twMerge('text-sm font-bold', disabled && 'text-grey-1')}>{label}</label>
-                {badge && <StatusBadge status="soon" size="small" />}
+                {badge && <StatusBadge status="soon" size="small" customText={badge} />}
             </div>
             <BaseInput
                 type={type}

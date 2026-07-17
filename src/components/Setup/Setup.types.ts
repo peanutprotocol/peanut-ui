@@ -43,8 +43,6 @@ export interface StepComponentProps {
 export interface ISetupStep {
     screenId: ScreenId
     layoutType: LayoutType
-    title: string
-    description?: string
     image: string
     component: React.ComponentType<StepComponentProps>
     showBackButton?: boolean

@@ -2,9 +2,11 @@
 import { useNotifications } from '@/hooks/useNotifications'
 import ActionModal from '../Global/ActionModal'
 import posthog from 'posthog-js'
+import { useTranslations } from 'next-intl'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 
 export default function SetupNotificationsModal() {
+    const t = useTranslations('notifications')
     const {
         showPermissionModal,
         requestPermission,
@@ -44,13 +46,13 @@ export default function SetupNotificationsModal() {
                 visible={showPermissionModal}
                 onClose={handleCloseNotifsSetupModal}
                 modalPanelClassName="m-0 max-w-[90%]"
-                title="Turn on notifications?"
-                description="Enable notifications and get alerts for all wallet activity."
+                title={t('setupTitle')}
+                description={t('setupDescription')}
                 icon="bell"
                 ctaClassName="md:flex-col gap-4"
                 ctas={[
                     {
-                        text: isRequestingPermission ? 'Requesting...' : 'Enable notifications',
+                        text: isRequestingPermission ? t('requesting') : t('enable'),
                         onClick: handleAllowClick,
                         variant: 'purple',
                         shadowSize: '4',
@@ -59,7 +61,7 @@ export default function SetupNotificationsModal() {
                         disabled: isRequestingPermission,
                     },
                     {
-                        text: 'Not now',
+                        text: t('notNow'),
                         onClick: handleCloseNotifsSetupModal,
                         variant: 'transparent',
                         className: 'underline h-6',

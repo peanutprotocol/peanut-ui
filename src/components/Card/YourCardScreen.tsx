@@ -1,5 +1,6 @@
 'use client'
 import { type FC, useCallback, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { parseAsStringEnum, useQueryState } from 'nuqs'
 import posthog from 'posthog-js'
 import { useHaptic } from 'use-haptic'
@@ -27,12 +28,13 @@ interface Props {
 }
 
 const YourCardScreen: FC<Props> = ({ card, onPrev }) => {
+    const t = useTranslations('card.yourCard')
     const [autoRenewDismissed, setAutoRenewDismissed] = useState(false)
     const [action, setAction] = useQueryState('action', parseAsStringEnum<CardAction>(['lock', 'unlock', 'cancel']))
     const { revealed, isLoading: isRevealing, error: revealError, toggle } = useCardReveal({ cardId: card.id })
     const walletPlatform = useWalletPlatform()
     const walletLabel =
-        walletPlatform === 'android' ? 'Add to Google Wallet' : walletPlatform === 'ios' ? 'Add to Apple Wallet' : null
+        walletPlatform === 'android' ? t('addToGoogleWallet') : walletPlatform === 'ios' ? t('addToAppleWallet') : null
     const { triggerHaptic } = useHaptic()
     const toast = useToast()
 
@@ -46,14 +48,14 @@ const YourCardScreen: FC<Props> = ({ card, onPrev }) => {
             // Fire-and-forget; the util captures failures to Sentry.
             void copyTextToClipboardWithFallback(value)
             triggerHaptic()
-            toast.success(field === 'pan' ? 'Card number copied' : 'CVV copied')
+            toast.success(field === 'pan' ? t('cardNumberCopied') : t('cvvCopied'))
         },
-        [triggerHaptic, toast]
+        [triggerHaptic, toast, t]
     )
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-6">
-            <NavHeader title="Your card" onPrev={onPrev} />
+            <NavHeader title={t('navTitle')} onPrev={onPrev} />
 
             <CardFace
                 last4={card.last4}
@@ -71,15 +73,12 @@ const YourCardScreen: FC<Props> = ({ card, onPrev }) => {
                         <Icon name="credit-card" size={20} />
                     </div>
                     <div className="flex-1">
-                        <div className="font-bold text-n-1">Card auto renews soon</div>
-                        <div className="text-sm text-grey-1">
-                            Your card will automatically renew in {daysLeft} {daysLeft === 1 ? 'day' : 'days'},
-                            expiration date will change.
-                        </div>
+                        <div className="font-bold text-n-1">{t('autoRenewTitle')}</div>
+                        <div className="text-sm text-grey-1">{t('autoRenewBody', { days: daysLeft })}</div>
                     </div>
                     <button
                         type="button"
-                        aria-label="Dismiss"
+                        aria-label={t('dismiss')}
                         onClick={() => setAutoRenewDismissed(true)}
                         className="p-1"
                     >
@@ -91,18 +90,18 @@ const YourCardScreen: FC<Props> = ({ card, onPrev }) => {
             <InfoCard
                 variant="info"
                 icon="credit-card"
-                title="Pay as credit"
-                description="When a terminal asks debit or credit, choose credit — your Peanut card runs on the credit network."
+                title={t('payAsCreditTitle')}
+                description={t('payAsCreditBody')}
             />
 
             <div className="flex flex-col gap-2">
-                <h2 className="text-base font-bold text-n-1">Card management</h2>
+                <h2 className="text-base font-bold text-n-1">{t('managementTitle')}</h2>
                 <div>
-                    <ProfileMenuItem icon="more-horizontal" label="Pin" href="/card/pin" position="first" />
-                    <ProfileMenuItem icon="meter" label="Spending limit" href="/card/limit" position="middle" />
+                    <ProfileMenuItem icon="more-horizontal" label={t('pin')} href="/card/pin" position="first" />
+                    <ProfileMenuItem icon="meter" label={t('spendingLimit')} href="/card/limit" position="middle" />
                     <ProfileMenuItem
                         icon="credit-card"
-                        label="Physical card"
+                        label={t('physicalCard')}
                         href="/card/physical"
                         position={walletLabel ? 'middle' : 'last'}
                     />
@@ -113,11 +112,11 @@ const YourCardScreen: FC<Props> = ({ card, onPrev }) => {
             </div>
 
             <div className="flex flex-col gap-2">
-                <h2 className="text-base font-bold text-n-1">Red zone</h2>
+                <h2 className="text-base font-bold text-n-1">{t('redZone')}</h2>
                 <div>
                     <ProfileMenuItem
                         icon="lock"
-                        label={isLocked ? 'Unlock card' : 'Lock card'}
+                        label={isLocked ? t('unlockCard') : t('lockCard')}
                         onClick={() => {
                             posthog.capture(ANALYTICS_EVENTS.CARD_LOCK_OPENED, {
                                 mode: isLocked ? 'unlock' : 'lock',
@@ -129,7 +128,7 @@ const YourCardScreen: FC<Props> = ({ card, onPrev }) => {
                     />
                     <ProfileMenuItem
                         icon="trash"
-                        label="Cancel card"
+                        label={t('cancelCard')}
                         onClick={() => {
                             posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_OPENED)
                             void setAction('cancel')

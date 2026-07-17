@@ -52,6 +52,7 @@ import {
     validateMinimumAmount,
 } from '@/constants/payment.consts'
 import { useAppDispatch } from '@/redux/hooks'
+import { useTranslations } from 'next-intl'
 
 const SHOW_INVITE_MODAL_FOR_DEVCONNECT = false
 
@@ -74,6 +75,9 @@ export default function SendLinkActionList({
     showDevconnectMethod,
     setExternalWalletRecipient,
 }: ISendLinkActionListProps) {
+    const t = useTranslations('claim')
+    const tCommon = useTranslations('common')
+    const tNav = useTranslations('navigation')
     const router = useRouter()
     const {
         setClaimToExternalWallet,
@@ -226,11 +230,12 @@ export default function SendLinkActionList({
                         }}
                     >
                         <div className="flex items-center gap-1">
-                            Claim on <Image src={DEVCONNECT_LOGO} alt="Devconnect Logo" className="size-5" /> Devconnect
-                            app
+                            {t('actions.claimOn')}{' '}
+                            <Image src={DEVCONNECT_LOGO} alt={t('actions.devconnectLogoAlt')} className="size-5" />{' '}
+                            {t('actions.devconnectApp')}
                         </div>
                     </Button>
-                    <Divider text="or" />
+                    <Divider text={tCommon('or')} />
                 </>
             )}
 
@@ -241,23 +246,23 @@ export default function SendLinkActionList({
                     onClick={handleContinueWithPeanut}
                     className="flex w-full items-center gap-1"
                 >
-                    {showDevconnectMethod ? <div>Claim on</div> : <div>Continue with </div>}
+                    {showDevconnectMethod ? <div>{t('actions.claimOn')}</div> : <div>{t('actions.continueWith')} </div>}
                     <div className="flex items-center gap-1">
-                        <Image src={PEANUTMAN} alt="Peanut Logo" className="size-5" />
-                        <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
+                        <Image src={PEANUTMAN} alt={tNav('peanutLogoAlt')} className="size-5" />
+                        <Image src={PEANUT_LOGO_BLACK} alt={tNav('peanutLogoAlt')} />
                     </div>
                 </Button>
             )}
 
             {SHOW_INVITE_MODAL_FOR_DEVCONNECT && isInviteLink && !userHasAppAccess && username && (
                 <div className="!mt-6 flex w-full items-center justify-center gap-1 md:gap-2">
-                    <Image src={starStraightImage.src} alt="star" width={20} height={20} />
-                    <p className="text-center text-sm">Invited by {username}, you have early access!</p>
-                    <Image src={starStraightImage.src} alt="star" width={20} height={20} />
+                    <Image src={starStraightImage.src} alt={t('actions.starAlt')} width={20} height={20} />
+                    <p className="text-center text-sm">{t('actions.invitedBy', { username })}</p>
+                    <Image src={starStraightImage.src} alt={t('actions.starAlt')} width={20} height={20} />
                 </div>
             )}
 
-            <Divider text="or" />
+            <Divider text={tCommon('or')} />
 
             <div className="space-y-2">
                 {sortedActionMethods.map((method) => {
@@ -290,12 +295,15 @@ export default function SendLinkActionList({
             <ActionModal
                 visible={showMinAmountError}
                 onClose={() => setShowMinAmountError(false)}
-                title="Minimum Amount"
-                description={`The minimum amount for ${minAmountErrorInfo?.title ?? 'this payment method'} is $${minAmountErrorInfo?.amount ?? 0}. Please try a different method.`}
+                title={t('minAmount.title')}
+                description={t('minAmount.description', {
+                    method: minAmountErrorInfo?.title ?? t('minAmount.thisPaymentMethod'),
+                    amount: minAmountErrorInfo?.amount ?? 0,
+                })}
                 icon="alert"
                 ctas={[
                     {
-                        text: 'Close',
+                        text: tCommon('close'),
                         shadowSize: '4',
                         onClick: () => setShowMinAmountError(false),
                     },
@@ -340,6 +348,7 @@ const MethodCard = ({
     // static method config has soon=false (e.g. guest claim-to-bank maintenance)
     soon?: boolean
 }) => {
+    const t = useTranslations('claim')
     const showSoon = method.soon || soon
     return (
         <ActionListCard
@@ -352,7 +361,7 @@ const MethodCard = ({
                     {(showSoon || requiresVerification) && (
                         <StatusBadge
                             status={requiresVerification ? 'custom' : 'soon'}
-                            customText={requiresVerification ? 'REQUIRES VERIFICATION' : ''}
+                            customText={requiresVerification ? t('actions.requiresVerification') : ''}
                         />
                     )}
                 </div>

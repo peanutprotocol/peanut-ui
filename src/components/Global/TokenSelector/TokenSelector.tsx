@@ -10,6 +10,7 @@
  */
 
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import React, { type ReactNode, useCallback, useContext, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
@@ -72,6 +73,7 @@ interface NewTokenSelectorProps {
 }
 
 const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewType = 'other', disabled }) => {
+    const t = useTranslations('global')
     // check if cross-chain is disabled via maintenance config
     const isXchainWithdrawDisabled = viewType === 'withdraw' && underMaintenanceConfig.disableXchainWithdraw
     const isXchainSendDisabled =
@@ -371,10 +373,11 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     }, [popularTokensList, searchValue])
 
     const popularTokensListTitle = useMemo(() => {
-        if (searchValue) return 'Search Results'
-        if (selectedChainID && selectedNetworkName) return `Popular tokens on ${selectedNetworkName}`
-        return 'Popular tokens'
-    }, [searchValue, selectedChainID, selectedNetworkName])
+        if (searchValue) return t('tokenSelector.searchResults')
+        if (selectedChainID && selectedNetworkName)
+            return t('tokenSelector.popularTokensOnChain', { chainName: selectedNetworkName })
+        return t('tokenSelector.popularTokens')
+    }, [searchValue, selectedChainID, selectedNetworkName, t])
 
     const handleClearSelectedToken = useCallback(() => {
         setSelectedChainID('')
@@ -433,10 +436,13 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                         </div>
                         <div className="flex flex-col items-start overflow-hidden">
                             <span className="truncate text-base font-semibold text-black">
-                                {buttonSymbol || 'Select a token'}
+                                {buttonSymbol || t('tokenSelector.selectAToken')}
                                 {buttonChainName && (
                                     <span className="ml-1 text-sm font-medium text-grey-1">
-                                        on <span className="capitalize">{buttonChainName}</span>
+                                        {t.rich('tokenSelector.onChain', {
+                                            chainName: buttonChainName,
+                                            c: (chunks) => <span className="capitalize">{chunks}</span>,
+                                        })}
                                     </span>
                                 )}
                             </span>
@@ -444,7 +450,9 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             {(viewType === 'withdraw' || viewType === 'claim') &&
                                 selectedTokenAddress?.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
                                 selectedChainID === PEANUT_WALLET_CHAIN.id.toString() && (
-                                    <span className="text-xs font-normal text-grey-1">No fees with this token.</span>
+                                    <span className="text-xs font-normal text-grey-1">
+                                        {t('tokenSelector.noFeesWithToken')}
+                                    </span>
                                 )}
                         </div>
                     </div>
@@ -454,7 +462,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
 
             <Drawer open={isDrawerOpen} onOpenChange={closeDrawer}>
                 <DrawerContent className="p-5">
-                    <DrawerTitle className="sr-only">Select Token and Network</DrawerTitle>
+                    <DrawerTitle className="sr-only">{t('tokenSelector.drawerTitle')}</DrawerTitle>
                     <div ref={contentRef} className="mx-auto md:max-w-2xl">
                         {showNetworkList ? (
                             <NetworkListView
@@ -473,17 +481,14 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                 {isCrossChainDisabled && (
                                     <div className="flex items-center gap-2 rounded-lg bg-yellow-100 p-3 text-sm text-yellow-800">
                                         <Icon name="info" size={16} className="flex-shrink-0" />
-                                        <span>
-                                            Cross-chain transactions are temporarily unavailable. You can use USDC on
-                                            Arbitrum.
-                                        </span>
+                                        <span>{t('tokenSelector.crossChainUnavailable')}</span>
                                     </div>
                                 )}
 
                                 {/* Popular chains section - hidden when cross-chain is disabled */}
                                 {!isCrossChainDisabled && (
                                     <>
-                                        <Section title="Select a network">
+                                        <Section title={t('tokenSelector.selectANetwork')}>
                                             <div className="flex flex-col gap-4">
                                                 <div className="flex items-stretch justify-between space-x-2">
                                                     {popularChainsForButtons.map((chain) => (
@@ -520,12 +525,12 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                             value={searchValue}
                                             onChange={setSearchValue}
                                             onClear={() => setSearchValue('')}
-                                            placeholder="Search for a token or paste address"
+                                            placeholder={t('tokenSelector.searchTokenPlaceholder')}
                                         />
                                         <div className="flex items-center justify-center gap-2">
                                             <Icon name="info" size={10} className="text-grey-1" />
                                             <span className="text-xs font-normal text-grey-1">
-                                                Transactions using USDC on Arbitrum are sponsored
+                                                {t('tokenSelector.sponsoredHint')}
                                             </span>
                                         </div>
                                     </div>
@@ -533,7 +538,11 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
 
                                 {/* Popular tokens section */}
                                 <Section
-                                    title={isCrossChainDisabled ? 'Available token' : popularTokensListTitle}
+                                    title={
+                                        isCrossChainDisabled
+                                            ? t('tokenSelector.availableToken')
+                                            : popularTokensListTitle
+                                    }
                                     icon={searchValue ? 'search' : 'star'}
                                     titleClassName="text-grey-1 font-medium"
                                     className="relative space-y-4"
@@ -559,12 +568,12 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                             })
                                         ) : searchValue ? (
                                             <EmptyState
-                                                title="No matching popular tokens found"
+                                                title={t('tokenSelector.noMatchingTokensTitle')}
                                                 icon="search"
-                                                description="Try searching for a different token"
+                                                description={t('tokenSelector.noMatchingTokensDescription')}
                                             />
                                         ) : (
-                                            <EmptyState title="No popular tokens available" icon="star" />
+                                            <EmptyState title={t('tokenSelector.noPopularTokensTitle')} icon="star" />
                                         )}
                                     </ScrollableList>
                                 </Section>

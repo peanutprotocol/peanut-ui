@@ -9,7 +9,9 @@
  * component's own logic is under test.
  */
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 
 const mockCancelOnramp = jest.fn()
 jest.mock('@/app/actions/onramp', () => ({
@@ -82,6 +84,15 @@ jest.mock('@/components/Global/ActionModal', () => ({
 
 // import must come after jest.mock
 import { CancelDepositActions } from '../CancelDepositActions'
+
+// these components call useTranslations; give them the en catalog so the
+// English assertions below keep asserting the real shipped copy
+const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const pendingBridgeOnramp = {
     id: 'tx-1',

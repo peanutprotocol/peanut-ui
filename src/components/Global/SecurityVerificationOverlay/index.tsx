@@ -1,5 +1,6 @@
 'use client'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import { useTranslations } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
 
 /**
@@ -15,9 +16,8 @@ import { useModalsContext } from '@/context/ModalsContext'
  * Reusable: any flow that wants the same "Verifying security…" beat can
  * toggle the state via `setIsSecurityVerificationOpen`.
  */
-const MESSAGE = 'Verifying security…'
-
 export default function SecurityVerificationOverlay() {
+    const t = useTranslations('global')
     const { isSecurityVerificationOpen } = useModalsContext()
     if (!isSecurityVerificationOpen) return null
     return (
@@ -26,7 +26,7 @@ export default function SecurityVerificationOverlay() {
             role="status"
             aria-live="polite"
         >
-            <PeanutLoading message={MESSAGE} />
+            <PeanutLoading message={t('securityVerificationOverlay.message')} />
         </div>
     )
 }

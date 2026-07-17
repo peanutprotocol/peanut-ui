@@ -3,6 +3,7 @@
 import { PeanutWhistling } from '@/assets/mascot'
 import { GlobalCashLocalFeel, Star } from '@/assets/illustrations'
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 import { useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from './CloudsCss'
@@ -179,17 +180,17 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
                     className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    <a href="/en/argentina" className="hover:underline">
+                    <Link href="/en/argentina" className="hover:underline">
                         Buenos Aires
-                    </a>
+                    </Link>
                     .{' '}
-                    <a href="/en/brazil" className="hover:underline">
+                    <Link href="/en/brazil" className="hover:underline">
                         São Paulo
-                    </a>
+                    </Link>
                     .{' '}
-                    <a href="/en/brazil" className="hover:underline">
+                    <Link href="/en/brazil" className="hover:underline">
                         Floripa
-                    </a>
+                    </Link>
                     .
                 </span>
                 <span className="mt-2 block text-center text-sm text-n-1/70 md:text-base" style={{ fontWeight: 400 }}>

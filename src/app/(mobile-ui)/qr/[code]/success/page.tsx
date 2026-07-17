@@ -4,6 +4,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useEffect } from 'react'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -14,6 +15,8 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { BASE_URL } from '@/constants/general.consts'
 
 export default function RedirectQrSuccessPage() {
+    const t = useTranslations('qrPay')
+    const tCommon = useTranslations('common')
     const router = useRouter()
     const params = useParams()
     const searchParams = useSearchParams()
@@ -37,7 +40,7 @@ export default function RedirectQrSuccessPage() {
     if (isLoading || !redirectQrData) {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
-                <NavHeader title="Success" />
+                <NavHeader title={t('claimSuccess.navTitle')} />
                 <div className="flex h-full items-center justify-center">
                     <PeanutLoading />
                 </div>
@@ -47,12 +50,12 @@ export default function RedirectQrSuccessPage() {
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">
-            <NavHeader title="Success" />
+            <NavHeader title={t('claimSuccess.navTitle')} />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {/* Title */}
                 <div className="space-y-1 text-center">
-                    <h1 className="text-2xl font-extrabold">This QR is now yours!</h1>
-                    <p className="text-base text-grey-1">Your sticker is now linked to your profile forever.</p>
+                    <h1 className="text-2xl font-extrabold">{t('claimSuccess.title')}</h1>
+                    <p className="text-base text-grey-1">{t('claimSuccess.description')}</p>
                 </div>
 
                 {/* QR Code Display */}
@@ -65,12 +68,8 @@ export default function RedirectQrSuccessPage() {
                     <div className="flex gap-3">
                         <Icon name="star" size={20} className="flex-shrink-0 text-secondary-1" />
                         <div className="space-y-1">
-                            <p className="text-sm font-bold">Put it anywhere!</p>
-                            <p className="text-xs text-grey-1">
-                                Stick it on your laptop, water bottle, or anywhere you want people to find you. Anyone
-                                who scans will be able to join Peanut with your invite and contribute towards your
-                                points forever.
-                            </p>
+                            <p className="text-sm font-bold">{t('claimSuccess.putItAnywhere')}</p>
+                            <p className="text-xs text-grey-1">{t('claimSuccess.stickerDescription')}</p>
                         </div>
                     </div>
                 </Card>
@@ -84,7 +83,7 @@ export default function RedirectQrSuccessPage() {
                         className="w-full"
                         icon="arrow-up-right"
                     >
-                        Go to Home
+                        {tCommon('goToHome')}
                     </Button>
                     <Button
                         variant="primary-soft"
@@ -93,13 +92,13 @@ export default function RedirectQrSuccessPage() {
                             try {
                                 // ALWAYS copy to clipboard first (works on both desktop and mobile)
                                 await navigator.clipboard.writeText(qrUrl)
-                                toast.info('Link copied')
+                                toast.info(t('claimSuccess.linkCopied'))
 
                                 // THEN try to open share dialog if available (bonus for mobile users)
                                 if (navigator.share) {
                                     await navigator.share({
-                                        title: 'My Peanut QR Code',
-                                        text: 'Scan my QR code to connect with me on Peanut!',
+                                        title: t('claimSuccess.shareTitle'),
+                                        text: t('claimSuccess.shareText'),
                                         url: qrUrl,
                                     })
                                 }
@@ -113,7 +112,7 @@ export default function RedirectQrSuccessPage() {
                         className="w-full"
                         icon="share"
                     >
-                        Share QR Code
+                        {t('claimSuccess.shareQr')}
                     </Button>
                 </div>
             </div>

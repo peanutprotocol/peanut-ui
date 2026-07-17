@@ -13,7 +13,7 @@
  * supports route expiry handling - auto-refreshes routes when expired
  */
 
-import { useCallback, useMemo, useEffect, useContext, useState } from 'react'
+import { useCallback, useMemo, useEffect, useContext } from 'react'
 import { parseUnits, type Address, type Hash } from 'viem'
 import { useSemanticRequestFlowContext } from './SemanticRequestFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
@@ -23,12 +23,15 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAuth } from '@/context/authContext'
 import { tokenSelectorContext } from '@/context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { ErrorHandler } from '@/utils/friendly-error.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
+import { useTranslations } from 'next-intl'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 
 export function useSemanticRequestFlow() {
+    const t = useTranslations('payment')
+    const toFriendlyError = useFriendlyError()
     const {
         amount,
         setAmount,
@@ -209,11 +212,11 @@ export function useSemanticRequestFlow() {
         if (recipient?.recipientType === 'USERNAME') {
             // for username recipients, only arbitrum is allowed
             if (selectedChainID && selectedChainID !== PEANUT_WALLET_CHAIN.id.toString()) {
-                return 'Payments to Peanut usernames can only be made on Arbitrum'
+                return t('errors.usernameArbitrumOnly')
             }
         }
         return null
-    }, [recipient?.recipientType, selectedChainID])
+    }, [recipient?.recipientType, selectedChainID, t])
 
     // update url with chargeId (shallow update - no re-render)
     const updateUrlWithChargeId = useCallback((chargeId: string) => {
@@ -243,7 +246,7 @@ export function useSemanticRequestFlow() {
             bypassLoginCheck: boolean = false
         ): Promise<{ success: boolean }> => {
             if (!recipient || !amount || !selectedTokenAddress || !selectedChainID || !selectedTokenData) {
-                setError({ showError: true, errorMessage: 'missing required data' })
+                setError({ showError: true, errorMessage: t('errors.missingData') })
                 return { success: false }
             }
 
@@ -256,7 +259,7 @@ export function useSemanticRequestFlow() {
 
             // if not logged in, don't proceed (action list handles this)
             if (!bypassLoginCheck && (!isLoggedIn || !walletAddress)) {
-                setError({ showError: true, errorMessage: 'please log in to continue' })
+                setError({ showError: true, errorMessage: t('errors.logInToContinue') })
                 return { success: false }
             }
 
@@ -340,7 +343,7 @@ export function useSemanticRequestFlow() {
                 setIsLoading(false)
                 return { success: true }
             } catch (err) {
-                const errorMessage = ErrorHandler(err)
+                const errorMessage = toFriendlyError(err)
                 setError({ showError: true, errorMessage })
                 setIsLoading(false)
                 return { success: false }
@@ -372,6 +375,8 @@ export function useSemanticRequestFlow() {
             setError,
             setIsLoading,
             clearError,
+            toFriendlyError,
+            t,
         ]
     )
 
@@ -441,7 +446,7 @@ export function useSemanticRequestFlow() {
                 })
                 .catch((err) => {
                     console.error('failed to fetch charge:', err)
-                    setError({ showError: true, errorMessage: 'failed to load payment details' })
+                    setError({ showError: true, errorMessage: t('errors.paymentDetailsLoadFailed') })
                 })
         }
     }, [
@@ -458,6 +463,7 @@ export function useSemanticRequestFlow() {
         setSelectedChainID,
         setSelectedTokenAddress,
         setCurrentView,
+        t,
     ])
 
     // call prepareRoute when entering confirm view and charge is ready
@@ -472,7 +478,7 @@ export function useSemanticRequestFlow() {
     // execute payment from confirm view (handles both same-chain and cross-chain)
     const executePayment = useCallback(async () => {
         if (!recipient || !amount || !walletAddress || !charge) {
-            setError({ showError: true, errorMessage: 'missing required data' })
+            setError({ showError: true, errorMessage: t('errors.missingData') })
             return
         }
 
@@ -562,7 +568,7 @@ export function useSemanticRequestFlow() {
             })
             queryClient.invalidateQueries({ queryKey: ['balance'] })
         } catch (err) {
-            const errorMessage = ErrorHandler(err)
+            const errorMessage = toFriendlyError(err)
             setError({ showError: true, errorMessage })
         } finally {
             setIsLoading(false)
@@ -589,6 +595,8 @@ export function useSemanticRequestFlow() {
         setError,
         setIsLoading,
         clearError,
+        toFriendlyError,
+        t,
     ])
 
     // go back from confirm to initial

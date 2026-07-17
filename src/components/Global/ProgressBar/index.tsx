@@ -1,4 +1,5 @@
 import { COIN_ICON } from '@/assets'
+import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -11,6 +12,7 @@ interface ProgressBarProps {
 }
 
 const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) => {
+    const t = useTranslations('global')
     const isOverGoal = progress > goal && goal > 0
     const isGoalAchieved = progress >= goal && !isOverGoal && goal > 0
 
@@ -67,9 +69,9 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
     const formatCurrency = (value: number) => `$${formatExtendedNumber(value, 4)}`
 
     const getStatusText = () => {
-        if (isOverGoal) return 'Goal exceeded!'
-        if (isGoalAchieved) return 'Goal achieved!'
-        return `${100 - percentage}% below goal`
+        if (isOverGoal) return t('progressBar.goalExceeded')
+        if (isGoalAchieved) return t('progressBar.goalAchieved')
+        return t('progressBar.belowGoal', { percentage: 100 - percentage })
     }
 
     const getBackgroundColor = () => {
@@ -91,8 +93,10 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
         if (!isClosed) {
             return (
                 <div className="flex w-full items-center justify-between text-sm">
-                    <p className="text-grey-5">{formatCurrency(progress)} contributed</p>
-                    <p className="text-grey-5">{formatCurrency(Math.max(goal - progress, 0))} remaining</p>
+                    <p className="text-grey-5">{t('progressBar.contributed', { amount: formatCurrency(progress) })}</p>
+                    <p className="text-grey-5">
+                        {t('progressBar.remaining', { amount: formatCurrency(Math.max(goal - progress, 0)) })}
+                    </p>
                 </div>
             )
         }
@@ -131,7 +135,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
         )
     }
 
-    const renderMarker = (color: string, position: string | number, isPercentage = true) => {
+    const renderMarker = (color: string, position: string | number, _isPercentage = true) => {
         const positionStyle = typeof position === 'string' ? { left: position } : { left: `${position}%` }
         return (
             <div

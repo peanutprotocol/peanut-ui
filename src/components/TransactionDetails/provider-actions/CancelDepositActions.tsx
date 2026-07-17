@@ -14,6 +14,7 @@ import { chargesApi } from '@/services/charges'
 import { mantecaApi } from '@/services/manteca'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 
 /**
  * Cancel-deposit buttons for pending bank-deposit-shaped flows.
@@ -39,13 +40,20 @@ export function CancelDepositActions({
     setIsLoading: ((loading: boolean) => void) | undefined
     onClose: (() => void) | undefined
 }) {
+    const t = useTranslations('transaction')
     const queryClient = useQueryClient()
     const [error, setError] = useState<string | null>(null)
     // Cancels are irreversible and the button sits next to the support link —
     // a real user cancelled a funded deposit while trying to report a problem
     // (no way to match the wire once cancelled). Every cancel confirms first.
-    const [pendingCancel, setPendingCancel] = useState<{ noun: string; run: () => Promise<void> } | null>(null)
-    // Visibility is separate from pendingCancel so the noun stays rendered
+    // `kind` rather than a noun to interpolate: "Cancel this {noun}?" can't be
+    // translated — es/pt need gender agreement (este depósito / esta solicitud),
+    // so each kind carries its own full sentence.
+    const [pendingCancel, setPendingCancel] = useState<{
+        kind: 'deposit' | 'request'
+        run: () => Promise<void>
+    } | null>(null)
+    // Visibility is separate from pendingCancel so the copy stays rendered
     // during the modal's fade-out (nulling it mid-fade flashed 'deposit'
     // over 'request' titles).
     const [confirmOpen, setConfirmOpen] = useState(false)
@@ -71,13 +79,13 @@ export function CancelDepositActions({
             captureException(err)
             // A cancel that fails silently makes the user believe the deposit is
             // cancelled when it isn't — surface it instead of only logging.
-            setError("We couldn't cancel this deposit. Please try again or contact support.")
+            setError(t('actions.cancelDepositFailed'))
             setIsLoading(false)
         }
     }
 
-    const armCancel = (noun: string, run: () => Promise<void>) => {
-        setPendingCancel({ noun, run })
+    const armCancel = (kind: 'deposit' | 'request', run: () => Promise<void>) => {
+        setPendingCancel({ kind, run })
         setConfirmOpen(true)
     }
 
@@ -102,21 +110,24 @@ export function CancelDepositActions({
                 visible={confirmOpen}
                 onClose={() => setConfirmOpen(false)}
                 icon="ban"
-                title={`Cancel this ${pendingCancel?.noun ?? 'deposit'}?`}
-                modalClassName="!z-[9999] pointer-events-auto"
-                description={
-                    <>
-                        This can't be undone. If you already sent the bank transfer, <strong>don't cancel</strong> — a
-                        cancelled deposit can no longer be matched to your account, and the money will be returned to
-                        your bank instead.
-                    </>
+                title={
+                    pendingCancel?.kind === 'request'
+                        ? t('actions.cancelRequestTitle')
+                        : t('actions.cancelDepositTitle')
                 }
+                modalClassName="!z-[9999] pointer-events-auto"
+                description={t.rich('actions.cancelWarning', {
+                    strong: (chunks) => <strong>{chunks}</strong>,
+                })}
                 modalPanelClassName="max-w-sm mx-8 !z-[9999] pointer-events-auto"
                 contentContainerClassName="relative pointer-events-auto"
                 classOverlay="!bg-black/40 !z-[9998]"
                 ctas={[
                     {
-                        text: `Yes, cancel ${pendingCancel?.noun ?? 'deposit'}`,
+                        text:
+                            pendingCancel?.kind === 'request'
+                                ? t('actions.confirmCancelRequest')
+                                : t('actions.confirmCancelDeposit'),
                         shadowSize: '4',
                         className: 'md:py-2',
                         onClick: confirmThenRun,
@@ -175,7 +186,7 @@ export function CancelDepositActions({
         return withError(
             <div className="pr-1">
                 <CancelButton
-                    label="Cancel Request"
+                    label={t('actions.cancelDepositRequest')}
                     disabled={!!isLoading}
                     onClick={() =>
                         armCancel('request', async () => {
@@ -199,15 +210,8 @@ export function CancelDepositActions({
     return null
 }
 
-function CancelButton({
-    label = 'Cancel deposit',
-    disabled,
-    onClick,
-}: {
-    label?: string
-    disabled: boolean
-    onClick: () => void
-}) {
+function CancelButton({ label, disabled, onClick }: { label?: string; disabled: boolean; onClick: () => void }) {
+    const t = useTranslations('transaction')
     return (
         <Button
             disabled={disabled}
@@ -219,7 +223,7 @@ function CancelButton({
             <div className="flex items-center">
                 <Icon name="ban" size={18} />
             </div>
-            <span>{label}</span>
+            <span>{label ?? t('actions.cancelDeposit')}</span>
         </Button>
     )
 }

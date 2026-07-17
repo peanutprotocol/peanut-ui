@@ -25,12 +25,17 @@ import { fetchTokenSymbol, formatTokenAmount, getRequestLink, isNativeCurrency }
 import * as Sentry from '@sentry/nextjs'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
 export const CreateRequestLinkView = () => {
+    const t = useTranslations('request')
+    const tNav = useTranslations('navigation')
+    const tCommon = useTranslations('common')
+    const tLoading = useTranslations('loadingStates')
     const toast = useToast()
     const onBack = useSafeBack('/home')
     const { address, isConnected, spendableBalance: balance, formattedSpendableBalance } = useWallet()
@@ -47,7 +52,7 @@ export const CreateRequestLinkView = () => {
         return formatTokenAmount(paramsAmount, 2) ?? ''
     }, [paramsAmount])
     const merchant = searchParams.get('merchant')
-    const merchantComment = merchant ? `Bill split for ${merchant}` : null
+    const merchantComment = merchant ? t('billSplitFor', { merchant }) : null
 
     // Core state
     const [tokenValue, setTokenValue] = useState<string>(sanitizedAmount)
@@ -85,7 +90,7 @@ export const CreateRequestLinkView = () => {
         [balance, formattedSpendableBalance]
     )
 
-    const usdValue = useMemo(() => {
+    const _usdValue = useMemo(() => {
         if (!selectedTokenData?.price || !tokenValue) return ''
         return (parseFloat(tokenValue) * selectedTokenData.price).toString()
     }, [tokenValue, selectedTokenData?.price])
@@ -107,11 +112,11 @@ export const CreateRequestLinkView = () => {
         return harnessFallbackAddress
     }, [isConnected, address, harnessFallbackAddress])
 
-    const isValidRecipient = useMemo(() => {
+    const _isValidRecipient = useMemo(() => {
         return (isConnected && !!address) || !!harnessFallbackAddress
     }, [isConnected, address, harnessFallbackAddress])
 
-    const hasAttachment = useMemo(() => {
+    const _hasAttachment = useMemo(() => {
         return !!(attachmentOptions.rawFile || attachmentOptions.message)
     }, [attachmentOptions.rawFile, attachmentOptions.message])
 
@@ -126,7 +131,7 @@ export const CreateRequestLinkView = () => {
             if (!recipientAddress) {
                 setErrorState({
                     showError: true,
-                    errorMessage: 'Please enter a recipient address',
+                    errorMessage: t('errors.enterRecipient'),
                 })
                 return null
             }
@@ -188,7 +193,7 @@ export const CreateRequestLinkView = () => {
                 // Update the last saved state
                 lastSavedAttachmentRef.current = { ...attachmentOptions }
 
-                toast.success('Link created successfully!')
+                toast.success(t('linkCreatedToast'))
                 queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
                 return link
             } catch (error) {
@@ -197,11 +202,11 @@ export const CreateRequestLinkView = () => {
                 }
                 setErrorState({
                     showError: true,
-                    errorMessage: 'Failed to create link',
+                    errorMessage: t('errors.createFailed'),
                 })
                 console.error('Failed to create link:', error)
                 Sentry.captureException(error)
-                toast.error('Failed to create link')
+                toast.error(t('errors.createFailed'))
                 return null
             } finally {
                 setLoadingState('Idle')
@@ -217,6 +222,7 @@ export const CreateRequestLinkView = () => {
             toast,
             queryClient,
             setLoadingState,
+            t,
         ]
     )
 
@@ -242,24 +248,24 @@ export const CreateRequestLinkView = () => {
                 // Update the last saved state
                 lastSavedAttachmentRef.current = { ...attachmentOptions }
 
-                toast.success('Request updated successfully!')
+                toast.success(t('requestUpdatedToast'))
                 queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
                 return generatedLink
             } catch (error) {
                 setErrorState({
                     showError: true,
-                    errorMessage: 'Failed to update request',
+                    errorMessage: t('errors.updateFailed'),
                 })
                 console.error('Failed to update request:', error)
                 Sentry.captureException(error)
-                toast.error('Failed to update request')
+                toast.error(t('errors.updateFailed'))
                 return null
             } finally {
                 setLoadingState('Idle')
                 setIsUpdatingRequest(false)
             }
         },
-        [requestId, generatedLink, toast, queryClient, setLoadingState]
+        [requestId, generatedLink, toast, queryClient, setLoadingState, t]
     )
 
     const hasUnsavedChanges = useMemo(() => {
@@ -363,7 +369,7 @@ export const CreateRequestLinkView = () => {
 
     return (
         <div className="flex min-h-[inherit] w-full flex-col justify-start space-y-8">
-            <NavHeader onPrev={onBack} title="Request" />
+            <NavHeader onPrev={onBack} title={tNav('request')} />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 <PeanutActionCard type="request" />
 
@@ -383,17 +389,14 @@ export const CreateRequestLinkView = () => {
                     infoContent={
                         <div className="mx-auto flex w-fit items-center gap-2 rounded-full bg-grey-2 p-1.5">
                             <IconComponent name="info" size={12} className="text-grey-1" />
-                            <p className="text-[10px] font-bold text-grey-1">
-                                {' '}
-                                Leave empty to let payers choose amounts.
-                            </p>
+                            <p className="text-[10px] font-bold text-grey-1"> {t('leaveEmptyHint')}</p>
                         </div>
                     }
                 />
 
                 <FileUploadInput
                     className="h-11"
-                    placeholder="Comment"
+                    placeholder={tCommon('comment')}
                     attachmentOptions={attachmentOptions}
                     setAttachmentOptions={handleAttachmentOptionsChange}
                 />
@@ -405,7 +408,7 @@ export const CreateRequestLinkView = () => {
                         onClick={generateLink}
                         shadowSize="4"
                     >
-                        Create request
+                        {t('createRequest')}
                     </Button>
                 )}
 
@@ -413,14 +416,14 @@ export const CreateRequestLinkView = () => {
                     (isCreatingLink || isUpdatingRequest ? (
                         <Button disabled={true} shadowSize="4">
                             <div className="flex w-full flex-row items-center justify-center gap-2">
-                                <Loading /> Loading
+                                <Loading /> {tLoading('loading')}
                             </div>
                         </Button>
                     ) : (
                         <ShareButton generateUrl={generateLink}>
                             {!tokenValue || !parseFloat(tokenValue) || parseFloat(tokenValue) === 0
-                                ? 'Share open request'
-                                : `Share $${tokenValue} request`}
+                                ? t('shareOpenRequest')
+                                : t('shareAmountRequest', { amount: tokenValue })}
                         </ShareButton>
                     ))}
 

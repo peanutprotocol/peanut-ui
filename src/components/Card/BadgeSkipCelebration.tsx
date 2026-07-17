@@ -18,6 +18,7 @@
 
 import { type FC, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import NavHeader from '@/components/Global/NavHeader'
@@ -46,19 +47,16 @@ interface Props {
     onContinue: () => void
 }
 
-const SKIP_BADGE_HEADLINES: Record<string, string> = {
-    OG_2025_10_12: 'OG access. You skipped the line.',
-    DEVCONNECT_BA_2025: 'Devconnect crew. You skipped the line.',
-    ARBIVERSE_DEVCONNECT_BA_2025: 'Arbiverse. You skipped the line.',
-}
-
-// Fallback when the user has card access but no skip badge (e.g. admin
-// grant, waitlist roll-out). Same celebration moment, different framing.
-const NO_BADGE_HEADLINE = "You're in."
+const SKIP_BADGE_HEADLINE_KEYS = {
+    OG_2025_10_12: 'celebration.headlineOg',
+    DEVCONNECT_BA_2025: 'celebration.headlineDevconnect',
+    ARBIVERSE_DEVCONNECT_BA_2025: 'celebration.headlineArbiverse',
+} as const
 
 type Phase = 'looking-up' | 'shaking' | 'revealed'
 
 const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, tier, pointsBalance, onContinue }) => {
+    const t = useTranslations('card')
     const [phase, setPhase] = useState<Phase>('looking-up')
     const [hideUsername, setHideUsername] = useState(false)
     // Gate the Share/Save buttons until the card face's async hand <canvas>
@@ -67,11 +65,13 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
     const { triggerHaptic } = useHaptic()
     const captureRef = useRef<HTMLDivElement | null>(null)
     const hasBadge = !!badgeCode
-    const headline =
-        (badgeCode && SKIP_BADGE_HEADLINES[badgeCode]) || (hasBadge ? 'You skipped the line.' : NO_BADGE_HEADLINE)
-    const subline = hasBadge
-        ? 'You hold a badge that skips the closed-beta queue. Card’s yours.'
-        : 'Welcome to the closed beta. Card’s yours.'
+    // Falls back to the generic skip headline for an unmapped badge, and to the
+    // no-badge framing for card access granted without one (admin grant, roll-out).
+    const badgeHeadlineKey = badgeCode
+        ? SKIP_BADGE_HEADLINE_KEYS[badgeCode as keyof typeof SKIP_BADGE_HEADLINE_KEYS]
+        : undefined
+    const headline = t(badgeHeadlineKey ?? (hasBadge ? 'celebration.headlineSkip' : 'celebration.headlineNoBadge'))
+    const subline = t(hasBadge ? 'celebration.sublineBadge' : 'celebration.sublineNoBadge')
 
     useEffect(() => {
         // Only fire the skipped-BY-BADGE event when the user actually has one.
@@ -99,7 +99,7 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-6">
-            <NavHeader title="Welcome in" />
+            <NavHeader title={t('celebration.navTitle')} />
 
             <AnimatePresence mode="wait">
                 {phase === 'looking-up' ? (
@@ -111,8 +111,8 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
                     >
-                        <h1 className="text-3xl font-extrabold text-n-1">Looking you up…</h1>
-                        <p className="text-grey-1">Checking your badges.</p>
+                        <h1 className="text-3xl font-extrabold text-n-1">{t('celebration.lookingUpTitle')}</h1>
+                        <p className="text-grey-1">{t('celebration.lookingUpBody')}</p>
                     </motion.div>
                 ) : (
                     <motion.div
@@ -184,13 +184,13 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
                 {/* Anti-dox toggle — hides the peanut.me/<handle> pill on the asset */}
                 <Checkbox
                     className="self-center"
-                    label="Hide username"
+                    label={t('celebration.hideUsername')}
                     value={hideUsername}
                     onChange={(e) => setHideUsername(e.target.checked)}
                 />
                 <ShareAssetActions captureRef={captureRef} source="celebration" ready={assetReady} />
                 <Button onClick={onContinue} variant="stroke" className="w-full">
-                    Continue to your card
+                    {t('celebration.continueToCard')}
                 </Button>
             </motion.div>
         </div>

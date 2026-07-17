@@ -8,8 +8,9 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { PerkIcon } from '@/components/TransactionDetails/PerkIcon'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { type HistoryEntryPerkReward } from '@/services/services.types'
-import { formatDate } from '@/utils/general.utils'
 import { useModalsContext } from '@/context/ModalsContext'
+import { useTranslations } from 'next-intl'
+import { useReceiptDateFormatter } from '@/components/TransactionDetails/useReceiptDateFormatter'
 
 /**
  * Self-contained receipt for PERK_REWARD entries. Replaces the early-return
@@ -32,6 +33,8 @@ export function PerkRewardReceipt({
     className?: string
 }) {
     const { setIsSupportModalOpen } = useModalsContext()
+    const t = useTranslations('transaction')
+    const formatDate = useReceiptDateFormatter()
 
     return (
         <div ref={contentRef} className={twMerge('space-y-4', className)}>
@@ -41,18 +44,18 @@ export function PerkRewardReceipt({
                     <div className="flex items-center gap-3">
                         <PerkIcon size="medium" />
                         <div className="flex flex-col">
-                            <h2 className="text-lg font-semibold text-gray-900">Peanut Reward</h2>
+                            <h2 className="text-lg font-semibold text-gray-900">{t('perk.title')}</h2>
                             <p className="text-2xl font-bold text-gray-900">{amountDisplay}</p>
                         </div>
                     </div>
                     <div className="flex-shrink-0">
                         {transaction.status === 'completed' ? (
                             <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
-                                Completed
+                                {t('perk.statusCompleted')}
                             </span>
                         ) : transaction.status === 'pending' || transaction.status === 'processing' ? (
                             <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-700">
-                                Processing
+                                {t('perk.statusProcessing')}
                             </span>
                         ) : (
                             <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
@@ -61,7 +64,7 @@ export function PerkRewardReceipt({
                         )}
                     </div>
                 </div>
-                <p className="mt-3 text-sm text-gray-600">Earn rewards every time your friends use Peanut.</p>
+                <p className="mt-3 text-sm text-gray-600">{t('perk.subtitle')}</p>
             </Card>
 
             {/* Perk details — date + reason. Reason has a payment-UUID suffix
@@ -70,12 +73,12 @@ export function PerkRewardReceipt({
                 add requestPaymentUuid column so reason can be clean. */}
             <Card position="single" className="px-4 py-0">
                 <PaymentInfoRow
-                    label="Received"
+                    label={t('perk.received')}
                     value={formatDate(new Date(transaction.date))}
                     hideBottomBorder={false}
                 />
                 <PaymentInfoRow
-                    label="Reason"
+                    label={t('rows.reason')}
                     value={perkRewardData.reason.replace(/\s*\(payment:\s*[a-f0-9-]+\)/i, '')}
                     hideBottomBorder={true}
                 />
@@ -86,7 +89,7 @@ export function PerkRewardReceipt({
                 className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
             >
                 <Icon name="peanut-support" size={16} className="text-grey-1" />
-                Issues with this transaction?
+                {t('actions.reportIssue')}
             </button>
         </div>
     )

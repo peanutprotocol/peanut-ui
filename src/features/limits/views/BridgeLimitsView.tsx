@@ -6,6 +6,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { useLimits } from '@/hooks/useLimits'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { MAX_QR_PAYMENT_AMOUNT_FOREIGN } from '@/constants/payment.consts'
+import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import * as Accordion from '@radix-ui/react-accordion'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
@@ -23,6 +24,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
  * url state: ?region=us|mexico|europe|argentina|brazil (persists source region)
  */
 const BridgeLimitsView = () => {
+    const t = useTranslations('limits.provider')
     const onBack = useSafeBack('/limits')
     const { bridgeLimits, isLoading, error, hasMantecaLimits } = useLimits()
 
@@ -46,7 +48,7 @@ const BridgeLimitsView = () => {
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-6">
-            <NavHeader title="Limits" onPrev={onBack} titleClassName="text-xl md:text-2xl" />
+            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-xl md:text-2xl" />
 
             {isLoading && <PeanutLoading coverFullScreen />}
 
@@ -57,29 +59,31 @@ const BridgeLimitsView = () => {
                     {/* main limits card - only for bank transfer regions */}
                     {showBankTransferLimits && (
                         <div className="space-y-2">
-                            <h3 className="font-bold">Fiat limits:</h3>
+                            <h3 className="font-bold">{t('fiatLimits')}</h3>
                             <Card position="single" className="space-y-2 p-4">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
                                         <Icon name="check" className="text-success-1" size={16} />
                                         <span className="text-sm">
-                                            <span className="font-medium">Add money:</span> up to{' '}
-                                            {formatAmountWithCurrency(
-                                                parseFloat(bridgeLimits.onRampPerTransaction),
-                                                bridgeLimits.asset
-                                            )}{' '}
-                                            per transaction
+                                            {t.rich('addMoneyLimit', {
+                                                medium: (chunks) => <span className="font-medium">{chunks}</span>,
+                                                amount: formatAmountWithCurrency(
+                                                    parseFloat(bridgeLimits.onRampPerTransaction),
+                                                    bridgeLimits.asset
+                                                ),
+                                            })}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Icon name="check" className="text-success-1" size={16} />
                                         <span className="text-sm">
-                                            <span className="font-medium">Withdrawing:</span> up to{' '}
-                                            {formatAmountWithCurrency(
-                                                parseFloat(bridgeLimits.offRampPerTransaction),
-                                                bridgeLimits.asset
-                                            )}{' '}
-                                            per transaction
+                                            {t.rich('withdrawLimit', {
+                                                medium: (chunks) => <span className="font-medium">{chunks}</span>,
+                                                amount: formatAmountWithCurrency(
+                                                    parseFloat(bridgeLimits.offRampPerTransaction),
+                                                    bridgeLimits.asset
+                                                ),
+                                            })}
                                         </span>
                                     </div>
                                 </div>
@@ -90,7 +94,7 @@ const BridgeLimitsView = () => {
                     {/* qr payment limits accordion - for bridge users without manteca kyc */}
                     {!hasMantecaLimits && (
                         <div className="space-y-2">
-                            <h3 className="font-bold">QR payment limits:</h3>
+                            <h3 className="font-bold">{t('qrPaymentLimits')}</h3>
                             <Card position="single" className="p-0">
                                 <Accordion.Root
                                     type="single"
@@ -127,8 +131,9 @@ const BridgeLimitsView = () => {
                                                 <div className="flex items-center gap-2 px-4 pb-3">
                                                     <Icon name="check" className="text-success-1" size={16} />
                                                     <span className="text-sm">
-                                                        Paying with QR: up to $
-                                                        {MAX_QR_PAYMENT_AMOUNT_FOREIGN.toLocaleString()} per transaction
+                                                        {t('qrPayLimit', {
+                                                            amount: `$${MAX_QR_PAYMENT_AMOUNT_FOREIGN.toLocaleString()}`,
+                                                        })}
                                                     </span>
                                                 </div>
                                             </Accordion.Content>
@@ -143,7 +148,7 @@ const BridgeLimitsView = () => {
                 </>
             )}
 
-            {!isLoading && !error && !bridgeLimits && <EmptyState title="Limits data not available" icon="meter" />}
+            {!isLoading && !error && !bridgeLimits && <EmptyState title={t('noData')} icon="meter" />}
         </div>
     )
 }

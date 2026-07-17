@@ -1,4 +1,5 @@
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
@@ -24,7 +25,6 @@ export const KycVerificationInProgressModal = ({
     onClose,
     phase = 'verifying',
     onAcceptTerms,
-    onSkipTerms,
     onContinue,
     tosError,
     isLoadingTos,
@@ -32,6 +32,8 @@ export const KycVerificationInProgressModal = ({
     preparingStage = 'initial',
 }: KycVerificationInProgressModalProps) => {
     const router = useRouter()
+    const t = useTranslations('kyc')
+    const tCommon = useTranslations('common')
 
     const handleGoHome = () => {
         onClose()
@@ -45,16 +47,11 @@ export const KycVerificationInProgressModal = ({
                 onClose={onClose}
                 icon={'clock' as IconName}
                 iconContainerClassName="bg-yellow-1 text-black"
-                title="Almost there"
-                description={
-                    <p>
-                        We&apos;re confirming your ID — usually less than a minute. You can wait here, or head home and
-                        we&apos;ll let you know when it&apos;s done.
-                    </p>
-                }
+                title={t('progress.verifyingTitle')}
+                description={<p>{t('progress.verifyingDescription')}</p>}
                 ctas={[
                     {
-                        text: 'Go to Home',
+                        text: tCommon('goToHome'),
                         onClick: handleGoHome,
                         variant: 'purple',
                         className: 'w-full',
@@ -73,30 +70,26 @@ export const KycVerificationInProgressModal = ({
         const getPreparingCopy = () => {
             if (preparingTimedOut) {
                 return {
-                    title: 'Taking longer than expected',
-                    description: "You can continue and we'll notify you when it's ready.",
+                    title: t('progress.preparingTimedOutTitle'),
+                    description: t('progress.preparingTimedOutDescription'),
                 }
             }
             switch (preparingStage) {
-                case 'initial':
-                    return {
-                        title: 'Setting up your account',
-                        description: 'Preparing your payment methods...',
-                    }
                 case 'configuring':
                     return {
-                        title: 'Setting up your account',
-                        description: 'Configuring your regions...',
+                        title: t('progress.preparingTitle'),
+                        description: t('progress.preparingConfiguringDescription'),
                     }
                 case 'slow':
                     return {
-                        title: 'Almost there',
-                        description: 'This is taking a bit longer than usual. Hang tight.',
+                        title: t('progress.preparingSlowTitle'),
+                        description: t('progress.preparingSlowDescription'),
                     }
+                case 'initial':
                 default:
                     return {
-                        title: 'Setting up your account',
-                        description: 'Preparing your payment methods...',
+                        title: t('progress.preparingTitle'),
+                        description: t('progress.preparingInitialDescription'),
                     }
             }
         }
@@ -115,7 +108,7 @@ export const KycVerificationInProgressModal = ({
                     preparingTimedOut
                         ? [
                               {
-                                  text: 'Go to Home',
+                                  text: tCommon('goToHome'),
                                   onClick: handleGoHome,
                                   variant: 'purple',
                                   className: 'w-full',
@@ -131,8 +124,7 @@ export const KycVerificationInProgressModal = ({
     }
 
     if (phase === 'bridge_tos') {
-        const description =
-            tosError || 'Last step: accept terms of service to unlock bank transfers in the US, Europe, and Mexico.'
+        const description = tosError || t('progress.bridgeTosDescription')
 
         return (
             <ActionModal
@@ -140,11 +132,11 @@ export const KycVerificationInProgressModal = ({
                 onClose={onClose}
                 icon={'check' as IconName}
                 iconContainerClassName="bg-success-1 text-white"
-                title="One more step"
+                title={t('progress.bridgeTosTitle')}
                 description={description}
                 ctas={[
                     {
-                        text: tosError ? 'Continue' : 'Accept Terms',
+                        text: tosError ? tCommon('continue') : t('progress.acceptTerms'),
                         onClick: tosError ? onClose : (onAcceptTerms ?? onClose),
                         disabled: isLoadingTos,
                         variant: 'purple',
@@ -165,11 +157,11 @@ export const KycVerificationInProgressModal = ({
             onClose={onClose}
             icon={'check' as IconName}
             iconContainerClassName="bg-success-1 text-white"
-            title="You're unlocked"
-            description="Your account is ready to go."
+            title={t('progress.completeTitle')}
+            description={t('progress.completeDescription')}
             ctas={[
                 {
-                    text: 'Continue',
+                    text: tCommon('continue'),
                     onClick: onContinue ?? onClose,
                     variant: 'purple',
                     className: 'w-full',

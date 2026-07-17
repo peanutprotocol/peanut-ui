@@ -18,7 +18,6 @@ import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey } from './useGrantSessionKey'
 import { usdcUnitsToRainCents } from '@/utils/balance.utils'
 import { useModalsContextOptional } from '@/context/ModalsContext'
-import { smartUsdcBalanceQueryOptions } from './useBalance'
 import { isDemoMode } from '@/utils/demo'
 import { debitDemoBalance } from '@/utils/demo-balance'
 import {

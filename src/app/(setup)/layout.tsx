@@ -11,7 +11,7 @@ import { Banner } from '@/components/Global/Banner'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
-import { isCapacitor, isIOSNative } from '@/utils/capacitor'
+import { isCapacitor } from '@/utils/capacitor'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const dispatch = useAppDispatch()
@@ -19,15 +19,15 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const { deviceType } = useDeviceType()
 
     /*
-     * Bottom-inset fill color. Periwinkle is for Android 15 edge-to-edge (matches
-     * the status-bar strip). On iOS the content directly above the home-indicator
-     * inset is the white panel, so periwinkle reads as a stray bar on Face ID
-     * devices — fill with white there instead. State + effect (not a render-time
-     * platform check) so the static export's prerendered HTML hydrates cleanly.
+     * Bottom-inset fill color. On both native platforms the content directly above
+     * the bottom inset (iOS home indicator / Android 15 edge-to-edge nav bar) is the
+     * setup flow's white panel, so a periwinkle fill reads as a stray strip — fill
+     * with white instead. State + effect (not a render-time platform check) so the
+     * static export's prerendered HTML hydrates cleanly.
      */
     const [bottomInsetFill, setBottomInsetFill] = useState('bg-secondary-3')
     useEffect(() => {
-        if (isIOSNative()) setBottomInsetFill('bg-white')
+        if (isCapacitor()) setBottomInsetFill('bg-white')
     }, [])
 
     // configure status bar for native. the setup/onboarding flow has a periwinkle

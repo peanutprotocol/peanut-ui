@@ -14,14 +14,16 @@ import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
-import { checkIfInternalNavigation, getRedirectUrl, clearRedirectUrl, getFromLocalStorage } from '@/utils/general.utils'
+import { getRedirectUrl, clearRedirectUrl, getFromLocalStorage } from '@/utils/general.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
+import { useTranslations } from 'next-intl'
 
 export default function AddMoneyPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const t = useTranslations('addMoney')
     const { resetOnrampFlow } = useOnrampFlow()
     const [method, setMethod] = useQueryState('method', parseAsStringEnum(['bank']))
 
@@ -86,11 +88,11 @@ export default function AddMoneyPage() {
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">
-            <NavHeader title="Add Money" onPrev={handleBack} />
+            <NavHeader title={t('title')} onPrev={handleBack} />
 
             {method === 'bank' ? (
                 <CountryList
-                    inputTitle="Select your country"
+                    inputTitle={t('selectYourCountry')}
                     viewMode="add-withdraw"
                     flow="add"
                     onCountryClick={handleCountryClick}

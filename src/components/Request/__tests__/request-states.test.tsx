@@ -10,6 +10,8 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
 
@@ -334,14 +336,22 @@ function createQueryClient() {
     })
 }
 
+const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+
 function renderCreateRequest(params: Record<string, string> = {}) {
     setSearchParams(params)
     const queryClient = createQueryClient()
 
     return render(
-        <QueryClientProvider client={queryClient}>
-            <CreateRequestLinkView />
-        </QueryClientProvider>
+        <IntlWrapper>
+            <QueryClientProvider client={queryClient}>
+                <CreateRequestLinkView />
+            </QueryClientProvider>
+        </IntlWrapper>
     )
 }
 
@@ -350,9 +360,11 @@ function renderPayRequest(params: Record<string, string> = {}) {
     const queryClient = createQueryClient()
 
     return render(
-        <QueryClientProvider client={queryClient}>
-            <PayRequestLink />
-        </QueryClientProvider>
+        <IntlWrapper>
+            <QueryClientProvider client={queryClient}>
+                <PayRequestLink />
+            </QueryClientProvider>
+        </IntlWrapper>
     )
 }
 
@@ -360,9 +372,11 @@ function renderDirectRequest() {
     const queryClient = createQueryClient()
 
     return render(
-        <QueryClientProvider client={queryClient}>
-            <DirectRequestInitialView username="test-user" />
-        </QueryClientProvider>
+        <IntlWrapper>
+            <QueryClientProvider client={queryClient}>
+                <DirectRequestInitialView username="test-user" />
+            </QueryClientProvider>
+        </IntlWrapper>
     )
 }
 

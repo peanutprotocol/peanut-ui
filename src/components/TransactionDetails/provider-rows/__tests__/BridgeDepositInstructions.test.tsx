@@ -9,7 +9,9 @@
  * confusion. Nested primitives are stubbed.
  */
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 
 jest.mock('@/components/Payment/PaymentInfoRow', () => ({
     PaymentInfoRow: ({ label, value }: { label: React.ReactNode; value: React.ReactNode }) => (
@@ -28,6 +30,15 @@ jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => <span /> }))
 
 // import must come after jest.mock
 import { BridgeDepositInstructions } from '../BridgeDepositInstructions'
+
+// these components call useTranslations; give them the en catalog so the
+// English assertions below keep asserting the real shipped copy
+const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const FULL_REFERENCE = 'BRGTESTREF1234567890'
 const SHORT_REFERENCE = FULL_REFERENCE.slice(0, 10)

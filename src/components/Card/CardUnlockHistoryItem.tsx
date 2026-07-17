@@ -12,6 +12,7 @@
  */
 
 import { type FC, type HTMLAttributes, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -31,24 +32,17 @@ interface Props {
     badges?: Array<{ code: string; earnedAt?: string | Date | null }>
 }
 
-const VIA_COPY: Record<CardUnlockHistoryEntry['via'], { title: string; subtitle: string }> = {
-    badge: {
-        title: 'You skipped the line',
-        subtitle: 'Tap to re-open your share asset',
-    },
-    admin: {
-        title: 'Card access unlocked',
-        subtitle: 'Welcome in. Tap to share.',
-    },
-    'public-launch': {
-        title: 'Card access unlocked',
-        subtitle: 'Open to everyone now. Tap to share.',
-    },
-}
+const VIA_COPY_KEYS = {
+    badge: { title: 'badgeTitle', subtitle: 'badgeSubtitle' },
+    admin: { title: 'adminTitle', subtitle: 'adminSubtitle' },
+    'public-launch': { title: 'publicLaunchTitle', subtitle: 'publicLaunchSubtitle' },
+} as const satisfies Record<CardUnlockHistoryEntry['via'], { title: string; subtitle: string }>
 
 const CardUnlockHistoryItem: FC<Props> = ({ entry, position = 'single', className, username, badges }) => {
+    const t = useTranslations('card.unlockHistory')
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-    const copy = VIA_COPY[entry.via]
+    const copyKeys = VIA_COPY_KEYS[entry.via]
+    const title = t(copyKeys.title)
 
     return (
         <>
@@ -59,7 +53,7 @@ const CardUnlockHistoryItem: FC<Props> = ({ entry, position = 'single', classNam
             <button
                 type="button"
                 onClick={() => setIsDrawerOpen(true)}
-                aria-label={`${copy.title} — open share asset`}
+                aria-label={t('openAssetAria', { title })}
                 className="block w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-1"
             >
                 <Card position={position} className={twMerge('cursor-pointer', className)}>
@@ -69,8 +63,8 @@ const CardUnlockHistoryItem: FC<Props> = ({ entry, position = 'single', classNam
                                 <Icon name="credit-card" size={18} />
                             </div>
                             <div className="flex-1">
-                                <p className="font-semibold">{copy.title}</p>
-                                <p className="text-sm text-grey-1">{copy.subtitle}</p>
+                                <p className="font-semibold">{title}</p>
+                                <p className="text-sm text-grey-1">{t(copyKeys.subtitle)}</p>
                             </div>
                         </div>
                     </div>

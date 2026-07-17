@@ -7,6 +7,7 @@ import {
     MANTECA_ARG_DEPOSIT_NAME,
     MANTECA_ARG_DEPOSIT_CUIT,
 } from '@/constants/manteca.consts'
+import { useTranslations } from 'next-intl'
 
 /**
  * Manteca-specific deposit info rows for the receipt's mantecaDepositInfo
@@ -26,6 +27,7 @@ export function MantecaDepositInfo({
      *  avoid duplicating the lookup. */
     country: { id: string } | undefined
 }) {
+    const t = useTranslations('transaction')
     const depositDetails = transaction.extraDataForDrawer?.receipt?.depositDetails
     if (!depositDetails) return null
 
@@ -34,9 +36,8 @@ export function MantecaDepositInfo({
             {depositDetails.depositAddress && (
                 <PaymentInfoRow
                     label={
-                        country
-                            ? (MANTECA_COUNTRIES_CONFIG[country.id]?.depositAddressLabel ?? 'Deposit Address')
-                            : 'Deposit Address'
+                        (country ? MANTECA_COUNTRIES_CONFIG[country.id]?.depositAddressLabel : undefined) ??
+                        t('manteca.depositAddress')
                     }
                     value={depositDetails.depositAddress}
                     allowCopy

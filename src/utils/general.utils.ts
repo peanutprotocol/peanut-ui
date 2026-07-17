@@ -1,9 +1,4 @@
-import {
-    nativeCurrencyAddresses,
-    supportedPeanutChains,
-    peanutTokenDetails,
-    pathTitles,
-} from '@/constants/general.consts'
+import { nativeCurrencyAddresses, supportedPeanutChains, peanutTokenDetails } from '@/constants/general.consts'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { shareableUrl } from '@/utils/url.utils'
 import * as Sentry from '@sentry/nextjs'
@@ -439,8 +434,7 @@ export async function copyTextToClipboardWithFallback(text: string) {
         textarea.style.left = '-9999px'
         document.body.appendChild(textarea)
         textarea.select()
-        const successful = document.execCommand('copy')
-        const msg = successful ? 'successful' : 'unsuccessful'
+        document.execCommand('copy')
         document.body.removeChild(textarea)
     } catch (err) {
         Sentry.captureException(err)
@@ -554,13 +548,6 @@ export const getExplorerUrl = (chainId: string) => {
     }
 }
 
-interface TransferDetails {
-    id: string
-    timestamp: string
-    chain: string
-    details: any
-}
-
 export function formatDate(date: Date | null | undefined): string {
     // Receipts and timeline rows pass dates that may be missing for paths
     // that haven't reached that lifecycle event yet (e.g. cancelledDate on a
@@ -665,10 +652,6 @@ export function getChainName(chainId: string): string | undefined {
     }
     const chain = Object.entries(wagmiChains).find(([, chain]) => chain.id === Number(chainId))?.[1]
     return chain?.name ?? undefined
-}
-
-export const getHeaderTitle = (pathname: string) => {
-    return pathTitles[pathname] || 'Peanut' // default title if path not found
 }
 
 /**

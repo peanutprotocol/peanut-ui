@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import Modal from '../Modal'
 import { Icon, type IconName } from '../Icons/Icon'
 import ActionModal from '../ActionModal'
@@ -14,6 +15,7 @@ export type IFrameWrapperProps = {
 }
 
 const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWrapperProps) => {
+    const t = useTranslations('global')
     const enableConfirmationPrompt = closeConfirmMessage !== undefined
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
     const [modalVariant, setModalVariant] = useState<'stop-verification' | 'trouble'>('trouble')
@@ -31,19 +33,19 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
     const modalDetails = useMemo(() => {
         if (modalVariant === 'trouble') {
             return {
-                title: 'Need a hand?',
+                title: t('iframeWrapper.troubleTitle'),
                 description: (
                     <p>
-                        If the ID check isn&apos;t loading here, finish it in your browser.
+                        {t('iframeWrapper.troubleDescriptionLine1')}
                         <br />
-                        Just copy this link and open it there.
+                        {t('iframeWrapper.troubleDescriptionLine2')}
                     </p>
                 ),
                 icon: 'question-mark' as IconName,
                 iconContainerClassName: 'bg-primary-1',
                 ctas: [
                     {
-                        text: 'Copy link',
+                        text: t('iframeWrapper.copyLink'),
                         icon: copied ? 'check' : ('copy' as IconName),
                         onClick: () => {
                             handleCopy(src)
@@ -52,14 +54,14 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         shadowSize: '4' as const,
                     },
                     {
-                        text: 'Chat with support',
+                        text: t('iframeWrapper.chatWithSupport'),
                         icon: 'peanut-support' as IconName,
                         onClick: () => setIsSupportModalOpen(true),
                         variant: 'transparent' as ButtonVariant,
                         className: 'underline text-sm font-medium w-full fill-none h-fit mt-3',
                     },
                     {
-                        text: 'Cancel',
+                        text: t('iframeWrapper.cancel'),
                         onClick: () => setIsHelpModalOpen(false),
                         variant: 'transparent' as ButtonVariant,
                         className: 'underline text-sm font-medium w-full h-fit mt-3',
@@ -69,13 +71,13 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
         }
 
         return {
-            title: 'Exit for now?',
-            description: 'You can come back and finish this anytime.',
+            title: t('iframeWrapper.exitTitle'),
+            description: t('iframeWrapper.exitDescription'),
             icon: 'alert' as IconName,
             iconContainerClassName: 'bg-secondary-1',
             ctas: [
                 {
-                    text: 'Exit',
+                    text: t('iframeWrapper.exit'),
                     onClick: () => {
                         setIsHelpModalOpen(false)
                         onClose('manual')
@@ -84,14 +86,14 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                     shadowSize: '4' as const,
                 },
                 {
-                    text: 'Continue verifying',
+                    text: t('iframeWrapper.continueVerifying'),
                     onClick: () => setIsHelpModalOpen(false),
                     variant: 'transparent' as ButtonVariant,
                     className: 'underline text-sm font-medium w-full h-fit mt-3',
                 },
             ],
         }
-    }, [modalVariant, copied, src, router])
+    }, [modalVariant, copied, src, router, t])
 
     // track completed event from iframe and close the modal
     useEffect(() => {
@@ -152,7 +154,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                             }}
                             shadowType="primary"
                         >
-                            Stop verification process
+                            {t('iframeWrapper.stopVerification')}
                         </Button>
 
                         <button
@@ -163,7 +165,9 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                             className="flex items-center gap-1"
                         >
                             <Icon name="peanut-support" size={16} className="text-grey-1" />
-                            <p className="text-xs font-medium text-grey-1 underline">Having trouble?</p>
+                            <p className="text-xs font-medium text-grey-1 underline">
+                                {t('iframeWrapper.havingTrouble')}
+                            </p>
                         </button>
                     </div>
                 </div>

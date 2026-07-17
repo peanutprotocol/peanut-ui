@@ -1,10 +1,12 @@
 import React from 'react'
+import { useTranslations } from 'next-intl'
 
 import ActionModal from '../ActionModal'
 import { BrowserType, useGetBrowserType } from '@/hooks/useGetBrowserType'
 import { useModalsContext } from '@/context/ModalsContext'
 
 const IosPwaInstallModal = () => {
+    const t = useTranslations('global')
     const { browserType, isLoading } = useGetBrowserType()
     const { setIsIosPwaInstallModalOpen, isIosPwaInstallModalOpen } = useModalsContext()
     const onClose = () => {
@@ -36,7 +38,7 @@ const IosPwaInstallModal = () => {
                     quicktime stays as a fallback for older Safari. */}
                 <source src={videoSource} type="video/mp4" />
                 <source src={videoSource} type="video/quicktime" />
-                Your browser does not support the video tag.
+                {t('iosPwaInstallModal.videoUnsupported')}
             </video>
         ) : undefined
 
@@ -44,16 +46,12 @@ const IosPwaInstallModal = () => {
         <ActionModal
             visible={isIosPwaInstallModalOpen}
             onClose={onClose}
-            title="Add Peanut to your Home Screen"
-            description={
-                isFirefox
-                    ? 'Firefox on iOS does not support installing apps to the home screen. Please open this page in Safari to continue.'
-                    : 'Follow a quick guide to add the app to your home screen, no download needed.'
-            }
+            title={t('iosPwaInstallModal.title')}
+            description={isFirefox ? t('iosPwaInstallModal.firefoxDescription') : t('iosPwaInstallModal.description')}
             icon="mobile-install"
             ctas={[
                 {
-                    text: 'Got it!',
+                    text: t('iosPwaInstallModal.gotItCta'),
                     onClick: onClose,
                     shadowSize: '4',
                     variant: 'purple',

@@ -11,6 +11,7 @@ import { useAuth } from '@/context/authContext'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Card from '../Global/Card'
@@ -56,6 +57,7 @@ const HomeHistory = ({
     /** when true, hides the "No activity yet" empty state (pre-activation users) but still shows history if exists */
     hideEmptyState?: boolean
 }) => {
+    const t = useTranslations('home.history')
     const { user } = useUserStore()
     const isLoggedIn = !!user?.user.userId || false
     // Only filter when user is requesting for some different user's history
@@ -307,7 +309,7 @@ const HomeHistory = ({
     if (isLoading) {
         return (
             <div className="space-y-2">
-                <h2 className="text-base font-bold">Activity</h2>
+                <h2 className="text-base font-bold">{t('activity')}</h2>
                 <div className="flex flex-col">
                     {Array.from({ length: 5 }).map((_, index) => (
                         <HistorySkeleton key={index} position={getCardPosition(index, 5)} />
@@ -331,11 +333,11 @@ const HomeHistory = ({
         }
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
-                <h2 className="text-base font-bold">Activity</h2>{' '}
+                <h2 className="text-base font-bold">{t('activity')}</h2>{' '}
                 <EmptyState
                     icon="alert"
-                    title={isNetworkError ? "Couldn't load activity" : 'Error loading activity!'}
-                    description={isNetworkError ? 'Check your connection and try again.' : 'Please contact Support.'}
+                    title={isNetworkError ? t('networkErrorTitle') : t('errorTitle')}
+                    description={isNetworkError ? t('networkErrorDescription') : t('errorDescription')}
                 />
             </div>
         )
@@ -359,7 +361,7 @@ const HomeHistory = ({
     if (!isLoading && !combinedEntries.length && !hasSourceEntries) {
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
-                <h2 className="text-base font-bold">Activity</h2>
+                <h2 className="text-base font-bold">{t('activity')}</h2>
                 {isViewingOwnHistory &&
                     user &&
                     (() => {
@@ -371,18 +373,14 @@ const HomeHistory = ({
                         ) : (
                             <EmptyState
                                 icon="txn-off"
-                                title="No activity yet!"
-                                description="Start by sending or requesting money"
+                                title={t('noActivityTitle')}
+                                description={t('emptyDescription')}
                             />
                         )
                     })()}
 
                 {!isViewingOwnHistory && (
-                    <EmptyState
-                        icon="txn-off"
-                        title="No transactions yet!"
-                        description="Start by sending or requesting money"
-                    />
+                    <EmptyState icon="txn-off" title={t('noTransactionsTitle')} description={t('emptyDescription')} />
                 )}
             </div>
         )
@@ -393,7 +391,7 @@ const HomeHistory = ({
             {/* link to the full history page */}
             {pendingRequests.length > 0 && (
                 <>
-                    <h2 className="text-base font-bold">Pending transactions</h2>
+                    <h2 className="text-base font-bold">{t('pendingTransactions')}</h2>
                     <div className="h-full w-full">
                         {/* map over the latest entries and render transactioncard */}
                         {pendingRequests.map((item, index) => {
@@ -423,10 +421,10 @@ const HomeHistory = ({
                 </>
             )}
             {!isViewingOwnHistory ? (
-                <h2 className="text-base font-bold">Latest Transactions</h2>
+                <h2 className="text-base font-bold">{t('latestTransactions')}</h2>
             ) : (
                 <Link href="/history" className="flex items-center justify-between" onClick={() => triggerHaptic()}>
-                    <h2 className="text-base font-bold">Activity</h2>
+                    <h2 className="text-base font-bold">{t('activity')}</h2>
                     <Icon name="chevron-up" size={20} className="rotate-90" />
                 </Link>
             )}

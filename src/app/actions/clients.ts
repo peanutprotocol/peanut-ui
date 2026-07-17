@@ -3,7 +3,7 @@ import { BUNDLER_URL, PAYMASTER_URL, PEANUT_WALLET_CHAIN } from '@/constants/zer
 import type { PublicClient, Chain, Transport } from 'viem'
 import { createPublicClient, http, extractChain, fallback } from 'viem'
 import * as chains from 'viem/chains'
-import { arbitrum, arbitrumSepolia, mainnet, base, linea } from 'viem/chains'
+import { mainnet, base, linea } from 'viem/chains'
 
 const allChains = Object.values(chains)
 export type ChainId = (typeof allChains)[number]['id']

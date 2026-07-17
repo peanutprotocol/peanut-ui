@@ -60,9 +60,9 @@ const Footer = ({ showSiteDirectory = true, locale = 'en' }: { showSiteDirectory
                     </div>
 
                     <div className="flex gap-2">
-                        <a className="text-xl font-bold text-white" href="/support">
+                        <Link className="text-xl font-bold text-white" href="/support">
                             Support
-                        </a>
+                        </Link>
                         <Link className="text-xl font-bold text-white" href={`/${locale}/content`}>
                             Content
                         </Link>

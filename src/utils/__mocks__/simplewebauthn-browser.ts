@@ -31,11 +31,11 @@ export const startAuthentication = jest.fn(() =>
 
 export const platformAuthenticatorIsAvailable = jest.fn(() => Promise.resolve(true))
 
-export const base64URLStringToBuffer = jest.fn((base64URLString: string) => {
+export const base64URLStringToBuffer = jest.fn((_base64URLString: string) => {
     return new ArrayBuffer(8)
 })
 
-export const bufferToBase64URLString = jest.fn((buffer: ArrayBuffer) => {
+export const bufferToBase64URLString = jest.fn((_buffer: ArrayBuffer) => {
     return 'mock-base64-string'
 })
 

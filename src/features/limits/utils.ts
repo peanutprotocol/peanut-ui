@@ -151,11 +151,19 @@ export interface LimitsWarningItem {
     isLink?: boolean
     href?: string
     icon?: IconName
+    // discriminator + values so LimitsWarningCard can map items to translated
+    // copy (this util can't call useTranslations; `text` is the English fallback)
+    kind?: 'limit-amount' | 'reset-days' | 'check-limits'
+    amount?: string
+    days?: number
+    flowType?: LimitFlowType
+    perTransaction?: boolean
 }
 
 export interface LimitsWarningCardPropsResult {
     type: 'warning' | 'error'
     title: string
+    titleKind: 'blocking' | 'warning'
     items: LimitsWarningItem[]
     showSupportLink: boolean
 }
@@ -186,23 +194,30 @@ export function getLimitsWarningCardProps({
     const limitCurrency = validation.limitCurrency ?? currency ?? 'USD'
     const currencySymbol = getCurrencySymbol(limitCurrency)
     const formattedLimit = formatExtendedNumber(validation.remainingLimit ?? 0)
+    const amountDisplay = currencySymbol === '$' ? `$${formattedLimit}` : `${currencySymbol} ${formattedLimit}`
 
-    // build the limit message based on flow type
+    // qr payments are always capped per transaction; onramp/offramp only when
+    // there's no period limit to reset
+    const perTransaction = flowType === 'qr-payment' || !validation.daysUntilReset
+    const perTransactionSuffix = perTransaction ? ' per transaction' : ''
     let limitMessage = ''
     if (flowType === 'onramp') {
-        limitMessage = `You can add up to ${currencySymbol === '$' ? '' : currencySymbol + ' '}${currencySymbol === '$' ? '$' : ''}${formattedLimit}${validation.daysUntilReset ? '' : ' per transaction'}`
+        limitMessage = `You can add up to ${amountDisplay}${perTransactionSuffix}`
     } else if (flowType === 'offramp') {
-        limitMessage = `You can withdraw up to ${currencySymbol === '$' ? '' : currencySymbol + ' '}${currencySymbol === '$' ? '$' : ''}${formattedLimit}${validation.daysUntilReset ? '' : ' per transaction'}`
+        limitMessage = `You can withdraw up to ${amountDisplay}${perTransactionSuffix}`
     } else {
-        // qr-payment
-        limitMessage = `You can pay up to ${currencySymbol === '$' ? '' : currencySymbol + ' '}${currencySymbol === '$' ? '$' : ''}${formattedLimit} per transaction`
+        limitMessage = `You can pay up to ${amountDisplay}${perTransactionSuffix}`
     }
 
-    items.push({ text: limitMessage })
+    items.push({ text: limitMessage, kind: 'limit-amount', amount: amountDisplay, flowType, perTransaction })
 
     // add days until reset if applicable
     if (validation.daysUntilReset) {
-        items.push({ text: `Limit resets in ${validation.daysUntilReset} days.` })
+        items.push({
+            text: `Limit resets in ${validation.daysUntilReset} days.`,
+            kind: 'reset-days',
+            days: validation.daysUntilReset,
+        })
     }
 
     // add check limits link
@@ -211,11 +226,13 @@ export function getLimitsWarningCardProps({
         isLink: true,
         href: '/limits',
         icon: 'external-link',
+        kind: 'check-limits',
     })
 
     return {
         type: validation.isBlocking ? 'error' : 'warning',
         title: validation.isBlocking ? LIMITS_COPY.BLOCKING_TITLE : LIMITS_COPY.WARNING_TITLE,
+        titleKind: validation.isBlocking ? 'blocking' : 'warning',
         items,
         showSupportLink: validation.isMantecaUser ?? false,
     }

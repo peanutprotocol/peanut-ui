@@ -3,6 +3,7 @@
 import { PeanutSad } from '@/assets/mascot'
 import { Button } from '@/components/0_Bruddle/Button'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useEffect, useState } from 'react'
@@ -25,8 +26,9 @@ function ValidationErrorView({
     redirectTo,
     showLearnMore = true,
     supportMessageTemplate,
-    supportButtonText = 'Talk to support',
+    supportButtonText,
 }: ValidationErrorViewProps) {
+    const t = useTranslations('payment')
     const router = useRouter()
     const { openSupportWithMessage } = useModalsContext()
     const [currentUrl, setCurrentUrl] = useState('')
@@ -42,14 +44,14 @@ function ValidationErrorView({
 
     return (
         <div className="flex flex-col items-center justify-center space-y-4 rounded-lg text-center">
-            <Image src={PeanutSad.src} unoptimized alt="Sad peanut 😢" width={96} height={96} />
+            <Image src={PeanutSad.src} unoptimized alt={t('validation.sadPeanutAlt')} width={96} height={96} />
             <div className="space-y-2">
                 <h1 className="text-lg font-semibold">{title}</h1>
                 <p className="text-sm font-normal md:max-w-xs">{message}</p>
             </div>
             {showLearnMore && (
                 <DocsLink href="/en/help/request-money" className="text-sm underline">
-                    Learn how to receive money through Peanut
+                    {t('validation.learnHow')}
                 </DocsLink>
             )}
             <div className="flex w-full flex-col gap-2">
@@ -72,7 +74,7 @@ function ValidationErrorView({
                         variant="stroke"
                         className="w-full"
                     >
-                        {supportButtonText}
+                        {supportButtonText ?? t('validation.talkToSupport')}
                     </Button>
                 )}
             </div>

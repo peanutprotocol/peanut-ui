@@ -1,9 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { RAIN_STALE_APPROVAL_EVENT } from '@/services/rain'
+
+type GrantErrorKind = 'user-cancelled' | 'unexpected'
 
 /**
  * Global recovery modal for the stale-card-approval case.
@@ -28,15 +31,16 @@ import { RAIN_STALE_APPROVAL_EVENT } from '@/services/rain'
  * they know to retry the withdrawal.
  */
 export default function StaleCardApprovalReEnableModal() {
+    const t = useTranslations('global')
     const { grant, isGranting } = useGrantSessionKey()
     const [visible, setVisible] = useState(false)
     const [succeeded, setSucceeded] = useState(false)
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [errorKind, setErrorKind] = useState<GrantErrorKind | null>(null)
 
     useEffect(() => {
         const handler = () => {
             setSucceeded(false)
-            setErrorMessage(null)
+            setErrorKind(null)
             setVisible(true)
         }
         window.addEventListener(RAIN_STALE_APPROVAL_EVENT, handler)
@@ -46,30 +50,38 @@ export default function StaleCardApprovalReEnableModal() {
     const close = useCallback(() => setVisible(false), [])
 
     const onReEnable = useCallback(async () => {
-        setErrorMessage(null)
+        setErrorKind(null)
         const result = await grant()
         if (result.ok) {
             setSucceeded(true)
         } else {
-            setErrorMessage(
-                result.error.kind === 'user-cancelled'
-                    ? 'Re-enabling was cancelled. Tap Re-enable card to try again.'
-                    : "We couldn't re-enable your card. Please try again."
-            )
+            setErrorKind(result.error.kind === 'user-cancelled' ? 'user-cancelled' : 'unexpected')
         }
     }, [grant])
 
+    const errorMessage =
+        errorKind === 'user-cancelled'
+            ? t('staleCardApprovalModal.cancelledError')
+            : errorKind === 'unexpected'
+              ? t('staleCardApprovalModal.unexpectedError')
+              : null
+
     const ctas: ActionModalButtonProps[] = succeeded
-        ? [{ text: 'Done', variant: 'purple', shadowSize: '4', onClick: close }]
+        ? [{ text: t('staleCardApprovalModal.doneCta'), variant: 'purple', shadowSize: '4', onClick: close }]
         : [
               {
-                  text: isGranting ? 'Working…' : 'Re-enable card',
+                  text: isGranting ? t('staleCardApprovalModal.workingCta') : t('staleCardApprovalModal.reEnableCta'),
                   variant: 'purple',
                   shadowSize: '4',
                   disabled: isGranting,
                   onClick: () => void onReEnable(),
               },
-              { text: 'Not now', variant: 'stroke', disabled: isGranting, onClick: close },
+              {
+                  text: t('staleCardApprovalModal.notNowCta'),
+                  variant: 'stroke',
+                  disabled: isGranting,
+                  onClick: close,
+              },
           ]
 
     return (
@@ -78,12 +90,11 @@ export default function StaleCardApprovalReEnableModal() {
             onClose={close}
             icon="credit-card"
             iconContainerClassName="bg-yellow-1"
-            title={succeeded ? 'Card re-enabled' : 'Re-enable your card'}
+            title={succeeded ? t('staleCardApprovalModal.successTitle') : t('staleCardApprovalModal.title')}
             description={
                 succeeded
-                    ? 'Your card is ready — please try your withdrawal again.'
-                    : (errorMessage ??
-                      'Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.')
+                    ? t('staleCardApprovalModal.successDescription')
+                    : (errorMessage ?? t('staleCardApprovalModal.description'))
             }
             ctas={ctas}
         />

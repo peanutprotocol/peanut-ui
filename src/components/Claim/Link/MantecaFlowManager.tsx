@@ -17,6 +17,7 @@ import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
+import { useTranslations } from 'next-intl'
 
 interface MantecaFlowManagerProps {
     claimLinkData: ClaimLinkData
@@ -25,6 +26,7 @@ interface MantecaFlowManagerProps {
 }
 
 const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount, attachment }) => {
+    const t = useTranslations('claim')
     const { setClaimToMercadoPago, selectedCountry, regionalMethodType } = useClaimBankFlow()
     const [currentStep, setCurrentStep] = useState<MercadoPagoStep>(MercadoPagoStep.DETAILS)
     const router = useRouter()
@@ -97,7 +99,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
         if (currentStep === MercadoPagoStep.SUCCESS) {
             return (
                 <Button onClick={() => router.push('/home')} shadowSize="4">
-                    Back to home
+                    {t('backToHome')}
                 </Button>
             )
         }
@@ -122,7 +124,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
-            <NavHeader icon={isSuccess ? 'cancel' : 'chevron-up'} title="Receive" onPrev={onPrev} />
+            <NavHeader icon={isSuccess ? 'cancel' : 'chevron-up'} title={t('receive')} onPrev={onPrev} />
 
             <div className="my-auto space-y-4">
                 <PeanutActionDetailsCard
@@ -130,7 +132,9 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                     avatarSize="medium"
                     transactionType="REGIONAL_METHOD_CLAIM"
                     recipientType="USERNAME"
-                    recipientName={isSuccess ? 'You’ll receive' : 'Receive in ' + displayMethodType}
+                    recipientName={
+                        isSuccess ? t('manteca.youWillReceive') : t('manteca.receiveIn', { method: displayMethodType })
+                    }
                     amount={amount}
                     tokenSymbol={claimLinkData.tokenSymbol}
                     message={attachment.message}

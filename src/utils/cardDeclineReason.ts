@@ -1,6 +1,6 @@
 /**
- * Translate decline reasons / categories to friendly messages for the
- * activity feed and the receipt drawer.
+ * Map decline reasons / categories to a display-code the receipt drawer turns
+ * into copy (`transaction.decline.*`). This module stays copy-free.
  *
  * Two inputs land here:
  *   - `category` — BE-computed synthetic category (see `notifications/card.ts`
@@ -14,21 +14,31 @@
  *     (`"account credit limit exceeded"`). We normalize the code before
  *     lookup so all three shapes hit the same key.
  *
- * Unknown codes fall back to the generic copy mandated by the card-activity
- * spec.
+ * Unknown codes fall back to the generic `'generic'` code mandated by the
+ * card-activity spec.
  */
 
 export type DeclineCategory = 'limit_too_low' | 'insufficient_balance' | 'other'
 
+/** Display cause. Callers map it to copy — this module stays copy-free. */
+export type DeclineReasonCode =
+    | 'limitTooLow'
+    | 'insufficientBalance'
+    | 'spendingLimitReached'
+    | 'blockedMerchant'
+    | 'cardLocked'
+    | 'invalidPin'
+    | 'generic'
+
 /**
- * Category-specific copy. NOTE: `'other'` is intentionally absent — it falls
+ * Category-specific codes. NOTE: `'other'` is intentionally absent — it falls
  * through to the raw-code lookup so non-financial declines (blocked_merchant,
- * card_locked, invalid_pin) still render their specific friendly copy.
+ * card_locked, invalid_pin) still resolve to their specific code.
  * Adding `'other'` here would mask the raw-code mapping for those cases.
  */
-const CATEGORY_COPY: Record<string, string> = {
-    limit_too_low: 'Card limit reached — increase your limit',
-    insufficient_balance: 'Insufficient balance',
+const CATEGORY_CODES: Record<string, DeclineReasonCode> = {
+    limit_too_low: 'limitTooLow',
+    insufficient_balance: 'insufficientBalance',
 }
 
 /**
@@ -36,21 +46,21 @@ const CATEGORY_COPY: Record<string, string> = {
  * `INSUFFICIENT_FUNDS`, `insufficient_funds`, and `"insufficient funds"` all
  * collide on `insufficient_funds`. Add new entries in normalized form only.
  */
-const FRIENDLY: Record<string, string> = {
-    insufficient_funds: 'Insufficient balance',
+const CODES: Record<string, DeclineReasonCode> = {
+    insufficient_funds: 'insufficientBalance',
     // Rain prose seen in production webhooks (2026-05-11 Adidas decline):
     // "account credit limit exceeded" means the user has spent down their
     // available collateral — funding issue, not per-tx-limit. The matching
-    // BE category is `insufficient_balance`; keep this string in sync.
-    account_credit_limit_exceeded: 'Insufficient balance',
-    credit_limit_exceeded: 'Insufficient balance',
+    // BE category is `insufficient_balance`; keep this mapping in sync.
+    account_credit_limit_exceeded: 'insufficientBalance',
+    credit_limit_exceeded: 'insufficientBalance',
     // Per-tx cardLimit breached (user's configured per-authorization cap)
-    card_spending_limit_exceeded: 'Spending limit reached',
-    spending_limit_exceeded: 'Spending limit reached',
-    blocked_merchant: "This merchant isn't supported",
-    blocked_mcc: "This merchant isn't supported",
-    card_locked: 'Your card is locked',
-    invalid_pin: 'Incorrect PIN',
+    card_spending_limit_exceeded: 'spendingLimitReached',
+    spending_limit_exceeded: 'spendingLimitReached',
+    blocked_merchant: 'blockedMerchant',
+    blocked_mcc: 'blockedMerchant',
+    card_locked: 'cardLocked',
+    invalid_pin: 'invalidPin',
 }
 
 /** Collapse Rain's three flavours (snake_case, SCREAMING_CASE, prose) into a
@@ -63,10 +73,13 @@ function normalizeDeclineCode(code: string): string {
         .replace(/^_+|_+$/g, '')
 }
 
-export function friendlyDeclineReason(code: string | null | undefined, category?: DeclineCategory | null): string {
+export function declineReasonCode(
+    code: string | null | undefined,
+    category?: DeclineCategory | null
+): DeclineReasonCode {
     // Prefer the BE-computed category — it disambiguates the
     // INSUFFICIENT_FUNDS/limit-too-low collision Rain leaves on the wire.
-    if (category && CATEGORY_COPY[category]) return CATEGORY_COPY[category]
-    if (!code) return 'Transaction declined'
-    return FRIENDLY[normalizeDeclineCode(code)] ?? 'Transaction declined'
+    if (category && CATEGORY_CODES[category]) return CATEGORY_CODES[category]
+    if (!code) return 'generic'
+    return CODES[normalizeDeclineCode(code)] ?? 'generic'
 }

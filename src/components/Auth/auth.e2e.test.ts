@@ -21,11 +21,9 @@ test.describe('Auth UI Flow', () => {
         ]
 
         // Check if any auth element is visible
-        let foundAuthElement = false
         for (const el of authElements) {
             const visible = await el.isVisible().catch(() => false)
             if (visible) {
-                foundAuthElement = true
                 break
             }
         }
@@ -78,13 +76,13 @@ test.describe('Auth UI Flow', () => {
 })
 
 test.describe('Auth State Persistence', () => {
-    test('should maintain auth state across page navigation', async ({ page }) => {
+    test('should maintain auth state across page navigation', async ({ page: _page }) => {
         // this test requires actual auth - skip for now
         // real auth requires wallet connection which is external dependency
         test.skip()
     })
 
-    test('should handle auth state on page refresh', async ({ page }) => {
+    test('should handle auth state on page refresh', async ({ page: _page }) => {
         // skip - requires actual wallet connection
         test.skip()
     })

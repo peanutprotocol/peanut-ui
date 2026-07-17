@@ -7,7 +7,7 @@ import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { useParams, useSearchParams } from 'next/navigation'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { type CountryData, countryData } from '@/components/AddMoney/consts'
+import { countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useCurrency } from '@/hooks/useCurrency'
 import { mantecaApi } from '@/services/manteca'
@@ -27,6 +27,7 @@ import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useTranslations } from 'next-intl'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails' | 'showQR'
@@ -38,6 +39,7 @@ const MantecaAddMoney: FC = () => {
     const params = useParams()
     const searchParams = useSearchParams()
     const queryClient = useQueryClient()
+    const t = useTranslations('addMoney')
 
     // URL state - persisted in query params
     // Example: /add-money/argentina/manteca?step=inputAmount&amount=100&currency=ARS
@@ -111,17 +113,17 @@ const MantecaAddMoney: FC = () => {
         // user has entered something - validate the USD equivalent
         // if USD amount is effectively zero or too small, show minimum error
         if (!usdAmount || usdAmount === '0.00') {
-            setError(`Deposit amount must be at least $${MIN_MANTECA_DEPOSIT_AMOUNT}`)
+            setError(t('manteca.minDepositAmount', { amount: MIN_MANTECA_DEPOSIT_AMOUNT }))
             return
         }
 
         const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
         if (paymentAmount < parseUnits(MIN_MANTECA_DEPOSIT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setError(`Deposit amount must be at least $${MIN_MANTECA_DEPOSIT_AMOUNT}`)
+            setError(t('manteca.minDepositAmount', { amount: MIN_MANTECA_DEPOSIT_AMOUNT }))
         } else {
             setError(null)
         }
-    }, [usdAmount, displayedAmount])
+    }, [usdAmount, displayedAmount, t])
 
     // Invalidate transactions query when entering deposit details step
     useEffect(() => {

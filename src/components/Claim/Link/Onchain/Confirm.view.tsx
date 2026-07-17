@@ -11,7 +11,7 @@ import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatTokenAmount, isStableCoin } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
-import { ErrorHandler } from '@/utils/friendly-error.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 import * as Sentry from '@sentry/nextjs'
 import { useContext, useState, useMemo } from 'react'
 import { formatUnits } from 'viem'
@@ -23,6 +23,7 @@ import { useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import underMaintenanceConfig, { CROSS_CHAIN_DISABLED_MESSAGE } from '@/config/underMaintenance.config'
+import { useTranslations } from 'next-intl'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -32,10 +33,12 @@ export const ConfirmClaimLinkView = ({
     recipient,
     tokenPrice,
     setTransactionHash,
-    estimatedPoints,
     attachment,
     selectedRoute,
 }: _consts.IClaimScreenProps) => {
+    const t = useTranslations('claim')
+    const tNav = useTranslations('navigation')
+    const toFriendlyError = useFriendlyError()
     const { address } = useWallet()
     const { user } = useAuth()
     const { claimLinkXchain, claimLink } = useClaimLink()
@@ -75,7 +78,7 @@ export const ConfirmClaimLinkView = ({
     }, [selectedRoute, resolvedTokenSymbol])
 
     // Network fee display – always sponsored in this flow
-    const networkFeeDisplay: string = 'Sponsored by Peanut!'
+    const networkFeeDisplay: string = t('confirm.sponsoredByPeanut')
 
     const handleOnClaim = async () => {
         if (!recipient) {
@@ -148,7 +151,7 @@ export const ConfirmClaimLinkView = ({
             onNext()
             // Note: Balance/transaction refresh handled by mutation or SUCCESS view
         } catch (error) {
-            const errorString = ErrorHandler(error)
+            const errorString = toFriendlyError(error)
             setErrorState({
                 showError: true,
                 errorMessage: errorString,
@@ -167,7 +170,7 @@ export const ConfirmClaimLinkView = ({
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <div className="md:hidden">
-                <NavHeader title="Claim" onPrev={onPrev} />
+                <NavHeader title={tNav('claim')} onPrev={onPrev} />
             </div>
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 <PeanutActionDetailsCard
@@ -189,22 +192,22 @@ export const ConfirmClaimLinkView = ({
                         {/* Min received row */}
                         {minReceived && (
                             <PaymentInfoRow
-                                label="Min Received"
+                                label={t('confirm.minReceived')}
                                 value={minReceived}
-                                moreInfoText="This transaction may face slippage due to token conversion or cross-chain bridging."
+                                moreInfoText={t('confirm.slippageInfo')}
                             />
                         )}
 
                         {/* Token & network row */}
                         {
                             <PaymentInfoRow
-                                label="Token and network"
+                                label={t('confirm.tokenAndNetwork')}
                                 value={
                                     <div className="flex items-center gap-2">
                                         <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
                                             <DisplayIcon
                                                 iconUrl={tokenIconUrl}
-                                                altText={resolvedTokenSymbol || 'token'}
+                                                altText={resolvedTokenSymbol || t('confirm.tokenAlt')}
                                                 fallbackName={resolvedTokenSymbol || 'T'}
                                                 sizeClass="h-6 w-6"
                                             />
@@ -212,7 +215,7 @@ export const ConfirmClaimLinkView = ({
                                                 <div className="absolute -bottom-1 -right-1">
                                                     <DisplayIcon
                                                         iconUrl={chainIconUrl}
-                                                        altText={resolvedChainName || 'chain'}
+                                                        altText={resolvedChainName || t('confirm.chainAlt')}
                                                         fallbackName={resolvedChainName || 'C'}
                                                         sizeClass="h-3.5 w-3.5"
                                                         className="rounded-full border-2 border-white dark:border-grey-4"
@@ -221,8 +224,11 @@ export const ConfirmClaimLinkView = ({
                                             )}
                                         </div>
                                         <span>
-                                            {resolvedTokenSymbol || claimLinkData.tokenSymbol} on{' '}
-                                            <span className="capitalize">{resolvedChainName || selectedChainID}</span>
+                                            {t.rich('confirm.tokenOnChain', {
+                                                token: resolvedTokenSymbol || claimLinkData.tokenSymbol,
+                                                chain: resolvedChainName || selectedChainID,
+                                                c: (chunks) => <span className="capitalize">{chunks}</span>,
+                                            })}
                                         </span>
                                     </div>
                                 }
@@ -230,10 +236,10 @@ export const ConfirmClaimLinkView = ({
                         }
 
                         {/* Max network fee row */}
-                        <PaymentInfoRow label="Max network fee" value={networkFeeDisplay} />
+                        <PaymentInfoRow label={t('confirm.maxNetworkFee')} value={networkFeeDisplay} />
 
                         {/* Peanut fee row */}
-                        <PaymentInfoRow label="Peanut fee" value={'$ 0.00'} hideBottomBorder />
+                        <PaymentInfoRow label={t('confirm.peanutFee')} value={'$ 0.00'} hideBottomBorder />
                     </Card>
                 )}
 
@@ -244,7 +250,7 @@ export const ConfirmClaimLinkView = ({
                     disabled={isLoading || (isXChain && !selectedRoute)}
                     loading={isLoading || (isXChain && !selectedRoute)}
                 >
-                    Receive now
+                    {t('receiveNow')}
                 </Button>
 
                 {errorState.showError && <ErrorAlert description={errorState.errorMessage} />}

@@ -1,14 +1,7 @@
 'use client'
 import React, { createContext, useState, useCallback, useEffect, useMemo } from 'react'
 
-import {
-    PEANUT_WALLET_CHAIN,
-    PEANUT_WALLET_TOKEN,
-    PEANUT_WALLET_TOKEN_DECIMALS,
-    PEANUT_WALLET_TOKEN_IMG_URL,
-    PEANUT_WALLET_TOKEN_NAME,
-    PEANUT_WALLET_TOKEN_SYMBOL,
-} from '@/constants/zerodev.consts'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSupportedChainsAndTokens } from '@/hooks/useSupportedChainsAndTokens'
 import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/chainRegistry.consts'
@@ -23,22 +16,22 @@ export const tokenSelectorContext = createContext({
     devconnectTokenAddress: '',
     devconnectChainId: '',
     devconnectRecipientAddress: '',
-    setDevconnectTokenAddress: (address: string) => {},
-    setDevconnectChainId: (chainId: string) => {},
-    setDevconnectRecipientAddress: (address: string) => {},
-    setSelectedTokenAddress: (address: string) => {},
-    setSelectedChainID: (chainID: string) => {},
-    updateSelectedChainID: (chainID: string) => {},
+    setDevconnectTokenAddress: (_address: string) => {},
+    setDevconnectChainId: (_chainId: string) => {},
+    setDevconnectRecipientAddress: (_address: string) => {},
+    setSelectedTokenAddress: (_address: string) => {},
+    setSelectedChainID: (_chainID: string) => {},
+    updateSelectedChainID: (_chainID: string) => {},
     refetchXchainRoute: false as boolean,
-    setRefetchXchainRoute: (value: boolean) => {},
+    setRefetchXchainRoute: (_value: boolean) => {},
     resetTokenContextProvider: () => {},
     isXChain: false as boolean,
-    setIsXChain: (value: boolean) => {},
+    setIsXChain: (_value: boolean) => {},
     selectedTokenData: undefined as ITokenPriceData | null | undefined,
     isFetchingTokenData: false as boolean,
     supportedChainsAndTokens: {} as Record<string, ChainWithTokens>,
     selectedTokenBalance: undefined as string | undefined,
-    setSelectedTokenBalance: (balance: string | undefined) => {},
+    setSelectedTokenBalance: (_balance: string | undefined) => {},
 })
 
 /**
@@ -47,16 +40,6 @@ export const tokenSelectorContext = createContext({
  */
 export const TokenContextProvider = ({ children }: { children: React.ReactNode }) => {
     const { isConnected: isPeanutWallet } = useWallet()
-
-    const peanutWalletTokenData = {
-        price: 1,
-        decimals: PEANUT_WALLET_TOKEN_DECIMALS,
-        symbol: PEANUT_WALLET_TOKEN_SYMBOL,
-        name: PEANUT_WALLET_TOKEN_NAME,
-        address: PEANUT_WALLET_TOKEN,
-        chainId: PEANUT_WALLET_CHAIN.id.toString(),
-        logoURI: PEANUT_WALLET_TOKEN_IMG_URL,
-    } as ITokenPriceData
 
     const emptyTokenData = {
         address: '',
