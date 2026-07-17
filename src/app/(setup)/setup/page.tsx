@@ -55,12 +55,23 @@ function SetupPageContent() {
         if (sessionChecked || isFetchingUser) return
         setSessionChecked(true)
         if (user?.user?.username) {
+            /*
+             * A COMPLETED session (hasAppAccess) that lands back on /setup — e.g. a
+             * native cold start that restored this route — goes straight home; the
+             * interstitial is reserved for the half-finished-signup case it was
+             * written for (durable credentials, setup never completed).
+             */
+            if (user.user.hasAppAccess) {
+                posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED, { auto: true })
+                router.replace('/home')
+                return
+            }
             setExistingSessionUsername(user.user.username)
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_PROMPTED, {
                 has_app_access: !!user.user.hasAppAccess,
             })
         }
-    }, [sessionChecked, isFetchingUser, user])
+    }, [sessionChecked, isFetchingUser, user, router])
 
     const handleContinueSession = () => {
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED)
