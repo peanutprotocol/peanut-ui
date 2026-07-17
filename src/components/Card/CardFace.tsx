@@ -72,14 +72,14 @@ const CardFace: FC<Props> = ({
             )}
         >
             {/* Hand + yellow stripe artwork. Decorative — sits behind content.
-             * Rotated counterclockwise so the arm sweeps up from the bottom,
-             * leaving the top-right (Visa) and bottom-right (eye toggle)
-             * corners clear. */}
+             * Upright and bottom-anchored to match the finalised Rain card art:
+             * fingertips clear the top logos and the arm sweeps to the
+             * bottom-right corner. */}
             <Image
                 src={PEANUT_CARD_HAND}
                 alt=""
                 aria-hidden
-                className="pointer-events-none absolute -inset-y-10 -right-5 h-full w-auto origin-center -rotate-[15deg] select-none"
+                className="pointer-events-none absolute bottom-0 right-0 h-[90%] w-auto select-none"
                 priority
             />
 
