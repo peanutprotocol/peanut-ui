@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { PeanutCrying } from '@/assets/mascot'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
+import { Button } from '@/components/0_Bruddle/Button'
 
 type Variant = 'pending' | 'manual-review' | 'requires-info' | 'requires-support' | 'rejected'
 
@@ -14,6 +15,10 @@ interface Props {
      *  user sees what specifically is missing. Provider-neutral by contract. */
     reasonMessage?: string
     onContactSupport?: () => void
+    /** When the rail carries a self-serve proof-of-address action, this opens
+     *  the Sumsub upload flow — rendered as the primary CTA so users fix it
+     *  themselves instead of messaging support. */
+    onUploadProofOfAddress?: () => void
     onPrev?: () => void
 }
 
@@ -46,7 +51,13 @@ const COPY: Record<Variant, { title: string; body: string }> = {
 /** Variants where support is the only path forward — these render the CTA. */
 const SUPPORT_VARIANTS: ReadonlySet<Variant> = new Set(['requires-info', 'requires-support', 'rejected'])
 
-const ApplicationStatusScreen: FC<Props> = ({ variant, reasonMessage, onContactSupport, onPrev }) => {
+const ApplicationStatusScreen: FC<Props> = ({
+    variant,
+    reasonMessage,
+    onContactSupport,
+    onUploadProofOfAddress,
+    onPrev,
+}) => {
     const copy = COPY[variant]
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">
@@ -69,6 +80,11 @@ const ApplicationStatusScreen: FC<Props> = ({ variant, reasonMessage, onContactS
                     {reasonMessage && <p className="text-grey-1">{reasonMessage}</p>}
                     <p className="text-grey-1">{copy.body}</p>
                 </div>
+                {SUPPORT_VARIANTS.has(variant) && onUploadProofOfAddress && (
+                    <Button variant="purple" shadowSize="4" className="w-full" onClick={onUploadProofOfAddress}>
+                        Upload proof of address
+                    </Button>
+                )}
                 {SUPPORT_VARIANTS.has(variant) && onContactSupport && (
                     <button type="button" onClick={onContactSupport} className="text-black underline">
                         Contact support

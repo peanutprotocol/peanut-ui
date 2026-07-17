@@ -21,6 +21,8 @@ import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { rainApi, type ApplyForCardResponse } from '@/services/rain'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useCapabilities } from '@/hooks/useCapabilities'
@@ -69,7 +71,7 @@ const CardPage: FC = () => {
 
     const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
     const { serializeGrant } = useGrantSessionKey()
-    const { railsForProvider, isLoading: capabilitiesLoading } = useCapabilities()
+    const { railsForProvider, nextActionsForRail, isLoading: capabilitiesLoading } = useCapabilities()
     const { setIsSupportModalOpen } = useModalsContext()
     const onBack = useSafeBack('/home')
 
@@ -211,6 +213,30 @@ const CardPage: FC = () => {
     const invalidateOverview = useCallback(() => {
         void queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
     }, [queryClient])
+
+    // Self-heal Sumsub flow for the requires-info/rejected states (e.g. the
+    // proof-of-address upload). Separate surface from the card-application
+    // SumsubKycWrapper below — that one is driven by applyForCard tokens with
+    // its own refresh/poll semantics; multiplexing them would fight over the
+    // token. On completion the overview refetches so the screen advances.
+    const selfHealKycFlow = useMultiPhaseKycFlow({ onKycSuccess: invalidateOverview })
+
+    // The rain rail's self-serve proof-of-address action, when the backend
+    // classified the application as PoA-fixable (kind 'sumsub' + levelKey
+    // 'proof_of_address' — emitted for WRONG_ADDRESS-class denials). Absent →
+    // the status screens keep their contact-support-only shape.
+    const cardRail = railsForProvider('rain')[0]
+    const poaAction = cardRail
+        ? nextActionsForRail(cardRail.id).find(
+              (action) => action.kind === 'sumsub' && action.levelKey === 'proof_of_address'
+          )
+        : undefined
+    const onUploadProofOfAddress = poaAction
+        ? () => {
+              posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+              void selfHealKycFlow.handleSelfHealResubmit('RAIN')
+          }
+        : undefined
 
     // Routes a non-incomplete apply response to the right next screen. Shared
     // by the user-initiated apply path and the post-Sumsub poll, since both
@@ -605,6 +631,7 @@ const CardPage: FC = () => {
                         variant="requires-info"
                         reasonMessage={cardRailReason}
                         onContactSupport={() => setIsSupportModalOpen(true)}
+                        onUploadProofOfAddress={onUploadProofOfAddress}
                         onPrev={onBack}
                     />
                 )
@@ -641,6 +668,7 @@ const CardPage: FC = () => {
                         variant="rejected"
                         reasonMessage={cardRailReason}
                         onContactSupport={() => setIsSupportModalOpen(true)}
+                        onUploadProofOfAddress={onUploadProofOfAddress}
                         onPrev={onBack}
                     />
                 )
@@ -657,6 +685,7 @@ const CardPage: FC = () => {
     return (
         <PageContainer>
             {renderState()}
+            <SumsubKycModals flow={selfHealKycFlow} />
             <SumsubKycWrapper
                 visible={sumsubToken !== null}
                 accessToken={sumsubToken}
