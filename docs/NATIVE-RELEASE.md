@@ -204,7 +204,7 @@ the build is reproducible, the AAB lands on a Play track.
 | `ANDROID_KEYSTORE_BASE64` | `base64 -w0 peanut-release.keystore` |
 | `ANDROID_KEYSTORE_PASSWORD` / `ANDROID_KEY_ALIAS` / `ANDROID_KEY_PASSWORD` | signing creds |
 | `PLAY_SERVICE_ACCOUNT_JSON` | Google Play Developer API service account (least-priv "Release manager") |
-| `ANDROID_GOOGLE_SERVICES_JSON` | `base64 -w0 google-services.json` — FCM config; **required**, the release workflow fails without it |
+| `ANDROID_GOOGLE_SERVICES_JSON` | `base64 -w0 google-services.json` — **optional**; OneSignal push does not read it (see §Android push) |
 | `SUBMODULE_TOKEN` | read access to the `src/content` submodule |
 | `CAPGO_API_KEY` | OTA (already used by `capgo-deploy.yml`) |
 | prod `NEXT_PUBLIC_*` | the values the static export bakes in (OneSignal, Sentry, chain, …) |
@@ -276,11 +276,16 @@ with **no backend or sequence changes**. The web/native split lives behind
 2. **OneSignal dashboard** → the existing app → **Google Android (FCM)** platform →
    upload the **FCM v1 service account JSON** (Firebase → Project settings → Service
    accounts → Generate private key).
-3. **CI:** set the `ANDROID_GOOGLE_SERVICES_JSON` secret to `base64 -w0 google-services.json`.
-   The `Decode google-services.json` step in `android-release.yml` writes it before the
-   build and **fails the workflow when unset** (a release without it ships with push
-   silently dead). Local release/bundle Gradle tasks fail the same way; debug builds
-   only warn.
+3. **CI:** `ANDROID_GOOGLE_SERVICES_JSON` is **optional** and currently unset. OneSignal's
+   Android SDK never reads `google-services.json`: `PushRegistratorFCM` builds
+   `FirebaseOptions` in code from its own baked-in defaults plus the sender ID served by
+   the OneSignal dashboard, and `com.onesignal:notifications` pulls `firebase-messaging`
+   in transitively. The `google-services` Gradle plugin only wires up Firebase's
+   *automatic* initialization, which OneSignal bypasses. Set the secret only if a future
+   dependency needs that path; the workflow validates the file when present and skips it
+   when absent.
+
+   Android push therefore depends on the **dashboard** config in step 2, not on this file.
 
 **Verify (real device/emulator with Play Services):**
 `node scripts/native-build.js && npx cap sync android && ./gradlew assembleDebug`, install,
