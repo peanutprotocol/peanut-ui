@@ -237,19 +237,37 @@ const CardPage: FC = () => {
               (action) => action.kind === 'sumsub' && action.levelKey === 'proof_of_address'
           )
         : undefined
+    // Double-click guard: two concurrent initiations race the backend's
+    // create-action idempotency into minting two Sumsub actions (the id
+    // collision path deliberately mints a suffixed fresh action).
+    const poaStartingRef = useRef(false)
     const startPoaUpload = useCallback(async () => {
+        if (poaStartingRef.current) return
+        poaStartingRef.current = true
         posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { source: 'poa-self-heal' })
         setPoaError(null)
-        const response = await initiateSelfHealResubmission('RAIN')
-        if (response.error || !response.data?.token) {
-            // Surfaced inline on the status screen — a silent primary CTA on a
-            // stuck-application screen is worse than no CTA.
-            setPoaError(response.error ?? 'Could not start the upload. Please try again.')
-            return
+        try {
+            const response = await initiateSelfHealResubmission('RAIN')
+            if (response.error || !response.data?.token) {
+                // Surfaced inline on the status screen — a silent primary CTA on
+                // a stuck-application screen is worse than no CTA.
+                setPoaError(response.error ?? 'Could not start the upload. Please try again.')
+                return
+            }
+            setPoaToken(response.data.token)
+        } finally {
+            poaStartingRef.current = false
         }
-        setPoaToken(response.data.token)
     }, [])
     const onUploadProofOfAddress = poaAction && !poaSubmitted ? () => void startPoaUpload() : undefined
+
+    // Once the backend's own state takes over (the rail's sumsub action gives
+    // way to the review-wait state, an approval, or a different ask), drop the
+    // optimistic banner so a later re-offered upload isn't suppressed until
+    // remount.
+    useEffect(() => {
+        if (poaSubmitted && !poaAction) setPoaSubmitted(false)
+    }, [poaSubmitted, poaAction])
 
     // Routes a non-incomplete apply response to the right next screen. Shared
     // by the user-initiated apply path and the post-Sumsub poll, since both
