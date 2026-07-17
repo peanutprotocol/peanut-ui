@@ -48,7 +48,7 @@ export interface SelfHealResubmissionResponse {
     applicantId: string
     actionId: string
     externalActionId: string
-    requiredAction: 'REUPLOAD_ID' | 'REUPLOAD_ADDRESS_PROOF' | 'CONTACT_SUPPORT'
+    requiredAction: 'REUPLOAD_ID' | 'REUPLOAD_ADDRESS_PROOF' | 'CONTACT_SUPPORT' | 'RAIN_DOCUMENT'
     userMessage: string
     attempt: number
     maxAttempts: number

@@ -233,7 +233,7 @@ const CardPage: FC = () => {
         : undefined
     const onUploadProofOfAddress = poaAction
         ? () => {
-              posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+              posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { source: 'poa-self-heal' })
               void selfHealKycFlow.handleSelfHealResubmit('RAIN')
           }
         : undefined
