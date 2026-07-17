@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { PEANUT_CARD_HAND, VISA_BRAND_MARK } from '@/assets/cards'
-import { PEANUTMAN } from '@/assets/mascot'
+import { PEANUT_LOGO } from '@/assets/logos'
 
 export interface RevealedCardDetails {
     pan: string
@@ -84,10 +84,16 @@ const CardFace: FC<Props> = ({
             />
 
             <div className="relative flex h-full w-full flex-col p-4">
-                {/* Top row: peanut icon (no wordmark) + Visa */}
+                {/* Top row: peanut mascot + wordmark (left) + Visa Platinum (right).
+                 * Matches the finalised Rain card art (Apple Wallet): black PEANUT
+                 * lockup and a dark VISA with a "Platinum" tier line beneath it —
+                 * not the old inverted-white Visa with no tier. */}
                 <div className="flex items-start justify-between">
-                    <Image src={PEANUTMAN} alt="" aria-hidden className="h-10 w-auto" />
-                    <Image src={VISA_BRAND_MARK} alt="Visa" className="h-6 w-auto brightness-0 invert" />
+                    <Image src={PEANUT_LOGO} alt="Peanut" className="h-7 w-auto" />
+                    <div className="flex flex-col items-end leading-none">
+                        <Image src={VISA_BRAND_MARK} alt="Visa" className="h-6 w-auto brightness-0" />
+                        <span className="mt-0.5 text-[11px] font-semibold tracking-wide">Platinum</span>
+                    </div>
                 </div>
 
                 {/* Bottom block — PAN sits at the very bottom (in the slot the
