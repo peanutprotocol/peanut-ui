@@ -85,6 +85,8 @@ module.exports = [
             'react/prop-types': 'off',
             // Allow unescaped quotes — too noisy and prettier handles spacing
             'react/no-unescaped-entities': 'off',
+            // `jsx`/`global` are styled-jsx's <style> attributes (built into Next), not DOM props.
+            'react/no-unknown-property': ['error', { ignore: ['jsx', 'global'] }],
 
             // Ban barrel imports — see BANNED_BARREL_PATHS above.
             'no-restricted-imports': [

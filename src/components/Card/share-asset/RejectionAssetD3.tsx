@@ -87,7 +87,6 @@ const RejectionAssetD3: FC<RejectionAssetProps> = ({
                 fontFamily: 'var(--font-roboto), system-ui, sans-serif',
             }}
         >
-            {/* eslint-disable-next-line react/no-unknown-property -- styled-jsx `jsx` attr, same pattern as ShareAssetD3 */}
             <style jsx>{`
                 @keyframes riseIn {
                     0% {

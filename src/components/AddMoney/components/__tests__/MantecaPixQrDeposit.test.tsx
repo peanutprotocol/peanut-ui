@@ -41,7 +41,7 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
     ),
 }))
 
-// eslint-disable-next-line import/first -- must come after jest.mock
+// must come after the jest.mock calls above
 import MantecaPixQrDeposit from '../MantecaPixQrDeposit'
 
 const PIX_CODE = '00020126-COPIA-E-COLA'

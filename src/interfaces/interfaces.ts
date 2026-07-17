@@ -103,7 +103,7 @@ export interface ILinkDetails {
     depositDate: Date
     tokenURI: any
     metadata: any
-    rawOnchainDepositInfo: {}
+    rawOnchainDepositInfo: Record<string, unknown>
 }
 
 export interface IToken {

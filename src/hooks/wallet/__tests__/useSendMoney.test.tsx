@@ -60,11 +60,9 @@ jest.mock('../../useRainCardOverview', () => ({
 let mockSmartBalance: bigint | undefined
 let mockRainOverview: { balance: { spendingPower: number } | null } | undefined
 
-// eslint-disable-next-line import/first -- must come after jest.mock calls
+// must come after the jest.mock calls above
 import { useSendMoney } from '../useSendMoney'
-// eslint-disable-next-line import/first
 import { TRANSACTIONS } from '@/constants/query.consts'
-// eslint-disable-next-line import/first
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 
 describe('useSendMoney', () => {

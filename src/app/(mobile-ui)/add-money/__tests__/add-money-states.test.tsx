@@ -13,7 +13,7 @@
  * Strategy: mock every hook and service at the module level, then configure
  * per-test via mockReturnValue / mockImplementation.
  */
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, @typescript-eslint/no-require-imports, react/display-name, @next/next/no-img-element */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react/display-name, @next/next/no-img-element */
 import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'

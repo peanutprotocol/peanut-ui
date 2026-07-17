@@ -197,13 +197,13 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
     useEffect(() => {
         if (!user?.user.userId) return
         updateUserPreferences(user.user.userId, { [SURPRISE_CLAIM_COUNT_KEY]: claimCount + 1 })
-    }, []) // eslint-disable-line react-hooks/exhaustive-deps — fire once on mount
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps -- fire once on mount
 
     useEffect(() => {
         triggerHaptic()
         const dismissTimer = setTimeout(() => setCanDismiss(true), 2000)
         return () => clearTimeout(dismissTimer)
-    }, []) // eslint-disable-line react-hooks/exhaustive-deps — triggerHaptic is stable
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps -- triggerHaptic is stable
 
     const isSurpriseMoment = claimCount < 2
 

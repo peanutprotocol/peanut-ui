@@ -165,7 +165,6 @@ describe('demo mode is web-safe', () => {
     it('isDemoMode() is false when not running under Capacitor', () => {
         jest.resetModules()
         jest.doMock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { isDemoMode, enableDemoMode } = require('@/utils/demo')
         enableDemoMode() // even with the flag set...
         expect(isDemoMode()).toBe(false) // ...web stays inert
