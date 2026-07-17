@@ -204,6 +204,7 @@ the build is reproducible, the AAB lands on a Play track.
 | `ANDROID_KEYSTORE_BASE64` | `base64 -w0 peanut-release.keystore` |
 | `ANDROID_KEYSTORE_PASSWORD` / `ANDROID_KEY_ALIAS` / `ANDROID_KEY_PASSWORD` | signing creds |
 | `PLAY_SERVICE_ACCOUNT_JSON` | Google Play Developer API service account (least-priv "Release manager") |
+| `ANDROID_GOOGLE_SERVICES_JSON` | `base64 -w0 google-services.json` — FCM config; **required**, the release workflow fails without it |
 | `SUBMODULE_TOKEN` | read access to the `src/content` submodule |
 | `CAPGO_API_KEY` | OTA (already used by `capgo-deploy.yml`) |
 | prod `NEXT_PUBLIC_*` | the values the static export bakes in (OneSignal, Sentry, chain, …) |
@@ -277,7 +278,9 @@ with **no backend or sequence changes**. The web/native split lives behind
    accounts → Generate private key).
 3. **CI:** set the `ANDROID_GOOGLE_SERVICES_JSON` secret to `base64 -w0 google-services.json`.
    The `Decode google-services.json` step in `android-release.yml` writes it before the
-   build (and skips gracefully when unset).
+   build and **fails the workflow when unset** (a release without it ships with push
+   silently dead). Local release/bundle Gradle tasks fail the same way; debug builds
+   only warn.
 
 **Verify (real device/emulator with Play Services):**
 `node scripts/native-build.js && npx cap sync android && ./gradlew assembleDebug`, install,

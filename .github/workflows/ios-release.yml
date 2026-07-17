@@ -27,6 +27,11 @@ on:
                 description: 'versionName override (optional; defaults to project MARKETING_VERSION)'
                 required: false
                 type: string
+            pushDebug:
+                description: 'Enable OneSignal verbose logging in this build'
+                required: false
+                default: false
+                type: boolean
 
 permissions:
     contents: read
@@ -83,6 +88,9 @@ jobs:
                   NEXT_PUBLIC_SAFARI_WEB_ID=${{ vars.NEXT_PUBLIC_SAFARI_WEB_ID }}
                   NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
                   EOF
+                  if [ "${{ github.event.inputs.pushDebug }}" = "true" ]; then
+                      echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true" >> .env.production.local
+                  fi
 
             - name: Build web + sync iOS
               run: |
@@ -110,6 +118,13 @@ jobs:
                   cp /tmp/profile.mobileprovision "$PROFILE_DIR/$PROFILE_UUID.mobileprovision"
                   echo "name=$PROFILE_NAME" >> "$GITHUB_OUTPUT"
                   echo "Installed provisioning profile: $PROFILE_NAME ($PROFILE_UUID)"
+                  # A profile without aps-environment ships an app that can never
+                  # register with APNs, even when the entitlements file asks for it.
+                  PROFILE_APS=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' /tmp/profile.plist 2>/dev/null || true)
+                  if [ "$PROFILE_APS" != "production" ]; then
+                      echo "::error::provisioning profile aps-environment is '${PROFILE_APS:-missing}' — enable Push Notifications on the App ID, regenerate the profile, and update IOS_PROVISIONING_PROFILE_BASE64"
+                      exit 1
+                  fi
 
             - name: Archive & export IPA
               env:
@@ -170,6 +185,17 @@ jobs:
                       -archivePath build/ios/App.xcarchive \
                       -exportPath build/ios \
                       -exportOptionsPlist /tmp/ExportOptions.plist
+
+            - name: Verify push entitlements in exported IPA
+              run: |
+                  unzip -q build/ios/App.ipa -d /tmp/ipa-check
+                  APS=$(codesign -d --entitlements :- /tmp/ipa-check/Payload/App.app 2>/dev/null \
+                        | plutil -extract aps-environment raw -o - - || true)
+                  echo "aps-environment=$APS"
+                  if [ "$APS" != "production" ]; then
+                      echo "::error::exported ipa aps-environment is '${APS:-missing}', expected production — push would be dead in this build"
+                      exit 1
+                  fi
 
             - name: Upload to TestFlight
               uses: apple-actions/upload-testflight-build@1ad58030672057aa084b4e96beb6f7a8c627f9e6 # v5
