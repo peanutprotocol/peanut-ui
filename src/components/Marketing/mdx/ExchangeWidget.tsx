@@ -4,7 +4,7 @@ import { Suspense, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { parseAsString, useQueryStates } from 'nuqs'
 import ExchangeRateWidget from '@/components/Global/ExchangeRateWidget'
-import { Star } from '@/assets'
+import Star from '@/assets/illustrations/star.svg'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 
 const widgetClouds = [

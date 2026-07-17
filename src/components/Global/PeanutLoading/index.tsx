@@ -1,4 +1,4 @@
-import { PEANUTMAN } from '@/assets'
+import PEANUTMAN from '@/assets/mascot/peanutman.svg'
 import { twMerge } from 'tailwind-merge'
 
 export default function PeanutLoading({

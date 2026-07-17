@@ -17,7 +17,7 @@ import { useGeoLocation } from './useGeoLocation'
 import { useCardInfo } from './useCardInfo'
 import { useActivationStatus } from './useActivationStatus'
 import { useTransactionHistory } from './useTransactionHistory'
-import { STAR_STRAIGHT_ICON } from '@/assets'
+import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useToast } from '@/components/0_Bruddle/Toast'
 

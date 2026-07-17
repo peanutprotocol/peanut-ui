@@ -1,5 +1,5 @@
 'use client'
-import { PEANUT_LOGO } from '@/assets'
+import PEANUT_LOGO from '@/assets/logos/peanut-logo.svg'
 import DirectSendQr from '@/components/Global/DirectSendQR'
 import { Icon, type IconName, Icon as NavIcon } from '@/components/Global/Icons/Icon'
 import underMaintenanceConfig from '@/config/underMaintenance.config'

@@ -1,4 +1,6 @@
-import { DEVCONNECT_LOGO, MERCADO_PAGO, PIX } from '@/assets'
+import DEVCONNECT_LOGO from '@/assets/logos/devconnect.svg'
+import MERCADO_PAGO from '@/assets/payment-apps/mercado-pago.svg'
+import PIX from '@/assets/payment-apps/pix.svg'
 import { METAMASK_LOGO, TRUST_WALLET_SMALL_LOGO } from '@/assets/wallets'
 import binanceIcon from '@/assets/exchanges/binance.svg'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'

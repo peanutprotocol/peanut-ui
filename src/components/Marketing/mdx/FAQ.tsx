@@ -1,6 +1,6 @@
 import { Children, isValidElement, type ReactNode } from 'react'
 import { FAQsPanel } from '@/components/Global/FAQs'
-import { PeanutsBG } from '@/assets'
+import PeanutsBG from '@/assets/illustrations/peanuts-bg.svg'
 import { JsonLd } from '@/components/Marketing/JsonLd'
 
 interface FAQItemProps {

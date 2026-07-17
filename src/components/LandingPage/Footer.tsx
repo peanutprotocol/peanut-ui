@@ -1,4 +1,7 @@
-import { GITHUB_WHITE_ICON, PEANUT_LOGO, TELEGRAM_ICON, TWITTER_ICON } from '@/assets'
+import GITHUB_WHITE_ICON from '@/assets/icons/github-white.png'
+import PEANUT_LOGO from '@/assets/logos/peanut-logo.svg'
+import TELEGRAM_ICON from '@/assets/icons/telegram.svg'
+import TWITTER_ICON from '@/assets/icons/twitter-logo.svg'
 import Image from 'next/image'
 import Link from 'next/link'
 import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'

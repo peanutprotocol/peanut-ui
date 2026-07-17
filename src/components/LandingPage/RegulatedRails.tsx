@@ -1,17 +1,15 @@
 import Image from 'next/image'
 import { MarqueeWrapper } from '../Global/MarqueeWrapper'
-import {
-    BBVA_ICON,
-    BRUBANK_ICON,
-    N26_ICON,
-    SANTANDER_ICON,
-    REVOLUT_ICON,
-    STRIPE_ICON,
-    MERCADO_PAGO_ICON,
-    PIX_ICON,
-    WISE_ICON,
-    Star,
-} from '@/assets'
+import BBVA_ICON from '@/assets/icons/bbva-logo.svg'
+import BRUBANK_ICON from '@/assets/icons/brubank-logo.svg'
+import N26_ICON from '@/assets/icons/n26-logo.svg'
+import SANTANDER_ICON from '@/assets/icons/santander-logo.svg'
+import REVOLUT_ICON from '@/assets/icons/revolut-logo.svg'
+import STRIPE_ICON from '@/assets/icons/stripe-logo.svg'
+import MERCADO_PAGO_ICON from '@/assets/icons/mercado-pago-logo.svg'
+import PIX_ICON from '@/assets/icons/pix-logo.svg'
+import WISE_ICON from '@/assets/icons/wise-logo.svg'
+import Star from '@/assets/illustrations/star.svg'
 import { CloudsCss } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 

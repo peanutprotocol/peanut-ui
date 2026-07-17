@@ -1,6 +1,7 @@
 'use client'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { MERCADO_PAGO, PIX } from '@/assets'
+import MERCADO_PAGO from '@/assets/payment-apps/mercado-pago.svg'
+import PIX from '@/assets/payment-apps/pix.svg'
 import LinkSendFlowManager from '../link/LinkSendFlowManager'
 import NavHeader from '@/components/Global/NavHeader'
 import Card from '@/components/Global/Card'

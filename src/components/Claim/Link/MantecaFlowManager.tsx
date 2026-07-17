@@ -1,6 +1,7 @@
 'use client'
 
-import { MERCADO_PAGO, PIX } from '@/assets'
+import MERCADO_PAGO from '@/assets/payment-apps/mercado-pago.svg'
+import PIX from '@/assets/payment-apps/pix.svg'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'

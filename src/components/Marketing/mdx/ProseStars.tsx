@@ -1,4 +1,4 @@
-import { Star } from '@/assets'
+import Star from '@/assets/illustrations/star.svg'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 
 interface StarPlacement {

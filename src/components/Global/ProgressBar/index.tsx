@@ -1,4 +1,4 @@
-import { COIN_ICON } from '@/assets'
+import COIN_ICON from '@/assets/icons/coin.svg'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import React from 'react'

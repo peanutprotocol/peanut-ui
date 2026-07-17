@@ -4,7 +4,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useMemo } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
 import Image from 'next/image'
-import { STAR_STRAIGHT_ICON } from '@/assets'
+import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 
 // @dev TODO: Remove hardcoded KYC points - this should come from backend
 // See comment in KycStatusItem.tsx for proper implementation plan

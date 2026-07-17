@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import { STAR_STRAIGHT_ICON } from '@/assets'
+import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 
 type PerkIconSize = 'extra-small' | 'small' | 'medium' | 'large'
 

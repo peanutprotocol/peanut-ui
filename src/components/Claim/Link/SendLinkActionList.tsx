@@ -43,7 +43,7 @@ import Loading from '../../Global/Loading'
 import { ActionListCard } from '../../ActionListCard'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import SupportCTA from '../../Global/SupportCTA'
-import { DEVCONNECT_LOGO } from '@/assets'
+import DEVCONNECT_LOGO from '@/assets/logos/devconnect.svg'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import {
     MIN_BANK_TRANSFER_AMOUNT,

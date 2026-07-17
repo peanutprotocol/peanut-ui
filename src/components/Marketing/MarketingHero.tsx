@@ -2,7 +2,7 @@ import Title from '@/components/0_Bruddle/Title'
 import Link from 'next/link'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
-import { HandThumbsUp } from '@/assets'
+import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 
 const marketingClouds = [
     { top: '15%', width: 160, speed: '45s', direction: 'ltr' as const },
