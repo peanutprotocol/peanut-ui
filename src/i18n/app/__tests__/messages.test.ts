@@ -53,6 +53,8 @@ describe('ICU message compilation', () => {
             },
             getMessageFallback: ({ key }) => key,
         })
+        // `date` is bound to a Date; a new `{date}` key expecting a preformatted
+        // string will format-error (ignored above) — name such params differently.
         const dummy = { count: 2, amount: '10', name: 'Ana', username: 'ana', value: '1', date: new Date(0), days: 3 }
         for (const path of leafPaths(messages)) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

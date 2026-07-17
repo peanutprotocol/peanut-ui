@@ -229,7 +229,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         <Image src={PEANUTMAN} alt="Peanut Logo" width={64} height={64} className="size-8" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-extrabold">Enjoy Peanut!</h2>
+                        <h2 className="text-xl font-extrabold">{t('enjoyPeanut')}</h2>
                     </div>
                 </div>
             ) : (

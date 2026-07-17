@@ -1720,7 +1720,8 @@
         },
         "manteca": {
             "depositAddress": "Endereço de depósito"
-        }
+        },
+        "enjoyPeanut": "Aproveite o Peanut!"
     },
     "history": {
         "title": "Atividade",
@@ -2623,7 +2624,9 @@
             "sendingTo": "Enviando para {name}",
             "payWhatYouWant": "Pague quanto quiser",
             "sendExactAmount": "Envie o valor exato!"
-        }
+        },
+        "betaBanner": "O Peanut está em beta! Obrigado por ser um usuário inicial, compartilhe sua opinião aqui",
+        "demoBanner": "Modo demo — você está testando o Peanut com uma carteira simulada. Saldos e transações não são reais."
     },
     "errors": {
         "balanceSettling": "Seu saldo ainda não está totalmente disponível. Tente novamente em alguns segundos.",

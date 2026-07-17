@@ -165,4 +165,84 @@ module.exports = [
         files: ['src/**/__tests__/**/*.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
         rules: { '@typescript-eslint/no-require-imports': 'off' },
     },
+    {
+        // Localization guard: product-UI copy must come from next-intl, not JSX
+        // literals. Scoped to the translated surface — marketing (its own i18n),
+        // the /dev design-system catalog, and shared primitives that receive copy
+        // as props are excluded. allowedStrings covers the symbols/masks that are
+        // not translatable copy (card masks, %, currency glyphs, arrows).
+        files: [
+            'src/app/(mobile-ui)/**/*.tsx',
+            'src/app/(setup)/**/*.tsx',
+            'src/components/{Home,Send,Request,Profile,Setup,Settings,Card,AddMoney,AddWithdraw,Withdraw,Claim,Payment,Points,Badges,Notifications,Invites,TransactionDetails,Kyc,IdentityVerification,ExchangeRate,Common,ForceIOSPWAInstall,User}/**/*.tsx',
+            'src/components/Global/**/*.tsx',
+            'src/features/**/*.tsx',
+        ],
+        ignores: [
+            'src/app/(mobile-ui)/dev/**',
+            'src/**/__tests__/**',
+            'src/**/*.test.tsx',
+            // Marketing-shared Global components render on marketing pages (whose
+            // locale comes from the URL, not the app context) — they keep English
+            // and take any product-UI copy as props. FAQs/ExchangeRateWidget are
+            // imported by LandingPage and Marketing/mdx; Loading is a spinner
+            // fallback reached through the shared 0_Bruddle/Button.
+            'src/components/Global/{Layout,AnimateOnView,MarqueeWrapper,FAQs,FooterVisibilityObserver,ExchangeRateWidget,Modal,Loading}/**',
+            'src/components/Global/{Layout,AnimateOnView,MarqueeWrapper,FAQs,FooterVisibilityObserver,ExchangeRateWidget,Modal,Loading}.tsx',
+            'src/components/Global/{PeanutLoading,Icons,Badges}/**',
+            // InvitesGraph is a /dev-only debug visualization, not user-facing UI.
+            'src/components/Global/InvitesGraph/**',
+        ],
+        rules: {
+            'react/jsx-no-literals': [
+                'error',
+                {
+                    noStrings: false,
+                    ignoreProps: true,
+                    allowedStrings: [
+                        '•',
+                        '·',
+                        '%',
+                        '$',
+                        '(',
+                        ')',
+                        '-',
+                        '/',
+                        ':',
+                        '#',
+                        '+',
+                        '×',
+                        '→',
+                        '←',
+                        ',',
+                        '.',
+                        '*',
+                        '≈',
+                        '≈ $',
+                        'USD',
+                        'R$',
+                        'EVM',
+                        'Solana',
+                        'Tron',
+                        // non-copy glyphs: card-number masks, percentages, decorative
+                        // emoji, amount prefixes, and the brand URL stem
+                        '****',
+                        '••••',
+                        '????',
+                        '???? ???? ???? ????',
+                        '??/??',
+                        '100%',
+                        '0%',
+                        '120%',
+                        '+$',
+                        '✨',
+                        '⭐',
+                        'peanut.me/',
+                        'i',
+                        'version:',
+                    ],
+                },
+            ],
+        },
+    },
 ]

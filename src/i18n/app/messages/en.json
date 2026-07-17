@@ -1720,7 +1720,8 @@
         },
         "manteca": {
             "depositAddress": "Deposit Address"
-        }
+        },
+        "enjoyPeanut": "Enjoy Peanut!"
     },
     "history": {
         "title": "Activity",
@@ -2623,7 +2624,9 @@
             "sendingTo": "Sending {name}",
             "payWhatYouWant": "Pay what you want",
             "sendExactAmount": "Send the exact amount!"
-        }
+        },
+        "betaBanner": "Peanut is in beta! Thank you for being an early user, share your feedback here",
+        "demoBanner": "Demo mode — you're previewing Peanut with a simulated wallet. Balances and transactions aren't real."
     },
     "errors": {
         "balanceSettling": "Your balance isn't fully available yet. Please try again in a few seconds.",
