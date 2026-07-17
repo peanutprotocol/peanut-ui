@@ -421,7 +421,10 @@ Please use these details to complete your bank transfer.`
                         // own-name rule holds for ACH/SEPA/wire; MX SPEI supports paying from a
                         // third-party/client account, so this item is omitted there.
                         ...(currentCountryDetails?.id !== 'MX'
-                            ? ['Sender: use a bank account in your own name (a name mismatch bounces the transfer)']
+                            ? [
+                                  'Sender: use a bank account in your own name (a name mismatch bounces the transfer)',
+                                  'Recipient: enter the name exactly as shown above',
+                              ]
                             : []),
                     ]}
                 />
