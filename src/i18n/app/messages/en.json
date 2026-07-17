@@ -2272,7 +2272,7 @@
             "cameraStillBusy": "Camera remains busy. Please close other apps and try again.",
             "cameraNotFound": "No camera found on this device.",
             "cameraUnavailable": "Could not access camera. Please ensure you have granted camera permissions.",
-            "videoElementUnavailable": "Video element not available",
+            "cameraStartFailed": "Could not start the camera. Please try again.",
             "cameraSwitchFailed": "Failed to switch camera. Please try again.",
             "cameraPermission": {
                 "title": "Camera access needed",

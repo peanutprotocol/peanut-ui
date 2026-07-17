@@ -2272,7 +2272,7 @@
             "cameraStillBusy": "A câmera continua ocupada. Feche outros apps e tente novamente.",
             "cameraNotFound": "Nenhuma câmera encontrada neste dispositivo.",
             "cameraUnavailable": "Não foi possível acessar a câmera. Verifique se você concedeu as permissões de câmera.",
-            "videoElementUnavailable": "O elemento de vídeo não está disponível",
+            "cameraStartFailed": "Não foi possível iniciar a câmera. Tente novamente.",
             "cameraSwitchFailed": "Não foi possível trocar de câmera. Tente novamente.",
             "cameraPermission": {
                 "title": "Acesso à câmera necessário",

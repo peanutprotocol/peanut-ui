@@ -230,7 +230,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     }, CONFIG.VIDEO_ELEMENT_RETRY_DELAY_MS)
                     return
                 }
-                setError(t('qrScanner.videoElementUnavailable'))
+                setError(t('qrScanner.cameraStartFailed'))
                 videoElementRetryCountRef.current = 0
                 return
             }
