@@ -238,7 +238,7 @@ function copyComponentsBeforeDisable() {
 // and fails LOUDLY with the exact offending paths so the fix is obvious: add them
 // to ITEMS_TO_DISABLE (or give the page a generateStaticParams).
 function isCoveredByDisableList(relPath) {
-    return ITEMS_TO_DISABLE.some((item) => {
+    const inDisableList = ITEMS_TO_DISABLE.some((item) => {
         if (item.type === 'dir') {
             return (
                 relPath === item.path || relPath.startsWith(item.path + path.sep) || relPath.startsWith(item.path + '/')
@@ -246,6 +246,11 @@ function isCoveredByDisableList(relPath) {
         }
         return relPath === item.path
     })
+    if (inDisableList) return true
+    // P0_TRANSFORMS replace a route's content with a static-export-safe version
+    // (stripping force-dynamic / generateMetadata), so those paths are handled too
+    // and must not trip the guard — e.g. (mobile-ui)/claim/page.tsx.
+    return P0_TRANSFORMS.some((item) => relPath === item.path)
 }
 
 function detectUncoveredServerRoutes(dir = APP_DIR, found = []) {
