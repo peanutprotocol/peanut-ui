@@ -150,7 +150,7 @@ export default function WithdrawBankPage() {
                 router.replace('/withdraw')
             }
         }
-    }, [country, isBridgeSupportedCountry, router])
+    }, [country, router])
 
     // check if we came from send flow - using method param to detect (only bank goes through this page)
     const methodParam = searchParams.get('method')

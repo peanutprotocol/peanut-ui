@@ -19,6 +19,7 @@ export function useFeatureFlags(): (flagKey: string, options?: FeatureFlagOption
     return useMemo(
         () => (flagKey: string, options?: FeatureFlagOptions) => isFeatureFlagEnabled(flagKey, options),
         // `version` IS the reactivity trigger: a new checker identity per flag-load event.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         [version]
     )
 }
