@@ -18,7 +18,7 @@ import { DynamicBankAccountForm, type IBankAccountDetails } from './DynamicBankA
 import { addBankAccount } from '@/app/actions/users'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
-import { type Account } from '@/interfaces'
+import { type Account } from '@/interfaces/interfaces'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAppDispatch } from '@/redux/hooks'

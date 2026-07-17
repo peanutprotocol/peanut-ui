@@ -3,7 +3,7 @@ import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
-import { type KycModalPhase } from '@/interfaces'
+import { type KycModalPhase } from '@/interfaces/interfaces'
 
 interface KycVerificationInProgressModalProps {
     isOpen: boolean

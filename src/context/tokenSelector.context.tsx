@@ -6,7 +6,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSupportedChainsAndTokens } from '@/hooks/useSupportedChainsAndTokens'
 import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/chainRegistry.consts'
 import { useTokenPrice } from '@/hooks/useTokenPrice'
-import { type ITokenPriceData } from '@/interfaces'
+import { type ITokenPriceData } from '@/interfaces/interfaces'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 

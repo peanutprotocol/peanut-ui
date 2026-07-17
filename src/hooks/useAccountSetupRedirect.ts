@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/context/authContext'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import { isDemoMode } from '@/utils/demo'
 
 /**

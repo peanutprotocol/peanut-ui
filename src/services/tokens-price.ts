@@ -7,7 +7,7 @@
 
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { fetchWithSentry } from '@/utils/sentry.utils'
-import { type ITokenPriceData, type IUserBalance } from '@/interfaces'
+import { type ITokenPriceData, type IUserBalance } from '@/interfaces/interfaces'
 
 async function getJson<T>(path: string, errorLabel: string): Promise<T | null> {
     const response = await fetchWithSentry(`${PEANUT_API_URL}${path}`, { method: 'GET' })

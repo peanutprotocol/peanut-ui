@@ -1,5 +1,5 @@
 import { useAuth } from '@/context/authContext'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import { useMemo } from 'react'
 import {
     GRAFANA_DASHBOARD_BASE_URL,

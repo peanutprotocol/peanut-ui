@@ -12,7 +12,7 @@
  */
 
 import { useUserByUsername } from '@/hooks/useUserByUsername'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'

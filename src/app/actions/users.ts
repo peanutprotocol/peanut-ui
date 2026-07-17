@@ -1,7 +1,7 @@
 import { type ApiUser } from '@/services/users'
 import { type AddBankAccountPayload, BridgeEndorsementType, type InitiateKycResponse } from './types/users.types'
-import { type CounterpartyUser } from '@/interfaces'
-import { type ContactsResponse } from '@/interfaces'
+import { type CounterpartyUser } from '@/interfaces/interfaces'
+import { type ContactsResponse } from '@/interfaces/interfaces'
 import { serverFetch } from '@/utils/api-fetch'
 
 export const updateUserById = async (payload: Record<string, any>): Promise<{ data?: ApiUser; error?: string }> => {

@@ -1,5 +1,5 @@
 import { getExchangeRate } from './exchange-rate'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import { mantecaApi } from '@/services/manteca'
 import { unstable_cache } from '@/utils/no-cache'
 

@@ -6,7 +6,7 @@ import GeneralRecipientInput from '../index'
 import * as bridgeUtils from '@/utils/bridge-accounts.utils'
 import * as sentryUtils from '@/utils/sentry.utils'
 import * as ens from '@/app/actions/ens'
-import type { RecipientType } from '@/interfaces'
+import type { RecipientType } from '@/interfaces/interfaces'
 import { validateEnsName } from '@/utils/general.utils'
 
 const IntlWrapper = ({ children }: { children: ReactNode }) => (

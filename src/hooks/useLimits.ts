@@ -3,7 +3,7 @@
 import { getAuthToken, authReady } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
 import { useQuery } from '@tanstack/react-query'
-import type { UserLimitsResponse } from '@/interfaces'
+import type { UserLimitsResponse } from '@/interfaces/interfaces'
 import { LIMITS } from '@/constants/query.consts'
 import { serverFetch } from '@/utils/api-fetch'
 import { isDemoMode } from '@/utils/demo'

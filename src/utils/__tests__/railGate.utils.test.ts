@@ -1,5 +1,5 @@
 import { hasEnabledRail, hasFullMantecaRail, hasRailInProgress, hasFunctionalRail } from '../railGate.utils'
-import { type IUserRail, type UserRailStatus } from '@/interfaces'
+import { type IUserRail, type UserRailStatus } from '@/interfaces/interfaces'
 
 function rail(
     provider: string,

@@ -1,4 +1,4 @@
-import { type IUserProfile } from '@/interfaces'
+import { type IUserProfile } from '@/interfaces/interfaces'
 import { type KycHistoryEntry } from '@/components/Kyc/KycStatusItem'
 
 /**

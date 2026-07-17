@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { useUserAutoRefresh } from '@/hooks/useUserAutoRefresh'
 import { markSubmitted, __resetSubmissionWindowForTests } from '@/hooks/useSubmissionWindow'
-import type { IUserProfile } from '@/interfaces'
+import type { IUserProfile } from '@/interfaces/interfaces'
 
 const userWithPendingRail = {
     capabilities: { rails: [{ status: 'pending' }], nextActions: [], restrictions: [] },

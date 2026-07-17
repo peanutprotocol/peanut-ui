@@ -3,7 +3,7 @@
 import NavHeader from '@/components/Global/NavHeader'
 import ScrollableList from '@/components/Global/TokenSelector/Components/ScrollableList'
 import TokenListItem from '@/components/Global/TokenSelector/Components/TokenListItem'
-import { type IUserBalance } from '@/interfaces'
+import { type IUserBalance } from '@/interfaces/interfaces'
 import { useState, useEffect, useCallback, useContext } from 'react'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { fetchWalletBalances } from '@/services/tokens-price'

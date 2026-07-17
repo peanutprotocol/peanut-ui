@@ -1,4 +1,4 @@
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import { serverFetch } from '@/utils/api-fetch'
 
 export interface ExchangeRateResponse {
