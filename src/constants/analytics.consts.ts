@@ -135,6 +135,14 @@ export const ANALYTICS_EVENTS = {
     BACKEND_ERROR_RETRY: 'backend_error_retry',
     BACKEND_ERROR_LOGOUT: 'backend_error_logout',
 
+    // ── KYC: Sumsub WebSDK health ──
+    // The Jul-16/17 outage was invisible because a never-launched SDK emits
+    // nothing: no exception, no request, no 500. These make the launch itself
+    // observable so "opened but never launched" is alertable, not archaeology.
+    KYC_SDK_LAUNCHED: 'kyc_sdk_launched',
+    KYC_SDK_LAUNCH_TIMEOUT: 'kyc_sdk_launch_timeout',
+    KYC_SDK_INIT_FAILED: 'kyc_sdk_init_failed',
+
     // ── Card: acquisition funnel (Rain virtual card) ──
     // State observed on /card mount or transition. `state` matches CardTopLevelState.
     CARD_STATE_VIEWED: 'card_state_viewed',
