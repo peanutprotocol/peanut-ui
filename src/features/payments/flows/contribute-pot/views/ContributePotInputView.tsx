@@ -37,6 +37,7 @@ export function ContributePotInputView() {
         isInsufficientBalance,
         isLoggedIn,
         isLoading,
+        txHash,
         totalAmount,
         totalCollected,
         contributors,
@@ -46,9 +47,16 @@ export function ContributePotInputView() {
         setCurrentView,
     } = useContributePotFlow()
 
+    // `txHash` is the post-on-chain gate (see useContributePotFlow). While
+    // set, BOTH pay paths must be disabled — re-firing executeContribution
+    // (Peanut wallet) would double-pay on-chain, and opening the external-
+    // wallet view for the same charge would let the user pay it again from
+    // their EOA. Sentry PEANUT-UI-QH9 / 2026-06-01.
+    const isPostOnChain = !!txHash
+
     // handle submit - directly execute contribution
     const handlePayWithPeanut = () => {
-        if (canProceed && hasSufficientBalance && !isLoading) {
+        if (canProceed && hasSufficientBalance && !isLoading && !isPostOnChain) {
             executeContribution()
         }
     }
@@ -56,7 +64,7 @@ export function ContributePotInputView() {
     // handle External Wallet click
     const [isExternalWalletLoading, setIsExternalWalletLoading] = useState(false)
     const handleOpenExternalWalletFlow = async () => {
-        if (canProceed && !isLoading) {
+        if (canProceed && !isLoading && !isPostOnChain) {
             setIsExternalWalletLoading(true)
             try {
                 const res = await executeContribution(true, true) // return after creating charge
@@ -122,7 +130,11 @@ export function ContributePotInputView() {
                     recipientUserId={recipient?.userId}
                     recipientUsername={recipient?.username}
                     onPayWithPeanut={handlePayWithPeanut}
-                    isPaymentLoading={isLoading && !isExternalWalletLoading}
+                    // Treat post-on-chain as `loading` for the action list —
+                    // disables BOTH pay buttons + renders a spinner so the
+                    // user doesn't perceive the page as frozen. The actual
+                    // settlement is happening BE-side regardless.
+                    isPaymentLoading={(isLoading && !isExternalWalletLoading) || isPostOnChain}
                     isExternalWalletLoading={isExternalWalletLoading}
                     onPayWithExternalWallet={handleOpenExternalWalletFlow}
                 />

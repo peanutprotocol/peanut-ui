@@ -62,6 +62,7 @@ export default function WithdrawCryptoPage() {
         setError: setWithdrawError,
         chargeDetails,
         setChargeDetails,
+        transactionHash,
         setTransactionHash,
         paymentDetails,
         setPaymentDetails,
@@ -90,8 +91,14 @@ export default function WithdrawCryptoPage() {
     // local state for transaction execution
     const [isSendingTx, setIsSendingTx] = useState(false)
 
-    // combined processing state
-    const isProcessing = useMemo(() => isSendingTx || isRecording, [isSendingTx, isRecording])
+    // combined processing state. Includes `transactionHash` so the Confirm
+    // button stays disabled (and the view shows the spinner) once the
+    // on-chain leg has fired — re-running the handler would re-spend.
+    // Sentry PEANUT-UI-QH9 / 2026-06-01.
+    const isProcessing = useMemo(
+        () => isSendingTx || isRecording || !!transactionHash,
+        [isSendingTx, isRecording, transactionHash]
+    )
 
     // helper to manage errors consistently
     const setError = useCallback(
@@ -276,6 +283,16 @@ export default function WithdrawCryptoPage() {
     }, [withdrawData, chargeDetails, isXChain, isDiffToken])
 
     const handleConfirmWithdrawal = useCallback(async () => {
+        // Post-on-chain safety gate. Once sendMoney/sendTransactions has
+        // returned a tx hash (set on the WithdrawFlow context via
+        // setTransactionHash before recordPayment), re-running this handler
+        // would re-fire the wallet → external-address transfer. Sentry
+        // PEANUT-UI-QH9 / 2026-06-01 first surfaced this for the Bridge
+        // offramp; the audit found the same shape here. Context state (not
+        // local hook state) is what makes the gate survive view transitions
+        // and back-navigation.
+        if (transactionHash) return
+
         if (!chargeDetails || !withdrawData || !amountToWithdraw || !address) {
             console.error('Withdraw data, active charge details, or amount missing for final confirmation')
             setError('Essential withdrawal information is missing.')
@@ -367,21 +384,33 @@ export default function WithdrawCryptoPage() {
             // gets stuck at PENDING because nothing else triggers the
             // transition for the bridge-path (depositWithId, mode='pay')
             // flow we use for non-stable destinations.
+            // Mark the on-chain leg done BEFORE recordPayment so the gate at
+            // the top of this handler engages on any retry — including the
+            // skipRecordPayment branch (Rain-collateral same-chain, where
+            // settlement runs through the Rain webhook). The Konrad incident
+            // was: sendMoney succeeded → BE ack timed out → user retried.
+            // Setting the gate here makes that retry a no-op regardless of
+            // which post-chain path was taken.
+            setTransactionHash(finalTxHash)
+
             const routedThroughCollateral = strategy === 'collateral-only' || strategy === 'mixed'
             const skipRecordPayment = routedThroughCollateral && !isCrossChainWithdrawal
 
-            let payment: Awaited<ReturnType<typeof recordPayment>> | null = null
-            if (!skipRecordPayment) {
-                payment = await recordPayment({
-                    chargeId: chargeDetails.uuid,
-                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                    txHash: finalTxHash,
-                    tokenAddress: PEANUT_WALLET_TOKEN as Address,
-                    payerAddress: address as Address,
-                })
-            }
+            // Cross-chain withdraws ALWAYS need recordPayment to fire — the
+            // BE validator's cross-chain branch transitions the charge intent
+            // to COMPLETED directly (trusts the source-chain submission since
+            // Rhino owns delivery downstream). Skip path (collateral-only +
+            // same-chain) is reconciled by the Rain webhook instead.
+            const payment = skipRecordPayment
+                ? null
+                : await recordPayment({
+                      chargeId: chargeDetails.uuid,
+                      chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                      txHash: finalTxHash,
+                      tokenAddress: PEANUT_WALLET_TOKEN as Address,
+                      payerAddress: address as Address,
+                  })
 
-            setTransactionHash(finalTxHash)
             setPaymentDetails(payment)
             triggerHaptic()
             setCurrentView('STATUS')
@@ -412,6 +441,7 @@ export default function WithdrawCryptoPage() {
         sendMoney,
         isCrossChainWithdrawal,
         recordPayment,
+        transactionHash,
         setCurrentView,
         setTransactionHash,
         setPaymentDetails,
