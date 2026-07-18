@@ -50,16 +50,19 @@ describe('DrawerContent accessibility', () => {
     it('does not trigger the Radix missing-DialogTitle warning when accessibleTitle is set', () => {
         const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
 
-        render(
-            <Drawer open>
-                <DrawerContent accessibleTitle="Transaction Details">
-                    <div>body</div>
-                </DrawerContent>
-            </Drawer>
-        )
+        try {
+            render(
+                <Drawer open>
+                    <DrawerContent accessibleTitle="Transaction Details">
+                        <div>body</div>
+                    </DrawerContent>
+                </Drawer>
+            )
 
-        const logged = errorSpy.mock.calls.flat().join(' ')
-        expect(logged).not.toContain('DialogTitle')
-        errorSpy.mockRestore()
+            const logged = errorSpy.mock.calls.flat().join(' ')
+            expect(logged).not.toContain('DialogTitle')
+        } finally {
+            errorSpy.mockRestore()
+        }
     })
 })
