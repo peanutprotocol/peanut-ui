@@ -10,34 +10,28 @@ function eventWithException(type: string, value: string): ErrorEvent {
     return { type: undefined, exception: { values: [{ type, value }] } } as ErrorEvent
 }
 
-describe('shouldIgnoreError — Capacitor plugin-not-implemented iframe noise (PEANUT-UI-QV3)', () => {
-    it('ignores "StatusBar" plugin not implemented on ios', () => {
-        expect(shouldIgnoreError(eventWithMessage('"StatusBar" plugin is not implemented on ios'))).toBe(true)
+describe('shouldIgnoreError — per-field matching', () => {
+    it('matches a pattern contained in event.message', () => {
+        expect(shouldIgnoreError(eventWithMessage('User rejected the request'))).toBe(true)
     })
 
-    it('ignores other plugin variants from the same iframe (Keyboard, App)', () => {
-        expect(shouldIgnoreError(eventWithMessage('"Keyboard" plugin is not implemented on ios'))).toBe(true)
-        expect(shouldIgnoreError(eventWithMessage('"App" plugin is not implemented on android'))).toBe(true)
-        expect(shouldIgnoreError(eventWithMessage('"StatusBar" plugin is not implemented on web'))).toBe(true)
+    it('matches a pattern contained in an exception value', () => {
+        expect(shouldIgnoreError(eventWithException('Error', 'MetaMask: user rejected signature'))).toBe(true)
     })
 
-    it('matches when the message lives in exception values instead of event.message', () => {
-        expect(shouldIgnoreError(eventWithException('Error', '"StatusBar" plugin is not implemented on ios'))).toBe(
-            true
-        )
+    it('matches case-insensitively', () => {
+        expect(shouldIgnoreError(eventWithMessage('USER REJECTED the request'))).toBe(true)
     })
 
     it('does not match across field boundaries (message + exception value concatenation)', () => {
+        // 'User rejected' split across two fields: the old concatenated-blob
+        // matching would have suppressed this unrelated event.
         const event = {
             type: undefined,
-            message: '"StatusBar"',
-            exception: { values: [{ type: 'Error', value: 'plugin is not implemented on ios' }] },
+            message: 'Signing failed for User',
+            exception: { values: [{ type: 'Error', value: 'rejected promise left unhandled' }] },
         } as unknown as ErrorEvent
         expect(shouldIgnoreError(event)).toBe(false)
-    })
-
-    it('does not match a plugin error that IS implemented-related but differently worded', () => {
-        expect(shouldIgnoreError(eventWithMessage('StatusBar plugin failed to initialize'))).toBe(false)
     })
 
     it('still reports unrelated errors', () => {
@@ -45,9 +39,9 @@ describe('shouldIgnoreError — Capacitor plugin-not-implemented iframe noise (P
     })
 })
 
-describe('shouldIgnoreError — existing string patterns still work', () => {
-    it('ignores user rejections', () => {
-        expect(shouldIgnoreError(eventWithMessage('User rejected the request'))).toBe(true)
+describe('shouldIgnoreError — existing patterns intact', () => {
+    it('ignores network noise', () => {
+        expect(shouldIgnoreError(eventWithException('TypeError', 'Failed to fetch'))).toBe(true)
     })
 
     it('ignores extension noise via stack frames', () => {
