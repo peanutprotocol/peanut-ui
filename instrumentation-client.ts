@@ -54,6 +54,22 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development') {
             beforeSend: beforeSendHandler,
             integrations: [Sentry.captureConsoleIntegration({ levels: ['error', 'warn'] })],
         })
+
+        /*
+         * `release` above is the JS bundle's commit — with OTA updates it can differ
+         * from the installed binary, which made PEANUT-UI-R5F look like it came from
+         * a build it didn't. Tag the binary identity on every event so the skew is
+         * always visible; swControlled flags a stale pre-2026-04 service worker
+         * still intercepting requests inside the WebView.
+         */
+        Sentry.setTag('swControlled', String(!!navigator.serviceWorker?.controller))
+        import('@capacitor/app')
+            .then(({ App }) => App.getInfo())
+            .then((info) => {
+                Sentry.setTag('binaryVersion', info.version)
+                Sentry.setTag('binaryBuild', info.build)
+            })
+            .catch(() => {})
     }
 
     // Brave identifies as Chrome in User-Agent — detect it and set a person property
