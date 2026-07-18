@@ -38,6 +38,12 @@ const IGNORED_ERRORS = {
     // Third-party scripts we don't control
     thirdParty: ['googletagmanager', 'gtag', 'analytics', 'hotjar', 'clarity', 'intercom', 'crisp'],
 
+    // fetchWithSentry wrapper errors: the underlying timeout/network/HTTP
+    // failure is already captured at the fetch site with full context, so the
+    // re-thrown ServiceUnavailableError bubbling to global handlers (or being
+    // console.error'd by a consumer) would only double-count it (PEANUT-UI-QDJ).
+    alreadyReported: ['ServiceUnavailableError'],
+
     // Third-party SDK internal errors (not actionable)
     thirdPartySdkErrors: [
         'IndexedDB:Set:InternalError', // Vercel Analytics storage - fails in private browsing, not actionable
