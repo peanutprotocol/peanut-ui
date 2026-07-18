@@ -27,6 +27,15 @@ describe('shouldIgnoreError — Capacitor plugin-not-implemented iframe noise (P
         )
     })
 
+    it('does not match across field boundaries (message + exception value concatenation)', () => {
+        const event = {
+            type: undefined,
+            message: '"StatusBar"',
+            exception: { values: [{ type: 'Error', value: 'plugin is not implemented on ios' }] },
+        } as unknown as ErrorEvent
+        expect(shouldIgnoreError(event)).toBe(false)
+    })
+
     it('does not match a plugin error that IS implemented-related but differently worded', () => {
         expect(shouldIgnoreError(eventWithMessage('StatusBar plugin failed to initialize'))).toBe(false)
     })

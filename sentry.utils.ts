@@ -62,13 +62,16 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     const exceptionType = event.exception?.values?.[0]?.type || ''
     const culprit = (event as any).culprit || ''
 
-    const searchText = `${message} ${exceptionValue} ${exceptionType} ${culprit}`.toLowerCase()
+    // Match each field independently — concatenating them would let a pattern
+    // match across unrelated fields and suppress a legitimate event.
+    const searchTexts = [message, exceptionValue, exceptionType, culprit]
 
     // Check all ignore patterns
     for (const patterns of Object.values(IGNORED_ERRORS)) {
         for (const pattern of patterns) {
-            const matches =
-                typeof pattern === 'string' ? searchText.includes(pattern.toLowerCase()) : pattern.test(searchText)
+            const matches = searchTexts.some((text) =>
+                typeof pattern === 'string' ? text.toLowerCase().includes(pattern.toLowerCase()) : pattern.test(text)
+            )
             if (matches) {
                 return true
             }
