@@ -37,7 +37,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
     return (
         <>
             <Drawer open={isOpen} onOpenChange={onClose}>
-                <DrawerContent className="py-5">
+                <DrawerContent className="py-5" accessibleTitle={`Badge unlocked: ${displayName}`}>
                     <div className="space-y-5 p-5">
                         <Card
                             className="relative cursor-pointer p-4 md:p-6"

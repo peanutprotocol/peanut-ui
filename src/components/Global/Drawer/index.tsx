@@ -23,31 +23,36 @@ const DrawerOverlay = React.forwardRef<
 ))
 DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 
-const DrawerContent = React.forwardRef<
-    React.ElementRef<typeof DrawerPrimitive.Content>,
-    React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-    <DrawerPortal>
-        <DrawerOverlay />
-        <DrawerPrimitive.Content
-            ref={ref}
-            className={twMerge(
-                'fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col rounded-t-[10px] border bg-background',
-                className
-            )}
-            aria-describedby={undefined}
-            {...props}
-            onTouchMove={(e) => e.stopPropagation()}
-        >
-            <div className="mx-auto my-4 h-1.5 w-10 rounded-full bg-black" />
-            <div className="flex w-full justify-center">
-                <div className="max-h-[80vh] w-full overflow-auto pb-[env(safe-area-inset-bottom)] md:max-w-xl">
-                    {children}
+type DrawerContentProps = React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content> & {
+    /** Screen-reader-only DialogTitle for drawers without a visible DrawerTitle (Radix a11y requirement). */
+    accessibleTitle?: string
+}
+
+const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.Content>, DrawerContentProps>(
+    ({ className, children, accessibleTitle, ...props }, ref) => (
+        <DrawerPortal>
+            <DrawerOverlay />
+            <DrawerPrimitive.Content
+                ref={ref}
+                className={twMerge(
+                    'fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col rounded-t-[10px] border bg-background',
+                    className
+                )}
+                aria-describedby={undefined}
+                {...props}
+                onTouchMove={(e) => e.stopPropagation()}
+            >
+                {accessibleTitle && <DrawerTitle className="sr-only">{accessibleTitle}</DrawerTitle>}
+                <div className="mx-auto my-4 h-1.5 w-10 rounded-full bg-black" />
+                <div className="flex w-full justify-center">
+                    <div className="max-h-[80vh] w-full overflow-auto pb-[env(safe-area-inset-bottom)] md:max-w-xl">
+                        {children}
+                    </div>
                 </div>
-            </div>
-        </DrawerPrimitive.Content>
-    </DrawerPortal>
-))
+            </DrawerPrimitive.Content>
+        </DrawerPortal>
+    )
+)
 DrawerContent.displayName = 'DrawerContent'
 
 const DrawerHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
