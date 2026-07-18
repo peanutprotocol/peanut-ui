@@ -7,7 +7,7 @@ import type { ErrorEvent } from '@sentry/nextjs'
  * Patterns to filter out from Sentry reporting.
  * These are generally noise that doesn't require action.
  */
-const IGNORED_ERRORS = {
+const IGNORED_ERRORS: Record<string, Array<string | RegExp>> = {
     // User-initiated cancellations (not bugs)
     userRejected: [
         'User rejected',
@@ -46,6 +46,10 @@ const IGNORED_ERRORS = {
         // which is always true on capacitor://localhost — it then proceeds and the
         // camera works. Pure noise on native (PEANUT-UI-R1M).
         'The camera stream is only accessible if the page is transferred via https',
+        // Capacitor plugin calls (StatusBar, Keyboard, App, …) running inside the
+        // /crisp-proxy iframe, where the native bridge isn't injected — pure noise,
+        // not a broken binary (PEANUT-UI-QV3).
+        /"[a-z]+" plugin is not implemented on/i,
     ],
 }
 
@@ -63,7 +67,9 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     // Check all ignore patterns
     for (const patterns of Object.values(IGNORED_ERRORS)) {
         for (const pattern of patterns) {
-            if (searchText.includes(pattern.toLowerCase())) {
+            const matches =
+                typeof pattern === 'string' ? searchText.includes(pattern.toLowerCase()) : pattern.test(searchText)
+            if (matches) {
                 return true
             }
         }
