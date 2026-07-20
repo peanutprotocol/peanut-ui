@@ -11,7 +11,7 @@ interface InitiateKycModalProps {
     /** error message from a failed verify/resubmit attempt */
     error?: string | null
     /** when set, shows context-specific messaging instead of the generic "unlock" copy */
-    variant?: 'default' | 'provider_rejection' | 'blocked' | 'restart_identity' | 'cross_region'
+    variant?: 'default' | 'provider_rejection' | 'blocked' | 'restart_identity' | 'cross_region' | 'region-unavailable'
     providerMessage?: string
     /** country name shown in cross_region variant (e.g. "Brazil", "Argentina") */
     regionName?: string
@@ -38,9 +38,11 @@ export const InitiateKycModal = ({
     const isBlocked = variant === 'blocked'
     const isRestartIdentity = variant === 'restart_identity'
     const isCrossRegion = variant === 'cross_region'
+    const isRegionUnavailable = variant === 'region-unavailable'
 
     const getTitle = () => {
         if (error) return 'Something went wrong'
+        if (isRegionUnavailable) return 'Not available in the UK'
         if (isBlocked) return 'We couldn’t unlock this'
         if (isRestartIdentity) return 'Verify with a different document'
         if (isProviderRejection) return 'We need extra documents'
@@ -50,6 +52,11 @@ export const InitiateKycModal = ({
 
     const getDescription = () => {
         if (error) return `${error} Please contact support for assistance.`
+        if (isRegionUnavailable)
+            return (
+                providerMessage ||
+                "Bank transfers and the Peanut Card aren't available for UK residents due to regulatory restrictions. You can still use Peanut for crypto."
+            )
         if (isBlocked) return providerMessage || "We couldn't confirm your ID. Please contact support for assistance."
         if (isRestartIdentity)
             return (
@@ -70,6 +77,9 @@ export const InitiateKycModal = ({
                 text: 'Contact support',
                 onClick: onContactSupport ?? onClose,
             }
+        }
+        if (isRegionUnavailable) {
+            return { text: 'Got it', onClick: onClose }
         }
         if (isRestartIdentity) {
             return {
@@ -107,8 +117,8 @@ export const InitiateKycModal = ({
             title={getTitle()}
             description={getDescription()}
             preventClose
-            icon={(error || isBlocked || isRestartIdentity ? 'alert' : 'badge') as IconName}
-            iconContainerClassName={isBlocked || isRestartIdentity ? 'bg-yellow-1' : ''}
+            icon={(error || isBlocked || isRestartIdentity || isRegionUnavailable ? 'alert' : 'badge') as IconName}
+            iconContainerClassName={isBlocked || isRestartIdentity || isRegionUnavailable ? 'bg-yellow-1' : ''}
             modalPanelClassName="max-w-full m-2"
             ctaClassName="grid grid-cols-1 gap-3"
             ctas={[
@@ -123,7 +133,7 @@ export const InitiateKycModal = ({
                 },
             ]}
             footer={
-                isProviderRejection || isBlocked || isRestartIdentity ? undefined : (
+                isProviderRejection || isBlocked || isRestartIdentity || isRegionUnavailable ? undefined : (
                     <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
                 )
             }

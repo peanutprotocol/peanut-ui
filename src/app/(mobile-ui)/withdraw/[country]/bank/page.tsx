@@ -594,7 +594,11 @@ export default function WithdrawBankPage() {
                 }}
                 isLoading={sumsubFlow.isLoading}
                 error={sumsubFlow.error}
-                variant={getKycModalVariant(gate.kind)}
+                variant={
+                    'reason' in gate && gate.reason?.code === 'uk_resident_blocked'
+                        ? 'region-unavailable'
+                        : getKycModalVariant(gate.kind)
+                }
                 providerMessage={getGateUserMessage(gate)}
                 regionName={getCountryFromPath(country)?.title}
             />
