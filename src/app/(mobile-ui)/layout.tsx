@@ -1,6 +1,7 @@
 'use client'
 
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
+import ReConsentModal from '@/components/Global/ReConsentModal'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import TopNavbar from '@/components/Global/TopNavbar'
 import WalletNavigation from '@/components/Global/WalletNavigation'
@@ -234,6 +235,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
             {/* Modal */}
             <GuestLoginModal />
+
+            <ReConsentModal />
 
             <SupportDrawer />
 
