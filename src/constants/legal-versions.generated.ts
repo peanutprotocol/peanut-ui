@@ -8,13 +8,34 @@ export interface LegalDocumentVersion {
 }
 
 export const LEGAL_DOCUMENT_VERSIONS = {
-    'card-esign': { version: '2026-06-09', hash: '5ed12f98481fb249909563882564f4157b916059b42ee814d9ce57e8026777c8' },
-    'card-privacy': { version: '2026-06-01', hash: 'eaee605fc002d723c148643048001ddf8b7886511d1d8bef225ef97268e5efb1' },
-    'card-prohibited-activities': { version: '2026-06-17', hash: 'd0ea9e1b239179c9ca4e5c26badb49506d8453399958ed040f68bb6650fd6e6c' },
-    'card-terms-international': { version: '2026-06-01', hash: 'a6476057cd5bcf553f2c1faffc5261ad3c5e59eecbc8bf068e3b561df22035cf' },
-    'card-terms-us': { version: '2026-06-01', hash: '431def76a1838075b8110dff955da06a3d561d61229117c14127deef9f09e1ca' },
-    'privacy': { version: '2026-07-15', hash: '921c1da00646a4ab8f6c9b663d9ba130acbc294f1645f3e3d05ad264744b66c8' },
-    'terms': { version: '2026-07-15', hash: '6ed61c54c9b6c1c40ab053c597c83288b36bf07f0470627b67634db0e41d7398' },
+    'card-esign': {
+        version: '2026-06-09',
+        hash: '5ed12f98481fb249909563882564f4157b916059b42ee814d9ce57e8026777c8',
+    },
+    'card-privacy': {
+        version: '2026-06-01',
+        hash: 'eaee605fc002d723c148643048001ddf8b7886511d1d8bef225ef97268e5efb1',
+    },
+    'card-prohibited-activities': {
+        version: '2026-06-17',
+        hash: 'd0ea9e1b239179c9ca4e5c26badb49506d8453399958ed040f68bb6650fd6e6c',
+    },
+    'card-terms-international': {
+        version: '2026-06-01',
+        hash: 'a6476057cd5bcf553f2c1faffc5261ad3c5e59eecbc8bf068e3b561df22035cf',
+    },
+    'card-terms-us': {
+        version: '2026-06-01',
+        hash: '431def76a1838075b8110dff955da06a3d561d61229117c14127deef9f09e1ca',
+    },
+    privacy: {
+        version: '2026-07-15',
+        hash: '921c1da00646a4ab8f6c9b663d9ba130acbc294f1645f3e3d05ad264744b66c8',
+    },
+    terms: {
+        version: '2026-07-15',
+        hash: '6ed61c54c9b6c1c40ab053c597c83288b36bf07f0470627b67634db0e41d7398',
+    },
 } as const
 
 export type LegalDocumentSlug = keyof typeof LEGAL_DOCUMENT_VERSIONS

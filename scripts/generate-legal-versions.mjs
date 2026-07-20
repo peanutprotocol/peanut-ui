@@ -34,8 +34,14 @@ for (const slug of readdirSync(legalDir).sort()) {
     entries.push({ slug, version: match[1], hash })
 }
 
+// output must be byte-stable under prettier so predev never dirties the tree:
+// one field per line (printWidth 120), keys quoted only when not identifiers
+const key = (slug) => (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(slug) ? slug : `'${slug}'`)
 const body = entries
-    .map(({ slug, version, hash }) => `    '${slug}': { version: '${version}', hash: '${hash}' },`)
+    .map(
+        ({ slug, version, hash }) =>
+            `    ${key(slug)}: {\n        version: '${version}',\n        hash: '${hash}',\n    },`
+    )
     .join('\n')
 
 writeFileSync(
