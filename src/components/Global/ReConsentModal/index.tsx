@@ -30,12 +30,14 @@ const ReConsentModal = () => {
     const [checked, setChecked] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const hasChecked = useRef(false)
+    const lastCheckedUserId = useRef<string | null>(null)
 
     useEffect(() => {
-        // once per session, only for authenticated users
-        if (!user || hasChecked.current) return
-        hasChecked.current = true
+        // once per user per session — keyed by userId so a logout → login as a
+        // different account still gets its own check
+        const userId = user?.user.userId
+        if (!userId || lastCheckedUserId.current === userId) return
+        lastCheckedUserId.current = userId
         consentApi
             .getStatus()
             .then((status) => {
