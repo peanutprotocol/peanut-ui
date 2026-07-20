@@ -231,6 +231,10 @@ export const ANALYTICS_EVENTS = {
     CARD_LIMIT_CHANGE_OPENED: 'card_limit_change_opened',
     CARD_LIMIT_CHANGED: 'card_limit_changed',
     CARD_LIMIT_CHANGE_FAILED: 'card_limit_change_failed',
+    // Excess collateral returned to the smart wallet after a limit decrease
+    // (useReturnExcessCollateral). FAILED is non-fatal — limit change stuck.
+    CARD_LIMIT_EXCESS_RETURNED: 'card_limit_excess_returned',
+    CARD_LIMIT_EXCESS_RETURN_FAILED: 'card_limit_excess_return_failed',
     CARD_LOCK_OPENED: 'card_lock_opened',
     CARD_LOCKED: 'card_locked',
     CARD_UNLOCKED: 'card_unlocked',

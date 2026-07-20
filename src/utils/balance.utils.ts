@@ -121,6 +121,33 @@ export const computeDisplaySpendable = (
     computeAvailableSpendable(smartBalance, spendingPowerCents) + rainCentsToUsdcUnits(inTransitToCollateralCents)
 
 /**
+ * Minimum excess worth returning after a card-limit decrease, in Rain cents.
+ * Mirrors the auto-balancer's $1 REBALANCE_THRESHOLD (peanut-api-ts
+ * rebalance-decision.ts) so a cent-sized delta never costs the user a passkey
+ * tap — or Rain's per-user withdrawal-signature cooldown.
+ */
+export const EXCESS_COLLATERAL_MIN_CENTS = 100
+
+/**
+ * Collateral held above the card limit after a limit change, in whole Rain
+ * cents. This is the amount to return to the user's smart wallet so the
+ * card's backing matches the new limit. Returns 0 (nothing to return) for
+ * missing/invalid spending power, a limit increase, or a delta under
+ * EXCESS_COLLATERAL_MIN_CENTS — callers can branch on `> 0` alone.
+ */
+export const computeExcessCollateralCents = (
+    spendingPowerCents: number | null | undefined,
+    newLimitCents: number
+): number => {
+    if (spendingPowerCents == null || !Number.isFinite(spendingPowerCents) || spendingPowerCents <= 0) return 0
+    if (!Number.isFinite(newLimitCents) || newLimitCents < 0) return 0
+    // Floor the (possibly fractional) spending power so we never sign for more
+    // than the collateral can cover — sub-cent dust stays put.
+    const excess = Math.floor(spendingPowerCents) - Math.ceil(newLimitCents)
+    return excess >= EXCESS_COLLATERAL_MIN_CENTS ? excess : 0
+}
+
+/**
  * Convert a USDC base-unit amount (PEANUT_WALLET_TOKEN_DECIMALS, typically 6dp)
  * to cents (2dp), the unit Rain's `/signatures/withdrawals` API takes on its
  * INPUT side. Rounds up so a sub-cent shortfall still withdraws at least one

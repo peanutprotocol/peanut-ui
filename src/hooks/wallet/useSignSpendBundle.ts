@@ -13,10 +13,15 @@ import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useModalsContextOptional } from '@/context/ModalsContext'
 import { rainApi, type RainCollateralKind } from '@/services/rain'
-import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey } from './useGrantSessionKey'
 import { useSignUserOp, type SignedUserOpData } from './useSignUserOp'
-import { resolveSpendStrategy, runCollateralSpendPreflight, type SpendStrategy } from './spendPreflight'
+import {
+    InsufficientSpendableError,
+    resolveSpendStrategy,
+    runCollateralSpendPreflight,
+    type SpendStrategy,
+} from './spendPreflight'
 import { usdcUnitsToRainCents } from '@/utils/balance.utils'
 
 /**
@@ -68,6 +73,12 @@ export interface SignSpendBundleInput {
     /** User-semantic category of this spend (QR_PAY, FIAT_OFFRAMP, …).
      *  Persisted on the `TransactionIntent` the backend creates in /prepare. */
     kind: RainCollateralKind
+    /** Skip live-balance routing and force this strategy. For flows whose
+     *  PURPOSE is moving collateral itself (e.g. returning excess to the
+     *  wallet after a limit decrease) — routing would pick smart-only
+     *  whenever the smart account covers the amount, a self-transfer no-op.
+     *  Affordability is still enforced against `rainSpendingPower`. */
+    forceStrategy?: 'collateral-only'
     /** Fires once routing is picked, before any signing. */
     onStrategyDecided?: (strategy: Exclude<SpendStrategy, 'insufficient'>) => void
     /** Fires right before the one-time session-key grant prompt appears. */
@@ -101,7 +112,15 @@ export const useSignSpendBundle = () => {
 
     const signSpend = useCallback(
         async (input: SignSpendBundleInput): Promise<SignedSpendArtifact> => {
-            const { requiredUsdcAmount, recipient, rainSpendingPower, kind, onStrategyDecided, onGrantRequired } = input
+            const {
+                requiredUsdcAmount,
+                recipient,
+                rainSpendingPower,
+                kind,
+                forceStrategy,
+                onStrategyDecided,
+                onGrantRequired,
+            } = input
 
             const chainIdNum = PEANUT_WALLET_CHAIN.id
             const chainIdStr = chainIdNum.toString()
@@ -122,14 +141,27 @@ export const useSignSpendBundle = () => {
             // and reverts on-chain (incident #2230).
             // Manteca-style flows always have a single recipient and no
             // subsequent kernel calls — collateral-only is always eligible.
-            const { strategy, smartBalance } = await resolveSpendStrategy({
-                queryClient,
-                accountAddress: kernelAccount.address,
-                requiredUsdcAmount,
-                rainSpendingPower,
-                collateralOnlyAllowed: true,
-                flow: 'sign-only',
-            })
+            let strategy: Exclude<SpendStrategy, 'insufficient'>
+            let smartBalance = 0n
+            if (forceStrategy === 'collateral-only') {
+                // Forced path: the caller is deliberately draining collateral, so
+                // only the collateral bucket can fund it. Same insufficient
+                // handling as resolveSpendStrategy (refresh, fail closed).
+                if (rainSpendingPower < requiredUsdcAmount) {
+                    queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
+                    throw new InsufficientSpendableError()
+                }
+                strategy = 'collateral-only'
+            } else {
+                ;({ strategy, smartBalance } = await resolveSpendStrategy({
+                    queryClient,
+                    accountAddress: kernelAccount.address,
+                    requiredUsdcAmount,
+                    rainSpendingPower,
+                    collateralOnlyAllowed: true,
+                    flow: 'sign-only',
+                }))
+            }
 
             onStrategyDecided?.(strategy)
             posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, { strategy, kind, flow: 'sign-only' })
