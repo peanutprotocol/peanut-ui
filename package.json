@@ -1,6 +1,6 @@
 {
     "name": "peanut-ui",
-    "version": "1.0.8",
+    "version": "1.0.32",
     "private": true,
     "packageManager": "pnpm@10.30.1",
     "engines": {

@@ -11,7 +11,7 @@ on:
             channel:
                 description: 'Capgo channel to deploy to'
                 required: true
-                default: 'staging'
+                default: 'production'
                 type: choice
                 options:
                     - development
