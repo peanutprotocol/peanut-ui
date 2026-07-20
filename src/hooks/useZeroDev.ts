@@ -15,6 +15,7 @@ import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
 import { captureException } from '@sentry/nextjs'
 import { invitesApi } from '@/services/invites'
+import { signupConsentDocuments } from '@/services/consent'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
@@ -73,7 +74,10 @@ export const useZeroDev = () => {
                 passkeyName: _getPasskeyName(username),
                 passkeyServerUrl: PASSKEY_SERVER_URL as string,
                 mode: WebAuthnMode.Register,
-                passkeyServerHeaders: {},
+                // Consent-ledger echo (tos-v1 phase 2): the ZeroDev SDK owns the
+                // register/verify request body, so the terms+privacy versions the
+                // signup screen displayed ride in a header the backend ledgers.
+                passkeyServerHeaders: { 'x-accepted-legal': JSON.stringify(signupConsentDocuments()) },
                 rpID: rpId,
             })
 

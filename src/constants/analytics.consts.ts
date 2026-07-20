@@ -269,6 +269,7 @@ export const MODAL_TYPES = {
     CARD_PIONEER: 'card_pioneer',
     KYC_COMPLETED: 'kyc_completed',
     INVITE: 'invite',
+    RE_CONSENT: 're_consent',
 } as const
 
 /**
