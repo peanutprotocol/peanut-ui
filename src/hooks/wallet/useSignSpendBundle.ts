@@ -146,8 +146,14 @@ export const useSignSpendBundle = () => {
             if (forceStrategy === 'collateral-only') {
                 // Forced path: the caller is deliberately draining collateral, so
                 // only the collateral bucket can fund it. Same insufficient
-                // handling as resolveSpendStrategy (refresh, fail closed).
+                // handling as resolveSpendStrategy (funnel capture, refresh,
+                // fail closed).
                 if (rainSpendingPower < requiredUsdcAmount) {
+                    posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
+                        strategy: 'insufficient',
+                        error_kind: 'insufficient',
+                        flow: 'sign-only',
+                    })
                     queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
                     throw new InsufficientSpendableError()
                 }
