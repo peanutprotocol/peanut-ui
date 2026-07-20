@@ -38,9 +38,17 @@ const ReConsentModal = () => {
         const userId = user?.user.userId
         if (!userId || lastCheckedUserId.current === userId) return
         lastCheckedUserId.current = userId
+        // account switched: none of the previous user's consent state may leak
+        // into this session (an already-populated modal or a pre-ticked box)
+        setOutdatedDocs([])
+        setChecked(false)
+        setError(null)
         consentApi
             .getStatus()
             .then((status) => {
+                // a slow response for the previous account must not populate
+                // the modal for whoever is logged in now
+                if (lastCheckedUserId.current !== userId) return
                 if (!status.needsReConsent) return
                 // only prompt for documents this client can actually display
                 const docs = status.documents.filter((d) => d.needsAcceptance && d.slug in LEGAL_DOCUMENT_VERSIONS)
@@ -68,6 +76,9 @@ const ReConsentModal = () => {
                 documents: outdatedDocs.map((d) => d.slug),
             })
             setOutdatedDocs([])
+            // a future appearance of this modal (version bump, account switch)
+            // must start with an unticked box
+            setChecked(false)
         } catch (e) {
             console.error('[re-consent] failed to record acceptance', e)
             setError('Could not save your acceptance — please try again.')
