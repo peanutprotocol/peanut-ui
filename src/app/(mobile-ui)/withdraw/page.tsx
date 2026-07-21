@@ -10,8 +10,6 @@ import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { INSUFFICIENT_BALANCE_MESSAGE } from '@/utils/balance.utils'
 import { getCountryFromAccount, getCountryFromPath, getMinimumAmount } from '@/utils/bridge.utils'
-import { MIN_CRYPTO_WITHDRAW_USD, ETHEREUM_MIN_WITHDRAW_USD } from '@/utils/cross-chain-fee.utils'
-import InfoCard from '@/components/Global/InfoCard'
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { AccountType } from '@/interfaces'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -132,8 +130,8 @@ export default function WithdrawPage() {
         // no amount-step minimum for crypto: same-chain (Arbitrum) withdrawals
         // are direct transfers with no floor, matching send-via-link. Rhino's
         // per-network bridge minimums ($0.50, ETH $5, Tron $10) are enforced
-        // chain-aware at review time (see withdraw/crypto) — the destination
-        // isn't known yet here, so we only warn below.
+        // chain-aware at review time (see withdraw/crypto), once the
+        // destination is known.
         if (isCryptoWithdraw) return 0
         const localMin = getMinimumAmount(countryIso2)
         // for US or unknown, minimum is already in USD
@@ -390,18 +388,6 @@ export default function WithdrawPage() {
         // only show limits card for bank/manteca withdrawals, not crypto
         const showLimitsCard = !isCryptoWithdraw && (limitsValidation.isBlocking || limitsValidation.isWarning)
 
-        // crypto amounts under a bridge minimum get a non-blocking heads-up —
-        // the destination chain isn't chosen yet (same-chain Arbitrum has no
-        // minimum at all), so we warn here and hard-block at review time only
-        // for bridged routes. AmountInput is pinned to USD on this page
-        // (price: 1), so read the raw value.
-        const typedUsd = parseFloat(rawTokenAmount || '0')
-        const showBridgeMinNotice = isCryptoWithdraw && typedUsd > 0 && typedUsd < ETHEREUM_MIN_WITHDRAW_USD
-        const bridgeMinNoticeText =
-            typedUsd < MIN_CRYPTO_WITHDRAW_USD
-                ? `Bridging to another network needs at least $${MIN_CRYPTO_WITHDRAW_USD.toFixed(2)} — $${ETHEREUM_MIN_WITHDRAW_USD} for Ethereum mainnet. Withdrawals within Arbitrum have no minimum.`
-                : `Ethereum mainnet needs at least $${ETHEREUM_MIN_WITHDRAW_USD}. Most other networks work from $${MIN_CRYPTO_WITHDRAW_USD.toFixed(2)}.`
-
         return (
             <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
                 <NavHeader
@@ -450,21 +436,6 @@ export default function WithdrawPage() {
                             })
                             return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
                         })()}
-
-                    {/* heads-up for crypto amounts below a bridge minimum */}
-                    {showBridgeMinNotice && (
-                        <InfoCard
-                            variant="warning"
-                            icon="info-filled"
-                            iconClassName="text-yellow-9"
-                            title={
-                                typedUsd < MIN_CRYPTO_WITHDRAW_USD
-                                    ? 'Heads up: network minimums'
-                                    : 'Withdrawing to Ethereum?'
-                            }
-                            description={bridgeMinNoticeText}
-                        />
-                    )}
 
                     <Button
                         variant="purple"

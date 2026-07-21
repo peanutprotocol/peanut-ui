@@ -413,44 +413,6 @@ describe('GROUP 3: Amount Validation', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto')
     })
 
-    test('Crypto amount under $0.50 shows the bridge-minimums notice, non-blocking', () => {
-        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        mockWithdrawFlow.amountToWithdraw = '0.3'
-
-        renderWithdraw()
-
-        expect(screen.getByText(/Bridging to another network needs at least \$0\.50/)).toBeInTheDocument()
-        expect(screen.getByText('Continue')).not.toBeDisabled()
-    })
-
-    test('Crypto amount under $5 shows the Ethereum minimum notice, non-blocking', () => {
-        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        mockWithdrawFlow.amountToWithdraw = '2'
-
-        renderWithdraw()
-
-        expect(screen.getByText(/Ethereum mainnet needs at least \$5/)).toBeInTheDocument()
-        expect(screen.getByText('Continue')).not.toBeDisabled()
-    })
-
-    test('Crypto amount at $5+ shows no Ethereum notice', () => {
-        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        mockWithdrawFlow.amountToWithdraw = '5'
-
-        renderWithdraw()
-
-        expect(screen.queryByText(/Ethereum mainnet needs at least \$5/)).not.toBeInTheDocument()
-    })
-
-    test('Bank withdrawal shows no Ethereum notice', () => {
-        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
-        mockWithdrawFlow.amountToWithdraw = '2'
-
-        renderWithdraw()
-
-        expect(screen.queryByText(/Ethereum mainnet needs at least \$5/)).not.toBeInTheDocument()
-    })
-
     test('Bank withdrawal keeps the $1 minimum for sub-$1 amounts', async () => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
         mockWithdrawFlow.amountToWithdraw = '0.5'
