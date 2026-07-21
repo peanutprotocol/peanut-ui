@@ -11,6 +11,7 @@ import Cookies from 'js-cookie'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { PEANUT_API_KEY, PEANUT_API_URL } from '@/constants/general.consts'
+import { getStepUpToken, STEP_UP_HEADER } from './step-up'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import type { SignedRainWithdrawal } from '@/hooks/wallet/useSignSpendBundle'
 
@@ -322,6 +323,11 @@ interface RequestOpts {
     noStore?: boolean
     /** Override fetchWithSentry's default 10s timeout (e.g. UserOp submissions). */
     timeoutMs?: number
+    /**
+     * Prove a fresh WebAuthn assertion alongside the session. Prompts for Face
+     * ID unless a proof from the last few minutes is still good.
+     */
+    stepUp?: boolean
 }
 
 async function rainRequest<T>(opts: RequestOpts): Promise<T> {
@@ -334,6 +340,7 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
     }
     if (opts.body !== undefined) headers['Content-Type'] = 'application/json'
     if (opts.noStore) headers['Cache-Control'] = 'no-store'
+    if (opts.stepUp) headers[STEP_UP_HEADER] = await getStepUpToken()
 
     const response = await fetchWithSentry(
         `${PEANUT_API_URL}${opts.path}`,
@@ -430,6 +437,7 @@ export const rainApi = {
         await rainRequest<{ ok: boolean }>({
             method: 'POST',
             path: '/rain/cards/withdraw/session-approve',
+            stepUp: true,
             body: input,
         })
     },
@@ -443,6 +451,7 @@ export const rainApi = {
         return rainRequest<PrepareRainWithdrawalResponse>({
             method: 'POST',
             path: '/rain/cards/withdraw/prepare',
+            stepUp: true,
             body: input,
         })
     },
@@ -646,6 +655,7 @@ export const rainApi = {
         return rainRequest<RainCardDetailsResponse>({
             method: 'GET',
             path: `/rain/cards/${cardId}/details`,
+            stepUp: true,
             rateLimitSensitive: true,
             noStore: true,
         })
@@ -678,6 +688,7 @@ export const rainApi = {
         const { pin } = await rainRequest<{ pin: string | null }>({
             method: 'GET',
             path: `/rain/cards/${cardId}/pin`,
+            stepUp: true,
             rateLimitSensitive: true,
             noStore: true,
         })
@@ -689,6 +700,7 @@ export const rainApi = {
         await rainRequest<{ ok: boolean }>({
             method: 'PUT',
             path: `/rain/cards/${cardId}/pin`,
+            stepUp: true,
             body: { pin },
             noStore: true,
         })
