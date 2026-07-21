@@ -436,7 +436,7 @@ describe('GROUP 3: Amount Validation', () => {
 
         renderWithdraw()
 
-        expect(screen.getByText(/Ethereum mainnet withdrawals need at least \$5/)).toBeInTheDocument()
+        expect(screen.getByText(/Ethereum mainnet needs at least \$5/)).toBeInTheDocument()
         expect(screen.getByText('Continue')).not.toBeDisabled()
     })
 
@@ -446,7 +446,7 @@ describe('GROUP 3: Amount Validation', () => {
 
         renderWithdraw()
 
-        expect(screen.queryByText(/Ethereum mainnet withdrawals need at least \$5/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Ethereum mainnet needs at least \$5/)).not.toBeInTheDocument()
     })
 
     test('Bank withdrawal shows no Ethereum notice', () => {
@@ -455,7 +455,7 @@ describe('GROUP 3: Amount Validation', () => {
 
         renderWithdraw()
 
-        expect(screen.queryByText(/Ethereum mainnet withdrawals need at least \$5/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Ethereum mainnet needs at least \$5/)).not.toBeInTheDocument()
     })
 
     test('Bank withdrawal keeps the $1 minimum for sub-$1 amounts', async () => {

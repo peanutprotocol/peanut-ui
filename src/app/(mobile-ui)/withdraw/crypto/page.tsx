@@ -487,7 +487,8 @@ export default function WithdrawCryptoPage() {
 
     // Rhino accepts SDA deposits below the route minimum on-chain but never
     // bridges them — funds strand at the SDA, uncredited. Block the CTA before
-    // the user signs. Same-chain USDC transfers have no minimum.
+    // the user signs. Same-chain USDC transfers don't ride Rhino; they share
+    // the flat $0.50 floor enforced at the amount step and in handleSetupReview.
     const belowMinimumMessage = useMemo<string | null>(
         () =>
             isCrossChainWithdrawal && isBelowRhinoMinDeposit(payAmount, minDepositLimitUsd)

@@ -393,7 +393,10 @@ export default function WithdrawPage() {
         // crypto amounts that clear the $0.50 floor but not Ethereum's $5 get a
         // non-blocking heads-up — the destination chain isn't chosen yet, so we
         // warn here and hard-block at review time if Ethereum is picked.
-        const typedUsd = (selectedTokenData?.price ?? 1) * parseFloat(rawTokenAmount || '0')
+        // AmountInput is pinned to USD on this page (price: 1), so read the raw
+        // value — scaling by the app-wide token price would mis-warn on stale
+        // non-USD context.
+        const typedUsd = parseFloat(rawTokenAmount || '0')
         const showEthereumMinNotice =
             isCryptoWithdraw && typedUsd >= MIN_CRYPTO_WITHDRAW_USD && typedUsd < ETHEREUM_MIN_WITHDRAW_USD
 
@@ -453,7 +456,7 @@ export default function WithdrawPage() {
                             icon="info-filled"
                             iconClassName="text-yellow-9"
                             title="Withdrawing to Ethereum?"
-                            description={`Ethereum mainnet withdrawals need at least $${ETHEREUM_MIN_WITHDRAW_USD}. Your amount works on all other networks.`}
+                            description={`Ethereum mainnet needs at least $${ETHEREUM_MIN_WITHDRAW_USD}. Your amount works on all other networks.`}
                         />
                     )}
 
