@@ -17,7 +17,7 @@ import type {
     TRequestResponse,
 } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
-import { isWithdrawFeeDisproportionate } from '@/utils/cross-chain-fee.utils'
+import { isWithdrawFeeDisproportionate, getMinWithdrawUsdForChain } from '@/utils/cross-chain-fee.utils'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { isBelowRhinoMinDeposit } from '@/utils/withdraw.utils'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
@@ -168,6 +168,19 @@ export default function WithdrawCryptoPage() {
             if (!amountToWithdraw) {
                 console.error('Amount to withdraw is not set or not available from context')
                 setError('Withdrawal amount is missing.')
+                return
+            }
+
+            // Rhino parks (doesn't auto-refund) bridge deposits below the route
+            // minimum, so block sub-minimum withdrawals for the chosen network
+            // before any request/charge is created. amountToWithdraw is USD.
+            const usdToWithdraw = parseFloat(amountToWithdraw)
+            const minUsd = getMinWithdrawUsdForChain(data.chain.chainId)
+            if (!Number.isFinite(usdToWithdraw) || usdToWithdraw < minUsd) {
+                const minDisplay = minUsd % 1 === 0 ? `$${minUsd}` : `$${minUsd.toFixed(2)}`
+                setError(
+                    `Withdrawals to ${data.chain.networkName} need at least ${minDisplay}. Increase the amount or pick a different network.`
+                )
                 return
             }
 

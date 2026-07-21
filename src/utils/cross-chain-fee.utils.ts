@@ -27,3 +27,27 @@ export function isWithdrawFeeDisproportionate(
     if (!Number.isFinite(amountUsd) || amountUsd <= 0) return false
     return feeUsd / amountUsd > threshold
 }
+
+/**
+ * Rhino per-network withdrawal minimums.
+ *
+ * Rhino REJECTS a bridge deposit below the route minimum (`UNDER_MIN` webhook)
+ * and parks the funds at the deposit address — no auto-refund, recovery is a
+ * manual Rhino support action (2026-07-15 incident: $2.50 → Ethereum stuck).
+ * So sub-minimum withdrawals must be blocked before funds move. Minimums are
+ * USD, uniform across tokens on a chain, and driven by the expensive side of
+ * the route: $0.50 everywhere except Ethereum mainnet ($5) and Tron ($10).
+ * Verified against Rhino's getSupportedTokens API on 2026-07-21.
+ */
+export const MIN_CRYPTO_WITHDRAW_USD = 0.5
+export const ETHEREUM_MIN_WITHDRAW_USD = 5
+
+const CHAIN_MIN_WITHDRAW_USD: Record<string, number> = {
+    '1': ETHEREUM_MIN_WITHDRAW_USD, // Ethereum mainnet
+    '728126428': 10, // Tron
+}
+
+/** Minimum USD amount for a crypto withdrawal to the given destination chain. */
+export function getMinWithdrawUsdForChain(chainId: string | number): number {
+    return CHAIN_MIN_WITHDRAW_USD[String(chainId)] ?? MIN_CRYPTO_WITHDRAW_USD
+}

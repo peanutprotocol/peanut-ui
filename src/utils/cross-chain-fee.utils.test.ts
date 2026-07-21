@@ -1,4 +1,10 @@
-import { isWithdrawFeeDisproportionate, HIGH_WITHDRAW_FEE_RATIO } from './cross-chain-fee.utils'
+import {
+    isWithdrawFeeDisproportionate,
+    getMinWithdrawUsdForChain,
+    HIGH_WITHDRAW_FEE_RATIO,
+    MIN_CRYPTO_WITHDRAW_USD,
+    ETHEREUM_MIN_WITHDRAW_USD,
+} from './cross-chain-fee.utils'
 
 describe('isWithdrawFeeDisproportionate', () => {
     test('no heads-up for a tiny L2 fee on a normal amount', () => {
@@ -39,5 +45,24 @@ describe('isWithdrawFeeDisproportionate', () => {
 
     test('default threshold is 5%', () => {
         expect(HIGH_WITHDRAW_FEE_RATIO).toBe(0.05)
+    })
+})
+
+describe('getMinWithdrawUsdForChain', () => {
+    test('Ethereum mainnet needs $5, string or numeric chainId', () => {
+        expect(getMinWithdrawUsdForChain('1')).toBe(5)
+        expect(getMinWithdrawUsdForChain(1)).toBe(5)
+        expect(getMinWithdrawUsdForChain('1')).toBe(ETHEREUM_MIN_WITHDRAW_USD)
+    })
+
+    test('Tron needs $10', () => {
+        expect(getMinWithdrawUsdForChain('728126428')).toBe(10)
+    })
+
+    test('every other network floors at $0.50', () => {
+        expect(getMinWithdrawUsdForChain('42161')).toBe(0.5) // Arbitrum (same-chain)
+        expect(getMinWithdrawUsdForChain('8453')).toBe(0.5) // Base
+        expect(getMinWithdrawUsdForChain('10')).toBe(0.5) // Optimism — NOT Ethereum's '1'
+        expect(getMinWithdrawUsdForChain('unknown-chain')).toBe(MIN_CRYPTO_WITHDRAW_USD)
     })
 })

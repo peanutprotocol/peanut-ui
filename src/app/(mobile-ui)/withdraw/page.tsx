@@ -11,6 +11,8 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { INSUFFICIENT_BALANCE_MESSAGE } from '@/utils/balance.utils'
 import { getCountryFromAccount, getCountryFromPath, getMinimumAmount } from '@/utils/bridge.utils'
+import { MIN_CRYPTO_WITHDRAW_USD, ETHEREUM_MIN_WITHDRAW_USD } from '@/utils/cross-chain-fee.utils'
+import InfoCard from '@/components/Global/InfoCard'
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { AccountType } from '@/interfaces'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -129,7 +131,10 @@ export default function WithdrawPage() {
 
     // compute minimum withdrawal in USD using the exchange rate
     const minUsdAmount = useMemo(() => {
-        if (isCryptoWithdraw) return 0 // any amount > 0 is valid, same as send-via-link
+        // crypto rides the Rhino bridge, which parks (doesn't refund) deposits
+        // below the route minimum — $0.50 floors every network; Ethereum's $5
+        // is enforced chain-aware at review time (see withdraw/crypto).
+        if (isCryptoWithdraw) return MIN_CRYPTO_WITHDRAW_USD
         const localMin = getMinimumAmount(countryIso2)
         // for US or unknown, minimum is already in USD
         if (!countryIso2 || countryIso2 === 'US') return localMin
@@ -385,6 +390,13 @@ export default function WithdrawPage() {
         // only show limits card for bank/manteca withdrawals, not crypto
         const showLimitsCard = !isCryptoWithdraw && (limitsValidation.isBlocking || limitsValidation.isWarning)
 
+        // crypto amounts that clear the $0.50 floor but not Ethereum's $5 get a
+        // non-blocking heads-up — the destination chain isn't chosen yet, so we
+        // warn here and hard-block at review time if Ethereum is picked.
+        const typedUsd = (selectedTokenData?.price ?? 1) * parseFloat(rawTokenAmount || '0')
+        const showEthereumMinNotice =
+            isCryptoWithdraw && typedUsd >= MIN_CRYPTO_WITHDRAW_USD && typedUsd < ETHEREUM_MIN_WITHDRAW_USD
+
         return (
             <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
                 <NavHeader
@@ -433,6 +445,17 @@ export default function WithdrawPage() {
                             })
                             return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
                         })()}
+
+                    {/* heads-up for crypto amounts below Ethereum's bridge minimum */}
+                    {showEthereumMinNotice && (
+                        <InfoCard
+                            variant="warning"
+                            icon="info-filled"
+                            iconClassName="text-yellow-9"
+                            title="Withdrawing to Ethereum?"
+                            description={`Ethereum mainnet withdrawals need at least $${ETHEREUM_MIN_WITHDRAW_USD}. Your amount works on all other networks.`}
+                        />
+                    )}
 
                     <Button
                         variant="purple"

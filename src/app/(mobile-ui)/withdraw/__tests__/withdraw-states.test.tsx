@@ -395,10 +395,11 @@ describe('GROUP 3: Amount Validation', () => {
         expect(screen.getByTestId('limits-warning-card')).toBeInTheDocument()
     })
 
-    test('Crypto withdrawal allows sub-$1 amounts (no fiat-rail minimum)', () => {
+    test('Crypto withdrawal allows sub-$1 amounts down to the $0.50 bridge floor', () => {
         // Regression: the shared amount step applied the bank $1 minimum to
         // crypto (getMinimumAmount('') → 1), blocking sub-$1 on-chain sends
-        // that send-via-link already allows.
+        // that send-via-link already allows. Crypto's own floor is Rhino's
+        // $0.50 route minimum — $0.50 exactly must still pass.
         mockWithdrawFlow.selectedMethod = { type: 'crypto' }
         mockWithdrawFlow.amountToWithdraw = '0.5'
 
@@ -409,6 +410,52 @@ describe('GROUP 3: Amount Validation', () => {
 
         fireEvent.click(continueBtn)
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto')
+    })
+
+    test('Crypto withdrawal blocks below the $0.50 bridge floor', async () => {
+        // Rhino parks (doesn't refund) bridge deposits under the route minimum,
+        // so amounts under $0.50 never leave the amount step.
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        mockWithdrawFlow.amountToWithdraw = '0.4'
+
+        renderWithdraw()
+
+        expect(screen.getByText('Continue')).toBeDisabled()
+        // validation is debounced 300ms behind typing
+        await waitFor(() =>
+            expect(mockSetError).toHaveBeenCalledWith({
+                showError: true,
+                errorMessage: 'Minimum withdrawal is $0.50.',
+            })
+        )
+    })
+
+    test('Crypto amount under $5 shows the Ethereum minimum notice, non-blocking', () => {
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        mockWithdrawFlow.amountToWithdraw = '2'
+
+        renderWithdraw()
+
+        expect(screen.getByText(/Ethereum mainnet withdrawals need at least \$5/)).toBeInTheDocument()
+        expect(screen.getByText('Continue')).not.toBeDisabled()
+    })
+
+    test('Crypto amount at $5+ shows no Ethereum notice', () => {
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        mockWithdrawFlow.amountToWithdraw = '5'
+
+        renderWithdraw()
+
+        expect(screen.queryByText(/Ethereum mainnet withdrawals need at least \$5/)).not.toBeInTheDocument()
+    })
+
+    test('Bank withdrawal shows no Ethereum notice', () => {
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
+        mockWithdrawFlow.amountToWithdraw = '2'
+
+        renderWithdraw()
+
+        expect(screen.queryByText(/Ethereum mainnet withdrawals need at least \$5/)).not.toBeInTheDocument()
     })
 
     test('Bank withdrawal keeps the $1 minimum for sub-$1 amounts', async () => {
