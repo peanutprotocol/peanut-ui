@@ -1,13 +1,20 @@
 'use client'
 
 /**
- * Native app lock. Covers the app with a biometric gate on cold start and
- * whenever it returns from more than LOCK_AFTER_BACKGROUND_MS in the
- * background, so a session that outlives the user's attention doesn't hand the
- * account to whoever picks the phone up next.
+ * Native app lock. Wraps the app on cold start and whenever it returns from
+ * more than LOCK_AFTER_BACKGROUND_MS in the background, so a session that
+ * outlives the user's attention doesn't hand the account to whoever picks the
+ * phone up next.
+ *
+ * It is a gate, not an overlay: while locked, the protected tree is not
+ * rendered at all. Nothing paints behind the lock screen and nothing back
+ * there is focusable or reachable by assistive tech. The cost is that
+ * remounting on unlock loses in-flight component state — acceptable, since the
+ * lock only fires on cold start (no state yet) or after five minutes
+ * backgrounded (where iOS has often discarded the webview anyway).
  *
  * Web is unaffected — there is no OS-backed presence check to lean on there,
- * and the browser tab has no equivalent of "resumed from background".
+ * and a browser tab has no equivalent of "resumed from background".
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -17,38 +24,80 @@ import { isCapacitor } from '@/utils/capacitor'
 import { getUserPreferences } from '@/utils/general.utils'
 import { LOCK_AFTER_BACKGROUND_MS, requestLocalUserPresence } from '@/utils/app-lock'
 
-export function AppLockGate() {
-    const { user, logoutUser } = useAuth()
+/**
+ * `pending` is the state that makes this a boundary rather than a curtain: on
+ * native we enter it on the very first client paint, before the user query can
+ * resolve and render balances. Only once auth settles do we learn whether this
+ * becomes `locked` or, for a signed-out user or one with no usable credential,
+ * `open`.
+ */
+type GateState = 'open' | 'pending' | 'locked'
+
+function LockScreen({
+    failed,
+    unlocking,
+    onUnlock,
+    onLogout,
+}: {
+    failed: boolean
+    unlocking: boolean
+    onUnlock: () => void
+    onLogout: () => void
+}) {
+    return (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-6 bg-white px-6">
+            <div className="text-center">
+                <h1 className="text-2xl font-bold">Peanut is locked</h1>
+                <p className="mt-2 text-sm text-grey-1">
+                    {failed ? 'Could not confirm it is you. Try again to continue.' : 'Confirm it is you to continue.'}
+                </p>
+            </div>
+            <div className="flex w-full max-w-xs flex-col gap-3">
+                <Button variant="purple" shadowSize="4" loading={unlocking} onClick={onUnlock}>
+                    Unlock
+                </Button>
+                <Button variant="stroke" shadowSize="4" onClick={onLogout}>
+                    Log out
+                </Button>
+            </div>
+        </div>
+    )
+}
+
+export function AppLockGate({ children }: { children: React.ReactNode }) {
+    const { user, isFetchingUser, logoutUser } = useAuth()
     const userId = user?.user.userId
-    const [locked, setLocked] = useState(false)
+    const [state, setState] = useState<GateState>('open')
     const [unlocking, setUnlocking] = useState(false)
     const [failed, setFailed] = useState(false)
     const backgroundedAt = useRef<number | null>(null)
-    // Cold-start lock must fire once per launch, not on every login state change.
-    const coldStartHandled = useRef(false)
 
     const credentialId = userId ? getUserPreferences(userId)?.webAuthnKey?.authenticatorId : undefined
+
+    // Close the gate on the first client paint, before anything protected can
+    // render. Runs once — later transitions are driven by resume or unlock.
+    useEffect(() => {
+        if (isCapacitor()) setState('pending')
+    }, [])
+
+    useEffect(() => {
+        if (state !== 'pending' || isFetchingUser) return
+        // Nothing to protect, or no credential we could ever prompt against —
+        // a gate we can't open would strand the user in their own app.
+        setState(userId && credentialId ? 'locked' : 'open')
+    }, [state, isFetchingUser, userId, credentialId])
 
     const attemptUnlock = useCallback(async () => {
         setUnlocking(true)
         const outcome = await requestLocalUserPresence(credentialId)
         setUnlocking(false)
-        // 'unsupported' means we can never raise this lock — never leave the
-        // user staring at a gate with no key.
         if (outcome === 'unlocked' || outcome === 'unsupported') {
-            setLocked(false)
             setFailed(false)
+            setState('open')
             return
         }
         setFailed(true)
     }, [credentialId])
-
-    useEffect(() => {
-        if (!isCapacitor() || !userId || coldStartHandled.current) return
-        coldStartHandled.current = true
-        if (!credentialId) return
-        setLocked(true)
-    }, [userId, credentialId])
 
     useEffect(() => {
         if (!isCapacitor() || !userId || !credentialId) return
@@ -66,8 +115,8 @@ export function AppLockGate() {
                     const since = backgroundedAt.current
                     backgroundedAt.current = null
                     if (since !== null && Date.now() - since > LOCK_AFTER_BACKGROUND_MS) {
-                        setLocked(true)
                         setFailed(false)
+                        setState('locked')
                     }
                 })
             )
@@ -80,7 +129,7 @@ export function AppLockGate() {
             })
             .catch(() => {
                 // No @capacitor/app bridge (web bundle, or an old native shell):
-                // resume-locking is simply unavailable. Cold-start lock still works.
+                // resume-locking is unavailable. Cold-start locking still works.
             })
 
         return () => {
@@ -89,33 +138,28 @@ export function AppLockGate() {
         }
     }, [userId, credentialId])
 
-    // Auto-prompt as soon as the gate goes up, so the common case is one Face ID
+    // Prompt as soon as the gate closes, so the common case is one Face ID
     // prompt and no taps at all.
     useEffect(() => {
-        if (locked && !unlocking && !failed) void attemptUnlock()
-        // attemptUnlock is stable for a given credential; re-running on every
-        // render would re-prompt in a loop.
+        if (state === 'locked' && !unlocking && !failed) void attemptUnlock()
+        // Deliberately keyed on `state` alone: including attemptUnlock or the
+        // transient flags would re-fire the prompt in a loop.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [locked])
+    }, [state])
 
-    if (!locked) return null
+    if (state === 'open') return <>{children}</>
+
+    // 'pending': auth hasn't settled, so we don't yet know whether to prompt.
+    // Show the bare cover rather than the "locked" copy, which would be a lie
+    // for a signed-out user about to be let straight through.
+    if (state === 'pending') return <div className="fixed inset-0 z-[9999] bg-white" />
 
     return (
-        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-6 bg-white px-6">
-            <div className="text-center">
-                <h1 className="text-2xl font-bold">Peanut is locked</h1>
-                <p className="mt-2 text-sm text-grey-1">
-                    {failed ? 'Could not confirm it is you. Try again to continue.' : 'Confirm it is you to continue.'}
-                </p>
-            </div>
-            <div className="flex w-full max-w-xs flex-col gap-3">
-                <Button variant="purple" shadowSize="4" loading={unlocking} onClick={() => void attemptUnlock()}>
-                    Unlock
-                </Button>
-                <Button variant="stroke" shadowSize="4" onClick={() => void logoutUser()}>
-                    Log out
-                </Button>
-            </div>
-        </div>
+        <LockScreen
+            failed={failed}
+            unlocking={unlocking}
+            onUnlock={() => void attemptUnlock()}
+            onLogout={() => void logoutUser()}
+        />
     )
 }

@@ -6,6 +6,7 @@
 import { webcrypto } from 'node:crypto'
 
 import { requestLocalUserPresence } from '../app-lock'
+import { base64URLToBytes } from '../native-webauthn'
 
 if (!globalThis.crypto?.getRandomValues) {
     Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true })
@@ -60,6 +61,12 @@ describe('requestLocalUserPresence', () => {
         await requestLocalUserPresence(CREDENTIAL_ID)
         expect(received?.userVerification).toBe('required')
         expect(received?.allowCredentials).toHaveLength(1)
-        expect(new Uint8Array(received!.challenge as ArrayBufferView['buffer'])).not.toHaveLength(0)
+        // Assert the actual bytes, not just the count: a descriptor for the
+        // WRONG credential would satisfy a length check while letting some
+        // other passkey on the device open the lock.
+        expect(Array.from(new Uint8Array(received!.allowCredentials![0].id as ArrayBuffer))).toEqual(
+            Array.from(base64URLToBytes(CREDENTIAL_ID))
+        )
+        expect(new Uint8Array(received!.challenge as ArrayBuffer)).not.toHaveLength(0)
     })
 })

@@ -56,15 +56,14 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                             {/* Non-intrusive "badge unlocked" toast on /home (TASK-19791).
                                 Global so it surfaces wherever the user lands after earning. */}
                             <BadgeEarnToast />
-                            {/* Biometric gate for the native app on cold start and
-                                long background. Renders nothing on web. */}
-                            <AppLockGate />
                             {HarnessBootstrap && (
                                 <Suspense fallback={null}>
                                     <HarnessBootstrap />
                                 </Suspense>
                             )}
-                            {children}
+                            {/* Wraps rather than sits beside the page: while the
+                                native app is locked, nothing protected renders. */}
+                            <AppLockGate>{children}</AppLockGate>
                         </TranslationSafeWrapper>
                     </FooterVisibilityProvider>
                 </ContextProvider>
