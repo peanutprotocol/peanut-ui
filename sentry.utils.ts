@@ -42,6 +42,9 @@ const IGNORED_ERRORS = {
     // failure is already captured at the fetch site with full context, so the
     // re-thrown ServiceUnavailableError bubbling to global handlers (or being
     // console.error'd by a consumer) would only double-count it (PEANUT-UI-QDJ).
+    // Substring-matching this pattern is safe only because ServiceUnavailableError
+    // is our own internal fetchWithSentry wrapper name, not a generic string that
+    // could appear in an unrelated third-party error message.
     alreadyReported: ['ServiceUnavailableError'],
 
     // Third-party SDK internal errors (not actionable)
