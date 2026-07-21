@@ -382,6 +382,16 @@ export function getKycModalVariant(
 }
 
 /**
+ * Resolve the InitiateKycModal variant for a gate. Adds the UK-resident
+ * 'region-unavailable' case (TASK-20729) on top of the base kind->variant map,
+ * so the three add/withdraw entry points don't each re-implement the check.
+ */
+export function resolveKycModalVariant(gate: GateState): ReturnType<typeof getKycModalVariant> | 'region-unavailable' {
+    if ('reason' in gate && gate.reason?.code === 'uk_resident_blocked') return 'region-unavailable'
+    return getKycModalVariant(gate.kind)
+}
+
+/**
  * Extract the user-facing message from a gate state (was
  * `getGateProviderMessage` — but the message has never been provider-named, it's
  * `reason.userMessage` from the BE which is already user-friendly + provider-blind).

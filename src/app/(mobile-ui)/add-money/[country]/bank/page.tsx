@@ -11,7 +11,7 @@ import { formatAmount } from '@/utils/general.utils'
 import { countryData } from '@/components/AddMoney/consts'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
+import { resolveKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCreateOnramp, GENERIC_ONRAMP_ERROR } from '@/hooks/useCreateOnramp'
 import { useParams, useSearchParams } from 'next/navigation'
@@ -502,11 +502,7 @@ export default function OnrampBankPage() {
                     }}
                     isLoading={sumsubFlow.isLoading}
                     error={sumsubFlow.error}
-                    variant={
-                        'reason' in gate && gate.reason?.code === 'uk_resident_blocked'
-                            ? 'region-unavailable'
-                            : getKycModalVariant(gate.kind)
-                    }
+                    variant={resolveKycModalVariant(gate)}
                     providerMessage={getGateUserMessage(gate)}
                     regionName={selectedCountry?.title}
                 />
