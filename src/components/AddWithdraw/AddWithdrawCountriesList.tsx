@@ -373,7 +373,11 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 }}
                 isLoading={sumsubFlow.isLoading}
                 error={sumsubFlow.error}
-                variant={getKycModalVariant(gate.kind)}
+                variant={
+                    'reason' in gate && gate.reason?.code === 'uk_resident_blocked'
+                        ? 'region-unavailable'
+                        : getKycModalVariant(gate.kind)
+                }
                 providerMessage={getGateUserMessage(gate)}
                 regionName={currentCountry?.title}
             />

@@ -1,3 +1,6 @@
+'use client'
+
+import { useRouter } from 'next/navigation'
 import ActionModal from '@/components/Global/ActionModal'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
@@ -39,10 +42,11 @@ export const InitiateKycModal = ({
     const isRestartIdentity = variant === 'restart_identity'
     const isCrossRegion = variant === 'cross_region'
     const isRegionUnavailable = variant === 'region-unavailable'
+    const router = useRouter()
 
     const getTitle = () => {
         if (error) return 'Something went wrong'
-        if (isRegionUnavailable) return 'Not available in the UK'
+        if (isRegionUnavailable) return 'Not available for UK residents'
         if (isBlocked) return 'We couldn’t unlock this'
         if (isRestartIdentity) return 'Verify with a different document'
         if (isProviderRejection) return 'We need extra documents'
@@ -53,10 +57,7 @@ export const InitiateKycModal = ({
     const getDescription = () => {
         if (error) return `${error} Please contact support for assistance.`
         if (isRegionUnavailable)
-            return (
-                providerMessage ||
-                "Bank transfers and the Peanut Card aren't available for UK residents due to regulatory restrictions. You can still use Peanut for crypto."
-            )
+            return "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime."
         if (isBlocked) return providerMessage || "We couldn't confirm your ID. Please contact support for assistance."
         if (isRestartIdentity)
             return (
@@ -79,7 +80,13 @@ export const InitiateKycModal = ({
             }
         }
         if (isRegionUnavailable) {
-            return { text: 'Got it', onClick: onClose }
+            return {
+                text: 'Withdraw funds',
+                onClick: () => {
+                    onClose()
+                    router.push('/withdraw')
+                },
+            }
         }
         if (isRestartIdentity) {
             return {
