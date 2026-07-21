@@ -10,6 +10,7 @@ import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
 import RainCooldownIntroModal from '@/components/Global/RainCooldown/IntroModal'
 import StaleCardApprovalReEnableModal from '@/components/Global/StaleCardApproval/ReEnableModal'
 import BadgeEarnToast from '@/components/Badges/BadgeEarnToast'
+import { AppLockGate } from '@/components/Global/AppLock'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
 import { PeanutProvider } from '@/config/peanut.config'
@@ -55,6 +56,9 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                             {/* Non-intrusive "badge unlocked" toast on /home (TASK-19791).
                                 Global so it surfaces wherever the user lands after earning. */}
                             <BadgeEarnToast />
+                            {/* Biometric gate for the native app on cold start and
+                                long background. Renders nothing on web. */}
+                            <AppLockGate />
                             {HarnessBootstrap && (
                                 <Suspense fallback={null}>
                                     <HarnessBootstrap />
