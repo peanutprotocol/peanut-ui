@@ -102,6 +102,19 @@ describe('CardPaymentRows — settlement adjustment breakdown', () => {
         expect(screen.getByTestId('more-info')).toHaveTextContent('If you don’t recognize this, contact the merchant.')
     })
 
+    test('stuck-true flag with equal amounts → "matched" copy, no false difference claim', () => {
+        render(
+            <CardPaymentRows
+                transaction={makeTransaction({ settlementAdjusted: true, authAmount: '4591', settledAmount: '4591' })}
+                isLastRow={false}
+            />
+        )
+        expect(screen.queryByText('Adjustment')).not.toBeInTheDocument()
+        expect(screen.getByTestId('more-info')).toHaveTextContent(
+            'The merchant’s final charge matched the amount authorized at payment.'
+        )
+    })
+
     test('non-adjusted settle renders neither row', () => {
         render(
             <CardPaymentRows

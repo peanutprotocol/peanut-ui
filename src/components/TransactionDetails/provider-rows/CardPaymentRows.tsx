@@ -31,8 +31,13 @@ function parseCents(value: string | null | undefined): number | null {
  *  charge moved vs the auth, and what to do if it looks wrong. Falls back to
  *  a delta-less sentence when the settled amount is missing (legacy rows). */
 function adjustmentInfoText(authCents: number, settledCents: number | null): string {
-    if (settledCents == null || settledCents === authCents) {
+    if (settledCents == null) {
         return 'The merchant’s final charge differed from the amount authorized at payment. If you don’t recognize this, contact the merchant.'
+    }
+    // Stuck-true settlementAdjusted with equal amounts (a later re-settle back
+    // to the auth) — don't claim a difference that isn't displayed.
+    if (settledCents === authCents) {
+        return 'The merchant’s final charge matched the amount authorized at payment.'
     }
     const deltaUsd = `$${(Math.abs(settledCents - authCents) / 100).toFixed(2)}`
     const direction = settledCents > authCents ? 'higher' : 'lower'
