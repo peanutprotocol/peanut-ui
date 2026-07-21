@@ -7,18 +7,24 @@ const redirectsConfig = require('./redirects.json')
 
 /**
  * Sentry's CSP-report ingest endpoint, derived from the browser DSN
- * (`https://<publicKey>@<host>/<projectId>`). Returns null when the DSN is
- * absent or malformed, in which case the policy still ships — it just has
- * nowhere to report, which is better than emitting a broken `report-uri`.
+ * (`<protocol>://<publicKey>@<host><path>/<projectId>`). Returns null when the
+ * DSN is absent or malformed, in which case the policy still ships — it just
+ * has nowhere to report, which is better than emitting a broken `report-uri`.
+ *
+ * Protocol and any path prefix are preserved: self-hosted Sentry is commonly
+ * mounted under a sub-path, and flattening one would silently post reports to
+ * an endpoint that doesn't exist.
  */
 function sentryCspReportUri() {
     const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN
     if (!dsn) return null
     try {
-        const { host, username, pathname } = new URL(dsn)
-        const projectId = pathname.replace(/^\//, '')
+        const { protocol, host, username, pathname } = new URL(dsn)
+        const segments = pathname.split('/').filter(Boolean)
+        const projectId = segments.pop()
         if (!host || !username || !projectId) return null
-        return `https://${host}/api/${projectId}/security/?sentry_key=${username}`
+        const prefix = segments.length ? `/${segments.join('/')}` : ''
+        return `${protocol}//${host}${prefix}/api/${projectId}/security/?sentry_key=${username}`
     } catch {
         return null
     }
