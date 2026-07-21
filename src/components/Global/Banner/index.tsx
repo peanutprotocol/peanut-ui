@@ -20,6 +20,11 @@ export function Banner() {
     const connectivity = useConnectivity()
     if (!pathname) return null
 
+    // Demo mode is the app-store review sandbox: synthetic data, no real
+    // backend — none of the banners (beta feedback, connectivity, maintenance)
+    // apply there.
+    if (isDemoMode()) return null
+
     // Connectivity wins over the beta/maintenance banners: if the app can't reach
     // the backend, that's the most actionable thing to tell the user right now.
     if (connectivity.show) {
@@ -59,18 +64,6 @@ function FeedbackBanner() {
 
     const handleClick = () => {
         setIsSupportModalOpen(true)
-    }
-
-    // Demo mode: this isn't a real account, so swap the feedback ask for a clear
-    // "you're in a demo" notice (non-interactive — no support modal).
-    if (isDemoMode()) {
-        return (
-            <div className="w-full">
-                <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
-                    <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">{t('demoBanner')}</span>
-                </MarqueeWrapper>
-            </div>
-        )
     }
 
     const mode = !IS_PRODUCTION ? getRunMode() : null
