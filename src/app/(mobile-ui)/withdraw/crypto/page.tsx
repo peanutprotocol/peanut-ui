@@ -171,17 +171,24 @@ export default function WithdrawCryptoPage() {
                 return
             }
 
-            // Rhino parks (doesn't auto-refund) bridge deposits below the route
-            // minimum, so block sub-minimum withdrawals for the chosen network
-            // before any request/charge is created. amountToWithdraw is USD.
-            const usdToWithdraw = parseFloat(amountToWithdraw)
-            const minUsd = getMinWithdrawUsdForChain(data.chain.chainId)
-            if (!Number.isFinite(usdToWithdraw) || usdToWithdraw < minUsd) {
-                const minDisplay = minUsd % 1 === 0 ? `$${minUsd}` : `$${minUsd.toFixed(2)}`
-                setError(
-                    `Withdrawals to ${data.chain.networkName} need at least ${minDisplay}. Increase the amount or pick a different network.`
-                )
-                return
+            // Same-chain USDC is a direct transfer — no Rhino, no minimum
+            // (parity with send-via-link). Every other destination/token rides
+            // Rhino, which parks (doesn't auto-refund) deposits below the route
+            // minimum — block those before any request/charge is created.
+            // amountToWithdraw is USD.
+            const isSameChainUsdc =
+                data.chain.chainId.toString() === PEANUT_WALLET_CHAIN.id.toString() &&
+                data.token.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
+            if (!isSameChainUsdc) {
+                const usdToWithdraw = parseFloat(amountToWithdraw)
+                const minUsd = getMinWithdrawUsdForChain(data.chain.chainId)
+                if (!Number.isFinite(usdToWithdraw) || usdToWithdraw < minUsd) {
+                    const minDisplay = minUsd % 1 === 0 ? `$${minUsd}` : `$${minUsd.toFixed(2)}`
+                    setError(
+                        `Withdrawals to ${data.chain.networkName} need at least ${minDisplay}. Increase the amount or pick a different network.`
+                    )
+                    return
+                }
             }
 
             clearErrors()
@@ -487,8 +494,7 @@ export default function WithdrawCryptoPage() {
 
     // Rhino accepts SDA deposits below the route minimum on-chain but never
     // bridges them — funds strand at the SDA, uncredited. Block the CTA before
-    // the user signs. Same-chain USDC transfers don't ride Rhino; they share
-    // the flat $0.50 floor enforced at the amount step and in handleSetupReview.
+    // the user signs. Same-chain USDC transfers have no minimum.
     const belowMinimumMessage = useMemo<string | null>(
         () =>
             isCrossChainWithdrawal && isBelowRhinoMinDeposit(payAmount, minDepositLimitUsd)

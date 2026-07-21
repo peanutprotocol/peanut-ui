@@ -395,13 +395,14 @@ describe('GROUP 3: Amount Validation', () => {
         expect(screen.getByTestId('limits-warning-card')).toBeInTheDocument()
     })
 
-    test('Crypto withdrawal allows sub-$1 amounts down to the $0.50 bridge floor', () => {
+    test('Crypto withdrawal has no amount-step minimum (parity with send-via-link)', () => {
         // Regression: the shared amount step applied the bank $1 minimum to
         // crypto (getMinimumAmount('') → 1), blocking sub-$1 on-chain sends
-        // that send-via-link already allows. Crypto's own floor is Rhino's
-        // $0.50 route minimum — $0.50 exactly must still pass.
+        // that send-via-link already allows. Same-chain Arbitrum withdrawals
+        // have no minimum at all; Rhino's per-network bridge minimums are
+        // enforced at review time, once the destination is known.
         mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        mockWithdrawFlow.amountToWithdraw = '0.5'
+        mockWithdrawFlow.amountToWithdraw = '0.4'
 
         renderWithdraw()
 
@@ -412,22 +413,14 @@ describe('GROUP 3: Amount Validation', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto')
     })
 
-    test('Crypto withdrawal blocks below the $0.50 bridge floor', async () => {
-        // Rhino parks (doesn't refund) bridge deposits under the route minimum,
-        // so amounts under $0.50 never leave the amount step.
+    test('Crypto amount under $0.50 shows the bridge-minimums notice, non-blocking', () => {
         mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        mockWithdrawFlow.amountToWithdraw = '0.4'
+        mockWithdrawFlow.amountToWithdraw = '0.3'
 
         renderWithdraw()
 
-        expect(screen.getByText('Continue')).toBeDisabled()
-        // validation is debounced 300ms behind typing
-        await waitFor(() =>
-            expect(mockSetError).toHaveBeenCalledWith({
-                showError: true,
-                errorMessage: 'Minimum withdrawal is $0.50.',
-            })
-        )
+        expect(screen.getByText(/Bridging to another network needs at least \$0\.50/)).toBeInTheDocument()
+        expect(screen.getByText('Continue')).not.toBeDisabled()
     })
 
     test('Crypto amount under $5 shows the Ethereum minimum notice, non-blocking', () => {

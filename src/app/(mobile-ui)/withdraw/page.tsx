@@ -129,10 +129,12 @@ export default function WithdrawPage() {
 
     // compute minimum withdrawal in USD using the exchange rate
     const minUsdAmount = useMemo(() => {
-        // crypto rides the Rhino bridge, which parks (doesn't refund) deposits
-        // below the route minimum — $0.50 floors every network; Ethereum's $5
-        // is enforced chain-aware at review time (see withdraw/crypto).
-        if (isCryptoWithdraw) return MIN_CRYPTO_WITHDRAW_USD
+        // no amount-step minimum for crypto: same-chain (Arbitrum) withdrawals
+        // are direct transfers with no floor, matching send-via-link. Rhino's
+        // per-network bridge minimums ($0.50, ETH $5, Tron $10) are enforced
+        // chain-aware at review time (see withdraw/crypto) — the destination
+        // isn't known yet here, so we only warn below.
+        if (isCryptoWithdraw) return 0
         const localMin = getMinimumAmount(countryIso2)
         // for US or unknown, minimum is already in USD
         if (!countryIso2 || countryIso2 === 'US') return localMin
@@ -388,15 +390,17 @@ export default function WithdrawPage() {
         // only show limits card for bank/manteca withdrawals, not crypto
         const showLimitsCard = !isCryptoWithdraw && (limitsValidation.isBlocking || limitsValidation.isWarning)
 
-        // crypto amounts that clear the $0.50 floor but not Ethereum's $5 get a
-        // non-blocking heads-up — the destination chain isn't chosen yet, so we
-        // warn here and hard-block at review time if Ethereum is picked.
-        // AmountInput is pinned to USD on this page (price: 1), so read the raw
-        // value — scaling by the app-wide token price would mis-warn on stale
-        // non-USD context.
+        // crypto amounts under a bridge minimum get a non-blocking heads-up —
+        // the destination chain isn't chosen yet (same-chain Arbitrum has no
+        // minimum at all), so we warn here and hard-block at review time only
+        // for bridged routes. AmountInput is pinned to USD on this page
+        // (price: 1), so read the raw value.
         const typedUsd = parseFloat(rawTokenAmount || '0')
-        const showEthereumMinNotice =
-            isCryptoWithdraw && typedUsd >= MIN_CRYPTO_WITHDRAW_USD && typedUsd < ETHEREUM_MIN_WITHDRAW_USD
+        const showBridgeMinNotice = isCryptoWithdraw && typedUsd > 0 && typedUsd < ETHEREUM_MIN_WITHDRAW_USD
+        const bridgeMinNoticeText =
+            typedUsd < MIN_CRYPTO_WITHDRAW_USD
+                ? `Bridging to another network needs at least $${MIN_CRYPTO_WITHDRAW_USD.toFixed(2)} — $${ETHEREUM_MIN_WITHDRAW_USD} for Ethereum mainnet. Withdrawals within Arbitrum have no minimum.`
+                : `Ethereum mainnet needs at least $${ETHEREUM_MIN_WITHDRAW_USD}. Most other networks work from $${MIN_CRYPTO_WITHDRAW_USD.toFixed(2)}.`
 
         return (
             <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
@@ -447,14 +451,18 @@ export default function WithdrawPage() {
                             return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
                         })()}
 
-                    {/* heads-up for crypto amounts below Ethereum's bridge minimum */}
-                    {showEthereumMinNotice && (
+                    {/* heads-up for crypto amounts below a bridge minimum */}
+                    {showBridgeMinNotice && (
                         <InfoCard
                             variant="warning"
                             icon="info-filled"
                             iconClassName="text-yellow-9"
-                            title="Withdrawing to Ethereum?"
-                            description={`Ethereum mainnet needs at least $${ETHEREUM_MIN_WITHDRAW_USD}. Most other networks work from $${MIN_CRYPTO_WITHDRAW_USD.toFixed(2)}.`}
+                            title={
+                                typedUsd < MIN_CRYPTO_WITHDRAW_USD
+                                    ? 'Heads up: network minimums'
+                                    : 'Withdrawing to Ethereum?'
+                            }
+                            description={bridgeMinNoticeText}
                         />
                     )}
 

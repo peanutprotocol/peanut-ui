@@ -37,6 +37,8 @@ export function isWithdrawFeeDisproportionate(
  * So sub-minimum withdrawals must be blocked before funds move. Minimums are
  * USD, uniform across tokens on a chain, and driven by the expensive side of
  * the route: $0.50 everywhere except Ethereum mainnet ($5) and Tron ($10).
+ * They apply to RHINO-ROUTED withdrawals only — same-chain (Arbitrum) USDC is
+ * a direct transfer with no minimum; callers exempt it before consulting this.
  * Verified against Rhino's getSupportedTokens API on 2026-07-21.
  */
 export const MIN_CRYPTO_WITHDRAW_USD = 0.5
