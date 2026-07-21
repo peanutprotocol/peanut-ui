@@ -27,6 +27,18 @@ function parseCents(value: string | null | undefined): number | null {
     return Number.isFinite(n) ? n : null
 }
 
+/** Tooltip for the Authorized row's info icon — says by how much the final
+ *  charge moved vs the auth, and what to do if it looks wrong. Falls back to
+ *  a delta-less sentence when the settled amount is missing (legacy rows). */
+function adjustmentInfoText(authCents: number, settledCents: number | null): string {
+    if (settledCents == null || settledCents === authCents) {
+        return 'The merchant’s final charge differed from the amount authorized at payment. If you don’t recognize this, contact the merchant.'
+    }
+    const deltaUsd = `$${(Math.abs(settledCents - authCents) / 100).toFixed(2)}`
+    const direction = settledCents > authCents ? 'higher' : 'lower'
+    return `The merchant’s final charge was ${deltaUsd} ${direction} than the amount authorized at payment. If you don’t recognize this, contact the merchant.`
+}
+
 /**
  * Friendly copy for the dispute status row. The drawer shows ONE row labeled
  * "Dispute" with the status-mapped text. Keep terminal-state copy actionable:
@@ -121,7 +133,7 @@ export function CardPaymentRows({
 
     // Compose the visible sub-rows in order, then mark the final one as
     // border-suppressed if this whole slot is also the receipt's last.
-    const subRows: { label: string; value: ReactNode; key: string }[] = []
+    const subRows: { label: string; value: ReactNode; key: string; moreInfoText?: string }[] = []
 
     // Merchant category was dropped — the MCC label adds noise without
     // signal for non-finance users ("Eating Places, Restaurants" tells them
@@ -150,15 +162,27 @@ export function CardPaymentRows({
     }
 
     // Spec §4.6 — settled amount differs from the original auth (overcapture,
-    // tip, partial capture). Show the original auth amount as a hint.
+    // tip, partial capture). Break out authorized vs adjustment so the delta
+    // is explicit. Cause stays unlabeled — Rain doesn't say whether it was a
+    // tip, FX true-up, or incidentals.
     if (card.settlementAdjusted) {
         const authCents = parseCents(card.authAmount)
+        const settledCents = parseCents(card.settledAmount)
         if (authCents != null) {
             subRows.push({
-                key: 'adjustedFrom',
-                label: 'Original amount',
+                key: 'authorizedAmount',
+                label: 'Authorized',
                 value: `$${(authCents / 100).toFixed(2)}`,
+                moreInfoText: adjustmentInfoText(authCents, settledCents),
             })
+            if (settledCents != null && settledCents !== authCents) {
+                const deltaCents = settledCents - authCents
+                subRows.push({
+                    key: 'settlementAdjustment',
+                    label: 'Adjustment',
+                    value: `${deltaCents > 0 ? '+' : '-'}$${(Math.abs(deltaCents) / 100).toFixed(2)}`,
+                })
+            }
         }
     }
 
@@ -266,6 +290,7 @@ export function CardPaymentRows({
                     key={row.key}
                     label={row.label}
                     value={row.value}
+                    moreInfoText={row.moreInfoText}
                     hideBottomBorder={isLastRow && idx === subRows.length - 1}
                 />
             ))}
