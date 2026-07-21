@@ -55,7 +55,9 @@ describe('getMinWithdrawUsdForChain', () => {
         expect(getMinWithdrawUsdForChain('1')).toBe(ETHEREUM_MIN_WITHDRAW_USD)
     })
 
-    test('Tron needs $10', () => {
+    test('Tron needs $10 — both the picker slug and the numeric id', () => {
+        // the withdraw picker supplies 'tron' (NON_EVM_WITHDRAW_CHAINS slug)
+        expect(getMinWithdrawUsdForChain('tron')).toBe(10)
         expect(getMinWithdrawUsdForChain('728126428')).toBe(10)
     })
 

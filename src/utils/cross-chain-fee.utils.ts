@@ -44,7 +44,11 @@ export const ETHEREUM_MIN_WITHDRAW_USD = 5
 
 const CHAIN_MIN_WITHDRAW_USD: Record<string, number> = {
     '1': ETHEREUM_MIN_WITHDRAW_USD, // Ethereum mainnet
-    '728126428': 10, // Tron
+    // Tron: the withdraw picker's NON_EVM_WITHDRAW_CHAINS entry uses the
+    // 'tron' slug (chainRegistry.consts.ts), not the numeric chain id — key
+    // both so neither representation slips past the $10 floor.
+    tron: 10,
+    '728126428': 10,
 }
 
 /** Minimum USD amount for a crypto withdrawal to the given destination chain. */
