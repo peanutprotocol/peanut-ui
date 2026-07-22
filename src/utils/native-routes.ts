@@ -2,6 +2,7 @@
 // in capacitor (static export), dynamic routes don't work — use query params instead.
 // on web, use the normal path-based urls.
 
+import { couldBeRecipient, isReservedRoute } from '@/constants/routes'
 import { isCapacitor } from './capacitor'
 
 // Deep links are peanut.me links by definition — that's the host the Android
@@ -83,14 +84,20 @@ export function withdrawBankUrl(countryPath: string, queryParams?: string): stri
  * in-app path.
  */
 export function deepLinkToNativePath(url: string): string | null {
-    let parsed: URL
     try {
-        // Relative base: push payloads carry the canonical path (`/receipt/<id>`),
-        // App Links carry the full URL. Both must resolve.
-        parsed = new URL(url, 'https://peanut.me')
+        return mapDeepLink(url)
     } catch {
+        // The whole body is guarded, not just the URL parse: decodeURIComponent
+        // throws URIError on a stray `%`, and this runs during render in the
+        // notifications list — one malformed ctaDeeplink would blank the page.
         return null
     }
+}
+
+function mapDeepLink(url: string): string | null {
+    // Relative base: push payloads carry the canonical path (`/receipt/<id>`),
+    // App Links carry the full URL. Both must resolve.
+    const parsed = new URL(url, 'https://peanut.me')
     if (!APP_HOSTS.test(parsed.hostname)) return null
 
     const path = parsed.pathname
@@ -119,7 +126,9 @@ export function deepLinkToNativePath(url: string): string | null {
     }
     // `/<username>?chargeId=<uuid>` — the catch-all profile route is disabled in
     // native builds; /pay-request is its stand-in (see (mobile-ui)/pay-request).
-    if (isCapacitor() && segments.length === 1) {
+    // Gated by the same reserved-route/recipient rules the web catch-all uses, so
+    // `/rewards?chargeId=x` stays on /rewards instead of landing on /pay-request.
+    if (isCapacitor() && segments.length === 1 && !isReservedRoute(path) && couldBeRecipient(segments[0])) {
         const chargeId = parsed.searchParams.get('chargeId')
         if (chargeId) return chargePayUrl(chargeId)
     }

@@ -331,6 +331,31 @@ describe('native-routes', () => {
             it('returns null for an unparseable link', () => {
                 expect(deepLinkToNativePath('http://')).toBeNull()
             })
+
+            // This runs during render in the notifications list, so a throw here
+            // would blank the whole page rather than drop one bad row.
+            it.each([
+                ['receipt id', '/receipt/%E0%A4%A'],
+                ['send recipient', '/send/%E0%A4%A'],
+                ['qr code', '/qr/%'],
+                ['bare username', '/%'],
+            ])('never throws on malformed percent-encoding in the %s', (_label, link) => {
+                expect(() => deepLinkToNativePath(link)).not.toThrow()
+            })
+
+            it.each(['/receipt/%E0%A4%A', '/send/%E0%A4%A', '/qr/%'])(
+                'degrades %s to null when the decode fails mid-mapping',
+                (link) => {
+                    expect(deepLinkToNativePath(link)).toBeNull()
+                }
+            )
+
+            it.each(['/rewards', '/history', '/badges', '/profile'])(
+                'leaves the reserved route %s alone even with a chargeId param',
+                (route) => {
+                    expect(deepLinkToNativePath(`${route}?chargeId=charge-123`)).toBe(`${route}?chargeId=charge-123`)
+                }
+            )
         })
 
         describe('web mode', () => {

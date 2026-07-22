@@ -39,11 +39,16 @@ export default function NativeReceiptPage() {
         refetchInterval: (query) => (query.state.data && !isFinalState(query.state.data) ? 15_000 : false),
     })
 
-    useEffect(() => {
-        if (!entryId || !kind || isError) router.replace('/home')
-    }, [entryId, kind, isError, router])
+    // `isError` also trips on a failed background poll, so gate the bail-out on
+    // having no data at all — a flaky refetch must not yank the user off a
+    // receipt they're watching settle.
+    const isUnrecoverable = !entryId || !kind || (isError && !entry)
 
-    if (!entryId || !kind || isError) return null
+    useEffect(() => {
+        if (isUnrecoverable) router.replace('/home')
+    }, [isUnrecoverable, router])
+
+    if (isUnrecoverable) return null
 
     return (
         <PageContainer className="flex min-h-[100dvh] flex-col items-center justify-center p-6">
