@@ -7,6 +7,13 @@
 // user's biometric or device passcode, which is exactly the property we want.
 // Server-side proof of a fresh assertion is a separate concern (step-up auth on
 // sensitive endpoints) and does not belong in a UI lock.
+//
+// It is a privacy screen and a deterrent, NOT account protection: the session
+// token stays where it always was (webview storage / cookie jar), reachable by
+// anything that can read the app's filesystem, and clearing the stored
+// credential id disables the gate entirely. Making it a genuine control means
+// moving the token into biometric-guarded Keychain/Keystore — tracked
+// separately.
 
 import { base64URLToBytes } from './native-webauthn'
 
@@ -19,9 +26,13 @@ export type UnlockOutcome = 'unlocked' | 'dismissed' | 'unsupported'
  * Prompts for the device biometric/passcode via a WebAuthn assertion against
  * the user's existing passkey.
  *
- * Returns 'unsupported' when we cannot prompt at all — no WebAuthn, or no
- * stored credential id. Callers must treat that as "do not lock": a lock we
- * can't lift would strand the user in their own app with no way back.
+ * Returns 'unsupported' when we cannot prompt at all — no WebAuthn, no stored
+ * credential id, or the authenticator rejecting the request outright
+ * (NotSupportedError). Callers must treat that as "do not lock": a lock we
+ * can't lift would strand the user in their own app with no way back. That
+ * makes every 'unsupported' path fail OPEN — this gate is a presence check for
+ * an honest user, not a security boundary against someone who can strip the
+ * stored credential id (see the module comment).
  */
 export async function requestLocalUserPresence(credentialId?: string): Promise<UnlockOutcome> {
     if (typeof window === 'undefined') return 'unsupported'
@@ -46,7 +57,9 @@ export async function requestLocalUserPresence(credentialId?: string): Promise<U
     } catch (error) {
         // A cancelled prompt and a genuinely broken authenticator are
         // indistinguishable here; both leave the app locked with a retry, which
-        // is the safe direction. Only the pre-flight checks above fail open.
+        // is the safe direction. NotSupportedError is the exception: it fails
+        // open (like the pre-flight checks), since it means this device cannot
+        // complete the ceremony at all and retrying would strand the user.
         if (error instanceof Error && error.name === 'NotSupportedError') return 'unsupported'
         return 'dismissed'
     }
