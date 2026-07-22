@@ -368,6 +368,7 @@ function sizeRain() {
 }
 sizeRain(); addEventListener('resize', sizeRain);
 setInterval(() => {
+  if (document.hidden) return;
   rctx.fillStyle = 'rgba(255,246,251,0.16)'; rctx.fillRect(0, 0, rain.width, rain.height);
   rctx.font = fs + 'px monospace';
   cols.forEach((y, i) => {
@@ -569,20 +570,28 @@ async function shareCard(mode) {
   x.fillText('the handbook loves you ♡ close ur threads', 540, 840);
   x.fillStyle = '#B268C8'; x.font = '26px monospace';
   x.fillText('peanut.me/onboarding-quiz — join the club ♡', 540, 990);
-  const blob = await new Promise((res) => c.toBlob(res, 'image/png'));
+  // ClipboardItem must be constructed synchronously in the tap's task, wrapping the
+  // Promise<Blob> — awaiting toBlob first expires Safari's transient user activation.
+  const blobPromise = new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('toBlob failed'))), 'image/png'));
   try {
     if (mode === 'copy' && navigator.clipboard && window.ClipboardItem) {
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blobPromise })]);
       $('btnCopy').textContent = '📋 COPIED ♡'; setTimeout(() => ($('btnCopy').textContent = '📋 COPY SHARE CARD'), 1600);
       return;
     }
     throw new Error('fallback');
   } catch {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `peanut-welcome-club-${correctCount}-${order.length}.png`;
-    a.click(); URL.revokeObjectURL(a.href);
-    $('btnDl').textContent = '💾 SAVED ♡'; setTimeout(() => ($('btnDl').textContent = '💾 DOWNLOAD CARD'), 1600);
+    try {
+      const blob = await blobPromise;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `peanut-welcome-club-${correctCount}-${order.length}.png`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      $('btnDl').textContent = '💾 SAVED ♡'; setTimeout(() => ($('btnDl').textContent = '💾 DOWNLOAD CARD'), 1600);
+    } catch {
+      $('btnDl').textContent = '💾 hmm, that didn\'t work — try again ♡';
+    }
   }
 }
 
@@ -615,7 +624,7 @@ typeLines($('bootTerm'), [
   [null, '> brewing welcome tea .................... done ♡'],
   [null, '> fluffing your onboarding pillow ........ done ♡'],
   ['warn', '> scanning for bad vibes ................. NONE FOUND!!'],
-  [null, '> 23 questions · 3 levels · pts + streaks · infinite emotional support'],
+  [null, `> ${QUESTIONS.length} questions · 3 levels · pts + streaks · infinite emotional support`],
   ['ok', '> WELCOME HOME, ANON ♡ the club has been expecting you'],
 ], () => $('btnStart').classList.remove('hidden'));
 </script>
