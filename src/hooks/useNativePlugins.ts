@@ -6,6 +6,7 @@ import { captureMessage } from '@sentry/nextjs'
 import { isCapacitor, getPlatform } from '@/utils/capacitor'
 import { deepLinkToNativePath } from '@/utils/native-routes'
 import { sanitizeRedirectURL } from '@/utils/general.utils'
+import { getOneSignalAdapter } from '@/services/onesignal'
 
 /**
  * initializes capacitor native plugins (back button, status bar, splash screen).
@@ -60,6 +61,33 @@ export function useNativePlugins() {
                         extra: { error: e instanceof Error ? e.message : String(e) },
                     })
                 }
+            }
+
+            try {
+                // Push taps: the OneSignal SDKs are configured not to open the
+                // launch URL themselves (suppressLaunchURLs / OneSignal_suppress_launch_urls),
+                // so routing is ours. `additionalData.deepLink` is the canonical
+                // relative path the API sends; the launch URL is the fallback for
+                // notifications sent before that field existed.
+                const adapter = await getOneSignalAdapter()
+                cleanups.push(
+                    adapter.onNotificationClick(({ deepLink, additionalData }) => {
+                        const target = additionalData.deepLink
+                        const link = typeof target === 'string' ? target : deepLink
+                        // Off-domain https links (operator sends) can't route in-app;
+                        // with launch URLs suppressed, hand them to the system browser
+                        // rather than silently swallowing the tap.
+                        if (link && !deepLinkToNativePath(link) && /^https:\/\//i.test(link)) {
+                            import('@capacitor/browser')
+                                .then(({ Browser }) => Browser.open({ url: link }))
+                                .catch((e) => console.warn('failed to open external push link:', e))
+                            return
+                        }
+                        openDeepLink(link)
+                    })
+                )
+            } catch (e) {
+                console.warn('failed to init notification click listener:', e)
             }
 
             try {
