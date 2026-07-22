@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { captureMessage } from '@sentry/nextjs'
 import { isCapacitor, getPlatform } from '@/utils/capacitor'
 import { deepLinkToNativePath } from '@/utils/native-routes'
 import { sanitizeRedirectURL } from '@/utils/general.utils'
@@ -12,6 +13,8 @@ import { sanitizeRedirectURL } from '@/utils/general.utils'
  * plugins are loaded via dynamic import with webpackIgnore since they only
  * exist in native builds (not on vercel/web ci).
  */
+let appListenersFailureCaptured = false
+
 export function useNativePlugins() {
     const router = useRouter()
 
@@ -48,6 +51,15 @@ export function useNativePlugins() {
                 cleanups.push(() => urlListener.remove())
             } catch (e) {
                 console.warn('failed to init app listeners:', e)
+                // without these listeners push-tap deep links never route, so surface the failure
+                if (!appListenersFailureCaptured) {
+                    appListenersFailureCaptured = true
+                    captureMessage('failed to init native app listeners', {
+                        level: 'warning',
+                        tags: { feature: 'onesignal', source: 'native_app_listeners' },
+                        extra: { error: e instanceof Error ? e.message : String(e) },
+                    })
+                }
             }
 
             try {

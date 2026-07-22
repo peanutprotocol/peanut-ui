@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useSyncExternalStore } from 'react'
-import { captureException } from '@sentry/nextjs'
+import { captureException, captureMessage } from '@sentry/nextjs'
 import { getOneSignalAdapter, type NotificationPermissionState } from '@/services/onesignal'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { isDemoMode } from '@/utils/demo'
@@ -62,8 +62,15 @@ function handleLoginError(err: unknown) {
     const msg = err instanceof Error ? err.message : String(err ?? '')
     // disable login on identity verification errors
     if (msg.toLowerCase().includes('identity') || msg.toLowerCase().includes('verify')) {
+        if (disableExternalIdLogin) return
         disableExternalIdLogin = true
         console.warn('OneSignal external_id login disabled due to identity verification error')
+        // silently disabling login unlinks the device from the user, so pushes target no one
+        captureMessage('OneSignal external_id login disabled after identity verification error', {
+            level: 'warning',
+            tags: { feature: 'onesignal', onesignal: 'login-disabled' },
+            extra: { error: msg },
+        })
     }
 }
 
@@ -211,7 +218,7 @@ async function ensureInitialized() {
     } catch (e) {
         // Surface Brave/Shields SDK-block failures; previously silent.
         console.warn('OneSignal init failed', e)
-        captureException(e, { tags: { source: 'onesignal_init' } })
+        captureException(e, { level: 'warning', tags: { feature: 'onesignal', source: 'onesignal_init' } })
     }
 }
 
