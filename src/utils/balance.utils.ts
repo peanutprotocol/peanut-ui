@@ -98,6 +98,22 @@ export const computeAvailableSpendable = (
 ): bigint => smartBalance + rainCentsToUsdcUnits(spendingPowerCents)
 
 /**
+ * Is the Rain half of the balance an ANSWER, or merely absent?
+ *
+ * `rainCentsToUsdcUnits(undefined)` is 0n, so a missing overview is arithmetically
+ * identical to "this user has no collateral" — the root of the $0 balance bug.
+ * A user with no card is a real zero; an overview that never arrived, or one the
+ * backend flagged `balanceUnavailable` with nothing to fall back on, is unknown.
+ *
+ * Shared so the display path (`useWallet`) and the spend path (`useSpendBundle`)
+ * answer this question identically — they were never allowed to disagree about
+ * whether a Rain figure can be trusted.
+ */
+export const isRainBalanceKnown = (
+    overview: { balance: unknown; balanceUnavailable?: boolean } | null | undefined
+): boolean => !!overview && !(overview.balanceUnavailable && overview.balance == null)
+
+/**
  * Total spendable balance for DISPLAY, as a USDC base-unit bigint (6dp) —
  * available-now plus card collateral top-ups still in transit.
  *
