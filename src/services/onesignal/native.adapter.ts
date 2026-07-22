@@ -1,4 +1,5 @@
 import OneSignal from '@onesignal/capacitor-plugin'
+import { captureMessage } from '@sentry/nextjs'
 import type { NotificationClickEvent, PushSubscriptionChangedState } from '@onesignal/capacitor-plugin'
 import type { NotificationClickInfo, NotificationPermissionState, OneSignalAdapter } from './types'
 
@@ -44,6 +45,11 @@ export const nativeOneSignalAdapter: OneSignalAdapter = {
         initPromise = (async () => {
             const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID
             if (!appId) {
+                // captured here too so a swallowed init() rejection can't hide a broken build config
+                captureMessage('OneSignal init failed: NEXT_PUBLIC_ONESIGNAL_APP_ID is missing', {
+                    level: 'warning',
+                    tags: { feature: 'onesignal', onesignal: 'missing-app-id' },
+                })
                 throw new Error('OneSignal configuration missing: NEXT_PUBLIC_ONESIGNAL_APP_ID is required')
             }
             await OneSignal.initialize(appId)
