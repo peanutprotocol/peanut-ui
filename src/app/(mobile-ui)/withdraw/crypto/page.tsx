@@ -306,9 +306,9 @@ export default function WithdrawCryptoPage() {
             // sendTransactions mixed path.
             let finalTxHash: Hex | undefined
             let receipt: TransactionReceipt | null = null
-            // 'collateral-only' | 'smart-only' | 'mixed' — drives whether we call
-            // recordPayment (smart-only) or rely on the Rain webhook →
-            // TransactionIntent reconciliation path (collateral-only / mixed).
+            // 'collateral-only' | 'smart-only' | 'mixed' — how the spend was
+            // funded; drives how strictly the recordPayment result is treated
+            // (see the recordPayment note below).
             let strategy: 'collateral-only' | 'smart-only' | 'mixed' | undefined
             // Backend TransactionIntent id — used to navigate to the unified
             // receipt page for collateral/mixed spends.
@@ -321,7 +321,16 @@ export default function WithdrawCryptoPage() {
                     receipt: r,
                     strategy: s,
                     intentId: i,
-                } = await sendMoney(withdrawData.address as Address, amountToWithdraw, { kind: 'CRYPTO_WITHDRAW' })
+                } = await sendMoney(withdrawData.address as Address, amountToWithdraw, {
+                    kind: 'CRYPTO_WITHDRAW',
+                    // Lets the backend settle the charge directly when the spend
+                    // routes through Rain card collateral (collateral-only): the
+                    // charge intent becomes the withdrawal preparation and
+                    // /submit completes it server-side. Without this the charge
+                    // rots PENDING and the successful withdrawal never shows in
+                    // Activity (same contract as direct-send / request-pay).
+                    chargeId: chargeDetails.uuid,
+                })
                 receipt = r
                 strategy = s
                 intentId = i
@@ -353,31 +362,46 @@ export default function WithdrawCryptoPage() {
 
             if (!finalTxHash) throw new Error('Withdrawal returned no transaction identifier')
 
-            // Skip recordPayment when funds moved via Rain collateral on a
-            // SAME-chain withdrawal — the charge indexer watches for
-            // smart-account-outgoing transfers, but a coordinator-driven
-            // withdraw moves USDC from the collateral proxy and would leave
-            // the Charge unmatched ("failed" in history). The Rain webhook +
-            // TransactionIntent reconciliation is the source of truth there.
-            //
-            // Cross-chain withdraws ALWAYS need recordPayment to fire — the
-            // BE validator's cross-chain branch transitions the charge intent
-            // to COMPLETED directly (trusts the source-chain submission since
-            // Rhino owns delivery downstream). Without this call the intent
-            // gets stuck at PENDING because nothing else triggers the
-            // transition for the bridge-path (depositWithId, mode='pay')
-            // flow we use for non-stable destinations.
+            // Record the payment against the charge on EVERY path — completing
+            // the user-facing charge is what makes the withdrawal appear in
+            // Activity:
+            //  - collateral-only: /prepare tagged the charge (chargeId above)
+            //    and /submit completed it server-side; recordPayment re-enters
+            //    the same trusted-completion path (idempotent) — the designed
+            //    recovery net when /submit's post-mining bookkeeping fails.
+            //  - mixed: the kernel sent a plain usdc.transfer(recipient) that
+            //    the on-chain validator matches — the normal recordPayment path.
+            //  - smart-only / cross-chain: unchanged — recordPayment has always
+            //    been their only charge-completion trigger.
+            // This used to be SKIPPED for collateral-routed same-chain
+            // withdraws, which left the charge PENDING forever: history hides
+            // never-paid charges as abandoned drafts and hides the rain-prepare
+            // intent as a phantom, so a successful withdrawal was completely
+            // invisible in Activity while the balance dropped.
             const routedThroughCollateral = strategy === 'collateral-only' || strategy === 'mixed'
-            const skipRecordPayment = routedThroughCollateral && !isCrossChainWithdrawal
+            const collateralRoutedSameChain = routedThroughCollateral && !isCrossChainWithdrawal
 
             let payment: Awaited<ReturnType<typeof recordPayment>> | null = null
-            if (!skipRecordPayment) {
+            try {
                 payment = await recordPayment({
                     chargeId: chargeDetails.uuid,
                     chainId: PEANUT_WALLET_CHAIN.id.toString(),
                     txHash: finalTxHash,
                     tokenAddress: PEANUT_WALLET_TOKEN as Address,
                     payerAddress: address as Address,
+                })
+            } catch (err) {
+                // Funds already moved on-chain. On collateral-routed same-chain
+                // paths a recordPayment hiccup must not read as a failed
+                // withdrawal (collateral-only is already settled server-side;
+                // mixed then just stays PENDING, exactly like pre-fix) —
+                // degrade to the success view without payment details. Other
+                // paths keep throwing, as they always have.
+                if (!collateralRoutedSameChain) throw err
+                console.error('recordPayment failed after collateral-routed withdrawal (funds moved):', err)
+                captureMessage('withdraw: recordPayment failed after collateral-routed spend', {
+                    level: 'warning',
+                    extra: { chargeId: chargeDetails.uuid, txHash: finalTxHash, strategy },
                 })
             }
 

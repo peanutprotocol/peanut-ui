@@ -22,8 +22,9 @@ type SendMoneyParams = {
     kind?: RainCollateralKind
     /** When this send pays a Peanut request/charge, the charge uuid. If the spend
      *  routes entirely through Rain collateral the backend completes the charge
-     *  itself — the result's `strategy === 'collateral-only'` is the caller's
-     *  signal to skip `recordPayment`. Ignored for other strategies. */
+     *  itself; callers should still `recordPayment` afterwards — the backend
+     *  treats that as an idempotent re-entry of the trusted-completion path,
+     *  and every other strategy relies on it to complete the charge. */
     chargeId?: string
     /** Optional UI hook — fires once routing is picked, before any signing prompt. */
     onStrategyDecided?: (strategy: Exclude<SpendStrategy, 'insufficient'>) => void

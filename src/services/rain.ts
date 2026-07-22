@@ -94,8 +94,9 @@ export interface PrepareRainWithdrawalInput {
      *  `amount` (which is only the collateral shortfall). History shows this. */
     totalAmountCents?: string
     /** When this withdrawal pays a Peanut request/charge, the charge uuid.
-     *  The backend then uses the charge intent itself as the prep and marks it
-     *  COMPLETED on confirm — so the FE must NOT also call `recordPayment`. */
+     *  The backend then uses the charge intent itself as the prep and
+     *  completes it on confirm; a follow-up `recordPayment` re-enters the
+     *  same trusted-completion path (idempotent). */
     chargeId?: string
 }
 
