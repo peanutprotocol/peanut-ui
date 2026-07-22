@@ -59,6 +59,16 @@ export interface RainCardSummary {
 export interface RainCardOverview {
     status: RainCardApplicationStatus
     balance: RainCardBalance | null
+    /**
+     * `true` when the backend could not read the balance from Rain, so `balance`
+     * is a stale cached value or `null` — NOT an authoritative zero. A null
+     * balance with this set must never be summed as 0 into the displayed
+     * spendable total (that was the $0-balance bug, PEANUT-UI-QD5).
+     *
+     * Optional so an older/cached API response without the field still parses;
+     * absent is treated as "available", matching pre-change behaviour.
+     */
+    balanceUnavailable?: boolean
     cards: RainCardSummary[]
 }
 

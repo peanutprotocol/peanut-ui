@@ -27,7 +27,12 @@ const WALLET_ADDRESS = '0x1111111111111111111111111111111111111111'
 const USER_ID = 'user-under-test'
 
 let mockSmartBalance: bigint | undefined
-let mockRainOverview: { balance: { spendingPower: number; inTransitToCollateralCents?: number } | null } | undefined
+let mockRainOverview:
+    | {
+          balance: { spendingPower: number; inTransitToCollateralCents?: number } | null
+          balanceUnavailable?: boolean
+      }
+    | undefined
 let mockAnyFetching: boolean
 
 jest.mock('../useBalance', () => ({
@@ -128,6 +133,44 @@ describe('useWallet spendable balance', () => {
         renderHook(() => useWallet(), { wrapper })
 
         await waitFor(() => expect(readLastKnownSpendable(USER_ID)).toBeUndefined())
+    })
+
+    // The backend answered, but couldn't reach Rain. Summing its absent
+    // spendingPower as 0 is the same $0 bug via a response that "succeeded".
+    it('treats balanceUnavailable with no balance as not-ready and holds the cache', async () => {
+        writeLastKnownSpendable(USER_ID, usd(80))
+        mockSmartBalance = 0n
+        mockRainOverview = { balance: null, balanceUnavailable: true }
+
+        const { result } = renderHook(() => useWallet(), { wrapper })
+
+        await waitFor(() => expect(result.current.spendableBalance).toBe(usd(80)))
+        expect(result.current.isSpendableBalanceStale).toBe(true)
+        expect(readLastKnownSpendable(USER_ID)).toBe(usd(80)) // not overwritten with 0
+    })
+
+    // A stale-but-present balance is still better than the FE's own older cache.
+    it('uses a stale served balance when the backend flags it unavailable', async () => {
+        writeLastKnownSpendable(USER_ID, usd(80))
+        mockSmartBalance = usd(5)
+        mockRainOverview = { balance: { spendingPower: 3_000 }, balanceUnavailable: true }
+
+        const { result } = renderHook(() => useWallet(), { wrapper })
+
+        await waitFor(() => expect(result.current.spendableBalance).toBe(usd(35)))
+        expect(result.current.isSpendableBalanceStale).toBe(false)
+    })
+
+    // A user with no card legitimately has no Rain balance — that must stay a
+    // real answer, or they'd never see their plain smart-account total.
+    it('treats a null balance without the flag as a real zero', async () => {
+        mockSmartBalance = usd(12)
+        mockRainOverview = { balance: null, balanceUnavailable: false }
+
+        const { result } = renderHook(() => useWallet(), { wrapper })
+
+        await waitFor(() => expect(result.current.spendableBalance).toBe(usd(12)))
+        expect(result.current.isSpendableBalanceStale).toBe(false)
     })
 
     // Demo makes no /rain/cards call, so gating the display on a Rain response
