@@ -15,6 +15,7 @@ import { getOneSignalAdapter } from '@/services/onesignal'
  * exist in native builds (not on vercel/web ci).
  */
 let appListenersFailureCaptured = false
+let clickListenerFailureCaptured = false
 
 export function useNativePlugins() {
     const router = useRouter()
@@ -88,6 +89,15 @@ export function useNativePlugins() {
                 )
             } catch (e) {
                 console.warn('failed to init notification click listener:', e)
+                // launch URLs are suppressed in the SDKs, so without this listener a push tap does nothing
+                if (!clickListenerFailureCaptured) {
+                    clickListenerFailureCaptured = true
+                    captureMessage('failed to init notification click listener', {
+                        level: 'warning',
+                        tags: { feature: 'onesignal', source: 'native_click_listener' },
+                        extra: { error: e instanceof Error ? e.message : String(e) },
+                    })
+                }
             }
 
             try {
