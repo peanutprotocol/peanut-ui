@@ -4,6 +4,7 @@ import {
     computeExcessCollateralCents,
     EXCESS_COLLATERAL_MIN_CENTS,
     isAmountWithinBalance,
+    isRainBalanceKnown,
     printableUsdc,
     rainCentsToUsdcUnits,
 } from '../balance.utils'
@@ -193,6 +194,33 @@ describe('balance utils', () => {
 
         it('a zero limit returns the whole backing', () => {
             expect(computeExcessCollateralCents(20_000, 0)).toBe(20_000)
+        })
+    })
+
+    // The distinction the $0-balance bug collapsed: a user with no card is a real
+    // zero, an overview that never arrived is unknown. Shared by the display path
+    // (useWallet) and the spend path (useSpendBundle) so they can't disagree.
+    describe('isRainBalanceKnown', () => {
+        it('treats a present balance as known', () => {
+            expect(isRainBalanceKnown({ balance: { spendingPower: 100 } })).toBe(true)
+        })
+
+        it('treats a null balance with no failure flag as known — a user with no card', () => {
+            expect(isRainBalanceKnown({ balance: null })).toBe(true)
+            expect(isRainBalanceKnown({ balance: null, balanceUnavailable: false })).toBe(true)
+        })
+
+        it('treats a flagged null balance as unknown', () => {
+            expect(isRainBalanceKnown({ balance: null, balanceUnavailable: true })).toBe(false)
+        })
+
+        it('trusts a stale-but-served balance even when flagged', () => {
+            expect(isRainBalanceKnown({ balance: { spendingPower: 100 }, balanceUnavailable: true })).toBe(true)
+        })
+
+        it('treats a missing overview as unknown, without throwing on null', () => {
+            expect(isRainBalanceKnown(undefined)).toBe(false)
+            expect(isRainBalanceKnown(null)).toBe(false)
         })
     })
 })
