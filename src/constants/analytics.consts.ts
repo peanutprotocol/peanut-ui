@@ -130,7 +130,7 @@ export const ANALYTICS_EVENTS = {
     // ── Home ──
     BALANCE_VISIBILITY_TOGGLED: 'balance_visibility_toggled',
 
-    // ── Error / Churn ──
+    // ── Error ──
     BACKEND_ERROR_SHOWN: 'backend_error_shown',
     BACKEND_ERROR_RETRY: 'backend_error_retry',
     BACKEND_ERROR_LOGOUT: 'backend_error_logout',
@@ -183,9 +183,9 @@ export const ANALYTICS_EVENTS = {
     CARD_FLOW_EARLY_ACCESS_GRANTED: 'card_flow_early_access_granted',
     // Outer-gate fail: user landed on /card without /shhhhh early access pre-launch.
     CARD_FLOW_GATED: 'card_flow_gated',
-    // Home launch CTA (shown to everyone post-public-launch who has no active card).
-    // viewed = banner became visible; clicked = tapped through to /card;
-    // dismissed = tapped the X. Click and dismiss both hide it permanently.
+    // Home Carousel CTA for card launch (shown to everyone post-public-launch who
+    // has no active card). viewed = CTA became visible; clicked = tapped through
+    // to /card; dismissed = tapped the X. Click and dismiss both hide it permanently.
     CARD_LAUNCH_CTA_VIEWED: 'card_launch_cta_viewed',
     CARD_LAUNCH_CTA_CLICKED: 'card_launch_cta_clicked',
     CARD_LAUNCH_CTA_DISMISSED: 'card_launch_cta_dismissed',
