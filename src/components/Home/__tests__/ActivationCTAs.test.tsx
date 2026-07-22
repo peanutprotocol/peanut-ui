@@ -182,4 +182,14 @@ describe('ActivationCTAs — outbound step spend chooser (card + QR)', () => {
         expect(mockPush).not.toHaveBeenCalled()
         expect(posthog.capture).toHaveBeenCalledWith('activation_spend_chooser_selected', { choice: 'qr' })
     })
+
+    it('card access revoked while the chooser is open: chooser closes (no stale card option)', () => {
+        mockHasCardAccess = true
+        const { rerender } = render(<ActivationCTAs activationStep="outbound" />)
+        fireEvent.click(screen.getByText('Start Spending'))
+        expect(screen.getByTestId('spend-chooser')).toBeInTheDocument()
+        mockHasCardAccess = false
+        rerender(<ActivationCTAs activationStep="outbound" />)
+        expect(screen.queryByTestId('spend-chooser')).not.toBeInTheDocument()
+    })
 })

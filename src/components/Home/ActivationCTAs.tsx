@@ -144,6 +144,12 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     const [showProvideEmail, setShowProvideEmail] = useState(false)
     const [showSpendChooser, setShowSpendChooser] = useState(false)
 
+    // If card access is revoked (or the card-info refetch flips it) while the
+    // chooser is open, close it — a no-access user must never see the card option.
+    useEffect(() => {
+        if (hasCardAccess !== true) setShowSpendChooser(false)
+    }, [hasCardAccess])
+
     // Inline self-heal so the home "Upload document" CTA opens the Sumsub document
     // re-upload directly, instead of routing to /profile/identity-verification (which
     // only showed the regions list, forcing the user to hunt for the Upload-document
@@ -328,7 +334,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 onSkip={() => setShowProvideEmail(false)}
             />
             <ActionModal
-                visible={showSpendChooser}
+                visible={showSpendChooser && hasCardAccess === true}
                 onClose={() => setShowSpendChooser(false)}
                 icon="credit-card"
                 title="How do you want to spend?"
