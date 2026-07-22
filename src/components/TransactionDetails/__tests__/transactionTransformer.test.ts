@@ -3,7 +3,7 @@ import { EHistoryUserRole, EHistoryStatus, getTransactionSign, type HistoryEntry
 import { pipelineAlert } from '@/utils/pipelineAlerts'
 
 jest.mock('@/assets', () => ({}))
-jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '', SIMPLEFI: '' }))
+jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
 jest.mock('@/utils/pipelineAlerts', () => ({ pipelineAlert: jest.fn() }))
 
 type Account = NonNullable<HistoryEntry['recipientAccount']>

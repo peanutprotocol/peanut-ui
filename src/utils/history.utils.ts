@@ -1,4 +1,4 @@
-import { MERCADO_PAGO, PIX, SIMPLEFI } from '@/assets/payment-apps'
+import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { getFromLocalStorage } from '@/utils/general.utils'
 import { formatUnits } from 'viem'
@@ -50,7 +50,7 @@ export enum EHistoryStatus {
     approved = 'approved',
     pending = 'pending',
     refunded = 'refunded',
-    canceled = 'canceled', // from simplefi, canceled with only one l
+    canceled = 'canceled', // historical DEPRECATED_SIMPLEFI rows, canceled with only one l
     expired = 'expired',
     CLOSED = 'CLOSED',
 }
@@ -273,9 +273,8 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
                 return undefined
         }
     }
-    if (kind === 'QR_PAY' && provider === 'DEPRECATED_SIMPLEFI') {
-        return SIMPLEFI
-    }
+    // Historical QR_PAY rows from removed providers (e.g. DEPRECATED_SIMPLEFI)
+    // fall through to undefined → the generic default avatar.
     return undefined
 }
 
