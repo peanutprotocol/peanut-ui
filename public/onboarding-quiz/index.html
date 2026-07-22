@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>♡ PEANUT WELCOME CLUB ♡ — onboarding quiz</title>
+<meta name="robots" content="noindex" />
+<style>
+  :root {
+    --pnk: #FF90E8; --lav: #EFE4FF; --ylw: #FFC900; --grn: #98E9AB;
+    --bg: #FFF6FB; --panel: #ffffff; --red: #FF6B81; --ink: #000;
+    --hot: #FF3DA6; --purp: #7C5CBF;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--ink); font-family: "Courier New", monospace; }
+  body { min-height: 100vh; overflow-x: hidden;
+    background-image: radial-gradient(rgba(255,144,232,.18) 1.5px, transparent 1.5px);
+    background-size: 26px 26px; }
+  #rain { position: fixed; inset: 0; z-index: 0; opacity: .5; }
+
+  .wrap { position: relative; z-index: 3; max-width: 520px; margin: 0 auto; padding: 0 14px 60px; }
+
+  /* marquees */
+  .marq { overflow: hidden; white-space: nowrap; border-bottom: 2px solid var(--ink); background: var(--pnk); }
+  .marq span { display: inline-block; padding: 5px 0; font-size: 12px; font-weight: 700; animation: slide 18s linear infinite; }
+  .marq.rev { border-bottom: 0; border-top: 2px solid var(--ink); background: var(--lav); }
+  .marq.rev span { animation-direction: reverse; animation-duration: 22s; }
+  @keyframes slide { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  .blink { animation: blink .9s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  h1.bounce { font-family: Impact, "Arial Black", sans-serif; font-size: clamp(28px, 8.4vw, 44px);
+    letter-spacing: 2px; color: var(--ink); position: relative; text-align: center; margin: 46px 0 4px;
+    text-shadow: 3px 3px 0 var(--pnk), 6px 6px 0 var(--lav); animation: bnc 2.6s ease-in-out infinite; }
+  @keyframes bnc { 0%,100% { transform: none; } 50% { transform: translateY(-4px) rotate(-.8deg); } }
+
+  .kao { text-align: center; font-size: 15px; color: var(--hot); margin: 2px 0 10px; }
+
+  .panel { background: var(--panel); border: 2px solid var(--ink); border-radius: 12px;
+    box-shadow: 5px 5px 0 var(--ink); padding: 14px; margin: 12px 0; }
+  .panel.mag { background: #FFF0FA; }
+
+  .term { font-size: 13px; line-height: 1.55; min-height: 132px; }
+  .term .ok { color: var(--hot); font-weight: 700; }
+  .term .warn { color: var(--purp); font-weight: 700; }
+  .cursor::after { content: "♡"; animation: blink .7s step-end infinite; }
+
+  button { font-family: inherit; cursor: pointer; }
+  .btn { display: block; width: 100%; background: var(--pnk); color: var(--ink); border: 2px solid var(--ink);
+    border-radius: 10px; font-weight: 700; font-size: 15px; padding: 13px; margin-top: 10px;
+    text-transform: uppercase; letter-spacing: 1px; box-shadow: 4px 4px 0 var(--ink); }
+  .btn:hover { background: var(--ylw); }
+  .btn:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 var(--ink); }
+  .btn.ghost { background: var(--panel); }
+  .btn.ghost:hover { background: var(--lav); }
+
+  /* HUD */
+  .hud { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; margin-top: 10px; flex-wrap: wrap; }
+  .hud > span { background: var(--panel); border: 2px solid var(--ink); border-radius: 8px; padding: 2px 8px; }
+  .hud .pts { position: relative; background: var(--ylw); font-weight: 700; }
+  .pop { position: absolute; right: 0; top: -20px; color: var(--hot); font-weight: 700; animation: pop .9s ease-out forwards; pointer-events: none; }
+  @keyframes pop { 0% { opacity: 0; transform: translateY(6px) scale(.4);} 40% { opacity: 1; transform: translateY(-2px) scale(1.3);} 100% { opacity: 0; transform: translateY(-14px) scale(1);} }
+  .combo { background: var(--pnk) !important; font-weight: 700; animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { box-shadow: 3px 3px 0 var(--hot); } }
+
+  .lvl { display: inline-block; font-size: 11px; padding: 2px 8px; border: 2px solid var(--ink); border-radius: 6px;
+    margin-bottom: 8px; text-transform: uppercase; font-weight: 700; }
+  .lvl.easy { background: var(--grn); }
+  .lvl.mid { background: var(--ylw); }
+  .lvl.hard { background: var(--pnk); animation: pulse 1.2s infinite; }
+
+  .prompt-line { color: var(--purp); font-size: 11px; margin-bottom: 6px; word-break: break-all; }
+  .q-text { color: var(--ink); font-size: 14px; line-height: 1.5; font-weight: 700; }
+
+  .opt { display: block; width: 100%; text-align: left; background: var(--panel); color: var(--ink);
+    border: 2px solid var(--ink); border-radius: 8px; padding: 11px 12px; margin-top: 8px; font-size: 13px; line-height: 1.45; }
+  .opt:hover:not(:disabled) { background: var(--lav); }
+  .opt:disabled { cursor: default; opacity: .45; }
+  .opt.correct { opacity: 1; background: var(--grn); font-weight: 700; box-shadow: 3px 3px 0 var(--ink); }
+  .opt.wrongpick { opacity: 1; background: #FFD9DF; border-color: var(--red); }
+
+  .verdict { font-family: Impact, sans-serif; font-size: 16px; letter-spacing: 1px; margin-top: 12px; text-align: center; line-height: 1.4; }
+  .verdict.ok { color: var(--hot); text-shadow: 2px 2px 0 var(--lav); }
+  .verdict.no { color: var(--purp); text-shadow: 2px 2px 0 #FFD9DF; }
+
+  .intel { border-left: 4px solid var(--pnk); border-radius: 0 8px 8px 0; padding: 8px 10px; margin-top: 10px;
+    font-size: 12.5px; line-height: 1.55; color: var(--ink); background: var(--lav); }
+  .quip { color: var(--hot); font-size: 12px; margin-top: 6px; font-style: italic; }
+
+  .shake { animation: shake .45s; }
+  @keyframes shake { 0%,100%{transform:none} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+  .flash-red { animation: fred .45s; }
+  @keyframes fred { 0% { box-shadow: inset 0 0 60px rgba(255,107,129,.5); } 100% { box-shadow: 5px 5px 0 var(--ink); } }
+
+  .lvlup { position: fixed; inset-inline: 0; top: 34%; z-index: 20; text-align: center; pointer-events: none; animation: lup 1.8s ease-in-out forwards; }
+  .lvlup span { display: inline-block; font-family: Impact, sans-serif; font-size: 24px; color: var(--ink); background: var(--ylw);
+    padding: 8px 18px; border: 2px solid var(--ink); border-radius: 10px; box-shadow: 5px 5px 0 var(--pnk); }
+  @keyframes lup { 0% { opacity: 0; transform: scale(.3) rotate(-6deg);} 15% { opacity: 1; transform: scale(1.05);} 80% { opacity: 1; transform: scale(1);} 100% { opacity: 0; transform: scale(1.5);} }
+
+  .mascot { display: block; margin: 8px auto 0; background: transparent; border: 0; color: var(--ink); font-size: 26px; }
+  .mascot small { display: block; font-size: 10px; color: var(--purp); margin-top: 2px; }
+
+  .rank { font-family: Impact, sans-serif; font-size: 28px; text-align: center; color: var(--ink);
+    text-shadow: 2px 2px 0 var(--pnk); margin: 8px 0 2px; }
+  .score-big { font-size: 44px; text-align: center; color: var(--hot); font-weight: 700; text-shadow: 3px 3px 0 var(--lav); }
+
+  .stickers { position: absolute; z-index: 4; pointer-events: none; font-size: 10px; }
+  .stk { display: inline-block; border: 2px solid var(--ink); border-radius: 6px; color: var(--ink); background: var(--ylw);
+    padding: 2px 6px; font-weight: 700; animation: wig 1.8s ease-in-out infinite; }
+  @keyframes wig { 0%,100% { transform: rotate(-3deg);} 50% { transform: rotate(3deg);} }
+
+  .footer { text-align: center; font-size: 11.5px; color: var(--ink); margin-top: 22px; line-height: 2; }
+  .footer a { color: var(--hot); }
+  .counter { color: var(--ink); background: var(--pnk); padding: 0 5px; font-weight: 700; border-radius: 4px; }
+  .trail-glyph { position: fixed; z-index: 50; pointer-events: none; font-size: 13px; color: var(--hot);
+    animation: fall .7s ease-out forwards; transform: translate(-50%,-50%); }
+  @keyframes fall { to { opacity: 0; transform: translate(-50%, 10px) scale(.4); } }
+  .nutfall { position: fixed; z-index: 49; pointer-events: none; font-size: 22px; animation: nfall 1.6s ease-in forwards; }
+  @keyframes nfall { from { transform: translateY(-40px) rotate(0); opacity: 1; } to { transform: translateY(105vh) rotate(360deg); opacity: .9; } }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<canvas id="rain"></canvas>
+
+<div class="stickers" style="top:38px;left:6px;"><span class="stk">☆ NEW HIRE ALERT ☆</span></div>
+<div class="stickers" style="top:38px;right:6px;"><span class="stk blink">♡ BE NICE OR ELSE ♡</span></div>
+
+<div class="marq"><span>
+  ☆*:.｡. o(≧▽≦)o .｡.:*☆ PEANUT WELCOME CLUB ☆*:.｡. o(≧▽≦)o .｡.:*☆ WELCOME HOME ANON ♡ 100% WHOLESOME ✧ 0% CORPORATE (ironic) ✧ THE HANDBOOK LOVES YOU ✧ UR HIRED ✧ UR VALID ✧&nbsp;
+  ☆*:.｡. o(≧▽≦)o .｡.:*☆ PEANUT WELCOME CLUB ☆*:.｡. o(≧▽≦)o .｡.:*☆ WELCOME HOME ANON ♡ 100% WHOLESOME ✧ 0% CORPORATE (ironic) ✧ THE HANDBOOK LOVES YOU ✧ UR HIRED ✧ UR VALID ✧&nbsp;
+</span></div>
+
+<div class="wrap">
+  <h1 class="bounce">PEANUT WELCOME CLUB</h1>
+  <div class="kao">☆*: .｡. o(≧▽≦)o .｡.:*☆ &nbsp;onboarding quiz&nbsp; (❁´◡`❁)</div>
+
+  <button class="mascot" id="mascot" type="button" aria-label="club mascot">
+    <span id="mascotFace">(｡♥‿♥｡)🐿️🎀</span>
+    <small id="mascotSub">// click me!! i love attention</small>
+  </button>
+
+  <!-- START -->
+  <section id="stStart">
+    <div class="panel">
+      <div class="term" id="bootTerm"></div>
+    </div>
+    <button class="btn hidden" id="btnStart" onclick="beginRun(null)">☆ BEGIN YOUR JOURNEY ☆ (no pressure!!)</button>
+  </section>
+
+  <!-- PLAY -->
+  <section id="stPlay" class="hidden">
+    <div class="hud">
+      <span id="prog"></span>
+      <span class="pts">PTS <b id="pts">0</b><span id="popHost"></span></span>
+      <span class="combo hidden" id="combo"></span>
+    </div>
+    <div class="panel" id="qPanel">
+      <span class="lvl" id="lvlChip"></span>
+      <div class="prompt-line" id="promptLine"></div>
+      <div class="q-text" id="qText"></div>
+      <div id="opts"></div>
+      <div id="verdict"></div>
+      <div id="intel"></div>
+      <button class="btn hidden" id="btnNext" onclick="next()"></button>
+    </div>
+  </section>
+
+  <!-- DONE -->
+  <section id="stDone" class="hidden">
+    <div class="panel mag">
+      <div class="term" id="evalTerm"></div>
+      <div id="resultBlock" class="hidden">
+        <div class="score-big" id="finalScore"></div>
+        <div class="rank" id="finalRank"></div>
+        <div class="kao" id="finalKao"></div>
+        <div style="text-align:center;font-size:13px;color:var(--purp);font-weight:700" id="finalPts"></div>
+        <div style="text-align:center;font-size:12px;color:var(--hot);margin-top:4px" id="finalStreak"></div>
+      </div>
+    </div>
+    <div id="doneBtns" class="hidden">
+      <button class="btn" onclick="shareCard('copy')" id="btnCopy">📋 COPY SHARE CARD</button>
+      <button class="btn ghost" onclick="shareCard('download')" id="btnDl">💾 DOWNLOAD CARD</button>
+      <button class="btn ghost hidden" id="btnRetry" onclick="beginRun(missed)"></button>
+      <button class="btn ghost" onclick="beginRun(null)">↻ REPLAY FROM ZERO (the sequel)</button>
+    </div>
+  </section>
+
+  <div class="footer">
+    <div>☆ﾟ you are guest <span class="counter" id="visitors">#……</span> and we love you specifically ﾟ☆</div>
+    <div class="blink" style="color:var(--hot)">~*~ thanks 4 visiting my welcome page ~*~ (￣▽￣)ノ</div>
+    <div>[ <a href="https://peanut.me">← peanut.me</a> ] [ WELCOME WEBRING ] [ <a href="mailto:konrad@peanut.me?subject=sign%20my%20guestbook">sign guestbook</a> ]</div>
+    <div style="color:var(--purp)">best viewed on a pink iMac G3 · W3C VALIDATED (emotionally)</div>
+  </div>
+</div>
+
+<div class="marq rev" style="position:fixed;bottom:0;left:0;right:0;z-index:5"><span>
+  ٩(◕‿◕)۶ HANDBOOK TL;DR ✧ CLOSE UR THREADS ✧ SILENT REPLY = SHIFT+REPLY ✧ DONE MEANS DONE ✧ LOUD-FAIL, NEVER SILENT-FAIL ✧ FULL LEAVE &gt; HALF LEAVE ✧ WE LOVE U ♡&nbsp;
+  ٩(◕‿◕)۶ HANDBOOK TL;DR ✧ CLOSE UR THREADS ✧ SILENT REPLY = SHIFT+REPLY ✧ DONE MEANS DONE ✧ LOUD-FAIL, NEVER SILENT-FAIL ✧ FULL LEAVE &gt; HALF LEAVE ✧ WE LOVE U ♡&nbsp;
+</span></div>
+
+<script>
+/* ═══════════════ QUESTIONS — Konrad-approved, from the Welcome @anon handbook ═══════════════ */
+const LEVEL_POINTS = { easy: 100, mid: 200, hard: 300 };
+const STREAK_BONUS = 50;
+const LEVEL_ORDER = ['easy', 'mid', 'hard'];
+const LEVEL_LABEL = { easy: 'lvl 1 — fresh bean ♡', mid: 'lvl 2 — seasoned bestie ✿', hard: 'lvl 3 — handbook angel ⚡' };
+
+const QUESTIONS = [
+  { level:'easy', prompt:'You\'re tagged in a Discord thread. You\'ve read it and nothing is needed from you beyond "got it". What\'s the minimum valid response?',
+    options:['An emoji react — that counts as acknowledging receipt','A written reply within 15 minutes, always','Nothing — the sender will follow up if it matters','Forward it to your lead so they can respond'],
+    correctIndex:0,
+    joke:'Reply "new phone, who dis? 📱"',
+    explanation:'Zero Internal Follow-ups: the responsibility to react sits on the receiver, so nobody ever has to chase you. An emoji react is an explicitly valid acknowledgment. Silence forces the sender into an internal follow-up — the exact thing the rule exists to ban.',
+    wrongQuip:'the follow-up you just caused could have been one (1) emoji (◞‸◟)' },
+  { level:'easy', prompt:'Quick! Where does the team\'s task state actually live?',
+    options:['The Kanban board in Notion','Discord — that\'s where everything gets discussed','Google Calendar','Whoever has the best memory'],
+    correctIndex:0,
+    joke:'A sticky note on Hugo\'s monitor',
+    explanation:'Sources of truth: Calendar = events, Kanban (Notion) = tasks, Notion = docs/CRM/policies. Discord is deliberately NOT on the list — treat it like a call: great for quick back-and-forth that won\'t matter tomorrow, horrible for tracking decisions and tasks.',
+    wrongQuip:'Discord messages are where decisions go to become archaeology' },
+  { level:'easy', prompt:'It\'s Friday and your sprint tasks are on track. Is weekend work expected of you?',
+    options:['Never expected — welcomed only if it\'s genuinely your preferred rhythm','Expected when the sprint is important','Expected for senior people, optional for juniors','Only if a founder is also working that weekend'],
+    correctIndex:0,
+    joke:'Only during Mercury retrograde 🔮',
+    explanation:'Weekend Work policy: nobody is expected to work weekends, ever. Planned weekend work only exists as a mutually-agreed fix for a fuckup/overcommitment, or for something critical like an outage. If you choose weekends as your rhythm, the bar on clarity and comms goes UP, not down.',
+    wrongQuip:'the vibe is literally titled "never expected" (⌒_⌒;)' },
+  { level:'easy', prompt:'You wake up genuinely sick. What\'s the move Peanut actually wants from you?',
+    options:['Full sick leave: tell everyone (Discord + calendar event), quick handoff, rest','Push through at ~50% capacity so nothing stalls','Go quiet and catch up when you\'re better','Tell only your lead, privately'],
+    correctIndex:0,
+    joke:'Post one crying kaomoji and let the team decode it (´;ω;`)',
+    explanation:'Full sick leave is explicitly better than unreliable half-leave. The two named pitfalls are failure-to-create-clarity ("I\'m sick" with no handoff info) and going AWOL. If you\'re too ill to reprioritize your tasks, tell Konrad or Hugo and they\'ll do it for you.',
+    wrongQuip:'half-sick half-working = the one option the policy explicitly warns against' },
+  { level:'easy', prompt:'You\'re 10 minutes into a 1-hour call and your part is completely done. What\'s okay at Peanut?',
+    options:['Drop a short message in the chat and leave the call','Stay — leaving early reads as rude','Stay on mute and multitask quietly','Wait for the host to release you'],
+    correctIndex:0,
+    joke:'Fake a connection issue and freeze mid-blink 🥶',
+    explanation:'Explicitly on the "things that are okay to do at Peanut" list: everyone should be able to walk out of a meeting if there\'s no need for them. Related rule: every call must end with action items that have a specific owner.',
+    wrongQuip:'an hour of polite muted suffering helps no one, bb' },
+  { level:'easy', prompt:'You\'re setting up 2FA on your accounts. Which kind is discouraged at Peanut?',
+    options:['SMS/text-message codes — vulnerable to SIM swapping; use only if it\'s the only method offered','Authenticator apps','Hardware security keys','Passkeys'],
+    correctIndex:0,
+    joke:'Writing the code on your hand like a school exam ✍️',
+    explanation:'Security page: enable MFA everywhere, and prefer non-text-based — SIM swapping is a real, common attack in crypto. If SMS is the only method a service offers, it still beats no 2FA. Same page: never leave your computer unlocked, use a password manager, never reuse passwords. Multiple Peanut people have personally been hacked before; this is not theoretical.',
+    wrongQuip:'your telco\'s customer support is the attack surface ☎️💀' },
+  { level:'easy', prompt:'A task gets assigned to you. How far does your ownership go by default?',
+    options:['From idea to prod — it\'s yours end-to-end unless it explicitly says otherwise','Until you hand it off to QA','Until your PR is merged','Until the next standup, when it can be rebalanced'],
+    correctIndex:0,
+    joke:'Until you stop making eye contact with the Kanban board',
+    explanation:'One task, one owner. You can (and should) create subtasks for others, but even if 80% of the effort is someone else\'s, you are accountable that it\'s done before the end of the sprint.',
+    wrongQuip:'ownership is not a relay race, there is no baton (・`ω´・)' },
+  { level:'mid', prompt:'You need someone\'s input before the next standup — but not right this second. Per the urgency hierarchy, what do you use?',
+    options:['An @silent Discord tag','A normal (loud) Discord tag','A WhatsApp message','Nothing — raise it live at standup'],
+    correctIndex:0,
+    joke:'Summon them via ouija board, respectfully 🕯️',
+    explanation:'The hierarchy: phone call = servers-down-level emergencies; loud Discord tag = input needed NOW, truly urgent; @silent tag = input before next standup (ideally within 2–4 working hours). Loud-tagging non-urgent things trains everyone to ignore tags.',
+    wrongQuip:'every unnecessary loud ping shaves a year off someone\'s focus' },
+  { level:'mid', prompt:'You hit the reply button on a Discord message to answer someone. What\'s the trap?',
+    options:['Normal replies ping loudly by default — silent reply is SHIFT+reply','Replies are silent by default, so people miss them','Replying breaks the thread structure','There is no trap; replies are fine'],
+    correctIndex:0,
+    joke:'The real trap is emotional: they left you on read first 💔',
+    explanation:'Straight from the Communication page: when replying in Discord, do a silent reply with SHIFT+reply, because normal replies are loud by default. Your casual answer otherwise becomes someone\'s phone buzzing.',
+    wrongQuip:'you just loud-pinged someone to say "ok ty" (⊙_⊙)' },
+  { level:'mid', prompt:'A Discord thread you opened has sat for a full day with no new action items. What does policy say that means?',
+    options:['Time to re-establish what the thread is about, who owns it, and which decisions are still open — then close or re-scope','Nothing; leave it open as documentation','Bump it daily until people respond','Threads auto-archive, so do nothing'],
+    correctIndex:0,
+    joke:'Rename it "spaghetti thread" and add it to the menu 🍝',
+    explanation:'ABC — Always Be Closing. Every open thread needs a clear reason to be open ("waiting on QA sign-off"). A day with no action items means the thread has lost its shape: restate the topic, the owner, and the open decisions — then close or re-scope. Say "l"/"leaving" when it\'s resolved for you, "c"/"closed" when the thread is done.',
+    wrongQuip:'threads are meeting rooms, not museums' },
+  { level:'mid', prompt:'Someone leaves a passing-thought comment on a Notion page you own — "interesting how this differs from last quarter…". No action is actually needed. What do you do?',
+    options:['Acknowledge and resolve it anyway, with a one-line reason','Leave it open — resolving someone else\'s comment is rude','Delete it; it\'s noise','Wait for the commenter to resolve it themselves'],
+    correctIndex:0,
+    joke:'Reply "this is so true bestie 💅" and never think about it again',
+    explanation:'Comments are action items, not annotations — and they\'re resolved by the page owner. An open comment gives every future reader the false impression of an unresolved issue. "Good observation, different context, no change needed. Resolving." is a complete, correct answer.',
+    wrongQuip:'that open comment will haunt three future readers minimum 👻' },
+  { level:'mid', prompt:'Mid-sprint, a task on your board becomes unnecessary. Where does it go?',
+    options:['Move it to Done and add a "cancelled" tag','Delete it','Drag it back to the backlog','Leave it in To-Do until the sprint ends'],
+    correctIndex:0,
+    joke:'Bury it at midnight. Tell no one. 🕳️',
+    explanation:'Literal rule from Project Management: if a task in the current sprint is no longer necessary, move it to Done with a "cancelled" tag. Slightly counterintuitive — but it keeps the sprint record complete and honest.',
+    wrongQuip:'deleted tasks tell no tales, and that\'s the problem' },
+  { level:'mid', prompt:'When is your written standup due, and what must it include?',
+    options:['Before the reminder fires — progress, blockers, and a kanban screenshot','Any time that day; text is enough','Live on the standup call, verbally','Only on days where something changed'],
+    correctIndex:0,
+    joke:'Whenever you spiritually feel "aligned" ✨',
+    explanation:'Standup is posted in writing, with a kanban screenshot, BEFORE the reminder starts — that buys the 15 minutes used to sync on items. Content: milestone progress, who/what you\'re blocking, chores, confirmation you\'ve caught up on channels.',
+    wrongQuip:'"still working on the same thing" is a stampup, not a standup 📮' },
+  { level:'mid', prompt:'A founder message starts with "Recommendation:". In Peanut\'s vocabulary, what does that mean?',
+    options:['They\'ve invested real thought — you can still diverge, but walk them through why','It\'s a mandate — comply or escalate','A passing thought you\'re free to ignore','An FYI with extra words'],
+    correctIndex:0,
+    joke:'It\'s a Yelp review. Four stars. Would recommend. ⭐⭐⭐⭐',
+    explanation:'The ladder: FYI (take it or leave it) → Suggestion (passing thought) → Recommendation (deeply considered; diverging is fine but explain your reasoning) → Plea (the rare near-mandate). Treating a Recommendation like an FYI — or a Plea like a suggestion — is the actual pitfall.',
+    wrongQuip:'somewhere between "fun fact" and "do it or we both reconsider our roles"' },
+  { level:'mid', prompt:'A teammate DMs you a work question. The Peanut way to handle it?',
+    options:['Move it to a public thread — even 1:1 conversations default to public channels','Answer in the DM; it was addressed to you','Answer in DM, then post a summary publicly','Tell them to email you instead'],
+    correctIndex:0,
+    joke:'Respond only in voice memos, 6 minutes minimum 🎙️',
+    explanation:'Public Channels rule: keep company discussions in public channels whenever possible — even 1:1s go in a Discord thread, not a DM. Public threads kill knowledge silos, create a historical record, and let others chime in.',
+    wrongQuip:'DMs are where context goes to die alone (´-ω-`)' },
+  { level:'hard', prompt:'Your PR merged, QA passed on staging, the feature works. The bug reporter hasn\'t been told and one comment thread is still open. Is the task Done?',
+    options:['No — stakeholders informed and zero outstanding discussions are part of the Definition of Done','Yes — code shipped plus QA passed is the bar','Yes, as long as you plan to tell them tomorrow','It becomes Done automatically once it hits prod'],
+    correctIndex:0,
+    joke:'It\'s done when you feel done in your heart 💖',
+    explanation:'Done means done: deliverables complete, QA passed, AND dependencies resolved — which explicitly includes documentation updated, stakeholders informed (like the bug reporter), and no outstanding conversations, however small. If any of that is open, it\'s not Done.',
+    wrongQuip:'"done*" with an asterisk is just "not done" in a trenchcoat' },
+  { level:'hard', prompt:'It\'s Wednesday and you realize you badly overcommitted this sprint. What\'s the Peanut-correct move?',
+    options:['Loud-fail now — flag it and reprioritize; a catch-up weekend only if mutually agreed','Quietly grind through the weekend and hit the deadline; nobody needs to know','Silently drop the least-visible task','Say nothing and bring it up at the retro'],
+    correctIndex:0,
+    joke:'Relocate to a timezone where the sprint hasn\'t ended yet 🌏',
+    explanation:'"Silent overcommitment — using weekends to quietly paper over bad planning instead of flagging it loudly during the week" is the #1 named pitfall on the Weekend Work page. Delivering on commitments is on you, but the failure mode must always be loud, never silent. Retro is for fixing your estimates afterwards.',
+    wrongQuip:'the hero-weekend arc feels great and teaches the team nothing' },
+  { level:'hard', prompt:'You love Sunday deep work — totally allowed. You finish something that needs Kush\'s answer before you can continue Monday 9am. What went wrong?',
+    options:['You created a weekend blocker — choice-weekend work must be async-safe, never waiting on a reply','Nothing — Kush can just reply Monday morning','You should have loud-tagged Kush on Sunday','Weekend work needs founder approval first'],
+    correctIndex:0,
+    joke:'You worked a Sunday without posting a sunrise selfie first 🌅',
+    explanation:'Working weekends by choice puts you on "hard mode": the clarity bar goes up. Don\'t create blockers or expectations for people who are offline — make the work async-safe with clean handoffs so nothing of yours is waiting on a reply.',
+    wrongQuip:'your Sunday flow state just became someone\'s Monday morning ambush' },
+  { level:'hard', prompt:'3am: production servers are down. The person you need has DND on everywhere. What does the urgency hierarchy say?',
+    options:['Phone call on the normal line — real emergencies override any DND settings','@silent tag so they see it first thing tomorrow','Loud Discord tag and wait','WhatsApp text, then wait an hour'],
+    correctIndex:0,
+    joke:'Change the server icon to 🔥 and trust the universe',
+    explanation:'Level 1 of the hierarchy: for the extremely urgent (servers down, major hack) you call via the normal phone line, and this explicitly overrides DND. A critical-but-lesser prod bug is the WhatsApp tier. Discord tags — even loud ones — are not for "prod is on fire".',
+    wrongQuip:'some things deserve a ringtone at 3am; this is the list, and it\'s short ☎️' },
+  { level:'hard', prompt:'You need to pay on-chain gas fees for company operations. How is that supposed to be handled?',
+    options:['Company-controlled gas wallet; each top-up gets a short memo via the invoice uploader','Front it personally and add it to your next invoice','Ask a founder to reimburse you directly','Pull it from protocol revenue'],
+    correctIndex:0,
+    joke:'Siphon it 0.0001 ETH at a time, Office Space style 🧾',
+    explanation:'Best practice from the invoicing page: a dedicated company gas wallet with a small float ($1–5k), used exclusively for operational gas, with a documented memo per top-up — designed precisely so team members never front on-chain costs personally and chase reimbursements.',
+    wrongQuip:'personal wallet + company gas = future accounting archaeology' },
+  { level:'hard', prompt:'You\'re invoicing Squirrel Labs Ltd and you are NOT VAT-registered. What must your invoice say?',
+    options:['The literal statement: "This company is not VAT-registered"','Nothing — just leave VAT off','VAT at 0% with a dash where the number goes','"VAT exempt" covers it'],
+    correctIndex:0,
+    joke:'"No VAT, no vibes, no worries xoxo" 💌',
+    explanation:'The invoicing page requires the explicit statement when you\'re not VAT-registered — alongside a unique invoice number, issue date, payment due date, and itemized services. Missing pieces mean the invoice bounces back, which means you get paid later.',
+    wrongQuip:'the fastest way to delay your own payday is a vague invoice 💸' },
+  { level:'hard', prompt:'Growth ships a company-wide campaign with referral codes baked in. Whose codes go in it?',
+    options:['The `squirrel` invite tree — personal codes are for you and your actual friends','The campaign owner\'s personal code — fair reward for building it','Referral codes are banned for team members','Rotate everyone\'s personal codes evenly'],
+    correctIndex:0,
+    joke:'Whoever wins the weekly staring contest, obviously 👁️👁️',
+    explanation:'Using the referral system personally, like any normal user, is explicitly okay. But company-wide initiatives go through the username `squirrel` invite tree — the stated example being the SEO team NOT plugging their own codes into company campaigns.',
+    wrongQuip:'personal codes in company campaigns = spicy conflict of interest 🌶️' },
+  { level:'hard', prompt:'You\'re contracted 100% FTE. A friend offers you a small paid side gig. What\'s the actual deal?',
+    options:['Small friend-gig: fine, just let each other know. Proper ongoing paid work elsewhere: means informing the team and renegotiating your terms','Everything outside Peanut is banned, period','Anything goes as long as it\'s not a competitor','It\'s fine as long as it\'s under 10 hours a week'],
+    correctIndex:0,
+    joke:'Allowed only if the gig is also, in some way, about peanuts 🥜',
+    explanation:'The no-moonlighting clause comes with an explicit carve-out: a small gig for a friend is OK — the deal is you just let each other know. Proper ongoing paid work elsewhere isn\'t compatible with a 100% FTE contract as-is: that\'s a conversation — inform the team and renegotiate terms. Same contract also covers IP assignment, NDA, non-compete, non-solicitation.',
+    wrongQuip:'the clause is chill, the disclosure is the point (◕‿◕)' },
+];
+
+const RANKS = [
+  { min: 1,    rank: 'ONBOARDING ANGEL 👼', kao: '☆*:.｡. o(≧▽≦)o .｡.:*☆', sub: 'Literally flawless. The handbook wants YOUR autograph.' },
+  { min: 0.75, rank: 'CERTIFIED BESTIE 💖', kao: '(❁´◡`❁)',                sub: 'So close to perfect!! Retry the missed ones — we believe!!' },
+  { min: 0.5,  rank: 'SOFT LAUNCHED ✿',    kao: '(￣ω￣)',                 sub: 'Halfway home!! The intel boxes are little love letters. Read them.' },
+  { min: 0.25, rank: 'STILL UNPACKING 📦', kao: '(・_・;)',                 sub: 'Moving in takes time!! One more lap, cutie.' },
+  { min: 0,    rank: 'BABY SPROUT 🌱',     kao: '(╥﹏╥)',                   sub: 'Everyone starts somewhere and we are SO glad you started here!!' },
+];
+
+/* ═══════════════ petal rain ═══════════════ */
+const rain = document.getElementById('rain');
+const rctx = rain.getContext('2d');
+const GLYPHS = [...'♡✿🌸💖✨🎀🥜⭐･ﾟ'];
+const PASTELS = ['#FFB7E0', '#E3C8FF', '#FFD9EC', '#FF90E8', '#C9F2D3'];
+let cols = [], fs = 16;
+function sizeRain() {
+  rain.width = innerWidth; rain.height = innerHeight;
+  cols = Array(Math.ceil(innerWidth / (fs * 1.6))).fill(0).map(() => Math.random() * -50);
+}
+sizeRain(); addEventListener('resize', sizeRain);
+setInterval(() => {
+  rctx.fillStyle = 'rgba(255,246,251,0.16)'; rctx.fillRect(0, 0, rain.width, rain.height);
+  rctx.font = fs + 'px monospace';
+  cols.forEach((y, i) => {
+    const ch = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+    rctx.fillStyle = PASTELS[Math.floor(Math.random() * PASTELS.length)];
+    rctx.fillText(ch, i * fs * 1.6, y * fs);
+    cols[i] = y * fs > rain.height && Math.random() > .975 ? 0 : y + 0.5;
+  });
+}, 90);
+
+/* ═══════════════ helpers ═══════════════ */
+const $ = (id) => document.getElementById(id);
+const shuffle = (a) => { const o = [...a]; for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; } return o; };
+function typeLines(el, lines, done) {
+  el.innerHTML = ''; let li = 0;
+  (function nextLine() {
+    if (li >= lines.length) { done && done(); return; }
+    const [cls, text] = lines[li];
+    const div = document.createElement('div');
+    if (cls) div.className = cls;
+    div.classList.add('cursor');
+    el.appendChild(div);
+    let ci = 0;
+    const t = setInterval(() => {
+      div.textContent = text.slice(0, ++ci);
+      if (ci >= text.length) { clearInterval(t); div.classList.remove('cursor'); li++; setTimeout(nextLine, 130); }
+    }, 12);
+  })();
+}
+function heartRain(n) {
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('span');
+    s.className = 'nutfall';
+    const r = Math.random();
+    s.textContent = r < .4 ? '💖' : r < .6 ? '🎀' : r < .8 ? '🥜' : '✨';
+    s.style.left = Math.random() * 100 + 'vw';
+    s.style.animationDelay = (Math.random() * .5) + 's';
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 2400);
+  }
+}
+
+/* ═══════════════ quiz state ═══════════════ */
+let order = [], optionOrders = {}, pos = 0, chosen = null;
+let correctCount = 0, missed = [], streak = 0, bestStreak = 0, points = 0, mascotClicks = 0;
+
+const stages = { start: $('stStart'), play: $('stPlay'), done: $('stDone') };
+function show(name) { Object.entries(stages).forEach(([k, el]) => el.classList.toggle('hidden', k !== name)); }
+
+function beginRun(subset) {
+  const idxs = subset && subset.length ? subset : QUESTIONS.map((_, i) => i);
+  order = LEVEL_ORDER.flatMap((lvl) => shuffle(idxs.filter((i) => QUESTIONS[i].level === lvl)));
+  optionOrders = {};
+  order.forEach((qi) => (optionOrders[qi] = shuffle(QUESTIONS[qi].options.map((_, i) => i))));
+  pos = 0; chosen = null; correctCount = 0; missed = []; streak = 0; bestStreak = 0; points = 0;
+  show('play'); renderQ();
+}
+
+function setMascot(face, sub) { $('mascotFace').textContent = face; $('mascotSub').textContent = sub; }
+
+function renderQ(prevLevel) {
+  const qi = order[pos], q = QUESTIONS[qi];
+  chosen = null;
+  $('prog').textContent = `Q ${pos + 1}/${order.length} ` + '♡'.repeat(pos + 1) + '·'.repeat(Math.max(0, order.length - pos - 1));
+  $('pts').textContent = points;
+  $('combo').classList.toggle('hidden', streak < 3);
+  if (streak >= 3) $('combo').textContent = `BESTIE STREAK x${streak}` + (streak >= 5 ? ' 💅' : '');
+  const chip = $('lvlChip'); chip.textContent = LEVEL_LABEL[q.level] + `  ·  +${LEVEL_POINTS[q.level]}`; chip.className = 'lvl ' + q.level;
+  $('promptLine').textContent = `♡ club@peanut:~$ ./question --level=${q.level} --pressure=none`;
+  $('qText').textContent = q.prompt;
+  $('verdict').innerHTML = ''; $('intel').innerHTML = '';
+  $('btnNext').classList.add('hidden');
+  const opts = $('opts'); opts.innerHTML = ''; opts.classList.remove('shake');
+  optionOrders[qi].forEach((oi) => {
+    const b = document.createElement('button');
+    b.className = 'opt'; b.textContent = '> ' + q.options[oi];
+    b.onclick = () => answer(oi, b);
+    opts.appendChild(b);
+  });
+  if (q.joke) {
+    // the clown option: always rendered LAST, never correct, always tempting
+    const b = document.createElement('button');
+    b.className = 'opt'; b.textContent = '> ' + q.joke;
+    b.onclick = () => answer(-1, b);
+    opts.appendChild(b);
+  }
+  setMascot('(◕‿◕✿)🐿️', '// thinking with u!! we got this');
+  if (prevLevel && prevLevel !== q.level) {
+    const l = document.createElement('div');
+    l.className = 'lvlup'; l.innerHTML = `<span>⬆ LEVEL UP!! ur growing so fast (ノ◕ヮ◕)ノ*:･ﾟ✧</span>`;
+    document.body.appendChild(l); setTimeout(() => l.remove(), 1900);
+  }
+}
+
+function answer(oi, btn) {
+  if (chosen !== null) return;
+  const qi = order[pos], q = QUESTIONS[qi];
+  chosen = oi;
+  const ok = oi === q.correctIndex;
+  [...$('opts').children].forEach((b, k) => {
+    b.disabled = true;
+    const orig = optionOrders[qi][k];
+    if (orig === q.correctIndex) b.classList.add('correct');
+    else if (b === btn) b.classList.add('wrongpick');
+  });
+  if (ok) {
+    correctCount++; streak++; bestStreak = Math.max(bestStreak, streak);
+    const gain = LEVEL_POINTS[q.level] + (streak >= 3 ? STREAK_BONUS : 0);
+    points += gain; $('pts').textContent = points;
+    $('popHost').innerHTML = `<span class="pop">+${gain}</span>`;
+    $('verdict').innerHTML = '<div class="verdict ok">CORRECT!! WE ARE SO PROUD OF YOU ♡\\(≧▽≦)/</div>';
+    setMascot(streak >= 3 ? '(⌐■_■)🐿️💅' : '\\(^ヮ^)/🐿️🎀', streak >= 3 ? '// unstoppable!! iconic!!' : '// yayyy!!');
+    if (streak === 5) heartRain(24); else heartRain(4);
+    if (streak >= 3) { $('combo').classList.remove('hidden'); $('combo').textContent = `BESTIE STREAK x${streak}` + (streak >= 5 ? ' 💅' : ''); }
+  } else if (oi === -1) {
+    missed.push(qi); streak = 0; $('combo').classList.add('hidden');
+    $('opts').classList.add('shake'); $('qPanel').classList.remove('flash-red'); void $('qPanel').offsetWidth; $('qPanel').classList.add('flash-red');
+    $('verdict').innerHTML = '<div class="verdict no">COMEDIAN DETECTED 🤡 hehe. ok but the REAL answer tho ♡</div>';
+    setMascot('(¬‿¬)🐿️', '// we been knew');
+    heartRain(2);
+  } else {
+    missed.push(qi); streak = 0; $('combo').classList.add('hidden');
+    $('opts').classList.add('shake'); $('qPanel').classList.remove('flash-red'); void $('qPanel').offsetWidth; $('qPanel').classList.add('flash-red');
+    $('verdict').innerHTML = '<div class="verdict no">it\'s okay!! growth moment!! (づ｡◕‿◕｡)づ ♡</div>';
+    setMascot('(っ˘̩╭╮˘̩)っ🐿️', '// it\'s ok bestie. read the intel ♡');
+  }
+  let intel = '';
+  if (oi === -1) intel += `<div class="quip">🐿️ we know. it was right there. you had to. (respect. now read the intel ♡)</div>`;
+  else if (!ok && q.wrongQuip) intel += `<div class="quip">🐿️ ${q.wrongQuip}</div>`;
+  intel += `<div class="intel">♡ INTEL: ${q.explanation}</div>`;
+  $('intel').innerHTML = intel;
+  const nb = $('btnNext'); nb.classList.remove('hidden');
+  nb.textContent = pos + 1 >= order.length ? '>> REVEAL MY CLUB RANK <<' : '>> NEXT QUESTION, BESTIE <<';
+}
+
+function next() {
+  if (pos + 1 >= order.length) { finish(); return; }
+  const prevLevel = QUESTIONS[order[pos]].level;
+  pos++; renderQ(prevLevel);
+}
+
+function finish() {
+  show('done');
+  $('resultBlock').classList.add('hidden'); $('doneBtns').classList.add('hidden');
+  const frac = correctCount / order.length;
+  const r = RANKS.find((g) => frac >= g.min) || RANKS[RANKS.length - 1];
+  typeLines($('evalTerm'), [
+    [null, '> mailing your answers to the welcome committee ...'],
+    ['ok', '> measuring handbook love ... ' + Math.round(frac * 100) + '%'],
+    ['warn', '> vibe check: ' + (missed.length === 0 ? 'IMMACULATE. not one wobble.' : missed.length + ' little growth moment(s) — so brave'),],
+    ['ok', '> YOUR CLUB RANK:'],
+  ], () => {
+    $('resultBlock').classList.remove('hidden'); $('doneBtns').classList.remove('hidden');
+    $('finalScore').textContent = `${correctCount}/${order.length}`;
+    $('finalRank').textContent = r.rank;
+    $('finalKao').textContent = r.kao + '  ' + r.sub;
+    $('finalPts').textContent = `⭐ ${points} PTS`;
+    $('finalStreak').textContent = bestStreak >= 3 ? `best bestie streak: x${bestStreak} 💖` : '';
+    const btnRetry = $('btnRetry');
+    btnRetry.classList.toggle('hidden', missed.length === 0);
+    btnRetry.textContent = `⟳ RETRY THE ${missed.length} MISSED (redemption arc!!)`;
+    setMascot(frac >= 0.8 ? '☆*:.o(≧▽≦)o.:*☆🐿️🎀' : frac >= 0.5 ? '(￣ω￣)🐿️' : '(っ˘̩╭╮˘̩)っ🐿️', '// rank logged with love');
+    if (missed.length === 0) heartRain(40);
+  });
+}
+
+/* ═══════════════ share card ═══════════════ */
+async function shareCard(mode) {
+  const c = document.createElement('canvas'); c.width = 1080; c.height = 1080;
+  const x = c.getContext('2d');
+  x.fillStyle = '#FFF6FB'; x.fillRect(0, 0, 1080, 1080);
+  // pastel confetti
+  x.font = '30px monospace';
+  const CONF = ['♡', '✿', '🌸', '💖', '✨', '🎀', '🥜', '⭐'];
+  for (let i = 0; i < 160; i++) {
+    x.fillStyle = PASTELS[Math.floor(Math.random() * PASTELS.length)];
+    x.fillText(CONF[Math.floor(Math.random() * CONF.length)], Math.random() * 1080, Math.random() * 1080);
+  }
+  x.strokeStyle = '#000'; x.lineWidth = 6; x.strokeRect(30, 30, 1020, 1020);
+  x.strokeStyle = '#FF90E8'; x.lineWidth = 3; x.strokeRect(48, 48, 984, 984);
+  x.textAlign = 'center';
+  x.fillStyle = '#000'; x.font = '900 64px Impact, sans-serif';
+  x.shadowColor = '#FF90E8'; x.shadowBlur = 0; x.shadowOffsetX = 4; x.shadowOffsetY = 4;
+  x.fillText('PEANUT WELCOME CLUB', 540, 170);
+  x.shadowOffsetX = 0; x.shadowOffsetY = 0;
+  x.fillStyle = '#7C5CBF'; x.font = '30px monospace';
+  x.fillText('☆*:.｡. o(≧▽≦)o .｡.:*☆ onboarding quiz (❁´◡`❁)', 540, 225);
+  x.fillStyle = '#FF3DA6'; x.font = '900 170px monospace';
+  const frac = correctCount / (order.length || 1);
+  x.fillText(`${correctCount}/${order.length}`, 540, 450);
+  const r = RANKS.find((g) => frac >= g.min) || RANKS[RANKS.length - 1];
+  x.fillStyle = '#000'; x.font = '900 54px Impact, sans-serif';
+  x.fillText(r.rank, 540, 560);
+  x.fillStyle = '#FF3DA6'; x.font = '40px monospace';
+  x.fillText(r.kao, 540, 630);
+  x.fillStyle = '#7C5CBF'; x.font = '700 44px monospace';
+  x.fillText(`⭐ ${points} PTS` + (bestStreak >= 3 ? `  ·  streak x${bestStreak}` : ''), 540, 730);
+  x.fillStyle = '#000'; x.font = '30px monospace';
+  x.fillText('the handbook loves you ♡ close ur threads', 540, 840);
+  x.fillStyle = '#B268C8'; x.font = '26px monospace';
+  x.fillText('peanut.me/onboarding-quiz — join the club ♡', 540, 990);
+  const blob = await new Promise((res) => c.toBlob(res, 'image/png'));
+  try {
+    if (mode === 'copy' && navigator.clipboard && window.ClipboardItem) {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      $('btnCopy').textContent = '📋 COPIED ♡'; setTimeout(() => ($('btnCopy').textContent = '📋 COPY SHARE CARD'), 1600);
+      return;
+    }
+    throw new Error('fallback');
+  } catch {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `peanut-welcome-club-${correctCount}-${order.length}.png`;
+    a.click(); URL.revokeObjectURL(a.href);
+    $('btnDl').textContent = '💾 SAVED ♡'; setTimeout(() => ($('btnDl').textContent = '💾 DOWNLOAD CARD'), 1600);
+  }
+}
+
+/* ═══════════════ chrome: mascot, trail, counter, boot ═══════════════ */
+$('mascot').onclick = () => {
+  mascotClicks++;
+  const faces = ['(｡♥‿♥｡)🐿️🎀', '(ノ◕ヮ◕)ノ*:･ﾟ✧🐿️', '(❁´◡`❁)🐿️', 'ᕕ( ᐛ )ᕗ🐿️', '(￣▽￣)ノ🐿️💖'];
+  setMascot(faces[mascotClicks % faces.length], '// hehe. again again!!');
+  heartRain(mascotClicks % 5 === 0 ? 18 : 2);
+};
+let lastTrail = 0;
+addEventListener('pointermove', (e) => {
+  const now = performance.now();
+  if (now - lastTrail < 60) return; lastTrail = now;
+  const s = document.createElement('span');
+  s.className = 'trail-glyph';
+  s.textContent = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+  s.style.left = e.clientX + 'px'; s.style.top = e.clientY + 'px';
+  document.body.appendChild(s); setTimeout(() => s.remove(), 700);
+});
+(function counter() {
+  const target = 1000000 + Math.floor(Math.random() * 999);
+  let cur = target - 420;
+  const t = setInterval(() => {
+    cur += 21; if (cur >= target) { cur = target; clearInterval(t); }
+    $('visitors').textContent = '#' + cur.toLocaleString();
+  }, 40);
+})();
+typeLines($('bootTerm'), [
+  [null, '> brewing welcome tea .................... done ♡'],
+  [null, '> fluffing your onboarding pillow ........ done ♡'],
+  ['warn', '> scanning for bad vibes ................. NONE FOUND!!'],
+  [null, '> 23 questions · 3 levels · pts + streaks · infinite emotional support'],
+  ['ok', '> WELCOME HOME, ANON ♡ the club has been expecting you'],
+], () => $('btnStart').classList.remove('hidden'));
+</script>
+</body>
+</html>
