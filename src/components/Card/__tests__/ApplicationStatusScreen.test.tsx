@@ -8,8 +8,17 @@
  * rejections without a persisted reason fall back to the body alone.
  */
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
+
+const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 
 // NavHeader reads useAuth; stub it so the presentational screen renders alone.
 jest.mock('@/context/authContext', () => ({
@@ -18,11 +27,10 @@ jest.mock('@/context/authContext', () => ({
 // next/image → plain img so jsdom doesn't choke on the optimizer.
 jest.mock('next/image', () => ({
     __esModule: true,
-    // eslint-disable-next-line @next/next/no-img-element -- test stub, not real markup
     default: (props: Record<string, unknown>) => <img alt={String(props.alt ?? '')} />,
 }))
 
-const REASSURANCE = 'You can still use Peanut freely to deposit, withdraw, and pay with crypto.'
+const REASSURANCE = en.card.status.rejectedBody
 
 describe('ApplicationStatusScreen — rejected', () => {
     it('renders the specific reason above the reassurance body', () => {
@@ -33,7 +41,7 @@ describe('ApplicationStatusScreen — rejected', () => {
                 onContactSupport={jest.fn()}
             />
         )
-        expect(screen.getByText("We couldn't issue you a card")).toBeInTheDocument()
+        expect(screen.getByText(en.card.status.rejectedTitle)).toBeInTheDocument()
         const reason = screen.getByText("Peanut cards aren't available in your state yet.")
         const body = screen.getByText(REASSURANCE)
         // Contract: the specific reason renders ABOVE the reassurance body.

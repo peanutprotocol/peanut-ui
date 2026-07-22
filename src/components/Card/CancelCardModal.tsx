@@ -1,6 +1,7 @@
 'use client'
 import { type FC, useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import Modal from '@/components/Global/Modal'
@@ -23,6 +24,8 @@ interface Props {
 }
 
 const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
+    const t = useTranslations('card')
+    const tCommon = useTranslations('common')
     const [phase, setPhase] = useState<Phase>('confirm')
     const [feedback, setFeedback] = useState('')
     const [error, setError] = useState<string | null>(null)
@@ -64,7 +67,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
             let verifiedWithdrawal: import('@/hooks/wallet/useSignSpendBundle').SignedRainWithdrawal | undefined
             if (spendingPowerUnits > 0n) {
                 if (!smartWalletAddress) {
-                    throw new Error('Wallet not ready — please retry in a moment')
+                    throw new Error(t('errors.walletNotReady'))
                 }
                 // Force collateral-only routing — same pattern as LockCardModal.
                 const artifact = await signSpend({
@@ -74,7 +77,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                     kind: 'CRYPTO_WITHDRAW',
                 })
                 if (artifact.strategy !== 'collateral-only') {
-                    throw new Error('Unexpected withdrawal strategy — please contact support')
+                    throw new Error(t('errors.unexpectedStrategy'))
                 }
                 verifiedWithdrawal = artifact.rainWithdrawal
             }
@@ -83,11 +86,11 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
             setCanceled(true)
             setPhase('feedback')
         } catch (e) {
-            let message = e instanceof Error ? e.message : 'Failed to cancel card'
+            let message = e instanceof Error ? e.message : t('cancel.failed')
             if (e instanceof InsufficientSpendableError) {
-                message = 'Could not return your card balance. Please try again or contact support.'
+                message = t('errors.balanceReturnFailed')
             } else if (e instanceof SessionKeyGrantRequiredError) {
-                message = 'Card authorization failed. Please try again or contact support.'
+                message = t('errors.authorizationFailed')
             }
             setError(message)
             posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_FAILED, { error_message: message })
@@ -139,14 +142,11 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-1">
                             <Icon name="alert" size={20} />
                         </div>
-                        <div className="text-xl font-extrabold">Cancel card?</div>
-                        <p className="text-sm text-grey-1">
-                            This will permanently cancel your card. It won&apos;t work for any transactions. You will
-                            have to request a new one if you change your mind.
-                        </p>
+                        <div className="text-xl font-extrabold">{t('cancel.title')}</div>
+                        <p className="text-sm text-grey-1">{t('cancel.body')}</p>
                         {error && <p className="text-sm text-red">{error}</p>}
                         <SlideToAction
-                            label={phase === 'canceling' ? 'Canceling…' : 'Slide to Cancel'}
+                            label={phase === 'canceling' ? t('cancel.canceling') : t('cancel.slideToCancel')}
                             onComplete={runCancel}
                             disabled={phase === 'canceling'}
                         />
@@ -156,19 +156,17 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-1">
                             <Icon name="alert-filled" size={20} />
                         </div>
-                        <div className="text-xl font-extrabold">Card canceled</div>
-                        <p className="text-sm text-grey-1">
-                            If you change your mind later, you can request another card.
-                        </p>
+                        <div className="text-xl font-extrabold">{t('cancel.canceledTitle')}</div>
+                        <p className="text-sm text-grey-1">{t('cancel.canceledBody')}</p>
                         <div className="flex w-full flex-col gap-2 text-left">
                             <label htmlFor="cancel-feedback" className="text-sm font-bold">
-                                Help us improve our product for you
+                                {t('cancel.feedbackLabel')}
                             </label>
                             <textarea
                                 id="cancel-feedback"
                                 value={feedback}
                                 onChange={(e) => setFeedback(e.target.value)}
-                                placeholder="Why did you cancel the card?"
+                                placeholder={t('cancel.feedbackPlaceholder')}
                                 rows={4}
                                 maxLength={2000}
                                 className="w-full resize-none rounded-sm border border-n-1 bg-white p-3 text-sm focus:outline-none"
@@ -183,17 +181,15 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                             loading={phase === 'submitting-feedback'}
                             disabled={phase === 'submitting-feedback'}
                         >
-                            Submit
+                            {t('cancel.submit')}
                         </Button>
                     </div>
                 ) : (
                     <div className="flex flex-col items-center gap-4 text-center">
-                        <div className="text-xl font-extrabold">Thank you for the feedback</div>
-                        <p className="text-sm text-grey-1">
-                            We appreciate your feedback, it helps us improve the experience of our app.
-                        </p>
+                        <div className="text-xl font-extrabold">{t('cancel.thanksTitle')}</div>
+                        <p className="text-sm text-grey-1">{t('cancel.thanksBody')}</p>
                         <Button variant="purple" shadowSize="4" className="w-full" onClick={handleClose}>
-                            Close
+                            {tCommon('close')}
                         </Button>
                     </div>
                 )}

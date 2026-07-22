@@ -1,6 +1,7 @@
 'use client'
 import { type FC, useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import Image from 'next/image'
@@ -20,6 +21,7 @@ interface Props {
 }
 
 const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
+    const t = useTranslations('card.physical')
     const queryClient = useQueryClient()
     const [joining, setJoining] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -55,7 +57,7 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
             // a stacked second confirmation over the inline status and ended
             // up positioned over the page chrome — see 2026-05-19 screenshot.
         } catch (e) {
-            setError(e instanceof Error ? e.message : 'Failed to join waitlist')
+            setError(e instanceof Error ? e.message : t('joinFailed'))
         } finally {
             setJoining(false)
         }
@@ -63,7 +65,7 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-6">
-            <NavHeader title="Physical card" onPrev={onPrev} />
+            <NavHeader title={t('navTitle')} onPrev={onPrev} />
 
             <CardFace last4={last4} isVirtual={false} />
 
@@ -74,16 +76,14 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
             ) : data?.joinedAt ? (
                 <div className="flex flex-col items-center gap-3 text-center">
                     <Image src={PeanutWalking} unoptimized alt="" aria-hidden className="h-32 w-auto" />
-                    <h1 className="text-xl font-extrabold">You are on the list!</h1>
-                    <p className="text-sm text-grey-1">
-                        {`You are #${data.position} on the list. We'll let you know when cards are ready to be shipped.`}
-                    </p>
+                    <h1 className="text-xl font-extrabold">{t('onListTitle')}</h1>
+                    <p className="text-sm text-grey-1">{t('onListBody', { position: String(data.position) })}</p>
                 </div>
             ) : (
                 <div className="flex flex-col items-center gap-6 text-center">
                     <div className="flex flex-col gap-2">
-                        <h1 className="text-xl font-extrabold">Coming soon!</h1>
-                        <p className="text-sm text-grey-1">Join our waiting list and be amongst the first to get it.</p>
+                        <h1 className="text-xl font-extrabold">{t('comingSoonTitle')}</h1>
+                        <p className="text-sm text-grey-1">{t('comingSoonBody')}</p>
                     </div>
                     {error && <p className="text-sm text-red">{error}</p>}
                     <Button
@@ -94,7 +94,7 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
                         loading={joining}
                         disabled={joining}
                     >
-                        Join waiting list
+                        {t('joinCta')}
                     </Button>
                 </div>
             )}

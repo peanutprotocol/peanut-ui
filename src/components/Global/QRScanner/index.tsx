@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
@@ -71,6 +72,7 @@ function PaymentMethodBadge({ src, alt, name }: { src: string; alt: string; name
 }
 
 function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onToggleCamera: () => void }) {
+    const t = useTranslations('global')
     return (
         <div className="fixed left-0 top-8 z-50 grid w-full grid-flow-col items-center py-2 text-center text-white">
             <Button
@@ -80,7 +82,7 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
             >
                 <Icon name="cancel" size={18} fill="white" />
             </Button>
-            <span className="text-3xl font-extrabold">Scan to pay</span>
+            <span className="text-3xl font-extrabold">{t('qrScanner.scanToPay')}</span>
             <Button
                 variant="transparent-light"
                 className="border-1 mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
@@ -101,6 +103,7 @@ function ScanRegionOverlay({
     detectedAddress: string | null
     onUseDetected: () => void
 }) {
+    const t = useTranslations('global')
     return (
         <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">
             {/* Darkened background with transparent scan region */}
@@ -123,7 +126,7 @@ function ScanRegionOverlay({
                     className="justify mx-auto mt-10 flex items-center gap-1.5 text-center text-white underline underline-offset-2"
                 >
                     <Icon name="paste" fill="white" height={16} width={16} />
-                    <span className="text-sm">Click to paste</span>
+                    <span className="text-sm">{t('qrScanner.clickToPaste')}</span>
                 </button>
                 {detectedAddress && (
                     <button
@@ -140,11 +143,12 @@ function ScanRegionOverlay({
 }
 
 function ErrorView({ message, onClose }: { message: string; onClose: () => void }) {
+    const t = useTranslations('global')
     return (
         <div className="p-4 text-center text-white">
             <p className="text-red-500">{message}</p>
             <button onClick={onClose} className="mt-4 rounded bg-white px-4 py-2 text-black">
-                Close
+                {t('qrScanner.close')}
             </button>
         </div>
     )
@@ -157,6 +161,7 @@ function ErrorView({ message, onClose }: { message: string; onClose: () => void 
 export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerProps) {
     const { error, isPermissionDenied, isScanning, isCameraReady, videoRef, close, toggleCamera, retryCamera } =
         useQRScanner(onScan, onClose, isOpen)
+    const t = useTranslations('global')
     const toast = useToast()
     const [detectedAddress, setDetectedAddress] = useState<string | null>(null)
 
@@ -191,17 +196,17 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
             if (text) {
                 await onScan(text)
             } else {
-                toast.error('Clipboard is empty')
+                toast.error(t('qrScanner.clipboardEmpty'))
             }
         } catch (err) {
             // Android rejects with "There is no data on the clipboard" instead of
             // resolving with an empty value
             const message = err instanceof Error ? err.message : String(err)
             if (message.toLowerCase().includes('no data on the clipboard')) {
-                toast.error('Clipboard is empty')
+                toast.error(t('qrScanner.clipboardEmpty'))
             } else {
                 console.error('Failed to read clipboard:', err)
-                toast.error('Could not access clipboard')
+                toast.error(t('qrScanner.clipboardUnavailable'))
             }
         }
     }
@@ -228,7 +233,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                     {!isCameraReady && (
                         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black">
                             <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                            <span className="text-sm text-white/80">Starting camera…</span>
+                            <span className="text-sm text-white/80">{t('qrScanner.startingCamera')}</span>
                         </div>
                     )}
                     <ScannerControls onClose={close} onToggleCamera={toggleCamera} />

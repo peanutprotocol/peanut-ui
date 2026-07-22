@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import QrScannerLib from 'qr-scanner'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
@@ -96,6 +97,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
     const [isScanning, setIsScanning] = useState(isOpen)
     const [isCameraReady, setIsCameraReady] = useState(false)
 
+    const t = useTranslations('global')
     const toast = useToast()
     const { deviceType } = useDeviceType()
 
@@ -169,43 +171,49 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 const result = await onScan(data)
 
                 if (result.success) {
-                    toast.info('QR code recognized')
+                    toast.info(t('qrScanner.qrRecognized'))
                 } else {
-                    toast.error(result.error || 'QR code processing failed')
+                    toast.error(result.error || t('qrScanner.qrProcessingFailed'))
                     processingQRRef.current = false
                     // Resume scanner on failure so user can try again
                     scannerRef.current?.start()
                 }
             } catch (err) {
                 console.error('Error processing QR code:', err)
-                toast.error('Error processing QR code')
+                toast.error(t('qrScanner.qrProcessingError'))
                 processingQRRef.current = false
                 // Resume scanner on error so user can try again
                 scannerRef.current?.start()
             }
         },
-        [onScan, toast]
+        [onScan, toast, t]
     )
 
     // -------------------------------------------------------------------------
     // Camera Management
     // -------------------------------------------------------------------------
 
-    const getErrorMessage = useCallback((errorName: string, retryCount: number): string | null => {
-        switch (errorName) {
-            case CAMERA_ERRORS.NOT_ALLOWED:
-                return 'Camera permission denied. Please allow camera access in your browser settings.'
-            case CAMERA_ERRORS.NOT_READABLE:
-                if (retryCount < CONFIG.MAX_CAMERA_RETRIES) {
-                    return `Camera is in use by another app. Retrying... (${retryCount + 1}/${CONFIG.MAX_CAMERA_RETRIES})`
-                }
-                return 'Camera remains busy. Please close other apps and try again.'
-            case CAMERA_ERRORS.NOT_FOUND:
-                return 'No camera found on this device.'
-            default:
-                return 'Could not access camera. Please ensure you have granted camera permissions.'
-        }
-    }, [])
+    const getErrorMessage = useCallback(
+        (errorName: string, retryCount: number): string | null => {
+            switch (errorName) {
+                case CAMERA_ERRORS.NOT_ALLOWED:
+                    return t('qrScanner.cameraPermissionDenied')
+                case CAMERA_ERRORS.NOT_READABLE:
+                    if (retryCount < CONFIG.MAX_CAMERA_RETRIES) {
+                        return t('qrScanner.cameraBusyRetrying', {
+                            attempt: retryCount + 1,
+                            maxAttempts: CONFIG.MAX_CAMERA_RETRIES,
+                        })
+                    }
+                    return t('qrScanner.cameraStillBusy')
+                case CAMERA_ERRORS.NOT_FOUND:
+                    return t('qrScanner.cameraNotFound')
+                default:
+                    return t('qrScanner.cameraUnavailable')
+            }
+        },
+        [t]
+    )
 
     const startCamera = useCallback(
         async (preferredCamera: FacingMode = facingMode) => {
@@ -222,7 +230,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     }, CONFIG.VIDEO_ELEMENT_RETRY_DELAY_MS)
                     return
                 }
-                setError('Video element not available')
+                setError(t('qrScanner.cameraStartFailed'))
                 videoElementRetryCountRef.current = 0
                 return
             }
@@ -296,22 +304,23 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 console.log('[QR Scanner] Camera started, ready to scan')
                 setIsCameraReady(true)
                 retryCountRef.current = 0
-            } catch (err: any) {
+            } catch (err) {
                 clearTimeout(startTimeoutId)
                 cleanup()
                 console.error('Error accessing camera:', err)
 
+                const errName = err instanceof Error ? err.name : ''
                 const shouldRetry =
-                    err.name === CAMERA_ERRORS.NOT_READABLE && retryCountRef.current < CONFIG.MAX_CAMERA_RETRIES
+                    errName === CAMERA_ERRORS.NOT_READABLE && retryCountRef.current < CONFIG.MAX_CAMERA_RETRIES
 
                 // treat any non-retryable, non-hardware error as permission denied.
                 // the qr-scanner library may wrap or rename the browser's NotAllowedError.
                 // exclude NOT_READABLE (camera busy) — it has its own "remains busy" error path.
-                if (!shouldRetry && err.name !== CAMERA_ERRORS.NOT_FOUND && err.name !== CAMERA_ERRORS.NOT_READABLE) {
+                if (!shouldRetry && errName !== CAMERA_ERRORS.NOT_FOUND && errName !== CAMERA_ERRORS.NOT_READABLE) {
                     setIsPermissionDenied(true)
                 }
 
-                setError(getErrorMessage(err.name, retryCountRef.current))
+                setError(getErrorMessage(errName, retryCountRef.current))
 
                 if (shouldRetry) {
                     retryCountRef.current++
@@ -323,7 +332,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 }
             }
         },
-        [facingMode, deviceType, cleanup, handleQRScan, getErrorMessage]
+        [facingMode, deviceType, cleanup, handleQRScan, getErrorMessage, t]
     )
 
     const toggleCamera = useCallback(async () => {
@@ -336,9 +345,9 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
             setFacingMode(newFacingMode)
         } catch (err) {
             console.error('Error switching camera:', err)
-            setError('Failed to switch camera. Please try again.')
+            setError(t('qrScanner.cameraSwitchFailed'))
         }
-    }, [facingMode, isScanning])
+    }, [facingMode, isScanning, t])
 
     // -------------------------------------------------------------------------
     // Effects

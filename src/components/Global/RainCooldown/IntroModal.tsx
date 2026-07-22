@@ -1,6 +1,7 @@
 'use client'
 
 import ActionModal from '@/components/Global/ActionModal'
+import { useTranslations } from 'next-intl'
 import { useRainCooldown } from '@/context/RainCooldownContext'
 import DocsLink from '@/components/Global/DocsLink'
 
@@ -10,6 +11,7 @@ import DocsLink from '@/components/Global/DocsLink'
  * the modal hands off to the persistent `RainCooldownFloatingTimer` widget.
  */
 const RainCooldownIntroModal = () => {
+    const t = useTranslations('global')
     const { showIntroModal, dismissIntroModal } = useRainCooldown()
     // Don't gate on cooldownEndsAt — if the cooldown auto-clears while the
     // modal is still open, ActionModal needs its own `visible=false` cycle
@@ -21,16 +23,11 @@ const RainCooldownIntroModal = () => {
             onClose={dismissIntroModal}
             icon="clock"
             iconContainerClassName="bg-yellow-1"
-            title="Please wait"
-            description={
-                <>
-                    Your card needs a short cool-down between back-to-back spends. To avoid this in the future, you can
-                    lower your card limit to be below your wallet balance; the extra will always be available.
-                </>
-            }
+            title={t('rainCooldownIntroModal.title')}
+            description={t('rainCooldownIntroModal.description')}
             ctas={[
                 {
-                    text: 'Got it',
+                    text: t('rainCooldownIntroModal.gotItCta'),
                     variant: 'purple',
                     shadowSize: '4',
                     onClick: dismissIntroModal,
@@ -41,7 +38,7 @@ const RainCooldownIntroModal = () => {
                     href="/en/help/card-collateral"
                     className="block pt-2 text-center text-sm text-black underline"
                 >
-                    Read more
+                    {t('rainCooldownIntroModal.readMore')}
                 </DocsLink>
             }
         />

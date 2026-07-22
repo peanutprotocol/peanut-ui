@@ -13,10 +13,12 @@
  * Strategy: mock every hook and service at the module level, then configure
  * per-test via mockReturnValue / mockImplementation.
  */
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, @typescript-eslint/no-require-imports, react/display-name, @next/next/no-img-element */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react/display-name */
 import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
 
@@ -891,7 +893,11 @@ function createQueryClient() {
 
 function renderWithProviders(component: React.ReactElement) {
     const queryClient = createQueryClient()
-    return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>)
+    return render(
+        <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+            <QueryClientProvider client={queryClient}>{component}</QueryClientProvider>
+        </NextIntlClientProvider>
+    )
 }
 
 // ---------- default mock values ----------
@@ -1155,10 +1161,10 @@ describe('GROUP 3: Crypto Deposit', () => {
             />
         )
 
-        expect(screen.getByText('Oops! Market moved')).toBeInTheDocument()
-        expect(screen.getByText('Try Again')).toBeInTheDocument()
+        expect(screen.getByText(en.addMoney.crypto.marketMovedTitle)).toBeInTheDocument()
+        expect(screen.getByText(en.common.tryAgain)).toBeInTheDocument()
 
-        fireEvent.click(screen.getByText('Try Again'))
+        fireEvent.click(screen.getByText(en.common.tryAgain))
         expect(mockResetStatus).toHaveBeenCalled()
     })
 

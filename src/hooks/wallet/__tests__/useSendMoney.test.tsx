@@ -27,6 +27,11 @@ jest.mock('@/constants/query.consts', () => ({
     SEND_MONEY: 'send-money',
 }))
 
+// No intl provider in these hook tests — echo the key so copy assertions stay stable.
+jest.mock('next-intl', () => ({
+    useTranslations: () => (key: string) => key,
+}))
+
 // Mock the spend-bundle primitive — the hook under test only cares that
 // `spend()` is invoked, returns either resolved or rejected. No kernel
 // client / passkey needed here.
@@ -55,11 +60,9 @@ jest.mock('../../useRainCardOverview', () => ({
 let mockSmartBalance: bigint | undefined
 let mockRainOverview: { balance: { spendingPower: number } | null } | undefined
 
-// eslint-disable-next-line import/first -- must come after jest.mock calls
+// must come after the jest.mock calls above
 import { useSendMoney } from '../useSendMoney'
-// eslint-disable-next-line import/first
 import { TRANSACTIONS } from '@/constants/query.consts'
-// eslint-disable-next-line import/first
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 
 describe('useSendMoney', () => {

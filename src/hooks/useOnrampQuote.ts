@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import { getOnrampQuote, type OnrampQuoteResponse } from '@/app/actions/onramp-quote'
 
 interface UseOnrampQuoteProps {

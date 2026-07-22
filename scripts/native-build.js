@@ -85,7 +85,7 @@ export default function RootRedirect() {
     {
         path: '(mobile-ui)/claim/page.tsx',
         // strip generateMetadata + force-dynamic, keep component render (SEO irrelevant in native)
-        replacement: `import { Claim } from '@/components'
+        replacement: `import { Claim } from '@/components/Claim/Claim'
 
 export default function ClaimPage() {
     return <Claim />

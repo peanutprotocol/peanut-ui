@@ -9,7 +9,16 @@
  * component's own logic is under test.
  */
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, waitFor, type RenderOptions } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
+
+const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={en}>
+        {children}
+    </NextIntlClientProvider>
+)
+const render = (ui: React.ReactElement, options?: RenderOptions) => rtlRender(ui, { wrapper: IntlWrapper, ...options })
 
 const mockCancelOnramp = jest.fn()
 jest.mock('@/app/actions/onramp', () => ({

@@ -51,8 +51,8 @@ export const getCardInfo = async (): Promise<{ data?: CardInfoResponse; error?: 
 
         const data = await response.json()
         return { data }
-    } catch (e: any) {
-        return { error: e.message || 'An unexpected error occurred' }
+    } catch (e) {
+        return { error: e instanceof Error ? e.message : 'An unexpected error occurred' }
     }
 }
 
@@ -76,7 +76,7 @@ export const purchaseCard = async (): Promise<{ data?: CardPurchaseResponse; err
 
         const data = await response.json()
         return { data }
-    } catch (e: any) {
-        return { error: e.message || 'An unexpected error occurred' }
+    } catch (e) {
+        return { error: e instanceof Error ? e.message : 'An unexpected error occurred' }
     }
 }

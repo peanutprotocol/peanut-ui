@@ -17,12 +17,14 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { type PotContributor } from '../ContributePotFlowContext'
 import { useMemo } from 'react'
 import { Users } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 interface ContributorsDrawerProps {
     contributors: PotContributor[]
 }
 
 export function ContributorsDrawer({ contributors }: ContributorsDrawerProps) {
+    const t = useTranslations('payment')
     // map to ContributorCard format
     const contributorCards = useMemo<Contributor[]>(() => {
         return contributors.map((c) => ({
@@ -48,12 +50,14 @@ export function ContributorsDrawer({ contributors }: ContributorsDrawerProps) {
                     variant="transparent"
                     className="h-5 w-fit self-start p-0 text-xs font-normal underline underline-offset-2 active:translate-x-0"
                 >
-                    See all contributors
+                    {t('contributors.seeAll')}
                 </Button>
             </DrawerTrigger>
             <DrawerContent className="py-6">
                 <DrawerHeader>
-                    <DrawerTitle className="text-start">Contributors ({contributors.length})</DrawerTitle>
+                    <DrawerTitle className="text-start">
+                        {t('contributors.title', { count: contributors.length })}
+                    </DrawerTitle>
                 </DrawerHeader>
                 <div className="max-h-[60vh] space-y-0 overflow-auto px-4">
                     {contributorCards.map((contributor, index) => (

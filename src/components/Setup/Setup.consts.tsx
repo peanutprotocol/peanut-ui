@@ -7,9 +7,6 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'unsupported-browser',
         layoutType: 'standard',
-        title: 'Browser Not Supported',
-        description:
-            "Please open Peanut in your device's main browser (Safari, Chrome, Firefox) to continue setup. If you are already in your main browser your device may not support Peanut.",
         image: PEANUTMAN_MOBILE.src,
         component: InstallPWA,
         showBackButton: false,
@@ -19,8 +16,6 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'android-initial-pwa-install',
         layoutType: 'android-initial-pwa-install',
-        title: 'Get the full experience',
-        description: 'Keep your wallet one tap away. Safe, fast, and on your home screen.',
         image: PEANUTMAN_MOBILE.src,
         component: InstallPWA,
         showBackButton: false,
@@ -32,8 +27,6 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'pwa-install',
         layoutType: 'standard',
-        title: 'Install Peanut on your phone',
-        description: 'Please install Peanut on your phone for the best experience!',
         image: PEANUTMAN_MOBILE.src,
         component: InstallPWA,
         showBackButton: false,
@@ -43,8 +36,6 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'landing',
         layoutType: 'signup',
-        title: 'Peanut makes dollars easy.',
-        description: 'Create your wallet in seconds to save, send, or cash out dollars fast.',
         image: PeanutWhistling.src,
         component: LandingStep,
         showBackButton: false,
@@ -54,8 +45,6 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'welcome',
         layoutType: 'signup',
-        title: 'Peanut is invite-only',
-        description: `Who invited you? Enter their username to continue, or join the waitlist and we'll reach out when you're eligible.`,
         image: PeanutPointing.src,
         component: JoinWaitlist,
         showBackButton: true,
@@ -65,8 +54,6 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'signup',
         layoutType: 'signup',
-        title: 'How should we call you?',
-        description: "Choose your username. It'll be your ID to send and receive money.",
         image: PeanutThinking.src,
         component: SignupStep,
         showBackButton: true,
@@ -76,8 +63,6 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'passkey-permission',
         layoutType: 'signup',
-        title: `Let's set up your passkey`,
-        description: `Use your face or fingerprint to log in. No passwords, no hassle. Just you.`,
         image: PeanutTooCool.src,
         component: SetupPasskey,
         showBackButton: true,
@@ -87,8 +72,6 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'sign-test-transaction',
         layoutType: 'signup',
-        title: 'Your account is ready',
-        description: "Just confirm it's you — one tap and you're in.",
         image: PeanutWhistling.src,
         component: SignTestTransaction,
         showBackButton: false,

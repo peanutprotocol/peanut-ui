@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
+import Image from 'next/image'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { MarketingHero } from '@/components/Marketing/MarketingHero'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
@@ -108,7 +109,7 @@ export default async function TeamPage({ params }: PageProps) {
                         return (
                             <Card key={member.slug} className="gap-3 p-6">
                                 {member.image ? (
-                                    <img
+                                    <Image
                                         src={member.image}
                                         alt={member.name}
                                         width={80}

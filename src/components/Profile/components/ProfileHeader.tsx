@@ -1,7 +1,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { BASE_URL } from '@/components/Global/DirectSendQR/utils'
 import { Icon } from '@/components/Global/Icons/Icon'
-import React, { useState } from 'react'
+import React from 'react'
 import { twMerge } from 'tailwind-merge'
 import AvatarWithBadge from '../AvatarWithBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
@@ -33,7 +33,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     // /users/:userId). Rail-approval is unrelated.
     const { isVerified: selfIsIdentityVerified } = useIdentityVerification()
     const isAuthenticatedUserVerified = selfIsIdentityVerified && authenticatedUser?.user.username === username
-    const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const isSelfProfile = authenticatedUser?.user.username?.toLowerCase() === username.toLowerCase()
 
     const profileUrl = `${BASE_URL}/${username}`

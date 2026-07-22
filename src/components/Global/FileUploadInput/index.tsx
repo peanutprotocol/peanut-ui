@@ -3,6 +3,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 //import { checkifImageType, fetchWithSentry } from '@/utils'
 //import * as Sentry from '@sentry/nextjs'
 //import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 //import { Icon } from '../Icons/Icon'
 
@@ -29,6 +30,7 @@ const FileUploadInput = ({
     className,
     onBlur,
 }: IFileUploadInputProps) => {
+    const t = useTranslations('global')
     /*
     const [fileType, setFileType] = useState<string>('')
 
@@ -107,7 +109,7 @@ const FileUploadInput = ({
             </div>
             */}
             <BaseInput
-                placeholder={placeholder ? placeholder : 'Add reference (optional)'}
+                placeholder={placeholder ? placeholder : t('fileUploadInput.addReference')}
                 className={twMerge('pr-12', className)}
                 value={attachmentOptions.message}
                 maxLength={140}

@@ -11,8 +11,10 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useEffect } from 'react'
 import { disableDemoMode } from '@/utils/demo'
 import DocsLink from '@/components/Global/DocsLink'
+import { useTranslations } from 'next-intl'
 
 const LandingStep = () => {
+    const t = useTranslations('setup')
     const { handleNext } = useSetupFlow()
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
@@ -24,10 +26,11 @@ const LandingStep = () => {
         disableDemoMode()
     }, [])
 
-    const handleError = (error: any) => {
-        toast.error(error?.message || 'We couldn’t log you in. Please try again.')
-        Sentry.captureException(error, { extra: { errorCode: error?.code } })
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: error?.code })
+    const handleError = (error: unknown) => {
+        const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
+        toast.error((error instanceof Error && error.message) || t('loginFailed'))
+        Sentry.captureException(error, { extra: { errorCode } })
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: errorCode })
     }
 
     const onLoginClick = async () => {
@@ -49,7 +52,7 @@ const LandingStep = () => {
                         handleNext()
                     }}
                 >
-                    Sign up
+                    {t('landing.signUp')}
                 </Button>
                 <Button
                     loading={isLoggingIn}
@@ -59,14 +62,14 @@ const LandingStep = () => {
                     variant="primary-soft"
                     onClick={onLoginClick}
                 >
-                    Log In
+                    {t('logIn')}
                 </Button>
                 <div className="pt-2 text-center">
                     <DocsLink
                         href="/en/help/account-recovery"
                         className="text-xs text-grey-1 underline underline-offset-2"
                     >
-                        Need to recover your Peanut wallet?
+                        {t('landing.recoverWallet')}
                     </DocsLink>
                 </div>
             </Card.Content>

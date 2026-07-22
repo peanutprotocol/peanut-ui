@@ -12,6 +12,7 @@ import StaleCardApprovalReEnableModal from '@/components/Global/StaleCardApprova
 import BadgeEarnToast from '@/components/Badges/BadgeEarnToast'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
+import { AppIntlProvider } from '@/i18n/app/AppIntlProvider'
 import { PeanutProvider } from '@/config/peanut.config'
 import { ContextProvider } from '@/context/contextProvider'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
@@ -37,33 +38,38 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
         <NuqsAdapter>
             <PeanutProvider>
-                <ContextProvider>
-                    <FooterVisibilityProvider>
-                        <TranslationSafeWrapper>
-                            <ConsoleGreeting />
-                            <ScreenOrientationLocker />
-                            <PeanutDebug />
-                            {/* Mounted here (not in a route-group layout) so the cooldown
+                {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet
+                    → useSendMoney calls useTranslations, so the intl context has to
+                    exist by the time ContextProvider renders. */}
+                <AppIntlProvider>
+                    <ContextProvider>
+                        <FooterVisibilityProvider>
+                            <TranslationSafeWrapper>
+                                <ConsoleGreeting />
+                                <ScreenOrientationLocker />
+                                <PeanutDebug />
+                                {/* Mounted here (not in a route-group layout) so the cooldown
                                 explainer also covers public pay/send/request pages —
                                 the rain:cooldown event fires on every spend path. */}
-                            <RainCooldownIntroModal />
-                            {/* Global recovery prompt: a withdraw refused with 409
+                                <RainCooldownIntroModal />
+                                {/* Global recovery prompt: a withdraw refused with 409
                                 STALE_CARD_APPROVAL (stale session-key approval) fires
                                 RAIN_STALE_APPROVAL_EVENT — mount here so the re-enable
                                 CTA covers every spend path, not just the card screen. */}
-                            <StaleCardApprovalReEnableModal />
-                            {/* Non-intrusive "badge unlocked" toast on /home (TASK-19791).
+                                <StaleCardApprovalReEnableModal />
+                                {/* Non-intrusive "badge unlocked" toast on /home (TASK-19791).
                                 Global so it surfaces wherever the user lands after earning. */}
-                            <BadgeEarnToast />
-                            {HarnessBootstrap && (
-                                <Suspense fallback={null}>
-                                    <HarnessBootstrap />
-                                </Suspense>
-                            )}
-                            {children}
-                        </TranslationSafeWrapper>
-                    </FooterVisibilityProvider>
-                </ContextProvider>
+                                <BadgeEarnToast />
+                                {HarnessBootstrap && (
+                                    <Suspense fallback={null}>
+                                        <HarnessBootstrap />
+                                    </Suspense>
+                                )}
+                                {children}
+                            </TranslationSafeWrapper>
+                        </FooterVisibilityProvider>
+                    </ContextProvider>
+                </AppIntlProvider>
             </PeanutProvider>
         </NuqsAdapter>
     )

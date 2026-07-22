@@ -64,7 +64,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
         } else {
             dispatch(setupActions.setShowIosPwaInstallScreen(false))
         }
-    }, [isPWA, deviceType])
+    }, [isPWA, deviceType, dispatch])
 
     usePullToRefresh()
 

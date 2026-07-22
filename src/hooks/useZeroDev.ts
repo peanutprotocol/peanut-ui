@@ -154,7 +154,7 @@ export const useZeroDev = () => {
             }
             const err = e as Error
             console.error('[useZeroDev] registration failed:', err.name, err.message, err, {
-                shimInstalled: (globalThis as any).__capgoPasskeyShimInstalled,
+                shimInstalled: (globalThis as { __capgoPasskeyShimInstalled?: unknown }).__capgoPasskeyShimInstalled,
             })
             dispatch(zerodevActions.setIsRegistering(false))
             throw e

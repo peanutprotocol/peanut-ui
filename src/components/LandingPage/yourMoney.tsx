@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import { LandingCountries } from '@/assets'
+import LandingCountries from '@/assets/illustrations/landing-countries.svg'
 import { Button } from '@/components/0_Bruddle/Button'
 
 export function YourMoney() {

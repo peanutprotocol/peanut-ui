@@ -13,7 +13,7 @@ interface QuestLeaderboardProps {
     isCurrency?: boolean
 }
 
-export function QuestLeaderboard({ entries, metricLabel, badgeColor, isCurrency = false }: QuestLeaderboardProps) {
+export function QuestLeaderboard({ entries, badgeColor, isCurrency = false }: QuestLeaderboardProps) {
     const router = useRouter()
     const getBadgeColorClasses = (color: string) => {
         switch (color) {

@@ -10,6 +10,8 @@
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
 
@@ -124,7 +126,7 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 
 jest.mock('@/components/0_Bruddle/Divider', () => ({
     __esModule: true,
-    default: (props: any) => <hr data-testid="divider" />,
+    default: (_props: any) => <hr data-testid="divider" />,
 }))
 
 jest.mock('@/components/ActionListCard', () => ({
@@ -191,9 +193,11 @@ function renderSend(params: Record<string, string> = {}) {
     setSearchParams(params)
     const queryClient = createQueryClient()
     return render(
-        <QueryClientProvider client={queryClient}>
-            <SendRouterView />
-        </QueryClientProvider>
+        <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+            <QueryClientProvider client={queryClient}>
+                <SendRouterView />
+            </QueryClientProvider>
+        </NextIntlClientProvider>
     )
 }
 

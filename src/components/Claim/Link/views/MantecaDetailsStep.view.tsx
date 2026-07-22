@@ -8,6 +8,7 @@ import ValidatedInput from '@/components/Global/ValidatedInput'
 import { validateCbuCvuAlias } from '@/utils/withdraw.utils'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { MANTECA_COUNTRIES_CONFIG } from '@/constants/manteca.consts'
+import { useTranslations } from 'next-intl'
 
 interface MantecaDetailsStepProps {
     setCurrentStep: Dispatch<SetStateAction<MercadoPagoStep>>
@@ -20,6 +21,7 @@ const MantecaDetailsStep: FC<MantecaDetailsStepProps> = ({
     destinationAddress,
     setDestinationAddress,
 }) => {
+    const t = useTranslations('claim')
     const handleOnClick = async () => {
         setCurrentStep(MercadoPagoStep.REVIEW)
     }
@@ -43,7 +45,7 @@ const MantecaDetailsStep: FC<MantecaDetailsStepProps> = ({
 
     return (
         <>
-            <p className="font-bold">Enter account details</p>
+            <p className="font-bold">{t('manteca.enterAccountDetails')}</p>
 
             <ValidatedInput
                 value={destinationAddress}
@@ -61,7 +63,7 @@ const MantecaDetailsStep: FC<MantecaDetailsStepProps> = ({
             />
             <div className="flex items-center gap-2 text-xs text-grey-1">
                 <Icon name="info" width={16} height={16} />
-                <span>You can only withdraw to accounts under your name.</span>
+                <span>{t('manteca.ownAccountOnly')}</span>
             </div>
             {errorMessage && <ErrorAlert description={errorMessage} />}
             <Button
@@ -71,7 +73,7 @@ const MantecaDetailsStep: FC<MantecaDetailsStepProps> = ({
                 onClick={() => handleOnClick()}
                 shadowSize="4"
             >
-                Review
+                {t('review')}
             </Button>
         </>
     )

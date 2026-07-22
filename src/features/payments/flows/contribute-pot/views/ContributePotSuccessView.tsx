@@ -13,8 +13,10 @@ import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuc
 import { useContributePotFlow } from '../useContributePotFlow'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { PointsAction } from '@/services/services.types'
+import { useTranslations } from 'next-intl'
 
 export function ContributePotSuccessView() {
+    const t = useTranslations('payment')
     const { usdAmount, recipient, attachment, charge, payment, resetContributePotFlow, isExternalWalletPayment } =
         useContributePotFlow()
 
@@ -30,7 +32,7 @@ export function ContributePotSuccessView() {
     return (
         <PaymentSuccessView
             type="SEND"
-            headerTitle="Contribute"
+            headerTitle={t('headers.contribute')}
             recipientType="USERNAME"
             user={recipient ? { username: recipient.username, fullName: recipient.fullName } : undefined}
             usdAmount={usdAmount}

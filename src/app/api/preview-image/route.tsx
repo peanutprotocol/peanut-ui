@@ -1,6 +1,3 @@
-import { LinkPreviewImg, PreviewType } from '@/components/Global/ImageGeneration/LinkPreview'
-import { ImageResponse } from 'next/og'
-import { isAddress } from 'viem'
 import { NextResponse } from 'next/server'
 
 export const runtime = 'edge'

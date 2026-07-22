@@ -12,7 +12,7 @@
 
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { fetchWithSentry } from '@/utils/sentry.utils'
-import { getAuthHeaders } from '@/utils/auth-token'
+import { getAuthHeaders, authReady } from '@/utils/auth-token'
 import type { Address } from 'viem'
 
 export type RhinoTransferContext = 'withdraw' | 'pay-request' | 'claim-xchain'
@@ -73,6 +73,7 @@ export interface SdaPreviewResult {
 }
 
 async function postRhino<TReq, TRes>(path: string, body: TReq, errorLabel: string): Promise<TRes> {
+    await authReady()
     const response = await fetchWithSentry(`${PEANUT_API_URL}${path}`, {
         method: 'POST',
         headers: {

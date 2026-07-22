@@ -7,6 +7,7 @@ import { Drawer, DrawerContent, DrawerTitle } from '../Global/Drawer'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useCallback } from 'react'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { useTranslations } from 'next-intl'
 
 interface KycStatusDrawerProps {
     isOpen: boolean
@@ -21,6 +22,7 @@ interface KycStatusDrawerProps {
 // useMultiPhaseKycFlow plumbing.
 export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDrawerProps) => {
     const { identity, status } = useIdentityVerification()
+    const t = useTranslations('kyc')
 
     // close drawer and release the keep-mounted hold
     const handleFlowDone = useCallback(() => {
@@ -84,7 +86,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
         <>
             <Drawer open={isOpen} onOpenChange={onClose}>
                 <DrawerContent className="p-5 pb-12">
-                    <DrawerTitle className="sr-only">KYC Status</DrawerTitle>
+                    <DrawerTitle className="sr-only">{t('statusDrawerTitle')}</DrawerTitle>
                     {renderContent()}
                     {sumsubFlow.error && <p className="text-red-500 mt-3 text-center text-sm">{sumsubFlow.error}</p>}
                 </DrawerContent>

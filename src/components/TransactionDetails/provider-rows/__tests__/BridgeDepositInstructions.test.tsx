@@ -9,7 +9,16 @@
  * confusion. Nested primitives are stubbed.
  */
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen, type RenderOptions } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
+
+const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={en}>
+        {children}
+    </NextIntlClientProvider>
+)
+const render = (ui: React.ReactElement, options?: RenderOptions) => rtlRender(ui, { wrapper: IntlWrapper, ...options })
 
 jest.mock('@/components/Payment/PaymentInfoRow', () => ({
     PaymentInfoRow: ({ label, value }: { label: React.ReactNode; value: React.ReactNode }) => (

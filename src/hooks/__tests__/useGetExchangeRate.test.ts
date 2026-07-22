@@ -2,7 +2,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 
 // `getExchangeRate` performs a server fetch in real use. We mock it to capture
 // whether it was called — the regression test for PEANUT-UI-QHR is that

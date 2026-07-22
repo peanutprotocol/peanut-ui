@@ -4,7 +4,7 @@ import React, { createContext, useMemo, useState } from 'react'
 import type { LoadingStates } from '@/constants/loadingStates.consts'
 export const loadingStateContext = createContext({
     loadingState: '' as LoadingStates,
-    setLoadingState: (state: LoadingStates) => {},
+    setLoadingState: (_state: LoadingStates) => {},
     isLoading: false as boolean,
 })
 

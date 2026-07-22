@@ -1,6 +1,9 @@
 import mantecaIphone from '@/assets/iphone-ss/manteca_ss.webp'
 import Image from 'next/image'
-import { MEPA_ARGENTINA_LOGO, PIX_BRZ_LOGO, Star } from '@/assets'
+import Link from 'next/link'
+import MEPA_ARGENTINA_LOGO from '@/assets/logos/mepa-arg.svg'
+import PIX_BRZ_LOGO from '@/assets/logos/pix-brz.svg'
+import Star from '@/assets/illustrations/star.svg'
 import { CloudsCss } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 
@@ -32,7 +35,7 @@ const Manteca = () => {
                         x="5px"
                         rotate={config.rotate}
                     >
-                        <img src={Star.src} alt="" width={50} height={50} />
+                        <Image src={Star} alt="" width={50} height={50} />
                     </AnimateOnView>
                 ))}
             </div>
@@ -56,25 +59,25 @@ const Manteca = () => {
                 <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
 
                 <div className="flex gap-8">
-                    <a href="/en/pay-with/mercadopago" aria-label="How MercadoPago QR works">
+                    <Link href="/en/pay-with/mercadopago" aria-label="How MercadoPago QR works">
                         <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={100} height={100} />
-                    </a>
-                    <a href="/en/pay-with/pix" aria-label="How PIX works without a CPF">
+                    </Link>
+                    <Link href="/en/pay-with/pix" aria-label="How PIX works without a CPF">
                         <Image src={PIX_BRZ_LOGO} alt="Pix Brz" width={100} height={100} />
-                    </a>
+                    </Link>
                 </div>
             </div>
 
             {/* Desktop layout */}
             <div className="mx-auto mt-12 hidden flex-col items-center justify-center gap-8 md:flex">
                 <div className="flex items-center justify-center gap-20 lg:gap-36">
-                    <a href="/en/pay-with/mercadopago" aria-label="How MercadoPago QR works">
+                    <Link href="/en/pay-with/mercadopago" aria-label="How MercadoPago QR works">
                         <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={170} height={170} />
-                    </a>
+                    </Link>
                     <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
-                    <a href="/en/pay-with/pix" aria-label="How PIX works without a CPF">
+                    <Link href="/en/pay-with/pix" aria-label="How PIX works without a CPF">
                         <Image src={PIX_BRZ_LOGO} alt="Pix Brazil" width={170} height={170} />
-                    </a>
+                    </Link>
                 </div>
 
                 <p className="font-roboto-flex text-center text-sm opacity-70">

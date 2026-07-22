@@ -17,11 +17,14 @@ import { saveToCookie } from '@/utils/general.utils'
 import { useLogin } from '@/hooks/useLogin'
 import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 import posthog from 'posthog-js'
+import { useTranslations } from 'next-intl'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { profileUrl } from '@/utils/native-routes'
 import { OFFRAMP_BADGE_CODE, classifyBareCampaign, resolveCampaign } from './campaign-maps'
 
 function InvitePageContent() {
+    const t = useTranslations('invites')
+    const tSetup = useTranslations('setup')
     const searchParams = useSearchParams()
     // trim trailing '?' from invite code to handle qr codes with ? at the end
     const inviteCode = searchParams.get('code')?.toLowerCase().replace(/\?+$/, '')
@@ -177,9 +180,9 @@ function InvitePageContent() {
         return (
             <div className="my-auto flex h-[100dvh] w-screen flex-col items-center justify-center space-y-4 px-6">
                 <ValidationErrorView
-                    title="Invalid Invite Code"
-                    message="The invite code you are trying to use is invalid. Please check the URL and try again."
-                    buttonText="Join waitlist"
+                    title={t('invalidCodeTitle')}
+                    message={t('invalidCodeMessage')}
+                    buttonText={tSetup('waitlist.joinWaitlist')}
                     redirectTo="/setup"
                 />
             </div>
@@ -190,17 +193,17 @@ function InvitePageContent() {
     // (touched_grass — claimable but no skip), and the default inviter-code screen.
     const isVanityClaim = isBareClaimCampaign && !isWaitlistSkip
     const title = isWaitlistSkip
-        ? "You're skipping the waitlist"
+        ? t('skipTitle')
         : isVanityClaim
-          ? 'Claim your badge'
-          : `${inviteCodeData?.username} invited you to Peanut`
+          ? t('vanityTitle')
+          : t('inviterTitle', { username: inviteCodeData?.username ?? '' })
     const description = isWaitlistSkip
-        ? 'Someone at Peanut wants you in. Create your wallet and walk straight past the line — no invite code, no queue.'
+        ? t('skipDescription')
         : isVanityClaim
-          ? 'You earned a Peanut badge. To claim it, sign up or log in.'
-          : 'Members-only access. Use this invite to open your wallet and start sending and receiving money globally.'
-    const ctaLabel = isWaitlistSkip ? 'Claim your Skip Pass' : isVanityClaim ? 'Sign up' : 'Claim your spot'
-    const loginLabel = isVanityClaim ? 'Log in' : 'Already have an account? Log in!'
+          ? t('vanityDescription')
+          : t('inviterDescription')
+    const ctaLabel = isWaitlistSkip ? t('skipCta') : isVanityClaim ? t('vanityCta') : t('inviterCta')
+    const loginLabel = isVanityClaim ? t('logIn') : t('alreadyHaveAccount')
 
     return (
         <InvitesPageLayout image={PeanutWavingHello.src}>

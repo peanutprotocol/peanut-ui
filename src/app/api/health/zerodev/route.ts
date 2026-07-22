@@ -34,7 +34,20 @@ export async function GET() {
             )
         }
 
-        const results: any = {
+        type ProbeResult = {
+            status?: string
+            responseTime?: number
+            httpStatus?: number
+            entryPoints?: unknown
+            chainId?: unknown
+            message?: string
+            error?: string
+        }
+
+        const results: {
+            arbitrum: { bundler: ProbeResult; paymaster: ProbeResult }
+            configuration: Record<string, string>
+        } = {
             arbitrum: { bundler: {}, paymaster: {} },
             configuration: {
                 projectId: 'configured',

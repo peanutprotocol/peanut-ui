@@ -20,9 +20,12 @@ import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentR
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAuth } from '@/context/authContext'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { ErrorHandler } from '@/utils/friendly-error.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
+import { useTranslations } from 'next-intl'
 
 export function useDirectSendFlow() {
+    const t = useTranslations('payment')
+    const toFriendlyError = useFriendlyError()
     const {
         amount,
         setAmount,
@@ -109,7 +112,7 @@ export function useDirectSendFlow() {
     // execute the payment (called from input view)
     const executePayment = useCallback(async () => {
         if (!recipient || !amount || !walletAddress) {
-            setError({ showError: true, errorMessage: 'missing required data' })
+            setError({ showError: true, errorMessage: t('errors.missingData') })
             return
         }
 
@@ -164,7 +167,7 @@ export function useDirectSendFlow() {
             setIsSuccess(true)
             setCurrentView('STATUS')
         } catch (err) {
-            const errorMessage = ErrorHandler(err)
+            const errorMessage = toFriendlyError(err)
             setError({ showError: true, errorMessage })
         } finally {
             setIsLoading(false)
@@ -186,6 +189,8 @@ export function useDirectSendFlow() {
         setError,
         setIsLoading,
         clearError,
+        toFriendlyError,
+        t,
     ])
 
     return {

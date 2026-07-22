@@ -3,7 +3,7 @@
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
 import { type CountryData } from '@/components/AddMoney/consts'
 import { type IOnrampData } from './OnrampFlowContext'
-import { type CounterpartyUser } from '@/interfaces'
+import { type CounterpartyUser } from '@/interfaces/interfaces'
 
 export enum RequestFulfillmentBankFlowStep {
     BankCountryList = 'bank-country-list',

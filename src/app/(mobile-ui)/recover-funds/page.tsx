@@ -3,7 +3,7 @@
 import NavHeader from '@/components/Global/NavHeader'
 import ScrollableList from '@/components/Global/TokenSelector/Components/ScrollableList'
 import TokenListItem from '@/components/Global/TokenSelector/Components/TokenListItem'
-import { type IUserBalance } from '@/interfaces'
+import { type IUserBalance } from '@/interfaces/interfaces'
 import { useState, useEffect, useCallback, useContext } from 'react'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { fetchWalletBalances } from '@/services/tokens-price'
@@ -21,11 +21,13 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import { erc20Abi, parseUnits, encodeFunctionData, formatUnits } from 'viem'
 import type { Address, Hash, TransactionReceipt } from 'viem'
 import { useRouter } from 'next/navigation'
-import { loadingStateContext } from '@/context'
+import { loadingStateContext } from '@/context/loadingStates.context'
 import { captureException } from '@sentry/nextjs'
 import { mainnet, base, linea } from 'viem/chains'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { useFormatter, useTranslations } from 'next-intl'
+import { loadingStateKey } from '@/i18n/app/loading-states'
 
 // Helper function to check if a token is native ETH
 const isNativeToken = (tokenAddress: string): boolean => {
@@ -57,6 +59,10 @@ export default function RecoverFundsPage() {
     const { address: peanutAddress, sendTransactions } = useWallet()
     const router = useRouter()
     const { loadingState, isLoading } = useContext(loadingStateContext)
+    const t = useTranslations('recoverFunds')
+    const tCommon = useTranslations('common')
+    const tLoading = useTranslations('loadingStates')
+    const format = useFormatter()
 
     useEffect(() => {
         if (!peanutAddress) return
@@ -154,27 +160,26 @@ export default function RecoverFundsPage() {
             // Handle specific error cases
             const errorMessage = error instanceof Error ? error.message : String(error)
             if (errorMessage.includes('No client found')) {
-                const chainName = getChainName(selectedBalance.chainId) ?? `chain ${selectedBalance.chainId}`
-                setErrorMessage(
-                    `Recovery not yet available for ${chainName}. Please contact support or try again later.`
-                )
+                const chainName =
+                    getChainName(selectedBalance.chainId) ?? t('unknownChain', { chainId: selectedBalance.chainId })
+                setErrorMessage(t('recoveryUnavailable', { chain: chainName }))
             } else if (errorMessage.includes('session has expired')) {
-                setErrorMessage('Your session has expired. Please refresh the page and try again.')
+                setErrorMessage(t('sessionExpired'))
             } else {
-                setErrorMessage('Error sending transaction, please try again')
+                setErrorMessage(t('sendFailed'))
             }
             setIsSigning(false)
             return
         }
         if (receipt !== null && isTxReverted(receipt)) {
-            setErrorMessage('Transaction reverted, please try again')
+            setErrorMessage(t('txReverted'))
             setIsSigning(false)
             return
         }
         setTxHash(receipt?.transactionHash ?? userOpHash)
         setStatus('final')
         setIsSigning(false)
-    }, [selectedBalance, recipient.address, sendTransactions])
+    }, [selectedBalance, recipient.address, sendTransactions, peanutAddress, t])
 
     if (!peanutAddress) return null
 
@@ -189,7 +194,7 @@ export default function RecoverFundsPage() {
     } else if (status === 'review') {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
-                <NavHeader title="Recover Funds" onPrev={reset} />
+                <NavHeader title={t('title')} onPrev={reset} />
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
                     <Card className="flex items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
@@ -200,7 +205,7 @@ export default function RecoverFundsPage() {
                             >
                                 <Image
                                     src={selectedBalance!.logoURI}
-                                    alt={`${selectedBalance!.symbol} logo`}
+                                    alt={t('tokenLogoAlt', { symbol: selectedBalance!.symbol })}
                                     width={24}
                                     height={24}
                                     className="rounded-full"
@@ -210,11 +215,16 @@ export default function RecoverFundsPage() {
 
                         <div className="space-y-1">
                             <h1 className="text-sm font-normal text-grey-1">
-                                You will receive to <AddressLink address={recipient.address} />
+                                {t('youWillReceiveTo')} <AddressLink address={recipient.address} />
                             </h1>
                             <h2 className="text-2xl font-extrabold">
-                                {selectedBalance!.amount} {selectedBalance!.symbol} in{' '}
-                                {getChainName(selectedBalance!.chainId) ?? `Chain ${selectedBalance!.chainId}`}
+                                {t('amountInChain', {
+                                    amount: format.number(selectedBalance!.amount, { maximumFractionDigits: 8 }),
+                                    symbol: selectedBalance!.symbol,
+                                    chain:
+                                        getChainName(selectedBalance!.chainId) ??
+                                        t('unknownChain', { chainId: selectedBalance!.chainId }),
+                                })}
                             </h2>
                         </div>
                     </Card>
@@ -226,7 +236,7 @@ export default function RecoverFundsPage() {
                         loading={isLoading || isSigning}
                         className="w-full"
                     >
-                        {isLoading ? loadingState : 'Confirm'}
+                        {isLoading ? tLoading(loadingStateKey(loadingState)) : tCommon('confirm')}
                     </Button>
                 </div>
             </div>
@@ -246,7 +256,7 @@ export default function RecoverFundsPage() {
                             >
                                 <Image
                                     src={selectedBalance!.logoURI}
-                                    alt={`${selectedBalance!.symbol} logo`}
+                                    alt={t('tokenLogoAlt', { symbol: selectedBalance!.symbol })}
                                     width={24}
                                     height={24}
                                     className="rounded-full"
@@ -256,11 +266,16 @@ export default function RecoverFundsPage() {
 
                         <div className="space-y-1">
                             <h1 className="text-sm font-normal text-grey-1">
-                                Sent to <AddressLink address={recipient.address} />
+                                {t('sentTo')} <AddressLink address={recipient.address} />
                             </h1>
                             <h2 className="text-2xl font-extrabold">
-                                {selectedBalance!.amount} {selectedBalance!.symbol} in{' '}
-                                {getChainName(selectedBalance!.chainId) ?? `Chain ${selectedBalance!.chainId}`}
+                                {t('amountInChain', {
+                                    amount: format.number(selectedBalance!.amount, { maximumFractionDigits: 8 }),
+                                    symbol: selectedBalance!.symbol,
+                                    chain:
+                                        getChainName(selectedBalance!.chainId) ??
+                                        t('unknownChain', { chainId: selectedBalance!.chainId }),
+                                })}
                             </h2>
                             <a
                                 href={`${getExplorerUrl(selectedBalance!.chainId)}/tx/${txHash}`}
@@ -268,7 +283,7 @@ export default function RecoverFundsPage() {
                                 rel="noreferrer"
                                 className="flex items-center gap-2 hover:underline"
                             >
-                                <span>View on explorer</span>
+                                <span>{t('viewOnExplorer')}</span>
                                 <Icon name="external-link" size={24} />
                             </a>
                         </div>
@@ -281,7 +296,7 @@ export default function RecoverFundsPage() {
                         }}
                         className="w-full"
                     >
-                        Go to home
+                        {t('goToHome')}
                     </Button>
                     <Button
                         variant="stroke"
@@ -300,7 +315,7 @@ export default function RecoverFundsPage() {
                         }}
                         className="w-full"
                     >
-                        Recover other token
+                        {t('recoverOtherToken')}
                     </Button>
                 </div>
             </div>
@@ -309,9 +324,9 @@ export default function RecoverFundsPage() {
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">
-            <NavHeader title="Recover Funds" />
+            <NavHeader title={t('title')} />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                <h1> Select a token to recover </h1>
+                <h1>{t('selectToken')}</h1>
                 <ScrollableList>
                     {tokenBalances.length > 0 ? (
                         tokenBalances.map((balance) => (
@@ -330,12 +345,12 @@ export default function RecoverFundsPage() {
                         ))
                     ) : (
                         <div className="flex h-full w-full items-center justify-center">
-                            <div className="text-center text-xl font-bold text-grey-1">No tokens to recover</div>
+                            <div className="text-center text-xl font-bold text-grey-1">{t('noTokens')}</div>
                         </div>
                     )}
                 </ScrollableList>
                 <GeneralRecipientInput
-                    placeholder="Enter the address where you want to receive the funds"
+                    placeholder={t('recipientPlaceholder')}
                     recipient={recipient}
                     onUpdate={(update: GeneralRecipientUpdate) => {
                         setRecipient(update.recipient)
@@ -359,7 +374,7 @@ export default function RecoverFundsPage() {
                     loading={false}
                     className="w-full"
                 >
-                    Review
+                    {t('review')}
                 </Button>
                 {!!errorMessage && <ErrorAlert description={errorMessage} />}
             </div>

@@ -19,6 +19,7 @@ import EasterEggModal, { EASTER_EGG_COUNTRIES } from '@/components/Global/Easter
 import StatusBadge from '../Global/Badges/StatusBadge'
 import Loading from '../Global/Loading'
 import { useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { ActionListCard } from '../ActionListCard'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 
@@ -72,6 +73,7 @@ export const CountryList = ({
     enforceSupportedCountries,
     showLoadingState = true, // true by default to show loading state when clicking a country
 }: CountryListViewProps) => {
+    const t = useTranslations('global')
     const searchParams = useSearchParams()
     // get currencyCode from search params
     const currencyCode = searchParams.get('currencyCode')
@@ -138,7 +140,7 @@ export const CountryList = ({
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onClear={() => setSearchTerm('')}
-                    placeholder="Search country"
+                    placeholder={t('countryList.searchPlaceholder')}
                 />
             </div>
             {isGeoLoading ? (
@@ -149,11 +151,15 @@ export const CountryList = ({
                         <div className="mb-2">
                             <ActionListCard
                                 key="crypto"
-                                title={flow === 'withdraw' ? 'Crypto' : 'Crypto Deposit'}
+                                title={
+                                    flow === 'withdraw'
+                                        ? t('countryList.cryptoWithdrawTitle')
+                                        : t('countryList.cryptoDepositTitle')
+                                }
                                 description={
                                     flow === 'add'
-                                        ? 'Use an exchange or your wallet'
-                                        : 'Withdraw to a wallet or exchange'
+                                        ? t('countryList.cryptoDepositDescription')
+                                        : t('countryList.cryptoWithdrawDescription')
                                 }
                                 onClick={() => onCryptoClick(flow!)}
                                 position={'single'}
@@ -230,7 +236,7 @@ export const CountryList = ({
                                         <div className="relative h-8 w-8">
                                             <Image
                                                 src={getFlagUrl(twoLetterCountryCode)}
-                                                alt={`${country.title} flag`}
+                                                alt={t('countryList.flagAlt', { country: country.title })}
                                                 width={80}
                                                 height={80}
                                                 className="h-8 w-8 rounded-full object-cover"
@@ -248,8 +254,8 @@ export const CountryList = ({
                         })
                     ) : (
                         <EmptyState
-                            title="No results found"
-                            description="Try searching with a different term."
+                            title={t('countryList.noResultsTitle')}
+                            description={t('countryList.noResultsDescription')}
                             icon="search"
                         />
                     )}

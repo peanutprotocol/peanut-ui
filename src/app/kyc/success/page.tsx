@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import Image from 'next/image'
-import { HandThumbsUp } from '@/assets'
+import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 
 /*
 This page is just to let users know that their KYC was successful. Incase there's some issue with webosckets closing the modal, ideally this should not happen but added this as fallback guide

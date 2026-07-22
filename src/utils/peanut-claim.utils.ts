@@ -5,7 +5,7 @@
  *  is supported.
  */
 
-import { keccak256, encodePacked, toBytes, type Abi } from 'viem'
+import { keccak256, encodePacked, toBytes, encodeFunctionData, parseUnits, type Abi } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import type { Address, Hex } from 'viem'
 
@@ -101,7 +101,6 @@ export function prepareRequestLinkFulfillmentTransaction(opts: {
     tokenDecimals: number
     tokenType: number
 }): { unsignedTx: { to: Address; data?: Hex; value?: bigint; from?: Address } } {
-    const { encodeFunctionData, parseUnits } = require('viem') as typeof import('viem')
     const amount = parseUnits(String(opts.tokenAmount), opts.tokenDecimals)
     if (opts.tokenType === 0) {
         // Native — send to recipient with no calldata.

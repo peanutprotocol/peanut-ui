@@ -90,7 +90,7 @@ export function getDateGroup(date: Date, today: Date = new Date()): DateGroup {
  * @param today the current date (optional).
  * @returns a formatted date string for the header.
  */
-export function formatGroupHeaderDate(date: Date, group: DateGroup, today: Date = new Date()): string {
+export function formatGroupHeaderDate(date: Date, group: DateGroup, _today: Date = new Date()): string {
     switch (group) {
         case DateGroup.Today:
             return 'today'

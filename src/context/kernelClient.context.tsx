@@ -424,7 +424,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 logoutUser()
             }
         }
-    }, [user?.user.userId, logoutUser, clearClients])
+    }, [user?.user.userId, logoutUser, clearClients, dispatch])
 
     useEffect(() => {
         if (user?.user.userId && !!webAuthnKey) {
@@ -474,7 +474,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         return () => {
             cancelled = true
         }
-    }, [user?.user.userId])
+    }, [user?.user.userId, dispatch])
 
     useEffect(() => {
         let isMounted = true
@@ -579,7 +579,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         if (peanutClient) {
             dispatch(zerodevActions.setAddress(peanutClient.account!.address))
         }
-    }, [clientsByChain])
+    }, [clientsByChain, dispatch])
 
     // Refuse to hand out a kernel client whose smart-account address doesn't
     // match the logged-in user, then force a clean re-auth. On a shared device

@@ -9,13 +9,41 @@ import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'reac
 import { Icon, type IconName } from '../Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
 
+export interface ExchangeRateWidgetLabels {
+    youSend: string
+    recipientGets: string
+    swapCurrencies: string
+    rateUnavailable: string
+    bankFee: string
+    peanutFee: string
+    free: string
+    arrivesHours: string
+    arrivesMinutes: string
+}
+
+// English defaults keep marketing callers (landing page, MDX) unchanged;
+// product-UI callers pass translated labels.
+const DEFAULT_LABELS: ExchangeRateWidgetLabels = {
+    youSend: 'You Send',
+    recipientGets: 'Recipient Gets',
+    swapCurrencies: 'Swap currencies',
+    rateUnavailable: 'Rate currently unavailable',
+    bankFee: 'Bank fee',
+    peanutFee: 'Peanut fee',
+    free: 'Free!',
+    arrivesHours: 'Should arrive in hours.',
+    arrivesMinutes: 'Should arrive in minutes.',
+}
+
 interface IExchangeRateWidgetProps {
     ctaLabel: string
     ctaIcon: IconName
     ctaAction: (sourceCurrency: string, destinationCurrency: string) => void
+    labels?: Partial<ExchangeRateWidgetLabels>
 }
 
-const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, ctaAction }) => {
+const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, ctaAction, labels }) => {
+    const l = { ...DEFAULT_LABELS, ...labels }
     // shallow + history:'replace' uses window.history.replaceState — bypasses
     // Next.js navigation so URL updates don't (occasionally) scroll the page
     // to the top through the parent Suspense boundary.
@@ -163,14 +191,12 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     )
 
     // Determine delivery time text based on destination currency
-    const deliveryTimeText = useMemo(() => {
-        return destinationCurrency === 'USD' ? 'Should arrive in hours.' : 'Should arrive in minutes.'
-    }, [destinationCurrency])
+    const deliveryTimeText = destinationCurrency === 'USD' ? l.arrivesHours : l.arrivesMinutes
 
     return (
         <div className="btn btn-shadow-primary-4 mx-auto mt-12 flex h-fit w-full flex-col items-center justify-center gap-4 bg-white p-7 md:w-[420px]">
             <div className="w-full">
-                <h2 className="text-left text-sm">You Send</h2>
+                <h2 className="text-left text-sm">{l.youSend}</h2>
                 <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
                     {showLoading ? (
                         <div className="flex w-full items-center">
@@ -218,13 +244,13 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
             <button
                 onClick={swapCurrencies}
                 className="flex h-8 w-8 items-center justify-center self-center rounded-full hover:bg-grey-4"
-                aria-label="Swap currencies"
+                aria-label={l.swapCurrencies}
             >
                 <Icon name="arrow-exchange" size={18} className="rotate-90 transition-transform duration-300" />
             </button>
 
             <div className="w-full">
-                <h2 className="text-left text-sm">Recipient Gets</h2>
+                <h2 className="text-left text-sm">{l.recipientGets}</h2>
                 <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
                     {showLoading ? (
                         <div className="flex w-full items-center">
@@ -278,7 +304,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                 {showLoading ? (
                     <div className="mx-auto h-3 w-28 animate-pulse rounded-full bg-grey-2" />
                 ) : isError ? (
-                    <span>Rate currently unavailable</span>
+                    <span>{l.rateUnavailable}</span>
                 ) : (
                     <>
                         1 {sourceCurrency} = {exchangeRate.toFixed(4)} {destinationCurrency}
@@ -289,13 +315,13 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
             {typeof destinationAmount === 'number' && destinationAmount > 0 && (
                 <div className="flex w-full flex-col gap-3 rounded-sm border-[1.15px] border-black px-4 py-2">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-left text-sm font-normal">Bank fee</h2>
-                        <h2 className="text-left text-sm font-normal">Free!</h2>
+                        <h2 className="text-left text-sm font-normal">{l.bankFee}</h2>
+                        <h2 className="text-left text-sm font-normal">{l.free}</h2>
                     </div>
 
                     <div className="flex items-center justify-between">
-                        <h2 className="text-left text-sm font-normal">Peanut fee</h2>
-                        <h2 className="text-left text-sm font-normal">Free!</h2>
+                        <h2 className="text-left text-sm font-normal">{l.peanutFee}</h2>
+                        <h2 className="text-left text-sm font-normal">{l.free}</h2>
                     </div>
                 </div>
             )}

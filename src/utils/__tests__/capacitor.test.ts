@@ -13,12 +13,12 @@ describe('capacitor utils', () => {
     beforeEach(() => {
         jest.resetModules()
         process.env = { ...originalEnv }
-        delete (window as any).Capacitor
+        delete window.Capacitor
     })
 
     afterEach(() => {
         process.env = originalEnv
-        delete (window as any).Capacitor
+        delete window.Capacitor
     })
 
     describe('isCapacitor', () => {
@@ -29,7 +29,7 @@ describe('capacitor utils', () => {
         })
 
         it('should return true when running on a native platform', () => {
-            ;(window as any).Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
+            window.Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
             ;({ isCapacitor } = require('../capacitor'))
             expect(isCapacitor()).toBe(true)
         })
@@ -49,13 +49,13 @@ describe('capacitor utils', () => {
 
     describe('isAndroidNative', () => {
         it('should return true when Capacitor platform is android', () => {
-            ;(window as any).Capacitor = { getPlatform: () => 'android' }
+            window.Capacitor = { getPlatform: () => 'android' }
             ;({ isAndroidNative } = require('../capacitor'))
             expect(isAndroidNative()).toBe(true)
         })
 
         it('should return false when Capacitor platform is ios', () => {
-            ;(window as any).Capacitor = { getPlatform: () => 'ios' }
+            window.Capacitor = { getPlatform: () => 'ios' }
             ;({ isAndroidNative } = require('../capacitor'))
             expect(isAndroidNative()).toBe(false)
         })
@@ -69,13 +69,13 @@ describe('capacitor utils', () => {
 
     describe('isIOSNative', () => {
         it('should return true when Capacitor platform is ios', () => {
-            ;(window as any).Capacitor = { getPlatform: () => 'ios' }
+            window.Capacitor = { getPlatform: () => 'ios' }
             ;({ isIOSNative } = require('../capacitor'))
             expect(isIOSNative()).toBe(true)
         })
 
         it('should return false when Capacitor platform is android', () => {
-            ;(window as any).Capacitor = { getPlatform: () => 'android' }
+            window.Capacitor = { getPlatform: () => 'android' }
             ;({ isIOSNative } = require('../capacitor'))
             expect(isIOSNative()).toBe(false)
         })
@@ -88,7 +88,6 @@ describe('capacitor utils', () => {
     })
 
     describe('getPlatform', () => {
-        const originalNavigator = window.navigator
         const originalMatchMedia = window.matchMedia
 
         afterEach(() => {
@@ -119,13 +118,13 @@ describe('capacitor utils', () => {
         }
 
         it('should return android-native when Capacitor.getPlatform() returns android', () => {
-            ;(window as any).Capacitor = { getPlatform: () => 'android' }
+            window.Capacitor = { getPlatform: () => 'android' }
             ;({ getPlatform } = require('../capacitor'))
             expect(getPlatform()).toBe('android-native')
         })
 
         it('should return ios-native when Capacitor.getPlatform() returns ios', () => {
-            ;(window as any).Capacitor = { getPlatform: () => 'ios' }
+            window.Capacitor = { getPlatform: () => 'ios' }
             ;({ getPlatform } = require('../capacitor'))
             expect(getPlatform()).toBe('ios-native')
         })
@@ -172,14 +171,14 @@ describe('capacitor utils', () => {
     describe('getApiBaseUrl', () => {
         it('should return NEXT_PUBLIC_BASE_URL in capacitor mode', () => {
             process.env.NEXT_PUBLIC_BASE_URL = 'https://api.staging.peanut.me'
-            ;(window as any).Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
+            window.Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
             ;({ getApiBaseUrl } = require('../capacitor'))
             expect(getApiBaseUrl()).toBe('https://api.staging.peanut.me')
         })
 
         it('should return fallback url when NEXT_PUBLIC_BASE_URL is not set in capacitor mode', () => {
             delete process.env.NEXT_PUBLIC_BASE_URL
-            ;(window as any).Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
+            window.Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
             ;({ getApiBaseUrl } = require('../capacitor'))
             expect(getApiBaseUrl()).toBe('https://peanut.me')
         })

@@ -11,6 +11,7 @@ import { type CountryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { useCallback, useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 
 interface ICountryListRouterViewProps {
     claimLinkData: ClaimLinkData
@@ -21,6 +22,7 @@ interface ICountryListRouterViewProps {
  * displays countries list for claim link flow with @PeanutActionDetailsCard component as header
  */
 export const CountryListRouter = ({ claimLinkData, inputTitle }: ICountryListRouterViewProps) => {
+    const t = useTranslations('global')
     const {
         setFlowStep: setClaimBankFlowStep,
         setSelectedCountry,
@@ -58,7 +60,7 @@ export const CountryListRouter = ({ claimLinkData, inputTitle }: ICountryListRou
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
-            <NavHeader title="Receive" onPrev={onPrev} />
+            <NavHeader title={t('countryList.receiveTitle')} onPrev={onPrev} />
             <div className="flex h-full w-full flex-1 flex-col justify-start gap-4">
                 <PeanutActionDetailsCard
                     transactionType="CLAIM_LINK"

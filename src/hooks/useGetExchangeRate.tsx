@@ -1,5 +1,5 @@
 import { getExchangeRate } from '@/app/actions/exchange-rate'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import { useQuery } from '@tanstack/react-query'
 
 export interface IExchangeRate {

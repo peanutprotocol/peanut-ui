@@ -1,9 +1,4 @@
-import {
-    nativeCurrencyAddresses,
-    supportedPeanutChains,
-    peanutTokenDetails,
-    pathTitles,
-} from '@/constants/general.consts'
+import { nativeCurrencyAddresses, supportedPeanutChains, peanutTokenDetails } from '@/constants/general.consts'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { shareableUrl } from '@/utils/url.utils'
 import * as Sentry from '@sentry/nextjs'
@@ -105,7 +100,7 @@ export const validateEnsName = (ensName: string = ''): boolean => {
     return ENS_NAME_REGEX.test(ensName)
 }
 
-export function jsonStringify(data: any): string {
+export function jsonStringify(data: unknown): string {
     return JSON.stringify(data, (_key, value) => {
         if ('bigint' === typeof value) {
             return {
@@ -117,7 +112,8 @@ export function jsonStringify(data: any): string {
     })
 }
 
-export function jsonParse<T = any>(data: string): T {
+// Default matches JSON.parse's own return type so legacy untyped call sites keep compiling.
+export function jsonParse<T = ReturnType<typeof JSON.parse>>(data: string): T {
     return JSON.parse(data, (_key, value) => {
         if (value && typeof value === 'object' && value['@type'] === 'BigInt') {
             return BigInt(value.value)
@@ -126,7 +122,7 @@ export function jsonParse<T = any>(data: string): T {
     })
 }
 
-export const saveToLocalStorage = (key: string, data: any, expirySeconds?: number) => {
+export const saveToLocalStorage = (key: string, data: unknown, expirySeconds?: number) => {
     if (typeof localStorage === 'undefined') return
     try {
         // Convert the data to a string before storing it in localStorage
@@ -168,7 +164,7 @@ export const getFromLocalStorage = (key: string) => {
     }
 }
 
-export const saveToCookie = (key: string, data: any, expiryDays?: number) => {
+export const saveToCookie = (key: string, data: unknown, expiryDays?: number) => {
     if (typeof document === 'undefined') return
     try {
         // Convert the data to a string before storing it in cookies
@@ -439,8 +435,7 @@ export async function copyTextToClipboardWithFallback(text: string) {
         textarea.style.left = '-9999px'
         document.body.appendChild(textarea)
         textarea.select()
-        const successful = document.execCommand('copy')
-        const msg = successful ? 'successful' : 'unsuccessful'
+        document.execCommand('copy')
         document.body.removeChild(textarea)
     } catch (err) {
         Sentry.captureException(err)
@@ -554,13 +549,6 @@ export const getExplorerUrl = (chainId: string) => {
     }
 }
 
-interface TransferDetails {
-    id: string
-    timestamp: string
-    chain: string
-    details: any
-}
-
 export function formatDate(date: Date | null | undefined): string {
     // Receipts and timeline rows pass dates that may be missing for paths
     // that haven't reached that lifecycle event yet (e.g. cancelledDate on a
@@ -665,10 +653,6 @@ export function getChainName(chainId: string): string | undefined {
     }
     const chain = Object.entries(wagmiChains).find(([, chain]) => chain.id === Number(chainId))?.[1]
     return chain?.name ?? undefined
-}
-
-export const getHeaderTitle = (pathname: string) => {
-    return pathTitles[pathname] || 'Peanut' // default title if path not found
 }
 
 /**

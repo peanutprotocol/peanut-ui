@@ -18,6 +18,7 @@
 
 import { type FC, useEffect, useRef, useState } from 'react'
 import * as Sentry from '@sentry/nextjs'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import ErrorAlert from '@/components/Global/ErrorAlert'
@@ -59,6 +60,7 @@ const CardRejectionScreen: FC<Props> = ({
     onPrev,
     onJoined,
 }) => {
+    const t = useTranslations('card.rejection')
     // "tried" = real waitlist size, inflated for FOMO; "got in" = real admitted.
     // Deterministic (pure fn of the counts) so it never jitters between renders.
     const { applicants, admitted } = computeDoorTally(waitlistTotal, admittedTotal)
@@ -90,7 +92,7 @@ const CardRejectionScreen: FC<Props> = ({
             // Keep the user-facing message generic; raw BE text can leak
             // internals/PII. PostHog gets only the error CLASS for bucketing.
             console.error('[card-rejection] join failed', e)
-            setJoinError('Failed to join waitlist. Please try again.')
+            setJoinError(t('joinFailed'))
             posthog.capture(ANALYTICS_EVENTS.CARD_WAITLIST_JOIN_FAILED, {
                 error_name: e instanceof Error ? e.name : 'unknown',
             })
@@ -174,7 +176,7 @@ const CardRejectionScreen: FC<Props> = ({
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-6">
-            <NavHeader title="Peanut Card" onPrev={onPrev} />
+            <NavHeader title={t('navTitle')} onPrev={onPrev} />
 
             <div className="flex flex-col gap-5">
                 <ScaledRejectionAsset
@@ -186,15 +188,20 @@ const CardRejectionScreen: FC<Props> = ({
 
                 {/* Scarcity tally + appeal pitch — screen HTML, not on the asset */}
                 <div className="flex flex-col gap-2 text-center">
-                    <h1 className="text-2xl font-extrabold text-n-1">the door&apos;s tight tonight.</h1>
+                    <h1 className="text-2xl font-extrabold text-n-1">{t('title')}</h1>
                     <p className="text-grey-1">
-                        <span className="font-extrabold text-n-1">{applicants.toLocaleString('en-US')}</span> tried ·{' '}
-                        <span className="font-extrabold text-n-1">{admitted}</span> got in.
+                        {t.rich('tally', {
+                            applicants: applicants.toLocaleString('en-US'),
+                            admitted,
+                            strong: (chunks) => <span className="font-extrabold text-n-1">{chunks}</span>,
+                        })}
                     </p>
                     <p className="text-grey-1">
-                        tweet and tag <span className="font-extrabold text-n-1">@joinpeanut</span> to appeal.
+                        {t.rich('appealLine', {
+                            strong: (chunks) => <span className="font-extrabold text-n-1">{chunks}</span>,
+                        })}
                         <br />
-                        come back tomorrow
+                        {t('comeBackTomorrow')}
                     </p>
                 </div>
             </div>
@@ -209,12 +216,12 @@ const CardRejectionScreen: FC<Props> = ({
                     shadowSize="4"
                     className="w-full"
                 >
-                    Tweet to appeal
+                    {t('tweetToAppeal')}
                 </Button>
                 {showJoined ? (
                     <div className="flex h-13 items-center justify-center gap-2 text-center text-sm font-bold text-n-1">
                         <Icon name="check-circle" size={18} />
-                        You&apos;re on the list — we&apos;ll holler when it&apos;s your turn
+                        {t('onTheList')}
                     </div>
                 ) : (
                     <Button
@@ -224,7 +231,7 @@ const CardRejectionScreen: FC<Props> = ({
                         variant="stroke"
                         className="w-full"
                     >
-                        Join the waitlist anyway
+                        {t('joinAnyway')}
                     </Button>
                 )}
             </div>

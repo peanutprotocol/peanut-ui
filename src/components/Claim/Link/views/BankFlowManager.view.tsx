@@ -4,11 +4,11 @@ import { type IClaimScreenProps } from '../../Claim.consts'
 import { DynamicBankAccountForm, type IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useCallback, useContext, useMemo, useState, useRef } from 'react'
-import { loadingStateContext } from '@/context'
+import { loadingStateContext } from '@/context/loadingStates.context'
 import { createBridgeExternalAccountForGuest } from '@/app/actions/external-accounts'
 import { confirmOfframp, createOfframp, createOfframpForGuest } from '@/app/actions/offramp'
 import { type Address, formatUnits } from 'viem'
-import { ErrorHandler } from '@/utils/friendly-error.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { formatTokenAmount } from '@/utils/general.utils'
 import * as Sentry from '@sentry/nextjs'
 import useClaimLink from '../../useClaimLink'
@@ -40,6 +40,7 @@ import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useModalsContext } from '@/context/ModalsContext'
+import { useTranslations } from 'next-intl'
 
 type BankAccountWithId = IBankAccountDetails &
     (
@@ -55,6 +56,8 @@ type BankAccountWithId = IBankAccountDetails &
  * It handles creating off-ramps, adding bank accounts, and orchestrating the KYC process.
  */
 export const BankFlowManager = (props: IClaimScreenProps) => {
+    const t = useTranslations('claim')
+    const toFriendlyError = useFriendlyError()
     // props and basic setup
     const { onCustom, claimLinkData, setTransactionHash } = props
     const { user, fetchUser } = useAuth()
@@ -72,7 +75,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         setBankDetails,
         justCompletedKyc,
         setJustCompletedKyc,
-        showVerificationModal: isKycModalOpen,
         setShowVerificationModal: setIsKycModalOpen,
     } = useClaimBankFlow()
 
@@ -112,7 +114,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const [error, setError] = useState<string | null>(null)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isProcessingKycSuccess, setIsProcessingKycSuccess] = useState(false)
-    const [offrampData, setOfframpData] = useState<TCreateOfframpResponse | null>(null)
+    const [_offrampData, setOfframpData] = useState<TCreateOfframpResponse | null>(null)
 
     /**
      * @name handleConfirmClaim
@@ -151,7 +153,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
 
                 try {
                     await confirmOfframp(details.transferId, claimTx)
-                } catch (confirmErr: any) {
+                } catch (confirmErr) {
                     // On-chain claim already executed; the BE has the transfer row
                     // and Bridge will process the deposit. Log + fall through to the
                     // SUCCESS view rather than throwing — re-confirming retries are
@@ -162,7 +164,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
 
                 if (setClaimType) setClaimType('claim-bank')
                 onCustom('SUCCESS')
-            } catch (e: any) {
+            } catch (e) {
                 if (claimTxSubmitted) {
                     // Defensive: even if a post-claim step throws (e.g.
                     // setClaimType), do not surface a retryable error — the funds
@@ -171,13 +173,13 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     onCustom('SUCCESS')
                     return
                 }
-                const errorString = ErrorHandler(e)
+                const errorString = toFriendlyError(e)
                 setError(errorString)
                 Sentry.captureException(e)
                 throw e
             }
         },
-        [claimLink, claimLinkData.link, setTransactionHash, setClaimType, onCustom, user, campaignTag]
+        [claimLink, claimLinkData.link, setTransactionHash, setClaimType, onCustom, user, campaignTag, toFriendlyError]
     )
 
     /**
@@ -296,8 +298,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
 
             // claim send link to deposit address received from offramp response
             await handleConfirmClaim(offrampData)
-        } catch (e: any) {
-            const errorString = ErrorHandler(e)
+        } catch (e) {
+            const errorString = toFriendlyError(e)
             setError(errorString)
             Sentry.captureException(e)
         } finally {
@@ -379,7 +381,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     setReceiverFullName(`${bankDetails.firstName} ${bankDetails.lastName}`)
                     setClaimBankFlowStep(ClaimBankFlowStep.BankConfirmClaim)
                 } else {
-                    return { error: 'Failed to process bank account. Please try again.' }
+                    return { error: t('bank.processAccountFailed') }
                 }
             } finally {
                 setIsProcessingKycSuccess(false)
@@ -389,7 +391,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         // scenario 3: guest user is claiming (using sender's KYC)
         else if (bankClaimType === BankClaimType.GuestBankClaim) {
             if (!selectedCountry) {
-                const err = 'Country not selected'
+                const err = t('bank.countryNotSelected')
                 setError(err)
                 return { error: err }
             }
@@ -424,7 +426,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 if ('error' in externalAccountResponse && externalAccountResponse.error) {
                     // The backend returns a curated, user-facing message for bank-account
                     // validation failures (e.g. an unverifiable billing address). Surface it
-                    // verbatim — routing it through ErrorHandler would collapse it into the
+                    // verbatim — routing it through the friendly-error mapper would collapse it into the
                     // generic "contact support" fallback, hiding the actionable detail. (TASK-20194)
                     const accountError = String(externalAccountResponse.error)
                     Sentry.captureException(new Error(`External account creation failed: ${accountError}`))
@@ -471,8 +473,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 setReceiverFullName(payload.accountOwnerName.firstName + ' ' + payload.accountOwnerName.lastName)
                 setClaimBankFlowStep(ClaimBankFlowStep.BankConfirmClaim)
                 return {}
-            } catch (e: any) {
-                const errorString = ErrorHandler(e)
+            } catch (e) {
+                const errorString = toFriendlyError(e)
                 Sentry.captureException(e)
                 return { error: errorString }
             } finally {
@@ -487,7 +489,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         case ClaimBankFlowStep.SavedAccountsList:
             return (
                 <SavedAccountsView
-                    pageTitle="Receive"
+                    pageTitle={t('receive')}
                     onPrev={() => setClaimBankFlowStep(null)}
                     savedAccounts={savedAccounts}
                     onAccountClick={async (account) => {
@@ -539,13 +541,13 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 />
             )
         case ClaimBankFlowStep.BankCountryList:
-            return <CountryListRouter claimLinkData={claimLinkData} inputTitle="Select your bank account's country" />
+            return <CountryListRouter claimLinkData={claimLinkData} inputTitle={t('bank.selectCountry')} />
         case ClaimBankFlowStep.BankDetailsForm:
             return (
                 <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
                     <div>
                         <NavHeader
-                            title="Receive"
+                            title={t('receive')}
                             onPrev={() => {
                                 dispatch(bankFormActions.clearFormData()) // clear DynamicBankAccountForm data
                                 if (savedAccounts.length > 0) {

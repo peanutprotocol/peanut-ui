@@ -62,7 +62,7 @@ export function useDetermineBankRequestType(requesterUserId: string): {
                         setRequestType(BankRequestType.GuestKycNeeded)
                     }
                 }
-            } catch (error) {
+            } catch {
                 if (user?.user.userId) {
                     setRequestType(BankRequestType.PayerKycNeeded)
                 } else {

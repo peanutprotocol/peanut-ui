@@ -28,7 +28,7 @@ export const PayRequestLink = () => {
                 router.push(link)
             }
             return
-        } catch (e) {
+        } catch {
             router.push('/404')
             return
         }

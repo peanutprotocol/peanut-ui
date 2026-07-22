@@ -92,13 +92,16 @@ const FooterVisibilityObserver: React.FC = () => {
         }
 
         const observer = new IntersectionObserver(observerCallback, observerOptions)
-        if (footerRef.current) {
-            observer.observe(footerRef.current)
+        // Capture the node: footerRef.current may already be null by cleanup, which
+        // would skip unobserve and leak the observer.
+        const footerNode = footerRef.current
+        if (footerNode) {
+            observer.observe(footerNode)
         }
 
         return () => {
-            if (footerRef.current) {
-                observer.unobserve(footerRef.current)
+            if (footerNode) {
+                observer.unobserve(footerNode)
             }
         }
     }, [setIsFooterVisible])

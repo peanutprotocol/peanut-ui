@@ -57,8 +57,8 @@ export const useGeoLocation = () => {
                 sessionStorage.setItem(GEO_CACHE_KEY, fetchedCountryCode)
                 sessionStorage.setItem(GEO_CACHE_TIMESTAMP_KEY, timestamp.toString())
                 memoryCache = { countryCode: fetchedCountryCode, timestamp }
-            } catch (err: any) {
-                setError(err.message)
+            } catch (err) {
+                setError(err instanceof Error ? err.message : String(err))
             } finally {
                 setIsLoading(false)
             }

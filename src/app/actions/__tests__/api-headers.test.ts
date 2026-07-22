@@ -14,6 +14,7 @@ jest.mock('@/utils/sentry.utils', () => ({
 }))
 
 jest.mock('@/utils/auth-token', () => ({
+    authReady: jest.fn(() => Promise.resolve()),
     getAuthHeaders: jest.fn((extra?: Record<string, string>) => ({
         Authorization: 'Bearer test-token',
         ...extra,

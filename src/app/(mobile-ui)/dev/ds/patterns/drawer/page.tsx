@@ -7,7 +7,6 @@ import {
     DrawerTitle,
     DrawerTrigger,
     DrawerHeader,
-    DrawerFooter,
     DrawerDescription,
     DrawerClose,
 } from '@/components/Global/Drawer'

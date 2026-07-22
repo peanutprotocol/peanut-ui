@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { captureMessage } from '@sentry/nextjs'
 import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
 import { findActiveCard } from '@/components/Card/cardState.utils'
@@ -38,6 +39,8 @@ import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
  * own clean setup pass.
  */
 export default function EnableAutoBalanceBanner() {
+    const t = useTranslations('home.autoBalance')
+    const tCommon = useTranslations('common')
     const { overview } = useRainCardOverview()
     const { grant, isGranting, lastError } = useGrantSessionKey()
     // Card id the user chose "Skip for now" for — per card, so skipping a
@@ -96,7 +99,11 @@ export default function EnableAutoBalanceBanner() {
 
     const ctas: ActionModalButtonProps[] = [
         {
-            text: isGranting ? 'Working…' : hardError || stuckAfterSuccess ? 'Try again' : 'Continue',
+            text: isGranting
+                ? t('working')
+                : hardError || stuckAfterSuccess
+                  ? tCommon('tryAgain')
+                  : tCommon('continue'),
             variant: 'purple',
             shadowSize: '4',
             disabled: isGranting,
@@ -117,7 +124,7 @@ export default function EnableAutoBalanceBanner() {
     // non-dismissible modal.
     if (errorForThisCard || stuckAfterSuccess) {
         ctas.push({
-            text: 'Skip for now',
+            text: tCommon('skipForNow'),
             variant: 'stroke',
             disabled: isGranting,
             onClick: () => setDismissedFor(card?.id ?? null),
@@ -134,12 +141,8 @@ export default function EnableAutoBalanceBanner() {
             hideModalCloseButton
             icon="credit-card"
             iconContainerClassName="bg-yellow-1"
-            title="Finish setting up your card"
-            description={
-                hardError || stuckAfterSuccess
-                    ? "We couldn't finish setting up your card. Please try again, or skip for now — we'll prompt you again on your first card payment."
-                    : 'One passkey tap to start using your card.'
-            }
+            title={t('title')}
+            description={hardError || stuckAfterSuccess ? t('descriptionError') : t('description')}
             ctas={ctas}
         />
     )

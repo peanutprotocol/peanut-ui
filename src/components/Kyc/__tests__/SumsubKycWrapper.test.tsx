@@ -1,6 +1,15 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
-import { useEffect, useState } from 'react'
+import { act, render as rtlRender, screen, waitFor, type RenderOptions } from '@testing-library/react'
+import { useEffect, useState, type ReactElement, type ReactNode } from 'react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 import { SumsubKycWrapper } from '../SumsubKycWrapper'
+
+const IntlWrapper = ({ children }: { children: ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={en}>
+        {children}
+    </NextIntlClientProvider>
+)
+const render = (ui: ReactElement, options?: RenderOptions) => rtlRender(ui, { wrapper: IntlWrapper, ...options })
 
 const capture = jest.fn()
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: unknown[]) => capture(...a) } }))

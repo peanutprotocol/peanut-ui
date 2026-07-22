@@ -1,4 +1,4 @@
-import { type IUserProfile } from '@/interfaces'
+import { type IUserProfile } from '@/interfaces/interfaces'
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import { AUTH_SLICE } from '../constants'
 import { type IAuthState } from '../types/user.types'

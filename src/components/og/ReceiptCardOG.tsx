@@ -1,9 +1,4 @@
-import { type PaymentLink } from '@/interfaces'
-
-function usernamePxWidth(name: string) {
-    const charPx = 0.6 * 80 // ≈48 px per glyph
-    return Math.round(name.length * charPx) + 40 // +40 padding
-}
+import { type PaymentLink } from '@/interfaces/interfaces'
 
 function formatTokenAmount(amount: string, token?: string) {
     return token && token.toLowerCase() !== 'usdc' ? `${amount} ${token}` : `$${amount}`
@@ -13,7 +8,6 @@ export function ReceiptCardOG({
     link,
     iconSrc,
     logoSrc,
-    scribbleSrc,
     arrowSrcs,
 }: {
     link: PaymentLink & { token?: string }
@@ -29,7 +23,6 @@ export function ReceiptCardOG({
 }) {
     /* ----- palette ----- */
     const pink = '#fe91e6'
-    const scribbleWidth = usernamePxWidth(link.username)
 
     /* ----- outer white frame ----- */
     return (

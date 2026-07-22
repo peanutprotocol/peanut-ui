@@ -19,12 +19,14 @@ import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useTranslations } from 'next-intl'
 
 // static — peanut wallet is always on arbitrum
 const DEPOSIT_EXPLORER_BASE_URL = getExplorerUrl(PEANUT_WALLET_CHAIN.id.toString())
 
 const AddMoneyCryptoPage = () => {
     const { user, isFetchingUser } = useAuth()
+    const t = useTranslations('addMoney')
     const onBack = useSafeBack('/add-money')
     const { address: peanutWalletAddress } = useWallet()
     const [networkParam] = useQueryState(
@@ -136,7 +138,7 @@ const AddMoneyCryptoPage = () => {
         return (
             <PaymentSuccessView
                 type="DEPOSIT"
-                headerTitle={isOfframp ? 'Migration Complete' : 'Deposited Crypto'}
+                headerTitle={isOfframp ? t('crypto.migrationComplete') : t('crypto.depositedCrypto')}
                 usdAmount={depositResult.amount?.toString()}
                 amount={depositResult.tokenAmount}
                 transactionDetails={depositTransactionDetails}

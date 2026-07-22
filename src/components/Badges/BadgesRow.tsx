@@ -3,6 +3,7 @@
 import Card from '@/components/Global/Card'
 import Image from 'next/image'
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import { Tooltip } from '../Tooltip'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -32,6 +33,7 @@ interface BadgesRowProps {
  * - Automatic sorting by earned date (newest first)
  */
 const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) => {
+    const t = useTranslations('badges')
     const viewportRef = useRef<HTMLDivElement>(null)
     const [visibleCount, setVisibleCount] = useState<number>(4)
     const [startIdx, setStartIdx] = useState<number>(0)
@@ -88,14 +90,14 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
 
     return (
         <div className={twMerge('space-y-3', className)}>
-            <h2 className="text-base font-bold">Badges</h2>
+            <h2 className="text-base font-bold">{t('title')}</h2>
             <Card position="single" className="relative flex h-20 items-center justify-center">
                 {/* Badge viewport container */}
                 <div
                     ref={viewportRef}
                     className="flex w-11/12 items-center justify-center gap-4 overflow-hidden"
                     role="region"
-                    aria-label="Badge collection"
+                    aria-label={t('collectionLabel')}
                 >
                     {visibleBadges.map((badge) => {
                         // use public description if viewing someone else's profile, otherwise use original
@@ -134,7 +136,7 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
                             variant="transparent-dark"
                             size="small"
                             onClick={scrollRight}
-                            aria-label="Show next badges"
+                            aria-label={t('showNext')}
                         >
                             <Icon name="chevron-up" size={24} className="rotate-90" />
                         </Button>
@@ -148,7 +150,7 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
                             variant="transparent-dark"
                             size="small"
                             onClick={scrollLeft}
-                            aria-label="Show previous badges"
+                            aria-label={t('showPrevious')}
                         >
                             <Icon name="chevron-up" size={24} className="-rotate-90" />
                         </Button>

@@ -11,6 +11,7 @@ import { useAuth } from '@/context/authContext'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Card from '../Global/Card'
@@ -24,7 +25,7 @@ import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
-import { isBadgeHistoryItem } from '@/components/Badges/badge.types'
+import { isBadgeHistoryItem, type BadgeHistoryEntry } from '@/components/Badges/badge.types'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { formatUnits } from 'viem'
@@ -56,6 +57,7 @@ const HomeHistory = ({
     /** when true, hides the "No activity yet" empty state (pre-activation users) but still shows history if exists */
     hideEmptyState?: boolean
 }) => {
+    const t = useTranslations('home.history')
     const { user } = useUserStore()
     const isLoggedIn = !!user?.user.userId || false
     // Only filter when user is requesting for some different user's history
@@ -124,7 +126,9 @@ const HomeHistory = ({
     })
 
     // Combine fetched history with real-time updates
-    const [combinedEntries, setCombinedEntries] = useState<Array<any>>([])
+    const [combinedEntries, setCombinedEntries] = useState<
+        Array<HistoryEntry | KycHistoryEntry | CardUnlockHistoryEntry | BadgeHistoryEntry>
+    >([])
 
     // get all the user ids from the combined entries to check for interactions
     const userIds = useMemo(() => {
@@ -133,7 +137,8 @@ const HomeHistory = ({
             new Set(
                 combinedEntries
                     .map((entry) => {
-                        if (isKycStatusItem(entry)) return null
+                        if (isKycStatusItem(entry) || isBadgeHistoryItem(entry) || isCardUnlockHistoryItem(entry))
+                            return null
                         if (entry.userRole === 'SENDER') return entry.recipientAccount.userId
                         if (entry.userRole === 'RECIPIENT') return entry.senderAccount?.userId
                         return null
@@ -153,7 +158,9 @@ const HomeHistory = ({
             // Process entries asynchronously to handle completeHistoryEntry
             const processEntries = async () => {
                 // Start with the fetched entries
-                const entries: Array<HistoryEntry | KycHistoryEntry | CardUnlockHistoryEntry> = [...historyData.entries]
+                const entries: Array<HistoryEntry | KycHistoryEntry | CardUnlockHistoryEntry | BadgeHistoryEntry> = [
+                    ...historyData.entries,
+                ]
 
                 // inject badge entries using user's badges (newest first) and earnedAt chronology
                 // filter out beta tester badge — it creates confusing first impressions for new users
@@ -163,13 +170,13 @@ const HomeHistory = ({
                         if (!b.earnedAt) return
                         entries.push({
                             isBadge: true,
-                            uuid: b.id,
+                            uuid: b.id ?? b.code,
                             timestamp: new Date(b.earnedAt).toISOString(),
                             code: b.code,
                             name: b.name,
                             description: b.description ?? undefined,
                             iconUrl: b.iconUrl ?? undefined,
-                        } as any)
+                        })
                     })
                 }
 
@@ -282,9 +289,11 @@ const HomeHistory = ({
     const pendingRequests = useMemo(() => {
         if (!combinedEntries.length) return []
         return combinedEntries.filter(
-            (entry) =>
+            (entry): entry is HistoryEntry =>
                 !isKycStatusItem(entry) &&
-                entry.type === 'REQUEST' &&
+                !isBadgeHistoryItem(entry) &&
+                !isCardUnlockHistoryItem(entry) &&
+                String(entry.type) === 'REQUEST' &&
                 entry.userRole === 'SENDER' &&
                 entry.status === 'NEW'
         )
@@ -307,7 +316,7 @@ const HomeHistory = ({
     if (isLoading) {
         return (
             <div className="space-y-2">
-                <h2 className="text-base font-bold">Activity</h2>
+                <h2 className="text-base font-bold">{t('activity')}</h2>
                 <div className="flex flex-col">
                     {Array.from({ length: 5 }).map((_, index) => (
                         <HistorySkeleton key={index} position={getCardPosition(index, 5)} />
@@ -331,11 +340,11 @@ const HomeHistory = ({
         }
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
-                <h2 className="text-base font-bold">Activity</h2>{' '}
+                <h2 className="text-base font-bold">{t('activity')}</h2>{' '}
                 <EmptyState
                     icon="alert"
-                    title={isNetworkError ? "Couldn't load activity" : 'Error loading activity!'}
-                    description={isNetworkError ? 'Check your connection and try again.' : 'Please contact Support.'}
+                    title={isNetworkError ? t('networkErrorTitle') : t('errorTitle')}
+                    description={isNetworkError ? t('networkErrorDescription') : t('errorDescription')}
                 />
             </div>
         )
@@ -359,7 +368,7 @@ const HomeHistory = ({
     if (!isLoading && !combinedEntries.length && !hasSourceEntries) {
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
-                <h2 className="text-base font-bold">Activity</h2>
+                <h2 className="text-base font-bold">{t('activity')}</h2>
                 {isViewingOwnHistory &&
                     user &&
                     (() => {
@@ -371,18 +380,14 @@ const HomeHistory = ({
                         ) : (
                             <EmptyState
                                 icon="txn-off"
-                                title="No activity yet!"
-                                description="Start by sending or requesting money"
+                                title={t('noActivityTitle')}
+                                description={t('emptyDescription')}
                             />
                         )
                     })()}
 
                 {!isViewingOwnHistory && (
-                    <EmptyState
-                        icon="txn-off"
-                        title="No transactions yet!"
-                        description="Start by sending or requesting money"
-                    />
+                    <EmptyState icon="txn-off" title={t('noTransactionsTitle')} description={t('emptyDescription')} />
                 )}
             </div>
         )
@@ -393,7 +398,7 @@ const HomeHistory = ({
             {/* link to the full history page */}
             {pendingRequests.length > 0 && (
                 <>
-                    <h2 className="text-base font-bold">Pending transactions</h2>
+                    <h2 className="text-base font-bold">{t('pendingTransactions')}</h2>
                     <div className="h-full w-full">
                         {/* map over the latest entries and render transactioncard */}
                         {pendingRequests.map((item, index) => {
@@ -423,10 +428,10 @@ const HomeHistory = ({
                 </>
             )}
             {!isViewingOwnHistory ? (
-                <h2 className="text-base font-bold">Latest Transactions</h2>
+                <h2 className="text-base font-bold">{t('latestTransactions')}</h2>
             ) : (
                 <Link href="/history" className="flex items-center justify-between" onClick={() => triggerHaptic()}>
-                    <h2 className="text-base font-bold">Activity</h2>
+                    <h2 className="text-base font-bold">{t('activity')}</h2>
                     <Icon name="chevron-up" size={20} className="rotate-90" />
                 </Link>
             )}
@@ -474,7 +479,9 @@ const HomeHistory = ({
 
                         const haveSentMoneyToUser =
                             item.userRole === 'SENDER'
-                                ? interactions[item.recipientAccount.userId]
+                                ? item.recipientAccount.userId
+                                    ? interactions[item.recipientAccount.userId]
+                                    : false
                                 : item.senderAccount?.userId
                                   ? interactions[item.senderAccount.userId]
                                   : false

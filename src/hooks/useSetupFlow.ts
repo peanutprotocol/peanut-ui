@@ -1,4 +1,4 @@
-import { type ScreenId, type ScreenProps } from '@/components/Setup/Setup.types'
+import { type ScreenId } from '@/components/Setup/Setup.types'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useCallback } from 'react'
@@ -36,7 +36,7 @@ export const useSetupFlow = () => {
                 dispatch(setupActions.setLoading(false))
             }
         },
-        [steps]
+        [steps, dispatch]
     )
 
     const handleBack = useCallback(() => {
@@ -51,7 +51,7 @@ export const useSetupFlow = () => {
                 dispatch(setupActions.setStep(stepIndex + 1))
             }
         },
-        [steps]
+        [steps, dispatch]
     )
 
     return {

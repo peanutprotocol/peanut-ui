@@ -1,5 +1,6 @@
 'use client'
 import { type FC, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
@@ -12,9 +13,10 @@ interface Props {
     applyError?: string | null
 }
 
-const FEATURES = ['One unified balance', 'Under your control', 'Works online & contactless'] as const
+const FEATURE_KEYS = ['entry.featureBalance', 'entry.featureControl', 'entry.featureOnline'] as const
 
 const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
+    const t = useTranslations('card')
     const [isApplying, setIsApplying] = useState(false)
 
     const handleClick = async () => {
@@ -27,7 +29,7 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
     }
     return (
         <div className="flex min-h-[inherit] flex-col gap-6">
-            <NavHeader title="Add Card" onPrev={onPrev} />
+            <NavHeader title={t('entry.navTitle')} onPrev={onPrev} />
 
             {/* Pixelated card — keeps the anticipation/tease intact through
                 the "Get your card" CTA, matching the /shhhhh + eligibility
@@ -36,15 +38,15 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
             <ScaledPixelatedCardFace last4="????" blurAll />
 
             <div className="flex flex-col gap-2">
-                <h1 className="text-2xl font-extrabold text-n-1">Spend anywhere Visa is accepted</h1>
-                <p className="text-grey-1">Use your balance at 150M+ merchants. Online, contactless, yours.</p>
+                <h1 className="text-2xl font-extrabold text-n-1">{t('entry.title')}</h1>
+                <p className="text-grey-1">{t('entry.description')}</p>
             </div>
 
             <ul className="flex flex-col gap-2 rounded-sm bg-primary-3 p-4 text-n-1">
-                {FEATURES.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2">
+                {FEATURE_KEYS.map((featureKey) => (
+                    <li key={featureKey} className="flex items-center gap-2">
                         <Icon name="check-circle" size={16} />
-                        <span>{feature}</span>
+                        <span>{t(featureKey)}</span>
                     </li>
                 ))}
             </ul>
@@ -64,7 +66,7 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
                 shadowSize="4"
                 className="w-full"
             >
-                Get your card
+                {t('entry.cta')}
             </Button>
         </div>
     )

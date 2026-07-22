@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import ProfileEditField from '@/components/Profile/components/ProfileEditField'
 import { updateUserById } from '@/app/actions/users'
@@ -22,6 +23,7 @@ interface ProvideEmailStepProps {
  * ticket needed. (Shell mirrors BridgeTosStep.)
  */
 export default function ProvideEmailStep({ visible, onComplete, onSkip }: ProvideEmailStepProps) {
+    const t = useTranslations('kyc')
     const { user, fetchUser } = useAuth()
     const [email, setEmail] = useState('')
     const [isSaving, setIsSaving] = useState(false)
@@ -37,12 +39,12 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
     const handleSave = useCallback(async () => {
         const trimmed = email.trim()
         if (!isValidEmail(trimmed)) {
-            setError('Please enter a valid email address.')
+            setError(t('provideEmail.invalidEmail'))
             return
         }
         const userId = user?.user?.userId
         if (!userId) {
-            setError('Still loading your account — please try again in a moment.')
+            setError(t('provideEmail.stillLoading'))
             return
         }
         setIsSaving(true)
@@ -59,22 +61,22 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
             await fetchUser()
             onComplete()
         } catch {
-            setError('Something went wrong saving your email. Please try again.')
+            setError(t('provideEmail.saveFailed'))
         } finally {
             setIsSaving(false)
         }
-    }, [email, user?.user?.userId, fetchUser, onComplete])
+    }, [email, user?.user?.userId, fetchUser, onComplete, t])
 
     return (
         <ActionModal
             visible={visible}
             onClose={onSkip}
             icon={'user-id' as IconName}
-            title="Add your email to continue"
-            description="We couldn't finish setting up your account because we're missing an email address. Add one and we'll retry automatically."
+            title={t('provideEmail.title')}
+            description={t('provideEmail.description')}
             ctas={[
                 {
-                    text: isSaving ? 'Saving...' : 'Save email',
+                    text: t(isSaving ? 'provideEmail.saving' : 'provideEmail.save'),
                     onClick: handleSave,
                     disabled: isSaving || email.trim().length === 0,
                     variant: 'purple',
@@ -82,7 +84,7 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
                     shadowSize: '4',
                 },
                 {
-                    text: 'Not now',
+                    text: t('provideEmail.notNow'),
                     onClick: onSkip,
                     variant: 'transparent' as const,
                     className: 'underline text-sm font-medium w-full h-fit mt-3',
@@ -91,10 +93,10 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
             content={
                 <div className="w-full pt-2 text-left">
                     <ProfileEditField
-                        label="Email"
+                        label={t('provideEmail.emailLabel')}
                         value={email}
                         onChange={setEmail}
-                        placeholder="you@example.com"
+                        placeholder={t('provideEmail.emailPlaceholder')}
                         type="email"
                     />
                     {error && <p className="mt-2 text-sm text-error">{error}</p>}

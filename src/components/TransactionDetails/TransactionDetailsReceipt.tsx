@@ -17,12 +17,11 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { chargesApi } from '@/services/charges'
 import useClaimLink from '@/components/Claim/useClaimLink'
-import { formatAmount, formatDate, isStableCoin, formatCurrency } from '@/utils/general.utils'
+import { formatAmount, isStableCoin, formatCurrency } from '@/utils/general.utils'
 import { formatPoints } from '@/utils/format.utils'
 import { getAvatarUrl } from '@/utils/history.utils'
 import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
-import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
@@ -40,7 +39,7 @@ import CopyToClipboard from '../Global/CopyToClipboard'
 import CancelSendLinkModal from '../Global/CancelSendLinkModal'
 import { twMerge } from 'tailwind-merge'
 import { isAddress } from 'viem'
-import { getBankAccountLabel } from './transaction-details.utils'
+import { bankAccountLabelKey, type BankAccountLabelKey } from './transaction-details.utils'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useRouter } from 'next/navigation'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
@@ -54,6 +53,7 @@ import {
     usesCompletedTimestampLabel,
 } from './transaction-predicates'
 import { useReceiptViewModel } from './useReceiptViewModel'
+import { useReceiptDateFormatter } from './useReceiptDateFormatter'
 import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
 import { LocalRailNudge } from './provider-rows/LocalRailNudge'
@@ -70,6 +70,21 @@ import { useActivationStatus } from '@/hooks/useActivationStatus'
 import { generateInviteCodeLink } from '@/utils/general.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useTranslations } from 'next-intl'
+
+type CancelLinkState = 'idle' | 'cancelling' | 'cancelled'
+
+const CANCEL_LINK_KEYS = {
+    idle: 'actions.cancelLink',
+    cancelling: 'actions.cancelling',
+    cancelled: 'actions.cancelled',
+} as const satisfies Record<CancelLinkState, string>
+
+// IBAN / CLABE are the standard scheme names — same in every locale.
+const BANK_ACCOUNT_SCHEME_LABELS: Partial<Record<BankAccountLabelKey, string>> = {
+    iban: 'IBAN',
+    clabe: 'CLABE',
+}
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -79,7 +94,6 @@ export const TransactionDetailsReceipt = ({
     contentRef,
     transactionAmount,
     className,
-    isModalOpen = false,
     setIsModalOpen,
     avatarUrl,
     isPublic = false,
@@ -108,7 +122,12 @@ export const TransactionDetailsReceipt = ({
     const toast = useToast()
     const router = useRouter()
     const { isActivated } = useActivationStatus()
-    const [cancelLinkText, setCancelLinkText] = useState<'Cancelling' | 'Cancelled' | 'Cancel link'>('Cancel link')
+    const t = useTranslations('transaction')
+    const tCommon = useTranslations('common')
+    const formatDate = useReceiptDateFormatter()
+    const bankAccountLabel = (type: string) =>
+        BANK_ACCOUNT_SCHEME_LABELS[bankAccountLabelKey(type)] ?? t('rows.accountNumber')
+    const [cancelLinkState, setCancelLinkState] = useState<CancelLinkState>('idle')
 
     // Sync modal state to parent if callback is provided
     useEffect(() => {
@@ -128,7 +147,6 @@ export const TransactionDetailsReceipt = ({
         country,
         rowVisibilityConfig,
         shouldHideBorder,
-        shouldHideGroupBorder,
         shouldShowShareReceipt,
         requestPotContributors,
         formattedTotalAmountCollected,
@@ -241,14 +259,16 @@ export const TransactionDetailsReceipt = ({
     const getLabelText = (transaction: TransactionDetails) => {
         // Bank off-ramps / on-ramps / bank claims → "Completed" (lifecycle
         // milestone of a bank transfer, not a peer interaction).
-        if (usesCompletedTimestampLabel(transaction)) return 'Completed'
-        return transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER ? 'Sent' : 'Received'
+        if (usesCompletedTimestampLabel(transaction)) return t('rows.completed')
+        return transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
+            ? t('rows.sent')
+            : t('rows.received')
     }
 
     if (transaction.isRequestPotLink && Number(transaction.amount) > 0) {
         amountDisplay = `$${formatCurrency(transaction.amount.toString())}`
     } else if (transaction.isRequestPotLink && Number(transaction.amount) === 0) {
-        amountDisplay = `$${formattedTotalAmountCollected} collected`
+        amountDisplay = t('amountCollected', { amount: formattedTotalAmountCollected })
     }
 
     // Show profile button only if it's a send/request/receive to a real Peanut
@@ -333,7 +353,7 @@ export const TransactionDetailsReceipt = ({
                     <div className="flex items-center gap-3">
                         <PerkIcon size="small" />
                         <div className="flex flex-col gap-1">
-                            <span className="font-semibold text-gray-900">You earned a reward!</span>
+                            <span className="font-semibold text-gray-900">{t('perkBanner.title')}</span>
                             <span className="text-sm text-gray-600">
                                 {(() => {
                                     const perk = transaction.extraDataForDrawer.perk
@@ -341,13 +361,14 @@ export const TransactionDetailsReceipt = ({
 
                                     // Always show actual dollar amount — never percentage (misleading due to dynamic caps)
                                     if (amount !== undefined && amount !== null) {
+                                        const formatted = formatCurrency(amount.toString())
                                         if (perk.isCapped && perk.campaignCapUsd) {
-                                            return `$${amount.toFixed(2)} reward — campaign limit reached!`
+                                            return t('perkBanner.capped', { amount: formatted })
                                         }
-                                        return `You received a $${amount.toFixed(2)} reward!`
+                                        return t('perkBanner.received', { amount: formatted })
                                     }
 
-                                    return 'You received a Peanut reward!'
+                                    return t('perkBanner.generic')
                                 })()}
                             </span>
                         </div>
@@ -360,7 +381,7 @@ export const TransactionDetailsReceipt = ({
                 <div className="space-y-0">
                     {rowVisibilityConfig.createdAt && (
                         <PaymentInfoRow
-                            label={'Created'}
+                            label={t('rows.created')}
                             value={formatDate(new Date(transaction.createdAt!.toString()))}
                             hideBottomBorder={shouldHideBorder('createdAt')}
                         />
@@ -368,7 +389,7 @@ export const TransactionDetailsReceipt = ({
 
                     {rowVisibilityConfig.cancelled && (
                         <PaymentInfoRow
-                            label="Cancelled"
+                            label={t('rows.cancelled')}
                             value={formatDate(
                                 new Date(transaction.cancelledDate || transaction.createdAt || transaction.date)
                             )}
@@ -378,7 +399,7 @@ export const TransactionDetailsReceipt = ({
 
                     {rowVisibilityConfig.claimed && (
                         <PaymentInfoRow
-                            label="Claimed"
+                            label={t('rows.claimed')}
                             value={formatDate(new Date(transaction.claimedAt!))}
                             hideBottomBorder={shouldHideBorder('claimed')}
                         />
@@ -394,7 +415,7 @@ export const TransactionDetailsReceipt = ({
 
                     {rowVisibilityConfig.refunded && (
                         <PaymentInfoRow
-                            label="Refunded"
+                            label={t('rows.refunded')}
                             value={formatDate(new Date(transaction.date))}
                             hideBottomBorder={shouldHideBorder('refunded')}
                         />
@@ -404,7 +425,7 @@ export const TransactionDetailsReceipt = ({
                         <>
                             {transaction.cancelledDate && (
                                 <PaymentInfoRow
-                                    label="Closed at"
+                                    label={t('rows.closedAt')}
                                     value={formatDate(new Date(transaction.cancelledDate))}
                                     hideBottomBorder={shouldHideBorder('closed')}
                                 />
@@ -414,7 +435,7 @@ export const TransactionDetailsReceipt = ({
 
                     {rowVisibilityConfig.to && (
                         <PaymentInfoRow
-                            label={'To'}
+                            label={t('rows.to')}
                             value={
                                 <div className="flex items-center gap-2">
                                     <span>
@@ -435,11 +456,11 @@ export const TransactionDetailsReceipt = ({
                         tokenData?.symbol && (
                             <>
                                 {!isStableCoin(transaction.tokenSymbol ?? 'USDC') && (
-                                    <PaymentInfoRow label="Token amount" value={transaction.amount} />
+                                    <PaymentInfoRow label={t('rows.tokenAmount')} value={transaction.amount} />
                                 )}
                                 {!isPeanutWalletToken && (
                                     <PaymentInfoRow
-                                        label="Token and network"
+                                        label={t('rows.tokenAndNetwork')}
                                         value={
                                             isTokenDataLoading ? (
                                                 <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
@@ -474,8 +495,10 @@ export const TransactionDetailsReceipt = ({
                                                         )}
                                                     </div>
                                                     <span>
-                                                        {tokenData.symbol.toUpperCase()} on{' '}
-                                                        {transaction.tokenDisplayDetails.chainName}
+                                                        {t('rows.tokenOnChain', {
+                                                            token: tokenData.symbol.toUpperCase(),
+                                                            chain: transaction.tokenDisplayDetails.chainName ?? '',
+                                                        })}
                                                     </span>
                                                 </div>
                                             )
@@ -488,7 +511,7 @@ export const TransactionDetailsReceipt = ({
 
                     {rowVisibilityConfig.txId && transaction.txHash && (
                         <PaymentInfoRow
-                            label="TX ID"
+                            label={t('rows.txId')}
                             value={
                                 transaction.explorerUrl ? (
                                     <Link
@@ -516,7 +539,11 @@ export const TransactionDetailsReceipt = ({
                     )}
 
                     {rowVisibilityConfig.fee && (
-                        <PaymentInfoRow label="Fee" value={feeDisplay} hideBottomBorder={shouldHideBorder('fee')} />
+                        <PaymentInfoRow
+                            label={t('rows.fee')}
+                            value={feeDisplay}
+                            hideBottomBorder={shouldHideBorder('fee')}
+                        />
                     )}
 
                     {rowVisibilityConfig.mantecaDepositInfo && (
@@ -529,7 +556,7 @@ export const TransactionDetailsReceipt = ({
                             {/* TODO: stop using snake_case!!!!! */}
                             {transaction.extraDataForDrawer?.receipt?.exchange_rate && (
                                 <PaymentInfoRow
-                                    label="Exchange rate"
+                                    label={t('rows.exchangeRate')}
                                     value={`1 USD = ${transaction.currency!.code?.toUpperCase()} ${formatCurrency(transaction.extraDataForDrawer.receipt.exchange_rate, 4)}`}
                                     hideBottomBorder={shouldHideBorder('exchangeRate')}
                                 />
@@ -539,7 +566,7 @@ export const TransactionDetailsReceipt = ({
 
                     {rowVisibilityConfig.bankAccountDetails && transaction.bankAccountDetails && (
                         <PaymentInfoRow
-                            label={getBankAccountLabel(transaction.bankAccountDetails!.type)}
+                            label={bankAccountLabel(transaction.bankAccountDetails!.type)}
                             value={
                                 <div className="flex items-center gap-2">
                                     <span>
@@ -566,7 +593,7 @@ export const TransactionDetailsReceipt = ({
                     )}
                     {rowVisibilityConfig.transferId && (
                         <PaymentInfoRow
-                            label="Transfer ID"
+                            label={t('rows.transferId')}
                             value={
                                 <div className="flex items-center gap-2">
                                     <span>{shortenAddress(transaction.id.toUpperCase(), 20)}</span>
@@ -582,7 +609,7 @@ export const TransactionDetailsReceipt = ({
 
                     {rowVisibilityConfig.points && transaction.points && (
                         <PaymentInfoRow
-                            label="Points earned"
+                            label={t('rows.pointsEarned')}
                             value={
                                 <div className="flex items-center gap-2">
                                     <Image src={STAR_STRAIGHT_ICON} alt="star" width={16} height={16} />
@@ -595,7 +622,7 @@ export const TransactionDetailsReceipt = ({
                     )}
                     {rowVisibilityConfig.comment && (
                         <PaymentInfoRow
-                            label="Comment"
+                            label={tCommon('comment')}
                             value={transaction.memo}
                             hideBottomBorder={shouldHideBorder('comment')}
                         />
@@ -603,7 +630,7 @@ export const TransactionDetailsReceipt = ({
 
                     {rowVisibilityConfig.networkFee && (
                         <PaymentInfoRow
-                            label="Network fee"
+                            label={t('rows.networkFee')}
                             value={transaction.networkFeeDetails!.amountDisplay}
                             moreInfoText={transaction.networkFeeDetails!.moreInfoText}
                             hideBottomBorder={shouldHideBorder('networkFee')}
@@ -612,15 +639,15 @@ export const TransactionDetailsReceipt = ({
 
                     {rowVisibilityConfig.peanutFee && (
                         <PaymentInfoRow
-                            label="Peanut fee"
-                            value={'Sponsored by Peanut!'}
+                            label={t('rows.peanutFee')}
+                            value={t('rows.peanutFeeSponsored')}
                             hideBottomBorder={shouldHideBorder('peanutFee')}
                         />
                     )}
 
                     {rowVisibilityConfig.attachment && transaction.attachmentUrl && (
                         <PaymentInfoRow
-                            label="Attachment"
+                            label={t('rows.attachment')}
                             value={
                                 <Link
                                     href={transaction.attachmentUrl}
@@ -628,7 +655,7 @@ export const TransactionDetailsReceipt = ({
                                     rel="noreferrer"
                                     className="flex items-center underline"
                                 >
-                                    Download
+                                    {t('rows.download')}
                                     <Icon name="download" size={14} />
                                 </Link>
                             }
@@ -655,8 +682,8 @@ export const TransactionDetailsReceipt = ({
                 <div className="space-y-2 pr-1">
                     {' '}
                     {/* added space-y for button separation */}
-                    <ShareButton url={transaction.extraDataForDrawer.link} title="share transaction">
-                        Share Link
+                    <ShareButton url={transaction.extraDataForDrawer.link} title={t('actions.shareLinkTitle')}>
+                        {t('actions.shareLink')}
                     </ShareButton>
                     {/* show cancel button only if the current user sent the link/request */}
                     {(isSendLinkEntry(transaction) || isRequestEntry(transaction)) &&
@@ -664,7 +691,7 @@ export const TransactionDetailsReceipt = ({
                         setIsLoading &&
                         onClose && (
                             <Button
-                                disabled={isLoading || cancelLinkText === 'Cancelled'}
+                                disabled={isLoading || cancelLinkState === 'cancelled'}
                                 onClick={() => setShowCancelLinkModal(true)}
                                 loading={isLoading}
                                 variant={'primary-soft'}
@@ -672,7 +699,7 @@ export const TransactionDetailsReceipt = ({
                                 shadowSize="4"
                             >
                                 <div className="flex items-center">{!isLoading && <Icon name="ban" size={18} />}</div>
-                                <span>{cancelLinkText}</span>
+                                <span>{t(CANCEL_LINK_KEYS[cancelLinkState])}</span>
                             </Button>
                         )}
                 </div>
@@ -681,7 +708,7 @@ export const TransactionDetailsReceipt = ({
             {isPendingSentLink && !shouldShowQrShare && (
                 <div className="flex items-center justify-center gap-1.5 text-center text-xs font-semibold text-grey-1">
                     <Icon name="info" size={20} />
-                    Use the device where you created it to cancel or re-share this link.
+                    {t('pendingLinkDeviceNote')}
                 </div>
             )}
 
@@ -697,7 +724,7 @@ export const TransactionDetailsReceipt = ({
                         shadowSize="4"
                         className="flex w-full items-center gap-1"
                     >
-                        {transaction.totalAmountCollected > 0 ? 'Close request' : 'Cancel request'}
+                        {transaction.totalAmountCollected > 0 ? t('actions.closeRequest') : t('actions.cancelRequest')}
                     </Button>
                 </div>
             )}
@@ -712,7 +739,7 @@ export const TransactionDetailsReceipt = ({
                         className="flex w-full items-center gap-1"
                     >
                         <Icon name="currency" size={18} />
-                        Pay
+                        {t('actions.pay')}
                     </Button>
                     <Button
                         icon="ban"
@@ -742,7 +769,7 @@ export const TransactionDetailsReceipt = ({
                         shadowSize="4"
                         className="flex w-full items-center gap-1"
                     >
-                        Reject request
+                        {t('actions.rejectRequest')}
                     </Button>
                 </div>
             )}
@@ -753,14 +780,14 @@ export const TransactionDetailsReceipt = ({
                     icon="split"
                     shadowSize="4"
                 >
-                    Split this bill
+                    {t('actions.splitBill')}
                 </Button>
             )}
 
             {shouldShowShareReceipt && !!getReceiptUrl(transaction) && (
                 <div className="pr-1">
                     <ShareButton variant={isQRPayment ? 'primary-soft' : 'purple'} url={getReceiptUrl(transaction)!}>
-                        Share Receipt
+                        {t('actions.shareReceipt')}
                     </ShareButton>
                 </div>
             )}
@@ -796,7 +823,7 @@ export const TransactionDetailsReceipt = ({
                                     // Desktop fallback: navigator.share is mobile-only.
                                     // Without a toast the click is silent and users assume
                                     // the button is broken.
-                                    toast.info('Invite link copied!')
+                                    toast.info(t('toast.inviteLinkCopied'))
                                 }
                             } catch {
                                 // user cancelled share sheet — ignore
@@ -804,7 +831,7 @@ export const TransactionDetailsReceipt = ({
                         }}
                     >
                         <Icon name="invite-heart" size={16} />
-                        <span className="text-sm font-medium">Invite friends to earn more rewards</span>
+                        <span className="text-sm font-medium">{t('actions.inviteFriends')}</span>
                     </Button>
                 )}
 
@@ -817,7 +844,7 @@ export const TransactionDetailsReceipt = ({
                     className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
                 >
                     <Icon name="peanut-support" size={16} className="text-grey-1" />
-                    Issues with this transaction?
+                    {t('actions.reportIssue')}
                 </button>
             )}
 
@@ -832,7 +859,7 @@ export const TransactionDetailsReceipt = ({
                     onClick={async () => {
                         try {
                             setIsLoading(true)
-                            setCancelLinkText('Cancelling')
+                            setCancelLinkState('cancelling')
 
                             if (!user?.accounts) {
                                 throw new Error('User not found for cancellation')
@@ -868,8 +895,8 @@ export const TransactionDetailsReceipt = ({
 
                                 setIsLoading(false)
                                 setShowCancelLinkModal(false)
-                                setCancelLinkText('Cancelled')
-                                toast.success('Link cancelled successfully!')
+                                setCancelLinkState('cancelled')
+                                toast.success(t('toast.linkCancelled'))
 
                                 // Brief delay for toast visibility
                                 await new Promise((resolve) => setTimeout(resolve, 1500))
@@ -884,17 +911,17 @@ export const TransactionDetailsReceipt = ({
                                 // Still close drawer even if invalidation fails
                                 setIsLoading(false)
                                 setShowCancelLinkModal(false)
-                                setCancelLinkText('Cancelled')
-                                toast.success('Link cancelled! Refresh to see updated balance.')
+                                setCancelLinkState('cancelled')
+                                toast.success(t('toast.linkCancelledRefresh'))
                                 await new Promise((resolve) => setTimeout(resolve, 1500))
                                 onClose()
                             }
-                        } catch (error: any) {
+                        } catch (error) {
                             captureException(error)
                             console.error('Error claiming link:', error)
                             setIsLoading(false)
-                            setCancelLinkText('Cancel link')
-                            toast.error('Failed to cancel link. Please try again.')
+                            setCancelLinkState('idle')
+                            toast.error(t('toast.cancelLinkFailed'))
                         }
                     }}
                 />
@@ -902,7 +929,9 @@ export const TransactionDetailsReceipt = ({
 
             {requestPotContributors.length > 0 && (
                 <>
-                    <h2 className="text-base font-bold text-black">Contributors ({requestPotContributors.length})</h2>
+                    <h2 className="text-base font-bold text-black">
+                        {t('contributors', { count: requestPotContributors.length })}
+                    </h2>
                     <div className="overflow-y-auto">
                         {requestPotContributors.map((contributor, index) => (
                             <ContributorCard

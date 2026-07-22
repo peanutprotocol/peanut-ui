@@ -1,6 +1,6 @@
 declare module '@sumsub/cordova-idensic-mobile-sdk-plugin' {
     interface SNSMobileSDKBuilder {
-        withHandlers(handlers: Record<string, (event: any) => void>): SNSMobileSDKBuilder
+        withHandlers(handlers: Record<string, (event: unknown) => void>): SNSMobileSDKBuilder
         withLocale(locale: string): SNSMobileSDKBuilder
         withDebug(debug: boolean): SNSMobileSDKBuilder
         withAnalyticsEnabled(enabled: boolean): SNSMobileSDKBuilder
