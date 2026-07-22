@@ -409,7 +409,10 @@ export const fetchWithSentry = async (
         // fetch rejected (timeout / DNS / connection refused) — the request never
         // reached the backend, so flag a connectivity failure.
         reportNetworkError()
-        console.error(error)
+        // console.info, not error: captureConsoleIntegration would turn an
+        // error-level log into a second Sentry event on top of the explicit
+        // captures below.
+        console.info(error)
 
         if (error instanceof Error && error.name === 'AbortError') {
             const timeoutError = new Error(`Request to ${url} timed out after ${timeoutMs}ms`)
