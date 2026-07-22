@@ -257,6 +257,7 @@ const confirm = async () => {
 beforeEach(() => {
     jest.clearAllMocks()
     mockRecordPayment.mockResolvedValue(PAYMENT_RESULT)
+    Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false })
 })
 
 // ---------- tests ----------
@@ -319,11 +320,50 @@ describe('crypto withdraw confirm — charge completion', () => {
         await confirm()
 
         await waitFor(() => expect(mockSetCurrentView).toHaveBeenCalledWith('STATUS'))
+        // The failing call MUST have been attempted — pre-fix code never called
+        // recordPayment on this path, which is the bug.
+        expect(mockRecordPayment).toHaveBeenCalled()
         expect(mockSetPaymentDetails).toHaveBeenCalledWith(null)
         expect(mockCaptureMessage).toHaveBeenCalled()
         // No user-facing failure for a withdrawal that succeeded on-chain.
         expect(mockPosthogCapture).not.toHaveBeenCalledWith('withdraw_failed', expect.anything())
         expect(mockSetWithdrawError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+    })
+
+    it('skips recordPayment when a mixed spend has no mined receipt (a userOp hash would poison the validator)', async () => {
+        mockSendMoney.mockResolvedValue({
+            txHash: undefined,
+            userOpHash: '0xuserop',
+            receipt: null,
+            strategy: 'mixed',
+            intentId: 'prep-intent-1',
+        })
+
+        await confirm()
+
+        await waitFor(() => expect(mockSetCurrentView).toHaveBeenCalledWith('STATUS'))
+        expect(mockRecordPayment).not.toHaveBeenCalled()
+        expect(mockCaptureMessage).toHaveBeenCalled()
+        expect(mockSetPaymentDetails).toHaveBeenCalledWith(null)
+        expect(mockPosthogCapture).not.toHaveBeenCalledWith('withdraw_failed', expect.anything())
+    })
+
+    it('keeps rethrowing recordPayment failures on cross-chain withdrawals (mixed funding included)', async () => {
+        Object.assign(mockCrossChainTransfer, { isXChain: true })
+        mockSendTransactions.mockResolvedValue({
+            userOpHash: '0xuserop',
+            receipt: { transactionHash: '0xmined', status: 'success' },
+            strategy: 'mixed',
+            intentId: 'prep-intent-2',
+        })
+        mockRecordPayment.mockRejectedValue(new Error('record failed'))
+
+        await confirm()
+
+        await waitFor(() => expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything()))
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockSetCurrentView).not.toHaveBeenCalledWith('STATUS')
+        expect(mockSetWithdrawError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
     })
 
     it('keeps surfacing recordPayment failures on the smart-only path (its only completion trigger)', async () => {
