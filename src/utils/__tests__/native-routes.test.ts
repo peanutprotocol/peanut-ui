@@ -20,6 +20,7 @@ import {
     withdrawCountryUrl,
     withdrawBankUrl,
     rewriteMethodPath,
+    deepLinkToNativePath,
 } from '../native-routes'
 
 describe('native-routes', () => {
@@ -287,6 +288,64 @@ describe('native-routes', () => {
         describe('requestPotUrl', () => {
             it('should return /pay-request with id query param', () => {
                 expect(requestPotUrl('pot-789')).toBe('/pay-request?id=pot-789')
+            })
+        })
+    })
+
+    describe('deepLinkToNativePath', () => {
+        describe('capacitor mode', () => {
+            beforeEach(() => {
+                mockIsCapacitor.mockReturnValue(true)
+            })
+
+            it('accepts a bare path — push payloads carry the deep link without a host', () => {
+                expect(deepLinkToNativePath('/receipt/intent-1?kind=ONRAMP')).toBe('/receipt?id=intent-1&kind=ONRAMP')
+            })
+
+            it('accepts a full App-Links url', () => {
+                expect(deepLinkToNativePath('https://peanut.me/receipt/intent-1?kind=ONRAMP')).toBe(
+                    '/receipt?id=intent-1&kind=ONRAMP'
+                )
+            })
+
+            it('maps a charge deep link onto the pay-request stand-in for the disabled catch-all route', () => {
+                expect(deepLinkToNativePath('/alice?chargeId=charge-123')).toBe('/pay-request?chargeId=charge-123')
+            })
+
+            it('leaves a static in-app route untouched', () => {
+                expect(deepLinkToNativePath('https://peanut.me/history')).toBe('/history')
+            })
+
+            it('still rewrites dynamic routes to their query-param form', () => {
+                expect(deepLinkToNativePath('https://peanut.me/send/bob')).toBe('/send?recipient=bob')
+                expect(deepLinkToNativePath('https://peanut.me/qr/abc123')).toBe('/qr?code=abc123')
+                expect(deepLinkToNativePath('https://peanut.me/withdraw/be/bank')).toBe(
+                    '/withdraw?country=be&view=bank'
+                )
+            })
+
+            it('rejects an off-domain url rather than rewriting it into an in-app path', () => {
+                expect(deepLinkToNativePath('https://evil.com/receipt/intent-1')).toBeNull()
+            })
+
+            it('returns null for an unparseable link', () => {
+                expect(deepLinkToNativePath('http://')).toBeNull()
+            })
+        })
+
+        describe('web mode', () => {
+            beforeEach(() => {
+                mockIsCapacitor.mockReturnValue(false)
+            })
+
+            it('keeps the path-based receipt url', () => {
+                expect(deepLinkToNativePath('https://peanut.me/receipt/intent-1?kind=ONRAMP')).toBe(
+                    '/receipt/intent-1?kind=ONRAMP'
+                )
+            })
+
+            it('keeps a profile charge link on the profile route', () => {
+                expect(deepLinkToNativePath('/alice?chargeId=charge-123')).toBe('/alice?chargeId=charge-123')
             })
         })
     })

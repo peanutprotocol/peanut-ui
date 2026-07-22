@@ -7,6 +7,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { notificationsApi, type InAppItem } from '@/services/notifications'
 import { formatGroupHeaderDate, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
+import { deepLinkToNativePath } from '@/utils/native-routes'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import { PEANUTMAN } from '@/assets'
@@ -157,7 +158,13 @@ export default function NotificationsPage() {
                                         if (group.items.length === 1) position = 'single'
                                         else if (idx === 0) position = 'first'
                                         else if (idx === group.items.length - 1) position = 'last'
+                                        // Rows minted from the OneSignal-dashboard webhook store the
+                                        // operator's `url` verbatim, so an absolute peanut.me link would
+                                        // navigate the webview off-app. Map those back to an in-app path;
+                                        // genuinely external links fall through untouched.
                                         const href = notif.ctaDeeplink
+                                            ? (deepLinkToNativePath(notif.ctaDeeplink) ?? notif.ctaDeeplink)
+                                            : notif.ctaDeeplink
                                         return (
                                             <Card
                                                 key={notif.id}

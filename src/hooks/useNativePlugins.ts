@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { isCapacitor, getPlatform } from '@/utils/capacitor'
 import { deepLinkToNativePath } from '@/utils/native-routes'
 import { sanitizeRedirectURL } from '@/utils/general.utils'
+import { getOneSignalAdapter } from '@/services/onesignal'
 
 /**
  * initializes capacitor native plugins (back button, status bar, splash screen).
@@ -48,6 +49,23 @@ export function useNativePlugins() {
                 cleanups.push(() => urlListener.remove())
             } catch (e) {
                 console.warn('failed to init app listeners:', e)
+            }
+
+            try {
+                // Push taps: the OneSignal SDKs are configured not to open the
+                // launch URL themselves (suppressLaunchURLs / OneSignal_suppress_launch_urls),
+                // so routing is ours. `additionalData.deepLink` is the canonical
+                // relative path the API sends; the launch URL is the fallback for
+                // notifications sent before that field existed.
+                const adapter = await getOneSignalAdapter()
+                cleanups.push(
+                    adapter.onNotificationClick(({ deepLink, additionalData }) => {
+                        const target = additionalData.deepLink
+                        openDeepLink(typeof target === 'string' ? target : deepLink)
+                    })
+                )
+            } catch (e) {
+                console.warn('failed to init notification click listener:', e)
             }
 
             try {
