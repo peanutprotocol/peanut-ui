@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { createElement, type ReactNode } from 'react'
 import QuizEngine from '../QuizEngine'
 import type { QuizDefinition } from '../types'
 
@@ -25,12 +26,10 @@ jest.mock('framer-motion', () => ({
         {},
         {
             get:
-                (_target, tag: string) =>
+                (_target, tag: string | symbol) =>
                 // strip motion-only props before rendering the plain element
-                ({ initial, animate, exit, whileTap, ...props }: any) => {
-                    const Tag = tag as any
-                    return <Tag {...props} />
-                },
+                ({ initial, animate, exit, whileTap, children, ...props }: Record<string, unknown>) =>
+                    createElement(String(tag), props, children as ReactNode),
         }
     ),
 }))
