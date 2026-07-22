@@ -113,6 +113,13 @@ export const useMultiPhaseKycFlow = ({
     const preparingElapsedIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const isRealtimeFlowRef = useRef(false)
 
+    // effective region intent for analytics — Manteca entry points instantiate this
+    // hook with no `regionIntent` and pass 'LATAM' only as an override to
+    // handleInitiateKyc, so the hook-level prop alone misattributes the
+    // completed/abandoned events (LATAM successes fired as kyc_approved with
+    // region_intent: None). The last initiated intent wins over the prop.
+    const lastIntentRef = useRef<KYCRegionIntent | undefined>(undefined)
+
     // bridge ToS state
     const [tosLink, setTosLink] = useState<string | null>(null)
     const [showTosIframe, setShowTosIframe] = useState(false)
@@ -149,9 +156,10 @@ export const useMultiPhaseKycFlow = ({
 
     // complete the flow — close everything, call original onKycSuccess
     const completeFlow = useCallback(() => {
+        const effectiveIntent = lastIntentRef.current ?? regionIntent
         posthog.capture(
-            regionIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_COMPLETED : ANALYTICS_EVENTS.KYC_APPROVED,
-            { region_intent: regionIntent, acquisition_source: acquisitionSource }
+            effectiveIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_COMPLETED : ANALYTICS_EVENTS.KYC_APPROVED,
+            { region_intent: effectiveIntent, acquisition_source: acquisitionSource }
         )
         isRealtimeFlowRef.current = false
         setForceShowModal(false)
@@ -240,7 +248,7 @@ export const useMultiPhaseKycFlow = ({
     useEffect(() => {
         if (liveKycStatus === 'ACTION_REQUIRED' || liveKycStatus === 'REJECTED') {
             posthog.capture(ANALYTICS_EVENTS.KYC_REJECTED, {
-                region_intent: regionIntent,
+                region_intent: lastIntentRef.current ?? regionIntent,
                 status: liveKycStatus,
             })
             fetchUser()
@@ -249,7 +257,7 @@ export const useMultiPhaseKycFlow = ({
 
     // wrap handleSdkComplete to track real-time flow
     const handleSdkComplete = useCallback(() => {
-        posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: regionIntent })
+        posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: lastIntentRef.current ?? regionIntent })
         isRealtimeFlowRef.current = true
         originalHandleSdkComplete()
         // for action flows (manteca, self-heal), the base status is already APPROVED
@@ -263,6 +271,7 @@ export const useMultiPhaseKycFlow = ({
     const handleInitiateKyc = useCallback(
         async (overrideIntent?: KYCRegionIntent, levelName?: string, crossRegion?: boolean, targetCountry?: string) => {
             const intent = overrideIntent ?? regionIntent
+            lastIntentRef.current = intent
             posthog.capture(
                 intent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_INITIATED : ANALYTICS_EVENTS.KYC_INITIATED,
                 { region_intent: intent, acquisition_source: acquisitionSource }
@@ -378,9 +387,10 @@ export const useMultiPhaseKycFlow = ({
 
     // handle modal close (Go to Home, etc.)
     const handleModalClose = useCallback(() => {
+        const effectiveIntent = lastIntentRef.current ?? regionIntent
         posthog.capture(
-            regionIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_ABANDONED : ANALYTICS_EVENTS.KYC_ABANDONED,
-            { region_intent: regionIntent, phase: modalPhase }
+            effectiveIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_ABANDONED : ANALYTICS_EVENTS.KYC_ABANDONED,
+            { region_intent: effectiveIntent, phase: modalPhase }
         )
         isRealtimeFlowRef.current = false
         setForceShowModal(false)
