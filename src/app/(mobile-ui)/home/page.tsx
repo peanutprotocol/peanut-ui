@@ -54,7 +54,8 @@ const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_
 
 export default function Home() {
     const { showPermissionModal } = useNotifications()
-    const { balance, isFetchingBalance, spendableBalance, isFetchingSpendableBalance } = useWallet()
+    const { balance, isFetchingBalance, spendableBalance, isFetchingSpendableBalance, isSpendableBalanceStale } =
+        useWallet()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { resetWithdrawFlow } = useWithdrawFlow()
     const { user } = useUserStore()
@@ -193,6 +194,7 @@ export default function Home() {
                         isBalanceHidden={isBalanceHidden}
                         onToggleBalanceVisibility={handleToggleBalanceVisibility}
                         isFetchingBalance={isFetchingSpendableBalance}
+                        isBalanceStale={isSpendableBalanceStale}
                     />
 
                     <ActionButtonGroup>
@@ -312,11 +314,13 @@ function WalletBalance({
     isBalanceHidden,
     onToggleBalanceVisibility,
     isFetchingBalance,
+    isBalanceStale,
 }: {
     balance: bigint | undefined
     isBalanceHidden: boolean
     onToggleBalanceVisibility: (e: React.MouseEvent<HTMLButtonElement>) => void
     isFetchingBalance?: boolean
+    isBalanceStale?: boolean
 }) {
     const balanceDisplay = useMemo(() => {
         if (isBalanceHidden) {
@@ -337,10 +341,12 @@ function WalletBalance({
                         <Loading />
                     </span>
                 ) : (
-                    <>
+                    // stale = painted from the persisted last-known-good while the live
+                    // sum is still pending; dim it rather than asserting it as current
+                    <span className={twMerge('flex items-end', isBalanceStale && 'opacity-50')}>
                         <span className="text-[32px] md:text-[40px]">$ </span>
                         {balanceDisplay}
-                    </>
+                    </span>
                 )}
             </div>
 
