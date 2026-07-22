@@ -26,15 +26,15 @@ export const funnelQuiz: QuizDefinition = {
             level: 'easy',
             prompt: 'What is the correct order of the Peanut Lexicon funnel?',
             options: [
+                'Visitor → Registered → Verification Started → Verified → Funded → Activated',
                 'Visitor → Registered → Verified → Funded → Activated',
-                'Visitor → Registered → Funded → Verified → Activated',
-                'Registered → Visitor → Verified → Activated → Funded',
-                'Visitor → Verified → Registered → Funded → Activated',
+                'Visitor → Registered → Verification Started → Funded → Verified → Activated',
+                'Visitor → Verification Started → Registered → Verified → Funded → Activated',
             ],
             correctIndex: 0,
             explanation:
-                'The Lexicon is our shared vocabulary for the growth funnel: someone visits, registers (creates a passkey), verifies (KYC), funds (first money in), and activates (first money out). Every growth dashboard tile is one of these words.',
-            wrongQuip: 'The Lexicon. Say it with me.',
+                'The Lexicon is our shared vocabulary for the growth funnel: someone visits, registers (creates a passkey), starts verification (opens KYC), gets verified (Sumsub approves), funds (first money in), and activates (first spend). The five-step version without Verification Started is the old one — it hid a huge drop-off inside "Registered → Verified".',
+            wrongQuip: 'The Lexicon. Say it with me. All six steps.',
         },
         {
             // [E2]
@@ -55,14 +55,15 @@ export const funnelQuiz: QuizDefinition = {
             level: 'easy',
             prompt: "'Verified' means the user:",
             options: [
-                'Had KYC approved by any of our providers',
+                'Had KYC approved by Sumsub',
+                'Had KYC approved by any of our providers — Bridge, Manteca, or Sumsub',
                 'Confirmed their phone number',
                 'Was manually approved by support',
-                'Linked a bank account',
             ],
             correctIndex: 0,
             explanation:
-                'Verified = KYC approved (status ACTIVE/APPROVED) by any provider — Bridge, Manteca, or Sumsub. It unlocks bank deposits, QR payments and local payment rails, which is why the in-app CTA calls it "Unlock payments".',
+                'Verified = Sumsub approved the KYC. Specifically Sumsub. The any-provider version (Bridge, Manteca, or Sumsub) is the OLD definition — retired. Upstream of it sits Verification Started: the user opened KYC, measured in PostHog as kyc_initiated ∪ manteca_kyc_initiated.',
+            wrongQuip: 'One provider counts. Sumsub.',
         },
         {
             // [E4]
@@ -76,7 +77,7 @@ export const funnelQuiz: QuizDefinition = {
             ],
             correctIndex: 0,
             explanation:
-                'Funded = money actually arrived at least once: a fiat ONRAMP, a claimed send link (SEND_LINK_CLAIM), or an on-chain CRYPTO_DEPOSIT — completed, within 28 days of registration. Linking a bank moves no money; a card payment is money OUT (that is Activated).',
+                'Funded = money actually arrived at least once: a fiat ONRAMP, a claimed send link (SEND_LINK_CLAIM), or an on-chain CRYPTO_DEPOSIT — status COMPLETED. Linking a bank moves no money; a card payment is a spend (that is Activated).',
             wrongQuip: 'Funded = money IN. Actually in.',
         },
         {
@@ -84,15 +85,15 @@ export const funnelQuiz: QuizDefinition = {
             level: 'easy',
             prompt: "'Activated' — our north-star step — means the user:",
             options: [
-                'Completed at least one outbound transaction — a payment, withdrawal, or card spend',
-                'Finished signup and KYC',
+                'Completed at least one SPEND — a card spend, or a QR spend on Mercado Pago / Pix',
+                'Completed at least one outbound transaction — a send link, offramp, withdrawal, or payment',
                 'Deposited money for the first time',
-                'Opened the app three days in a row',
+                'Finished signup and KYC',
             ],
             correctIndex: 0,
             explanation:
-                'Activated = money OUT at least once: a send link, offramp, QR pay, direct transfer, request payment, crypto withdrawal, or a cleared card spend. Deposit-only users are Funded, not Activated — activation is the first moment Peanut delivered real value.',
-            wrongQuip: 'Money in is Funded. Money OUT is Activated.',
+                'Activated = at least one spend: card spend, or QR spend on Mercado Pago / Pix. That is the whole list. The "any money OUT" version (send links, offramps, direct sends, request-pays, crypto withdrawals) is the OLD definition — those still count as Volume, but moving money out is not the value moment. Spending it is.',
+            wrongQuip: 'Money in is Funded. A SPEND is Activated. Everything else out is just Volume.',
         },
         {
             // [E6]
@@ -127,11 +128,17 @@ export const funnelQuiz: QuizDefinition = {
         {
             // [M2]
             level: 'mid',
-            prompt: 'For the activation KR, Funded and Activated events must happen within what window after registration?',
-            options: ['28 days', '7 days', '90 days', 'Any time — there is no window'],
+            prompt: "'Active' — as on DAU/WAU-style dashboards — means a user who:",
+            options: [
+                'Completed at least one transaction in the last 7 days',
+                'Opened the app in the last 7 days',
+                'Completed at least one transaction in the last 28 days',
+                'Ever reached Activated',
+            ],
             correctIndex: 0,
             explanation:
-                'Both are measured within 28 days of registration. The window makes cohorts comparable: a user who finally pays 6 months later is a win, but not an activation-KR win — and without the window the metric could only ever go up.',
+                "Active = ≥1 COMPLETED transaction in the last 7 days. Opening the app is a session, not activity, and Activated is a lifetime milestone, not a state. The opposite of Active is Inactive — 'churned' and 'dormant' are banned words: they dress a 7-day observation up as a prediction.",
+            wrongQuip: 'Not churned. Not dormant. Inactive.',
         },
         {
             // [M3]
@@ -140,12 +147,12 @@ export const funnelQuiz: QuizDefinition = {
             options: [
                 "Deposit — 'Add money to make your first payment'",
                 "Verify — 'Unlock payments'",
-                "Outbound — 'Make your first payment'",
+                "Spend — 'Make your first payment'",
                 'None — the CTAs disappear after KYC',
             ],
             correctIndex: 0,
             explanation:
-                'The in-app activation flow is verify → deposit → (card) → outbound. KYC done + no balance lands you on the deposit step, routing to /add-money. You cannot make a first payment with an empty wallet, so outbound waits until there is balance.',
+                'The in-app activation flow is verify → deposit → (card) → spend. KYC done + no balance lands you on the deposit step, routing to /add-money. You cannot make a first spend with an empty wallet, so the spend step waits until there is balance.',
         },
         {
             // [M4]
@@ -198,39 +205,39 @@ export const funnelQuiz: QuizDefinition = {
             options: ['Activation', 'Acquisition', 'Retention', 'Referral'],
             correctIndex: 0,
             explanation:
-                "Acquisition got them in the door; activation = reaching the first moment of real value — money out. You can't retain a user who never activated: retention only starts counting after the first value moment.",
-            wrongQuip: "Can't churn from a habit you never formed.",
+                "Acquisition got them in the door; activation = reaching the first moment of real value — a first spend. You can't retain a user who never activated: retention only starts counting after the first value moment.",
+            wrongQuip: 'Retention only starts after the first value moment.',
         },
         // ————— HARD — the traps we actually fall into —————
         {
             // [H1]
             level: 'hard',
-            prompt: 'The canonical Activated definition counts CARD_SPEND_CLEAR but deliberately excludes CARD_SPEND_AUTH. Why?',
+            prompt: 'For card spend counting toward Activated, the qualifying event is the AUTHORIZATION, not the settlement (CLEAR). Why?',
             options: [
-                'Counting both would double-count the same spend, and an auth can still reverse without money moving',
-                'AUTH events are not stored in the database',
-                'CLEAR fires first, so it is the earlier signal',
-                'AUTH includes declined transactions',
+                'The authorization is the moment the user actually tapped and got value; settlement is bookkeeping that lands days later',
+                'Settlements are not stored in the database',
+                'The canonical definition counts CLEAR — settlement is when money actually moves',
+                'Authorizations exclude declined transactions',
             ],
             correctIndex: 0,
             explanation:
-                'One spend produces AUTH and then CLEAR — count both kinds and every card spend activates the user twice; an auth can also drop without settling. This is a live gotcha: one of our own scoreboard scripts drifted to CARD_SPEND_AUTH while the canonical lexicon_activated view uses CLEAR.',
-            wrongQuip: 'One swipe, two events, one activation.',
+                'Ruling: the qualifying card event for Activated is the AUTHORIZATION — the tap is the value moment, and it is when the user behaved. Settlement (CLEAR) is the money actually moving, often days later — use it for money reporting, never for activation. Counting CLEAR is the OLD convention; picking it here is exactly the drift our scoreboard scripts used to suffer from, just in the other direction.',
+            wrongQuip: 'The tap is the moment. Settlement is bookkeeping.',
         },
         {
             // [H2]
             level: 'hard',
-            prompt: 'A user claims a $20 send link from a friend and never does anything else. In Lexicon terms, after 28 days they are:',
+            prompt: 'A user claims a $20 send link, then sends half of it onward as a send link to a friend. In Lexicon terms they are:',
             options: [
                 'Funded but not Activated',
-                'Activated — the claim was a completed transaction',
-                'Only Registered — claims are excluded from the funnel',
+                'Activated — the outbound send link was a completed transaction',
+                'Only Registered — send links are excluded from the funnel',
                 'Verified — claiming requires KYC',
             ],
             correctIndex: 0,
             explanation:
-                'A claimed send link (SEND_LINK_CLAIM) is one of the three Funded inflows — money came IN. Activation requires money OUT. This user is exactly who the Funded→Activated conversion (our biggest cliff) is about: they have money sitting there and never spent it.',
-            wrongQuip: 'Receiving money is not using money.',
+                'The claim (SEND_LINK_CLAIM) made them Funded — money came IN. But Activated requires a SPEND: card spend or QR spend on Mercado Pago / Pix. An outbound send link is Volume, not activation — that is the OLD "any money out" definition talking. This user is exactly who the Funded→Activated cliff is about: money in, money shuffled, nothing spent.',
+            wrongQuip: 'Passing money along is not spending it.',
         },
         {
             // [H3]
@@ -294,7 +301,7 @@ export const funnelQuiz: QuizDefinition = {
             // [H7]
             level: 'hard',
             prompt: 'A user got a card issued but never opened the add-to-wallet screen. For the tokenization step, this user is:',
-            options: ['Never-reached', 'Stalled', 'Churned', 'Converted with delay'],
+            options: ['Never-reached', 'Stalled', 'Inactive', 'Converted with delay'],
             correctIndex: 0,
             explanation:
                 "Never-reached = the user never arrived at the step. Stalled = they arrived (opened the screen) but didn't complete it. The fix differs completely: never-reached is a discovery/comms problem, stalled is a UX/product problem. Merging them hides which one you have.",
