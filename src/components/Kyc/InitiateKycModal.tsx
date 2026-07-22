@@ -1,4 +1,7 @@
+'use client'
+
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import ActionModal from '@/components/Global/ActionModal'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
@@ -12,7 +15,7 @@ interface InitiateKycModalProps {
     /** error message from a failed verify/resubmit attempt */
     error?: string | null
     /** when set, shows context-specific messaging instead of the generic "unlock" copy */
-    variant?: 'default' | 'provider_rejection' | 'blocked' | 'restart_identity' | 'cross_region'
+    variant?: 'default' | 'provider_rejection' | 'blocked' | 'restart_identity' | 'cross_region' | 'region-unavailable'
     providerMessage?: string
     /** country name shown in cross_region variant (e.g. "Brazil", "Argentina") */
     regionName?: string
@@ -41,9 +44,12 @@ export const InitiateKycModal = ({
     const isBlocked = variant === 'blocked'
     const isRestartIdentity = variant === 'restart_identity'
     const isCrossRegion = variant === 'cross_region'
+    const isRegionUnavailable = variant === 'region-unavailable'
+    const router = useRouter()
 
     const getTitle = () => {
         if (error) return tCommon('somethingWentWrong')
+        if (isRegionUnavailable) return t('initiate.titleRegionUnavailable')
         if (isBlocked) return t('initiate.titleBlocked')
         if (isRestartIdentity) return t('initiate.titleRestartIdentity')
         if (isProviderRejection) return t('initiate.titleProviderRejection')
@@ -56,6 +62,7 @@ export const InitiateKycModal = ({
 
     const getDescription = () => {
         if (error) return t('initiate.descriptionError', { error })
+        if (isRegionUnavailable) return t('initiate.descriptionRegionUnavailable')
         if (isBlocked) return providerMessage || t('initiate.descriptionBlocked')
         if (isRestartIdentity) return providerMessage || t('initiate.descriptionRestartIdentity')
         if (isProviderRejection) return providerMessage || t('initiate.descriptionProviderRejection')
@@ -72,6 +79,15 @@ export const InitiateKycModal = ({
             return {
                 text: tCommon('contactSupport'),
                 onClick: onContactSupport ?? onClose,
+            }
+        }
+        if (isRegionUnavailable) {
+            return {
+                text: t('initiate.ctaWithdrawFunds'),
+                onClick: () => {
+                    onClose()
+                    router.push('/withdraw')
+                },
             }
         }
         if (isRestartIdentity) {
@@ -110,8 +126,8 @@ export const InitiateKycModal = ({
             title={getTitle()}
             description={getDescription()}
             preventClose
-            icon={(error || isBlocked || isRestartIdentity ? 'alert' : 'badge') as IconName}
-            iconContainerClassName={isBlocked || isRestartIdentity ? 'bg-yellow-1' : ''}
+            icon={(error || isBlocked || isRestartIdentity || isRegionUnavailable ? 'alert' : 'badge') as IconName}
+            iconContainerClassName={isBlocked || isRestartIdentity || isRegionUnavailable ? 'bg-yellow-1' : ''}
             modalPanelClassName="max-w-full m-2"
             ctaClassName="grid grid-cols-1 gap-3"
             ctas={[
@@ -126,7 +142,7 @@ export const InitiateKycModal = ({
                 },
             ]}
             footer={
-                isProviderRejection || isBlocked || isRestartIdentity ? undefined : (
+                isProviderRejection || isBlocked || isRestartIdentity || isRegionUnavailable ? undefined : (
                     <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
                 )
             }

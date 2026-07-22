@@ -1,6 +1,8 @@
 import {
     computeAvailableSpendable,
     computeDisplaySpendable,
+    computeExcessCollateralCents,
+    EXCESS_COLLATERAL_MIN_CENTS,
     isAmountWithinBalance,
     printableUsdc,
     rainCentsToUsdcUnits,
@@ -154,6 +156,43 @@ describe('balance utils', () => {
             expect(isAmountWithinBalance('500', display)).toBe(true)
             // available-now is $0 here, but the gate must NOT block — it fails late instead
             expect(computeAvailableSpendable(0n, 0)).toBe(0n)
+        })
+    })
+
+    describe('computeExcessCollateralCents', () => {
+        it('returns the delta when the collateral exceeds the new limit', () => {
+            // $200 backing, limit lowered to $50 → $150 back to the wallet
+            expect(computeExcessCollateralCents(20_000, 5_000)).toBe(15_000)
+        })
+
+        it('returns 0 on a limit increase or exact match', () => {
+            expect(computeExcessCollateralCents(5_000, 20_000)).toBe(0)
+            expect(computeExcessCollateralCents(5_000, 5_000)).toBe(0)
+        })
+
+        it('leaves sub-threshold deltas in place (no passkey tap for cents)', () => {
+            expect(computeExcessCollateralCents(5_000 + EXCESS_COLLATERAL_MIN_CENTS - 1, 5_000)).toBe(0)
+            expect(computeExcessCollateralCents(5_000 + EXCESS_COLLATERAL_MIN_CENTS, 5_000)).toBe(
+                EXCESS_COLLATERAL_MIN_CENTS
+            )
+        })
+
+        it('fails closed on missing/invalid spending power', () => {
+            expect(computeExcessCollateralCents(undefined, 5_000)).toBe(0)
+            expect(computeExcessCollateralCents(null, 5_000)).toBe(0)
+            expect(computeExcessCollateralCents(NaN, 5_000)).toBe(0)
+            expect(computeExcessCollateralCents(-100, 5_000)).toBe(0)
+            expect(computeExcessCollateralCents(20_000, NaN)).toBe(0)
+            expect(computeExcessCollateralCents(20_000, -1)).toBe(0)
+        })
+
+        it('floors fractional cents so we never sign for more than the collateral holds', () => {
+            // spendingPower 20000.9 → floor 20000; limit 5000 → 15000, not 15000.9
+            expect(computeExcessCollateralCents(20_000.9, 5_000)).toBe(15_000)
+        })
+
+        it('a zero limit returns the whole backing', () => {
+            expect(computeExcessCollateralCents(20_000, 0)).toBe(20_000)
         })
     })
 })
