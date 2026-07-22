@@ -200,6 +200,7 @@ function InvitePageContent() {
           ? 'You earned a Peanut badge. To claim it, sign up or log in.'
           : 'Members-only access. Use this invite to open your wallet and start sending and receiving money globally.'
     const ctaLabel = isWaitlistSkip ? 'Claim your Skip Pass' : isVanityClaim ? 'Sign up' : 'Claim your spot'
+    const loginLabel = isVanityClaim ? 'Log in' : 'Already have an account? Log in!'
 
     return (
         <InvitesPageLayout image={PeanutWavingHello.src}>
@@ -225,7 +226,7 @@ function InvitePageContent() {
                                 onClick={handleLoginClick}
                                 shadowSize="4"
                             >
-                                {isVanityClaim ? 'Log in' : 'Already have an account? Log in!'}
+                                {loginLabel}
                             </Button>
                         )}
                     </div>
