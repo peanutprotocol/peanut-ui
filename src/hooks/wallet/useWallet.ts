@@ -250,7 +250,15 @@ export const useWallet = () => {
     // React Query keeps the last good data across a failed refetch, so this gate
     // only matters on a session's first load. Demo has no Rain call at all, so
     // its synthesized balance is always "ready".
-    const isRainReady = demoMode || rainOverview !== undefined
+    //
+    // A response that arrived but couldn't read Rain (`balanceUnavailable` with
+    // no balance to fall back on) is NOT ready either — summing its absent
+    // spendingPower as 0 is exactly the $0 this guards against.
+    // `!!` not `!== undefined`: the query type says object-or-undefined, but a
+    // null JSON body deserializes to null, which would pass the stricter check
+    // and then throw on property access.
+    const isRainReady =
+        demoMode || (!!rainOverview && !(rainOverview.balanceUnavailable && rainOverview.balance == null))
 
     // The two inputs (smart-account + rain overview) refresh independently.
     // When both change at once (e.g. auto-balancer deposit: smart goes down,
