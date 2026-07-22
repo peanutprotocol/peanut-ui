@@ -9,7 +9,7 @@ import AmountInput from '@/components/Global/AmountInput'
 import ValidationErrorView, { type ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import UserCard from '@/components/User/UserCard'
-import { loadingStateContext } from '@/context'
+import { loadingStateContext } from '@/context/loadingStates.context'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
@@ -112,10 +112,13 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             })
             setLoadingState('Idle')
             setView('success')
-        } catch (error: any) {
+        } catch (error) {
             console.error('Error creating request charge:', error)
             captureException(error)
-            setErrorState({ showError: true, errorMessage: error.message || t('errors.createRequestFailed') })
+            setErrorState({
+                showError: true,
+                errorMessage: error instanceof Error && error.message ? error.message : t('errors.createRequestFailed'),
+            })
             setLoadingState('Idle')
         }
     }, [

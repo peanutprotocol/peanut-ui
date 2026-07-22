@@ -11,7 +11,8 @@ import {
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import { loadingStateContext, tokenSelectorContext } from '@/context'
+import { loadingStateContext } from '@/context/loadingStates.context'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
@@ -41,7 +42,8 @@ import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
 import { getTokenSymbol } from '@/utils/general.utils'
 import { Button } from '@/components/0_Bruddle/Button'
 import Image from 'next/image'
-import { PEANUT_LOGO_BLACK, PEANUTMAN } from '@/assets'
+import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
+import { PEANUTMAN } from '@/assets/mascot'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import MantecaFlowManager from './MantecaFlowManager'
@@ -220,7 +222,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
             setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
         }
-    }, [claimLinkData, isPeanutWallet])
+        // claimLinkData is unused in the body but load-bearing: it is what gives this
+        // callback a new identity per link, and the effects below depend on that
+        // identity to reset the token selection when new link data arrives. Dropping
+        // it would silently stop those resets.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [claimLinkData, isPeanutWallet, setSelectedChainID, setSelectedTokenAddress])
 
     const isPeanutChain = useMemo(() => {
         return claimLinkData.chainId === PEANUT_WALLET_CHAIN.id.toString()
@@ -242,7 +249,16 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             }
         }
         prevRecipientType.current = recipientType
-    }, [recipientType, claimLinkData.chainId, isPeanutChain, claimLinkData.tokenAddress])
+    }, [
+        recipientType,
+        claimLinkData.chainId,
+        isPeanutChain,
+        claimLinkData.tokenAddress,
+        setIsXChain,
+        setRefetchXchainRoute,
+        setSelectedChainID,
+        setSelectedTokenAddress,
+    ])
 
     const handleClaimLink = useCallback(
         async (bypassModal = false, _autoClaim = false) => {
@@ -597,7 +613,14 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         } else {
             setIsXChain(true)
         }
-    }, [selectedTokenData, claimLinkData.chainId, claimLinkData.tokenAddress])
+    }, [
+        selectedTokenData,
+        claimLinkData.chainId,
+        claimLinkData.tokenAddress,
+        setHasFetchedRoute,
+        setIsXChain,
+        setSelectedRoute,
+    ])
 
     // We may need this when we re add rewards via specific tokens
     // If not, feel free to remove
@@ -684,7 +707,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 setLoadingState('Idle')
             }
         },
-        [claimLinkData, isXChain, selectedTokenData, setLoadingState, routes]
+        [claimLinkData, isXChain, selectedTokenData, setLoadingState, routes, setHasFetchedRoute, setSelectedRoute]
     )
 
     useEffect(() => {
@@ -770,7 +793,15 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 setIsXChain(true)
             }
         }
-    }, [isPeanutWallet, isPeanutChain, claimToExternalWallet])
+    }, [
+        isPeanutWallet,
+        isPeanutChain,
+        claimToExternalWallet,
+        setIsXChain,
+        setRefetchXchainRoute,
+        setSelectedChainID,
+        setSelectedTokenAddress,
+    ])
 
     // Clear recipient when switching to external wallet
     useEffect(() => {
@@ -901,7 +932,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         if (claimToMercadoPago && !user) {
             setShowVerificationModal(true)
         }
-    }, [claimToMercadoPago, user])
+    }, [claimToMercadoPago, user, setShowVerificationModal])
 
     if (claimBankFlowStep) {
         return <BankFlowManager {...props} />

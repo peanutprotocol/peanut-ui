@@ -27,7 +27,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import type { Address, Hex, TransactionReceipt } from 'viem'
 import { parseUnits } from 'viem'
 import { Slider } from '@/components/Slider'
-import { tokenSelectorContext } from '@/context'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useHaptic } from 'use-haptic'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
@@ -257,9 +257,9 @@ export default function WithdrawCryptoPage() {
 
                 setChargeDetails(fullChargeDetails)
                 setShowCompatibilityModal(true)
-            } catch (err: any) {
+            } catch (err) {
                 console.error('Error during setup review (request/charge creation):', err)
-                const errorMessage = err.message || t('errors.prepareFailed')
+                const errorMessage = err instanceof Error && err.message ? err.message : t('errors.prepareFailed')
                 setError(errorMessage)
             } finally {
                 setIsPreparingReview(false)

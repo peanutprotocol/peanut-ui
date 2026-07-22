@@ -8,6 +8,7 @@
 import { useTranslations } from 'next-intl'
 import React, { useMemo } from 'react'
 
+import { type ChainWithTokens } from '@/interfaces/chain-meta'
 import EmptyState from '../../EmptyStates/EmptyState'
 import NavHeader from '../../NavHeader'
 import { type NetworkConfig } from '../TokenSelector.consts'
@@ -15,7 +16,7 @@ import NetworkListItem from './NetworkListItem'
 import SearchInput from './SearchInput'
 
 interface NetworkListViewProps {
-    chains: Record<string, any>
+    chains: Record<string, ChainWithTokens>
     onSelectChain: (chainId: string) => void
     onBack: () => void
     searchValue: string
@@ -42,14 +43,10 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
         // filter active chains that match the search term and are in the allowed chains list
         const activeChains = Object.values(chains)
             .filter((chain) => allowedChainIds.has(String(chain.chainId)))
-            .filter(
-                (chain) =>
-                    chain.networkName?.toLowerCase().includes(lowerSearchValue) ||
-                    chain.chainName?.toLowerCase().includes(lowerSearchValue)
-            )
+            .filter((chain) => chain.networkName.toLowerCase().includes(lowerSearchValue))
             .map((chain) => ({
                 chainId: chain.chainId,
-                name: chain.networkName || chain.chainName,
+                name: chain.networkName,
                 iconUrl: chain.chainIconURI,
                 isComingSoon: false,
             }))

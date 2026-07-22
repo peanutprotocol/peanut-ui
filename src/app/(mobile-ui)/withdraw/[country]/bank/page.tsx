@@ -12,7 +12,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zer
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
-import { AccountType, type Account } from '@/interfaces'
+import { AccountType, type Account } from '@/interfaces/interfaces'
 import { formatIban, shortenStringLong, isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -37,7 +37,7 @@ import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
 import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
 import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
+import { resolveKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
 import ExchangeRate from '@/components/ExchangeRate'
 import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
@@ -150,7 +150,7 @@ export default function WithdrawBankPage() {
                 router.replace('/withdraw')
             }
         }
-    }, [country, isBridgeSupportedCountry, router])
+    }, [country, router])
 
     // check if we came from send flow - using method param to detect (only bank goes through this page)
     const methodParam = searchParams.get('method')
@@ -349,14 +349,14 @@ export default function WithdrawBankPage() {
                 method_type: 'bridge',
                 country,
             })
-        } catch (e: any) {
+        } catch (e) {
             const error = toFriendlyError(e)
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
                 method_type: 'bridge',
                 error_message: error,
             })
             if (error.includes('Something failed. Please try again.')) {
-                setError({ showError: true, errorMessage: e.message })
+                setError({ showError: true, errorMessage: e instanceof Error ? e.message : String(e) })
             } else {
                 setError({ showError: true, errorMessage: error })
             }
@@ -598,7 +598,7 @@ export default function WithdrawBankPage() {
                 }}
                 isLoading={sumsubFlow.isLoading}
                 error={sumsubFlow.error}
-                variant={getKycModalVariant(gate.kind)}
+                variant={resolveKycModalVariant(gate)}
                 providerMessage={getGateUserMessage(gate)}
                 regionName={getCountryFromPath(country)?.title}
             />

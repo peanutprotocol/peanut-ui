@@ -1,6 +1,7 @@
 'use client'
 
-import { MERCADO_PAGO, PIX } from '@/assets'
+import MERCADO_PAGO from '@/assets/payment-apps/mercado-pago.svg'
+import PIX from '@/assets/payment-apps/pix.svg'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
@@ -152,8 +153,8 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 onVerify={async () => {
                     if (mantecaRejection.state === 'blocked') {
                         // blocked users cannot self-heal — route to support
-                        if (typeof window !== 'undefined' && (window as any).$crisp) {
-                            ;(window as any).$crisp.push(['do', 'chat:open'])
+                        if (typeof window !== 'undefined' && window.$crisp) {
+                            window.$crisp.push(['do', 'chat:open'])
                         }
                         setShowKycModal(false)
                         return

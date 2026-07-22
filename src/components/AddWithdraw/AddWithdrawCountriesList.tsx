@@ -18,7 +18,7 @@ import { DynamicBankAccountForm, type IBankAccountDetails } from './DynamicBankA
 import { addBankAccount } from '@/app/actions/users'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
-import { type Account } from '@/interfaces'
+import { type Account } from '@/interfaces/interfaces'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAppDispatch } from '@/redux/hooks'
@@ -29,7 +29,7 @@ import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
+import { resolveKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
 import { railJurisdictionForBank } from '@/utils/bridge.utils'
 import { getRegionIntent } from '@/utils/regions.utils'
 import { useTosGuard } from '@/hooks/useTosGuard'
@@ -382,7 +382,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 }}
                 isLoading={sumsubFlow.isLoading}
                 error={sumsubFlow.error}
-                variant={getKycModalVariant(gate.kind)}
+                variant={resolveKycModalVariant(gate)}
                 providerMessage={getGateUserMessage(gate)}
                 regionName={currentCountry?.title}
             />

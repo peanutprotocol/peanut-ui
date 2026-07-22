@@ -1,11 +1,11 @@
 'use client'
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
-import { useForm, Controller } from 'react-hook-form'
+import { useForm, Controller, type ControllerRenderProps, type FieldPath, type RegisterOptions } from 'react-hook-form'
 import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
 import { type AddBankAccountPayload, BridgeAccountOwnerType, BridgeAccountType } from '@/app/actions/types/users.types'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
-import BaseSelect from '@/components/0_Bruddle/BaseSelect'
+import BaseSelect, { type BaseSelectOption } from '@/components/0_Bruddle/BaseSelect'
 import { BRIDGE_ALPHA3_TO_ALPHA2, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -304,8 +304,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     dispatch(bankFormActions.setFormData(formDataToSave))
                     setIsSubmitting(false)
                 }
-            } catch (error: any) {
-                setSubmissionError(error.message)
+            } catch (error) {
+                setSubmissionError(error instanceof Error ? error.message : String(error))
             } finally {
                 setIsSubmitting(false)
             }
@@ -328,13 +328,13 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             }
         }
 
-        const renderInput = (
-            name: keyof IBankAccountDetails,
+        const renderInput = <TName extends FieldPath<IBankAccountDetails>>(
+            name: TName,
             placeholder: string,
-            rules: any,
+            rules: RegisterOptions<IBankAccountDetails, TName>,
             type: string = 'text',
             rightAdornment?: React.ReactNode,
-            onBlur?: (field: any) => Promise<void> | void,
+            onBlur?: (field: ControllerRenderProps<IBankAccountDetails, TName>) => Promise<void> | void,
             showCharCount?: boolean,
             maxLength?: number
         ) => {
@@ -391,7 +391,12 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             )
         }
 
-        const renderSelect = (name: keyof IBankAccountDetails, placeholder: string, options: any[], rules: any) => (
+        const renderSelect = (
+            name: keyof IBankAccountDetails,
+            placeholder: string,
+            options: BaseSelectOption[],
+            rules: RegisterOptions<IBankAccountDetails>
+        ) => (
             <div className="w-full">
                 <Controller
                     name={name}
@@ -449,8 +454,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             <div className="w-full space-y-4">
                                 {renderInput('accountOwnerName', t('accountOwnerName'), {
                                     required: t('accountOwnerNameRequired'),
-                                    validate: (value: string) => {
-                                        const trimmed = value.trim()
+                                    validate: (value: string | undefined) => {
+                                        const trimmed = value?.trim() ?? ''
                                         const parts = trimmed.split(/\s+/)
                                         if (parts.length < 2) {
                                             return t('accountOwnerNameFull')
@@ -464,8 +469,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             <div className="w-full space-y-4">
                                 {renderInput('accountOwnerName', t('accountOwnerName'), {
                                     required: t('accountOwnerNameRequired'),
-                                    validate: (value: string) => {
-                                        const trimmed = value.trim()
+                                    validate: (value: string | undefined) => {
+                                        const trimmed = value?.trim() ?? ''
                                         const parts = trimmed.split(/\s+/)
                                         if (parts.length < 2) {
                                             return t('accountOwnerNameFull')
@@ -488,8 +493,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             <div className="w-full space-y-4">
                                 {renderInput('accountOwnerName', t('accountOwnerName'), {
                                     required: t('accountOwnerNameRequired'),
-                                    validate: (value: string) => {
-                                        const trimmed = value.trim()
+                                    validate: (value: string | undefined) => {
+                                        const trimmed = value?.trim() ?? ''
                                         const parts = trimmed.split(/\s+/)
                                         if (parts.length < 2) {
                                             return t('accountOwnerNameFull')

@@ -75,7 +75,7 @@ const ApplicationStatusScreen: FC<Props> = ({
                 {SUPPORT_VARIANTS.has(variant) && onUploadProofOfAddress && (
                     <div className="flex w-full flex-col gap-2">
                         <Button variant="purple" shadowSize="4" className="w-full" onClick={onUploadProofOfAddress}>
-                            Upload proof of address
+                            {t('uploadProofOfAddress')}
                         </Button>
                         {uploadError && <p className="text-sm text-error">{uploadError}</p>}
                     </div>

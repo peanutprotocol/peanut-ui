@@ -85,6 +85,8 @@ module.exports = [
             'react/prop-types': 'off',
             // Allow unescaped quotes — too noisy and prettier handles spacing
             'react/no-unescaped-entities': 'off',
+            // `jsx`/`global` are styled-jsx's <style> attributes (built into Next), not DOM props.
+            'react/no-unknown-property': ['error', { ignore: ['jsx', 'global'] }],
 
             // Ban barrel imports — see BANNED_BARREL_PATHS above.
             'no-restricted-imports': [
@@ -162,8 +164,37 @@ module.exports = [
     {
         // require() inside test bodies is the Jest idiom for reading mocks after
         // jest.mock()/resetModules(); hoisting them to imports changes semantics.
-        files: ['src/**/__tests__/**/*.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
-        rules: { '@typescript-eslint/no-require-imports': 'off' },
+        // no-img-element: these files mock next/image down to a raw <img>.
+        // no-explicit-any: mocks and partial fixtures legitimately cast through
+        // `any` — production code keeps the ban.
+        files: ['src/**/__tests__/**/*.{ts,tsx}', 'src/**/*.test.{ts,tsx}', 'src/**/__mocks__/**/*.{ts,tsx}'],
+        rules: {
+            '@typescript-eslint/no-require-imports': 'off',
+            '@next/next/no-img-element': 'off',
+            '@typescript-eslint/no-explicit-any': 'off',
+        },
+    },
+    {
+        // Dev-only tooling: /dev pages, the window.debug console cheats, and the
+        // InvitesGraph debug visualization. The cheat API is intrinsically dynamic
+        // and d3/force-graph mutate node objects at runtime — typing them buys no
+        // user-facing safety. Production code keeps the any ban.
+        files: ['src/app/(mobile-ui)/dev/**', 'src/context/PeanutDebug.tsx', 'src/components/Global/InvitesGraph/**'],
+        rules: { '@typescript-eslint/no-explicit-any': 'off' },
+    },
+    {
+        // OG images render through Satori (next/og ImageResponse), which supports
+        // only a subset of HTML/CSS and cannot render next/image — raw <img> with
+        // explicit width/height is the required form here, not an oversight.
+        files: ['src/components/og/**', 'src/app/api/og/**'],
+        rules: { '@next/next/no-img-element': 'off' },
+    },
+    {
+        // Rasterized to PNG by html-to-image (see share-asset/captureShareAsset.ts).
+        // next/image's lazy loading and wrapper markup break the capture — the same
+        // class of bug as the runtime <canvas> that file already documents.
+        files: ['src/components/Card/share-asset/**', 'src/components/Global/ImageGeneration/**'],
+        rules: { '@next/next/no-img-element': 'off' },
     },
     {
         // Localization guard: product-UI copy must come from next-intl, not JSX
@@ -192,6 +223,9 @@ module.exports = [
             'src/components/Global/{PeanutLoading,Icons,Badges}/**',
             // InvitesGraph is a /dev-only debug visualization, not user-facing UI.
             'src/components/Global/InvitesGraph/**',
+            // Hidden support tool — never linked in-app; support DMs the URL to
+            // affected users, so the copy stays English-only.
+            'src/app/(mobile-ui)/fix-card-signature/**',
         ],
         rules: {
             'react/jsx-no-literals': [

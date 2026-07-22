@@ -1,5 +1,5 @@
 import { type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
-import { type MantecaKycStatus } from '@/interfaces'
+import { type MantecaKycStatus } from '@/interfaces/interfaces'
 
 /**
  * unified kyc status type across all providers.

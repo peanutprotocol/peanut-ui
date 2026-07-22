@@ -56,7 +56,7 @@ let auth: AuthTokenModule
 
 function loadModule(): void {
     jest.isolateModules(() => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports -- isolateModules is sync-only
+        // isolateModules is sync-only, so this has to be require() rather than import
         auth = require('../auth-token')
     })
 }

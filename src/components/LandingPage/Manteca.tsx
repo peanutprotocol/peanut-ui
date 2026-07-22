@@ -1,7 +1,9 @@
 import mantecaIphone from '@/assets/iphone-ss/manteca_ss.webp'
 import Image from 'next/image'
 import Link from 'next/link'
-import { MEPA_ARGENTINA_LOGO, PIX_BRZ_LOGO, Star } from '@/assets'
+import MEPA_ARGENTINA_LOGO from '@/assets/logos/mepa-arg.svg'
+import PIX_BRZ_LOGO from '@/assets/logos/pix-brz.svg'
+import Star from '@/assets/illustrations/star.svg'
 import { CloudsCss } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 
@@ -33,7 +35,7 @@ const Manteca = () => {
                         x="5px"
                         rotate={config.rotate}
                     >
-                        <img src={Star.src} alt="" width={50} height={50} />
+                        <Image src={Star} alt="" width={50} height={50} />
                     </AnimateOnView>
                 ))}
             </div>

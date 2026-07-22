@@ -1,6 +1,6 @@
 'use client'
 
-import type { MantecaLimit } from '@/interfaces'
+import type { MantecaLimit } from '@/interfaces/interfaces'
 import { SYMBOLS_BY_CURRENCY_CODE } from '@/hooks/useCurrency'
 import { getCurrencyFlagUrl } from '@/constants/countryCurrencyMapping'
 import { formatExtendedNumber } from '@/utils/general.utils'

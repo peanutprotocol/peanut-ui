@@ -1,6 +1,6 @@
 'use client'
 
-import { tokenSelectorContext } from '@/context'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { LinkSendFlowProvider, useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useContext, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
@@ -28,7 +28,7 @@ const LinkSendFlowContent = ({ onPrev }: LinkSendFlowManagerProps) => {
     useEffect(() => {
         setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
         setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-    }, [])
+    }, [setSelectedChainID, setSelectedTokenAddress])
 
     return (
         <>

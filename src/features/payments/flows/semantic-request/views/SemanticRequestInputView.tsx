@@ -25,7 +25,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 import { printableAddress, areEvmAddressesEqual } from '@/utils/general.utils'
-import { tokenSelectorContext } from '@/context'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { useTranslations } from 'next-intl'
 

@@ -1,4 +1,4 @@
-import { PEANUTMAN_PFP } from '@/assets'
+import { PEANUTMAN_PFP } from '@/assets/mascot'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'

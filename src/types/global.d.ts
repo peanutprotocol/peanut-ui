@@ -1,4 +1,11 @@
 interface Window {
+    // Set by the Capacitor bridge whenever @capacitor/core is bundled — including on
+    // web — so presence alone doesn't mean native. isNativePlatform() is the real
+    // signal, and it's optional because older bridges don't expose it.
+    Capacitor?: {
+        getPlatform: () => string
+        isNativePlatform?: () => boolean
+    }
     gtag?: (command: string, ...args: unknown[]) => void
     // Before client.crisp.chat/l.js loads, $crisp is a plain push-queue array. Once the
     // script loads it upgrades the object in place, adding methods like `is()` — we use
@@ -14,4 +21,6 @@ interface Navigator {
     brave?: {
         isBrave: () => Promise<boolean>
     }
+    // Non-standard, iOS Safari only: true when running as an installed PWA.
+    standalone?: boolean
 }

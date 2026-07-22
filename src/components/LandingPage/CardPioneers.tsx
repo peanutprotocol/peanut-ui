@@ -1,7 +1,7 @@
 'use client'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Star } from '@/assets'
+import Star from '@/assets/illustrations/star.svg'
 
 import { useRouter } from 'next/navigation'
 import PioneerCard3D from './PioneerCard3D'

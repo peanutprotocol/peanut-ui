@@ -8,7 +8,7 @@ import {
     PEANUT_WALLET_TOKEN_NAME,
     PEANUT_WALLET_TOKEN_IMG_URL,
 } from '@/constants/zerodev.consts'
-import { type ITokenPriceData } from '@/interfaces'
+import { type ITokenPriceData } from '@/interfaces/interfaces'
 import * as Sentry from '@sentry/nextjs'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { STABLE_COINS, supportedMobulaChains } from '@/constants/general.consts'

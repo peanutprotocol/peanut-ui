@@ -114,15 +114,6 @@ jest.mock('@/hooks/useGetExchangeRate', () => ({
     default: () => mockUseGetExchangeRate(),
 }))
 
-jest.mock('@/interfaces', () => ({
-    AccountType: {
-        IBAN: 'iban',
-        US: 'us',
-        GB: 'gb',
-        CLABE: 'clabe',
-    },
-}))
-
 const mockUseLimitsValidation = jest.fn()
 jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
     useLimitsValidation: (...args: any[]) => mockUseLimitsValidation(...args),

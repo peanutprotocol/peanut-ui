@@ -40,7 +40,13 @@ export async function GET() {
 
         // Test a second endpoint - ENS name lookup (if available)
         const lookupTestStart = Date.now()
-        let lookupHealth: any = { status: 'not_tested', message: 'Lookup endpoint not tested' }
+        let lookupHealth: {
+            status: string
+            message?: string
+            responseTime?: number
+            httpStatus?: number
+            error?: string
+        } = { status: 'not_tested', message: 'Lookup endpoint not tested' }
 
         try {
             // Test reverse ENS lookup if the API supports it

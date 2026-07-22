@@ -140,7 +140,7 @@ export function isLocaleSegment(segment: string): boolean {
 export function isReservedRoute(path: string): boolean {
     const firstSegment = path.split('/')[1]?.toLowerCase()
     if (!firstSegment) return false
-    return RESERVED_ROUTES.includes(firstSegment as any) || isLocaleSegment(firstSegment)
+    return RESERVED_ROUTES.includes(firstSegment) || isLocaleSegment(firstSegment)
 }
 
 /**

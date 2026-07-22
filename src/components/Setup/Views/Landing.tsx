@@ -26,10 +26,11 @@ const LandingStep = () => {
         disableDemoMode()
     }, [])
 
-    const handleError = (error: any) => {
-        toast.error(error?.message || t('loginFailed'))
-        Sentry.captureException(error, { extra: { errorCode: error?.code } })
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: error?.code })
+    const handleError = (error: unknown) => {
+        const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
+        toast.error((error instanceof Error && error.message) || t('loginFailed'))
+        Sentry.captureException(error, { extra: { errorCode } })
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: errorCode })
     }
 
     const onLoginClick = async () => {

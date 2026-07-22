@@ -7,11 +7,23 @@ import ActionModal from '@/components/Global/ActionModal'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
+import posthog from 'posthog-js'
 import { useModalsContext } from '@/context/ModalsContext'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { evaluateSumsubStatusEvent, type SumsubStatusEventPayload } from './sumsubStatusEvent.utils'
 
 // todo: move to consts
 const SUMSUB_SDK_URL = 'https://static.sumsub.com/idensic/static/sns-websdk-builder.js'
+
+/**
+ * How long the modal may sit open without the SDK launching before we stop
+ * pretending it's loading and show the error UI. The Jul-16/17 outage spun
+ * forever because nothing was watching: a never-launched SDK throws nothing,
+ * requests nothing, and logs nothing. Generous enough for a slow script on a
+ * bad connection; short enough that a user gets an actionable screen instead
+ * of an infinite spinner.
+ */
+const SDK_LAUNCH_TIMEOUT_MS = 20_000
 
 interface SumsubKycWrapperProps {
     visible: boolean
@@ -37,10 +49,12 @@ export const SumsubKycWrapper = ({
     const [sdkLoadError, setSdkLoadError] = useState(false)
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
     const [modalVariant, setModalVariant] = useState<'stop-verification' | 'trouble'>('trouble')
-    // Callback ref, NOT useRef: the modal renders through a headlessui Portal, so
-    // the container mounts a commit AFTER `visible` flips true. A plain ref is not
-    // reactive — the init effect below would read null on its only run and never
-    // launch the SDK. State re-runs the effect the moment the node attaches.
+    // Callback ref, NOT useRef: Modal is a headlessui <Transition>, which promotes
+    // tree state to Visible inside an effect — so the container mounts a commit
+    // AFTER `visible` flips true. (The Portal is not the culprit; it resolves its
+    // target synchronously.) A plain ref is not reactive, so the init effect below
+    // would read null on its only run and never launch the SDK — the Jul-16/17
+    // card outage. State re-runs the effect the moment the node attaches.
     const [sdkContainer, setSdkContainer] = useState<HTMLDivElement | null>(null)
     const sdkInstanceRef = useRef<SnsWebSdkInstance | null>(null)
     const { setIsSupportModalOpen } = useModalsContext()
@@ -56,6 +70,8 @@ export const SumsubKycWrapper = ({
     // Drives the close-confirmation short-circuit: if the user has already
     // submitted, tapping X closes the modal without asking "stop verification?"
     const hasSubmittedRef = useRef(false)
+    // Watchdog bookkeeping: did sdk.launch() ever run for this open?
+    const hasLaunchedRef = useRef(false)
 
     useEffect(() => {
         onCompleteRef.current = onComplete
@@ -197,6 +213,11 @@ export const SumsubKycWrapper = ({
 
             sdk.launch(sdkContainer)
             sdkInstanceRef.current = sdk
+            // The positive signal. Without it, "opened" is the only thing we
+            // record and a total launch failure is indistinguishable from
+            // nobody bothering to verify.
+            hasLaunchedRef.current = true
+            posthog.capture(ANALYTICS_EVENTS.KYC_SDK_LAUNCHED, { isMultiLevel: !!isMultiLevelRef.current })
 
             // ensure the sdk-created iframe gets camera/microphone permissions.
             // some sdk versions don't set the allow attribute, which blocks
@@ -221,6 +242,9 @@ export const SumsubKycWrapper = ({
             console.error('[sumsub] failed to initialize sdk', error)
             // surface the error UI — without this the modal stays blank
             setSdkLoadError(true)
+            posthog.capture(ANALYTICS_EVENTS.KYC_SDK_INIT_FAILED, {
+                message: error instanceof Error ? error.message : String(error),
+            })
             stableOnError(error)
         }
 
@@ -243,7 +267,36 @@ export const SumsubKycWrapper = ({
         if (!visible) {
             setSdkLoadError(false)
             hasSubmittedRef.current = false
+            hasLaunchedRef.current = false
         }
+    }, [visible])
+
+    // Watchdog: the modal is open but the SDK never launched.
+    //
+    // Deliberately keyed on `visible` ALONE, not on the init effect's deps. Every
+    // way this component can fail silently — a null container, a token that never
+    // arrives, a script that never loads — ends with the init effect simply not
+    // running, so anything that watches those deps would also never run. Watching
+    // the one fact the user cares about ("I opened it and nothing happened")
+    // catches the whole class, including failures we haven't thought of yet.
+    useEffect(() => {
+        if (!visible) return
+        const timer = setTimeout(() => {
+            if (hasLaunchedRef.current) return
+            console.error('[sumsub] sdk never launched within timeout — surfacing error')
+            posthog.capture(ANALYTICS_EVENTS.KYC_SDK_LAUNCH_TIMEOUT, {
+                timeoutMs: SDK_LAUNCH_TIMEOUT_MS,
+                // The three deps whose absence explains every silent stall.
+                hadAccessToken: !!accessToken,
+                sdkScriptLoaded: sdkLoaded,
+                hadContainer: !!sdkContainer,
+            })
+            setSdkLoadError(true)
+        }, SDK_LAUNCH_TIMEOUT_MS)
+        return () => clearTimeout(timer)
+        // accessToken/sdkLoaded/sdkContainer are read for diagnostics only; they
+        // must not restart the timer or a late-arriving dep would reset the clock.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [visible])
 
     // Close-button handler. After the user has submitted, the "are you sure

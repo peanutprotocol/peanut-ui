@@ -36,7 +36,7 @@ export const useSetupFlow = () => {
                 dispatch(setupActions.setLoading(false))
             }
         },
-        [steps]
+        [steps, dispatch]
     )
 
     const handleBack = useCallback(() => {
@@ -51,7 +51,7 @@ export const useSetupFlow = () => {
                 dispatch(setupActions.setStep(stepIndex + 1))
             }
         },
-        [steps]
+        [steps, dispatch]
     )
 
     return {

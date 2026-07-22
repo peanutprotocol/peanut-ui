@@ -195,13 +195,10 @@ const PaymentSuccessView = ({
         return details as TransactionDetails
     }, [
         chargeDetails,
-        type,
         amountValue,
         recipientName,
         parsedPaymentData,
-        message,
         user,
-        getInitialsFromName,
         tokenIconUrl,
         chainIconUrl,
         resolvedChainName,

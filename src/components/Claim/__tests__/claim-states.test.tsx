@@ -106,15 +106,6 @@ jest.mock('@/context/ClaimBankFlowContext', () => ({
     }),
 }))
 
-jest.mock('@/context', () => ({
-    tokenSelectorContext: React.createContext({
-        selectedTokenAddress: '',
-        selectedChainID: '',
-        setSelectedChainID: jest.fn(),
-        setSelectedTokenAddress: jest.fn(),
-    }),
-}))
-
 jest.mock('@/context/tokenSelector.context', () => ({
     tokenSelectorContext: React.createContext({
         selectedTokenAddress: '',

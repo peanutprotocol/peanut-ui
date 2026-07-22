@@ -203,6 +203,7 @@ function InvitePageContent() {
           ? t('vanityDescription')
           : t('inviterDescription')
     const ctaLabel = isWaitlistSkip ? t('skipCta') : isVanityClaim ? t('vanityCta') : t('inviterCta')
+    const loginLabel = isVanityClaim ? t('logIn') : t('alreadyHaveAccount')
 
     return (
         <InvitesPageLayout image={PeanutWavingHello.src}>
@@ -228,7 +229,7 @@ function InvitePageContent() {
                                 onClick={handleLoginClick}
                                 shadowSize="4"
                             >
-                                {t('alreadyHaveAccount')}
+                                {loginLabel}
                             </Button>
                         )}
                     </div>

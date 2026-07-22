@@ -10,7 +10,6 @@ const TTL_MS = 7 * 24 * 60 * 60 * 1000
 function coldStart() {
     let mod!: typeof import('@/utils/demo-balance')
     jest.isolateModules(() => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
         mod = require('@/utils/demo-balance')
     })
     return mod

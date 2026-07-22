@@ -122,7 +122,7 @@ export const useCreateLink = () => {
                 preparationId: intentId,
             }
         },
-        [sendTransactions]
+        [sendTransactions, setLoadingState]
     )
 
     return {

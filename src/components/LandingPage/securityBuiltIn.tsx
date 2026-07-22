@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import Image, { type StaticImageData } from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
 import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
@@ -11,9 +11,9 @@ import kycOnlyWhenRequired from '@/assets/illustrations/kyc-only-when-required.s
 interface Feature {
     id: number
     title: string
-    titleSvg: any
+    titleSvg: StaticImageData
     description: string
-    iconSrc: any
+    iconSrc: StaticImageData
     iconAlt: string
     learnMoreHref?: string
     learnMoreLabel?: string

@@ -17,7 +17,7 @@ import { useMemo } from 'react'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import CryptoLimitsSection from '../components/CryptoLimitsSection'
 import FiatLimitsLockedCard from '../components/FiatLimitsLockedCard'
-import { REST_OF_WORLD_GLOBE_ICON } from '@/assets'
+import REST_OF_WORLD_GLOBE_ICON from '@/assets/icons/rest-of-world-globe.svg'
 import InfoCard from '@/components/Global/InfoCard'
 import { getProviderRoute } from '../utils'
 

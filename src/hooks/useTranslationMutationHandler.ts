@@ -13,8 +13,9 @@ export const useTranslationMutationHandler = () => {
     useEffect(() => {
         // window global survives HMR — module-scoped flag resets on hot reload,
         // which would nest patched wrappers around each other
-        if ((window as any)[PATCH_KEY]) return
-        ;(window as any)[PATCH_KEY] = true
+        const patchedWindow = window as Window & Partial<Record<typeof PATCH_KEY, boolean>>
+        if (patchedWindow[PATCH_KEY]) return
+        patchedWindow[PATCH_KEY] = true
 
         const originalRemoveChild = Node.prototype.removeChild
         Node.prototype.removeChild = function <T extends Node>(child: T): T {

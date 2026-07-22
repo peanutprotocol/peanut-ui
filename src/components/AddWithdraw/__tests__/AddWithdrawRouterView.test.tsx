@@ -146,10 +146,12 @@ function SelectedMethodProbe() {
 function Harness({ user }: { user: MockUser }) {
     mockUser = user
     return (
-        <WithdrawFlowContextProvider>
-            <AddWithdrawRouterView flow="withdraw" pageTitle="Withdraw" mainHeading="How?" />
-            <SelectedMethodProbe />
-        </WithdrawFlowContextProvider>
+        <NextIntlClientProvider locale="en" messages={en}>
+            <WithdrawFlowContextProvider>
+                <AddWithdrawRouterView flow="withdraw" pageTitle="Withdraw" mainHeading="How?" />
+                <SelectedMethodProbe />
+            </WithdrawFlowContextProvider>
+        </NextIntlClientProvider>
     )
 }
 

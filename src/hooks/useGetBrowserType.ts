@@ -54,7 +54,8 @@ export const useGetBrowserType = () => {
             }
 
             // Check for Brave browser BEFORE Chrome (Brave uses Chrome UA so must check first)
-            if ((navigator as any).brave && (await (navigator as any).brave.isBrave?.()) === true) {
+            const braveNavigator = navigator as Navigator & { brave?: { isBrave?: () => Promise<boolean> } }
+            if (braveNavigator.brave && (await braveNavigator.brave.isBrave?.()) === true) {
                 return BrowserType.BRAVE
             }
 

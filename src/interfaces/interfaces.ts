@@ -85,27 +85,6 @@ export type ITokenPriceData = {
     price: number
 } & IToken
 
-export interface ILinkDetails {
-    link: string
-    chainId: string
-    depositIndex: number
-    contractVersion: string
-    password: string
-    senderAddress: any
-    tokenType: any
-    tokenAddress: any
-    tokenDecimals: any
-    tokenSymbol: any
-    tokenName: any
-    tokenAmount: string
-    tokenId: number
-    claimed: boolean
-    depositDate: Date
-    tokenURI: any
-    metadata: any
-    rawOnchainDepositInfo: {}
-}
-
 export interface IToken {
     chainId: string
     address: string

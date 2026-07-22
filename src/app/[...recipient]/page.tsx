@@ -13,9 +13,10 @@ import { couldBeRecipient, isReservedRoute } from '@/constants/routes'
 
 type PageProps = {
     params: Promise<{ recipient?: string[] }>
+    searchParams: Promise<{ chargeId?: string }>
 }
 
-export async function generateMetadata({ params, searchParams }: any) {
+export async function generateMetadata({ params, searchParams }: PageProps) {
     const resolvedSearchParams = await searchParams
     const resolvedParams = await params
 

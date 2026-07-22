@@ -250,7 +250,7 @@ const mockSetLoadingState = jest.fn()
 const mockSetSelectedChainID = jest.fn()
 const mockSetSelectedTokenAddress = jest.fn()
 
-jest.mock('@/context', () => {
+jest.mock('@/context/tokenSelector.context', () => {
     const React = require('react')
     return {
         tokenSelectorContext: React.createContext({
@@ -266,22 +266,18 @@ jest.mock('@/context', () => {
                 price: 1,
             },
         }),
+    }
+})
+
+jest.mock('@/context/loadingStates.context', () => {
+    const React = require('react')
+    return {
         loadingStateContext: React.createContext({
             loadingState: 'Idle' as string,
             setLoadingState: (...args: any[]) => mockSetLoadingState(...args),
             isLoading: false,
         }),
     }
-})
-
-jest.mock('@/context/tokenSelector.context', () => {
-    const { tokenSelectorContext } = jest.requireMock('@/context')
-    return { tokenSelectorContext }
-})
-
-jest.mock('@/context/loadingStates.context', () => {
-    const { loadingStateContext } = jest.requireMock('@/context')
-    return { loadingStateContext }
 })
 
 // DirectRequestInitialView deps — only this view uses them (PayRequestLink does

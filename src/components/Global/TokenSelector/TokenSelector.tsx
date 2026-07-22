@@ -23,8 +23,8 @@ import {
     PEANUT_WALLET_TOKEN_DECIMALS,
     PEANUT_WALLET_TOKEN_NAME,
 } from '@/constants/zerodev.consts'
-import { tokenSelectorContext } from '@/context'
-import { type IToken, type IUserBalance } from '@/interfaces'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
+import { type IToken, type IUserBalance } from '@/interfaces/interfaces'
 import { areEvmAddressesEqual, isNativeCurrency, getChainName } from '@/utils/general.utils'
 import { NATIVE_TOKEN_PROXY_ADDRESS } from '@/utils/token.utils'
 import EmptyState from '../EmptyStates/EmptyState'

@@ -12,13 +12,17 @@ import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useUserStore } from '@/redux/hooks'
 import { DateGroup, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
-import { isKycStatusItem } from '@/components/Kyc/KycStatusItem'
+import { isKycStatusItem, type KycHistoryEntry } from '@/components/Kyc/KycStatusItem'
 import { buildKycHistoryEntry } from '@/utils/kyc-grouping.utils'
 import { useAuth } from '@/context/authContext'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
-import { isBadgeHistoryItem } from '@/components/Badges/badge.types'
+import { isBadgeHistoryItem, type BadgeHistoryEntry } from '@/components/Badges/badge.types'
 import CardUnlockHistoryItem from '@/components/Card/CardUnlockHistoryItem'
-import { deriveCardUnlockEntry, isCardUnlockHistoryItem } from '@/components/Card/cardUnlock.types'
+import {
+    deriveCardUnlockEntry,
+    isCardUnlockHistoryItem,
+    type CardUnlockHistoryEntry,
+} from '@/components/Card/cardUnlock.types'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import React, { useMemo } from 'react'
@@ -27,8 +31,8 @@ import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import type { HistoryResponse } from '@/hooks/useTransactionHistory'
-import { AccountType } from '@/interfaces'
+import type { HistoryEntry, HistoryResponse } from '@/hooks/useTransactionHistory'
+import { AccountType } from '@/interfaces/interfaces'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -163,7 +167,9 @@ const HistoryPage = () => {
         if (isLoading) {
             return []
         }
-        const entries: Array<any> = [...allEntries]
+        const entries: Array<HistoryEntry | BadgeHistoryEntry | KycHistoryEntry | CardUnlockHistoryEntry> = [
+            ...allEntries,
+        ]
 
         // inject badge items from user profile, placed by earnedAt
         const badges = user?.user?.badges ?? []
@@ -171,7 +177,7 @@ const HistoryPage = () => {
             if (!b.earnedAt) return
             entries.push({
                 isBadge: true,
-                uuid: b.id,
+                uuid: b.id ?? b.code,
                 timestamp: new Date(b.earnedAt).toISOString(),
                 code: b.code,
                 name: b.name,

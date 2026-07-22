@@ -5,7 +5,7 @@
  * between tests and re-require the SUT to start each test with a cold cache.
  */
 
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 
 const mantecaGetPrices = jest.fn()
 const getExchangeRateMock = jest.fn()

@@ -1,4 +1,4 @@
-import type { ILinkDetails, RecipientType } from '@/interfaces/interfaces'
+import type { RecipientType } from '@/interfaces/interfaces'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import type { IOfframpForm } from '@/constants/cashout.consts'
@@ -29,16 +29,15 @@ export interface IOfframpConfirmScreenProps {
     preparedCreateLinkWrapperResponse?:
         | {
               type: string
-              response: any
+              response: unknown
               linkDetails: peanutInterfaces.IPeanutLinkDetails
               password: string
-              feeOptions?: any
+              feeOptions?: unknown
               usdValue?: string
           }
         | undefined
 
     // available in claim link offramps
-    claimLinkData?: ILinkDetails
     crossChainDetails?: Array<ChainWithTokens> | undefined
     tokenPrice?: number
     estimatedPoints?: number
@@ -58,7 +57,6 @@ export interface IOfframpSuccessScreenProps {
     usdValue?: string | undefined
 
     // available in claim link offramps
-    claimLinkData?: ILinkDetails
     tokenPrice?: number
     recipientType?: RecipientType
     transactionHash?: string

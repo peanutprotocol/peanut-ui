@@ -340,11 +340,13 @@ jest.mock('@/components/Global/NavHeader', () => ({
 
 jest.mock('@/components/Global/Card', () => ({
     __esModule: true,
-    default: React.forwardRef((props: any, ref: any) => (
-        <div data-testid="card" ref={ref} className={props.className}>
-            {props.children}
-        </div>
-    )),
+    default: React.forwardRef(function Card(props: any, ref: any) {
+        return (
+            <div data-testid="card" ref={ref} className={props.className}>
+                {props.children}
+            </div>
+        )
+    }),
 }))
 
 jest.mock('@/components/0_Bruddle/Button', () => ({

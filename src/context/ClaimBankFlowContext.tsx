@@ -3,7 +3,7 @@
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
 import { type CountryData } from '../components/AddMoney/consts'
 import { type TCreateOfframpResponse } from '@/services/services.types'
-import { type Account, type CounterpartyUser } from '@/interfaces'
+import { type Account, type CounterpartyUser } from '@/interfaces/interfaces'
 import { type IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 
 export enum ClaimBankFlowStep {

@@ -12,6 +12,9 @@ import { initiateSumsubKyc } from '@/app/actions/sumsub'
 // late/stale APPROVED event arriving after the flow has resolved.
 // the hook calls useTranslations, so it needs an intl context to render at all
 const IntlWrapper = ({ children }: { children: React.ReactNode }) =>
+    // NextIntlClientProvider types `children` as a required prop, so createElement's third-arg
+    // form doesn't typecheck; this is a .ts file, so JSX isn't an option either.
+    // eslint-disable-next-line react/no-children-prop
     React.createElement(NextIntlClientProvider, { locale: 'en', messages: en, timeZone: 'UTC', children })
 const renderHook = <T>(cb: () => T) => rtlRenderHook(cb, { wrapper: IntlWrapper })
 

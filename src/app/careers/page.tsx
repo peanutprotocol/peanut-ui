@@ -1,5 +1,5 @@
 import { generateMetadata } from '@/app/metadata'
-import { Careers } from '@/components'
+import { Careers } from '@/components/Jobs'
 
 export const metadata = generateMetadata({
     title: 'Careers | Join Peanut - Instant Global P2P Payments',

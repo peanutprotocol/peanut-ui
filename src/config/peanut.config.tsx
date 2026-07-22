@@ -1,5 +1,5 @@
 'use client'
-import { ContextProvider } from '@/config'
+import { ContextProvider } from '@/config/wagmi.config'
 import countries from 'i18n-iso-countries'
 import enLocale from 'i18n-iso-countries/langs/en.json'
 import { useEffect } from 'react'
@@ -46,7 +46,9 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
                 CapacitorPasskey.autoShimWebAuthn({ origin: `https://${nativeRpId}` })
                     .then(() => {
                         // verify the shim actually installed by checking if credentials was patched
-                        const shimInstalled = (globalThis as any).__capgoPasskeyShimInstalled === true
+                        const shimInstalled =
+                            (globalThis as { __capgoPasskeyShimInstalled?: unknown }).__capgoPasskeyShimInstalled ===
+                            true
                         console.log('[PeanutProvider] passkey shim installed:', shimInstalled)
 
                         // the shim's credentialFromJSON replaces its credential's prototype with
@@ -62,7 +64,15 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
                                 try {
                                     return nativeGetter ? nativeGetter.call(this) : {}
                                 } catch {
-                                    return (this as any).json?.clientExtensionResults ?? {}
+                                    return (
+                                        (
+                                            this as PublicKeyCredential & {
+                                                json?: {
+                                                    clientExtensionResults?: AuthenticationExtensionsClientOutputs
+                                                }
+                                            }
+                                        ).json?.clientExtensionResults ?? {}
+                                    )
                                 }
                             }
                         }

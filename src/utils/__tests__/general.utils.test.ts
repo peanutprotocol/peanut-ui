@@ -8,7 +8,7 @@ import {
     printableUserHandle,
     toInviteCode,
 } from '../general.utils'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 
 describe('General Utilities', () => {
     describe('Amount Formatting Utilities', () => {

@@ -1,6 +1,7 @@
 'use client'
 
-import { PEANUT_LOGO_BLACK, PEANUTMAN } from '@/assets'
+import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
+import { PEANUTMAN } from '@/assets/mascot'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'

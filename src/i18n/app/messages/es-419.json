@@ -1246,7 +1246,8 @@
             "noActiveCard": "No se encontró una tarjeta activa en esta cuenta. Contacta al soporte.",
             "regrantFailed": "La reactivación no se completó. Inténtalo de nuevo o contacta al soporte.",
             "diagnostics": "Diagnóstico: nonce {nonce} / piso {floor}"
-        }
+        },
+        "uploadProofOfAddress": "Subir comprobante de domicilio"
     },
     "addMoney": {
         "title": "Agregar dinero",
@@ -1418,7 +1419,9 @@
             "shareIntro": "Datos de la transferencia bancaria:",
             "shareOutro": "Usa estos datos para completar tu transferencia bancaria.",
             "shareLine": "{label}: {value}",
-            "amountLabel": "Monto"
+            "amountLabel": "Monto",
+            "doubleCheckSenderName": "Remitente: usa una cuenta bancaria a tu propio nombre (si el nombre no coincide, la transferencia rebota)",
+            "doubleCheckRecipientName": "Destinatario: escribe el nombre exactamente como se muestra arriba"
         },
         "errors": {
             "invalidNumber": "Ingresa un número válido.",
@@ -1791,12 +1794,13 @@
         "skipDescription": "Alguien de Peanut te quiere adentro. Crea tu billetera y pasa directo: sin código de invitación y sin fila.",
         "skipCta": "Reclama tu pase directo",
         "vanityTitle": "Reclama tu insignia",
-        "vanityDescription": "Ganaste una insignia de Peanut. Reclámala y abre tu billetera para enviar y recibir dinero en todo el mundo.",
-        "vanityCta": "Reclama tu insignia",
+        "vanityDescription": "Ganaste una insignia de Peanut. Para reclamarla, regístrate o inicia sesión.",
+        "vanityCta": "Regístrate",
         "inviterTitle": "{username} te invitó a Peanut",
         "inviterDescription": "Acceso solo para miembros. Usa esta invitación para abrir tu billetera y empezar a enviar y recibir dinero en todo el mundo.",
         "inviterCta": "Reclama tu lugar",
         "alreadyHaveAccount": "¿Ya tienes una cuenta? ¡Inicia sesión!",
+        "logIn": "Inicia sesión",
         "emailTitle": "Mantente al tanto",
         "emailDescription": "Ingresa tu correo para que podamos avisarte cuando tengas acceso.",
         "emailLabel": "Correo electrónico",
@@ -1894,6 +1898,7 @@
             "titleProviderRejection": "Necesitamos documentos adicionales",
             "titleCrossRegion": "Desbloquea {region}",
             "titleCrossRegionGeneric": "Desbloquea esta región",
+            "titleRegionUnavailable": "No disponible para residentes del Reino Unido",
             "titleDefault": "Desbloquea tu cuenta",
             "descriptionError": "{error} Contacta a soporte para recibir ayuda.",
             "descriptionBlocked": "No pudimos confirmar tu identidad. Contacta a soporte para recibir ayuda.",
@@ -1901,9 +1906,11 @@
             "descriptionProviderRejection": "Sube una foto más nítida de tu documento para continuar.",
             "descriptionCrossRegion": "Tu identidad ya está verificada. Para activar los pagos en {region}, solo necesitamos confirmar algunos datos más — alrededor de un minuto.",
             "descriptionCrossRegionGeneric": "Tu identidad ya está verificada. Para activar los pagos aquí, solo necesitamos confirmar algunos datos más — alrededor de un minuto.",
+            "descriptionRegionUnavailable": "Debido a las regulaciones del Reino Unido, las transferencias bancarias no están disponibles para sus residentes. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento.",
             "descriptionDefault": "Confirma tu identidad para desbloquear los pagos. Toma alrededor de un minuto.",
             "ctaUploadDocument": "Subir documento",
-            "ctaUnlockNow": "Desbloquear ahora"
+            "ctaUnlockNow": "Desbloquear ahora",
+            "ctaWithdrawFunds": "Retirar fondos"
         },
         "advisory": {
             "title": "Un paso rápido para continuar",
@@ -2679,5 +2686,12 @@
         "lowLiquidity": "Baja liquidez. Prueba con un monto menor o una ruta diferente.",
         "networkBusyTimeout": "La red está congestionada y tu solicitud expiró. Inténtalo de nuevo en un momento.",
         "genericSupport": "Hubo un problema con tu solicitud. Contacta con soporte."
+    },
+    "appLock": {
+        "title": "Peanut está bloqueado",
+        "prompt": "Confirma que eres tú para continuar.",
+        "promptFailed": "No pudimos confirmar que eres tú. Inténtalo de nuevo para continuar.",
+        "unlock": "Desbloquear",
+        "logOut": "Cerrar sesión"
     }
 }

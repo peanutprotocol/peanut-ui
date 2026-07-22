@@ -79,15 +79,16 @@ const JoinWaitlist = () => {
         }
     }
 
-    const handleError = (error: any) => {
+    const handleError = (error: unknown) => {
+        const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
         const errorMessage =
-            error.code === 'LOGIN_CANCELED'
+            errorCode === 'LOGIN_CANCELED'
                 ? t('waitlist.loginCanceled')
-                : error.code === 'NO_PASSKEY'
+                : errorCode === 'NO_PASSKEY'
                   ? t('waitlist.noPasskey')
                   : t('waitlist.loginUnexpectedError')
         toast.error(errorMessage)
-        Sentry.captureException(error, { extra: { errorCode: error.code } })
+        Sentry.captureException(error, { extra: { errorCode } })
     }
 
     const _onLoginClick = async () => {

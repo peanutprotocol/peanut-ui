@@ -1,4 +1,4 @@
-import { type PaymentLink } from '@/interfaces'
+import { type PaymentLink } from '@/interfaces/interfaces'
 
 function formatTokenAmount(amount: string, token?: string) {
     return token && token.toLowerCase() !== 'usdc' ? `${amount} ${token}` : `$${amount}`

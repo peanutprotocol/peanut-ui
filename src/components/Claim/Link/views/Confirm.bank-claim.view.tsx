@@ -12,7 +12,7 @@ import { useMemo } from 'react'
 import { type ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
 import ExchangeRate from '@/components/ExchangeRate'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
 import { useTranslations } from 'next-intl'
 

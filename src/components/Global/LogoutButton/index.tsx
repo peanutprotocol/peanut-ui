@@ -1,4 +1,4 @@
-import { LOGOUT_ICON } from '@/assets'
+import LOGOUT_ICON from '@/assets/icons/logout.svg'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'

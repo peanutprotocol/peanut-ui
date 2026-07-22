@@ -10,7 +10,7 @@ import { DateGroup, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.u
 import { deepLinkToNativePath } from '@/utils/native-routes'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
-import { PEANUTMAN } from '@/assets'
+import { PEANUTMAN } from '@/assets/mascot'
 import Link from 'next/link'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Button } from '@/components/0_Bruddle/Button'

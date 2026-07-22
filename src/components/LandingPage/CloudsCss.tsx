@@ -1,4 +1,5 @@
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
+import Image from 'next/image'
 import { type CSSProperties } from 'react'
 
 type CloudConfig = {
@@ -21,15 +22,16 @@ export function CloudsCss({ clouds = defaultClouds }: { clouds?: CloudConfig[] }
     return (
         <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
             {clouds.map((cloud, i) => (
-                <img
+                <Image
                     key={i}
-                    src={borderCloud.src}
+                    src={borderCloud}
                     alt=""
                     className={`absolute left-0 cloud-${cloud.direction}`}
                     style={
                         {
                             top: cloud.top,
                             width: cloud.width,
+                            height: 'auto',
                             '--cloud-speed': cloud.speed,
                             '--cloud-delay': cloud.delay || '0s',
                         } as CSSProperties

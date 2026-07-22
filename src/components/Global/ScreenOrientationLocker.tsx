@@ -2,6 +2,9 @@
 
 import { useEffect } from 'react'
 
+// screen.orientation.lock is missing from lib.dom (not supported in Safari)
+type OrientationWithLock = ScreenOrientation & { lock?: (orientation: 'portrait-primary') => Promise<void> }
+
 export function ScreenOrientationLocker() {
     useEffect(() => {
         // Only run on client-side and check if screen API exists
@@ -11,12 +14,13 @@ export function ScreenOrientationLocker() {
 
         const lockOrientation = async () => {
             // Check if orientation API is available
-            if (!screen.orientation || !(screen.orientation as any).lock) {
+            const orientation = screen.orientation as OrientationWithLock | undefined
+            if (!orientation?.lock) {
                 return
             }
 
             try {
-                await (screen.orientation as any).lock('portrait-primary')
+                await orientation.lock('portrait-primary')
             } catch (error) {
                 // Only log to console, don't report to Sentry as this is expected behavior
                 // on desktop browsers and environments that don't support orientation lock

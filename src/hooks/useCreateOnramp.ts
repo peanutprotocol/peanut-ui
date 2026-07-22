@@ -4,6 +4,7 @@ import { type CountryData } from '@/components/AddMoney/consts'
 import type { Address } from 'viem'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { apiFetch } from '@/utils/api-fetch'
+import { type IOnrampData } from '@/context/OnrampFlowContext'
 
 export type CreateOnrampParams = {
     country: CountryData
@@ -24,7 +25,7 @@ export type CreateOnrampParams = {
 export const GENERIC_ONRAMP_ERROR = 'Failed to create bank transfer. Please try again or contact support.'
 
 export interface UseCreateOnrampReturn {
-    createOnramp: (params: CreateOnrampParams) => Promise<any>
+    createOnramp: (params: CreateOnrampParams) => Promise<IOnrampData>
     isLoading: boolean
 }
 
@@ -75,7 +76,7 @@ export const useCreateOnramp = (): UseCreateOnrampReturn => {
                     throw new Error(body?.error || body?.message || GENERIC_ONRAMP_ERROR)
                 }
 
-                const onrampData = await response.json()
+                const onrampData: IOnrampData = await response.json()
                 return onrampData
             } catch (err) {
                 console.error('Error creating onramp:', err)

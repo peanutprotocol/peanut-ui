@@ -2,7 +2,7 @@ import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import Card from '../Card'
 import { Icon } from '../Icons/Icon'
-import { SOCIALS_ICON } from '@/assets'
+import SOCIALS_ICON from '@/assets/icons/socials.svg'
 
 interface PeanutActionCardProps {
     type: 'request' | 'send'
