@@ -581,6 +581,9 @@ async function shareCard(mode) {
     }
     throw new Error('fallback');
   } catch {
+    // feedback goes on the button the user actually clicked, even when copy falls back to download
+    const btn = mode === 'copy' ? $('btnCopy') : $('btnDl');
+    const idle = mode === 'copy' ? '📋 COPY SHARE CARD' : '💾 DOWNLOAD CARD';
     try {
       const blob = await blobPromise;
       const a = document.createElement('a');
@@ -588,9 +591,9 @@ async function shareCard(mode) {
       a.download = `peanut-welcome-club-${correctCount}-${order.length}.png`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-      $('btnDl').textContent = '💾 SAVED ♡'; setTimeout(() => ($('btnDl').textContent = '💾 DOWNLOAD CARD'), 1600);
+      btn.textContent = '💾 SAVED ♡'; setTimeout(() => (btn.textContent = idle), 1600);
     } catch {
-      $('btnDl').textContent = '💾 hmm, that didn\'t work — try again ♡';
+      btn.textContent = 'hmm, that didn\'t work — try again ♡'; setTimeout(() => (btn.textContent = idle), 2400);
     }
   }
 }
