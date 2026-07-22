@@ -1033,6 +1033,25 @@ describe('GROUP 1: Landing / Country + Crypto selection', () => {
         fireEvent.click(screen.getByTestId('nav-header'))
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
     })
+
+    test('offramp-badge users see the Migrate from Offramp card', () => {
+        mockUseAuth.mockReturnValue({
+            user: { user: { username: 'test-user', userId: 'user-123', badges: [{ code: 'OFFRAMP_USER' }] } },
+            isFetchingUser: false,
+            fetchUser: jest.fn(),
+        })
+        renderWithProviders(<AddMoneyPage />)
+
+        const card = screen.getByTestId('action-card-migrate-from-offramp')
+        expect(card).toBeInTheDocument()
+        fireEvent.click(card)
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/crypto?network=EVM&source=offramp')
+    })
+
+    test('users without the offramp badge do not see the Migrate card', () => {
+        renderWithProviders(<AddMoneyPage />)
+        expect(screen.queryByTestId('action-card-migrate-from-offramp')).not.toBeInTheDocument()
+    })
 })
 
 // ============================================================

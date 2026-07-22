@@ -38,16 +38,17 @@ export default function AddMoneyPage() {
     // offramp migrants get a tailored arbitrum deposit entry above the country list
     const hasOfframpBadge = user?.user?.badges?.some((b) => b.code === OFFRAMP_BADGE_CODE) ?? false
 
+    // clear stale onramp state whenever we land on the root country list (no
+    // country in the URL) — reruns on back-nav from a ?country=… sub-view, not
+    // just on mount. resetOnrampFlow is a stable useCallback.
     useEffect(() => {
         if (!countryFromQuery) resetOnrampFlow()
-    }, [])
+    }, [countryFromQuery, resetOnrampFlow])
 
     const handleBack = () => {
-        // native country sub-view → back to the country list root
-        if (countryFromQuery) {
-            router.push('/add-money')
-            return
-        }
+        // note: this only runs from the root list's NavHeader — the ?country=…
+        // sub-views early-return their own NavHeader below, so countryFromQuery
+        // is always absent here.
 
         // check if we have a saved redirect url (from request fulfillment or similar flows)
         const redirectUrl = getRedirectUrl()
@@ -77,6 +78,12 @@ export default function AddMoneyPage() {
 
     const handleNetworkSelect = (network: RhinoChainType) => {
         setIsDrawerOpen(false)
+        // mirror the bank event in handleCountryClick so crypto deposits from the
+        // root aren't undercounted in the deposit-method funnel.
+        posthog.capture(ANALYTICS_EVENTS.DEPOSIT_METHOD_SELECTED, {
+            method_type: 'crypto',
+            country: 'crypto',
+        })
         router.push(`/add-money/crypto?network=${network}`)
     }
 
