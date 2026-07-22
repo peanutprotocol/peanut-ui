@@ -59,6 +59,14 @@
                 <data android:pathPrefix="/withdraw/" />
                 <data android:path="/receipt" />
                 <data android:pathPrefix="/receipt/" />
+                <data android:path="/history" />
+                <data android:pathPrefix="/history/" />
+                <data android:path="/rewards" />
+                <data android:pathPrefix="/rewards/" />
+                <data android:path="/badges" />
+                <data android:pathPrefix="/badges/" />
+                <data android:path="/profile" />
+                <data android:pathPrefix="/profile/" />
             </intent-filter>
 
         </activity>
@@ -78,6 +86,15 @@
         <meta-data
             android:name="asset_statements"
             android:resource="@string/capacitor_passkey_asset_statements" />
+
+        <!-- Don't let OneSignal fire its own ACTION_VIEW for a notification's
+             launch URL. The tap opens the app and useNativePlugins routes on the
+             deep link in-app instead — which covers destinations outside the App
+             Links filter above, doesn't depend on link verification, and keeps
+             iOS and Android on the same code path. -->
+        <meta-data
+            android:name="com.onesignal.suppressLaunchURLs"
+            android:value="true" />
     </application>
 
     <!-- Phone-only: require a telephony radio so Play filters out Wi-Fi-only
