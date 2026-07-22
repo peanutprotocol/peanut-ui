@@ -348,6 +348,25 @@ describe('crypto withdraw confirm — charge completion', () => {
         expect(mockPosthogCapture).not.toHaveBeenCalledWith('withdraw_failed', expect.anything())
     })
 
+    it('still records cross-chain mixed spends without a mined receipt (skip guard is same-chain only)', async () => {
+        Object.assign(mockCrossChainTransfer, { isXChain: true })
+        mockSendTransactions.mockResolvedValue({
+            userOpHash: '0xuserop',
+            receipt: null,
+            strategy: 'mixed',
+            intentId: 'prep-intent-3',
+        })
+
+        await confirm()
+
+        await waitFor(() => expect(mockSetCurrentView).toHaveBeenCalledWith('STATUS'))
+        // Cross-chain keeps recording whatever hash it has (pre-existing
+        // behavior): the BE validator's cross-chain branch completes from the
+        // source-chain submission and never runs same-chain tx matching, so
+        // the mixed-without-receipt skip must not apply here.
+        expect(mockRecordPayment).toHaveBeenCalledWith(expect.objectContaining({ txHash: '0xuserop' }))
+    })
+
     it('keeps rethrowing recordPayment failures on cross-chain withdrawals (mixed funding included)', async () => {
         Object.assign(mockCrossChainTransfer, { isXChain: true })
         mockSendTransactions.mockResolvedValue({
