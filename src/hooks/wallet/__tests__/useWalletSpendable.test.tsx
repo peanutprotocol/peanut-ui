@@ -68,11 +68,9 @@ let mockDemoBalanceUnits: bigint | undefined
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => mockDemoMode }))
 jest.mock('@/utils/demo-balance', () => ({ useDemoBalanceUnits: () => mockDemoBalanceUnits }))
 
-// eslint-disable-next-line import/first -- must come after jest.mock calls
+// imports must come after the jest.mock calls above
 import { useWallet } from '../useWallet'
-// eslint-disable-next-line import/first
 import store from '@/redux/store'
-// eslint-disable-next-line import/first
 import { readLastKnownSpendable, writeLastKnownSpendable } from '../lastKnownSpendable'
 
 const wrapper = ({ children }: { children: ReactNode }) => <Provider store={store}>{children}</Provider>
