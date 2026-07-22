@@ -90,6 +90,17 @@ export interface ResolveSpendStrategyArgs {
     requiredUsdcAmount: bigint
     rainSpendingPower: bigint
     collateralOnlyAllowed: boolean
+    /**
+     * Whether `rainSpendingPower` is a real reading. When the overview is missing
+     * it arrives as 0n, which is indistinguishable from "no collateral" — so a
+     * Rain outage lands in the `insufficient` branch below. Blocking is still the
+     * right CALL (we can't size a collateral withdrawal we can't see, and the
+     * user-facing copy is already "try again in a few seconds"), but it must not
+     * be REPORTED as an insufficiency or a Rain outage is invisible in analytics,
+     * hidden inside the card-withdraw failure rate. Defaults to true so existing
+     * callers keep their current reporting.
+     */
+    rainBalanceKnown?: boolean
     /** Analytics tag distinguishing the sign-only engine; omit for the broadcasting engine. */
     flow?: 'sign-only'
 }
@@ -104,7 +115,15 @@ export interface ResolveSpendStrategyArgs {
 export async function resolveSpendStrategy(
     args: ResolveSpendStrategyArgs
 ): Promise<{ strategy: Exclude<SpendStrategy, 'insufficient'>; smartBalance: bigint }> {
-    const { queryClient, accountAddress, requiredUsdcAmount, rainSpendingPower, collateralOnlyAllowed, flow } = args
+    const {
+        queryClient,
+        accountAddress,
+        requiredUsdcAmount,
+        rainSpendingPower,
+        collateralOnlyAllowed,
+        rainBalanceKnown = true,
+        flow,
+    } = args
 
     const smartBalance = await fetchLiveSmartUsdcBalance(queryClient, accountAddress)
     const strategy = computeSpendStrategy({
@@ -116,7 +135,7 @@ export async function resolveSpendStrategy(
     if (strategy === 'insufficient') {
         posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
             strategy: 'insufficient',
-            error_kind: 'insufficient',
+            error_kind: rainBalanceKnown ? 'insufficient' : 'rain-balance-unavailable',
             ...(flow ? { flow } : {}),
         })
         queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })

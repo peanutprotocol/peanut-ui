@@ -19,6 +19,7 @@ import {
     computeDisplaySpendable,
     rainCentsToUsdcUnits,
     isAmountWithinBalance,
+    isRainBalanceKnown,
 } from '@/utils/balance.utils'
 import { useSpendBundle } from './useSpendBundle'
 import type { SpendStrategy } from './spendPreflight'
@@ -254,11 +255,7 @@ export const useWallet = () => {
     // A response that arrived but couldn't read Rain (`balanceUnavailable` with
     // no balance to fall back on) is NOT ready either — summing its absent
     // spendingPower as 0 is exactly the $0 this guards against.
-    // `!!` not `!== undefined`: the query type says object-or-undefined, but a
-    // null JSON body deserializes to null, which would pass the stricter check
-    // and then throw on property access.
-    const isRainReady =
-        demoMode || (!!rainOverview && !(rainOverview.balanceUnavailable && rainOverview.balance == null))
+    const isRainReady = demoMode || isRainBalanceKnown(rainOverview)
 
     // The two inputs (smart-account + rain overview) refresh independently.
     // When both change at once (e.g. auto-balancer deposit: smart goes down,
