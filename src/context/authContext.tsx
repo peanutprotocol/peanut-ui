@@ -25,6 +25,7 @@ import { createContext, type ReactNode, useContext, useState, useEffect, useMemo
 import { captureException, setUser as setSentryUser } from '@sentry/nextjs'
 // import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
 import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
+import { clearStepUpToken } from '@/services/step-up'
 
 interface AuthContextType {
     user: IUserProfile | null
@@ -200,6 +201,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // clear redirect url
         clearRedirectUrl()
+
+        // A cached step-up proof outliving the session would let the next user
+        // of this device skip verification on card and withdrawal screens.
+        clearStepUpToken()
 
         // cancel + remove all queries to prevent refetches with cleared jwt
         try {
