@@ -5,8 +5,8 @@
 // parallel-maps→single-record regression). campaign-maps.test.ts guards that.
 
 // offramp.xyz → Peanut migration badge. Single FE source of truth for the code —
-// the add-money entry gate (AddMoneyMethodSelection) and both maps below key on
-// it. Mirrors peanut-api-ts BADGE_CODES.OFFRAMP_USER.
+// the add-money entry (AddMoneyPage) and both maps below key on it.
+// Mirrors peanut-api-ts BADGE_CODES.OFFRAMP_USER.
 export const OFFRAMP_BADGE_CODE = 'OFFRAMP_USER'
 
 // mapping of special invite codes to their campaign tags

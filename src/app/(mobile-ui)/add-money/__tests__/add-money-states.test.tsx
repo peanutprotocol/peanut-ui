@@ -598,6 +598,11 @@ jest.mock('@/components/Common/CountryList', () => ({
     CountryList: (props: any) => (
         <div data-testid="country-list">
             <span>{props.inputTitle}</span>
+            {props.onCryptoClick && (
+                <button data-testid="action-card-crypto" onClick={() => props.onCryptoClick('add')}>
+                    Crypto Deposit
+                </button>
+            )}
             <button
                 data-testid="country-argentina"
                 onClick={() => props.onCountryClick({ path: 'argentina', id: 'AR' })}
@@ -982,14 +987,18 @@ beforeEach(() => {
 })
 
 // ============================================================
-// GROUP 1: Landing / Method Selection
+// GROUP 1: Landing / Country + Crypto selection
 // ============================================================
-describe('GROUP 1: Landing / Method Selection', () => {
-    test('default view shows Crypto and Bank Transfer options', () => {
+// The standalone "Bank or Crypto" method screen was removed (TASK-20033): the
+// root now lands directly on the country list with a crypto shortcut, so the
+// method is chosen once — on the per-country screen — not twice.
+describe('GROUP 1: Landing / Country + Crypto selection', () => {
+    test('default view shows the country list with a crypto shortcut', () => {
         renderWithProviders(<AddMoneyPage />)
 
-        expect(screen.getByText('Crypto')).toBeInTheDocument()
-        expect(screen.getByText('Bank Transfer')).toBeInTheDocument()
+        expect(screen.getByTestId('country-list')).toBeInTheDocument()
+        expect(screen.getByText('Select your country')).toBeInTheDocument()
+        expect(screen.getByTestId('action-card-crypto')).toBeInTheDocument()
         expect(screen.getByText('Add Money')).toBeInTheDocument()
     })
 
@@ -1011,33 +1020,14 @@ describe('GROUP 1: Landing / Method Selection', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/add-money/crypto?network=EVM')
     })
 
-    test('clicking Bank Transfer switches to country list', () => {
-        renderWithProviders(<AddMoneyPage />)
-
-        fireEvent.click(screen.getByTestId('action-card-bank-transfer'))
-
-        // The mock for nuqs useQueryState will be called via setMethod('bank')
-        // and then the component should render the country list
-        expect(mockSetQueryState).toHaveBeenCalled()
-    })
-
-    test('method=bank shows country list', () => {
-        resetQueryState({ method: 'bank' })
-        renderWithProviders(<AddMoneyPage />)
-
-        expect(screen.getByTestId('country-list')).toBeInTheDocument()
-        expect(screen.getByText('Select your country')).toBeInTheDocument()
-    })
-
     test('selecting a country from list navigates to country page', () => {
-        resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('country-argentina'))
         expect(mockRouterPush).toHaveBeenCalledWith('/add-money/argentina')
     })
 
-    test('back from method selection navigates to /home', () => {
+    test('back from the country list navigates to /home', () => {
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('nav-header'))
