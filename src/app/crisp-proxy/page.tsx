@@ -115,7 +115,6 @@ function CrispProxyContent() {
                             ['username', data.username || ''],
                             ['user_id', data.user_id || ''],
                             ['full_name', data.full_name || ''],
-                            ['grafana_dashboard', data.grafana_dashboard || ''],
                             ['wallet_address', data.wallet_address || ''],
                             ['bridge_user_id', data.bridge_user_id || ''],
                             ['manteca_user_id', data.manteca_user_id || ''],

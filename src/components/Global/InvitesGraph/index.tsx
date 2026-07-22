@@ -1584,25 +1584,14 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 return
             }
 
-            // Full/Payment mode: User node → Select (camera follows) - click again to open Grafana
-            if (selectedUserId === node.id) {
-                // Already selected - open Grafana
-                const username = node.username || node.id
-                window.open(
-                    `https://teampeanut.grafana.net/d/ad31f645-81ca-4779-bfb2-bff8e03d9057/explore-peanut-wallet-user?orgId=1&var-GRAFANA_VAR_Username=${encodeURIComponent(username)}`,
-                    '_blank'
-                )
-            } else {
-                // Select node
-                setSelectedUserId(node.id)
-            }
+            // Full/Payment mode: User node → Select (camera follows)
+            setSelectedUserId(node.id)
         },
-        [selectedUserId, isMinimal]
+        [isMinimal]
     )
 
     // Right-click selects the node (camera follows)
     const handleNodeRightClick = useCallback((node: any) => {
-        // External nodes can be selected for camera zoom but don't open Grafana
         setSelectedUserId((prev) => (prev === node.id ? null : node.id))
     }, [])
 
