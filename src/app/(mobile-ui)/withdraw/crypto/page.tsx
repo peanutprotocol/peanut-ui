@@ -381,28 +381,45 @@ export default function WithdrawCryptoPage() {
             const routedThroughCollateral = strategy === 'collateral-only' || strategy === 'mixed'
             const collateralRoutedSameChain = routedThroughCollateral && !isCrossChainWithdrawal
 
+            // An untagged mixed same-chain charge goes through the on-chain
+            // validator, which needs a MINED tx hash — a userOp hash can never
+            // match, and validator retry-exhaustion would flip the successful
+            // withdrawal to FAILED (worse than the pre-fix stuck-PENDING). If
+            // the receipt wait timed out, skip the record (pre-fix behavior)
+            // and leave a breadcrumb. collateral-only is safe regardless: its
+            // hash is a backend-broadcast EVM tx and the tagged charge settles
+            // via the trusted path.
+            const mixedWithoutMinedHash = strategy === 'mixed' && !isCrossChainWithdrawal && !receipt?.transactionHash
+
             let payment: Awaited<ReturnType<typeof recordPayment>> | null = null
-            try {
-                payment = await recordPayment({
-                    chargeId: chargeDetails.uuid,
-                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                    txHash: finalTxHash,
-                    tokenAddress: PEANUT_WALLET_TOKEN as Address,
-                    payerAddress: address as Address,
-                })
-            } catch (err) {
-                // Funds already moved on-chain. On collateral-routed same-chain
-                // paths a recordPayment hiccup must not read as a failed
-                // withdrawal (collateral-only is already settled server-side;
-                // mixed then just stays PENDING, exactly like pre-fix) —
-                // degrade to the success view without payment details. Other
-                // paths keep throwing, as they always have.
-                if (!collateralRoutedSameChain) throw err
-                console.error('recordPayment failed after collateral-routed withdrawal (funds moved):', err)
-                captureMessage('withdraw: recordPayment failed after collateral-routed spend', {
+            if (mixedWithoutMinedHash) {
+                captureMessage('withdraw: skipping recordPayment — mixed spend without mined receipt', {
                     level: 'warning',
-                    extra: { chargeId: chargeDetails.uuid, txHash: finalTxHash, strategy },
+                    extra: { chargeId: chargeDetails.uuid, userOpOrTxHash: finalTxHash, strategy },
                 })
+            } else {
+                try {
+                    payment = await recordPayment({
+                        chargeId: chargeDetails.uuid,
+                        chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                        txHash: finalTxHash,
+                        tokenAddress: PEANUT_WALLET_TOKEN as Address,
+                        payerAddress: address as Address,
+                    })
+                } catch (err) {
+                    // Funds already moved on-chain. On collateral-routed same-chain
+                    // paths a recordPayment hiccup must not read as a failed
+                    // withdrawal (collateral-only is already settled server-side;
+                    // mixed then just stays PENDING, exactly like pre-fix) —
+                    // degrade to the success view without payment details. Other
+                    // paths keep throwing, as they always have.
+                    if (!collateralRoutedSameChain) throw err
+                    console.error('recordPayment failed after collateral-routed withdrawal (funds moved):', err)
+                    captureMessage('withdraw: recordPayment failed after collateral-routed spend', {
+                        level: 'warning',
+                        extra: { chargeId: chargeDetails.uuid, txHash: finalTxHash, strategy },
+                    })
+                }
             }
 
             setTransactionHash(finalTxHash)
