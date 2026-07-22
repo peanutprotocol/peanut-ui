@@ -25,13 +25,13 @@ jest.mock('next/navigation', () => ({
 
 const mockCaptureMessage = jest.fn()
 jest.mock('@sentry/nextjs', () => ({
-    captureMessage: (...args: any[]) => mockCaptureMessage(...args),
+    captureMessage: (...args: unknown[]) => mockCaptureMessage(...args),
 }))
 
 const mockPosthogCapture = jest.fn()
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { capture: (...args: any[]) => mockPosthogCapture(...args), init: jest.fn() },
+    default: { capture: (...args: unknown[]) => mockPosthogCapture(...args), init: jest.fn() },
 }))
 
 jest.mock('use-haptic', () => ({
@@ -84,7 +84,7 @@ jest.mock('@/utils/withdraw.utils', () => ({
 }))
 
 jest.mock('@/utils/general.utils', () => ({
-    isTxReverted: (receipt: any) => receipt?.status === 'reverted',
+    isTxReverted: (receipt: { status?: string } | null) => receipt?.status === 'reverted',
 }))
 
 jest.mock('@/utils/url.utils', () => ({
@@ -92,7 +92,7 @@ jest.mock('@/utils/url.utils', () => ({
 }))
 
 jest.mock('@/utils/friendly-error.utils', () => ({
-    ErrorHandler: (err: any) => err?.message ?? 'Something went wrong',
+    ErrorHandler: (err: unknown) => (err instanceof Error ? err.message : 'Something went wrong'),
 }))
 
 jest.mock('@/interfaces/peanut-sdk-types', () => ({
@@ -111,7 +111,7 @@ jest.mock('@/services/requests', () => ({
 
 jest.mock('@/components/Withdraw/views/Confirm.withdraw.view', () => ({
     __esModule: true,
-    default: (props: any) => (
+    default: (props: { onConfirm: () => void }) => (
         <button data-testid="confirm-withdraw" onClick={props.onConfirm}>
             Confirm
         </button>
@@ -135,7 +135,7 @@ jest.mock('@/components/Global/ActionModal', () => ({
 
 jest.mock('@/components/Global/AddressLink', () => ({
     __esModule: true,
-    default: (props: any) => <span>{props.address}</span>,
+    default: (props: { address: string }) => <span>{props.address}</span>,
 }))
 
 jest.mock('@/components/Global/PeanutLoading', () => ({
