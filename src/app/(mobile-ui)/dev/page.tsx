@@ -40,6 +40,13 @@ export default function DevToolsPage() {
             icon: 'dollar',
         },
         {
+            name: 'Peanut Quizzes',
+            description:
+                'Gamified definition quizzes (funnel + analytics vocabulary) with mascot reactions, streaks, and easter eggs. Add quizzes via the quiz-creator skill.',
+            path: '/dev/quiz',
+            icon: 'trophy',
+        },
+        {
             name: 'Home CTAs',
             description:
                 'Force-renders every home-screen CTA in isolation (card launch banner, carousel CTAs, activation steps) ignoring auth/state/launch gating.',
