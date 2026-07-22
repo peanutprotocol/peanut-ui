@@ -330,6 +330,24 @@ describe('crypto withdraw confirm — charge completion', () => {
         expect(mockSetWithdrawError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
     })
 
+    it('still shows success when recordPayment fails after a mixed same-chain spend (tolerance covers mixed too)', async () => {
+        mockSendMoney.mockResolvedValue({
+            txHash: undefined,
+            userOpHash: '0xuserop',
+            receipt: { transactionHash: '0xmined', status: 'success' },
+            strategy: 'mixed',
+            intentId: 'prep-intent-1',
+        })
+        mockRecordPayment.mockRejectedValue(new Error('network blip'))
+
+        await confirm()
+
+        await waitFor(() => expect(mockSetCurrentView).toHaveBeenCalledWith('STATUS'))
+        expect(mockRecordPayment).toHaveBeenCalled()
+        expect(mockCaptureMessage).toHaveBeenCalled()
+        expect(mockPosthogCapture).not.toHaveBeenCalledWith('withdraw_failed', expect.anything())
+    })
+
     it('skips recordPayment when a mixed spend has no mined receipt (a userOp hash would poison the validator)', async () => {
         mockSendMoney.mockResolvedValue({
             txHash: undefined,
@@ -368,7 +386,11 @@ describe('crypto withdraw confirm — charge completion', () => {
     })
 
     it('keeps rethrowing recordPayment failures on cross-chain withdrawals (mixed funding included)', async () => {
-        Object.assign(mockCrossChainTransfer, { isXChain: true })
+        // isDiffToken-only on purpose: same-chain USDC→ETH historically got
+        // silently downgraded to a plain transfer (see isCrossChainWithdrawal)
+        // — pin that token-boundary-only also routes through sendTransactions
+        // and keeps the strict rethrow.
+        Object.assign(mockCrossChainTransfer, { isDiffToken: true })
         mockSendTransactions.mockResolvedValue({
             userOpHash: '0xuserop',
             receipt: { transactionHash: '0xmined', status: 'success' },

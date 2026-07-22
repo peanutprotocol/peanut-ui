@@ -189,8 +189,10 @@ export const useSpendBundle = () => {
                         recipientAddress: recipient!,
                         directTransfer: true,
                         kind,
-                        // When set, the backend completes the charge directly on
-                        // confirm — caller must skip recordPayment for this strategy.
+                        // When set, the backend uses the charge as the prep and
+                        // completes it directly on confirm; a follow-up
+                        // recordPayment re-enters the same trusted-completion
+                        // path idempotently (see SpendBundleInput.chargeId).
                         chargeId,
                     })
 
