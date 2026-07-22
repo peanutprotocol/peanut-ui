@@ -16,3 +16,6 @@ src/components/TransactionDetails/__tests__/fixtures/render-baseline.json
 # prettier touch them creates pointless diff churn on every regen.
 src/types/api.openapi.json
 src/types/api.generated.ts
+
+# static single-file quiz (hand-tuned inline CSS/JS; not prettier-formatted)
+public/dev-quiz/
