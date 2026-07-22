@@ -8,6 +8,171 @@
 		"schemas": {}
 	},
 	"paths": {
+		"/notifications/admin/recent": {
+			"get": {
+				"summary": "Recent notification rows for a user (all channels + statuses)",
+				"tags": ["admin"],
+				"parameters": [
+					{
+						"schema": {
+							"minLength": 1,
+							"type": "string"
+						},
+						"in": "query",
+						"name": "userId",
+						"required": true
+					},
+					{
+						"schema": {
+							"minimum": 1,
+							"maximum": 100,
+							"default": 20,
+							"type": "integer"
+						},
+						"in": "query",
+						"name": "limit",
+						"required": true
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "header",
+						"name": "x-admin-token",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"items": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"id": {
+														"type": "string"
+													},
+													"eventType": {
+														"type": "string"
+													},
+													"channel": {
+														"type": "string"
+													},
+													"status": {
+														"anyOf": [
+															{
+																"type": "string",
+																"enum": ["PENDING"]
+															},
+															{
+																"type": "string",
+																"enum": ["SENT"]
+															},
+															{
+																"type": "string",
+																"enum": ["FAILED"]
+															},
+															{
+																"type": "string",
+																"enum": ["SKIPPED"]
+															}
+														]
+													},
+													"skipReason": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"providerId": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"error": {},
+													"createdAt": {
+														"type": "string"
+													},
+													"sentAt": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													}
+												},
+												"required": [
+													"id",
+													"eventType",
+													"channel",
+													"status",
+													"skipReason",
+													"providerId",
+													"error",
+													"createdAt",
+													"sentAt"
+												]
+											}
+										}
+									},
+									"required": ["items"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/": {
 			"get": {
 				"responses": {

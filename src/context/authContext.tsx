@@ -25,6 +25,7 @@ import { createContext, type ReactNode, useContext, useState, useEffect, useMemo
 import { captureException, setUser as setSentryUser } from '@sentry/nextjs'
 // import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
 import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
+import { clearStepUpToken } from '@/services/step-up'
 
 interface AuthContextType {
     user: IUserProfile | null
@@ -212,6 +213,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // clear redirect url
         clearRedirectUrl()
+
+        // A cached step-up proof outliving the session would let the next user
+        // of this device skip verification on card and withdrawal screens.
+        clearStepUpToken()
+
+        // NOTE: main also cancelled/cleared queries here. That already happens
+        // above, deliberately BEFORE the token wipe — an in-flight /users/me can
+        // re-persist a sliding-refresh token into native Preferences otherwise
+        // (Android post-logout splash loop). Don't move it back down.
 
         // reset redux state (user, setup, zerodev)
         dispatch(userActions.setUser(null))

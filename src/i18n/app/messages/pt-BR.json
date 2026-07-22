@@ -1172,6 +1172,7 @@
             "navTitle": "Cartão físico",
             "onListTitle": "Você está na lista!",
             "onListBody": "Você é o #{position} da lista. Avisamos quando os cartões estiverem prontos para envio.",
+            "onListBodyNoPosition": "Você está na lista. Avisamos quando os cartões estiverem prontos para envio.",
             "comingSoonTitle": "Em breve!",
             "comingSoonBody": "Entre na nossa lista de espera e seja um dos primeiros a ter.",
             "joinCta": "Entrar na lista de espera",

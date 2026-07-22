@@ -399,12 +399,14 @@ describe('GROUP 3: Amount Validation', () => {
         expect(screen.getByTestId('limits-warning-card')).toBeInTheDocument()
     })
 
-    test('Crypto withdrawal allows sub-$1 amounts (no fiat-rail minimum)', () => {
+    test('Crypto withdrawal has no amount-step minimum (parity with send-via-link)', () => {
         // Regression: the shared amount step applied the bank $1 minimum to
         // crypto (getMinimumAmount('') → 1), blocking sub-$1 on-chain sends
-        // that send-via-link already allows.
+        // that send-via-link already allows. Same-chain Arbitrum withdrawals
+        // have no minimum at all; Rhino's per-network bridge minimums are
+        // enforced at review time, once the destination is known.
         mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        mockWithdrawFlow.amountToWithdraw = '0.5'
+        mockWithdrawFlow.amountToWithdraw = '0.4'
 
         renderWithdraw()
 

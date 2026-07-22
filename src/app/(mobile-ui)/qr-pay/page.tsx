@@ -32,7 +32,7 @@ import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
-import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
+import { MANTECA_QR_DEPOSIT_ADDRESS_AR, MANTECA_QR_DEPOSIT_ADDRESS_NON_AR } from '@/constants/manteca.consts'
 import { MIN_MANTECA_QR_PAYMENT_AMOUNT, MIN_PIX_AMOUNT_BRL } from '@/constants/payment.consts'
 import { isPixRecurringCode } from '@/utils/withdraw.utils'
 import { formatUnits, parseUnits } from 'viem'
@@ -665,7 +665,9 @@ export default function QRPayPage() {
             const requiredUsdcAmount = parseUnits(finalPaymentLock.paymentAgainstAmount, PEANUT_WALLET_TOKEN_DECIMALS)
             signedArtifact = await signSpend({
                 requiredUsdcAmount,
-                recipient: MANTECA_DEPOSIT_ADDRESS,
+                // Per-rail Manteca QR funding wallet: Pix → non-AR, everything else → AR
+                // (same binary heuristic as the backend's getQrReceiveAddress).
+                recipient: qrType === EQrType.PIX ? MANTECA_QR_DEPOSIT_ADDRESS_NON_AR : MANTECA_QR_DEPOSIT_ADDRESS_AR,
                 rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                 kind: 'QR_PAY',
             })

@@ -253,6 +253,14 @@ function isCoveredByDisableList(relPath) {
     return P0_TRANSFORMS.some((item) => relPath === item.path)
 }
 
+// P0_TRANSFORMS files are replaced with static-export-safe stubs before `next
+// build`, so their server-only exports (generateMetadata, force-dynamic) never
+// reach the export — the scan must not flag them.
+function isHandledByTransform(relPath) {
+    const normalized = relPath.split(path.sep).join('/')
+    return P0_TRANSFORMS.some((t) => t.path === normalized)
+}
+
 function detectUncoveredServerRoutes(dir = APP_DIR, found = []) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         if (entry.name.includes('.disabled') || entry.name.startsWith('_')) continue
@@ -263,7 +271,7 @@ function detectUncoveredServerRoutes(dir = APP_DIR, found = []) {
             detectUncoveredServerRoutes(full, found)
             continue
         }
-        if (isCoveredByDisableList(rel)) continue
+        if (isCoveredByDisableList(rel) || isHandledByTransform(rel)) continue
         if (entry.name === 'route.ts' || entry.name === 'route.js') {
             found.push({ rel, reason: 'route handler (cannot be statically exported)' })
             continue

@@ -95,9 +95,13 @@ export const useTokenPrice = ({
 
                 return null
             } catch (error) {
-                // Preserve Sentry error reporting from original implementation
+                // fetchWithSentry already reported the underlying failure; this
+                // capture only surfaces non-fetch errors (beforeSend drops the
+                // ServiceUnavailableError wrapper). console.info stays out of
+                // captureConsoleIntegration (PEANUT-UI-MH5) — the fallback is
+                // graceful, not an error.
                 Sentry.captureException(error)
-                console.error('error fetching tokenPrice, falling back to tokenDenomination')
+                console.info('error fetching tokenPrice, falling back to tokenDenomination')
                 return null
             }
         },

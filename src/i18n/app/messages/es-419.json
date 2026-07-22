@@ -1172,6 +1172,7 @@
             "navTitle": "Tarjeta física",
             "onListTitle": "¡Estás en la lista!",
             "onListBody": "Eres el #{position} en la lista. Te avisamos cuando las tarjetas estén listas para enviarse.",
+            "onListBodyNoPosition": "Estás en la lista. Te avisamos cuando las tarjetas estén listas para enviarse.",
             "comingSoonTitle": "¡Próximamente!",
             "comingSoonBody": "Únete a nuestra lista de espera y sé de los primeros en tenerla.",
             "joinCta": "Unirme a la lista de espera",

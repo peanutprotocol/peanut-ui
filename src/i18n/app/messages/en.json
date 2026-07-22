@@ -1172,6 +1172,7 @@
             "navTitle": "Physical card",
             "onListTitle": "You are on the list!",
             "onListBody": "You are #{position} on the list. We'll let you know when cards are ready to be shipped.",
+            "onListBodyNoPosition": "You are on the list. We'll let you know when cards are ready to be shipped.",
             "comingSoonTitle": "Coming soon!",
             "comingSoonBody": "Join our waiting list and be amongst the first to get it.",
             "joinCta": "Join waiting list",

@@ -77,7 +77,13 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
                 <div className="flex flex-col items-center gap-3 text-center">
                     <Image src={PeanutWalking} unoptimized alt="" aria-hidden className="h-32 w-auto" />
                     <h1 className="text-xl font-extrabold">{t('onListTitle')}</h1>
-                    <p className="text-sm text-grey-1">{t('onListBody', { position: String(data.position) })}</p>
+                    <p className="text-sm text-grey-1">
+                        {/* position is nullable — without the branch a user with no
+                            queue position is told they are "#null" on the list. */}
+                        {data.position === null
+                            ? t('onListBodyNoPosition')
+                            : t('onListBody', { position: data.position.toLocaleString() })}
+                    </p>
                 </div>
             ) : (
                 <div className="flex flex-col items-center gap-6 text-center">
