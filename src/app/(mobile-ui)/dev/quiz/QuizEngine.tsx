@@ -71,6 +71,7 @@ export default function QuizEngine({ quiz }: { quiz: QuizDefinition }) {
     const answer = (originalIndex: number) => {
         if (chosen !== null) return
         setChosen(originalIndex)
+        setMascotClicks(0) // hand the mascot back to answer reactions after easter-egg taps
         if (originalIndex === question.correctIndex) {
             setCorrectCount((c) => c + 1)
             const newStreak = streak + 1
