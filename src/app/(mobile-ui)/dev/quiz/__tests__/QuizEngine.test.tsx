@@ -45,6 +45,7 @@ const quiz: QuizDefinition = {
     ],
     questions: [
         {
+            level: 'easy',
             prompt: 'Only question?',
             options: ['Right answer', 'Wrong answer'],
             correctIndex: 0,

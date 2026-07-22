@@ -16,11 +16,18 @@ import { shootDoubleStarConfetti, shootStarConfetti } from '@/utils/confetti'
 import { AnimatePresence, motion } from 'framer-motion'
 import Image from 'next/image'
 import { useMemo, useState } from 'react'
-import type { QuizDefinition } from './types'
+import { renderShareCard } from './shareCard'
+import { LEVEL_POINTS, type QuizDefinition, type QuizLevel } from './types'
 
 type Stage = 'start' | 'playing' | 'done'
+type ShareState = 'idle' | 'busy' | 'copied' | 'downloaded' | 'failed'
 
 const MASCOT_CYCLE = [PeanutWavingHello, PeanutWhistling, PeanutTooCool, PeanutCheering, PeanutThinking]
+
+const LEVEL_ORDER: QuizLevel[] = ['easy', 'mid', 'hard']
+const LEVEL_LABEL: Record<QuizLevel, string> = { easy: 'EASY', mid: 'MID 🌶️', hard: 'HARD 💀' }
+const LEVEL_CHIP_CLASS: Record<QuizLevel, string> = { easy: 'bg-green-1', mid: 'bg-yellow-1', hard: 'bg-primary-1' }
+const STREAK_BONUS = 50
 
 function shuffle<T>(arr: T[]): T[] {
     const out = [...arr]
@@ -44,6 +51,8 @@ export default function QuizEngine({ quiz }: { quiz: QuizDefinition }) {
     const [bestStreak, setBestStreak] = useState(0)
     const [mascotClicks, setMascotClicks] = useState(0)
     const [scoreClicks, setScoreClicks] = useState(0)
+    const [points, setPoints] = useState(0)
+    const [shareState, setShareState] = useState<ShareState>('idle')
 
     const questionIndex = order[position]
     const question = quiz.questions[questionIndex]
@@ -51,7 +60,10 @@ export default function QuizEngine({ quiz }: { quiz: QuizDefinition }) {
     const answeredCorrectly = chosen !== null && chosen === question?.correctIndex
 
     const beginRun = (questionIndices: number[]) => {
-        const runOrder = shuffle(questionIndices)
+        // easy → mid → hard, shuffled within each level
+        const runOrder = LEVEL_ORDER.flatMap((level) =>
+            shuffle(questionIndices.filter((qi) => quiz.questions[qi].level === level))
+        )
         const opts: Record<number, number[]> = {}
         for (const qi of runOrder) {
             opts[qi] = shuffle(quiz.questions[qi].options.map((_, i) => i))
@@ -65,6 +77,8 @@ export default function QuizEngine({ quiz }: { quiz: QuizDefinition }) {
         setStreak(0)
         setBestStreak(0)
         setScoreClicks(0)
+        setPoints(0)
+        setShareState('idle')
         setStage('playing')
     }
 
@@ -77,6 +91,7 @@ export default function QuizEngine({ quiz }: { quiz: QuizDefinition }) {
             const newStreak = streak + 1
             setStreak(newStreak)
             setBestStreak((b) => Math.max(b, newStreak))
+            setPoints((p) => p + LEVEL_POINTS[question.level] + (newStreak >= 3 ? STREAK_BONUS : 0))
             shootStarConfetti({ particleCount: newStreak >= 5 ? 40 : 15, origin: { x: 0.5, y: 0.4 } })
             if (newStreak === 5) shootDoubleStarConfetti()
         } else {
@@ -92,6 +107,36 @@ export default function QuizEngine({ quiz }: { quiz: QuizDefinition }) {
         } else {
             setPosition((p) => p + 1)
             setChosen(null)
+        }
+    }
+
+    const share = async (mode: 'copy' | 'download') => {
+        setShareState('busy')
+        try {
+            const blob = await renderShareCard({
+                quizTitle: quiz.title,
+                emoji: quiz.emoji,
+                score: correctCount,
+                total,
+                points,
+                gradeTitle: grade.title,
+                bestStreak,
+                mascotSrc: mascot.src,
+            })
+            if (mode === 'copy' && typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+                setShareState('copied')
+            } else {
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `peanut-quiz-${quiz.slug}-${correctCount}-${total}.png`
+                a.click()
+                URL.revokeObjectURL(url)
+                setShareState('downloaded')
+            }
+        } catch {
+            setShareState('failed')
         }
     }
 
@@ -171,6 +216,9 @@ export default function QuizEngine({ quiz }: { quiz: QuizDefinition }) {
                                     </span>
                                 ))}
                             </span>
+                            <span className="rounded-sm border border-n-1 bg-white px-2 py-0.5 text-xs font-bold">
+                                ⭐ {points}
+                            </span>
                             <AnimatePresence>
                                 {streak >= 3 && (
                                     <motion.span
@@ -195,6 +243,14 @@ export default function QuizEngine({ quiz }: { quiz: QuizDefinition }) {
                                 exit={{ opacity: 0, x: -24 }}
                                 className="flex flex-col gap-3"
                             >
+                                <div className="flex items-center gap-2">
+                                    <span
+                                        className={`rounded-sm border border-n-1 px-2 py-0.5 text-xs font-bold ${LEVEL_CHIP_CLASS[question.level]}`}
+                                    >
+                                        {LEVEL_LABEL[question.level]}
+                                    </span>
+                                    <span className="text-xs text-grey-1">+{LEVEL_POINTS[question.level]} pts</span>
+                                </div>
                                 <Card className="p-4">
                                     <p className="text-sm font-bold">{question.prompt}</p>
                                 </Card>
@@ -268,6 +324,9 @@ export default function QuizEngine({ quiz }: { quiz: QuizDefinition }) {
                             </button>
                             <h2 className="mt-1 text-lg font-bold">{grade.title}</h2>
                             <p className="text-sm text-grey-1">{grade.subtitle}</p>
+                            <p className="mt-2 rounded-sm border border-n-1 bg-primary-3 p-2 text-sm font-bold">
+                                ⭐ {points} points
+                            </p>
                             {missed.length === 0 && (
                                 <p className="mt-2 rounded-sm border border-n-1 bg-yellow-1 p-2 text-xs font-bold">
                                     ✨ FLAWLESS — not a single shell dropped
@@ -283,6 +342,30 @@ export default function QuizEngine({ quiz }: { quiz: QuizDefinition }) {
                             )}
                         </Card>
 
+                        <div className="flex gap-2">
+                            <Button
+                                variant="purple"
+                                shadowSize="4"
+                                className="w-full"
+                                disabled={shareState === 'busy'}
+                                onClick={() => share('copy')}
+                            >
+                                {shareState === 'copied' ? 'Copied! 📋' : 'Copy share card'}
+                            </Button>
+                            <Button
+                                variant="stroke"
+                                className="w-full"
+                                disabled={shareState === 'busy'}
+                                onClick={() => share('download')}
+                            >
+                                {shareState === 'downloaded' ? 'Saved! 💾' : 'Download'}
+                            </Button>
+                        </div>
+                        {shareState === 'failed' && (
+                            <p className="text-center text-xs text-grey-1">
+                                Could not build the share card — screenshot me instead 🥜
+                            </p>
+                        )}
                         {missed.length > 0 && (
                             <Button variant="purple" shadowSize="4" className="w-full" onClick={() => beginRun(missed)}>
                                 Retry the {missed.length} I missed

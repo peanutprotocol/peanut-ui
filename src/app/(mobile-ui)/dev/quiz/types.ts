@@ -1,4 +1,11 @@
+export type QuizLevel = 'easy' | 'mid' | 'hard'
+
+/** Points awarded per correct answer, by level. Streak bonus lives in the engine. */
+export const LEVEL_POINTS: Record<QuizLevel, number> = { easy: 100, mid: 200, hard: 300 }
+
 export interface QuizQuestion {
+    /** Difficulty tier — the quiz plays easy → mid → hard. */
+    level: QuizLevel
     /** The question text. Keep it concrete — quote a real scenario where possible. */
     prompt: string
     /** 2-4 answer options. Distractors should be plausible, not jokes (jokes go in quips). */
