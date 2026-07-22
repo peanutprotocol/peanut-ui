@@ -493,6 +493,10 @@ export type UserPreferences = {
      *  Read by useHomeCarouselCTAs to apply a per-CTA cooldown before re-showing.
      *  Legacy shape was `string[]` (permanent dismissal); both are accepted on read. */
     dismissedCarouselCTAs?: string[] | Record<string, string>
+    /** Last fully-settled spendable total (smart + Rain), in USDC base units as a
+     *  string. DISPLAY-only seed so a cold start paints the previous number instead
+     *  of $0 while /rain/cards is in flight or failing — see lastKnownSpendable.ts. */
+    lastKnownSpendable?: { units: string; at: number }
 }
 
 export const updateUserPreferences = (

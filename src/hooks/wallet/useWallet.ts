@@ -25,6 +25,7 @@ import type { SpendStrategy } from './spendPreflight'
 import type { RainCollateralKind } from '@/services/rain'
 import { isDemoMode } from '@/utils/demo'
 import { useDemoBalanceUnits } from '@/utils/demo-balance'
+import { readLastKnownSpendable, writeLastKnownSpendable } from './lastKnownSpendable'
 
 type SendTransactionsOptions = {
     chainId?: string
@@ -104,7 +105,7 @@ export const useWallet = () => {
 
     // Rain collateral overview — loaded here so `sendTransactions` can consult
     // the current `spendingPower` when callers opt into collateral top-up.
-    const { overview: rainOverview, isLoading: isRainOverviewLoading } = useRainCardOverview()
+    const { overview: rainOverview } = useRainCardOverview()
 
     // Mutation for sending money with optimistic updates
     const sendMoneyMutation = useSendMoneyMutation({ address: address as Address | undefined })
@@ -242,6 +243,15 @@ export const useWallet = () => {
         return computeAvailableSpendable(balance, rainOverview?.balance?.spendingPower)
     }, [balance, rainOverview?.balance?.spendingPower])
 
+    // `/rain/cards` supplies BOTH Rain terms of the sum, so until it has answered
+    // once, `rainCentsToUsdcUnits(undefined)` folds them to 0n — and a failed
+    // fetch is indistinguishable from "no collateral". For a card user whose
+    // funds were swept into collateral that renders a confident, wrong $0.
+    // React Query keeps the last good data across a failed refetch, so this gate
+    // only matters on a session's first load. Demo has no Rain call at all, so
+    // its synthesized balance is always "ready".
+    const isRainReady = demoMode || rainOverview !== undefined
+
     // The two inputs (smart-account + rain overview) refresh independently.
     // When both change at once (e.g. auto-balancer deposit: smart goes down,
     // collateral goes up by the same amount), the queries settle at slightly
@@ -251,18 +261,34 @@ export const useWallet = () => {
     const isRainFetchingActive = useIsFetching({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] }) > 0
     const anyFetching = isSmartFetchingActive || isRainFetchingActive
     const [stableSpendable, setStableSpendable] = useState<bigint | undefined>(undefined)
-    useEffect(() => {
-        if (!anyFetching && rawSpendableBalance !== undefined) {
-            setStableSpendable((prev) => (prev === rawSpendableBalance ? prev : rawSpendableBalance))
-        }
-    }, [anyFetching, rawSpendableBalance])
 
-    // Show the stable value once we have one; fall back to the raw sum on
-    // first paint (before any query has settled).
-    const spendableBalance = stableSpendable ?? rawSpendableBalance
-    // Block on both smart-account and rain queries to avoid a flicker from
-    // the balance jumping when the rain number arrives.
-    const isSpendableBalanceLoading = demoMode ? false : isBalanceLoading || isRainOverviewLoading
+    const userId = user?.user?.userId
+    const [lastKnownSpendable, setLastKnownSpendable] = useState<bigint | undefined>(undefined)
+    useEffect(() => {
+        setLastKnownSpendable(readLastKnownSpendable(userId))
+    }, [userId])
+
+    // localStorage writes are synchronous disk I/O on native — only touch it when
+    // the settled total actually moved, not on every 30s poll.
+    const persistedSpendableRef = useRef<bigint | undefined>(undefined)
+    useEffect(() => {
+        if (anyFetching || !isRainReady || rawSpendableBalance === undefined || demoMode) return
+        setStableSpendable((prev) => (prev === rawSpendableBalance ? prev : rawSpendableBalance))
+        if (persistedSpendableRef.current === rawSpendableBalance) return
+        persistedSpendableRef.current = rawSpendableBalance
+        writeLastKnownSpendable(userId, rawSpendableBalance)
+    }, [anyFetching, isRainReady, rawSpendableBalance, userId, demoMode])
+
+    // Show the stable value once we have one, then the live sum once Rain has
+    // answered, then the persisted last-known-good — so a cold start paints the
+    // previous number immediately and corrects it in the background rather than
+    // flashing $0. Cache is DISPLAY only; the gates below stay on the live
+    // `availableSpendableBalance`.
+    const spendableBalance = stableSpendable ?? (isRainReady ? rawSpendableBalance : lastKnownSpendable)
+    const isSpendableBalanceLoading = demoMode ? false : spendableBalance === undefined
+    // True while the number on screen came from cache and the live sum is still
+    // pending — lets the UI mark it as refreshing instead of asserting it.
+    const isSpendableBalanceStale = !demoMode && stableSpendable === undefined && !isRainReady && !!lastKnownSpendable
 
     // formatted balance for display (e.g. "1,234.56"). Smart-account only —
     // use `formattedSpendableBalance` below for user-facing widgets that
@@ -309,5 +335,6 @@ export const useWallet = () => {
         fetchBalance,
         isFetchingBalance: isBalanceLoading,
         isFetchingSpendableBalance: isSpendableBalanceLoading,
+        isSpendableBalanceStale,
     }
 }
