@@ -6,7 +6,7 @@ import { BASE_URL } from '@/constants/general.consts'
 
 // Routes allowed on peanut.me (production). All /dev routes are available elsewhere
 // (localhost, staging, Vercel preview deploys).
-const PRODUCTION_ALLOWED_ROUTES = ['/dev/full-graph', '/dev/payment-graph']
+const PRODUCTION_ALLOWED_ROUTES = ['/dev/full-graph', '/dev/payment-graph', '/dev/quiz']
 
 const IS_PROD_DOMAIN = BASE_URL === 'https://peanut.me'
 
