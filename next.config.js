@@ -79,8 +79,21 @@ function contentSecurityPolicyReportOnly() {
         "base-uri 'self'",
         "form-action 'self'",
     ]
-    if (reportUri) directives.push(`report-uri ${reportUri}`)
+    // Both delivery mechanisms on purpose: `report-uri` is deprecated but what
+    // Firefox/Safari actually send today, `report-to` (backed by the
+    // Reporting-Endpoints header below) is what replaces it in Chromium.
+    // Shipping only one would undercount violations and promote the policy on
+    // a partial picture.
+    if (reportUri) directives.push(`report-uri ${reportUri}`, `report-to ${CSP_REPORT_GROUP}`)
     return directives.join('; ')
+}
+
+const CSP_REPORT_GROUP = 'csp-endpoint'
+
+function reportingEndpointsHeader() {
+    const reportUri = sentryCspReportUri()
+    if (!reportUri) return []
+    return [{ key: 'Reporting-Endpoints', value: `${CSP_REPORT_GROUP}="${reportUri}"` }]
 }
 
 // Get git commit hash at build time
@@ -271,6 +284,7 @@ let nextConfig = {
                         value: "frame-ancestors 'self' https://hugo0.com; object-src 'none'; base-uri 'self'",
                     },
                     { key: 'Content-Security-Policy-Report-Only', value: contentSecurityPolicyReportOnly() },
+                    ...reportingEndpointsHeader(),
                     { key: 'X-Content-Type-Options', value: 'nosniff' },
                     { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
                 ],
