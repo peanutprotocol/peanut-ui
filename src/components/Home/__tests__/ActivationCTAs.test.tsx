@@ -22,8 +22,10 @@ let mockRails: Array<{
     reason?: { userMessage: string }
 }> = []
 let mockUser: { user?: { isActivated?: boolean; userId?: string } } | null = null
+let mockHasCardAccess: boolean | undefined = false
 const mockHeal = jest.fn()
 const mockPush = jest.fn()
+const mockSetIsQRScannerOpen = jest.fn()
 
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
@@ -40,7 +42,24 @@ jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({ isProcessing: false, needsAction: false }),
 }))
 jest.mock('@/context/ModalsContext', () => ({
-    useModalsContext: () => ({ setIsQRScannerOpen: jest.fn(), openSupportWithMessage: jest.fn() }),
+    useModalsContext: () => ({ setIsQRScannerOpen: mockSetIsQRScannerOpen, openSupportWithMessage: jest.fn() }),
+}))
+jest.mock('@/hooks/useCardInfo', () => ({
+    useCardInfo: () => ({ hasCardAccess: mockHasCardAccess }),
+}))
+jest.mock('@/components/Global/ActionModal', () => ({
+    __esModule: true,
+    default: (props: { visible: boolean; title?: string; ctas?: { text: string; onClick: () => void }[] }) =>
+        props.visible ? (
+            <div data-testid="spend-chooser">
+                <p>{props.title}</p>
+                {props.ctas?.map((c) => (
+                    <button key={c.text} onClick={c.onClick}>
+                        {c.text}
+                    </button>
+                ))}
+            </div>
+        ) : null,
 }))
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush }),
@@ -60,6 +79,7 @@ jest.mock('@/components/Kyc/SumsubKycModals', () => ({
 }))
 
 import ActivationCTAs from '../ActivationCTAs'
+import posthog from 'posthog-js'
 
 const bankRejected = {
     id: 'bridge.sepa_eu',
@@ -74,6 +94,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockRails = []
     mockUser = { user: { isActivated: false, userId: 'u1' } }
+    mockHasCardAccess = false
 })
 
 describe('ActivationCTAs — rejection override respects existing transacting ability', () => {
@@ -105,5 +126,60 @@ describe('ActivationCTAs — rejection override respects existing transacting ab
         fireEvent.click(screen.getByText('Upload document'))
         expect(mockHeal).toHaveBeenCalledWith('BRIDGE')
         expect(mockPush).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * The outbound step was QR-only ("Make your first payment" → scanner) while
+ * card spend counts as activation too. Card-access users now get card-inclusive
+ * "Spend with Peanut" copy and a card/QR chooser; users without card access
+ * keep the exact old behavior so a gated card is never teased.
+ */
+describe('ActivationCTAs — outbound step spend chooser (card + QR)', () => {
+    it('without card access: QR-only copy unchanged, CTA goes straight to the scanner, no chooser', () => {
+        render(<ActivationCTAs activationStep="outbound" />)
+        expect(screen.getByText('Make your first payment')).toBeInTheDocument()
+        expect(screen.getByText('Start paying to Pix and MercadoPago QR codes')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('Start Spending'))
+        expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
+        expect(screen.queryByTestId('spend-chooser')).not.toBeInTheDocument()
+    })
+
+    it('while card access is still loading (undefined): treated as no access — scanner, no chooser', () => {
+        mockHasCardAccess = undefined
+        render(<ActivationCTAs activationStep="outbound" />)
+        expect(screen.getByText('Make your first payment')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('Start Spending'))
+        expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
+        expect(screen.queryByTestId('spend-chooser')).not.toBeInTheDocument()
+    })
+
+    it('with card access: card-inclusive copy, CTA opens the chooser (not the scanner) and tracks it', () => {
+        mockHasCardAccess = true
+        render(<ActivationCTAs activationStep="outbound" />)
+        expect(screen.getByText('Spend with Peanut')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('Start Spending'))
+        expect(screen.getByTestId('spend-chooser')).toBeInTheDocument()
+        expect(mockSetIsQRScannerOpen).not.toHaveBeenCalled()
+        expect(posthog.capture).toHaveBeenCalledWith('activation_spend_chooser_shown')
+    })
+
+    it('chooser → card navigates to /card and tracks the choice', () => {
+        mockHasCardAccess = true
+        render(<ActivationCTAs activationStep="outbound" />)
+        fireEvent.click(screen.getByText('Start Spending'))
+        fireEvent.click(screen.getByText('Pay with your card'))
+        expect(mockPush).toHaveBeenCalledWith('/card')
+        expect(posthog.capture).toHaveBeenCalledWith('activation_spend_chooser_selected', { choice: 'card' })
+    })
+
+    it('chooser → QR opens the existing scanner and tracks the choice', () => {
+        mockHasCardAccess = true
+        render(<ActivationCTAs activationStep="outbound" />)
+        fireEvent.click(screen.getByText('Start Spending'))
+        fireEvent.click(screen.getByText('Scan a QR code'))
+        expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
+        expect(mockPush).not.toHaveBeenCalled()
+        expect(posthog.capture).toHaveBeenCalledWith('activation_spend_chooser_selected', { choice: 'qr' })
     })
 })
