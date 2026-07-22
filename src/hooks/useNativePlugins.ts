@@ -61,7 +61,17 @@ export function useNativePlugins() {
                 cleanups.push(
                     adapter.onNotificationClick(({ deepLink, additionalData }) => {
                         const target = additionalData.deepLink
-                        openDeepLink(typeof target === 'string' ? target : deepLink)
+                        const link = typeof target === 'string' ? target : deepLink
+                        // Off-domain https links (operator sends) can't route in-app;
+                        // with launch URLs suppressed, hand them to the system browser
+                        // rather than silently swallowing the tap.
+                        if (link && !deepLinkToNativePath(link) && /^https:\/\//i.test(link)) {
+                            import('@capacitor/browser')
+                                .then(({ Browser }) => Browser.open({ url: link }))
+                                .catch((e) => console.warn('failed to open external push link:', e))
+                            return
+                        }
+                        openDeepLink(link)
                     })
                 )
             } catch (e) {
