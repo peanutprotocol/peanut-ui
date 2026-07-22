@@ -12,7 +12,7 @@
  * If a future refactor reintroduces a wei assumption here, this fails.
  */
 
-import { completeHistoryEntry, getReceiptUrl, getTransactionSign } from '../history.utils'
+import { completeHistoryEntry, getAvatarUrl, getReceiptUrl, getTransactionSign } from '../history.utils'
 import type { HistoryEntry } from '../history.utils'
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 
@@ -140,5 +140,28 @@ describe('getReceiptUrl', () => {
 
     it('returns undefined with no kind match and no stamped link', () => {
         expect(getReceiptUrl(tx('CRYPTO_DEPOSIT'))).toBeUndefined()
+    })
+})
+
+/**
+ * getAvatarUrl maps QR_PAY rows to a payment-app logo by provider. Providers
+ * that were removed from the FE (DEPRECATED_SIMPLEFI — 247 historical rows
+ * still arrive on the wire) must fall back to undefined, which the avatar
+ * components render as the generic default avatar. Locks that historical rows
+ * never crash or regress into a broken image.
+ */
+describe('getAvatarUrl', () => {
+    const tx = (provider: string, currencyCode?: string) =>
+        ({
+            extraDataForDrawer: { kind: 'QR_PAY', provider },
+            currency: currencyCode ? { code: currencyCode, amount: '1' } : undefined,
+        }) as unknown as Parameters<typeof getAvatarUrl>[0]
+
+    it('still resolves a logo for live QR providers (MANTECA/ARS)', () => {
+        expect(getAvatarUrl(tx('MANTECA', 'ARS'))).toBeDefined()
+    })
+
+    it('falls back to undefined (generic avatar) for historical DEPRECATED_SIMPLEFI rows', () => {
+        expect(getAvatarUrl(tx('DEPRECATED_SIMPLEFI', 'ARS'))).toBeUndefined()
     })
 })
