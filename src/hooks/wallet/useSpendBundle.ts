@@ -44,11 +44,16 @@ export interface SpendBundleInput {
      *  the Rain collateral webhook can be reconciled and categorized correctly
      *  in history (instead of showing up as a generic "card payment"). */
     kind: RainCollateralKind
-    /** When this spend pays a Peanut request/charge AND it routes entirely through
-     *  Rain collateral (`collateral-only`), the charge uuid. The backend uses the
-     *  charge intent itself as the prep and marks it COMPLETED on confirm — so the
-     *  caller MUST skip its own `recordPayment` when `strategy === 'collateral-only'`.
-     *  Ignored for `smart-only` and `mixed` (those keep the recordPayment path). */
+    /** When this spend pays a Peanut request/charge, the charge uuid. On the
+     *  `collateral-only` strategy the backend uses the charge intent itself as
+     *  the prep and completes it on confirm; a follow-up `recordPayment` is
+     *  still safe — the backend routes it through the same trusted-completion
+     *  path (idempotent), which doubles as the recovery net when /submit's
+     *  post-mining bookkeeping fails. Ignored for `smart-only` and `mixed`,
+     *  where `recordPayment` remains the charge-completion trigger — so
+     *  charge-backed callers should ALWAYS record the payment afterwards
+     *  (skipping it leaves the charge PENDING forever and the spend invisible
+     *  in Activity). */
     chargeId?: string
     /** Extra calls to include in the kernel UserOp (for approve+deposit-style flows).
      *  If present, collateral-only routing is NOT eligible — calls must run from the kernel. */
