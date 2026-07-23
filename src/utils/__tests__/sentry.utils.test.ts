@@ -1,4 +1,77 @@
-import { sanitizeRequestBody, sanitizeResponseBody, scrubObject } from '../sentry.utils'
+import * as Sentry from '@sentry/nextjs'
+import { fetchWithSentry, sanitizeRequestBody, sanitizeResponseBody, scrubObject } from '../sentry.utils'
+
+jest.mock('@sentry/nextjs', () => ({
+    withScope: jest.fn((cb: (scope: unknown) => void) => cb({ setFingerprint: jest.fn(), setTag: jest.fn() })),
+    captureMessage: jest.fn(),
+    captureException: jest.fn(),
+}))
+
+jest.mock('../connectivity', () => ({
+    reportNetworkError: jest.fn(),
+    reportNetworkOk: jest.fn(),
+}))
+
+describe('fetchWithSentry — expected-response suppression', () => {
+    const mockResponse = (status: number, body: unknown): Response =>
+        ({
+            ok: status >= 200 && status < 300,
+            status,
+            clone: () => ({
+                json: () => Promise.resolve(body),
+                text: () => Promise.resolve(JSON.stringify(body)),
+            }),
+        }) as unknown as Response
+
+    let warnSpy: jest.SpyInstance
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    })
+
+    afterEach(() => {
+        warnSpy.mockRestore()
+    })
+
+    // Pins the fix for PEANUT-UI-QDR: a 400 from /invites/validate means the
+    // user typed an invalid invite code during onboarding — expected input
+    // validation surfaced inline, not a bug. Must never reach Sentry.
+    it('does NOT report /invites/validate 400 (invalid invite code is expected user input)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(400, { error: 'Invalid Invite' }))
+
+        const res = await fetchWithSentry('https://api.peanut.me/invites/validate', {
+            method: 'POST',
+            body: JSON.stringify({ inviteCode: 'nosuchuser' }),
+        })
+
+        expect(res.status).toBe(400)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+        expect(warnSpy).not.toHaveBeenCalled()
+    })
+
+    it('still reports /invites/validate 500 (real server failure)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(500, { error: 'boom' }))
+
+        await fetchWithSentry('https://api.peanut.me/invites/validate', { method: 'POST', body: '{}' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalledWith(
+            'POST to https://api.peanut.me/invites/validate failed with status 500',
+            expect.objectContaining({ level: 'error' })
+        )
+    })
+
+    it('still reports 400s from endpoints without a skip rule', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(400, { error: 'bad request' }))
+
+        await fetchWithSentry('https://api.peanut.me/some/endpoint', { method: 'POST', body: '{}' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalledWith(
+            'POST to https://api.peanut.me/some/endpoint failed with status 400',
+            expect.objectContaining({ level: 'warning' })
+        )
+    })
+})
 
 describe('sanitizeRequestBody', () => {
     it('redacts the PIN-set endpoint body wholesale (sensitive URL)', () => {
