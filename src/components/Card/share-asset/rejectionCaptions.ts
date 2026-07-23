@@ -9,7 +9,7 @@
  *
  * No caption may hardcode numbers/stats (waitlist size, admitted count) —
  * those drift from the live door tally the screen renders and read as
- * fabricated data in a public tweet. The no-digits test enforces this.
+ * fabricated data in a public tweet.
  */
 
 export const REJECTION_CAPTIONS: readonly string[] = [
