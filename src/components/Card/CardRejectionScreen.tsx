@@ -103,7 +103,7 @@ const CardRejectionScreen: FC<Props> = ({
         // Clear any stale "failed to join" error from an earlier handleJoin so
         // the success state can't render alongside it (CodeRabbit).
         setJoinError(null)
-        const caption = pickRejectionCaption()
+        const caption = pickRejectionCaption({ applicants, admitted })
 
         // Appeal = tweet AND join the waitlist. Joining is NOT access — release
         // stays manual (admin grant) — it just drops the appealer into the

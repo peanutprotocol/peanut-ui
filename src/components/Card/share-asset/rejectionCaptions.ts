@@ -6,37 +6,45 @@
  * doesn't fill with one identical tweet. Every caption tags @joinpeanut so
  * the rejection itself markets the door's exclusivity — the handle rides the
  * caption (it is intentionally not drawn on the asset image).
+ *
+ * The pool is built per share from the live door tally so the numbers-flex
+ * caption matches the "{tried} tried · {got in} got in" the screen renders.
  */
 
-export const REJECTION_CAPTIONS: readonly string[] = [
-    'rejected by @joinpeanut 🚫 the door policy is insane.',
-    '@joinpeanut has a bouncer now??',
-    "@joinpeanut told me i'm not on the list 💀 the AUDACITY",
-    "the @joinpeanut bouncer said come back when i'm somebody. ok bet.",
-    'got read for filth by the @joinpeanut door',
-    'officially rejected by @joinpeanut.',
-    'collected my first @joinpeanut badge: REJECTED 💀',
-    'took an L at the @joinpeanut door. building my comeback arc.',
-    "denied at the @joinpeanut door. the bouncer didn't even blink 🚫",
-    "@joinpeanut said NOT TONIGHT. guess i'll fix my whole life",
-    'turned away from @joinpeanut 💀',
-    "couldn't get past the @joinpeanut velvet rope. humbling.",
-    '@joinpeanut rejection #1. framing this one.',
-    'the @joinpeanut door looked me up and down and said no. respect.',
-    'not on the @joinpeanut list tonight. villain arc starts now.',
-    "got bounced from @joinpeanut. it's giving exclusive.",
-    '@joinpeanut denied me with zero explanation. iconic behavior honestly',
-    '213 tried, 7 got in. @joinpeanut said not me. yet.',
-    "@joinpeanut said come back when i'm somebody. challenge accepted 🥜",
-    'the @joinpeanut bouncer has no notes. just no. devastating.',
-    'tried the @joinpeanut door. NOT TONIGHT. comeback arc loading.',
-    "@joinpeanut rejected me and i've never wanted in more 💀",
-    'took an L at the @joinpeanut door tonight. tomorrow we ride again.',
-    "remember @joinpeanut from devconnect?? they've rejected me from their beta programme omg",
-    "rember @joinpeanut from devconnect?? seems they're back but also they don't want users ??? WHAT?",
-]
+import type { DoorTally } from '@/components/Card/doorTally.utils'
+
+export function buildRejectionCaptions(tally: DoorTally): readonly string[] {
+    return [
+        'rejected by @joinpeanut 🚫 the door policy is insane.',
+        '@joinpeanut has a bouncer now??',
+        "@joinpeanut told me i'm not on the list 💀 the AUDACITY",
+        "the @joinpeanut bouncer said come back when i'm somebody. ok bet.",
+        'got read for filth by the @joinpeanut door',
+        'officially rejected by @joinpeanut.',
+        'collected my first @joinpeanut badge: REJECTED 💀',
+        'took an L at the @joinpeanut door. building my comeback arc.',
+        "denied at the @joinpeanut door. the bouncer didn't even blink 🚫",
+        "@joinpeanut said NOT TONIGHT. guess i'll fix my whole life",
+        'turned away from @joinpeanut 💀',
+        "couldn't get past the @joinpeanut velvet rope. humbling.",
+        '@joinpeanut rejection #1. framing this one.',
+        'the @joinpeanut door looked me up and down and said no. respect.',
+        'not on the @joinpeanut list tonight. villain arc starts now.',
+        "got bounced from @joinpeanut. it's giving exclusive.",
+        '@joinpeanut denied me with zero explanation. iconic behavior honestly',
+        `${tally.applicants.toLocaleString('en-US')} tried, ${tally.admitted} got in. @joinpeanut said not me. yet.`,
+        "@joinpeanut said come back when i'm somebody. challenge accepted 🥜",
+        'the @joinpeanut bouncer has no notes. just no. devastating.',
+        'tried the @joinpeanut door. NOT TONIGHT. comeback arc loading.',
+        "@joinpeanut rejected me and i've never wanted in more 💀",
+        'took an L at the @joinpeanut door tonight. tomorrow we ride again.',
+        "remember @joinpeanut from devconnect?? they've rejected me from their beta programme omg",
+        "rember @joinpeanut from devconnect?? seems they're back but also they don't want users ??? WHAT?",
+    ]
+}
 
 /** Pick a random caption. Browser-only (Math.random) — fine at share time. */
-export function pickRejectionCaption(): string {
-    return REJECTION_CAPTIONS[Math.floor(Math.random() * REJECTION_CAPTIONS.length)]
+export function pickRejectionCaption(tally: DoorTally): string {
+    const captions = buildRejectionCaptions(tally)
+    return captions[Math.floor(Math.random() * captions.length)]
 }
