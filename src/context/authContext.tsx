@@ -14,6 +14,7 @@ import {
     updateUserPreferences,
 } from '@/utils/general.utils'
 import { apiFetch } from '@/utils/api-fetch'
+import { useAppLocked } from '@/hooks/useAppLocked'
 import { isCapacitor } from '@/utils/capacitor'
 import { clearAuthToken } from '@/utils/auth-token'
 import { resetCrispProxySessions } from '@/utils/crisp'
@@ -68,7 +69,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const queryClient = useQueryClient()
     const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
 
-    const { data: user, isLoading: isFetchingUser, refetch: fetchUser, error: userFetchError } = useUserQuery()
+    // While the native app lock is engaged the session is paused: disabling
+    // the query here also disables its refetchOnMount/refetchOnWindowFocus,
+    // so a resume can't race a request out before the unlock ceremony. When
+    // the lock lifts, react-query refetches stale data on its own — that IS
+    // the post-unlock refresh.
+    const appLocked = useAppLocked()
+    const {
+        data: user,
+        isLoading: isFetchingUser,
+        refetch: fetchUser,
+        error: userFetchError,
+    } = useUserQuery(!appLocked)
 
     // Singleton auto-refresh poller — keeps the user query fresh while any
     // rail is provisioning OR a recent submission window is open. Mounted

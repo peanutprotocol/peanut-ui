@@ -14,6 +14,9 @@ project(':capacitor-camera').projectDir = new File('../node_modules/.pnpm/@capac
 include ':capacitor-clipboard'
 project(':capacitor-clipboard').projectDir = new File('../node_modules/.pnpm/@capacitor+clipboard@8.0.1_@capacitor+core@8.2.0/node_modules/@capacitor/clipboard/android')
 
+include ':capacitor-device'
+project(':capacitor-device').projectDir = new File('../node_modules/.pnpm/@capacitor+device@8.0.2_@capacitor+core@8.2.0/node_modules/@capacitor/device/android')
+
 include ':capacitor-haptics'
 project(':capacitor-haptics').projectDir = new File('../node_modules/.pnpm/@capacitor+haptics@8.0.2_@capacitor+core@8.2.0/node_modules/@capacitor/haptics/android')
 
@@ -31,6 +34,9 @@ project(':capacitor-status-bar').projectDir = new File('../node_modules/.pnpm/@c
 
 include ':capgo-capacitor-crisp'
 project(':capgo-capacitor-crisp').projectDir = new File('../node_modules/.pnpm/@capgo+capacitor-crisp@8.0.27_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-crisp/android')
+
+include ':capgo-capacitor-native-biometric'
+project(':capgo-capacitor-native-biometric').projectDir = new File('../node_modules/.pnpm/@capgo+capacitor-native-biometric@8.6.0_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-native-biometric/android')
 
 include ':capgo-capacitor-passkey'
 project(':capgo-capacitor-passkey').projectDir = new File('../node_modules/@capgo/capacitor-passkey/android')

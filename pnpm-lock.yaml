@@ -72,6 +72,9 @@ importers:
       '@capgo/capacitor-crisp':
         specifier: ^8.0.27
         version: 8.0.27(@capacitor/core@8.2.0)
+      '@capgo/capacitor-native-biometric':
+        specifier: 8.6.0
+        version: 8.6.0(@capacitor/core@8.2.0)
       '@capgo/capacitor-passkey':
         specifier: ^8.2.2
         version: 8.2.2(@capacitor/core@8.2.0)
@@ -658,6 +661,11 @@ packages:
 
   '@capgo/capacitor-crisp@8.0.27':
     resolution: {integrity: sha512-Qq5gQIHuXfW7UD7uKYQuccTpMYwnsvvryiFWv5bvEYsEvtp77oRDr2o+TBh8/sdJcaOrHNUKNaOhF1c9HO/iEA==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
+  '@capgo/capacitor-native-biometric@8.6.0':
+    resolution: {integrity: sha512-FvkOzrVzaYdOtv/EqK8GP4lUJblEnLmruSxkrHwnlsgLscN5k4Z4DL7vPohFvTFoce0e/2Y/4VpvV5GwHLJp8Q==}
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
@@ -8661,6 +8669,10 @@ snapshots:
       '@capacitor/core': 8.2.0
 
   '@capgo/capacitor-crisp@8.0.27(@capacitor/core@8.2.0)':
+    dependencies:
+      '@capacitor/core': 8.2.0
+
+  '@capgo/capacitor-native-biometric@8.6.0(@capacitor/core@8.2.0)':
     dependencies:
       '@capacitor/core': 8.2.0
 
