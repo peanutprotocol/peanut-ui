@@ -94,8 +94,8 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                 <InfoCard
                     variant="warning"
                     icon="credit-card"
-                    title={`Card balance due: $${(balanceDueCents / 100).toFixed(2)}`}
-                    description="Usually a payment that settled above its authorized amount. Your next deposit covers this automatically."
+                    title={`$${(balanceDueCents / 100).toFixed(2)} will come off your next deposit`}
+                    description="A recent card payment ended up higher than the amount held at checkout. This happens with tips or updated totals. We'll cover the difference automatically."
                 />
             )}
 

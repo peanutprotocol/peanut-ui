@@ -6,7 +6,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { type DisputeStatus, type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { friendlyDeclineReason } from '@/utils/cardDeclineReason'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
-import { extractMerchantIso2 } from '@/components/TransactionDetails/transaction-details.utils'
+import { extractMerchantIso2, parseCents } from '@/components/TransactionDetails/transaction-details.utils'
 
 /** Strings from Rain's sandbox arrive whitespace-padded ("  ", " - ") and
  *  legacy intents in the DB pre-date the backend cleanField pass — treat any
@@ -17,31 +17,6 @@ function nonBlank(value: string | null | undefined): string | null {
     if (trimmed.length === 0) return null
     if (/^[-_]{1,3}$/.test(trimmed)) return null
     return trimmed
-}
-
-/** Parse a cents amount and reject NaN / Infinity / null up-front so the
- *  drawer never renders "Charged in NaN EUR". */
-function parseCents(value: string | null | undefined): number | null {
-    if (value == null) return null
-    const n = Number(value)
-    return Number.isFinite(n) ? n : null
-}
-
-/** Tooltip for the Authorized row's info icon — says by how much the final
- *  charge moved vs the auth, and what to do if it looks wrong. Falls back to
- *  a delta-less sentence when the settled amount is missing (legacy rows). */
-function adjustmentInfoText(authCents: number, settledCents: number | null): string {
-    if (settledCents == null) {
-        return 'The merchant’s final charge differed from the amount authorized at payment. If you don’t recognize this, contact the merchant.'
-    }
-    // Stuck-true settlementAdjusted with equal amounts (a later re-settle back
-    // to the auth) — don't claim a difference that isn't displayed.
-    if (settledCents === authCents) {
-        return 'The merchant’s final charge matched the amount authorized at payment.'
-    }
-    const deltaUsd = `$${(Math.abs(settledCents - authCents) / 100).toFixed(2)}`
-    const direction = settledCents > authCents ? 'higher' : 'lower'
-    return `The merchant’s final charge was ${deltaUsd} ${direction} than the amount authorized at payment. If you don’t recognize this, contact the merchant.`
 }
 
 /**
@@ -138,7 +113,7 @@ export function CardPaymentRows({
 
     // Compose the visible sub-rows in order, then mark the final one as
     // border-suppressed if this whole slot is also the receipt's last.
-    const subRows: { label: string; value: ReactNode; key: string; moreInfoText?: string }[] = []
+    const subRows: { label: string; value: ReactNode; key: string }[] = []
 
     // Merchant category was dropped — the MCC label adds noise without
     // signal for non-finance users ("Eating Places, Restaurants" tells them
@@ -167,18 +142,19 @@ export function CardPaymentRows({
     }
 
     // Spec §4.6 — settled amount differs from the original auth (overcapture,
-    // tip, partial capture). Break out authorized vs adjustment so the delta
-    // is explicit. Cause stays unlabeled — Rain doesn't say whether it was a
-    // tip, FX true-up, or incidentals.
+    // tip, partial capture). Break out the hold vs the delta so the math is
+    // explicit. "Initial hold" over "Authorized": hold is the one card term
+    // users already know (hotels, gas stations). The words — examples and the
+    // merchant-recourse path — live in CardAdjustmentNotice below the details
+    // card, visible instead of behind an info-icon tooltip nobody opens.
     if (card.settlementAdjusted) {
         const authCents = parseCents(card.authAmount)
         const settledCents = parseCents(card.settledAmount)
         if (authCents != null) {
             subRows.push({
-                key: 'authorizedAmount',
-                label: 'Authorized',
+                key: 'initialHold',
+                label: 'Initial hold',
                 value: `$${(authCents / 100).toFixed(2)}`,
-                moreInfoText: adjustmentInfoText(authCents, settledCents),
             })
             if (settledCents != null && settledCents !== authCents) {
                 const deltaCents = settledCents - authCents
@@ -295,7 +271,6 @@ export function CardPaymentRows({
                     key={row.key}
                     label={row.label}
                     value={row.value}
-                    moreInfoText={row.moreInfoText}
                     hideBottomBorder={isLastRow && idx === subRows.length - 1}
                 />
             ))}
