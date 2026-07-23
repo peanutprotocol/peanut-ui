@@ -14,7 +14,6 @@ const queryClient = new QueryClient({
             refetchOnWindowFocus: true, // Refetch stale data when user returns
             refetchOnReconnect: true, // Refetch when connectivity restored
             // Allow queries when offline to read from TanStack Query in-memory cache
-            // Service Worker provides additional HTTP API response caching (user data, history, prices)
             networkMode: 'always', // Run queries even when offline (reads from cache)
         },
         mutations: {

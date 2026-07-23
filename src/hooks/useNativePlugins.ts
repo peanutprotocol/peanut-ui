@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { focusManager } from '@tanstack/react-query'
 import { captureMessage } from '@sentry/nextjs'
 import { isCapacitor, getPlatform } from '@/utils/capacitor'
 import { deepLinkToNativePath } from '@/utils/native-routes'
@@ -36,6 +37,19 @@ export function useNativePlugins() {
         const init = async () => {
             try {
                 const { App } = await import('@capacitor/app')
+
+                // TanStack Query's refetchOnWindowFocus keys off visibilitychange,
+                // which Android WebViews don't reliably fire on app resume — a
+                // resumed app kept rendering its pre-background query data (stale
+                // home Activity). Drive the focusManager from the native lifecycle.
+                const stateListener = await App.addListener('appStateChange', ({ isActive }: { isActive: boolean }) =>
+                    focusManager.setFocused(isActive)
+                )
+                cleanups.push(() => {
+                    stateListener.remove()
+                    focusManager.setFocused(undefined)
+                })
+
                 const backListener = await App.addListener('backButton', ({ canGoBack }: { canGoBack: boolean }) => {
                     if (canGoBack) {
                         router.back()
