@@ -1,17 +1,18 @@
 /**
  * Card API service — virtual-card waitlist + flow access.
  *
- * Client-side fetches to /card and /card/waitlist/*. Matches the pattern in
- * services/rain.ts and services/manteca.ts: JWT from cookie, no Next.js
- * server-action indirection.
+ * Client-side fetches to /card and /card/waitlist/* via apiFetch, so auth
+ * works on both web and native. Native builds hold the JWT in Preferences and
+ * send it as an Authorization header — the cookie jar is empty there, so the
+ * old cookie-only header threw `Authentication required` on native, blanking
+ * hasCardAccess and dropping the card nav onto /shhhhh.
  *
  * Pioneer purchase API (`purchase()`) was removed in Phase 4 of the M2
  * launch — the new free badge-gated waitlist supersedes it.
  */
 
-import Cookies from 'js-cookie'
-import { PEANUT_API_KEY, PEANUT_API_URL } from '@/constants/general.consts'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { PEANUT_API_KEY } from '@/constants/general.consts'
+import { apiFetch } from '@/utils/api-fetch'
 
 export interface CardInfoResponse {
     /** Inner gate: cardAccessGrantedAt set OR holds a SKIP_BADGE_CODES badge
@@ -53,21 +54,14 @@ export interface WaitlistStateResponse {
     releasedAt: string | null
 }
 
-function authHeaders(): Record<string, string> {
-    const jwt = Cookies.get('jwt-token')
-    if (!jwt) throw new Error('Authentication required')
-    return {
-        Authorization: `Bearer ${jwt}`,
-        'api-key': PEANUT_API_KEY,
-    }
-}
+const cardHeaders = { 'api-key': PEANUT_API_KEY }
 
 export const cardApi = {
     /** GET /card — info + waitlist state. */
     getInfo: async (): Promise<CardInfoResponse> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/card`, {
+        const response = await apiFetch('/card', {
             method: 'GET',
-            headers: authHeaders(),
+            headers: cardHeaders,
             cache: 'no-store',
         })
         if (!response.ok) {
@@ -79,9 +73,9 @@ export const cardApi = {
 
     /** POST /card/waitlist/join — idempotent stamp + position. */
     joinWaitlist: async (): Promise<{ joinedAt: string; position: number | null }> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/card/waitlist/join`, {
+        const response = await apiFetch('/card/waitlist/join', {
             method: 'POST',
-            headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+            headers: cardHeaders,
             body: '{}',
             cache: 'no-store',
         })
@@ -94,9 +88,9 @@ export const cardApi = {
 
     /** GET /card/waitlist/state — current waitlist state. */
     getWaitlistState: async (): Promise<WaitlistStateResponse> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/card/waitlist/state`, {
+        const response = await apiFetch('/card/waitlist/state', {
             method: 'GET',
-            headers: authHeaders(),
+            headers: cardHeaders,
             cache: 'no-store',
         })
         if (!response.ok) {
