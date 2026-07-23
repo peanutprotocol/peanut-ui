@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useSubmissionWindow, isInSubmissionWindow } from '@/hooks/useSubmissionWindow'
+import { getLockState } from '@/utils/app-lock-state'
 import type { IUserProfile } from '@/interfaces/interfaces'
 
 /**
@@ -55,6 +56,9 @@ export function useUserAutoRefresh({
         let cancelled = false
         const timer = setInterval(() => {
             if (cancelled) return
+            // app lock engaged: the session is paused, not over — skip the
+            // tick without tearing the interval down
+            if (getLockState() === 'locked') return
             if (!hasPendingRailRef.current && !isInSubmissionWindow()) {
                 clearInterval(timer)
                 return

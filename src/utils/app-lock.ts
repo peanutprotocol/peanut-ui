@@ -1,19 +1,16 @@
-// Native app lock: a local user-presence gate shown when the app is opened
-// cold or resumed after a spell in the background.
+// LEGACY app-lock path: a local user-presence gate for binaries without the
+// NativeBiometric plugin and devices without enrolled biometrics ('plain'
+// session mode). On current binaries the real control is the biometric-guarded
+// token in Keychain/Keystore (issue #2472, see secure-token-store.ts), where
+// the unlock ceremony IS the token read and the gate fails closed.
 //
-// This is deliberately a LOCAL check — the assertion is never sent to the API
-// for verification. The threat it addresses is physical: someone holding an
-// already-unlocked phone. The OS will not produce an assertion without the
-// user's biometric or device passcode, which is exactly the property we want.
-// Server-side proof of a fresh assertion is a separate concern (step-up auth on
-// sensitive endpoints) and does not belong in a UI lock.
-//
-// It is a privacy screen and a deterrent, NOT account protection: the session
-// token stays where it always was (webview storage / cookie jar), reachable by
-// anything that can read the app's filesystem, and clearing the stored
-// credential id disables the gate entirely. Making it a genuine control means
-// moving the token into biometric-guarded Keychain/Keystore — tracked
-// separately.
+// This fallback is deliberately a LOCAL check — the assertion is never sent to
+// the API for verification. The threat it addresses is physical: someone
+// holding an already-unlocked phone. It remains a privacy screen and a
+// deterrent, NOT account protection: in plain mode the session token is
+// reachable by anything that can read the app's filesystem, and clearing the
+// stored credential id disables this gate entirely. Those are exactly the
+// gaps the guarded mode closes.
 
 import { base64URLToBytes } from './native-webauthn'
 
