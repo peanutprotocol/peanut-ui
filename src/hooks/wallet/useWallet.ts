@@ -120,9 +120,12 @@ export const useWallet = () => {
             })
             // `strategy` lets same-chain callers distinguish "funds left the smart
             // account" (smart-only) from "funds left Rain collateral" (collateral-
-            // only/mixed). The latter is reconciled server-side via Rain's webhook
-            // → TransactionIntent, so callers can skip legacy recordPayment paths
-            // that would otherwise leave an unmatched Charge in history.
+            // only/mixed). Charge-backed callers should still recordPayment on
+            // every strategy: collateral-only re-enters the backend's idempotent
+            // trusted-completion path, and the others rely on it to complete the
+            // charge — skipping it leaves the charge PENDING and the spend
+            // invisible in Activity. (Mixed callers: only record a MINED tx
+            // hash, never the bare userOp hash — see the withdraw page.)
             // `intentId` is the receipt handle for collateral/mixed spends —
             // `/receipt/<intentId>?kind=<IntentKind>`.
             return {
