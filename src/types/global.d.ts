@@ -5,6 +5,10 @@ interface Window {
     Capacitor?: {
         getPlatform: () => string
         isNativePlatform?: () => boolean
+        // Optional: older bridges predate it. Used to feature-detect native
+        // plugins (e.g. NativeBiometric) before entering a code path that
+        // needs them.
+        isPluginAvailable?: (name: string) => boolean
     }
     gtag?: (command: string, ...args: unknown[]) => void
     // Before client.crisp.chat/l.js loads, $crisp is a plain push-queue array. Once the

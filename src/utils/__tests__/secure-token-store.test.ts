@@ -47,7 +47,7 @@ describe('secure-token-store', () => {
 
     describe('isGuardedStoreSupported', () => {
         afterEach(() => {
-            delete (window as any).Capacitor
+            window.Capacitor = undefined
         })
 
         it('is false on web', () => {
@@ -56,12 +56,15 @@ describe('secure-token-store', () => {
         })
 
         it('is false on an older binary without the plugin', () => {
-            ;(window as any).Capacitor = { isPluginAvailable: () => false }
+            window.Capacitor = { getPlatform: () => 'ios', isPluginAvailable: () => false }
             expect(store.isGuardedStoreSupported()).toBe(false)
         })
 
         it('is true when the native plugin is registered', () => {
-            ;(window as any).Capacitor = { isPluginAvailable: (name: string) => name === 'NativeBiometric' }
+            window.Capacitor = {
+                getPlatform: () => 'ios',
+                isPluginAvailable: (name: string) => name === 'NativeBiometric',
+            }
             expect(store.isGuardedStoreSupported()).toBe(true)
         })
     })
@@ -133,11 +136,11 @@ describe('secure-token-store', () => {
 
     describe('isBiometryEnrolled', () => {
         it('is strict: no device-credential fallback counted', async () => {
-            ;(window as any).Capacitor = { isPluginAvailable: () => true }
+            window.Capacitor = { getPlatform: () => 'ios', isPluginAvailable: () => true }
             mockPlugin.isAvailable.mockResolvedValue({ isAvailable: true })
             await expect(store.isBiometryEnrolled()).resolves.toBe(true)
             expect(mockPlugin.isAvailable).toHaveBeenCalledWith({ useFallback: false })
-            delete (window as any).Capacitor
+            window.Capacitor = undefined
         })
     })
 })

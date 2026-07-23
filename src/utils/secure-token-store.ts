@@ -53,8 +53,7 @@ function loadPlugin(): Promise<PluginModule> {
  *  binaries running OTA'd JS — those stay on the plain-Preferences path. */
 export function isGuardedStoreSupported(): boolean {
     if (!isCapacitor()) return false
-    const capacitor = (window as any).Capacitor
-    return !!capacitor?.isPluginAvailable?.('NativeBiometric')
+    return !!window.Capacitor?.isPluginAvailable?.('NativeBiometric')
 }
 
 /** Can the device produce a biometric assertion right now? Strict biometric —
