@@ -24,6 +24,13 @@ export function useNativePlugins() {
         if (!isCapacitor()) return
 
         const cleanups: Array<() => void> = []
+        let disposed = false
+        // Registrations resolve async; if the effect tore down first, run the
+        // cleanup now instead of leaking the handle.
+        const track = (cleanup: () => void) => {
+            if (disposed) cleanup()
+            else cleanups.push(cleanup)
+        }
 
         const openDeepLink = (url?: string | null) => {
             if (!url) return
@@ -45,7 +52,7 @@ export function useNativePlugins() {
                 const stateListener = await App.addListener('appStateChange', ({ isActive }: { isActive: boolean }) =>
                     focusManager.setFocused(isActive)
                 )
-                cleanups.push(() => {
+                track(() => {
                     stateListener.remove()
                     focusManager.setFocused(undefined)
                 })
@@ -57,13 +64,13 @@ export function useNativePlugins() {
                         App.minimizeApp()
                     }
                 })
-                cleanups.push(() => backListener.remove())
+                track(() => backListener.remove())
 
                 // App Links: cold start (getLaunchUrl) + warm start (appUrlOpen).
                 const launch = await App.getLaunchUrl()
                 openDeepLink(launch?.url)
                 const urlListener = await App.addListener('appUrlOpen', ({ url }: { url: string }) => openDeepLink(url))
-                cleanups.push(() => urlListener.remove())
+                track(() => urlListener.remove())
             } catch (e) {
                 console.warn('failed to init app listeners:', e)
                 // without these listeners push-tap deep links never route, so surface the failure
@@ -84,7 +91,7 @@ export function useNativePlugins() {
                 // relative path the API sends; the launch URL is the fallback for
                 // notifications sent before that field existed.
                 const adapter = await getOneSignalAdapter()
-                cleanups.push(
+                track(
                     adapter.onNotificationClick(({ deepLink, additionalData }) => {
                         const target = additionalData.deepLink
                         const link = typeof target === 'string' ? target : deepLink
@@ -137,6 +144,7 @@ export function useNativePlugins() {
         init()
 
         return () => {
+            disposed = true
             cleanups.forEach((fn) => fn())
         }
     }, [router])
