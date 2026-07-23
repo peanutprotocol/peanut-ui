@@ -1,13 +1,28 @@
-// tests for auth-token jwt management (web vs capacitor)
+// tests for auth-token jwt management (web vs capacitor: guarded/plain/none)
 
 import Cookies from 'js-cookie'
 import { isCapacitor } from '@/utils/capacitor'
 import { CapacitorCookies } from '@capacitor/core'
 import { Preferences } from '@capacitor/preferences'
+import * as secureStore from '@/utils/secure-token-store'
 
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(),
 }))
+
+jest.mock('@/utils/secure-token-store', () => {
+    const actual = jest.requireActual('@/utils/secure-token-store')
+    return {
+        // real error class so instanceof checks in auth-token keep working
+        GuardedStoreError: actual.GuardedStoreError,
+        isGuardedStoreSupported: jest.fn(() => false),
+        isBiometryEnrolled: jest.fn(async () => false),
+        guardedRead: jest.fn(),
+        guardedWrite: jest.fn(async () => undefined),
+        guardedDelete: jest.fn(async () => undefined),
+        canWriteSilently: jest.fn(() => true),
+    }
+})
 
 jest.mock('js-cookie', () => ({
     get: jest.fn(),
@@ -47,6 +62,26 @@ const mockPreferences = Preferences as unknown as {
     get: jest.Mock
     set: jest.Mock
     remove: jest.Mock
+}
+const mockSecureStore = secureStore as unknown as {
+    GuardedStoreError: typeof secureStore.GuardedStoreError
+    isGuardedStoreSupported: jest.Mock
+    isBiometryEnrolled: jest.Mock
+    guardedRead: jest.Mock
+    guardedWrite: jest.Mock
+    guardedDelete: jest.Mock
+    canWriteSilently: jest.Mock
+}
+
+// setAuthToken persistence and mode detection run through several awaited
+// dynamic imports and Preferences reads — a timer turn flushes the whole chain
+async function flushAsync(): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 0))
+}
+
+// Preferences.get is keyed: route marker/jwt reads separately per test
+function mockStoredPrefs(values: Record<string, string | null>): void {
+    mockPreferences.get.mockImplementation(async ({ key }: { key: string }) => ({ value: values[key] ?? null }))
 }
 
 // the module caches the native token and hydration promise, so each test gets
@@ -141,8 +176,7 @@ describe('auth-token', () => {
             it('caches in memory and persists to Preferences', async () => {
                 auth.setAuthToken('new-cap-token')
                 expect(auth.getAuthToken()).toBe('new-cap-token')
-                await Promise.resolve() // flush the fire-and-forget dynamic import chain
-                await Promise.resolve()
+                await flushAsync() // fire-and-forget persistence awaits mode detection first
                 expect(mockPreferences.set).toHaveBeenCalledWith({ key: 'jwt-token', value: 'new-cap-token' })
             })
 
@@ -155,8 +189,7 @@ describe('auth-token', () => {
             it('keeps the in-memory token even when Preferences persistence fails', async () => {
                 mockPreferences.set.mockRejectedValue(new Error('not implemented'))
                 auth.setAuthToken('new-cap-token')
-                await Promise.resolve()
-                await Promise.resolve()
+                await flushAsync()
                 expect(auth.getAuthToken()).toBe('new-cap-token')
             })
         })
@@ -324,6 +357,178 @@ describe('auth-token', () => {
                 mockCookies.get.mockReturnValue(undefined)
                 const headers = auth.getAuthHeaders({ 'Content-Type': 'application/json' })
                 expect(headers).toEqual({ 'Content-Type': 'application/json' })
+            })
+        })
+    })
+
+    describe('guarded mode (biometric-guarded token, issue #2472)', () => {
+        beforeEach(() => {
+            mockIsCapacitor.mockReturnValue(true)
+            mockSecureStore.isGuardedStoreSupported.mockReturnValue(true)
+            mockStoredPrefs({ 'guarded-token-present': '1' })
+        })
+
+        describe('getSessionMode', () => {
+            it('is guarded when the plugin and the marker are present', async () => {
+                await expect(auth.getSessionMode()).resolves.toBe('guarded')
+            })
+
+            it('is plain when the plugin is missing but a stored token exists', async () => {
+                mockSecureStore.isGuardedStoreSupported.mockReturnValue(false)
+                mockStoredPrefs({ 'jwt-token': 'stored' })
+                await expect(auth.getSessionMode()).resolves.toBe('plain')
+            })
+
+            it('is plain when the plugin is present but only a plain token exists (pre-migration)', async () => {
+                mockStoredPrefs({ 'jwt-token': 'stored' })
+                await expect(auth.getSessionMode()).resolves.toBe('plain')
+            })
+
+            it('is none when no storage holds a session', async () => {
+                mockStoredPrefs({})
+                await expect(auth.getSessionMode()).resolves.toBe('none')
+            })
+
+            it('fails closed to guarded when the marker cannot be read and the plugin is present', async () => {
+                mockPreferences.get.mockRejectedValue(new Error('bridge down'))
+                await expect(auth.getSessionMode()).resolves.toBe('guarded')
+            })
+        })
+
+        describe('authReady gating', () => {
+            it('parks while locked and resolves once the guarded token is unlocked', async () => {
+                mockSecureStore.guardedRead.mockResolvedValue('guarded-jwt')
+                let readyResolved = false
+                const ready = auth.authReady().then(() => (readyResolved = true))
+                await flushAsync()
+                expect(readyResolved).toBe(false)
+
+                await expect(auth.unlockGuardedToken('unlock')).resolves.toBe('unlocked')
+                await ready
+                expect(readyResolved).toBe(true)
+                expect(auth.getAuthToken()).toBe('guarded-jwt')
+            })
+
+            it('re-arms after suspendAuthSession without bumping the clear epoch', async () => {
+                mockSecureStore.guardedRead.mockResolvedValue('guarded-jwt')
+                await auth.unlockGuardedToken('unlock')
+                const epoch = auth.getClearEpoch()
+
+                auth.suspendAuthSession()
+                expect(auth.getAuthToken()).toBeNull()
+                expect(auth.getClearEpoch()).toBe(epoch)
+
+                let readyResolved = false
+                void auth.authReady().then(() => (readyResolved = true))
+                await flushAsync()
+                expect(readyResolved).toBe(false)
+            })
+        })
+
+        describe('setAuthToken while locked', () => {
+            it('drops a token that lands after suspension (late sliding refresh)', async () => {
+                auth.suspendAuthSession()
+                auth.setAuthToken('late-refresh-token')
+                await flushAsync()
+                expect(auth.getAuthToken()).toBeNull()
+                expect(mockSecureStore.guardedWrite).not.toHaveBeenCalled()
+                expect(mockPreferences.set).not.toHaveBeenCalled()
+            })
+
+            it('writes to guarded storage only inside the silent window', async () => {
+                mockSecureStore.guardedRead.mockResolvedValue('guarded-jwt')
+                await auth.unlockGuardedToken('unlock')
+
+                mockSecureStore.canWriteSilently.mockReturnValue(false)
+                auth.setAuthToken('re-minted-1')
+                await flushAsync()
+                expect(mockSecureStore.guardedWrite).not.toHaveBeenCalled()
+                expect(auth.getAuthToken()).toBe('re-minted-1')
+
+                mockSecureStore.canWriteSilently.mockReturnValue(true)
+                auth.setAuthToken('re-minted-2')
+                await flushAsync()
+                expect(mockSecureStore.guardedWrite).toHaveBeenCalledWith('re-minted-2')
+            })
+        })
+
+        describe('unlockGuardedToken failure paths', () => {
+            it('stays locked on a cancelled prompt', async () => {
+                mockSecureStore.guardedRead.mockRejectedValue(
+                    new mockSecureStore.GuardedStoreError('cancelled', 'user cancelled')
+                )
+                await expect(auth.unlockGuardedToken('unlock')).resolves.toBe('cancelled')
+                expect(auth.getAuthToken()).toBeNull()
+            })
+
+            it('clears the session when the guarded item is gone (re-enrollment)', async () => {
+                mockSecureStore.guardedRead.mockRejectedValue(
+                    new mockSecureStore.GuardedStoreError('not-found', 'gone')
+                )
+                await expect(auth.unlockGuardedToken('unlock')).resolves.toBe('session-gone')
+                expect(mockPreferences.remove).toHaveBeenCalledWith({ key: 'guarded-token-present' })
+                expect(mockSecureStore.guardedDelete).toHaveBeenCalled()
+                expect(auth.getAuthToken()).toBeNull()
+            })
+
+            it('downgrades to the plain flow when a plain token survives an interrupted migration', async () => {
+                mockStoredPrefs({ 'guarded-token-present': '1', 'jwt-token': 'plain-survivor' })
+                mockSecureStore.guardedRead.mockRejectedValue(
+                    new mockSecureStore.GuardedStoreError('not-found', 'gone')
+                )
+                await expect(auth.unlockGuardedToken('unlock')).resolves.toBe('downgraded')
+                // session must NOT have been cleared — the plain token is still valid
+                expect(auth.getClearEpoch()).toBe(0)
+            })
+        })
+
+        describe('migratePlainToGuarded', () => {
+            it('writes the guarded copy and marker but keeps the plain token until round-trip proof', async () => {
+                mockSecureStore.isBiometryEnrolled.mockResolvedValue(true)
+                mockStoredPrefs({ 'jwt-token': 'plain-jwt' })
+                await auth.authReady()
+                await auth.migratePlainToGuarded()
+                expect(mockSecureStore.guardedWrite).toHaveBeenCalledWith('plain-jwt')
+                expect(mockPreferences.set).toHaveBeenCalledWith({ key: 'guarded-token-present', value: '1' })
+                expect(mockPreferences.remove).not.toHaveBeenCalledWith({ key: 'jwt-token' })
+                await expect(auth.getSessionMode()).resolves.toBe('guarded')
+            })
+
+            it('is a no-op without enrolled biometrics', async () => {
+                mockSecureStore.isBiometryEnrolled.mockResolvedValue(false)
+                mockStoredPrefs({ 'jwt-token': 'plain-jwt' })
+                await auth.migratePlainToGuarded()
+                expect(mockSecureStore.guardedWrite).not.toHaveBeenCalled()
+            })
+
+            it('deletes the plain copy only after a successful guarded read', async () => {
+                mockStoredPrefs({ 'guarded-token-present': '1', 'jwt-token': 'plain-leftover' })
+                mockSecureStore.guardedRead.mockResolvedValue('guarded-jwt')
+                await auth.unlockGuardedToken('unlock')
+                await flushAsync()
+                expect(mockPreferences.remove).toHaveBeenCalledWith({ key: 'jwt-token' })
+            })
+        })
+
+        describe('hasNativeSession', () => {
+            it('is true from the marker alone and never prompts', async () => {
+                await expect(auth.hasNativeSession()).resolves.toBe(true)
+                expect(mockSecureStore.guardedRead).not.toHaveBeenCalled()
+            })
+        })
+
+        describe('clearAuthToken', () => {
+            it('removes the guarded item and marker and releases parked callers', async () => {
+                let readyResolved = false
+                void auth.authReady().then(() => (readyResolved = true))
+                await flushAsync()
+                expect(readyResolved).toBe(false)
+
+                await auth.clearAuthToken()
+                await flushAsync()
+                expect(mockSecureStore.guardedDelete).toHaveBeenCalled()
+                expect(mockPreferences.remove).toHaveBeenCalledWith({ key: 'guarded-token-present' })
+                expect(readyResolved).toBe(true)
             })
         })
     })

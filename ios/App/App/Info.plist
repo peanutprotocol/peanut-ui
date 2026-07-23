@@ -42,7 +42,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Peanut uses the camera to scan QR codes and verify your identity.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Peanut uses Face ID to securely sign in with your passkey.</string>
+	<string>Peanut uses Face ID to sign in with your passkey and to unlock your session.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Peanut needs photo access to upload identity documents during verification.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
