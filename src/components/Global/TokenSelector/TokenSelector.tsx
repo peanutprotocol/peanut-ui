@@ -177,7 +177,15 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
 
     if (selectedTokenAddress && selectedChainID) {
         const chainInfo = supportedChainsAndTokens[selectedChainID]
-        const tokenDetails = chainInfo?.tokens.find((t) => areEvmAddressesEqual(t.address, selectedTokenAddress))
+        // areEvmAddressesEqual handles native-proxy aliasing for EVM tokens but is
+        // always false for non-EVM (base58 Tron/Solana) selections — without the
+        // literal fallback the button kept showing "Select a token" after picking
+        // USDT-Tron / USDT/USDC-Solana in the withdraw flow.
+        const tokenDetails = chainInfo?.tokens.find(
+            (t) =>
+                areEvmAddressesEqual(t.address, selectedTokenAddress) ||
+                t.address.toLowerCase() === selectedTokenAddress.toLowerCase()
+        )
         if (tokenDetails && chainInfo) {
             buttonSymbol = tokenDetails.symbol
             buttonLogoURI = tokenDetails.logoURI
