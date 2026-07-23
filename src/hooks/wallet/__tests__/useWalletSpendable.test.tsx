@@ -52,10 +52,11 @@ jest.mock('../../useZeroDev', () => ({
     useZeroDev: () => ({ address: WALLET_ADDRESS, isKernelClientReady: true, handleSendUserOpEncoded: jest.fn() }),
 }))
 
+let mockUserId: string = USER_ID
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
         user: {
-            user: { userId: USER_ID },
+            user: { userId: mockUserId },
             accounts: [{ type: 'peanut-wallet', identifier: WALLET_ADDRESS }],
         },
     }),
@@ -81,6 +82,7 @@ const usd = (amount: number) => BigInt(Math.round(amount * 1e6))
 
 beforeEach(() => {
     localStorage.clear()
+    mockUserId = USER_ID
     mockSmartBalance = undefined
     mockRainOverview = undefined
     mockAnyFetching = false
@@ -159,6 +161,38 @@ describe('useWallet spendable balance', () => {
 
         await waitFor(() => expect(result.current.spendableBalance).toBe(usd(35)))
         expect(result.current.isSpendableBalanceStale).toBe(false)
+        // ...but a served-stale value must never refresh the last-known-good
+        // cache — that is reserved for authoritative live reads.
+        expect(readLastKnownSpendable(USER_ID)).toBe(usd(80))
+    })
+
+    it('does not paint the previous user’s settled total after an account switch', async () => {
+        mockSmartBalance = usd(100)
+        mockRainOverview = { balance: { spendingPower: 0 } }
+
+        const { result, rerender } = renderHook(() => useWallet(), { wrapper })
+        await waitFor(() => expect(result.current.spendableBalance).toBe(usd(100)))
+
+        // Switch account: Rain hasn't answered for user B and B has no cache —
+        // the UI must show a loader, not user A's number.
+        mockUserId = 'user-b'
+        mockRainOverview = undefined
+        rerender()
+
+        await waitFor(() => expect(result.current.spendableBalance).toBeUndefined())
+    })
+
+    it('writes the new user’s cache after a switch even when the totals are equal', async () => {
+        mockSmartBalance = usd(100)
+        mockRainOverview = { balance: { spendingPower: 0 } }
+
+        const { rerender } = renderHook(() => useWallet(), { wrapper })
+        await waitFor(() => expect(readLastKnownSpendable(USER_ID)).toBe(usd(100)))
+
+        mockUserId = 'user-b'
+        rerender()
+
+        await waitFor(() => expect(readLastKnownSpendable('user-b')).toBe(usd(100)))
     })
 
     // A user with no card legitimately has no Rain balance — that must stay a
