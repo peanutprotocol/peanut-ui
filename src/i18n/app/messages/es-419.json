@@ -2680,10 +2680,10 @@
         "genericSupport": "Hubo un problema con tu solicitud. Contacta con soporte."
     },
     "appLock": {
-        "title": "Peanut está bloqueado",
-        "subtitle": "Confirma tu identidad para continuar.",
-        "subtitleFailed": "No pudimos confirmar tu identidad. Inténtalo de nuevo para continuar.",
-        "unlock": "Desbloquear",
-        "logout": "Cerrar sesión"
+        "title": "¡Hola de nuevo!",
+        "prompt": "Inicia sesión para acceder a la app.",
+        "promptFailed": "Inicia sesión de nuevo para acceder a la app.",
+        "unlock": "Iniciar sesión",
+        "logOut": "Cerrar sesión"
     }
 }
