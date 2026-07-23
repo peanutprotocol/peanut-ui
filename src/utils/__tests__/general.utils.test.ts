@@ -2,6 +2,7 @@ import {
     formatAmount,
     formatExtendedNumber,
     generateInviteCodeLink,
+    getContributorsFromCharge,
     getRequestLink,
     formatTokenAmount,
     isUuid,
@@ -9,6 +10,7 @@ import {
     toInviteCode,
 } from '../general.utils'
 import { AccountType } from '@/interfaces'
+import { type ChargeEntry, type Payment, type TStatus } from '@/services/services.types'
 
 describe('General Utilities', () => {
     describe('Amount Formatting Utilities', () => {
@@ -511,6 +513,60 @@ describe('General Utilities', () => {
 
         it('passes legacy invite codes through with unchanged meaning (BE uppercases before parsing)', () => {
             expect(toInviteCode('ALICEINVITESYOU610')).toBe('aliceinvitesyou610')
+        })
+    })
+
+    describe('getContributorsFromCharge', () => {
+        const makePayment = (status: TStatus, username: string | null): Payment => ({
+            uuid: `pay-${username ?? 'anon'}-${status}`,
+            chargeUuid: 'charge-1',
+            payerTransactionHash: '0xhash',
+            payerChainId: '1',
+            paidTokenAddress: '0xtoken',
+            paidAmountInRequestedToken: '10',
+            payerAddress: '0xpayer',
+            fulfillmentTransactionHash: null,
+            status,
+            reason: null,
+            createdAt: '2026-01-01T00:00:00Z',
+            verifiedAt: null,
+            payerAccount: {
+                userId: username ? 'user-id' : null,
+                identifier: username ?? '0xanon',
+                type: 'PEANUT',
+                user: username ? { username, bridgeKycStatus: 'approved' } : null,
+            },
+        })
+
+        const makeCharge = (uuid: string, payments: Payment[]): ChargeEntry =>
+            ({
+                uuid,
+                tokenAmount: '10',
+                payments,
+                fulfillmentPayment: null,
+            }) as ChargeEntry
+
+        it('drops charges that have no successful payment', () => {
+            const charges = [makeCharge('c1', [makePayment('FAILED', 'bob'), makePayment('PENDING', 'bob')])]
+            expect(getContributorsFromCharge(charges)).toEqual([])
+        })
+
+        it('counts only charges with a successful payment (no inflated count)', () => {
+            const charges = [
+                makeCharge('c1', [makePayment('SUCCESSFUL', 'alice')]),
+                makeCharge('c2', [makePayment('FAILED', 'bob')]),
+            ]
+            const contributors = getContributorsFromCharge(charges)
+            expect(contributors).toHaveLength(1)
+            expect(contributors[0].username).toBe('alice')
+        })
+
+        it('picks the last SUCCESSFUL payment, not the last payment overall', () => {
+            // a failed retry after a successful payment must not surface the failed payer
+            const charges = [makeCharge('c1', [makePayment('SUCCESSFUL', 'alice'), makePayment('FAILED', 'mallory')])]
+            const contributors = getContributorsFromCharge(charges)
+            expect(contributors).toHaveLength(1)
+            expect(contributors[0].username).toBe('alice')
         })
     })
 })
