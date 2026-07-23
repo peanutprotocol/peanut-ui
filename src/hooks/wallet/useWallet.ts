@@ -28,6 +28,8 @@ import { isDemoMode } from '@/utils/demo'
 import { useDemoBalanceUnits } from '@/utils/demo-balance'
 import { readLastKnownSpendable, writeLastKnownSpendable } from './lastKnownSpendable'
 
+type OwnedSpendable = { owner: string | undefined; value: bigint }
+
 type SendTransactionsOptions = {
     chainId?: string
     /**
@@ -265,35 +267,50 @@ export const useWallet = () => {
     const isSmartFetchingActive = useIsFetching({ queryKey: ['balance'] }) > 0
     const isRainFetchingActive = useIsFetching({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] }) > 0
     const anyFetching = isSmartFetchingActive || isRainFetchingActive
-    const [stableSpendable, setStableSpendable] = useState<bigint | undefined>(undefined)
+    // Every in-memory hold is tagged with the user it belongs to: on an account
+    // switch the previous user's number must neither paint for the next user nor
+    // (via an equal total) suppress their cache write.
+    const [stableSpendable, setStableSpendable] = useState<OwnedSpendable | undefined>(undefined)
 
     const userId = user?.user?.userId
-    const [lastKnownSpendable, setLastKnownSpendable] = useState<bigint | undefined>(undefined)
+    const stableForUser = stableSpendable?.owner === userId ? stableSpendable?.value : undefined
+    const [lastKnownSpendable, setLastKnownSpendable] = useState<OwnedSpendable | undefined>(undefined)
     useEffect(() => {
-        setLastKnownSpendable(readLastKnownSpendable(userId))
+        const value = readLastKnownSpendable(userId)
+        setLastKnownSpendable(value === undefined ? undefined : { owner: userId, value })
     }, [userId])
+    const lastKnownForUser = lastKnownSpendable?.owner === userId ? lastKnownSpendable?.value : undefined
 
     // localStorage writes are synchronous disk I/O on native — only touch it when
     // the settled total actually moved, not on every 30s poll.
-    const persistedSpendableRef = useRef<bigint | undefined>(undefined)
+    const persistedSpendableRef = useRef<OwnedSpendable | undefined>(undefined)
+    const rainBalanceUnavailable = !!rainOverview?.balanceUnavailable
     useEffect(() => {
         if (anyFetching || !isRainReady || rawSpendableBalance === undefined || demoMode) return
-        setStableSpendable((prev) => (prev === rawSpendableBalance ? prev : rawSpendableBalance))
-        if (persistedSpendableRef.current === rawSpendableBalance) return
-        persistedSpendableRef.current = rawSpendableBalance
+        setStableSpendable((prev) =>
+            prev !== undefined && prev.owner === userId && prev.value === rawSpendableBalance
+                ? prev
+                : { owner: userId, value: rawSpendableBalance }
+        )
+        // A served-stale Rain value (balanceUnavailable) may paint, but must not
+        // seed the last-known-good cache — that is reserved for live reads.
+        if (rainBalanceUnavailable) return
+        const persisted = persistedSpendableRef.current
+        if (persisted !== undefined && persisted.owner === userId && persisted.value === rawSpendableBalance) return
+        persistedSpendableRef.current = { owner: userId, value: rawSpendableBalance }
         writeLastKnownSpendable(userId, rawSpendableBalance)
-    }, [anyFetching, isRainReady, rawSpendableBalance, userId, demoMode])
+    }, [anyFetching, isRainReady, rawSpendableBalance, userId, demoMode, rainBalanceUnavailable])
 
     // Show the stable value once we have one, then the live sum once Rain has
     // answered, then the persisted last-known-good — so a cold start paints the
     // previous number immediately and corrects it in the background rather than
     // flashing $0. Cache is DISPLAY only; the gates below stay on the live
     // `availableSpendableBalance`.
-    const spendableBalance = stableSpendable ?? (isRainReady ? rawSpendableBalance : lastKnownSpendable)
+    const spendableBalance = stableForUser ?? (isRainReady ? rawSpendableBalance : lastKnownForUser)
     const isSpendableBalanceLoading = demoMode ? false : spendableBalance === undefined
     // True while the number on screen came from cache and the live sum is still
     // pending — lets the UI mark it as refreshing instead of asserting it.
-    const isSpendableBalanceStale = !demoMode && stableSpendable === undefined && !isRainReady && !!lastKnownSpendable
+    const isSpendableBalanceStale = !demoMode && stableForUser === undefined && !isRainReady && !!lastKnownForUser
 
     // formatted balance for display (e.g. "1,234.56"). Smart-account only —
     // use `formattedSpendableBalance` below for user-facing widgets that
