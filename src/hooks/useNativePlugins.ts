@@ -94,8 +94,11 @@ export function useNativePlugins() {
             try {
                 const { StatusBar, Style } = await import('@capacitor/status-bar')
                 await StatusBar.setOverlaysWebView({ overlay: false })
-                await StatusBar.setStyle({ style: Style.Light })
-                await StatusBar.setBackgroundColor({ color: '#ffffff' })
+                // Black status-bar strip with light icons, everywhere. On Android 15+
+                // edge-to-edge these are no-ops and the CSS safe zone in the layout
+                // paints the black behind the status bar instead.
+                await StatusBar.setStyle({ style: Style.Dark })
+                await StatusBar.setBackgroundColor({ color: '#000000' })
             } catch (e) {
                 console.warn('failed to init status bar:', e)
             }
