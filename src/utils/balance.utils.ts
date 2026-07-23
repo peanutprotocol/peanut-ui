@@ -85,6 +85,22 @@ export const rainCentsToUsdcUnits = (spendingPowerCents: number | null | undefin
 }
 
 /**
+ * Debt owed to the card, in whole cents (> 0), or 0 when there is none.
+ *
+ * Rain reports negative `spendingPower` when a settlement captured more than
+ * its auth hold (tip / FX true-up) on an already-drained collateral account.
+ * The clamp in `rainCentsToUsdcUnits` hides that debt from balance sums — the
+ * card screen surfaces it via this helper instead, because the next
+ * auto-balance sweep silently repays it from the user's deposit.
+ */
+export const cardBalanceDueCents = (spendingPowerCents: number | null | undefined): number => {
+    if (spendingPowerCents == null || !Number.isFinite(spendingPowerCents) || spendingPowerCents >= 0) {
+        return 0
+    }
+    return Math.round(-spendingPowerCents)
+}
+
+/**
  * Available-now spendable balance, as a USDC base-unit bigint (6dp) — the
  * smart-account balance plus landed Rain collateral `spendingPower`. This is
  * what `useSpendBundle` can actually route through right now. It is the base of

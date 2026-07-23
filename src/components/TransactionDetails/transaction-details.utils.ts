@@ -105,3 +105,13 @@ export function isNegativeWireAmount(amount: string | number | null | undefined)
     const n = parseWireAmount(amount)
     return Number.isFinite(n) && n < 0
 }
+
+/** Parse a cents amount and reject NaN / Infinity / null up-front so the
+ *  drawer never renders "Charged in NaN EUR". Shared by CardPaymentRows
+ *  (breakdown math) and CardAdjustmentNotice (over-capture gate) so both
+ *  read Rain's auth/settled cents identically. */
+export function parseCents(value: string | null | undefined): number | null {
+    if (value == null) return null
+    const n = Number(value)
+    return Number.isFinite(n) ? n : null
+}
