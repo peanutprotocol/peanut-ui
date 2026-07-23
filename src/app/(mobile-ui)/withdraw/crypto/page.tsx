@@ -503,11 +503,18 @@ export default function WithdrawCryptoPage() {
         [isCrossChainWithdrawal, payAmount, minDepositLimitUsd]
     )
 
-    if (!amountToWithdraw && currentView !== 'STATUS') {
-        // Redirect to main withdraw page for amount input
-        // Guard against STATUS view: resetWithdrawFlow() clears amountToWithdraw,
-        // which would override the router.push('/home') in handleDone
-        router.push('/withdraw')
+    // Redirect to main withdraw page for amount input. The push must run in an
+    // effect — navigating during render is a React violation ("Cannot update
+    // Router while rendering WithdrawCryptoPage") that hard-errors the Next 16
+    // dev overlay on direct entry/refresh of this route.
+    // Guard against STATUS view: resetWithdrawFlow() clears amountToWithdraw,
+    // which would override the router.push('/home') in handleDone
+    const needsAmountRedirect = !amountToWithdraw && currentView !== 'STATUS'
+    useEffect(() => {
+        if (needsAmountRedirect) router.push('/withdraw')
+    }, [needsAmountRedirect, router])
+
+    if (needsAmountRedirect) {
         return <PeanutLoading />
     }
 
