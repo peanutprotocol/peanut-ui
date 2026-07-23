@@ -6,7 +6,7 @@ import Card from '../Global/Card'
 import { PaymentInfoRow } from '../Payment/PaymentInfoRow'
 import ShareButton from '../Global/ShareButton'
 import { BadgeDetailModal } from './BadgeDetailModal'
-import { getBadgeDisplayName, getBadgeIcon } from './badge.utils'
+import { getBadgeDisplayName, getBadgeIcon, getBadgeShareText } from './badge.utils'
 import { BASE_URL } from '@/constants/general.consts'
 import { useAuth } from '@/context/authContext'
 
@@ -78,9 +78,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                             <ShareButton
                                 title=""
                                 generateText={() =>
-                                    Promise.resolve(
-                                        `I earned ${displayName} badge on Peanut!\n\nJoin Peanut now and start earning points, unlocking achievements and moving money worldwide\n\n${profileLink}`
-                                    )
+                                    Promise.resolve(getBadgeShareText(badge.code, displayName, profileLink))
                                 }
                             >
                                 Share Achievement
@@ -92,6 +90,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
             <BadgeDetailModal
                 isOpen={isDetailOpen}
                 onClose={() => setIsDetailOpen(false)}
+                code={badge.code}
                 title={displayName}
                 description={badge.description || ''}
                 logo={getBadgeIcon(badge.code)}
