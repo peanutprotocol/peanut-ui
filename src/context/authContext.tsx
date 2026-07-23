@@ -14,7 +14,7 @@ import {
     updateUserPreferences,
 } from '@/utils/general.utils'
 import { apiFetch } from '@/utils/api-fetch'
-import { useAppLocked } from '@/utils/app-lock-state'
+import { useAppLocked } from '@/hooks/useAppLocked'
 import { isCapacitor } from '@/utils/capacitor'
 import { clearAuthToken } from '@/utils/auth-token'
 import { resetCrispProxySessions } from '@/utils/crisp'
