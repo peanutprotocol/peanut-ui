@@ -177,14 +177,16 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
 
     if (selectedTokenAddress && selectedChainID) {
         const chainInfo = supportedChainsAndTokens[selectedChainID]
-        // areEvmAddressesEqual handles native-proxy aliasing for EVM tokens but is
-        // always false for non-EVM (base58 Tron/Solana) selections — without the
-        // literal fallback the button kept showing "Select a token" after picking
-        // USDT-Tron / USDT/USDC-Solana in the withdraw flow.
+        // areEvmAddressesEqual handles EVM case variance (checksum casing) and
+        // native-proxy aliasing but is always false for non-EVM (base58
+        // Tron/Solana) selections — without a fallback the button kept showing
+        // "Select a token" after picking USDT-Tron / USDT/USDC-Solana. The
+        // fallback is EXACT equality on purpose: base58 is case-significant and
+        // both operands come from the same registry, so a case-insensitive
+        // compare could only ever mask an upstream case-corruption bug, never
+        // fix a legitimate mismatch.
         const tokenDetails = chainInfo?.tokens.find(
-            (t) =>
-                areEvmAddressesEqual(t.address, selectedTokenAddress) ||
-                t.address.toLowerCase() === selectedTokenAddress.toLowerCase()
+            (t) => areEvmAddressesEqual(t.address, selectedTokenAddress) || t.address === selectedTokenAddress
         )
         if (tokenDetails && chainInfo) {
             buttonSymbol = tokenDetails.symbol
