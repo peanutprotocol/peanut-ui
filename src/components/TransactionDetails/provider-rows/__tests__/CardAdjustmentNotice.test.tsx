@@ -33,7 +33,7 @@ describe('CardAdjustmentNotice', () => {
     test('over-capture renders delta, example causes, and merchant recourse (incident: 4591 → 5509)', () => {
         render(<CardAdjustmentNotice transaction={makeTransaction(ADJUSTED_SPEND)} />)
         expect(screen.getByTestId('info-card')).toHaveTextContent(
-            'The final charge was $9.18 higher than the initial hold. This is common with tips and updated totals. Don’t recognize it? Contact the merchant.'
+            'The final amount was $9.18 higher than the initial hold. This is common with tips and updated totals. Don’t recognize it? Contact the merchant.'
         )
     })
 

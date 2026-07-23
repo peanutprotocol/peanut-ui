@@ -94,7 +94,7 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                 <InfoCard
                     variant="warning"
                     icon="credit-card"
-                    title={`$${(balanceDueCents / 100).toFixed(2)} will come off your next deposit`}
+                    title={`$${(balanceDueCents / 100).toFixed(2)} will be debited based on your next deposit`}
                     description="A recent card payment ended up higher than the amount held at checkout. This happens with tips or updated totals. We'll cover the difference automatically."
                 />
             )}

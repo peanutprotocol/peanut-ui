@@ -33,7 +33,7 @@ export function CardAdjustmentNotice({ transaction }: { transaction: Transaction
         <InfoCard
             variant="info"
             icon="info"
-            description={`The final charge was $${(deltaCents / 100).toFixed(2)} higher than the initial hold. This is common with tips and updated totals. Don’t recognize it? Contact the merchant.`}
+            description={`The final amount was $${(deltaCents / 100).toFixed(2)} higher than the initial hold. This is common with tips and updated totals. Don’t recognize it? Contact the merchant.`}
         />
     )
 }
