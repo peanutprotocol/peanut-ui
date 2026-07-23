@@ -532,9 +532,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 onPrev={() => {
                     setAmountToWithdraw('')
                     if (flow === 'add') {
-                        // root add-money is the country list now (the ?method=bank
-                        // method screen was removed) — no stale param.
-                        router.push('/add-money')
+                        router.push('/add-money?method=bank')
                     } else if (isBankFromSend) {
                         // if coming from bank send flow: set method and go to amount input view
                         setSelectedMethod({

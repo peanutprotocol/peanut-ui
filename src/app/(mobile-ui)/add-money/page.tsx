@@ -1,5 +1,6 @@
 'use client'
 
+import AddMoneyMethodSelection from '@/components/AddMoney/views/AddMoneyMethodSelection.view'
 import AddWithdrawCountriesList from '@/components/AddWithdraw/AddWithdrawCountriesList'
 import dynamic from 'next/dynamic'
 
@@ -8,47 +9,46 @@ const OnrampBankPage = dynamic(() => import('./_onramp-bank'), { ssr: false })
 const OnrampMantecaPage = dynamic(() => import('./_onramp-manteca'), { ssr: false })
 import { CountryList } from '@/components/Common/CountryList'
 import type { CountryData } from '@/components/AddMoney/consts'
-import { ActionListCard } from '@/components/ActionListCard'
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
-import ChooseNetworkDrawer from '@/components/AddMoney/components/ChooseNetworkDrawer'
-// offramp.xyz migrants get this link-granted badge at signup (peanut-api-ts
-// invite/badge routes, code `offramp` / utm `offramp`).
-import { OFFRAMP_BADGE_CODE } from '@/components/Invites/campaign-maps'
-import type { RhinoChainType } from '@/services/services.types'
 import NavHeader from '@/components/Global/NavHeader'
-import { useAuth } from '@/context/authContext'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { getRedirectUrl, clearRedirectUrl, getFromLocalStorage } from '@/utils/general.utils'
+import { isBridgeSupportedCountry } from '@/utils/regions.utils'
+import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { addMoneyCountryUrl } from '@/utils/native-routes'
+import { addMoneyCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
 
 export default function AddMoneyPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const { resetOnrampFlow } = useOnrampFlow()
-    const { user } = useAuth()
-    const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+    const [method, setMethod] = useQueryState('method', parseAsStringEnum(['bank']))
 
     // native app passes country as query param instead of path segment
     const countryFromQuery = searchParams.get('country')
 
-    // offramp migrants get a tailored arbitrum deposit entry above the country list
-    const hasOfframpBadge = user?.user?.badges?.some((b) => b.code === OFFRAMP_BADGE_CODE) ?? false
-
-    // clear stale onramp state whenever we land on the root country list (no
-    // country in the URL) — reruns on back-nav from a ?country=… sub-view, not
-    // just on mount. resetOnrampFlow is a stable useCallback.
+    // clear stale onramp state on the root list (no country in the URL); reruns
+    // on back-nav from a ?country=… sub-view, not just on mount. resetOnrampFlow
+    // is a stable useCallback.
     useEffect(() => {
         if (!countryFromQuery) resetOnrampFlow()
     }, [countryFromQuery, resetOnrampFlow])
 
     const handleBack = () => {
-        // note: this only runs from the root list's NavHeader — the ?country=…
-        // sub-views early-return their own NavHeader below, so countryFromQuery
-        // is always absent here.
+        // if viewing country-specific form, go back to country list
+        if (countryFromQuery) {
+            router.push('/add-money?method=bank')
+            return
+        }
+
+        // if on country list view, go back to method selection
+        if (method === 'bank') {
+            setMethod(null)
+            return
+        }
 
         // check if we have a saved redirect url (from request fulfillment or similar flows)
         const redirectUrl = getRedirectUrl()
@@ -73,18 +73,20 @@ export default function AddMoneyPage() {
             method_type: 'bank',
             country: country.path,
         })
-        router.push(addMoneyCountryUrl(country.path))
-    }
 
-    const handleNetworkSelect = (network: RhinoChainType) => {
-        setIsDrawerOpen(false)
-        // mirror the bank event in handleCountryClick so crypto deposits from the
-        // root aren't undercounted in the deposit-method funnel.
-        posthog.capture(ANALYTICS_EVENTS.DEPOSIT_METHOD_SELECTED, {
-            method_type: 'crypto',
-            country: 'crypto',
-        })
-        router.push(`/add-money/crypto?network=${network}`)
+        // The user already chose "Bank" — skip the redundant per-country method
+        // list and go straight to the deposit screen. AR/BR deposit via Manteca
+        // (which surfaces Pix / Mercado Pago itself); every other bank-supported
+        // country goes to the Bridge bank flow. Countries where bank isn't live
+        // yet keep the per-country screen, which is still useful there: it shows
+        // the "coming soon" bank state and the crypto fallback.
+        if (isMantecaSupportedCountryCode(country.id)) {
+            router.push(rewriteMethodPath(`/add-money/${country.path}/manteca`))
+        } else if (isBridgeSupportedCountry(country.id)) {
+            router.push(rewriteMethodPath(`/add-money/${country.path}/bank`))
+        } else {
+            router.push(addMoneyCountryUrl(country.path))
+        }
     }
 
     // native app: render sub-views based on query params
@@ -104,29 +106,16 @@ export default function AddMoneyPage() {
         <div className="flex min-h-[inherit] flex-col gap-8">
             <NavHeader title="Add Money" onPrev={handleBack} />
 
-            {hasOfframpBadge && (
-                <ActionListCard
-                    title="Migrate from Offramp"
-                    description="Move your Offramp balance to Peanut"
-                    position="single"
-                    leftIcon={<AvatarWithBadge icon="wallet-outline" size="extra-small" className="bg-yellow-1" />}
-                    onClick={() => router.push('/add-money/crypto?network=EVM&source=offramp')}
+            {method === 'bank' ? (
+                <CountryList
+                    inputTitle="Select your country"
+                    viewMode="add-withdraw"
+                    flow="add"
+                    onCountryClick={handleCountryClick}
                 />
+            ) : (
+                <AddMoneyMethodSelection onBankTransferClick={() => setMethod('bank')} />
             )}
-
-            <CountryList
-                inputTitle="Select your country"
-                viewMode="add-withdraw"
-                flow="add"
-                onCountryClick={handleCountryClick}
-                onCryptoClick={() => setIsDrawerOpen(true)}
-            />
-
-            <ChooseNetworkDrawer
-                open={isDrawerOpen}
-                onClose={() => setIsDrawerOpen(false)}
-                onSelect={handleNetworkSelect}
-            />
         </div>
     )
 }
