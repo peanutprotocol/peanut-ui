@@ -14,10 +14,12 @@ import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
-import { checkIfInternalNavigation, getRedirectUrl, clearRedirectUrl, getFromLocalStorage } from '@/utils/general.utils'
+import { getRedirectUrl, clearRedirectUrl, getFromLocalStorage } from '@/utils/general.utils'
+import { isBridgeSupportedCountry } from '@/utils/regions.utils'
+import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { addMoneyCountryUrl } from '@/utils/native-routes'
+import { addMoneyCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
 
 export default function AddMoneyPage() {
     const router = useRouter()
@@ -28,9 +30,12 @@ export default function AddMoneyPage() {
     // native app passes country as query param instead of path segment
     const countryFromQuery = searchParams.get('country')
 
+    // clear stale onramp state on the root list (no country in the URL); reruns
+    // on back-nav from a ?country=… sub-view, not just on mount. resetOnrampFlow
+    // is a stable useCallback.
     useEffect(() => {
         if (!countryFromQuery) resetOnrampFlow()
-    }, [])
+    }, [countryFromQuery, resetOnrampFlow])
 
     const handleBack = () => {
         // if viewing country-specific form, go back to country list
@@ -68,7 +73,20 @@ export default function AddMoneyPage() {
             method_type: 'bank',
             country: country.path,
         })
-        router.push(addMoneyCountryUrl(country.path))
+
+        // The user already chose "Bank" — skip the redundant per-country method
+        // list and go straight to the deposit screen. AR/BR deposit via Manteca
+        // (which surfaces Pix / Mercado Pago itself); every other bank-supported
+        // country goes to the Bridge bank flow. Countries where bank isn't live
+        // yet keep the per-country screen, which is still useful there: it shows
+        // the "coming soon" bank state and the crypto fallback.
+        if (isMantecaSupportedCountryCode(country.id)) {
+            router.push(rewriteMethodPath(`/add-money/${country.path}/manteca`))
+        } else if (isBridgeSupportedCountry(country.id)) {
+            router.push(rewriteMethodPath(`/add-money/${country.path}/bank`))
+        } else {
+            router.push(addMoneyCountryUrl(country.path))
+        }
     }
 
     // native app: render sub-views based on query params
