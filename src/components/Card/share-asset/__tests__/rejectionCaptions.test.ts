@@ -1,19 +1,16 @@
-import { buildRejectionCaptions, pickRejectionCaption } from '../rejectionCaptions'
+import { REJECTION_CAPTIONS, pickRejectionCaption } from '../rejectionCaptions'
 
 describe('rejectionCaptions', () => {
-    test('numbers-flex caption uses the live door tally, not a hardcoded 213/7', () => {
-        const captions = buildRejectionCaptions({ applicants: 275, admitted: 12 })
-        expect(captions).toContain('275 tried, 12 got in. @joinpeanut said not me. yet.')
-        expect(captions.some((c) => c.includes('213 tried'))).toBe(false)
+    test('no caption hardcodes numbers/stats — they drift from the live door tally', () => {
+        const withDigits = REJECTION_CAPTIONS.filter((c) => /\d/.test(c))
+        expect(withDigits).toEqual([])
     })
 
-    test('large tallies are en-US formatted to match the screen copy', () => {
-        const captions = buildRejectionCaptions({ applicants: 1500, admitted: 42 })
-        expect(captions).toContain('1,500 tried, 42 got in. @joinpeanut said not me. yet.')
+    test('every caption tags @joinpeanut so the appeal rides the handle', () => {
+        expect(REJECTION_CAPTIONS.every((c) => c.includes('@joinpeanut'))).toBe(true)
     })
 
     test('pickRejectionCaption returns a caption from the pool', () => {
-        const tally = { applicants: 275, admitted: 12 }
-        expect(buildRejectionCaptions(tally)).toContain(pickRejectionCaption(tally))
+        expect(REJECTION_CAPTIONS).toContain(pickRejectionCaption())
     })
 })
