@@ -1,9 +1,8 @@
 // Module-level lock registry: the one place that knows whether the native app
 // lock is currently engaged. Lives outside React because its main consumer is
-// auth-token.ts (a plain module), and pulling the Redux store in there would
-// create an import cycle. React consumers subscribe via useAppLocked().
-
-import { useSyncExternalStore } from 'react'
+// auth-token.ts (a plain module reachable from Server Component graphs), so no
+// React imports here — React consumers subscribe via the useAppLocked hook
+// (src/hooks/useAppLocked.ts).
 
 export type LockState = 'unlocked' | 'locked'
 
@@ -28,12 +27,4 @@ export function setLockState(next: LockState): void {
 export function subscribeLockState(cb: () => void): () => void {
     subscribers.add(cb)
     return () => subscribers.delete(cb)
-}
-
-export function useAppLocked(): boolean {
-    return useSyncExternalStore(
-        subscribeLockState,
-        () => lockState === 'locked',
-        () => false
-    )
 }
