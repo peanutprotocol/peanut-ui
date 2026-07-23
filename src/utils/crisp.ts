@@ -29,6 +29,7 @@ export function setCrispUserData(crispInstance: any, userData: CrispUserData, pr
         identityStatus,
         emailOnFile,
         verificationGates,
+        verificationRails,
         failureReason,
         pendingActions,
     } = userData
@@ -63,6 +64,7 @@ export function setCrispUserData(crispInstance: any, userData: CrispUserData, pr
                 ['identity_status', identityStatus || ''],
                 ['email_on_file', emailOnFile === undefined ? '' : emailOnFile ? 'yes' : 'no'],
                 ['verification_gates', verificationGates || ''],
+                ['verification_rails', verificationRails || ''],
                 ['failure_reason', failureReason || ''],
                 ['pending_actions', pendingActions || ''],
             ],

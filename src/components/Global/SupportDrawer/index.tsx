@@ -81,22 +81,18 @@ const SupportDrawer = () => {
             if (userData.userId) {
                 CapacitorCrisp.setString({ key: 'user_id', value: userData.userId })
             }
-            // live verification state so agents stop guessing (#2360)
-            if (userData.identityStatus) {
-                CapacitorCrisp.setString({ key: 'identity_status', value: userData.identityStatus })
-            }
-            if (userData.emailOnFile !== undefined) {
-                CapacitorCrisp.setString({ key: 'email_on_file', value: userData.emailOnFile ? 'yes' : 'no' })
-            }
-            if (userData.verificationGates) {
-                CapacitorCrisp.setString({ key: 'verification_gates', value: userData.verificationGates })
-            }
-            if (userData.failureReason) {
-                CapacitorCrisp.setString({ key: 'failure_reason', value: userData.failureReason })
-            }
-            if (userData.pendingActions) {
-                CapacitorCrisp.setString({ key: 'pending_actions', value: userData.pendingActions })
-            }
+            // live verification state so agents stop guessing (#2360). Always
+            // write (empty string when absent) so a prior user's values can't
+            // linger on the device-local Crisp session — matching web/proxy.
+            CapacitorCrisp.setString({ key: 'identity_status', value: userData.identityStatus || '' })
+            CapacitorCrisp.setString({
+                key: 'email_on_file',
+                value: userData.emailOnFile === undefined ? '' : userData.emailOnFile ? 'yes' : 'no',
+            })
+            CapacitorCrisp.setString({ key: 'verification_gates', value: userData.verificationGates || '' })
+            CapacitorCrisp.setString({ key: 'verification_rails', value: userData.verificationRails || '' })
+            CapacitorCrisp.setString({ key: 'failure_reason', value: userData.failureReason || '' })
+            CapacitorCrisp.setString({ key: 'pending_actions', value: userData.pendingActions || '' })
             if (prefilledMessage) {
                 CapacitorCrisp.sendMessage({ value: prefilledMessage })
             }

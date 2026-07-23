@@ -123,6 +123,7 @@ function CrispProxyContent() {
                             ['identity_status', data.identity_status || ''],
                             ['email_on_file', data.email_on_file || ''],
                             ['verification_gates', data.verification_gates || ''],
+                            ['verification_rails', data.verification_rails || ''],
                             ['failure_reason', data.failure_reason || ''],
                             ['pending_actions', data.pending_actions || ''],
                         ],

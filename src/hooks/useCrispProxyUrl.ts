@@ -54,6 +54,7 @@ export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: str
                 identity_status: userData.identityStatus || '',
                 email_on_file: userData.emailOnFile === undefined ? '' : userData.emailOnFile ? 'yes' : 'no',
                 verification_gates: userData.verificationGates || '',
+                verification_rails: userData.verificationRails || '',
                 failure_reason: userData.failureReason || '',
                 pending_actions: userData.pendingActions || '',
             })
@@ -81,6 +82,7 @@ export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: str
         userData.identityStatus,
         userData.emailOnFile,
         userData.verificationGates,
+        userData.verificationRails,
         userData.failureReason,
         userData.pendingActions,
         prefilledMessage,

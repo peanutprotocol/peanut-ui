@@ -25,6 +25,7 @@ export interface CrispUserData {
     identityStatus: string | undefined
     emailOnFile: boolean | undefined
     verificationGates: string | undefined
+    verificationRails: string | undefined
     failureReason: string | undefined
     pendingActions: string | undefined
 }
@@ -81,6 +82,7 @@ export function useCrispUserData(): CrispUserData {
             identityStatus: verification?.identityStatus,
             emailOnFile: verification?.emailOnFile,
             verificationGates: verification?.gates,
+            verificationRails: verification?.verificationRails,
             failureReason: verification?.failureReason,
             pendingActions: verification?.pendingActions,
         }

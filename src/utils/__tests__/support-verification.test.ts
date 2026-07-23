@@ -58,6 +58,25 @@ describe('buildSupportVerificationSummary', () => {
         expect(summary.emailOnFile).toBe(false)
         expect(summary.failureReason).toBe('manteca.pix_br · no_email_captured — No email captured during submission')
         expect(summary.gates).toContain('deposit:provide-email')
+        expect(summary.verificationRails).toBe('manteca.pix_br:fixable(no_email_captured)')
+    })
+
+    test('names the rail behind a pending/waiting gate that has no failure reason', () => {
+        const waitingRail: RailCapability = {
+            id: 'manteca.bank_transfer_ar',
+            provider: 'manteca',
+            method: 'BANK_TRANSFER_AR',
+            channel: 'bank',
+            country: 'AR',
+            currency: 'ARS',
+            status: 'pending',
+            resolved: { status: 'pending' },
+        }
+        const summary = buildSupportVerificationSummary(caps([waitingRail]), { status: 'verified' }, 'a@b.com')
+
+        // no failure to report, but the agent must still see WHICH rail is stuck
+        expect(summary.failureReason).toBeUndefined()
+        expect(summary.verificationRails).toBe('manteca.bank_transfer_ar:pending')
     })
 
     test('lists pending next-actions as kind(purpose)', () => {

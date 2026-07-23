@@ -20,6 +20,8 @@ export interface SupportVerificationSummary {
     emailOnFile: boolean
     /** per-operation gate kinds, e.g. "pay:ready deposit:provide-email withdraw:blocked-rejection". */
     gates: string
+    /** every non-enabled rail as "id:status(reasonCode)" — names which rail is stuck, even for pending/waiting gates. */
+    verificationRails?: string
     /** the stuck rail's id + normalized reason code + technical details, if any. */
     failureReason?: string
     /** pending next-actions as "kind(purpose)", comma-joined. */
@@ -38,15 +40,29 @@ export function buildSupportVerificationSummary(
     const emailOnFile = Boolean(email)
 
     const gateState = { rails, nextActions, identityVerified, isLoading: false }
-    const gateKinds = SUMMARY_OPERATIONS.map((op) => [op, deriveGate(gateState, op).kind] as const)
-    const gates = gateKinds.map(([op, kind]) => `${op}:${kind}`).join(' ')
+    const gates = SUMMARY_OPERATIONS.map((op) => `${op}:${deriveGate(gateState, op).kind}`).join(' ')
 
-    // "which rail is the user stuck on" — the first rail whose verdict isn't clear.
+    // Per-rail verdicts. `gates` gives the op-level kind but not the rail; this
+    // names every rail that isn't clear (blocked/fixable/pending/requires-info)
+    // so an agent can see WHICH rail is stuck even for pending/waiting gates,
+    // where there's no failureReason to fall back on.
     const actionByKey = new Map(nextActions.map((action) => [action.key, action]))
-    const blocked = rails
+    const railStates = rails
         .map((rail) => ({ rail, verdict: railVerdict(rail, actionByKey) }))
-        .find(({ verdict }) => verdict.status === 'blocked' || verdict.status === 'fixable')
+        .filter(({ verdict }) => verdict.status !== 'enabled')
 
+    const verificationRails = railStates.length
+        ? railStates
+              .map(
+                  ({ rail, verdict }) =>
+                      `${rail.id}:${verdict.status}${verdict.blocking?.code ? `(${verdict.blocking.code})` : ''}`
+              )
+              .join(' ')
+        : undefined
+
+    // The one blocker worth its technical detail — provider `details` (e.g.
+    // "No email captured…") is what the support agent actually needs.
+    const blocked = railStates.find(({ verdict }) => verdict.status === 'blocked' || verdict.status === 'fixable')
     let failureReason: string | undefined
     if (blocked?.verdict.blocking) {
         const { code, details } = blocked.verdict.blocking
@@ -57,5 +73,5 @@ export function buildSupportVerificationSummary(
         ? nextActions.map((action) => `${action.kind}(${action.purpose})`).join(', ')
         : undefined
 
-    return { identityStatus, emailOnFile, gates, failureReason, pendingActions }
+    return { identityStatus, emailOnFile, gates, verificationRails, failureReason, pendingActions }
 }
