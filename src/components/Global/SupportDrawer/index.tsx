@@ -81,6 +81,22 @@ const SupportDrawer = () => {
             if (userData.userId) {
                 CapacitorCrisp.setString({ key: 'user_id', value: userData.userId })
             }
+            // live verification state so agents stop guessing (#2360)
+            if (userData.identityStatus) {
+                CapacitorCrisp.setString({ key: 'identity_status', value: userData.identityStatus })
+            }
+            if (userData.emailOnFile !== undefined) {
+                CapacitorCrisp.setString({ key: 'email_on_file', value: userData.emailOnFile ? 'yes' : 'no' })
+            }
+            if (userData.verificationGates) {
+                CapacitorCrisp.setString({ key: 'verification_gates', value: userData.verificationGates })
+            }
+            if (userData.failureReason) {
+                CapacitorCrisp.setString({ key: 'failure_reason', value: userData.failureReason })
+            }
+            if (userData.pendingActions) {
+                CapacitorCrisp.setString({ key: 'pending_actions', value: userData.pendingActions })
+            }
             if (prefilledMessage) {
                 CapacitorCrisp.sendMessage({ value: prefilledMessage })
             }

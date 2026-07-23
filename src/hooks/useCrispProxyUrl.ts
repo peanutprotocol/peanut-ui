@@ -51,6 +51,11 @@ export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: str
                 bridge_user_id: userData.bridgeCustomerLink || '',
                 manteca_user_id: userData.mantecaUserId || '',
                 posthog_person: userData.posthogPersonLink || '',
+                identity_status: userData.identityStatus || '',
+                email_on_file: userData.emailOnFile === undefined ? '' : userData.emailOnFile ? 'yes' : 'no',
+                verification_gates: userData.verificationGates || '',
+                failure_reason: userData.failureReason || '',
+                pending_actions: userData.pendingActions || '',
             })
             params.append('session_data', sessionData)
         }
@@ -73,6 +78,11 @@ export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: str
         userData.bridgeCustomerLink,
         userData.mantecaUserId,
         userData.posthogPersonLink,
+        userData.identityStatus,
+        userData.emailOnFile,
+        userData.verificationGates,
+        userData.failureReason,
+        userData.pendingActions,
         prefilledMessage,
     ])
 }

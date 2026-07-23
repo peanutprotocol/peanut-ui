@@ -120,6 +120,11 @@ function CrispProxyContent() {
                             ['bridge_user_id', data.bridge_user_id || ''],
                             ['manteca_user_id', data.manteca_user_id || ''],
                             ['posthog_person', data.posthog_person || ''],
+                            ['identity_status', data.identity_status || ''],
+                            ['email_on_file', data.email_on_file || ''],
+                            ['verification_gates', data.verification_gates || ''],
+                            ['failure_reason', data.failure_reason || ''],
+                            ['pending_actions', data.pending_actions || ''],
                         ],
                     ]
                     window.$crisp.push(['set', 'session:data', sessionDataArray])
