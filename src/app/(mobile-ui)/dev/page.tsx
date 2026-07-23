@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 
 export default function DevToolsPage() {
-    const tools: { name: string; description: string; path: string; icon: IconName }[] = [
+    // static: true → plain <a> (file in public/, not an app route — Next Link can't client-navigate to it)
+    const tools: { name: string; description: string; path: string; icon: IconName; static?: boolean }[] = [
         {
             name: 'Points Leaderboard',
             description: 'Real-time leaderboard with customizable time filters for event competitions',
@@ -40,6 +41,14 @@ export default function DevToolsPage() {
             icon: 'dollar',
         },
         {
+            name: 'Peanut Welcome Club',
+            description:
+                'Onboarding quiz: the Welcome-@anon handbook pitfalls (comms, tasks, security, invoicing) as an ironically kawaii quiz. Single static HTML in public/ — zero build impact.',
+            path: '/onboarding-quiz/index.html',
+            icon: 'trophy',
+            static: true,
+        },
+        {
             name: 'Home CTAs',
             description:
                 'Force-renders every home-screen CTA in isolation (card launch banner, carousel CTAs, activation steps) ignoring auth/state/launch gating.',
@@ -60,24 +69,27 @@ export default function DevToolsPage() {
                 </p>
 
                 <div className="space-y-2">
-                    {tools.map((tool) => (
-                        <Link key={tool.path} href={tool.path}>
-                            <Card className="cursor-pointer p-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex size-10 items-center justify-center rounded-sm border border-n-1 bg-primary-3">
-                                            <Icon name={tool.icon} size={20} />
+                    {tools.map((tool) => {
+                        const LinkComponent = tool.static ? 'a' : Link
+                        return (
+                            <LinkComponent key={tool.path} href={tool.path}>
+                                <Card className="cursor-pointer p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex size-10 items-center justify-center rounded-sm border border-n-1 bg-primary-3">
+                                                <Icon name={tool.icon} size={20} />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-sm font-bold">{tool.name}</h3>
+                                                <p className="text-xs text-grey-1">{tool.description}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="text-sm font-bold">{tool.name}</h3>
-                                            <p className="text-xs text-grey-1">{tool.description}</p>
-                                        </div>
+                                        <Icon name="arrow-up-right" size={16} className="text-grey-1" />
                                     </div>
-                                    <Icon name="arrow-up-right" size={16} className="text-grey-1" />
-                                </div>
-                            </Card>
-                        </Link>
-                    ))}
+                                </Card>
+                            </LinkComponent>
+                        )
+                    })}
                 </div>
 
                 <div className="rounded-sm border border-n-1 bg-primary-3/20 p-3">
