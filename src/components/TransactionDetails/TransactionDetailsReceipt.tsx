@@ -58,7 +58,6 @@ import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
 import { LocalRailNudge } from './provider-rows/LocalRailNudge'
 import { CardUsdAbroadNotice } from './provider-rows/CardUsdAbroadNotice'
-import { CardAdjustmentNotice } from './provider-rows/CardAdjustmentNotice'
 import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
 import { BridgeDepositInstructions } from './provider-rows/BridgeDepositInstructions'
 import { CancelDepositActions } from './provider-actions/CancelDepositActions'
@@ -638,12 +637,6 @@ export const TransactionDetailsReceipt = ({
                     )}
                 </div>
             </Card>
-
-            {/* Over-capture explainer — the words for the Initial hold /
-                Adjustment rows in the details card and the merchant-recourse
-                path. First of the notices: it explains THIS receipt's numbers;
-                the others nudge future behavior. */}
-            {!isPublic && <CardAdjustmentNotice transaction={transaction} />}
 
             {/* Local-rail nudge — card spends in a country with a cheaper
                 first-party rail (AR → QR, BR → Pix). Self-gates: renders

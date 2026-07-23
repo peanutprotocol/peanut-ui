@@ -1,5 +1,4 @@
 import {
-    cardBalanceDueCents,
     computeAvailableSpendable,
     computeDisplaySpendable,
     computeExcessCollateralCents,
@@ -64,27 +63,6 @@ describe('balance utils', () => {
 
         it("floors fractional cents (shouldn't happen but is defensive)", () => {
             expect(rainCentsToUsdcUnits(99.9)).toBe(990_000n) // floors to 99 cents
-        })
-    })
-
-    describe('cardBalanceDueCents', () => {
-        it('surfaces a negative spending power as positive debt cents (incident: -631 = $6.31 due)', () => {
-            expect(cardBalanceDueCents(-631)).toBe(631)
-        })
-
-        it.each([
-            [0, 0],
-            [4218, 0], // healthy positive balance — no debt
-            [null, 0],
-            [undefined, 0],
-            [Number.NaN, 0],
-            [Number.NEGATIVE_INFINITY, 0],
-        ])('returns 0 for non-debt input (%s)', (input, expected) => {
-            expect(cardBalanceDueCents(input)).toBe(expected)
-        })
-
-        it('rounds fractional cents from the wire', () => {
-            expect(cardBalanceDueCents(-630.6)).toBe(631)
         })
     })
 
