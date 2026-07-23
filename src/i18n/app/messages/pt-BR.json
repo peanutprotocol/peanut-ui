@@ -2688,10 +2688,10 @@
         "genericSupport": "Ocorreu um problema com sua solicitação. Entre em contato com o suporte."
     },
     "appLock": {
-        "title": "O Peanut está bloqueado",
-        "prompt": "Confirme que é você para continuar.",
-        "promptFailed": "Não foi possível confirmar que é você. Tente novamente para continuar.",
-        "unlock": "Desbloquear",
+        "title": "Olá de novo!",
+        "prompt": "Faça login para acessar o app.",
+        "promptFailed": "Faça login novamente para acessar o app.",
+        "unlock": "Fazer login",
         "logOut": "Sair"
     }
 }
