@@ -83,11 +83,15 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
         if (addressFamily !== 'evm' || !recipient.name) return
 
         const name = recipient.name
+        // Gate Review while the previous chain's address is still in state —
+        // clicking it mid-resolution would send to that address.
+        setIsValidRecipient(false)
         let stale = false
         validateAndResolveRecipient(name, true, 'evm', selectedChainID)
             .then((validation) => {
                 if (stale) return
                 setRecipient({ name, address: validation.resolvedAddress })
+                setIsValidRecipient(true)
             })
             .catch(() => {
                 if (stale) return
