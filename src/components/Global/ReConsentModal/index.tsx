@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import ActionModal from '../ActionModal'
 import DocsLink from '@/components/Global/DocsLink'
@@ -22,7 +23,8 @@ const DOC_LABELS: Record<string, { name: string; href: string }> = {
  * Re-consent click-through (tos-v1 phase 2, ToS §17): when a legal document's
  * published version moves past what the user last provably accepted, this
  * blocking modal lists the updated documents and appends fresh consent-ledger
- * rows on acceptance. Backed by GET/POST /users/consent — see peanut-api.
+ * rows on acceptance. Backed by GET /users/consent/status and
+ * POST /users/consent/accept — see peanut-api.
  */
 const ReConsentModal = () => {
     const { user } = useAuth()
@@ -60,8 +62,10 @@ const ReConsentModal = () => {
                 })
             })
             .catch((e) => {
-                // a failed status check must never lock the app — retry next session
-                console.error('[re-consent] failed to load consent status', e)
+                // a failed status check must never lock the app — retry next
+                // session. Sentry (not console): a systematic failure here means
+                // re-consent silently stops rolling out, and prod must say so.
+                Sentry.captureException(e, { tags: { feature: 're-consent', action: 'status' } })
             })
     }, [user])
 
@@ -80,7 +84,9 @@ const ReConsentModal = () => {
             // must start with an unticked box
             setChecked(false)
         } catch (e) {
-            console.error('[re-consent] failed to record acceptance', e)
+            // Sentry (not console): if /accept fails systematically, every user
+            // sits behind this undismissable modal — that must be visible in prod
+            Sentry.captureException(e, { tags: { feature: 're-consent', action: 'accept' } })
             setError('Could not save your acceptance — please try again.')
         } finally {
             setSubmitting(false)
