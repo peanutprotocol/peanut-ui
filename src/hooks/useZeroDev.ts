@@ -81,7 +81,11 @@ export const useZeroDev = () => {
 
             // invite code can also be store in cookies, so we need to check both
             const userInviteCode = inviteCode || inviteCodeFromCookie
-            const campaignTag = getFromCookie('campaignTag')
+            // comma-separated for stacked campaigns (InvitesPage writes the CSV)
+            const campaignTags = String(getFromCookie('campaignTag') || '')
+                .split(',')
+                .map((tag) => tag.trim())
+                .filter(Boolean)
 
             if (userInviteCode?.trim().length > 0) {
                 /*
@@ -94,18 +98,15 @@ export const useZeroDev = () => {
                  */
                 const keepInviteCodeForRetry = () => saveToCookie('inviteCode', userInviteCode, 30)
                 try {
-                    const result = await invitesApi.acceptInvite(userInviteCode, inviteType, campaignTag)
+                    const result = await invitesApi.acceptInvite(userInviteCode, inviteType, campaignTags[0])
                     if (result.success) {
                         posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
                             invite_code: userInviteCode,
                             invite_type: inviteType,
-                            campaign_tag: campaignTag,
+                            campaign_tag: campaignTags.join(','),
                         })
                         if (inviteCodeFromCookie) {
                             removeFromCookie('inviteCode')
-                        }
-                        if (campaignTag) {
-                            removeFromCookie('campaignTag')
                         }
                     } else {
                         posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
@@ -131,14 +132,26 @@ export const useZeroDev = () => {
                     keepInviteCodeForRetry()
                     console.error('Error accepting invite', e)
                 }
-            } else if (campaignTag) {
-                // No invite code but a campaign tag — only InvitesPage's skip-path
-                // CTA reaches here today (it sets the cookie without an inviteCode).
-                // The BE whitelists which campaigns are claimable, so passing other
-                // values through is safe — anything not on the whitelist 400s.
+            }
+
+            // Award every campaign badge, with or without an invite code.
+            // /invites/accept only awards its own whitelisted badges, so a
+            // campaign like `skip` riding on an invite link
+            // (?code=alice&campaign=skip) was silently dropped here before this
+            // ran unconditionally. /badge/award is idempotent and whitelisted
+            // server-side — a tag acceptInvite already awarded no-ops, and
+            // anything unknown 400s harmlessly.
+            if (campaignTags.length > 0) {
                 try {
-                    await invitesApi.awardBadge(campaignTag)
-                    posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, { campaign_tag: campaignTag })
+                    for (const tag of campaignTags) {
+                        await invitesApi.awardBadge(tag)
+                    }
+                    if (!userInviteCode?.trim()) {
+                        // the invite-code branch already fired INVITE_ACCEPTED
+                        posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
+                            campaign_tag: campaignTags.join(','),
+                        })
+                    }
                 } catch (e) {
                     console.error('Error awarding campaign badge', e)
                 } finally {

@@ -1,5 +1,5 @@
 'use client'
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import PeanutLoading from '../Global/PeanutLoading'
 import ValidationErrorView from '../Payment/Views/Error.validation.view'
 import InvitesPageLayout from './InvitesPageLayout'
@@ -19,28 +19,37 @@ import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { profileUrl } from '@/utils/native-routes'
-import { OFFRAMP_BADGE_CODE, classifyBareCampaign, resolveCampaign } from './campaign-maps'
+import { OFFRAMP_BADGE_CODE, classifyBareCampaigns, resolveCampaigns } from './campaign-maps'
 
 function InvitePageContent() {
     const searchParams = useSearchParams()
     // trim trailing '?' from invite code to handle qr codes with ? at the end
     const inviteCode = searchParams.get('code')?.toLowerCase().replace(/\?+$/, '')
     const redirectUri = searchParams.get('redirect_uri')
-    // support 'campaign', 'campaignTag', and 'utm_campaign' query parameters
-    const campaignParam = searchParams.get('campaign') || searchParams.get('campaignTag')
-    const utmCampaignParam = searchParams.get('utm_campaign')?.toLowerCase()
     const { user, isFetchingUser, fetchUser } = useAuth()
 
-    // precedence + lowercase-tag mapping live in campaign-maps.ts (unit-tested)
-    const campaign = resolveCampaign(campaignParam, inviteCode, utmCampaignParam)
+    // support 'campaign', 'campaignTag', and 'utm_campaign' query parameters —
+    // repeated params and comma-separated values stack (all get awarded).
+    // union + lowercase-tag mapping live in campaign-maps.ts (unit-tested).
+    // memoized: the array is an effect dependency below, and a fresh identity
+    // every render would refire the effect.
+    const campaigns = useMemo(
+        () =>
+            resolveCampaigns(
+                [...searchParams.getAll('campaign'), ...searchParams.getAll('campaignTag')],
+                inviteCode,
+                searchParams.get('utm_campaign')?.toLowerCase()
+            ),
+        [searchParams, inviteCode]
+    )
 
     // Bare campaign link (no invite code) that's claimable without an invite. The
     // effects below treat these specially so a returning logged-in user still gets
     // the badge (useZeroDev's award only fires on new-account registration). The
     // copy distinguishes the two flavours: `isWaitlistSkip` (skip + event_alumni)
     // promises a card-waitlist skip; vanity badges (touched_grass) are claimable
-    // but show generic copy. See classifyBareCampaign in campaign-maps.ts.
-    const { isBareClaimCampaign, isWaitlistSkip } = classifyBareCampaign(campaign, inviteCode)
+    // but show generic copy. See classifyBareCampaigns in campaign-maps.ts.
+    const { isBareClaimCampaign, isWaitlistSkip } = classifyBareCampaigns(campaigns, inviteCode)
 
     const dispatch = useAppDispatch()
     const router = useRouter()
@@ -111,20 +120,26 @@ function InvitePageContent() {
 
         hasStartedAwardingRef.current = true
 
-        if (campaign) {
+        if (campaigns.length > 0) {
             setIsAwardingBadge(true)
-            invitesApi
-                .awardBadge(campaign)
-                .catch((e) => console.error('Error awarding campaign badge', e))
-                .finally(async () => {
-                    await fetchUser()
-                    setIsAwardingBadge(false)
-                    // offramp migrants came here to move their balance — land them
-                    // directly on the migration deposit screen, not /home.
-                    router.push(
-                        campaign === OFFRAMP_BADGE_CODE ? '/add-money/crypto?network=EVM&source=offramp' : '/home'
-                    )
-                })
+            // sequential on purpose: each award is an idempotent POST and the
+            // backend flips access flags as side effects — parallel fire-and-forget
+            // would race fetchUser below.
+            ;(async () => {
+                for (const tag of campaigns) {
+                    await invitesApi
+                        .awardBadge(tag)
+                        .catch((e) => console.error('Error awarding campaign badge', tag, e))
+                }
+            })().finally(async () => {
+                await fetchUser()
+                setIsAwardingBadge(false)
+                // offramp migrants came here to move their balance — land them
+                // directly on the migration deposit screen, not /home.
+                router.push(
+                    campaigns.includes(OFFRAMP_BADGE_CODE) ? '/add-money/crypto?network=EVM&source=offramp' : '/home'
+                )
+            })
             return
         }
 
@@ -138,7 +153,7 @@ function InvitePageContent() {
         isLoading,
         isFetchingUser,
         router,
-        campaign,
+        campaigns,
         redirectUri,
         fetchUser,
         isBareClaimCampaign,
@@ -146,7 +161,7 @@ function InvitePageContent() {
     ])
 
     const handleClaim = () => {
-        const eventTag = inviteCode || (isBareClaimCampaign ? campaign : undefined)
+        const eventTag = inviteCode || (isBareClaimCampaign ? campaigns.join(',') : undefined)
         posthog.capture(ANALYTICS_EVENTS.INVITE_CLAIM_CLICKED, { invite_code: eventTag })
 
         if (inviteCode) {
@@ -155,9 +170,10 @@ function InvitePageContent() {
             // Save to cookie so PWA-install + later signup still see the invite.
             saveToCookie('inviteCode', inviteCode)
         }
-        if (campaign) {
-            // useZeroDev reads `campaignTag` post-signup and calls /badge/award.
-            saveToCookie('campaignTag', campaign)
+        if (campaigns.length > 0) {
+            // useZeroDev reads `campaignTag` post-signup (comma-separated for
+            // stacked campaigns) and calls /badge/award for each.
+            saveToCookie('campaignTag', campaigns.join(','))
         }
 
         const signupUrl = redirectUri

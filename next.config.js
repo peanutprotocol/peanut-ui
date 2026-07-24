@@ -145,7 +145,20 @@ let nextConfig = {
         }
     },
     async redirects() {
-        return process.env.NODE_ENV === 'development' ? [] : redirectsConfig
+        // Campaign/invite links on the root domain (peanut.me/?campaign=skip,
+        // peanut.me/?code=alice) hand off to /invite, which owns the claim flow.
+        // Query params carry over automatically. Deliberately NOT keyed on
+        // utm_campaign — that would hijack ordinary marketing links to the
+        // landing page; utm_campaign only resolves to a badge once on /invite.
+        // Active in development too (unlike the locale redirects) so the flow is
+        // locally testable.
+        const campaignRedirects = ['campaign', 'campaignTag', 'code'].map((key) => ({
+            source: '/',
+            has: [{ type: 'query', key }],
+            destination: '/invite',
+            permanent: false,
+        }))
+        return process.env.NODE_ENV === 'development' ? campaignRedirects : [...campaignRedirects, ...redirectsConfig]
     },
     async headers() {
         return [
