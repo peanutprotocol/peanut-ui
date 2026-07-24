@@ -269,7 +269,8 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         id: 'modal-kyc-in-progress-terminal',
         kind: 'modal',
         name: 'KycVerificationInProgressModal (terminal)',
-        copy: '"You\'re unlocked" — "Your account is ready to go." (SECOND unlocked celebration — see finding 4)',
+        copy: '"All set" — "Your account is ready to go."',
+        note: 'Copy neutralized on this branch (was a second "You\'re unlocked" celebration — see finding 4).',
         condition: 'KYC flow reaches terminal approved state',
         sourceFile: 'src/components/Kyc/KycVerificationInProgressModal.tsx',
         states: ['kycd-no-card'],
@@ -380,14 +381,14 @@ export const FINDINGS: JourneyFinding[] = [
     },
     {
         id: 3,
-        title: 'Three badges exist but can never render',
-        detail: 'SHHHHH ("They know the secret."), CARD_FIRST_SWIPE, and CARD_SPENT_1K badges have assets + copy but NO backend award trigger (TODO(card-launch)) — they never fire.',
+        title: 'Stale badge TODOs falsely claimed missing award triggers (CORRECTED)',
+        detail: 'Stale FE TODO comments in badge.utils.ts falsely claimed SHHHHH / CARD_FIRST_SWIPE / CARD_SPENT_1K lack award triggers — all three are live in the API (acknowledgments/card-spend-badges.ts + routes/card/waitlist.ts; prod: 1,499 / 274 / 12 awards). Severity: low — comment cleanup only (done on this branch).',
         sourceFiles: ['src/components/Badges/badge.utils.ts'],
     },
     {
         id: 4,
         title: 'Two "You\'re unlocked" celebrations can double-fire',
-        detail: 'WelcomeUnlockModal (home) and KycVerificationInProgressModal\'s terminal state both celebrate "You\'re unlocked" around KYC approval — a user can see both.',
+        detail: 'WelcomeUnlockModal (home) and KycVerificationInProgressModal\'s terminal state both celebrated "You\'re unlocked" around KYC approval — a user could see both (the flow terminal never stamps activationCelebratedAt). FIXED on this branch: in-flow terminal neutralized to "All set"; home\'s WelcomeUnlockModal is the single celebration.',
         sourceFiles: [
             'src/components/Home/WelcomeUnlockModal/index.tsx',
             'src/components/Kyc/KycVerificationInProgressModal.tsx',
@@ -408,7 +409,7 @@ export const FINDINGS: JourneyFinding[] = [
     {
         id: 7,
         title: 'Unreachable "also for activated users" card-override branch',
-        detail: "useActivationStatus's card-override branch for activated users is unreachable on home — activated users never render ActivationCTAs (they get HomeCarouselCTA).",
+        detail: "useActivationStatus's card-override branch for activated users is unreachable on home — activated users never render ActivationCTAs (they get HomeCarouselCTA). Needs runtime verification before deletion — inference-only, from the same audit that produced the retracted finding 3.",
         sourceFiles: ['src/hooks/useActivationStatus.ts'],
     },
 ]
