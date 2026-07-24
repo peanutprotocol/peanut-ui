@@ -949,7 +949,8 @@
             "minPixAmountBrl": "Minimum PIX amount is {amount} BRL",
             "maxQrAmount": "QR payment amount exceeds maximum limit of ${amount}",
             "minQrAmount": "QR payment amount must be at least ${amount}",
-            "genericQrDetails": "An error occurred while getting the QR details."
+            "genericQrDetails": "An error occurred while getting the QR details.",
+            "authError": "Couldn't verify your session. Please try again."
         },
         "claim": {
             "navTitle": "Claim QR Code",

@@ -949,7 +949,8 @@
             "minPixAmountBrl": "O valor mínimo do Pix é {amount} BRL",
             "maxQrAmount": "O valor do pagamento QR ultrapassa o limite máximo de ${amount}",
             "minQrAmount": "O valor do pagamento QR deve ser de pelo menos ${amount}",
-            "genericQrDetails": "Ocorreu um erro ao obter os detalhes do QR."
+            "genericQrDetails": "Ocorreu um erro ao obter os detalhes do QR.",
+            "authError": "Não foi possível verificar sua sessão. Tente novamente."
         },
         "claim": {
             "navTitle": "Resgatar código QR",

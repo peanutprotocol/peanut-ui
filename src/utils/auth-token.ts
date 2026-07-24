@@ -33,6 +33,21 @@ async function hydrateFromPreferences(): Promise<void> {
         // plugin missing (older binary running OTA'd JS) — those builds still
         // authenticate via the CapacitorHttp cookie jar, so this is benign.
     }
+    if (nativeToken !== null) return
+    // Legacy cookie-auth sessions (created by older binaries before header auth)
+    // hold the JWT only in the CapacitorHttp cookie jar, never in Preferences.
+    // Mirror it into the in-memory cache so getAuthHeaders() attaches the
+    // Authorization header on EVERY request. Without this, header-only requests
+    // that can't fall back to the cookie jar go out unauthenticated: notably
+    // POSTs like /manteca/qr-payment/init 400 with "authorization required",
+    // while GETs still work via the native-http cookie fallback — a confusing
+    // split that surfaced as "cannot pay through QR" (PEANUT-UI-R44 cohort).
+    try {
+        const { CapacitorCookies } = await import('@capacitor/core')
+        const cookies = await CapacitorCookies.getCookies({ url: PEANUT_API_URL })
+        const cookieToken = cookies?.[JWT_COOKIE_KEY]
+        if (cookieToken) nativeToken = cookieToken
+    } catch {}
 }
 
 /**

@@ -81,6 +81,9 @@ const NON_RETRYABLE_QR_PAY_ERRORS = [
     'PAYMENT_DESTINATION_DECODING_ERROR',
     'PIX_MIN_AMOUNT',
     'PIX_RECURRING_NOT_SUPPORTED',
+    // Missing auth header (AJV 400) — retrying sends the same headerless request,
+    // so fail fast rather than waiting out three attempts.
+    "required property 'authorization'",
 ]
 
 type PaymentProcessor = 'MANTECA'
@@ -600,6 +603,12 @@ export default function QRPayPage() {
             } else if (error.message.includes('PIX_RECURRING_NOT_SUPPORTED')) {
                 setWaitingForMerchantAmount(false)
                 setErrorInitiatingPayment(pixRecurringErrorMessage)
+            } else if (error.message.includes("required property 'authorization'")) {
+                // Session token wasn't attached to the request (not a provider
+                // outage) — surface an honest, retryable message instead of
+                // blaming the payment rail.
+                setWaitingForMerchantAmount(false)
+                setErrorInitiatingPayment(t('errors.authError'))
             } else {
                 // Network/timeout errors after all retries exhausted
                 setErrorInitiatingPayment(
