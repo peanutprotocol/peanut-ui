@@ -34,7 +34,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS 
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
-import { isTxReverted } from '@/utils/general.utils'
+import { isTxReverted, printableAddress } from '@/utils/general.utils'
 import { appBaseUrl } from '@/utils/url.utils'
 import { ErrorHandler } from '@/utils/friendly-error.utils'
 import posthog from 'posthog-js'
@@ -553,7 +553,25 @@ export default function WithdrawCryptoPage() {
                 }}
                 preventClose={isPreparingReview}
                 title="Is this address compatible?"
-                description="Only send to address that support the selected network and token. Incorrect transfers may be lost."
+                description={
+                    <div className="space-y-2">
+                        <p>
+                            Only send to an address that supports the selected network and token. Incorrect transfers
+                            may be lost.
+                        </p>
+                        {/* Show the concrete destination so the user confirms a real
+                            address, not an abstract warning — for ENS recipients this
+                            is the first time the resolved address is visible. */}
+                        {!!withdrawData?.address && (
+                            <p>
+                                You're sending to{' '}
+                                <span className="font-mono font-medium text-n-1 dark:text-white">
+                                    {printableAddress(withdrawData.address)}
+                                </span>
+                            </p>
+                        )}
+                    </div>
+                }
                 icon="alert"
                 footer={
                     <div className="w-full">

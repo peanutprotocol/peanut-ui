@@ -9,12 +9,13 @@ import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { type ITokenPriceData } from '@/interfaces'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
-import { formatAmount } from '@/utils/general.utils'
+import { formatAmount, printableAddress } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
 import { useContext, useEffect, useMemo, useRef } from 'react'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { addressFamilyForChainId } from '@/lib/validation/addressFamily'
+import { validateAndResolveRecipient } from '@/lib/validation/recipient'
 
 interface InitialWithdrawViewProps {
     amount: string
@@ -56,6 +57,36 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
             setIsValidRecipient(false)
         }
     }, [addressFamily, setRecipient, setIsValidRecipient])
+
+    // ENS names resolve per destination chain (ENSIP-11) — a validated name
+    // must re-resolve when the user switches chains after typing it, or the
+    // withdraw would go to the previous chain's address.
+    const prevChainRef = useRef(selectedChainID)
+    useEffect(() => {
+        if (prevChainRef.current === selectedChainID) return
+        prevChainRef.current = selectedChainID
+        if (addressFamily !== 'evm' || !recipient.name) return
+
+        const name = recipient.name
+        let stale = false
+        validateAndResolveRecipient(name, true, 'evm', selectedChainID)
+            .then((validation) => {
+                if (stale) return
+                setRecipient({ name, address: validation.resolvedAddress })
+            })
+            .catch(() => {
+                if (stale) return
+                setRecipient({ name: undefined, address: '' })
+                setIsValidRecipient(false)
+                setError({
+                    showError: true,
+                    errorMessage: 'Could not resolve the ENS name for the selected network',
+                })
+            })
+        return () => {
+            stale = true
+        }
+    }, [selectedChainID, addressFamily, recipient.name, setRecipient, setIsValidRecipient, setError])
 
     const handleReview = () => {
         // Context record already includes the synthetic non-EVM withdraw
@@ -133,6 +164,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                 <GeneralRecipientInput
                     placeholder={addressFamily === 'evm' ? 'Enter an address or ENS' : 'Enter an address'}
                     addressFamily={addressFamily}
+                    chainId={selectedChainID}
                     recipient={recipient}
                     onUpdate={(update: GeneralRecipientUpdate) => {
                         setRecipient(update.recipient)
@@ -146,6 +178,16 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     showInfoText={false}
                     isWithdrawal
                 />
+
+                {/* Surface the resolved address as soon as an ENS name validates —
+                    the user must see where funds will actually go before any
+                    review/warning step (external tester feedback). */}
+                {!!recipient.name && !!recipient.address && isValidRecipient && !inputChanging && (
+                    <p className="text-left text-xs text-grey-1">
+                        {recipient.name} resolves to{' '}
+                        <span className="font-mono">{printableAddress(recipient.address)}</span>
+                    </p>
+                )}
 
                 <Button
                     variant="purple"
