@@ -19,7 +19,7 @@ const COOLDOWN_MESSAGE = 'A previous withdrawal signature is still active. Try a
 
 // ---------- module mocks ----------
 
-jest.mock('@/context', () => {
+jest.mock('@/context/loadingStates.context', () => {
     const ReactActual = jest.requireActual('react')
     return {
         loadingStateContext: ReactActual.createContext({
@@ -37,7 +37,7 @@ jest.mock('@/components/Create/useCreateLink', () => ({
 
 const mockUseWallet = jest.fn()
 jest.mock('@/hooks/wallet/useWallet', () => ({
-    useWallet: (...args: any[]) => mockUseWallet(...args),
+    useWallet: () => mockUseWallet(),
 }))
 
 jest.mock('@/hooks/wallet/usePendingTransactions', () => ({
@@ -73,7 +73,15 @@ jest.mock('@/components/Global/AmountInput', () => ({
 }))
 
 jest.mock('@/components/0_Bruddle/Button', () => ({
-    Button: ({ children, onClick, disabled }: any) => (
+    Button: ({
+        children,
+        onClick,
+        disabled,
+    }: {
+        children?: React.ReactNode
+        onClick?: () => void
+        disabled?: boolean
+    }) => (
         <button onClick={onClick} disabled={disabled}>
             {children}
         </button>
