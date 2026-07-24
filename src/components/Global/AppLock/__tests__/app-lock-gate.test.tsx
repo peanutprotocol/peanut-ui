@@ -14,10 +14,10 @@ jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(),
 }))
 
-// The app-open lock is dormant behind OPEN_GATED (default off). These tests
-// exercise the gate's locking behaviour, so they run with the flag on; the
-// default-off pass-through is covered by its own case.
-let mockOpenGated = true
+// The app-open lock is dormant behind OPEN_GATED (off unless
+// NEXT_PUBLIC_APP_OPEN_GATED=true). Defaults off here too; cases that exercise
+// the lock opt in explicitly.
+let mockOpenGated = false
 jest.mock('@/constants/app-lock.consts', () => ({
     get OPEN_GATED() {
         return mockOpenGated
@@ -63,7 +63,9 @@ function renderGate() {
 describe('AppLockGate', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        mockOpenGated = true
+        // Default off, matching production when NEXT_PUBLIC_APP_OPEN_GATED is
+        // unset. Cases that exercise the lock opt in explicitly.
+        mockOpenGated = false
     })
 
     it('renders children directly on web', () => {
@@ -85,6 +87,7 @@ describe('AppLockGate', () => {
     })
 
     it('guarded mode: locks and suspends the session without waiting for the user query (D7)', async () => {
+        mockOpenGated = true
         mockIsCapacitor.mockReturnValue(true)
         mockGetSessionMode.mockResolvedValue('guarded')
         // keep the auto-prompt pending so the locked UI stays put
@@ -97,6 +100,7 @@ describe('AppLockGate', () => {
     })
 
     it('guarded mode: opens after a successful unlock', async () => {
+        mockOpenGated = true
         mockIsCapacitor.mockReturnValue(true)
         mockGetSessionMode.mockResolvedValue('guarded')
         mockUnlock.mockResolvedValue('unlocked')
@@ -106,6 +110,7 @@ describe('AppLockGate', () => {
     })
 
     it('guarded mode: stays locked when the prompt is cancelled', async () => {
+        mockOpenGated = true
         mockIsCapacitor.mockReturnValue(true)
         mockGetSessionMode.mockResolvedValue('guarded')
         mockUnlock.mockResolvedValue('cancelled')
@@ -116,6 +121,7 @@ describe('AppLockGate', () => {
     })
 
     it('none mode: nothing to protect, opens straight through', async () => {
+        mockOpenGated = true
         mockIsCapacitor.mockReturnValue(true)
         mockGetSessionMode.mockResolvedValue('none')
 
