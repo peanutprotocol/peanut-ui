@@ -103,7 +103,10 @@ export const useZeroDev = () => {
                         posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
                             invite_code: userInviteCode,
                             invite_type: inviteType,
-                            campaign_tag: campaignTags.join(','),
+                            // campaign_tag stays single-valued (what acceptInvite
+                            // consumed); the full stack rides the plural CSV.
+                            campaign_tag: campaignTags[0],
+                            campaign_tags: campaignTags.join(',') || undefined,
                         })
                         if (inviteCodeFromCookie) {
                             removeFromCookie('inviteCode')
@@ -154,7 +157,9 @@ export const useZeroDev = () => {
                 if (awarded.length > 0 && !userInviteCode?.trim()) {
                     // the invite-code branch already fired INVITE_ACCEPTED
                     posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
-                        campaign_tag: awarded.join(','),
+                        // single-valued for existing filters; full stack in the CSV
+                        campaign_tag: awarded[0],
+                        campaign_tags: awarded.join(','),
                     })
                 }
                 if (awarded.length === campaignTags.length) {
