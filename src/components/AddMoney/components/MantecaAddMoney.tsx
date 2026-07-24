@@ -72,10 +72,11 @@ const MantecaAddMoney: FC = () => {
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
-    // Default the input denomination to BRL for Brazil (PIX is in BRL); every other
-    // country keeps the USD default.
+    // Default the input denomination to the local currency (like withdraw) — the user
+    // pays the bank/QR in ARS/BRL, and a USD-first input causes wrong-amount deposits.
+    // USD stays one toggle away and sticks via the URL param.
     const currentDenomination: CurrencyDenomination =
-        urlState.currency ?? (selectedCountry?.currency === 'BRL' ? 'BRL' : 'USD')
+        urlState.currency ?? (selectedCountry?.currency as CurrencyDenomination) ?? 'USD'
     const onBack = useSafeBack(addMoneyCountryUrl(selectedCountryPath))
     // The pool→full upgrade gate asks "did the user clear ID verification?",
     // not "do they have an enabled rail elsewhere?" — read the identity
@@ -149,12 +150,16 @@ const MantecaAddMoney: FC = () => {
         setUsdAmount(value)
     }, [])
 
-    // Handle currency denomination change - sync to URL state
+    // Handle currency denomination change - sync to URL state.
+    // AmountInput reports the DISPLAY symbol ('R$', 'ARS', 'USD'); the URL enum stores
+    // ISO codes, so map anything that isn't USD back to the country's currency code —
+    // otherwise Brazil writes ?currency=R$ which the enum parser silently rejects.
     const handleDenominationChange = useCallback(
         (value: string) => {
-            setUrlState({ currency: value as CurrencyDenomination })
+            const code = value === 'USD' ? 'USD' : (selectedCountry?.currency ?? value)
+            setUrlState({ currency: code as CurrencyDenomination })
         },
-        [setUrlState]
+        [setUrlState, selectedCountry?.currency]
     )
 
     const handleAmountSubmit = useCallback(async () => {
