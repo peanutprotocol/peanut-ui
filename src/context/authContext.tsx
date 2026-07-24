@@ -93,6 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // server-side identify in peanut-api-ts src/log/identifyUser.ts — keep in sync.
             // `name` duplicates username because PostHog's Persons-page search is
             // hardcoded to email/name/distinct_id — username alone is not searchable.
+            const enabledRails = user.rails?.filter((rail) => rail.status === 'ENABLED') ?? []
             posthog.identify(user.user.userId, {
                 username: user.user.username,
                 name: user.user.username,
@@ -101,6 +102,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // Badge codes (human-readable identifier), never the uuid.
                 badges: user.user.badges?.map((badge) => badge.code) ?? [],
                 kycStatus: user.identityVerification?.status ?? 'not_started',
+                // Human-readable PROVIDER:METHOD codes for cohorting, plus the
+                // catalog rail ids for joins against the rails table.
+                enabledRails: enabledRails.map((rail) => `${rail.rail.provider.code}:${rail.rail.method.code}`),
+                enabledRailIds: enabledRails.map((rail) => rail.rail.id),
             })
             // Sentry: every error captured from here on inherits user context
             // as searchable Sentry tags. Closes the historical gap where FE
