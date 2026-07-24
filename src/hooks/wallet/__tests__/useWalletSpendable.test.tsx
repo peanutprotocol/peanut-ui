@@ -72,7 +72,7 @@ jest.mock('@/utils/demo-balance', () => ({ useDemoBalanceUnits: () => mockDemoBa
 // imports must come after the jest.mock calls above
 import { useWallet } from '../useWallet'
 import store from '@/redux/store'
-import { readLastKnownSpendable, writeLastKnownSpendable } from '../lastKnownSpendable'
+import { LAST_KNOWN_MAX_AGE_MS, readLastKnownSpendable, writeLastKnownSpendable } from '../lastKnownSpendable'
 
 const wrapper = ({ children }: { children: ReactNode }) => <Provider store={store}>{children}</Provider>
 
@@ -231,5 +231,18 @@ describe('useWallet spendable balance', () => {
         // The cached $500 is on screen, but nothing is actually spendable yet.
         await waitFor(() => expect(result.current.spendableBalance).toBe(usd(500)))
         expect(result.current.hasSufficientSpendableBalance('100')).toBe(false)
+    })
+
+    it('drops a last-known total once it is older than the max age', () => {
+        const base = Date.now()
+        writeLastKnownSpendable(USER_ID, usd(75))
+        expect(readLastKnownSpendable(USER_ID)).toBe(usd(75))
+
+        const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(base + LAST_KNOWN_MAX_AGE_MS + 1000)
+        try {
+            expect(readLastKnownSpendable(USER_ID)).toBeUndefined()
+        } finally {
+            nowSpy.mockRestore()
+        }
     })
 })
