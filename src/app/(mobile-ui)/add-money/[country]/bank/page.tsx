@@ -50,7 +50,10 @@ import { getRegionIntent } from '@/utils/regions.utils'
 // Step type for URL state
 type BridgeBankStep = 'inputAmount' | 'showDetails'
 
-export default function OnrampBankPage() {
+// The Bridge SEPA bank deposit page. Only mounted for non-Manteca countries — the
+// default export below bounces BR/AR away before this ever renders, so none of its
+// data hooks / URL-state effects run for a Manteca deep link.
+function BridgeBankOnrampPage() {
     const params = useParams()
     const _searchParams = useSearchParams()
 
@@ -110,20 +113,6 @@ export default function OnrampBankPage() {
         if (!selectedCountryPath) return null
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
-
-    // Manteca countries (BR/AR) deposit via their own PIX / Mercado Pago flow, not
-    // this Bridge SEPA bank page — getCurrencyConfig has no BR/AR branch, so they'd
-    // render as EUR. A KYC-success redirect or a deep link can still land a Manteca
-    // country here; bounce it to the correct provider route at the single chokepoint.
-    // Use the same predicate the root dispatcher routes with (add-money/page.tsx) so
-    // the two can never disagree on which countries are Manteca.
-    const router = useRouter()
-    const isMantecaRoute = !!selectedCountry && isMantecaSupportedCountryCode(selectedCountry.id)
-    useEffect(() => {
-        if (isMantecaRoute && selectedCountry) {
-            router.replace(rewriteMethodPath(`/add-money/${selectedCountry.path}/manteca`))
-        }
-    }, [isMantecaRoute, selectedCountry, router])
 
     const onBack = useSafeBack(selectedCountryPath ? addMoneyCountryUrl(selectedCountryPath) : '/add-money')
 
@@ -376,12 +365,6 @@ export default function OnrampBankPage() {
         }
     }, [urlState.step, onrampData?.transferId, setUrlState])
 
-    // Show loading while the Manteca-country redirect above runs — never flash
-    // the EUR bank UI to a BR/AR user.
-    if (isMantecaRoute) {
-        return <PeanutLoading />
-    }
-
     // Show loading while user is being fetched and no step in URL yet
     if (!urlState.step && user === null) {
         return <PeanutLoading />
@@ -552,4 +535,36 @@ export default function OnrampBankPage() {
     }
 
     return null
+}
+
+// Route entry. Manteca countries (BR/AR) deposit via their own PIX / Mercado Pago
+// flow, not this Bridge SEPA page — getCurrencyConfig has no BR/AR branch, so the
+// Bridge page would render the amount in EUR. A KYC-success redirect or a deep link
+// can still target /add-money/[country]/bank for a Manteca country, so bounce it
+// here — before BridgeBankOnrampPage mounts — and never run its data hooks / URL
+// effects for BR/AR. Uses the same predicate the root dispatcher routes with
+// (add-money/page.tsx) so the two can't disagree on which countries are Manteca.
+export default function OnrampBankPage() {
+    const params = useParams()
+    const searchParams = useSearchParams()
+    const router = useRouter()
+
+    const selectedCountryPath = (params.country as string) || searchParams.get('country') || ''
+    const selectedCountry = useMemo(() => {
+        if (!selectedCountryPath) return null
+        return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
+    }, [selectedCountryPath])
+    const isMantecaRoute = !!selectedCountry && isMantecaSupportedCountryCode(selectedCountry.id)
+
+    useEffect(() => {
+        if (isMantecaRoute && selectedCountry) {
+            router.replace(rewriteMethodPath(`/add-money/${selectedCountry.path}/manteca`))
+        }
+    }, [isMantecaRoute, selectedCountry, router])
+
+    if (isMantecaRoute) {
+        return <PeanutLoading />
+    }
+
+    return <BridgeBankOnrampPage />
 }
