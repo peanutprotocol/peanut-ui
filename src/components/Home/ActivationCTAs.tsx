@@ -12,7 +12,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useCardInfo } from '@/hooks/useCardInfo'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import ActionModal from '@/components/Global/ActionModal'
 import { useAuth } from '@/context/authContext'
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
@@ -82,6 +84,11 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     const { setIsQRScannerOpen, openSupportWithMessage } = useModalsContext()
     const { rails, channelOf, nextActions } = useCapabilities()
     const { user } = useAuth()
+    // Card spend counts as activation too — card-access users get a card+QR
+    // chooser on the outbound step instead of jumping straight to the scanner.
+    // `undefined` while loading collapses to false → scanner behavior (never
+    // tease the card to a user we can't confirm has access).
+    const { hasCardAccess } = useCardInfo()
     // Suppress the "Unlock payments" verify CTA while identity is mid-flight
     // (Sumsub processing / action_required). The user already took the verify
     // action; the identity-verification page surfaces the in-progress modal,
@@ -135,6 +142,13 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     }, [rails, channelOf, nextActions])
 
     const [showProvideEmail, setShowProvideEmail] = useState(false)
+    const [showSpendChooser, setShowSpendChooser] = useState(false)
+
+    // If card access is revoked (or the card-info refetch flips it) while the
+    // chooser is open, close it — a no-access user must never see the card option.
+    useEffect(() => {
+        if (hasCardAccess !== true) setShowSpendChooser(false)
+    }, [hasCardAccess])
 
     // Inline self-heal so the home "Upload document" CTA opens the Sumsub document
     // re-upload directly, instead of routing to /profile/identity-verification (which
@@ -220,6 +234,18 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             }
         }
 
+        // Card-access users can activate by swiping too — broaden the QR-only
+        // framing. Users without card access keep the QR copy untouched so we
+        // never tease a card they can't get.
+        if (activationStep === 'outbound' && hasCardAccess) {
+            return {
+                ...STEPS.outbound,
+                icon: 'credit-card',
+                title: 'Spend with Peanut',
+                description: 'Pay with your card or scan Pix and MercadoPago QR codes',
+            }
+        }
+
         return STEPS[activationStep as Exclude<ActivationStep, 'completed'>]
     }, [
         activationStep,
@@ -229,6 +255,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         primaryRejectionMessage,
         isIdentityProcessing,
         isIdentityActionRequired,
+        hasCardAccess,
     ])
 
     if (!step) return null
@@ -282,7 +309,12 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                         } else if (hasProviderRejection && hasFixableRejection && fixableProvider) {
                             void kycFlow.handleSelfHealResubmit(fixableProvider)
                         } else if (activationStep === 'outbound' && !hasProviderRejection) {
-                            setIsQRScannerOpen(true)
+                            if (hasCardAccess) {
+                                posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SHOWN)
+                                setShowSpendChooser(true)
+                            } else {
+                                setIsQRScannerOpen(true)
+                            }
                         } else {
                             router.push(step.href)
                         }
@@ -300,6 +332,33 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 visible={showProvideEmail}
                 onComplete={() => setShowProvideEmail(false)}
                 onSkip={() => setShowProvideEmail(false)}
+            />
+            <ActionModal
+                visible={showSpendChooser && hasCardAccess === true}
+                onClose={() => setShowSpendChooser(false)}
+                icon="credit-card"
+                title="How do you want to spend?"
+                description="Both count as your first payment."
+                ctas={[
+                    {
+                        text: 'Pay with your card',
+                        shadowSize: '4',
+                        onClick: () => {
+                            posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, { choice: 'card' })
+                            setShowSpendChooser(false)
+                            router.push('/card')
+                        },
+                    },
+                    {
+                        text: 'Scan a QR code',
+                        variant: 'stroke',
+                        onClick: () => {
+                            posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, { choice: 'qr' })
+                            setShowSpendChooser(false)
+                            setIsQRScannerOpen(true)
+                        },
+                    },
+                ]}
             />
             <SumsubKycModals flow={kycFlow} />
         </Card>
