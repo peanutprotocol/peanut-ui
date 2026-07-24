@@ -150,7 +150,15 @@ const LinkSendInitialView = () => {
         // amount passes and fails late (settling message + refetch) — the FE balance
         // is ~30s-polled, so blocking it here would over-reject routable funds.
         if (!isAmountWithinBalance(tokenValue, balance)) {
-            setErrorState({ showError: true, errorMessage: INSUFFICIENT_BALANCE_MESSAGE })
+            // Claim the error slot only when it's free or already ours. A submit-time
+            // failure (cooldown / settling copy) must stay until the user retries or
+            // edits — right after a collateral spend the polled balance oscillates
+            // around the amount boundary, and overwriting here let the recovery
+            // branch below clear the swapped-in message, silently swallowing the
+            // real error while the user still couldn't spend.
+            if (!errorState?.showError || errorState.errorMessage === INSUFFICIENT_BALANCE_MESSAGE) {
+                setErrorState({ showError: true, errorMessage: INSUFFICIENT_BALANCE_MESSAGE })
+            }
         } else if (errorState?.errorMessage === INSUFFICIENT_BALANCE_MESSAGE) {
             // only clear OUR balance-gate error — never wipe a submit-time failure
             // message (e.g. the settling copy) that handleOnNext set on a late failure.
@@ -163,6 +171,7 @@ const LinkSendInitialView = () => {
         setErrorState,
         hasPendingTransactions,
         isLoading,
+        errorState?.showError,
         errorState?.errorMessage,
     ])
 
