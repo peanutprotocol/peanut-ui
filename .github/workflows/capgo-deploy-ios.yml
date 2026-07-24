@@ -69,6 +69,7 @@ jobs:
                     --ios --no-android --self-assign
 
             - name: Upload iOS bundle to Capgo
+              id: upload
               # Pass the commit message via env, never inline — a multi-line message
               # (or one containing quotes) injected into the run script breaks the
               # --comment quoting and spills into positional args. Use its first line.
@@ -76,11 +77,17 @@ jobs:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   COMMIT_MSG: ${{ github.event.head_commit.message }}
               run: |
+                  # Capgo defaults the bundle version to package.json's, so any push
+                  # that doesn't bump it collides ("Version x already exists"). This is
+                  # a per-commit preview lane, so suffix the short SHA to stay unique.
+                  VERSION="$(node -p "require('./package.json').version")-${GITHUB_SHA:0:7}"
+                  echo "version=$VERSION" >> "$GITHUB_OUTPUT"
                   COMMENT="iOS OTA ${GITHUB_SHA:0:7} — $(printf '%s' "${COMMIT_MSG:-manual deploy}" | head -n1)"
                   npx @capgo/cli@latest bundle upload \
                     --channel "${{ steps.channel.outputs.name }}" \
                     --apikey "$CAPGO_API_KEY" \
                     --path ./out \
+                    --bundle "$VERSION" \
                     --auto-min-update-version \
                     --comment "$COMMENT"
 
@@ -88,5 +95,6 @@ jobs:
               run: |
                   echo "## iOS-only OTA Deployment" >> $GITHUB_STEP_SUMMARY
                   echo "- **Channel:** ${{ steps.channel.outputs.name }} (iOS only)" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Bundle version:** ${{ steps.upload.outputs.version }}" >> $GITHUB_STEP_SUMMARY
                   echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
                   echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
