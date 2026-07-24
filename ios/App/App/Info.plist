@@ -49,6 +49,12 @@
 	<string>Peanut may use your location to help verify your identity and prevent fraud during account setup and support.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- Stop OneSignal calling openURL for a notification's launch URL. iOS won't
+	     re-enter this app for its own universal link, so without this a tapped push
+	     bounces the user out to Safari. useNativePlugins routes the deep link in-app
+	     from the click listener instead. -->
+	<key>OneSignal_suppress_launch_urls</key>
+	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

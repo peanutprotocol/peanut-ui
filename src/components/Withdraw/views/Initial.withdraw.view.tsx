@@ -57,6 +57,19 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
         }
     }, [addressFamily, setRecipient, setIsValidRecipient])
 
+    // Changing the destination chain invalidates chain-scoped errors (e.g. the
+    // per-network minimum block from review, which says "pick a different
+    // network") — without this the stale error keeps Review disabled after the
+    // user follows that instruction. Safe for address errors too: Review stays
+    // gated by isValidRecipient regardless of the error banner.
+    const prevChainRef = useRef(selectedChainID)
+    useEffect(() => {
+        if (prevChainRef.current !== selectedChainID) {
+            prevChainRef.current = selectedChainID
+            if (error.showError) setError({ showError: false, errorMessage: '' })
+        }
+    }, [selectedChainID, error.showError, setError])
+
     const handleReview = () => {
         // Context record already includes the synthetic non-EVM withdraw
         // destinations (merged once in tokenSelector.context).

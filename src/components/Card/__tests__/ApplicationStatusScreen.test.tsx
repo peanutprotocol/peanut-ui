@@ -57,3 +57,56 @@ describe('ApplicationStatusScreen — rejected', () => {
         expect(onContactSupport).toHaveBeenCalledTimes(1)
     })
 })
+
+describe('ApplicationStatusScreen — proof-of-address upload CTA', () => {
+    it('renders the upload CTA as primary when the rail carries a PoA action', () => {
+        const onUpload = jest.fn()
+        render(
+            <ApplicationStatusScreen
+                variant="requires-info"
+                reasonMessage="We need a valid proof of address document."
+                onContactSupport={jest.fn()}
+                onUploadProofOfAddress={onUpload}
+            />
+        )
+        fireEvent.click(screen.getByText('Upload proof of address'))
+        expect(onUpload).toHaveBeenCalledTimes(1)
+        // Contact support stays available as the fallback path.
+        expect(screen.getByText('Contact support')).toBeInTheDocument()
+    })
+
+    it('renders the upload CTA on the rejected variant too (denied + fixable PoA)', () => {
+        render(
+            <ApplicationStatusScreen
+                variant="rejected"
+                onContactSupport={jest.fn()}
+                onUploadProofOfAddress={jest.fn()}
+            />
+        )
+        expect(screen.getByText('Upload proof of address')).toBeInTheDocument()
+    })
+
+    it('omits the upload CTA when no PoA action exists', () => {
+        render(<ApplicationStatusScreen variant="requires-info" onContactSupport={jest.fn()} />)
+        expect(screen.queryByText('Upload proof of address')).not.toBeInTheDocument()
+    })
+
+    it('never renders the upload CTA on non-support variants', () => {
+        render(<ApplicationStatusScreen variant="pending" onUploadProofOfAddress={jest.fn()} />)
+        expect(screen.queryByText('Upload proof of address')).not.toBeInTheDocument()
+    })
+})
+
+describe('ApplicationStatusScreen — upload error', () => {
+    it('renders the inline error under the upload CTA', () => {
+        render(
+            <ApplicationStatusScreen
+                variant="requires-info"
+                onContactSupport={jest.fn()}
+                onUploadProofOfAddress={jest.fn()}
+                uploadError="Could not start the upload. Please try again."
+            />
+        )
+        expect(screen.getByText('Could not start the upload. Please try again.')).toBeInTheDocument()
+    })
+})

@@ -5,6 +5,97 @@ const withBundleAnalyzer =
 
 const redirectsConfig = require('./redirects.json')
 
+/**
+ * Sentry's CSP-report ingest endpoint, derived from the browser DSN
+ * (`<protocol>://<publicKey>@<host><path>/<projectId>`). Returns null when the
+ * DSN is absent or malformed, in which case the policy still ships — it just
+ * has nowhere to report, which is better than emitting a broken `report-uri`.
+ *
+ * Protocol and any path prefix are preserved: self-hosted Sentry is commonly
+ * mounted under a sub-path, and flattening one would silently post reports to
+ * an endpoint that doesn't exist.
+ */
+function sentryCspReportUri() {
+    const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN
+    if (!dsn) return null
+    try {
+        const { protocol, host, username, pathname } = new URL(dsn)
+        const segments = pathname.split('/').filter(Boolean)
+        const projectId = segments.pop()
+        if (!host || !username || !projectId) return null
+        const prefix = segments.length ? `/${segments.join('/')}` : ''
+        return `${protocol}//${host}${prefix}/api/${projectId}/security/?sentry_key=${username}`
+    } catch {
+        return null
+    }
+}
+
+/**
+ * First-draft CSP, shipped REPORT-ONLY.
+ *
+ * Nothing here is enforced yet: the app currently has no script-src at all, so
+ * an XSS anywhere is unconstrained. Guessing the allow-list and enforcing it
+ * would blank the app; instead this collects violation reports from real
+ * traffic until the list is known to be complete, then it gets promoted to the
+ * enforcing `Content-Security-Policy` header.
+ *
+ * Known-loose parts, to tighten before promotion:
+ * - `'unsafe-inline'` / `'unsafe-eval'` in script-src: Next's inline bootstrap
+ *   and the wallet SDKs need them today. Moving to nonces is its own change.
+ * - connect-src can't enumerate every chain RPC (they come from env and vary by
+ *   network), so the report stream is what completes this list.
+ */
+function contentSecurityPolicyReportOnly() {
+    const reportUri = sentryCspReportUri()
+    const directives = [
+        "default-src 'self'",
+        // PostHog is same-origin via the /relay rewrite, so it needs no entry here.
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://client.crisp.chat https://static.sumsub.com",
+        "style-src 'self' 'unsafe-inline' https://client.crisp.chat",
+        "img-src 'self' data: blob: https:",
+        "font-src 'self' data: https://client.crisp.chat",
+        [
+            "connect-src 'self'",
+            'https://api.peanut.me',
+            'https://*.peanut.me',
+            'https://*.ingest.sentry.io',
+            'https://*.ingest.us.sentry.io',
+            'https://www.google-analytics.com',
+            'https://rpc.zerodev.app',
+            'https://*.g.alchemy.com',
+            'https://rpc.ankr.com',
+            'https://assets.coingecko.com',
+            'https://coin-images.coingecko.com',
+            'https://api.frankfurter.app',
+            'https://dolarapi.com',
+            'https://client.crisp.chat',
+            'wss://client.relay.crisp.chat',
+            'https://*.sumsub.com',
+            'https://widget.manteca.dev',
+        ].join(' '),
+        "frame-src 'self' https://client.crisp.chat https://*.sumsub.com https://widget.manteca.dev https://mpago.la",
+        "worker-src 'self' blob:",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+    ]
+    // Both delivery mechanisms on purpose: `report-uri` is deprecated but what
+    // Firefox/Safari actually send today, `report-to` (backed by the
+    // Reporting-Endpoints header below) is what replaces it in Chromium.
+    // Shipping only one would undercount violations and promote the policy on
+    // a partial picture.
+    if (reportUri) directives.push(`report-uri ${reportUri}`, `report-to ${CSP_REPORT_GROUP}`)
+    return directives.join('; ')
+}
+
+const CSP_REPORT_GROUP = 'csp-endpoint'
+
+function reportingEndpointsHeader() {
+    const reportUri = sentryCspReportUri()
+    if (!reportUri) return []
+    return [{ key: 'Reporting-Endpoints', value: `${CSP_REPORT_GROUP}="${reportUri}"` }]
+}
+
 // Get git commit hash at build time
 let gitCommitHash = 'unknown'
 try {
@@ -186,7 +277,14 @@ let nextConfig = {
                     },
                     // Security headers - prevents clickjacking and other attacks
                     // Using frame-ancestors instead of X-Frame-Options to allow specific domains
-                    { key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://hugo0.com" },
+                    // object-src/base-uri are safe to enforce today: the app embeds no
+                    // plugins and sets no <base>, so neither can break a working page.
+                    {
+                        key: 'Content-Security-Policy',
+                        value: "frame-ancestors 'self' https://hugo0.com; object-src 'none'; base-uri 'self'",
+                    },
+                    { key: 'Content-Security-Policy-Report-Only', value: contentSecurityPolicyReportOnly() },
+                    ...reportingEndpointsHeader(),
                     { key: 'X-Content-Type-Options', value: 'nosniff' },
                     { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
                 ],

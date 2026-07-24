@@ -8,13 +8,12 @@ import AmountInput from '@/components/Global/AmountInput'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { INSUFFICIENT_BALANCE_MESSAGE } from '@/utils/balance.utils'
 import { getCountryFromAccount, getCountryFromPath, getMinimumAmount } from '@/utils/bridge.utils'
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { AccountType } from '@/interfaces'
 import { useRouter, useSearchParams } from 'next/navigation'
-import React, { useCallback, useEffect, useMemo, useState, useRef, useContext } from 'react'
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { formatUnits } from 'viem'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
@@ -28,7 +27,6 @@ type WithdrawStep = 'inputAmount' | 'selectMethod'
 export default function WithdrawPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const { selectedTokenData } = useContext(tokenSelectorContext)
 
     // check if coming from send flow based on method query param
     const methodParam = searchParams.get('method')
@@ -129,7 +127,12 @@ export default function WithdrawPage() {
 
     // compute minimum withdrawal in USD using the exchange rate
     const minUsdAmount = useMemo(() => {
-        if (isCryptoWithdraw) return 0 // any amount > 0 is valid, same as send-via-link
+        // no amount-step minimum for crypto: same-chain (Arbitrum) withdrawals
+        // are direct transfers with no floor, matching send-via-link. Rhino's
+        // per-network bridge minimums ($0.50, ETH $5, Tron $10) are enforced
+        // chain-aware at review time (see withdraw/crypto), once the
+        // destination is known.
+        if (isCryptoWithdraw) return 0
         const localMin = getMinimumAmount(countryIso2)
         // for US or unknown, minimum is already in USD
         if (!countryIso2 || countryIso2 === 'US') return localMin
@@ -195,9 +198,10 @@ export default function WithdrawPage() {
                 return false
             }
 
-            // convert the entered token amount to USD
-            const price = selectedTokenData?.price ?? 0 // 0 for safety; will fail below
-            const usdEquivalent = price ? amount * price : amount // if no price assume token pegged 1 USD
+            // AmountInput is USD-pinned on this page (price: 1), so the typed
+            // value IS the USD value — scaling by the app-wide token price let
+            // a stale non-USD price loosen or false-trip the minimums.
+            const usdEquivalent = amount
 
             // While the balance is still loading, maxDecimalAmount is 0 — skip the
             // balance check so a pre-filled amount isn't false-blocked; the effect
@@ -223,7 +227,7 @@ export default function WithdrawPage() {
             setError({ showError: true, errorMessage: message })
             return false
         },
-        [balance, maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow, minUsdAmount]
+        [balance, maxDecimalAmount, setError, isFromSendFlow, minUsdAmount]
     )
 
     const handleTokenAmountChange = useCallback(
@@ -274,7 +278,7 @@ export default function WithdrawPage() {
     const handleAmountContinue = () => {
         if (validateAmount(rawTokenAmount) && selectedMethod) {
             setAmountToWithdraw(rawTokenAmount)
-            const usdVal = (selectedTokenData?.price ?? 1) * parseFloat(rawTokenAmount)
+            const usdVal = parseFloat(rawTokenAmount)
             setUsdAmount(usdVal.toString())
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_AMOUNT_ENTERED, {
                 amount_usd: usdVal,
@@ -352,13 +356,12 @@ export default function WithdrawPage() {
         const numericAmount = parseFloat(rawTokenAmount)
         if (!Number.isFinite(numericAmount) || numericAmount <= 0) return true
 
-        const usdEq = (selectedTokenData?.price ?? 1) * numericAmount
-        if (usdEq < minUsdAmount) return true // below country-specific minimum
+        if (numericAmount < minUsdAmount) return true // below the method's USD minimum
 
         // only apply the balance ceiling once it has loaded (maxDecimalAmount is 0
         // while spendableBalance is undefined) — else Continue is disabled during load
         return (balance !== undefined && numericAmount > maxDecimalAmount) || error.showError
-    }, [rawTokenAmount, balance, maxDecimalAmount, error.showError, selectedTokenData?.price, minUsdAmount])
+    }, [rawTokenAmount, balance, maxDecimalAmount, error.showError, minUsdAmount])
 
     // native app: render country-specific views when ?country= is present
     const viewFromQuery = searchParams.get('view')

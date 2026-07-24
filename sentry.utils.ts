@@ -38,6 +38,15 @@ const IGNORED_ERRORS = {
     // Third-party scripts we don't control
     thirdParty: ['googletagmanager', 'gtag', 'analytics', 'hotjar', 'clarity', 'intercom', 'crisp'],
 
+    // fetchWithSentry wrapper errors: the underlying timeout/network/HTTP
+    // failure is already captured at the fetch site with full context, so the
+    // re-thrown ServiceUnavailableError bubbling to global handlers (or being
+    // console.error'd by a consumer) would only double-count it (PEANUT-UI-QDJ).
+    // Substring-matching this pattern is safe only because ServiceUnavailableError
+    // is our own internal fetchWithSentry wrapper name, not a generic string that
+    // could appear in an unrelated third-party error message.
+    alreadyReported: ['ServiceUnavailableError'],
+
     // Third-party SDK internal errors (not actionable)
     thirdPartySdkErrors: [
         'IndexedDB:Set:InternalError', // Vercel Analytics storage - fails in private browsing, not actionable
@@ -58,12 +67,14 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     const exceptionType = event.exception?.values?.[0]?.type || ''
     const culprit = (event as any).culprit || ''
 
-    const searchText = `${message} ${exceptionValue} ${exceptionType} ${culprit}`.toLowerCase()
+    // Match each field independently — concatenating them would let a pattern
+    // match across unrelated fields and suppress a legitimate event.
+    const searchTexts = [message, exceptionValue, exceptionType, culprit]
 
     // Check all ignore patterns
     for (const patterns of Object.values(IGNORED_ERRORS)) {
         for (const pattern of patterns) {
-            if (searchText.includes(pattern.toLowerCase())) {
+            if (searchTexts.some((text) => text.toLowerCase().includes(pattern.toLowerCase()))) {
                 return true
             }
         }
