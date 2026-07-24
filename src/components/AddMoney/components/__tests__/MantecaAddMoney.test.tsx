@@ -11,6 +11,8 @@
  */
 import React from 'react'
 import { render, screen } from '@testing-library/react'
+// jest.mock calls are hoisted above this import, so the mocks below apply to it
+import MantecaAddMoney from '../MantecaAddMoney'
 
 const mockParams: Record<string, string> = {}
 jest.mock('next/navigation', () => ({
@@ -18,8 +20,8 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => ({ get: () => null }),
 }))
 
-const mockQueryState: Record<string, any> = {}
-const mockSetQueryState = jest.fn((updates: Record<string, any>) => {
+const mockQueryState: Record<string, unknown> = {}
+const mockSetQueryState = jest.fn((updates: Record<string, unknown>) => {
     Object.entries(updates).forEach(([k, v]) => {
         mockQueryState[k] = v
     })
@@ -82,17 +84,15 @@ jest.mock('@/components/AddMoney/components/MantecaPixQrDeposit', () => ({
 jest.mock('@/components/Global/PeanutLoading/CyclingLoading', () => ({ __esModule: true, default: () => <div /> }))
 
 // records the props MantecaAddMoney hands to the amount step
-let lastInputStepProps: any = null
+type InputStepProps = { initialDenomination?: string; setCurrentDenomination: (denomination: string) => void }
+let lastInputStepProps: InputStepProps | null = null
 jest.mock('@/components/AddMoney/components/InputAmountStep', () => ({
     __esModule: true,
-    default: (props: any) => {
+    default: (props: InputStepProps) => {
         lastInputStepProps = props
         return <div data-testid="input-amount-step" data-denomination={props.initialDenomination} />
     },
 }))
-
-// eslint-disable-next-line import/first -- must come after jest.mock
-import MantecaAddMoney from '../MantecaAddMoney'
 
 const setCountry = (path: string) => {
     mockParams.country = path
@@ -133,7 +133,7 @@ describe('denomination change → URL write-back', () => {
         setCountry('brazil')
         render(<MantecaAddMoney />)
 
-        lastInputStepProps.setCurrentDenomination('R$')
+        lastInputStepProps!.setCurrentDenomination('R$')
 
         expect(mockSetQueryState).toHaveBeenCalledWith({ currency: 'BRL' })
     })
@@ -142,7 +142,7 @@ describe('denomination change → URL write-back', () => {
         setCountry('argentina')
         render(<MantecaAddMoney />)
 
-        lastInputStepProps.setCurrentDenomination('USD')
+        lastInputStepProps!.setCurrentDenomination('USD')
 
         expect(mockSetQueryState).toHaveBeenCalledWith({ currency: 'USD' })
     })
