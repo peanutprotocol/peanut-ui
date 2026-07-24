@@ -47,8 +47,8 @@ jest.mock('@/hooks/useTransactionDetailsDrawer', () => ({
     }),
 }))
 
-jest.mock('@justaname.id/react', () => ({
-    usePrimaryName: () => ({ primaryName: undefined }),
+jest.mock('@/hooks/usePrimaryNameServer', () => ({
+    usePrimaryNameServer: () => ({ primaryName: undefined }),
 }))
 
 jest.mock('@/context/authContext', () => ({

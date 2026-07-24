@@ -1,8 +1,8 @@
 'use client'
 
-import { usePrimaryName } from '@justaname.id/react'
 import { useMemo } from 'react'
 import { isAddress } from 'viem'
+import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
 
 import { resolveRecipientDisplay, type RecipientDisplay, type ResolveRecipientInput } from '@/utils/recipient-display'
 import { normalizeEnsName } from '@/utils/ens.utils'
@@ -20,11 +20,7 @@ import { normalizeEnsName } from '@/utils/ens.utils'
 export function useRecipientDisplay(input: Omit<ResolveRecipientInput, 'ensName'>): RecipientDisplay {
     const skipEnsLookup = !!input.user?.username || !isAddress(input.address)
 
-    const { primaryName } = usePrimaryName({
-        address: skipEnsLookup ? undefined : (input.address as `0x${string}`),
-        chainId: 1,
-        priority: 'onChain',
-    })
+    const { primaryName } = usePrimaryNameServer(skipEnsLookup ? undefined : input.address)
 
     return useMemo(
         () =>
