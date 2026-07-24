@@ -20,9 +20,19 @@ import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils
  * green-light a spend that leaves an orphan charge.
  */
 
+/**
+ * How long a persisted total may still be painted on cold start. The value is
+ * display-only and always shown stale-flagged, so this bound is not a
+ * correctness guard — it just stops an ancient number from being shown
+ * indefinitely when /rain/cards reads keep failing for a user.
+ */
+export const LAST_KNOWN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
+
 export const readLastKnownSpendable = (userId: string | undefined): bigint | undefined => {
     const stored = getUserPreferences(userId)?.lastKnownSpendable
     if (!stored?.units) return undefined
+    // Expire on `at` (older entries predate the timestamp — treat as fresh).
+    if (typeof stored.at === 'number' && Date.now() - stored.at > LAST_KNOWN_MAX_AGE_MS) return undefined
     try {
         const units = BigInt(stored.units)
         return units < 0n ? undefined : units
