@@ -61,7 +61,7 @@ function captureSubscriptionSnapshot(trigger: string) {
                     'onesignal.opted_in': String(optedIn),
                     'onesignal.linked': String(!!externalId),
                 },
-                extra: { subscriptionId, onesignalId, externalId },
+                extra: { subscriptionId, onesignalId },
             })
         } catch (err) {
             captureMessage('onesignal subscription snapshot failed', {
