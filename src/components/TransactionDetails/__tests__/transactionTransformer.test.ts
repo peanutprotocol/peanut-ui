@@ -33,7 +33,9 @@ const bobUser: Account = {
 // showFullName so the avatar resolves to their initials, not the address (which
 // would trip isAddress() → wallet icon in TransactionAvatarBadge).
 const displayNameOnlyUser: Account = {
-    identifier: '0xNancyWalletAddressForTesting0000000000',
+    // real hex address so isAddress() would be true on the old code path —
+    // faithfully reproduces the "avatar name is an address → wallet icon" symptom.
+    identifier: '0x1234567890abcdef1234567890abcdef12345678',
     type: 'WALLET_SMART',
     isUser: true,
     fullName: 'Nancy Drew',
