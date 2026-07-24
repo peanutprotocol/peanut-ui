@@ -13,7 +13,10 @@ import { isValidAddressForFamily, type WithdrawAddressFamily } from './addressFa
 export async function validateAndResolveRecipient(
     recipient: string,
     isWithdrawal: boolean = false,
-    addressFamily: WithdrawAddressFamily = 'evm'
+    addressFamily: WithdrawAddressFamily = 'evm',
+    // Destination chain for ENS resolution (ENSIP-11 per-chain addresses).
+    // Omitted = mainnet record, which is correct for non-withdraw contexts.
+    chainId?: string
 ): Promise<{ identifier: string; recipientType: RecipientType; resolvedAddress: string }> {
     // Non-EVM withdraw destinations (Solana/Tron): a base58 address is the
     // only valid input — no ENS, no usernames. The family comes from the
@@ -30,7 +33,7 @@ export async function validateAndResolveRecipient(
     switch (recipientType) {
         case 'ENS':
             // resolve the ENS name to address
-            const resolvedAddress = await resolveEns(recipient)
+            const resolvedAddress = await resolveEns(recipient, chainId)
             if (!resolvedAddress) {
                 throw new RecipientValidationError('ENS name not found')
             }

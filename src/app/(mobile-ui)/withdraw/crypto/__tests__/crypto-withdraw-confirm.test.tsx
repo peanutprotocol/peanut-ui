@@ -93,6 +93,7 @@ jest.mock('@/utils/withdraw.utils', () => ({
 
 jest.mock('@/utils/general.utils', () => ({
     isTxReverted: (receipt: { status?: string } | null) => receipt?.status === 'reverted',
+    printableAddress: (address: string) => address,
 }))
 
 jest.mock('@/utils/url.utils', () => ({
