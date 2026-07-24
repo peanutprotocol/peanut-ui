@@ -43,7 +43,7 @@ import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-up
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { addMoneyCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
-import { isMantecaCountry } from '@/constants/manteca.consts'
+import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { getRegionIntent } from '@/utils/regions.utils'
 
@@ -115,8 +115,10 @@ export default function OnrampBankPage() {
     // this Bridge SEPA bank page — getCurrencyConfig has no BR/AR branch, so they'd
     // render as EUR. A KYC-success redirect or a deep link can still land a Manteca
     // country here; bounce it to the correct provider route at the single chokepoint.
+    // Use the same predicate the root dispatcher routes with (add-money/page.tsx) so
+    // the two can never disagree on which countries are Manteca.
     const router = useRouter()
-    const isMantecaRoute = !!selectedCountry && isMantecaCountry(selectedCountry.path)
+    const isMantecaRoute = !!selectedCountry && isMantecaSupportedCountryCode(selectedCountry.id)
     useEffect(() => {
         if (isMantecaRoute && selectedCountry) {
             router.replace(rewriteMethodPath(`/add-money/${selectedCountry.path}/manteca`))
