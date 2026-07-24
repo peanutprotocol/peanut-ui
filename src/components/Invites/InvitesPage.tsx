@@ -124,21 +124,22 @@ function InvitePageContent() {
             setIsAwardingBadge(true)
             // sequential on purpose: each award is an idempotent POST and the
             // backend flips access flags as side effects — parallel fire-and-forget
-            // would race fetchUser below.
+            // would race fetchUser below. awardBadge never throws (the service
+            // catches internally) — check the result instead.
             ;(async () => {
                 for (const tag of campaigns) {
-                    await invitesApi
-                        .awardBadge(tag)
-                        .catch((e) => console.error('Error awarding campaign badge', tag, e))
+                    const { success } = await invitesApi.awardBadge(tag)
+                    if (!success) console.error('Error awarding campaign badge', tag)
                 }
             })().finally(async () => {
                 await fetchUser()
                 setIsAwardingBadge(false)
                 // offramp migrants came here to move their balance — land them
                 // directly on the migration deposit screen, not /home.
-                router.push(
-                    campaigns.includes(OFFRAMP_BADGE_CODE) ? '/add-money/crypto?network=EVM&source=offramp' : '/home'
-                )
+                // case-insensitive: dedup keeps the first-seen casing, so the
+                // stack may carry 'offramp_user' rather than the canonical code.
+                const hasOfframp = campaigns.some((tag) => tag.toLowerCase() === OFFRAMP_BADGE_CODE.toLowerCase())
+                router.push(hasOfframp ? '/add-money/crypto?network=EVM&source=offramp' : '/home')
             })
             return
         }
@@ -160,9 +161,24 @@ function InvitePageContent() {
         inviteCode,
     ])
 
+    // A bare link that resolves to nothing claimable — unknown ?campaign= value,
+    // a stray tracking param swept up by the root-domain redirect, an empty
+    // ?code= — gets the landing page, not the invalid-invite error. That screen
+    // is reserved for links that actually carried an invite code. Safe from a
+    // redirect loop: the root redirect only fires when the params are present,
+    // and we replace with a bare '/'.
+    const isDeadBareLink = !inviteCode && !isBareClaimCampaign
+    useEffect(() => {
+        if (isDeadBareLink) router.replace('/')
+    }, [isDeadBareLink, router])
+
     const handleClaim = () => {
-        const eventTag = inviteCode || (isBareClaimCampaign ? campaigns.join(',') : undefined)
-        posthog.capture(ANALYTICS_EVENTS.INVITE_CLAIM_CLICKED, { invite_code: eventTag })
+        // invite_code keeps its single-value shape for existing PostHog filters;
+        // stacked campaigns ride in their own property.
+        posthog.capture(ANALYTICS_EVENTS.INVITE_CLAIM_CLICKED, {
+            invite_code: inviteCode || (isBareClaimCampaign ? campaigns[0] : undefined),
+            campaign_tags: campaigns.join(',') || undefined,
+        })
 
         if (inviteCode) {
             dispatch(setupActions.setInviteCode(inviteCode))
@@ -182,13 +198,14 @@ function InvitePageContent() {
         router.push(signupUrl)
     }
 
-    if (isAwardingBadge || !shouldShowContent) {
+    if (isAwardingBadge || !shouldShowContent || isDeadBareLink) {
         return <PeanutLoading coverFullScreen />
     }
 
     // Invalid invite code (only reachable when an invite code was supplied).
     // Bare-claim campaigns (skip / event_alumni / touched_grass) carry no invite
-    // code, so they bypass this gate and never show the invalid-invite screen.
+    // code, so they bypass this gate and never show the invalid-invite screen;
+    // bare links with nothing claimable were bounced to '/' above.
     if (!isBareClaimCampaign && (isError || !inviteCodeData?.success)) {
         return (
             <div className="my-auto flex h-[100dvh] w-screen flex-col items-center justify-center space-y-4 px-6">

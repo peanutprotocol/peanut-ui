@@ -140,21 +140,24 @@ export const useZeroDev = () => {
             // (?code=alice&campaign=skip) was silently dropped here before this
             // ran unconditionally. /badge/award is idempotent and whitelisted
             // server-side — a tag acceptInvite already awarded no-ops, and
-            // anything unknown 400s harmlessly.
+            // anything unknown 400s harmlessly. awardBadge never throws (the
+            // service catches internally), so check each result: on any failure
+            // keep the cookie — a later signup retry (or a fixed backend) can
+            // still claim, and a Skip Pass must not be silently lost.
             if (campaignTags.length > 0) {
-                try {
-                    for (const tag of campaignTags) {
-                        await invitesApi.awardBadge(tag)
-                    }
-                    if (!userInviteCode?.trim()) {
-                        // the invite-code branch already fired INVITE_ACCEPTED
-                        posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
-                            campaign_tag: campaignTags.join(','),
-                        })
-                    }
-                } catch (e) {
-                    console.error('Error awarding campaign badge', e)
-                } finally {
+                const awarded: string[] = []
+                for (const tag of campaignTags) {
+                    const { success } = await invitesApi.awardBadge(tag)
+                    if (success) awarded.push(tag)
+                    else console.error('Error awarding campaign badge', tag)
+                }
+                if (awarded.length > 0 && !userInviteCode?.trim()) {
+                    // the invite-code branch already fired INVITE_ACCEPTED
+                    posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
+                        campaign_tag: awarded.join(','),
+                    })
+                }
+                if (awarded.length === campaignTags.length) {
                     removeFromCookie('campaignTag')
                 }
             }

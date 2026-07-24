@@ -91,8 +91,9 @@ function SetupPageContent() {
             //    cookie post-signup to award the badge; the step decision no longer
             //    trusts that cookie.
             //
-            // Why not the campaignTag cookie: it's a session cookie cleared only on a
-            // successful signup, so a returning user who claimed a campaign earlier in
+            // Why not the campaignTag cookie: it's a session cookie cleared on signup
+            // (only once every stacked award succeeds — a failed /badge/award keeps
+            // it for retry), so a returning user who claimed a campaign earlier in
             // the same session was routed past Landing (the only screen with Log In)
             // onto Signup, unable to log back in (regression from PR #2346).
             const inviteCodeFromCookie = getFromCookie('inviteCode')
