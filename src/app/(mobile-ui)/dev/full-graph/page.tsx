@@ -839,7 +839,7 @@ export default function FullGraphPage() {
                                             <span className="inline-block h-0.5 w-3 bg-cyan-500/50"></span>P2P
                                         </span>
                                     </div>
-                                    <p className="text-gray-400">Click → Grafana | Right-click → Focus</p>
+                                    <p className="text-gray-400">Click → Select | Right-click → Focus</p>
                                     {topNodes > 0 && (
                                         <p className="text-gray-400">Showing top {topNodes.toLocaleString()} nodes</p>
                                     )}

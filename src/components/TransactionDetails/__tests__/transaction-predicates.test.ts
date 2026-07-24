@@ -20,7 +20,7 @@ import type { TransactionDetails } from '../transactionTransformer'
 import type { IntentKind } from '../strategies/registry'
 
 jest.mock('@/assets', () => ({}))
-jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '', SIMPLEFI: '' }))
+jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
 
 const tx = (kind: string, extra?: Record<string, unknown>): TransactionDetails =>
     ({

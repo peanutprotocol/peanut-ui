@@ -1,12 +1,7 @@
 import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces'
 import { useMemo } from 'react'
-import {
-    GRAFANA_DASHBOARD_BASE_URL,
-    ARBISCAN_ADDRESS_BASE_URL,
-    POSTHOG_PERSON_BASE_URL,
-    BRIDGE_DASHBOARD_BASE_URL,
-} from '@/constants/support'
+import { ARBISCAN_ADDRESS_BASE_URL, POSTHOG_PERSON_BASE_URL, BRIDGE_DASHBOARD_BASE_URL } from '@/constants/support'
 
 export interface CrispUserData {
     username: string | undefined
@@ -14,7 +9,6 @@ export interface CrispUserData {
     email: string | undefined
     fullName: string | undefined
     avatar: string | undefined
-    grafanaLink: string | undefined
     walletAddress: string | undefined
     walletAddressLink: string | undefined
     bridgeCustomerLink: string | undefined
@@ -30,10 +24,6 @@ export function useCrispUserData(): CrispUserData {
     const { username, userId, user } = useAuth()
 
     return useMemo(() => {
-        const grafanaLink = username
-            ? `${GRAFANA_DASHBOARD_BASE_URL}?orgId=1&var-GRAFANA_VAR_Username=${encodeURIComponent(username)}&from=now-30d&to=now&timezone=browser`
-            : undefined
-
         // Use address from user.accounts (database) rather than useWallet hook
         // This ensures we always show the user's wallet address in support metadata,
         // even if ZeroDev client isn't initialized yet. useWallet().address could be
@@ -60,7 +50,6 @@ export function useCrispUserData(): CrispUserData {
             email: user?.user?.email || undefined,
             fullName: user?.user?.fullName,
             avatar: user?.user?.profile_picture || undefined,
-            grafanaLink,
             walletAddress,
             walletAddressLink,
             bridgeCustomerLink,

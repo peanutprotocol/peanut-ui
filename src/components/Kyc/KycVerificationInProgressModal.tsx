@@ -159,13 +159,16 @@ export const KycVerificationInProgressModal = ({
     }
 
     // phase === 'complete'
+    // Deliberately neutral (not "You're unlocked"): the rich WelcomeUnlockModal
+    // on home is THE single celebration — it lists what unlocked. This terminal
+    // must not stamp activationCelebratedAt, or home's celebration never shows.
     return (
         <ActionModal
             visible={isOpen}
             onClose={onClose}
             icon={'check' as IconName}
             iconContainerClassName="bg-success-1 text-white"
-            title="You're unlocked"
+            title="All set"
             description="Your account is ready to go."
             ctas={[
                 {
