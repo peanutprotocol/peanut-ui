@@ -69,7 +69,9 @@ jest.mock('@/components/Global/FileUploadInput', () => ({
 
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
-    default: () => <div data-testid="amount-input" />,
+    default: ({ setPrimaryAmount }: { setPrimaryAmount: (value: string) => void }) => (
+        <input data-testid="amount-input" onChange={(e) => setPrimaryAmount(e.target.value)} />
+    ),
 }))
 
 jest.mock('@/components/0_Bruddle/Button', () => ({
@@ -99,10 +101,10 @@ import LinkSendInitialView from '../Initial.link.send.view'
 
 const usdc = (dollars: number) => BigInt(Math.round(dollars * 1e6))
 
-const walletState = (spendableDollars: number) => ({
+const walletState = (spendableDollars: number | undefined) => ({
     fetchBalance: jest.fn(),
-    spendableBalance: usdc(spendableDollars),
-    formattedSpendableBalance: spendableDollars.toFixed(2),
+    spendableBalance: spendableDollars === undefined ? undefined : usdc(spendableDollars),
+    formattedSpendableBalance: spendableDollars === undefined ? '0.00' : spendableDollars.toFixed(2),
 })
 
 /** Drives the flow context from inside the provider (AmountInput is mocked out). */
@@ -160,6 +162,37 @@ describe('LinkSendInitialView error ownership', () => {
         mockUseWallet.mockReturnValue(walletState(100))
         rerenderView(utils, '20')
         expect(screen.getByTestId('error-alert')).toHaveTextContent(COOLDOWN_MESSAGE)
+    })
+
+    test('submit-time error survives the balance briefly reading as unavailable', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+        mockCreateLink.mockRejectedValue(new Error(COOLDOWN_MESSAGE))
+
+        const utils = renderView('20')
+        fireEvent.click(screen.getByText('Create link'))
+        await waitFor(() => expect(screen.getByTestId('error-alert')).toHaveTextContent(COOLDOWN_MESSAGE))
+
+        // balance query momentarily has no data — not a user action, must not clear
+        mockUseWallet.mockReturnValue(walletState(undefined))
+        rerenderView(utils, '20')
+        expect(screen.getByTestId('error-alert')).toHaveTextContent(COOLDOWN_MESSAGE)
+    })
+
+    test('editing the amount releases a submit-time error back to the balance gate', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+        mockCreateLink.mockRejectedValue(new Error(COOLDOWN_MESSAGE))
+
+        renderView('20')
+        fireEvent.click(screen.getByText('Create link'))
+        await waitFor(() => expect(screen.getByTestId('error-alert')).toHaveTextContent(COOLDOWN_MESSAGE))
+
+        // user types a new amount — the stale failure clears...
+        fireEvent.change(screen.getByTestId('amount-input'), { target: { value: '30' } })
+        await waitFor(() => expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument())
+
+        // ...and the gate immediately re-flags a genuine shortfall on the new amount
+        fireEvent.change(screen.getByTestId('amount-input'), { target: { value: '200' } })
+        await waitFor(() => expect(screen.getByTestId('error-alert')).toHaveTextContent(INSUFFICIENT_BALANCE_MESSAGE))
     })
 
     test('balance-gate error appears on shortfall and clears on recovery when no submit error is showing', async () => {

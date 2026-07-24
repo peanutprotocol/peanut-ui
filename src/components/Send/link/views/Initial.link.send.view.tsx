@@ -142,8 +142,13 @@ const LinkSendInitialView = () => {
         }
 
         if (!peanutWalletBalance || !tokenValue) {
-            // clear error state when no balance or token value
-            setErrorState({ showError: false, errorMessage: '' })
+            // An emptied amount is user input — clear everything (a Retry with no
+            // amount would be a dead button). A momentarily-unavailable balance is
+            // NOT a user action: release only the gate's own error, never a
+            // submit-time failure the user hasn't acted on yet.
+            if (!tokenValue || errorState?.errorMessage === INSUFFICIENT_BALANCE_MESSAGE) {
+                setErrorState({ showError: false, errorMessage: '' })
+            }
             return
         }
         // Gate on the displayed total: block only a true shortfall. An in-transit
@@ -175,13 +180,26 @@ const LinkSendInitialView = () => {
         errorState?.errorMessage,
     ])
 
+    // A changed amount means the previous failure no longer describes what the
+    // user is about to submit — hand the error slot back to the balance gate
+    // (which immediately re-flags a shortfall on the new amount if there is one).
+    const handleAmountChange = useCallback(
+        (value: string) => {
+            if (value !== tokenValue && errorState?.showError) {
+                setErrorState({ showError: false, errorMessage: '' })
+            }
+            setTokenValue(value)
+        },
+        [tokenValue, errorState?.showError, setErrorState, setTokenValue]
+    )
+
     return (
         <div className="w-full space-y-4">
             <PeanutActionCard type="send" />
 
             <AmountInput
                 initialAmount={tokenValue}
-                setPrimaryAmount={setTokenValue}
+                setPrimaryAmount={handleAmountChange}
                 onSubmit={handleOnNext}
                 walletBalance={peanutWalletBalance}
             />
