@@ -27,6 +27,53 @@ const clickListeners = new Set<(info: NotificationClickInfo) => void>()
 let pendingClick: NotificationClickInfo | null = null
 let underlyingListenersAttached = false
 
+const snapshotTriggersFired = new Set<string>()
+
+/**
+ * Fleet-visibility snapshot for debugging push without OneSignal dashboard
+ * access: hasToken distinguishes "device never registered with FCM/APNs"
+ * from "registered but nothing delivered" (a dashboard-credentials problem),
+ * and linked shows whether login() attached the external_id pushes target.
+ * Captured once per session per trigger — ~10s after init (token registration
+ * and login are async) and again on the first subscription change (opt-in
+ * often lands after the init snapshot). Deliberately omits the raw token.
+ */
+function captureSubscriptionSnapshot(trigger: string) {
+    if (snapshotTriggersFired.has(trigger)) return
+    snapshotTriggersFired.add(trigger)
+    void (async () => {
+        try {
+            const [subscriptionId, token, optedIn, onesignalId, externalId, permission] = await Promise.all([
+                OneSignal.User.pushSubscription.getIdAsync(),
+                OneSignal.User.pushSubscription.getTokenAsync(),
+                OneSignal.User.pushSubscription.getOptedInAsync(),
+                OneSignal.User.getOnesignalId(),
+                OneSignal.User.getExternalId(),
+                nativePermission(),
+            ])
+            captureMessage('onesignal subscription snapshot', {
+                level: 'info',
+                tags: {
+                    feature: 'onesignal',
+                    onesignal: 'subscription-snapshot',
+                    'onesignal.trigger': trigger,
+                    'onesignal.permission': permission,
+                    'onesignal.has_token': String(!!token),
+                    'onesignal.opted_in': String(optedIn),
+                    'onesignal.linked': String(!!externalId),
+                },
+                extra: { subscriptionId, onesignalId },
+            })
+        } catch (err) {
+            captureMessage('onesignal subscription snapshot failed', {
+                level: 'warning',
+                tags: { feature: 'onesignal', onesignal: 'subscription-snapshot', 'onesignal.trigger': trigger },
+                extra: { error: String(err) },
+            })
+        }
+    })()
+}
+
 function attachUnderlyingListeners() {
     if (underlyingListenersAttached) return
     underlyingListenersAttached = true
@@ -37,6 +84,7 @@ function attachUnderlyingListeners() {
 
     OneSignal.User.pushSubscription.addEventListener('change', (event: PushSubscriptionChangedState) => {
         const optedIn = !!event.current?.optedIn
+        captureSubscriptionSnapshot('subscription-change')
         subscriptionListeners.forEach((cb) => cb(optedIn))
     })
 
@@ -69,6 +117,7 @@ export const nativeOneSignalAdapter: OneSignalAdapter = {
             if (isOneSignalDebug()) OneSignal.Debug.setLogLevel(LogLevel.Verbose)
             await OneSignal.initialize(appId)
             attachUnderlyingListeners()
+            setTimeout(() => captureSubscriptionSnapshot('init'), 10_000)
         })()
         return initPromise
     },
