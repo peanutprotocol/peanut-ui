@@ -1,16 +1,17 @@
 import { getRecipientType, validateAndResolveRecipient, verifyPeanutUsername } from '@/lib/validation/recipient'
 
 // Mock the external dependencies
+const mockResolveEns = jest.fn((name: string, _chainId?: string) => {
+    if (name === 'vitalik.eth') {
+        return Promise.resolve('0x1234567890123456789012345678901234567890')
+    }
+    if (name.endsWith('.testvc.eth')) {
+        return Promise.resolve('0xA4Ae9480de19bD99A55E0FdC5372B8A4151C8271')
+    }
+    return Promise.resolve(null)
+})
 jest.mock('@/app/actions/ens', () => ({
-    resolveEns: (name: string) => {
-        if (name === 'vitalik.eth') {
-            return Promise.resolve('0x1234567890123456789012345678901234567890')
-        }
-        if (name.endsWith('.testvc.eth')) {
-            return Promise.resolve('0xA4Ae9480de19bD99A55E0FdC5372B8A4151C8271')
-        }
-        return Promise.resolve(null)
-    },
+    resolveEns: (name: string, chainId?: string) => mockResolveEns(name, chainId),
 }))
 
 jest.mock('@/utils/sentry.utils', () => ({
@@ -87,6 +88,18 @@ describe('Recipient Validation', () => {
         it('should treat non-addresses as ENS in withdrawal context', async () => {
             await expect(validateAndResolveRecipient('kusharc', true)).rejects.toThrow('ENS name not found')
             await expect(validateAndResolveRecipient('someuser', true)).rejects.toThrow('ENS name not found')
+        })
+
+        it('should forward the destination chainId to ENS resolution (ENSIP-11)', async () => {
+            mockResolveEns.mockClear()
+            await validateAndResolveRecipient('vitalik.eth', true, 'evm', '42161')
+            expect(mockResolveEns).toHaveBeenCalledWith('vitalik.eth', '42161')
+        })
+
+        it('should resolve without a chainId when none is given (legacy callers)', async () => {
+            mockResolveEns.mockClear()
+            await validateAndResolveRecipient('vitalik.eth')
+            expect(mockResolveEns).toHaveBeenCalledWith('vitalik.eth', undefined)
         })
     })
 
