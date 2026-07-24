@@ -1371,6 +1371,30 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         expect(screen.getByText('Country not found')).toBeInTheDocument()
     })
 
+    // Manteca countries (BR/AR) must never render this Bridge SEPA page — it has no
+    // BR/AR currency and would show EUR (TASK-20225). Bounce them to /manteca instead.
+    test.each(['brazil', 'argentina'])(
+        'Manteca country (%s) redirects to the manteca route, never shows EUR bank UI',
+        (country) => {
+            setParams({ country })
+            renderWithProviders(<OnrampBankPage />)
+
+            expect(mockRouterReplace).toHaveBeenCalledWith(`/add-money/${country}/manteca`)
+            expect(screen.queryByText('How much do you want to add?')).not.toBeInTheDocument()
+            expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
+        }
+    )
+
+    // Control: a non-Manteca bank country (Mexico) must NOT be bounced — it stays on
+    // the Bridge amount UI. Guards against the redirect over-firing.
+    test('non-Manteca country (mexico) stays on the Bridge bank UI, no redirect', () => {
+        setParams({ country: 'mexico' })
+        renderWithProviders(<OnrampBankPage />)
+
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        expect(screen.getByText('How much do you want to add?')).toBeInTheDocument()
+    })
+
     test('fresh user needs KYC before Bridge deposit confirmation', async () => {
         mockUseKycStatus.mockReturnValue({
             isUserKycApproved: false,
