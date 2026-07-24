@@ -31,6 +31,7 @@ import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'
 import { isCapacitor } from '@/utils/capacitor'
+import { OPEN_GATED } from '@/constants/app-lock.consts'
 import { getUserPreferences } from '@/utils/general.utils'
 import { LOCK_AFTER_BACKGROUND_MS, requestLocalUserPresence } from '@/utils/app-lock'
 import { setLockState } from '@/utils/app-lock-state'
@@ -90,7 +91,11 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
     // render, then resolve the storage mode. Runs once — later transitions are
     // driven by resume or unlock.
     useEffect(() => {
-        if (!isCapacitor()) return
+        // OPEN_GATED off (default): never engage the app-open lock. The state
+        // stays 'open' so the protected tree renders straight through, exactly
+        // like web — the guarded-storage path is also disabled (auth-token.ts),
+        // so the session stays readable and the balance loads without a prompt.
+        if (!isCapacitor() || !OPEN_GATED) return
         setState('pending')
         let cancelled = false
         void getSessionMode().then((detected) => {

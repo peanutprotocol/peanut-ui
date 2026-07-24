@@ -2681,9 +2681,9 @@
     },
     "appLock": {
         "title": "Olá de novo!",
-        "prompt": "Faça login para acessar o app.",
-        "promptFailed": "Faça login novamente para acessar o app.",
-        "unlock": "Fazer login",
+        "prompt": "Desbloqueie para abrir o app.",
+        "promptFailed": "Desbloqueie novamente para abrir o app.",
+        "unlock": "Desbloquear",
         "logOut": "Sair"
     }
 }

@@ -2681,9 +2681,9 @@
     },
     "appLock": {
         "title": "¡Hola de nuevo!",
-        "prompt": "Inicia sesión para acceder a la app.",
-        "promptFailed": "Inicia sesión de nuevo para acceder a la app.",
-        "unlock": "Iniciar sesión",
+        "prompt": "Desbloquea para abrir la app.",
+        "promptFailed": "Desbloquea de nuevo para abrir la app.",
+        "unlock": "Desbloquear",
         "logOut": "Cerrar sesión"
     }
 }

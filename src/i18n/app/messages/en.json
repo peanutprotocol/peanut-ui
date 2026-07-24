@@ -2681,9 +2681,9 @@
     },
     "appLock": {
         "title": "Welcome back!",
-        "prompt": "Please log in to access the app.",
-        "promptFailed": "Please log in again to access the app.",
-        "unlock": "Log in",
+        "prompt": "Unlock to open the app.",
+        "promptFailed": "Unlock again to open the app.",
+        "unlock": "Unlock",
         "logOut": "Log out"
     }
 }

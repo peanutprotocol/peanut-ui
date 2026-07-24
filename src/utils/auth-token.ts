@@ -21,6 +21,7 @@
 import Cookies from 'js-cookie'
 import { isCapacitor } from './capacitor'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { OPEN_GATED } from '@/constants/app-lock.consts'
 import { getLockState, setLockState } from './app-lock-state'
 import {
     GuardedStoreError,
@@ -31,6 +32,13 @@ import {
     isBiometryEnrolled,
     isGuardedStoreSupported,
 } from './secure-token-store'
+
+// Guarded mode is used only when the app-open lock is enabled AND the native
+// plugin is present. With OPEN_GATED off (default) the JWT stays in plain
+// Preferences so the app opens without a biometric — see app-lock.consts.ts.
+function guardedModeEnabled(): boolean {
+    return OPEN_GATED && isGuardedStoreSupported()
+}
 
 const JWT_COOKIE_KEY = 'jwt-token'
 const JWT_STORAGE_KEY = 'jwt-token'
@@ -73,7 +81,7 @@ async function getPreferences() {
 }
 
 async function detectSessionMode(): Promise<SessionMode> {
-    if (isGuardedStoreSupported()) {
+    if (guardedModeEnabled()) {
         try {
             const Preferences = await getPreferences()
             const marker = await Preferences.get({ key: GUARDED_MARKER_KEY })
@@ -201,7 +209,7 @@ export function suspendAuthSession(): void {
  * writes need auth outside the validity window) — accepted migration cost.
  */
 export async function migratePlainToGuarded(): Promise<void> {
-    if (!isCapacitor() || !isGuardedStoreSupported()) return
+    if (!isCapacitor() || !guardedModeEnabled()) return
     const mode = await getSessionMode()
     if (mode !== 'plain') return
     await authReady()
@@ -257,7 +265,7 @@ async function persistNativeToken(token: string): Promise<void> {
     }
     // plain/none: sessions are born guarded whenever that is silently possible
     // (always on iOS; on Android only inside the post-auth window).
-    if (isGuardedStoreSupported() && canWriteSilently() && (await isBiometryEnrolled())) {
+    if (guardedModeEnabled() && canWriteSilently() && (await isBiometryEnrolled())) {
         try {
             await guardedWrite(token)
             const Preferences = await getPreferences()
@@ -331,7 +339,7 @@ export async function hasNativeSession(): Promise<boolean> {
     if (nativeToken) return true
     try {
         const Preferences = await getPreferences()
-        if (isGuardedStoreSupported() && (await Preferences.get({ key: GUARDED_MARKER_KEY })).value) return true
+        if (guardedModeEnabled() && (await Preferences.get({ key: GUARDED_MARKER_KEY })).value) return true
         if ((await Preferences.get({ key: JWT_STORAGE_KEY })).value) return true
     } catch {}
     try {
