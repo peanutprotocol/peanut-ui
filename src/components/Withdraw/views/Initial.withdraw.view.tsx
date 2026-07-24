@@ -58,13 +58,28 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
         }
     }, [addressFamily, setRecipient, setIsValidRecipient])
 
-    // ENS names resolve per destination chain (ENSIP-11) — a validated name
-    // must re-resolve when the user switches chains after typing it, or the
-    // withdraw would go to the previous chain's address.
+    // Changing the destination chain invalidates chain-scoped errors (e.g. the
+    // per-network minimum block from review, which says "pick a different
+    // network") — without this the stale error keeps Review disabled after the
+    // user follows that instruction. Safe for address errors too: Review stays
+    // gated by isValidRecipient regardless of the error banner.
     const prevChainRef = useRef(selectedChainID)
     useEffect(() => {
-        if (prevChainRef.current === selectedChainID) return
-        prevChainRef.current = selectedChainID
+        if (prevChainRef.current !== selectedChainID) {
+            prevChainRef.current = selectedChainID
+            if (error.showError) setError({ showError: false, errorMessage: '' })
+        }
+    }, [selectedChainID, error.showError, setError])
+
+    // ENS names resolve per destination chain (ENSIP-11) — a validated name
+    // must re-resolve when the user switches chains after typing it, or the
+    // withdraw would go to the previous chain's address. Kept separate from the
+    // error-clearing effect above: its error.showError dep would abort an
+    // in-flight resolution via this cleanup.
+    const prevResolvedChainRef = useRef(selectedChainID)
+    useEffect(() => {
+        if (prevResolvedChainRef.current === selectedChainID) return
+        prevResolvedChainRef.current = selectedChainID
         if (addressFamily !== 'evm' || !recipient.name) return
 
         const name = recipient.name

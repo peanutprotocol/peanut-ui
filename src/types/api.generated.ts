@@ -4,6 +4,81 @@
  */
 
 export interface paths {
+    "/notifications/admin/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recent notification rows for a user (all channels + statuses) */
+        get: {
+            parameters: {
+                query: {
+                    userId: string;
+                    limit: number;
+                };
+                header: {
+                    "x-admin-token": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                id: string;
+                                eventType: string;
+                                channel: string;
+                                status: "PENDING" | "SENT" | "FAILED" | "SKIPPED";
+                                skipReason: string | null;
+                                providerId: string | null;
+                                error: unknown;
+                                createdAt: string;
+                                sentAt: string | null;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/": {
         parameters: {
             query?: never;

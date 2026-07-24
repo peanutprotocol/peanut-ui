@@ -41,6 +41,13 @@ export default function DevToolsPage() {
             icon: 'dollar',
         },
         {
+            name: 'Activation Journey',
+            description:
+                'Per funnel state: every in-app surface (verbatim copy + source file) and every lifecycle email/push, fetched live from the sandbox API journey-spec.',
+            path: '/dev/journey',
+            icon: 'split',
+        },
+        {
             name: 'Peanut Welcome Club',
             description:
                 'Onboarding quiz: the Welcome-@anon handbook pitfalls (comms, tasks, security, invoicing) as an ironically kawaii quiz. Single static HTML in public/ — zero build impact.',
