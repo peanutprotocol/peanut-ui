@@ -6,6 +6,11 @@ import { CapacitorCookies } from '@capacitor/core'
 import { Preferences } from '@capacitor/preferences'
 import * as secureStore from '@/utils/secure-token-store'
 
+// Exercise the guarded-mode paths: with OPEN_GATED on, guarded use defers to the
+// isGuardedStoreSupported mock below (default false → plain), so the flag is a
+// no-op for the plain/none/web cases and only unlocks the guarded assertions.
+process.env.NEXT_PUBLIC_APP_OPEN_GATED = 'true'
+
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(),
 }))
@@ -358,6 +363,38 @@ describe('auth-token', () => {
                 const headers = auth.getAuthHeaders({ 'Content-Type': 'application/json' })
                 expect(headers).toEqual({ 'Content-Type': 'application/json' })
             })
+        })
+    })
+
+    describe('OPEN_GATED off — guarded mode stays dormant even with the plugin present', () => {
+        beforeEach(() => {
+            process.env.NEXT_PUBLIC_APP_OPEN_GATED = 'false'
+            mockIsCapacitor.mockReturnValue(true)
+            mockSecureStore.isGuardedStoreSupported.mockReturnValue(true)
+            loadModule()
+        })
+
+        afterEach(() => {
+            process.env.NEXT_PUBLIC_APP_OPEN_GATED = 'true'
+        })
+
+        it('ignores the guarded marker and falls back to the plain token', async () => {
+            mockStoredPrefs({ 'guarded-token-present': '1', 'jwt-token': 'stored' })
+            await expect(auth.getSessionMode()).resolves.toBe('plain')
+        })
+
+        it('is none — never guarded — when only the guarded marker is present', async () => {
+            mockStoredPrefs({ 'guarded-token-present': '1' })
+            await expect(auth.getSessionMode()).resolves.toBe('none')
+        })
+
+        it('authReady does not park — hydrates the plain token without an unlock', async () => {
+            mockStoredPrefs({ 'guarded-token-present': '1', 'jwt-token': 'stored' })
+            let readyResolved = false
+            void auth.authReady().then(() => (readyResolved = true))
+            await flushAsync()
+            expect(readyResolved).toBe(true)
+            expect(auth.getAuthToken()).toBe('stored')
         })
     })
 
