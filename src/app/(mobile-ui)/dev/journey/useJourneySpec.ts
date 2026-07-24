@@ -24,7 +24,8 @@ export function useJourneySpec(): { spec: JourneySpec | null; error: string | nu
             })
             .then((data) => {
                 if (cancelled) return
-                if (!Array.isArray(data.stages)) throw new Error('unexpected spec shape')
+                if (!Array.isArray(data.stages) || !Array.isArray(data.pushReminders) || !data.rules || !data.welcome)
+                    throw new Error('unexpected spec shape')
                 setSpec(data)
             })
             .catch(() => {
