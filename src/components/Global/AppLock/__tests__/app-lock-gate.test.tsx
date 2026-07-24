@@ -14,6 +14,16 @@ jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(),
 }))
 
+// The app-open lock is dormant behind OPEN_GATED (default off). These tests
+// exercise the gate's locking behaviour, so they run with the flag on; the
+// default-off pass-through is covered by its own case.
+let mockOpenGated = true
+jest.mock('@/constants/app-lock.consts', () => ({
+    get OPEN_GATED() {
+        return mockOpenGated
+    },
+}))
+
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
         user: null,
@@ -53,6 +63,7 @@ function renderGate() {
 describe('AppLockGate', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        mockOpenGated = true
     })
 
     it('renders children directly on web', () => {
@@ -60,6 +71,17 @@ describe('AppLockGate', () => {
         renderGate()
         expect(screen.getByTestId('protected')).toBeInTheDocument()
         expect(mockGetSessionMode).not.toHaveBeenCalled()
+    })
+
+    it('OPEN_GATED off (default): guarded session opens straight through, never locks', async () => {
+        mockOpenGated = false
+        mockIsCapacitor.mockReturnValue(true)
+        mockGetSessionMode.mockResolvedValue('guarded')
+
+        renderGate()
+        await waitFor(() => expect(screen.getByTestId('protected')).toBeInTheDocument())
+        expect(mockGetSessionMode).not.toHaveBeenCalled()
+        expect(mockSuspend).not.toHaveBeenCalled()
     })
 
     it('guarded mode: locks and suspends the session without waiting for the user query (D7)', async () => {
