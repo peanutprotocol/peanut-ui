@@ -1,6 +1,9 @@
 import {
+    cardBalanceDueCents,
     computeAvailableSpendable,
     computeDisplaySpendable,
+    computeExcessCollateralCents,
+    EXCESS_COLLATERAL_MIN_CENTS,
     isAmountWithinBalance,
     isRainBalanceKnown,
     printableUsdc,
@@ -62,6 +65,27 @@ describe('balance utils', () => {
 
         it("floors fractional cents (shouldn't happen but is defensive)", () => {
             expect(rainCentsToUsdcUnits(99.9)).toBe(990_000n) // floors to 99 cents
+        })
+    })
+
+    describe('cardBalanceDueCents', () => {
+        it('surfaces a negative spending power as positive debt cents (incident: -631 = $6.31 due)', () => {
+            expect(cardBalanceDueCents(-631)).toBe(631)
+        })
+
+        it.each([
+            [0, 0],
+            [4218, 0], // healthy positive balance — no debt
+            [null, 0],
+            [undefined, 0],
+            [Number.NaN, 0],
+            [Number.NEGATIVE_INFINITY, 0],
+        ])('returns 0 for non-debt input (%s)', (input, expected) => {
+            expect(cardBalanceDueCents(input)).toBe(expected)
+        })
+
+        it('rounds fractional cents from the wire', () => {
+            expect(cardBalanceDueCents(-630.6)).toBe(631)
         })
     })
 
@@ -181,6 +205,43 @@ describe('balance utils', () => {
         it('treats a missing overview as unknown, without throwing on null', () => {
             expect(isRainBalanceKnown(undefined)).toBe(false)
             expect(isRainBalanceKnown(null)).toBe(false)
+        })
+    })
+
+    describe('computeExcessCollateralCents', () => {
+        it('returns the delta when the collateral exceeds the new limit', () => {
+            // $200 backing, limit lowered to $50 → $150 back to the wallet
+            expect(computeExcessCollateralCents(20_000, 5_000)).toBe(15_000)
+        })
+
+        it('returns 0 on a limit increase or exact match', () => {
+            expect(computeExcessCollateralCents(5_000, 20_000)).toBe(0)
+            expect(computeExcessCollateralCents(5_000, 5_000)).toBe(0)
+        })
+
+        it('leaves sub-threshold deltas in place (no passkey tap for cents)', () => {
+            expect(computeExcessCollateralCents(5_000 + EXCESS_COLLATERAL_MIN_CENTS - 1, 5_000)).toBe(0)
+            expect(computeExcessCollateralCents(5_000 + EXCESS_COLLATERAL_MIN_CENTS, 5_000)).toBe(
+                EXCESS_COLLATERAL_MIN_CENTS
+            )
+        })
+
+        it('fails closed on missing/invalid spending power', () => {
+            expect(computeExcessCollateralCents(undefined, 5_000)).toBe(0)
+            expect(computeExcessCollateralCents(null, 5_000)).toBe(0)
+            expect(computeExcessCollateralCents(NaN, 5_000)).toBe(0)
+            expect(computeExcessCollateralCents(-100, 5_000)).toBe(0)
+            expect(computeExcessCollateralCents(20_000, NaN)).toBe(0)
+            expect(computeExcessCollateralCents(20_000, -1)).toBe(0)
+        })
+
+        it('floors fractional cents so we never sign for more than the collateral holds', () => {
+            // spendingPower 20000.9 → floor 20000; limit 5000 → 15000, not 15000.9
+            expect(computeExcessCollateralCents(20_000.9, 5_000)).toBe(15_000)
+        })
+
+        it('a zero limit returns the whole backing', () => {
+            expect(computeExcessCollateralCents(20_000, 0)).toBe(20_000)
         })
     })
 })

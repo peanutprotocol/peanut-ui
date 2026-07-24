@@ -72,8 +72,11 @@ export function useTransactionHistory({
         // append targetUsername to the query params if filterMutualTxs is true and username is provided
         if (filterMutualTxs && username) queryParams.append('targetUsername', username)
 
+        // no-store: home Activity must never render a cached copy of history
+        // (server also sends Cache-Control: no-store; this covers the WebView path)
         const response = await serverFetch(`/users/history?${queryParams.toString()}`, {
             method: 'GET',
+            cache: 'no-store',
         })
 
         if (!response.ok) {
@@ -94,7 +97,7 @@ export function useTransactionHistory({
     // that bites if a caller ever flips `mode` mid-life.
 
     // Latest transactions (home page).
-    // Two-tier caching: TQ in-memory (30s) → SW disk cache (1 week) → Network.
+    // Cached only in TQ memory (30s stale); the HTTP response is no-store end to end.
     const latestQuery = useQuery({
         queryKey: [TRANSACTIONS, 'latest', { limit, targetUsername: filterMutualTxs ? username : undefined }],
         queryFn: () => fetchHistory({ limit }),

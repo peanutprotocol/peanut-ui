@@ -1,3 +1,6 @@
+import { formatIban } from '@/utils/general.utils'
+import { isCryptoAddressType } from '@/utils/account-mask.utils'
+
 // union type for all possible rows in the receipt
 export type TransactionDetailsRowKey =
     | 'createdAt'
@@ -54,10 +57,23 @@ export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
  */
 export const getBankAccountLabel = (type: string) => {
     const t = type.toLowerCase()
+    if (isCryptoAddressType(type)) return 'Address'
     if (t.endsWith('iban')) return 'IBAN'
     if (t.endsWith('clabe')) return 'CLABE'
     return 'Account Number'
 }
+
+/**
+ * Copy target for the receipt's account-details row. Bank rails copy the
+ * IBAN-formatted (uppercased, space-chunked) form; crypto destinations
+ * (CRYPTO_WITHDRAW to Tron/Solana/EVM — wire `type` `'address'` /
+ * `'evm-address'` / `'peanut-wallet'`) copy the address VERBATIM.
+ * `formatIban` treats any string starting with two letters as an IBAN, and
+ * every Tron address starts with 'T…', so it was uppercasing + chunking
+ * case-sensitive base58 into an unusable address.
+ */
+export const getAccountCopyValue = (identifier: string, type: string) =>
+    isCryptoAddressType(type) ? identifier : formatIban(identifier)
 
 /**
  * Recover a 2-letter ISO country code from a Rain merchant-country value.
@@ -104,4 +120,14 @@ export function parseWireAmount(amount: string | number | null | undefined): num
 export function isNegativeWireAmount(amount: string | number | null | undefined): boolean {
     const n = parseWireAmount(amount)
     return Number.isFinite(n) && n < 0
+}
+
+/** Parse a cents amount and reject NaN / Infinity / null up-front so the
+ *  drawer never renders "Charged in NaN EUR". Shared by CardPaymentRows
+ *  (breakdown math) and CardAdjustmentNotice (over-capture gate) so both
+ *  read Rain's auth/settled cents identically. */
+export function parseCents(value: string | null | undefined): number | null {
+    if (value == null) return null
+    const n = Number(value)
+    return Number.isFinite(n) ? n : null
 }

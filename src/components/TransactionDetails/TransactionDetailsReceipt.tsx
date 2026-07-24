@@ -20,7 +20,7 @@ import useClaimLink from '@/components/Claim/useClaimLink'
 import { formatAmount, formatDate, isStableCoin, formatCurrency } from '@/utils/general.utils'
 import { formatPoints } from '@/utils/format.utils'
 import { getAvatarUrl } from '@/utils/history.utils'
-import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
+import { printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
@@ -40,7 +40,7 @@ import CopyToClipboard from '../Global/CopyToClipboard'
 import CancelSendLinkModal from '../Global/CancelSendLinkModal'
 import { twMerge } from 'tailwind-merge'
 import { isAddress } from 'viem'
-import { getBankAccountLabel } from './transaction-details.utils'
+import { getAccountCopyValue, getBankAccountLabel } from './transaction-details.utils'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useRouter } from 'next/navigation'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
@@ -58,6 +58,7 @@ import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
 import { LocalRailNudge } from './provider-rows/LocalRailNudge'
 import { CardUsdAbroadNotice } from './provider-rows/CardUsdAbroadNotice'
+import { CardAdjustmentNotice } from './provider-rows/CardAdjustmentNotice'
 import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
 import { BridgeDepositInstructions } from './provider-rows/BridgeDepositInstructions'
 import { CancelDepositActions } from './provider-actions/CancelDepositActions'
@@ -555,7 +556,10 @@ export const TransactionDetailsReceipt = ({
                                         // visual privacy only; the user owns the account
                                         // and may need to paste it elsewhere.
                                         <CopyToClipboard
-                                            textToCopy={formatIban(transaction.bankAccountDetails.identifier)}
+                                            textToCopy={getAccountCopyValue(
+                                                transaction.bankAccountDetails.identifier,
+                                                transaction.bankAccountDetails.type
+                                            )}
                                             iconSize="4"
                                         />
                                     )}
@@ -637,6 +641,12 @@ export const TransactionDetailsReceipt = ({
                     )}
                 </div>
             </Card>
+
+            {/* Over-capture explainer — the words for the Initial hold /
+                Adjustment rows in the details card and the merchant-recourse
+                path. First of the notices: it explains THIS receipt's numbers;
+                the others nudge future behavior. */}
+            {!isPublic && <CardAdjustmentNotice transaction={transaction} />}
 
             {/* Local-rail nudge — card spends in a country with a cheaper
                 first-party rail (AR → QR, BR → Pix). Self-gates: renders
