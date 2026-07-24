@@ -97,6 +97,8 @@ export const ANALYTICS_EVENTS = {
 
     // ── Activation Funnel ──
     ACTIVATION_STEP_VIEWED: 'activation_step_viewed',
+    ACTIVATION_SPEND_CHOOSER_SHOWN: 'activation_spend_chooser_shown',
+    ACTIVATION_SPEND_CHOOSER_SELECTED: 'activation_spend_chooser_selected',
 
     // ── Surprise Moment (funnel handoff) ──
     SURPRISE_MOMENT_SHOWN: 'surprise_moment_shown',
