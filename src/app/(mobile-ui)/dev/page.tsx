@@ -40,6 +40,13 @@ export default function DevToolsPage() {
             icon: 'dollar',
         },
         {
+            name: 'Activation Journey',
+            description:
+                'Per funnel state: every in-app surface (verbatim copy + source file) and every lifecycle email/push, fetched live from the sandbox API journey-spec.',
+            path: '/dev/journey',
+            icon: 'split',
+        },
+        {
             name: 'Home CTAs',
             description:
                 'Force-renders every home-screen CTA in isolation (card launch banner, carousel CTAs, activation steps) ignoring auth/state/launch gating.',
