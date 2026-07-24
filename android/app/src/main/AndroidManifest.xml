@@ -95,6 +95,11 @@
         <meta-data
             android:name="com.onesignal.suppressLaunchURLs"
             android:value="true" />
+
+        <!-- Status-bar tint behind the ic_stat_onesignal_default silhouette (brand yellow) -->
+        <meta-data
+            android:name="com.onesignal.NotificationAccentColor.DEFAULT"
+            android:value="FFFFC900" />
     </application>
 
     <!-- Phone-only: require a telephony radio so Play filters out Wi-Fi-only
