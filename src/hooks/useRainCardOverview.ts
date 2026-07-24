@@ -29,7 +29,14 @@ export const useRainCardOverview = () => {
         queryFn: () => rainApi.getOverview(),
         enabled: !!userId,
         staleTime: 30_000,
-        refetchInterval: 30_000,
+        // Only users who actually have a card application have anything here
+        // that moves on its own. Polling every logged-in user every 30s made
+        // this the single most-called endpoint and, with it, the top source of
+        // client-side 10s timeouts (PEANUT-UI-QD5) — for a payload that reads
+        // `hasApplication: false` every time. Card users keep the 30s cadence;
+        // everyone else refetches on focus, and the `user_rail_status_changed`
+        // WebSocket invalidation below resumes polling the moment they apply.
+        refetchInterval: (query) => (query.state.data?.status.hasApplication === false ? false : 30_000),
         refetchOnWindowFocus: true,
         retry: 1,
     })
