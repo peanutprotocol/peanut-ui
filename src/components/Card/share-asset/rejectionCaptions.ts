@@ -6,6 +6,10 @@
  * doesn't fill with one identical tweet. Every caption tags @joinpeanut so
  * the rejection itself markets the door's exclusivity — the handle rides the
  * caption (it is intentionally not drawn on the asset image).
+ *
+ * No caption may hardcode numbers/stats (waitlist size, admitted count) —
+ * those drift from the live door tally the screen renders and read as
+ * fabricated data in a public tweet.
  */
 
 export const REJECTION_CAPTIONS: readonly string[] = [
@@ -21,12 +25,11 @@ export const REJECTION_CAPTIONS: readonly string[] = [
     "@joinpeanut said NOT TONIGHT. guess i'll fix my whole life",
     'turned away from @joinpeanut 💀',
     "couldn't get past the @joinpeanut velvet rope. humbling.",
-    '@joinpeanut rejection #1. framing this one.',
+    'my first @joinpeanut rejection. framing this one.',
     'the @joinpeanut door looked me up and down and said no. respect.',
     'not on the @joinpeanut list tonight. villain arc starts now.',
     "got bounced from @joinpeanut. it's giving exclusive.",
     '@joinpeanut denied me with zero explanation. iconic behavior honestly',
-    '213 tried, 7 got in. @joinpeanut said not me. yet.',
     "@joinpeanut said come back when i'm somebody. challenge accepted 🥜",
     'the @joinpeanut bouncer has no notes. just no. devastating.',
     'tried the @joinpeanut door. NOT TONIGHT. comeback arc loading.',

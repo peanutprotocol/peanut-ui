@@ -930,30 +930,37 @@ export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) 
 }
 
 export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
-    return charges.map((charge) => {
-        const successfulPayment = charge.payments.at(-1)
-        // Prefer the Peanut handle whenever the payer has a linked user,
-        // regardless of account.type. Falls back to the raw on-chain
-        // identifier for anonymous on-chain contributors.
-        const payerAccount = successfulPayment?.payerAccount
-        const username = payerAccount?.user?.username || payerAccount?.identifier
-        const isPeanutUser = !!payerAccount?.user?.username
+    return charges
+        .map((charge) => {
+            // Only a SUCCESSFUL payment makes someone a contributor. Taking the
+            // last payment regardless of status surfaced failed payers and
+            // inflated the "Contributors (N)" count — the BE collected total
+            // counts successful payments only, so this must match.
+            const successfulPayment = charge.payments.filter((p) => p.status === 'SUCCESSFUL').at(-1)
+            if (!successfulPayment) return null
+            // Prefer the Peanut handle whenever the payer has a linked user,
+            // regardless of account.type. Falls back to the raw on-chain
+            // identifier for anonymous on-chain contributors.
+            const payerAccount = successfulPayment.payerAccount
+            const username = payerAccount?.user?.username || payerAccount?.identifier
+            const isPeanutUser = !!payerAccount?.user?.username
 
-        return {
-            uuid: charge.uuid,
-            payments: charge.payments,
-            amount: charge.tokenAmount,
-            username,
-            fulfillmentPayment: charge.fulfillmentPayment,
-            // FOLLOW-UP (tracked, not in this PR pair): the charges/payments BE flow
-            // still returns raw `bridgeKycStatus` on Payment.payerAccount.user. The
-            // user endpoints (/users/:userId, /users/username/:username,
-            // /users/contacts) all migrated to a BE-computed `isVerified` boolean;
-            // bringing the charges flow along requires a focused refactor (project at
-            // intentToCharge + fetchPayerAccounts; change mutation patterns in
-            // charge/service.ts to immutable response building). Scoped separately.
-            isUserVerified: payerAccount?.user?.bridgeKycStatus === 'approved',
-            isPeanutUser,
-        }
-    })
+            return {
+                uuid: charge.uuid,
+                payments: charge.payments,
+                amount: charge.tokenAmount,
+                username,
+                fulfillmentPayment: charge.fulfillmentPayment,
+                // FOLLOW-UP (tracked, not in this PR pair): the charges/payments BE flow
+                // still returns raw `bridgeKycStatus` on Payment.payerAccount.user. The
+                // user endpoints (/users/:userId, /users/username/:username,
+                // /users/contacts) all migrated to a BE-computed `isVerified` boolean;
+                // bringing the charges flow along requires a focused refactor (project at
+                // intentToCharge + fetchPayerAccounts; change mutation patterns in
+                // charge/service.ts to immutable response building). Scoped separately.
+                isUserVerified: payerAccount?.user?.bridgeKycStatus === 'approved',
+                isPeanutUser,
+            }
+        })
+        .filter((c): c is NonNullable<typeof c> => c !== null)
 }

@@ -62,8 +62,8 @@
         "@capgo/capacitor-updater": "^8.45.9",
         "@headlessui/react": "^2.2.9",
         "@headlessui/tailwindcss": "^0.2.1",
-        "@justaname.id/react": "0.3.180",
-        "@justaname.id/sdk": "0.2.177",
+        "@justaname.id/react": "0.4.0",
+        "@justaname.id/sdk": "0.3.0",
         "@noble/curves": "1.9.7",
         "@onesignal/capacitor-plugin": "^1.0.6",
         "@radix-ui/react-accordion": "^1.2.12",
@@ -124,7 +124,7 @@
         "use-haptic": "^1.1.11",
         "validator": "^13.12.0",
         "vaul": "^1.1.2",
-        "viem": "^2.22.0",
+        "viem": "^2.48.0",
         "wagmi": "2.16.3"
     },
     "devDependencies": {
@@ -213,7 +213,7 @@
     },
     "resolutions": {
         "@wagmi/core": "2.19.0",
-        "viem": "^2.22.0",
+        "viem": "^2.48.0",
         "wagmi": "2.16.3"
     },
     "pnpm": {
