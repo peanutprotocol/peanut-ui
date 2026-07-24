@@ -22,6 +22,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'
 import { isCapacitor } from '@/utils/capacitor'
+import { OPEN_GATED } from '@/constants/app-lock.consts'
 import { getUserPreferences } from '@/utils/general.utils'
 import { LOCK_AFTER_BACKGROUND_MS, requestLocalUserPresence } from '@/utils/app-lock'
 
@@ -76,8 +77,11 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
 
     // Close the gate on the first client paint, before anything protected can
     // render. Runs once — later transitions are driven by resume or unlock.
+    // OPEN_GATED off (default): never engage the lock — the state stays 'open'
+    // so the app opens straight through, like web. Money movement stays
+    // passkey-gated at the transaction layer regardless.
     useEffect(() => {
-        if (isCapacitor()) setState('pending')
+        if (isCapacitor() && OPEN_GATED) setState('pending')
     }, [])
 
     useEffect(() => {
@@ -100,7 +104,7 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
     }, [credentialId])
 
     useEffect(() => {
-        if (!isCapacitor() || !userId || !credentialId) return
+        if (!isCapacitor() || !OPEN_GATED || !userId || !credentialId) return
 
         let removeListener: (() => void) | undefined
         let cancelled = false
