@@ -130,3 +130,35 @@ describe('TransactionCard — clickable counterparty name', () => {
         expect(openTransactionDetails).toHaveBeenCalledTimes(1)
     })
 })
+
+/** A Rain card spend row; `cardPayment` overrides shape the flag cases. */
+function cardSpendTx(cardPayment: Record<string, unknown>): TransactionDetails {
+    const tx = eligibleTx()
+    ;(tx.extraDataForDrawer as Record<string, unknown>).cardPayment = {
+        merchantName: 'Savannah Taphouse',
+        isRefund: false,
+        settlementAdjusted: false,
+        ...cardPayment,
+    }
+    return tx
+}
+
+// The '· Adjusted' feed flag — settlement cleared at a different amount than
+// authorized. Refunds are excluded even when the BE forwards the flag on a
+// negative-auth refund clear (they'd read "Refund · Adjusted" otherwise).
+describe('TransactionCard — settlement-adjusted flag', () => {
+    it('shows · Adjusted for an adjusted card spend', () => {
+        renderCard(cardSpendTx({ settlementAdjusted: true }))
+        expect(screen.getByText('· Adjusted')).toBeInTheDocument()
+    })
+
+    it('hides it for a non-adjusted card spend', () => {
+        renderCard(cardSpendTx({ settlementAdjusted: false }))
+        expect(screen.queryByText('· Adjusted')).not.toBeInTheDocument()
+    })
+
+    it('hides it for an adjusted card REFUND', () => {
+        renderCard(cardSpendTx({ settlementAdjusted: true, isRefund: true }))
+        expect(screen.queryByText('· Adjusted')).not.toBeInTheDocument()
+    })
+})
