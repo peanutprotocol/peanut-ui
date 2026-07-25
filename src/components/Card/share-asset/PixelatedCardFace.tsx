@@ -1,6 +1,6 @@
 /**
- * <PixelatedCardFace /> — the pink peanut card with a pre-pixelated
- * peanut-card-hand overlay.
+ * <PixelatedCardFace /> — the pink peanut card with a peanut-card-hand
+ * overlay: crisp by default, pixelated under `blurAll`.
  *
  * Renders at native 620×391 (CARD_W/CARD_H). Wrap in `transform: scale(...)`
  * if you need a smaller preview — the inner layout uses absolute pixel
@@ -11,7 +11,8 @@
  * logo, card number, and Virtual pill all get rasterised through a
  * canvas → image-rendering:pixelated pipeline, with a shared CELL_PX cell
  * size — so every detail on the card is hidden by consistent chunky pixels
- * instead of a mix of pixelation + CSS blur.
+ * instead of a mix of pixelation + CSS blur. The hand follows the same
+ * switch: pixelated with the rest of the tease, crisp on the share asset.
  *
  * Shared between <ShareAssetD3 />, the eligibility-check screen, and the
  * `/shhhhh` LP hero. Keep this file the single source of truth for the
@@ -25,11 +26,13 @@ import { type FC, type CSSProperties } from 'react'
 import { CARD_W, CARD_H } from './shareAssetLayout'
 import { PEANUTMAN } from '@/assets/mascot'
 import PEANUT_CARD_HAND_PIXEL_ASSET from '@/assets/cards/peanut-card-hand-pixel.png'
+import PEANUT_CARD_HAND_ASSET from '@/assets/cards/peanut-card-hand.svg'
 import VISA_BRAND_MARK_ASSET from '@/assets/cards/visa-brand-mark.png'
 
 const ASSET_PEANUTMAN = PEANUTMAN.src
 const ASSET_VISA_BRAND = VISA_BRAND_MARK_ASSET.src
 const ASSET_CARD_HAND_PIXEL = PEANUT_CARD_HAND_PIXEL_ASSET.src
+const ASSET_CARD_HAND = PEANUT_CARD_HAND_ASSET.src
 
 // Shared pixel-cell target across every element on the card. Each
 // element rasterises to (displayPx / CELL_PX) pixels then stretches back
@@ -55,8 +58,8 @@ export interface PixelatedCardFaceProps {
      *  display the Visa wordmark for compliance reasons (it renders crisp
      *  there since the share asset is the one surface that doesn't `blurAll`). */
     hideVisa?: boolean
-    /** Fires once the pixelated hand <img> has loaded — i.e. the card face is
-     *  fully painted. Capture surfaces gate the Share/Save buttons on this so a
+    /** Fires once the hand <img> has loaded — i.e. the card face is fully
+     *  painted. Capture surfaces gate the Share/Save buttons on this so a
      *  snapshot can never fire before the hand is ready. */
     onReady?: () => void
 }
@@ -85,7 +88,7 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
                 ...style,
             }}
         >
-            <PixelatedHand onReady={onReady} />
+            <CardHand pixelated={blurAll} onReady={onReady} />
 
             {/* Top row: peanut logo (left) + visa logo (right) */}
             <div
@@ -277,18 +280,21 @@ const PixelatedText: FC<PixelatedTextProps> = ({ text, displayW, displayH, font,
 }
 
 // ---------------------------------------------------------------------------
-// The hand — a pre-pixelated PNG rendered as a plain <img>, NOT a runtime
-// <canvas>. html-to-image silently drops a live <canvas> it can't serialise
-// (canvas.toDataURL() returns empty on iOS Safari for an SVG-sourced canvas →
-// blank card, no error: the launch-day "blank share asset" bug), but inlines
-// <img> reliably — same path the badge stickers take, which never blank. The
-// PNG is authored at the 36px raster and upscaled by image-rendering:pixelated,
-// so it reads identically to the old canvas.
+// The hand — always a plain <img>, NEVER a runtime <canvas>. html-to-image
+// silently drops a live <canvas> it can't serialise (canvas.toDataURL() returns
+// empty on iOS Safari for an SVG-sourced canvas → blank card, no error: the
+// launch-day "blank share asset" bug), but inlines <img> reliably — same path
+// the badge stickers and the peanut logo above take, which never blank.
+//
+// `pixelated` picks the source: the tease surfaces get the pre-pixelated PNG
+// (authored at the 36px raster, upscaled by image-rendering:pixelated), the
+// share asset gets the full-resolution vector — nothing on that asset is
+// hidden, so there is nothing for the pixelation to obscure.
 // ---------------------------------------------------------------------------
 
-const PixelatedHand: FC<{ onReady?: () => void }> = ({ onReady }) => (
+const CardHand: FC<{ pixelated: boolean; onReady?: () => void }> = ({ pixelated, onReady }) => (
     <img
-        src={ASSET_CARD_HAND_PIXEL}
+        src={pixelated ? ASSET_CARD_HAND_PIXEL : ASSET_CARD_HAND}
         alt=""
         aria-hidden
         draggable={false}
@@ -307,7 +313,7 @@ const PixelatedHand: FC<{ onReady?: () => void }> = ({ onReady }) => (
             height: 471,
             transform: 'rotate(-15deg)',
             transformOrigin: 'center',
-            imageRendering: 'pixelated',
+            ...(pixelated ? { imageRendering: 'pixelated' as const } : {}),
         }}
     />
 )
