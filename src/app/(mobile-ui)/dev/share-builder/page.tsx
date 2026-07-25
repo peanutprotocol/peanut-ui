@@ -47,7 +47,7 @@ export default function ShareBuilderPage() {
     // ─── Capture (Save image) ────────────────────────────────────────────
     // Ref points at the native-size asset node (the pre-scale div) so the
     // capture renders at full 1200×900 fidelity. `assetReady` flips once the
-    // card face's async hand <canvas> mounts (ShareAssetD3.onReady) — Save is
+    // card face's hand <img> loads (ShareAssetD3.onReady) — Save is
     // disabled until then so a capture can never snapshot a blank card.
     const assetRef = useRef<HTMLDivElement>(null)
     const [assetReady, setAssetReady] = useState(false)
