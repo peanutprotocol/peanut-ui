@@ -5,7 +5,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import { loadingStateContext } from '@/context'
+import { loadingStateContext } from '@/context/loadingStates.context'
 import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
@@ -142,15 +142,28 @@ const LinkSendInitialView = () => {
         }
 
         if (!peanutWalletBalance || !tokenValue) {
-            // clear error state when no balance or token value
-            setErrorState({ showError: false, errorMessage: '' })
+            // An emptied amount is user input — clear everything (a Retry with no
+            // amount would be a dead button). A momentarily-unavailable balance is
+            // NOT a user action: release only the gate's own error, never a
+            // submit-time failure the user hasn't acted on yet.
+            if (!tokenValue || errorState?.errorMessage === INSUFFICIENT_BALANCE_MESSAGE) {
+                setErrorState({ showError: false, errorMessage: '' })
+            }
             return
         }
         // Gate on the displayed total: block only a true shortfall. An in-transit
         // amount passes and fails late (settling message + refetch) — the FE balance
         // is ~30s-polled, so blocking it here would over-reject routable funds.
         if (!isAmountWithinBalance(tokenValue, balance)) {
-            setErrorState({ showError: true, errorMessage: INSUFFICIENT_BALANCE_MESSAGE })
+            // Claim the error slot only when it's free or already ours. A submit-time
+            // failure (cooldown / settling copy) must stay until the user retries or
+            // edits — right after a collateral spend the polled balance oscillates
+            // around the amount boundary, and overwriting here let the recovery
+            // branch below clear the swapped-in message, silently swallowing the
+            // real error while the user still couldn't spend.
+            if (!errorState?.showError || errorState.errorMessage === INSUFFICIENT_BALANCE_MESSAGE) {
+                setErrorState({ showError: true, errorMessage: INSUFFICIENT_BALANCE_MESSAGE })
+            }
         } else if (errorState?.errorMessage === INSUFFICIENT_BALANCE_MESSAGE) {
             // only clear OUR balance-gate error — never wipe a submit-time failure
             // message (e.g. the settling copy) that handleOnNext set on a late failure.
@@ -163,8 +176,22 @@ const LinkSendInitialView = () => {
         setErrorState,
         hasPendingTransactions,
         isLoading,
+        errorState?.showError,
         errorState?.errorMessage,
     ])
+
+    // A changed amount means the previous failure no longer describes what the
+    // user is about to submit — hand the error slot back to the balance gate
+    // (which immediately re-flags a shortfall on the new amount if there is one).
+    const handleAmountChange = useCallback(
+        (value: string) => {
+            if (value !== tokenValue && errorState?.showError) {
+                setErrorState({ showError: false, errorMessage: '' })
+            }
+            setTokenValue(value)
+        },
+        [tokenValue, errorState?.showError, setErrorState, setTokenValue]
+    )
 
     return (
         <div className="w-full space-y-4">
@@ -172,7 +199,7 @@ const LinkSendInitialView = () => {
 
             <AmountInput
                 initialAmount={tokenValue}
-                setPrimaryAmount={setTokenValue}
+                setPrimaryAmount={handleAmountChange}
                 onSubmit={handleOnNext}
                 walletBalance={peanutWalletBalance}
             />
