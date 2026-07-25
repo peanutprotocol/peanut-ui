@@ -2,7 +2,8 @@
  * <PixelatedCardFace /> — the pink peanut card with a peanut-card-hand
  * overlay: crisp by default, pixelated under `blurAll`.
  *
- * Renders at native 620×391 (CARD_W/CARD_H). Wrap in `transform: scale(...)`
+ * Renders at native CARD_W×CARD_H (see shareAssetLayout — don't restate the
+ * numbers here, they drift). Wrap in `transform: scale(...)`
  * if you need a smaller preview — the inner layout uses absolute pixel
  * offsets that scale linearly with the wrapper. For width-fit, use
  * <ScaledPixelatedCardFace />.
@@ -313,7 +314,7 @@ const CardHand: FC<{ pixelated: boolean; onReady?: () => void }> = ({ pixelated,
             height: 471,
             transform: 'rotate(-15deg)',
             transformOrigin: 'center',
-            ...(pixelated ? { imageRendering: 'pixelated' as const } : {}),
+            imageRendering: pixelated ? 'pixelated' : undefined,
         }}
     />
 )
