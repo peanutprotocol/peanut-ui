@@ -64,6 +64,11 @@ describe('classifyPasskeyError', () => {
         expect(classifyPasskeyError(err).code).toBe('LOGIN_CANCELED')
     })
 
+    test('maps WebKit "Load failed" fetch errors to NETWORK', () => {
+        const err = Object.assign(new TypeError('Load failed'), { name: 'TypeError' })
+        expect(classifyPasskeyError(err).code).toBe('NETWORK')
+    })
+
     test('falls back to LOGIN_ERROR for unknown errors', () => {
         expect(classifyPasskeyError(new Error('mystery')).code).toBe('LOGIN_ERROR')
     })

@@ -5,10 +5,37 @@
 // works with CapacitorHttp both on (bridge-patched fetch) and off (plain
 // WebView fetch), so the same JS runs on old and new binaries.
 
+import * as Sentry from '@sentry/nextjs'
 import { isCapacitor } from './capacitor'
 import { setAuthToken } from './auth-token'
 
 const VERIFY_URL_PATTERN = /\/passkeys\/(login|register)\/verify/
+// ZeroDev swallows the status/body of these fetches, so a rejected ceremony
+// reaches Sentry only as an opaque "Login not verified" (PEANUT-UI-R0X) with
+// no hint of WHICH server check failed — report non-2xx responses here.
+const PASSKEY_URL_PATTERN = /\/passkeys\/(login|register)\/(options|verify)/
+
+function reportPasskeyHttpFailure(path: string, status: number, body: string): void {
+    Sentry.withScope((scope) => {
+        scope.setFingerprint(['passkey-http-failure', path, String(status)])
+        scope.setTag('error_type', 'passkey_http_failure')
+        Sentry.captureMessage(`passkey ${path} failed with status ${status}`, {
+            level: 'warning',
+            extra: { path, status, body: body.slice(0, 500) },
+        })
+    })
+}
+
+function reportPasskeyFetchFailure(path: string, error: unknown): void {
+    Sentry.withScope((scope) => {
+        scope.setFingerprint(['passkey-fetch-failure', path])
+        scope.setTag('error_type', 'passkey_fetch_failure')
+        Sentry.captureMessage(
+            `passkey ${path} fetch rejected: ${error instanceof Error ? error.message : String(error)}`,
+            { level: 'warning', extra: { path } }
+        )
+    })
+}
 
 let installed = false
 let underlyingFetch: typeof fetch | null = null
@@ -29,9 +56,29 @@ export function installNativeAuthCapture(): void {
     underlyingFetch = window.fetch
     const originalFetch = window.fetch.bind(window)
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-        const response = await originalFetch(input, init)
+        const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+        const passkeyPath = PASSKEY_URL_PATTERN.exec(url)?.[0] ?? null
+
+        let response: Response
         try {
-            const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+            response = await originalFetch(input, init)
+        } catch (error) {
+            if (passkeyPath) {
+                try {
+                    reportPasskeyFetchFailure(passkeyPath, error)
+                } catch {}
+            }
+            throw error
+        }
+
+        try {
+            if (passkeyPath && !response.ok) {
+                const body = await response
+                    .clone()
+                    .text()
+                    .catch(() => '')
+                reportPasskeyHttpFailure(passkeyPath, response.status, body)
+            }
             if (response.ok && VERIFY_URL_PATTERN.test(url)) {
                 const body = await response.clone().json()
                 if (body && typeof body.token === 'string' && body.token) {

@@ -36,7 +36,7 @@ export const useRainCardOverview = () => {
         // `hasApplication: false` every time. Card users keep the 30s cadence;
         // everyone else refetches on focus, and the `user_rail_status_changed`
         // WebSocket invalidation below resumes polling the moment they apply.
-        refetchInterval: (query) => (query.state.data?.status.hasApplication === false ? false : 30_000),
+        refetchInterval: (query) => (query.state.data?.status?.hasApplication === false ? false : 30_000),
         refetchOnWindowFocus: true,
         retry: 1,
     })
