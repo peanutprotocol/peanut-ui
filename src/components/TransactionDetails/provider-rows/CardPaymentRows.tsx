@@ -6,7 +6,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { type DisputeStatus, type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { friendlyDeclineReason } from '@/utils/cardDeclineReason'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
-import { extractMerchantIso2, parseCents } from '@/components/TransactionDetails/transaction-details.utils'
+import { extractMerchantIso2 } from '@/components/TransactionDetails/transaction-details.utils'
 
 /** Strings from Rain's sandbox arrive whitespace-padded ("  ", " - ") and
  *  legacy intents in the DB pre-date the backend cleanField pass — treat any
@@ -17,6 +17,14 @@ function nonBlank(value: string | null | undefined): string | null {
     if (trimmed.length === 0) return null
     if (/^[-_]{1,3}$/.test(trimmed)) return null
     return trimmed
+}
+
+/** Parse a cents amount and reject NaN / Infinity / null up-front so the
+ *  drawer never renders "Charged in NaN EUR". */
+function parseCents(value: string | null | undefined): number | null {
+    if (value == null) return null
+    const n = Number(value)
+    return Number.isFinite(n) ? n : null
 }
 
 /**
@@ -142,28 +150,15 @@ export function CardPaymentRows({
     }
 
     // Spec §4.6 — settled amount differs from the original auth (overcapture,
-    // tip, partial capture). Break out the hold vs the delta so the math is
-    // explicit. "Initial hold" over "Authorized": hold is the one card term
-    // users already know (hotels, gas stations). The words — examples and the
-    // merchant-recourse path — live in CardAdjustmentNotice below the details
-    // card, visible instead of behind an info-icon tooltip nobody opens.
+    // tip, partial capture). Show the original auth amount as a hint.
     if (card.settlementAdjusted) {
         const authCents = parseCents(card.authAmount)
-        const settledCents = parseCents(card.settledAmount)
         if (authCents != null) {
             subRows.push({
-                key: 'initialHold',
-                label: 'Initial hold',
+                key: 'adjustedFrom',
+                label: 'Original amount',
                 value: `$${(authCents / 100).toFixed(2)}`,
             })
-            if (settledCents != null && settledCents !== authCents) {
-                const deltaCents = settledCents - authCents
-                subRows.push({
-                    key: 'settlementAdjustment',
-                    label: 'Adjustment',
-                    value: `${deltaCents > 0 ? '+' : '-'}$${(Math.abs(deltaCents) / 100).toFixed(2)}`,
-                })
-            }
         }
     }
 

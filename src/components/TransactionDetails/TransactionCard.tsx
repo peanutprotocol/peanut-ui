@@ -174,16 +174,6 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const isDeclinedCardSpend =
         status === 'failed' && isCardPaymentEntry(transaction) && !transaction.extraDataForDrawer?.cardPayment?.isRefund
 
-    // Settlement cleared at a different amount than authorized (tip / FX
-    // true-up) — flag the row so the balance impact isn't invisible in the
-    // feed; the receipt carries the authorized/adjustment breakdown. Refunds
-    // excluded like isDeclinedCardSpend above — a refund-auth that clears at
-    // a different amount would otherwise render "Refund · Adjusted".
-    const isAdjustedCardSpend =
-        isCardPaymentEntry(transaction) &&
-        Boolean(transaction.extraDataForDrawer?.cardPayment?.settlementAdjusted) &&
-        !transaction.extraDataForDrawer?.cardPayment?.isRefund
-
     return (
         <>
             {/* the clickable card */}
@@ -254,7 +244,6 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                           : getActionText(type, status)}
                                 </span>
                                 {status && <StatusPill status={status} />}
-                                {isAdjustedCardSpend && <span>· Adjusted</span>}
                             </div>
                         </div>
                     </div>
