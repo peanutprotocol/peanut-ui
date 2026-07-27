@@ -81,6 +81,36 @@ describe('demoRespond — routing', () => {
         const after = await body('/users/me')
         expect(after.data.user.activationCelebratedAt).toBeTruthy()
     })
+
+    it('persists the celebration stamp across cold starts via localStorage', async () => {
+        // in-memory-only state re-showed the modal on every demo launch; a fresh
+        // module registry per isolateModules block simulates the cold start
+        const store: Record<string, string> = {}
+        ;(globalThis as { window?: unknown }).window = {
+            localStorage: {
+                getItem: (k: string) => store[k] ?? null,
+                setItem: (k: string, v: string) => {
+                    store[k] = v
+                },
+            },
+        }
+        try {
+            await jest.isolateModulesAsync(async () => {
+                const { demoRespond: freshRespond } = await import('@/utils/demo-api')
+                await freshRespond('/update-user', {
+                    method: 'POST',
+                    body: JSON.stringify({ username: 'demo', dismissActivationCelebration: true }),
+                })
+            })
+            await jest.isolateModulesAsync(async () => {
+                const { demoRespond: freshRespond } = await import('@/utils/demo-api')
+                const data = await (await freshRespond('/users/me')).json()
+                expect(data.user.activationCelebratedAt).toBeTruthy()
+            })
+        } finally {
+            delete (globalThis as { window?: unknown }).window
+        }
+    })
 })
 
 describe('demoRespond — rain card overview', () => {
