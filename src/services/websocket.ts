@@ -164,6 +164,14 @@ export class PeanutWebSocket {
             this.authFailed = true
             this.emit('auth_error', { reason: 'no-session' })
             this.disconnect()
+            // `disconnect()` nulls onclose before closing, so handleClose — the
+            // only other place that emits 'disconnect' — never runs on this
+            // path. Emit it here or consumers that track connect/disconnect
+            // pairs (useWebSocket maps them straight onto its status) stay
+            // stuck reporting "connected" forever, with no reconnect scheduled
+            // to correct it. We already emitted 'connect' above: the socket did
+            // open, we are closing it again.
+            this.emit('disconnect', { code: 0, reason: 'no-session' })
             return
         }
 

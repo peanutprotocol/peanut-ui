@@ -134,6 +134,15 @@ const HomeHistory = ({
         ),
     })
 
+    // Live entries only belong in the list when the list IS the signed-in
+    // user's. The socket is now always our OWN channel, so on someone else's
+    // profile `wsHistoryEntries` are the VIEWER's transactions — merging them
+    // would inject them into the profile owner's history.
+    const liveEntries = useMemo(
+        () => (isViewingOwnHistory ? wsHistoryEntries : []),
+        [isViewingOwnHistory, wsHistoryEntries]
+    )
+
     // Combine fetched history with real-time updates
     const [combinedEntries, setCombinedEntries] = useState<Array<any>>([])
 
@@ -186,7 +195,7 @@ const HomeHistory = ({
 
                 // process websocket entries: update existing or add new ones
                 // Sort by timestamp ascending to process oldest entries first
-                const sortedWsEntries = [...wsHistoryEntries].sort(
+                const sortedWsEntries = [...liveEntries].sort(
                     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
                 )
 
@@ -288,7 +297,7 @@ const HomeHistory = ({
             }
         }
         return undefined
-    }, [historyData, wsHistoryEntries, user, isLoading, isViewingOwnHistory, cardInfo, rainOverview])
+    }, [historyData, liveEntries, user, isLoading, isViewingOwnHistory, cardInfo, rainOverview])
 
     const pendingRequests = useMemo(() => {
         if (!combinedEntries.length) return []
@@ -353,7 +362,7 @@ const HomeHistory = ({
     }
 
     // check source data directly — combinedEntries lags behind due to async processing
-    const hasSourceEntries = (historyData?.entries?.length ?? 0) > 0 || wsHistoryEntries.length > 0
+    const hasSourceEntries = (historyData?.entries?.length ?? 0) > 0 || liveEntries.length > 0
 
     // Synthetic entries (KYC region rows, card-unlock) live in
     // combinedEntries but NOT in source-side historyData/wsHistoryEntries.
