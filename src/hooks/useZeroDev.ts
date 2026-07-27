@@ -198,7 +198,7 @@ export const useZeroDev = () => {
             // Cancel saved no state; everything else clears stale state and reports the error to Sentry.
             if (code !== 'LOGIN_CANCELED') {
                 console.error('Error logging in', err)
-                clearAuthState(user?.user.userId)
+                await clearAuthState(user?.user.userId)
                 captureException(err, { tags: { error_type: 'login_error' } })
             } else if (isCapacitor()) {
                 // the native plugin maps ceremony failures (.failed/.notHandled) to the

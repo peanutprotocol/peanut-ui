@@ -114,7 +114,7 @@ export const useAccountSetup = () => {
             setError('Error adding account. Please try refreshing the page.')
 
             // clear auth state if account creation fails
-            clearAuthState(user?.user.userId)
+            await clearAuthState(user?.user.userId)
             return false
         } finally {
             setIsProcessing(false)
