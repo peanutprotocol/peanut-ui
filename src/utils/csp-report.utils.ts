@@ -1,0 +1,156 @@
+/**
+ * CSP violation report handling.
+ *
+ * Violation reports are POSTed by the browser straight to the policy's
+ * `report-uri` / `report-to` endpoint. They never travel through the Sentry
+ * browser SDK, so `beforeSend` / `shouldIgnoreError` in sentry.utils.ts cannot
+ * see or drop them — which is why the noise filter lives here, behind the
+ * /api/csp-report collector, instead of alongside the other Sentry filters.
+ */
+
+/**
+ * Legacy `report-uri` payload (`application/csp-report`). Still what Firefox
+ * and Safari send today. Kept as the canonical internal shape because it is
+ * also the shape Sentry's security endpoint ingests.
+ */
+export interface CspReport {
+    'blocked-uri'?: string
+    'document-uri'?: string
+    'effective-directive'?: string
+    'violated-directive'?: string
+    'source-file'?: string
+    [key: string]: unknown
+}
+
+/** One entry of a Reporting-API (`report-to`) `application/reports+json` batch. */
+interface ReportingApiEntry {
+    type?: string
+    body?: Record<string, unknown>
+}
+
+/**
+ * Schemes that only ever appear because a browser extension (or the browser
+ * itself) injected a script, style or request into our page. They are
+ * inherently unfixable: an extension's origin is per-install, so no allow-list
+ * entry can ever cover them, and nothing we ship causes them.
+ *
+ * Sentry's own security endpoint already drops most of this class server-side
+ * (no `chrome-extension://` report has reached the project), so this is
+ * defense-in-depth rather than the main lever — it keeps the guarantee ours
+ * instead of depending on a Sentry project setting nobody remembers exists.
+ * The bulk of the noise is repeated reports of one violation, which
+ * cspReportGroupKey + the collector's de-duplication handle generically —
+ * including injected hosts like Google Translate's fonts.gstatic.com that
+ * arrive over plain https and no scheme check could catch.
+ */
+const EXTENSION_SCHEMES = [
+    'chrome-extension:',
+    'moz-extension:',
+    'safari-extension:',
+    'safari-web-extension:',
+    'ms-browser-extension:',
+    'webkit-masked-url:',
+    'resource:', // Firefox internal pages/scripts
+    'chrome:', // Chromium internal pages/scripts
+    'about:', // about:blank / about:srcdoc injections
+]
+
+function isUnfixableOrigin(value: unknown): boolean {
+    if (typeof value !== 'string') return false
+    const lower = value.toLowerCase()
+    return EXTENSION_SCHEMES.some((scheme) => lower.startsWith(scheme))
+}
+
+/**
+ * True when a report is noise we can never act on. Deliberately narrow: the
+ * keyword blocked-uris (`inline`, `eval`, `data`, `blob`) are NOT filtered —
+ * those are genuine signal about how loose script-src still is, and they are
+ * exactly what has to be driven to zero before the policy can be enforced.
+ */
+export function shouldIgnoreCspReport(report: CspReport): boolean {
+    return isUnfixableOrigin(report['blocked-uri']) || isUnfixableOrigin(report['source-file'])
+}
+
+/** Reporting-API body (camelCase) → the legacy hyphenated shape. */
+function fromReportingApi(body: Record<string, unknown>): CspReport {
+    return {
+        'blocked-uri': body.blockedURL as string | undefined,
+        'document-uri': body.documentURL as string | undefined,
+        'effective-directive': body.effectiveDirective as string | undefined,
+        // Sentry keys its CSP grouping off violated-directive; the Reporting
+        // API dropped the field, so mirror the effective one.
+        'violated-directive': body.effectiveDirective as string | undefined,
+        'original-policy': body.originalPolicy,
+        'source-file': body.sourceFile as string | undefined,
+        'line-number': body.lineNumber,
+        'column-number': body.columnNumber,
+        'script-sample': body.sample,
+        'status-code': body.statusCode,
+        disposition: body.disposition,
+        referrer: body.referrer,
+    }
+}
+
+/**
+ * Accept either wire format and return the reports in the legacy shape.
+ * Unrecognised payloads yield an empty list rather than throwing — a malformed
+ * report is never worth a 5xx back to the browser.
+ */
+export function normalizeCspReports(payload: unknown): CspReport[] {
+    if (!payload || typeof payload !== 'object') return []
+
+    // `report-to` — a batch of reports, only some of which are CSP violations.
+    if (Array.isArray(payload)) {
+        return (payload as ReportingApiEntry[])
+            .filter((entry) => entry?.type === 'csp-violation' && entry.body && typeof entry.body === 'object')
+            .map((entry) => fromReportingApi(entry.body as Record<string, unknown>))
+    }
+
+    // `report-uri` — a single report under the `csp-report` key.
+    const legacy = (payload as Record<string, unknown>)['csp-report']
+    if (legacy && typeof legacy === 'object' && !Array.isArray(legacy)) return [legacy as CspReport]
+
+    return []
+}
+
+/**
+ * Grouping key used to decide whether a report is the first of its kind.
+ * Mirrors how Sentry groups CSP issues (directive + blocked origin), so "first
+ * of its kind here" means "would create a new Sentry issue".
+ */
+export function cspReportGroupKey(report: CspReport): string {
+    const directive = report['effective-directive'] || report['violated-directive'] || 'unknown'
+    const blocked = report['blocked-uri'] || 'unknown'
+    // Only the origin matters for grouping; paths and query strings vary per
+    // request and would otherwise make every single report look distinct.
+    let origin = blocked
+    try {
+        origin = new URL(blocked).origin
+    } catch {
+        // Keyword blocked-uris (`inline`, `eval`, …) are not URLs — use as-is.
+    }
+    return `${directive}|${origin}`
+}
+
+/**
+ * Sentry's CSP ingest endpoint, derived from the browser DSN
+ * (`<protocol>://<publicKey>@<host><path>/<projectId>`). Returns null when the
+ * DSN is absent or malformed, in which case reports are simply dropped.
+ *
+ * Protocol and any path prefix are preserved: self-hosted Sentry is commonly
+ * mounted under a sub-path, and flattening one would silently post reports to
+ * an endpoint that doesn't exist.
+ */
+export function sentryCspIngestUrl(dsn: string | undefined): string | null {
+    if (!dsn) return null
+    try {
+        const { protocol, host, username, pathname } = new URL(dsn)
+        const segments = pathname.split('/').filter(Boolean)
+        const projectId = segments.pop()
+        if (!host || !username || !projectId) return null
+        const prefix = segments.length ? `/${segments.join('/')}` : ''
+        return `${protocol}//${host}${prefix}/api/${projectId}/security/?sentry_key=${username}`
+    } catch {
+        return null
+    }
+}
