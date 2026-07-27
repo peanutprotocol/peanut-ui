@@ -210,18 +210,32 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
     }, [isScanning])
 
     const handleUsePasteChip = async () => {
+        let address: string | null
         try {
             const { value } = await Clipboard.read()
-            const address = extractPaymentValue((value ?? '').trim(), 'evmAddress')
-            if (address) {
-                await onScan(address)
-            } else {
-                setShowPasteChip(false)
-                toast.error('Copied text is not a wallet address')
-            }
-        } catch {
+            address = extractPaymentValue((value ?? '').trim(), 'evmAddress')
+        } catch (err) {
             setShowPasteChip(false)
-            toast.error('Could not access clipboard')
+            // Android rejects with "There is no data on the clipboard" instead of
+            // resolving with an empty value — same mapping as handlePaste.
+            const message = err instanceof Error ? err.message : String(err)
+            toast.error(
+                message.toLowerCase().includes('no data on the clipboard')
+                    ? 'Clipboard is empty'
+                    : 'Could not access clipboard'
+            )
+            return
+        }
+        if (!address) {
+            setShowPasteChip(false)
+            toast.error('Copied text is not a wallet address')
+            return
+        }
+        try {
+            await onScan(address)
+        } catch (err) {
+            console.error('Error processing QR code:', err)
+            toast.error('Error processing QR code')
         }
     }
 
