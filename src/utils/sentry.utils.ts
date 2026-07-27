@@ -293,15 +293,50 @@ function shouldSkipReporting(url: string, status: number): boolean {
     return false
 }
 
-/** Use configured fetch timeout or default to 10s
- * We use 10s because vercel function timout is 15s and this function
- * can be called in that context, and we preffer to have control over
- * the error message and handling
+/**
+ * Vercel's function-duration ceiling: the `maxDuration` in `vercel.json`, in ms.
+ * That glob covers route handlers; server actions and RSC renders fall back to
+ * the project default, which Fluid compute also sets to 300s
+ * (https://vercel.com/docs/functions/configuring-functions/duration).
+ * `sentry.utils.test.ts` reads vercel.json and fails if the two drift.
  */
-const DEFAULT_TIMEOUT_MS =
-    process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS && !isNaN(parseInt(process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS, 10))
-        ? parseInt(process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS, 10)
-        : 10000
+export const VERCEL_FUNCTION_MAX_DURATION_MS = 300_000
+
+/**
+ * Server-side budget. Must abort well before the platform ceiling above so we
+ * own the error surface instead of leaking an opaque platform 504. A Vercel
+ * function calling api.peanut.me is a datacenter-to-datacenter hop, so 30s is
+ * already generous — the ceiling is the safety net, not the target.
+ */
+export const SERVER_FETCH_TIMEOUT_MS = 30_000
+
+/**
+ * Client-side budget. No platform ceiling applies in a browser, only real
+ * mobile networks — and 10s sat below the page load itself in high-latency
+ * markets (Nigeria p90 LCP 11.3s vs 6.1s globally), aborting healthy requests.
+ * Bounded above by React Query retries, which multiply it; the worst-case total
+ * is pinned in `sentry.utils.test.ts` against RETRY_STRATEGIES.FAST.
+ */
+export const CLIENT_FETCH_TIMEOUT_MS = 20_000
+
+/**
+ * `NEXT_PUBLIC_FETCH_TIMEOUT_MS` is an explicit override of both budgets. It
+ * must be a positive integer of milliseconds — `parseInt` would have accepted
+ * `"30s"` as 30 and `"0"` as 0, silently aborting every request instantly, so
+ * anything malformed falls back to the default rather than bricking fetches.
+ * Both inputs are parameters so the function stays pure: jsdom always defines
+ * `window`, so the server branch is otherwise unreachable from tests.
+ */
+export const resolveDefaultTimeoutMs = (
+    isServer: boolean,
+    override: string | undefined = process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS
+): number => {
+    const parsed = Number(override)
+    if (override && Number.isInteger(parsed) && parsed > 0) return parsed
+    return isServer ? SERVER_FETCH_TIMEOUT_MS : CLIENT_FETCH_TIMEOUT_MS
+}
+
+const DEFAULT_TIMEOUT_MS = resolveDefaultTimeoutMs(typeof window === 'undefined')
 
 const getErrorLevelFromStatus = (status: number): Sentry.SeverityLevel => {
     if (status >= 500) return 'error'
