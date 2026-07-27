@@ -79,10 +79,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         const reports = normalizeCspReports(await request.json())
 
+        // Cap BEFORE shouldForward, never after: shouldForward records each
+        // group as seen, so truncating afterwards would mark groups seen that
+        // were never actually sent — their real first sighting would be lost
+        // and every later repeat sampled away as a duplicate.
         const forwardable = reports
             .filter((report) => !shouldIgnoreCspReport(report))
-            .filter((report) => shouldForward(cspReportGroupKey(report)))
             .slice(0, MAX_FORWARDS_PER_REQUEST)
+            .filter((report) => shouldForward(cspReportGroupKey(report)))
 
         await Promise.allSettled(
             forwardable.map((report) =>

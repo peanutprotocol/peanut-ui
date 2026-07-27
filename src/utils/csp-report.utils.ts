@@ -130,8 +130,15 @@ export function cspReportGroupKey(report: CspReport): string {
     // gets sampled away, and its issue may never be created — and those two
     // are the top of this policy's "tighten before enforcing" list, precisely
     // the signal the de-duplication must never swallow.
+    //
+    // Matches the whole script-src family, not just the bare directive:
+    // browsers report the specific sub-directive they checked, so inline
+    // <script> violations arrive as `script-src-elem` and inline handlers as
+    // `script-src-attr` (only eval stays plain `script-src`). Keying more
+    // finely than Sentry is always safe — it can only over-forward — whereas
+    // keying more coarsely is what loses an issue.
     const violated = String(report['violated-directive'] ?? '')
-    if (directive === 'script-src') {
+    if (directive === 'script-src' || directive.startsWith('script-src-')) {
         for (const keyword of ['unsafe-inline', 'unsafe-eval']) {
             if (violated.includes(keyword)) return `${directive}|${keyword}`
         }

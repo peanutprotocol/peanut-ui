@@ -153,6 +153,22 @@ describe('cspReportGroupKey', () => {
         )
     })
 
+    // What browsers actually emit: the specific sub-directive that was checked.
+    // Inline <script> reports as script-src-elem, inline handlers as
+    // script-src-attr; only eval stays plain script-src.
+    it.each(['script-src-elem', 'script-src-attr'])(
+        'applies the keyword grouping to %s, not just the bare script-src',
+        (directive) => {
+            expect(
+                cspReportGroupKey({
+                    'effective-directive': directive,
+                    'violated-directive': `${directive} 'unsafe-inline'`,
+                    'blocked-uri': 'inline',
+                })
+            ).toBe(`${directive}|unsafe-inline`)
+        }
+    )
+
     it('leaves a normal script-src host violation keyed on its origin', () => {
         expect(
             cspReportGroupKey({
