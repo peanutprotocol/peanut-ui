@@ -1,0 +1,8 @@
+# Peanut — security contact
+# https://peanut.me/en/help/security-disclosure
+
+Contact: https://peanut.me/en/help/security-disclosure
+Policy: https://peanut.me/en/help/security-disclosure
+Expires: 2027-07-27T00:00:00.000Z
+Preferred-Languages: en, es, pt
+Canonical: https://peanut.me/.well-known/security.txt

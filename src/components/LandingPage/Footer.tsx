@@ -78,6 +78,9 @@ const Footer = ({ showSiteDirectory = true, locale = 'en' }: { showSiteDirectory
                         <Link className="text-xl font-bold text-white" href={`/${locale}/privacy`}>
                             Privacy
                         </Link>
+                        <Link className="text-xl font-bold text-white" href={`/${locale}/help/security-disclosure`}>
+                            Security
+                        </Link>
                         <a
                             className="text-xl font-bold text-white"
                             href="https://peanutprotocol.notion.site/Career-b351de56d92e405e962f0027b3a60f52"
