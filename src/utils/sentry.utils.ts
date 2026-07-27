@@ -295,28 +295,32 @@ function shouldSkipReporting(url: string, status: number): boolean {
 }
 
 /**
- * Vercel's function-duration ceiling: the `maxDuration` in `vercel.json`, in ms.
- * That glob covers route handlers; server actions and RSC renders fall back to
- * the project default, which Fluid compute also sets to 300s
- * (https://vercel.com/docs/functions/configuring-functions/duration).
- * `sentry.utils.test.ts` reads vercel.json and fails if the two drift.
+ * Server-side budget — deliberately UNCHANGED at the historical 10s.
+ *
+ * A server fetch runs inside a Vercel function, so it must abort before the
+ * platform kills the function, otherwise we leak an opaque 504 instead of
+ * owning the error. The old comment here put that ceiling at 15s; today
+ * `vercel.json` says `maxDuration: 300` — but that entry declares the glob
+ * `app/api/**` while this project keeps its routes under `src/app/api/`, and
+ * Vercel requires the `src/` prefix for src-directory projects, so the entry
+ * currently matches nothing. The real ceiling is therefore the project default
+ * (300s with Fluid compute, far lower without), which cannot be read from the
+ * repo.
+ *
+ * Raising this buys little — a Vercel→api.peanut.me call is a datacenter hop,
+ * not a mobile network — and risks sitting ABOVE an unverified ceiling, which
+ * would reintroduce exactly the 504s the original 10s existed to prevent. So it
+ * stays put until the ceiling is confirmed. See the PR for the follow-up.
  */
-export const VERCEL_FUNCTION_MAX_DURATION_MS = 300_000
+export const SERVER_FETCH_TIMEOUT_MS = 10_000
 
 /**
- * Server-side budget. Must abort well before the platform ceiling above so we
- * own the error surface instead of leaking an opaque platform 504. A Vercel
- * function calling api.peanut.me is a datacenter-to-datacenter hop, so 30s is
- * already generous — the ceiling is the safety net, not the target.
- */
-export const SERVER_FETCH_TIMEOUT_MS = 30_000
-
-/**
- * Client-side budget. No platform ceiling applies in a browser, only real
- * mobile networks — and 10s sat below the page load itself in high-latency
- * markets (Nigeria p90 LCP 11.3s vs 6.1s globally), aborting healthy requests.
- * Bounded above by React Query retries, which multiply it; the worst-case total
- * is pinned in `sentry.utils.test.ts` against RETRY_STRATEGIES.FAST.
+ * Client-side budget — the actual fix. No platform ceiling applies in a
+ * browser, only real mobile networks, and 10s sat below the page load itself in
+ * high-latency markets (Nigeria p90 LCP 11.3s vs 6.1s globally), aborting
+ * healthy requests and reporting them as failures. Bounded above by React Query
+ * retries, which multiply it; the worst-case total for the default retry
+ * strategy is pinned in `sentry.utils.test.ts`.
  */
 export const CLIENT_FETCH_TIMEOUT_MS = 20_000
 
