@@ -39,7 +39,6 @@ import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
 import CopyToClipboard from '../Global/CopyToClipboard'
 import CancelSendLinkModal from '../Global/CancelSendLinkModal'
 import { twMerge } from 'tailwind-merge'
-import { isAddress } from 'viem'
 import { getAccountCopyValue, getBankAccountLabel } from './transaction-details.utils'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useRouter } from 'next/navigation'
@@ -418,11 +417,11 @@ export const TransactionDetailsReceipt = ({
                             label={'To'}
                             value={
                                 <div className="flex items-center gap-2">
-                                    <span>
-                                        {isAddress(transaction.userName)
-                                            ? printableAddress(transaction.userName)
-                                            : transaction.userName}
-                                    </span>
+                                    {/* printableAddress shortens Solana/Tron/EVM and
+                                        passes usernames through — no viem isAddress
+                                        pre-guard, which is EVM-only and let 44-char
+                                        Solana counterparties render full-length. */}
+                                    <span>{printableAddress(transaction.userName)}</span>
                                     <CopyToClipboard textToCopy={transaction.userName} iconSize="4" />
                                 </div>
                             }

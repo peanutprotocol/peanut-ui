@@ -1,4 +1,4 @@
-import { formatIban } from './general.utils'
+import { formatIban, shortenStringLong } from './general.utils'
 
 /**
  * Per-rail bank account masking for receipt display.
@@ -87,10 +87,19 @@ export function maskAccountIdentifier(
     accountType: string | null | undefined
 ): string {
     if (!identifier) return ''
-    // Crypto wallet addresses are shown verbatim — never routed through the
-    // 'plain' branch's IBAN-shape heuristic, which mangles base58 addresses
-    // whose 2nd char is a letter and 3rd a digit (e.g. Tron `TN9R…`).
-    if (isCryptoAddressType(accountType)) return identifier
+    // Crypto wallet addresses are shortened for display ("BfbXuD...NKNb19") —
+    // a full 44-char Solana address is one unbreakable token that overflows
+    // the receipt card on mobile. Copy still yields the verbatim address via
+    // getAccountCopyValue. Shorten by wire type, NOT via printableAddress's
+    // shape re-validation (viem isAddress rejects wrong-checksum mixed-case
+    // strings and would fall back to the full overflowing address). Never
+    // route these through the 'plain' branch's IBAN-shape heuristic, which
+    // mangles case-sensitive base58 (Tron `TN9R…`). The length guard keeps
+    // degenerate short identifiers intact — shortenStringLong would garble
+    // anything shorter than its 6+6 window; real addresses are 32+ chars.
+    if (isCryptoAddressType(accountType)) {
+        return identifier.length <= 16 ? identifier : shortenStringLong(identifier)
+    }
     const rail = (accountType ?? '').toUpperCase()
     const rule = MASK_RULES[rail] ?? { mode: 'plain' as MaskMode }
 
