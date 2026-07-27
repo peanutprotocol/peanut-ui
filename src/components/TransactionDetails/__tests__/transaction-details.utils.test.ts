@@ -55,12 +55,22 @@ describe('getAccountCopyValue — copy path', () => {
 })
 
 describe('maskAccountIdentifier — display path', () => {
-    test("Tron address with a digit 3rd char (wire type 'address') displays VERBATIM, not IBAN-chunked", () => {
-        expect(maskAccountIdentifier(TRON_ADDR_DIGIT, 'address')).toBe(TRON_ADDR_DIGIT)
+    // Shortened (start...end), never IBAN-chunked — the full 34/44-char
+    // address is one unbreakable token that overflows the receipt card on
+    // mobile (Crisp session_779df6b2, TASK-20889). Copy stays verbatim —
+    // see the getAccountCopyValue suite above.
+    test("Tron address with a digit 3rd char (wire type 'address') displays shortened, not IBAN-chunked", () => {
+        expect(maskAccountIdentifier(TRON_ADDR_DIGIT, 'address')).toBe('TN9RRa...zxLQPP')
     })
 
-    test("Solana address (wire type 'address') displays VERBATIM", () => {
-        expect(maskAccountIdentifier(SOLANA_ADDR, 'address')).toBe(SOLANA_ADDR)
+    test("Solana address (wire type 'address') displays shortened", () => {
+        expect(maskAccountIdentifier(SOLANA_ADDR, 'address')).toBe('6PqX5b...U9iM6b')
+    })
+
+    test("EVM address (wire type 'evm-address') displays shortened", () => {
+        expect(maskAccountIdentifier('0xCfB0eA7Ba06EffC1534f232736c31F69aD03F91b', 'evm-address')).toBe(
+            '0xCfB0...03F91b'
+        )
     })
 
     test('IBAN rail still masks to last-4 groups (no regression)', () => {
