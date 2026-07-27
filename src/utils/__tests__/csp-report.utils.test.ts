@@ -116,6 +116,53 @@ describe('cspReportGroupKey', () => {
         )
     })
 
+    // Sentry's csp:v1 strategy keys these two on the keyword rather than the
+    // blocked URI, so it raises two separate issues. If the group key collapsed
+    // them, the second would be sampled away as a duplicate and its issue might
+    // never be created — in the one category this policy most needs to see.
+    it('separates unsafe-inline from unsafe-eval, matching how Sentry groups them', () => {
+        const inline = cspReportGroupKey({
+            'effective-directive': 'script-src',
+            'violated-directive': "script-src 'unsafe-inline'",
+            'blocked-uri': 'inline',
+        })
+        const evaluated = cspReportGroupKey({
+            'effective-directive': 'script-src',
+            'violated-directive': "script-src 'unsafe-eval'",
+            'blocked-uri': 'eval',
+        })
+
+        expect(inline).toBe('script-src|unsafe-inline')
+        expect(evaluated).toBe('script-src|unsafe-eval')
+        expect(inline).not.toBe(evaluated)
+    })
+
+    it('groups one keyword consistently even when browsers report a different blocked-uri', () => {
+        expect(
+            cspReportGroupKey({
+                'effective-directive': 'script-src',
+                'violated-directive': "script-src 'unsafe-inline'",
+                'blocked-uri': 'inline',
+            })
+        ).toBe(
+            cspReportGroupKey({
+                'effective-directive': 'script-src',
+                'violated-directive': "script-src 'unsafe-inline'",
+                'blocked-uri': 'self',
+            })
+        )
+    })
+
+    it('leaves a normal script-src host violation keyed on its origin', () => {
+        expect(
+            cspReportGroupKey({
+                'effective-directive': 'script-src',
+                'violated-directive': 'script-src',
+                'blocked-uri': 'https://cdn.example/x.js',
+            })
+        ).toBe('script-src|https://cdn.example')
+    })
+
     it('falls back to violated-directive when the effective one is absent', () => {
         expect(cspReportGroupKey({ 'violated-directive': 'connect-src', 'blocked-uri': 'inline' })).toBe(
             'connect-src|inline'

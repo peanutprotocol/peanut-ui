@@ -18,10 +18,12 @@ export const dynamic = 'force-dynamic'
  * the Sentry browser SDK entirely, so no `beforeSend` filter could touch them —
  * the only place to filter is an endpoint we own.
  *
- * This forwards to Sentry exactly as before, minus two classes of pure noise:
- * repeats of a violation Sentry has already grouped (the dominant class — one
- * missing allow-list entry produced 14k events on its own) and reports injected
- * by browser extensions.
+ * This forwards to Sentry exactly as before, minus repeats of a violation
+ * Sentry has already grouped — one missing allow-list entry produced 14k
+ * identical events on its own, so de-duplication is the entire lever here. The
+ * extension-scheme filter in csp-report.utils.ts is a cheap extra that saves an
+ * outbound request; Sentry's own default inbound filter already drops that
+ * class server-side, so it is not doing the real work.
  */
 
 /** Both wire formats, plus plain JSON from anything replaying a report. */
@@ -42,6 +44,16 @@ const SEEN_GROUPS_MAX = 500
 const seenGroups = new Set<string>()
 
 const FORWARD_TIMEOUT_MS = 3000
+
+/**
+ * Hard cap on forwards per request. This endpoint is unauthenticated and a
+ * Reporting-API batch is an array, so without a cap one POST could fan out
+ * arbitrarily many events. That matters more than it looks: Sentry bills CSP
+ * reports against the *error* quota under a per-DSN-key rate limit, so an
+ * uncapped fan-out could exhaust the quota that real application exceptions
+ * depend on. A genuine browser batch is a handful of reports.
+ */
+const MAX_FORWARDS_PER_REQUEST = 20
 
 function shouldForward(groupKey: string): boolean {
     if (!seenGroups.has(groupKey)) {
@@ -70,6 +82,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const forwardable = reports
             .filter((report) => !shouldIgnoreCspReport(report))
             .filter((report) => shouldForward(cspReportGroupKey(report)))
+            .slice(0, MAX_FORWARDS_PER_REQUEST)
 
         await Promise.allSettled(
             forwardable.map((report) =>

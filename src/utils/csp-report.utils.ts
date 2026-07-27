@@ -74,7 +74,9 @@ export function shouldIgnoreCspReport(report: CspReport): boolean {
 /** Reporting-API body (camelCase) → the legacy hyphenated shape. */
 function fromReportingApi(body: Record<string, unknown>): CspReport {
     return {
-        'blocked-uri': body.blockedURL as string | undefined,
+        // blockedURL is the spec field; blockedURI is what some Chromium
+        // versions still emit.
+        'blocked-uri': (body.blockedURL ?? body.blockedURI) as string | undefined,
         'document-uri': body.documentURL as string | undefined,
         'effective-directive': body.effectiveDirective as string | undefined,
         // Sentry keys its CSP grouping off violated-directive; the Reporting
@@ -120,6 +122,21 @@ export function normalizeCspReports(payload: unknown): CspReport[] {
  */
 export function cspReportGroupKey(report: CspReport): string {
     const directive = report['effective-directive'] || report['violated-directive'] || 'unknown'
+
+    // Sentry's csp:v1 strategy drops the blocked URI entirely and keys on the
+    // keyword when script-src is violated by 'unsafe-inline' / 'unsafe-eval',
+    // so it raises TWO issues where a URI-based key sees one. Mirror that:
+    // otherwise whichever of the pair arrives second looks like a duplicate,
+    // gets sampled away, and its issue may never be created — and those two
+    // are the top of this policy's "tighten before enforcing" list, precisely
+    // the signal the de-duplication must never swallow.
+    const violated = String(report['violated-directive'] ?? '')
+    if (directive === 'script-src') {
+        for (const keyword of ['unsafe-inline', 'unsafe-eval']) {
+            if (violated.includes(keyword)) return `${directive}|${keyword}`
+        }
+    }
+
     const blocked = report['blocked-uri'] || 'unknown'
     // Only the origin matters for grouping; paths and query strings vary per
     // request and would otherwise make every single report look distinct.
