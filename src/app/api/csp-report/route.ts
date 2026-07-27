@@ -13,8 +13,8 @@ export const dynamic = 'force-dynamic'
  * Collector for the report-only CSP's violation reports.
  *
  * The policy used to point `report-uri` / `report-to` straight at Sentry's
- * security endpoint, which put ~65k events across ~1.3k users into the
- * peanut-ui project in four days and buried real signal. Those reports bypass
+ * security endpoint, which put ~70k events across ~1.8k users into the
+ * peanut-ui project in a week and buried real signal. Those reports bypass
  * the Sentry browser SDK entirely, so no `beforeSend` filter could touch them —
  * the only place to filter is an endpoint we own.
  *
