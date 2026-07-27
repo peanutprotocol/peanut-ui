@@ -17,6 +17,24 @@ const redirectsConfig = require('./redirects.json')
 const CSP_REPORT_PATH = '/api/csp-report'
 
 /**
+ * `report-uri` takes a URI-reference, so the relative path above is valid and
+ * stays correct on every origin (prod, staging, preview URLs alike).
+ *
+ * `Reporting-Endpoints` is not so clearly specified: the Reporting API says an
+ * endpoint is a URL resolved against the document, but MDN and Chrome's own
+ * docs both describe the value as an absolute one. Getting this wrong fails
+ * silently AND expensively — Chromium prefers `report-to` and ignores
+ * `report-uri` whenever both are present, so an endpoint it declines to parse
+ * would cost us every Chromium report without a single error anywhere. Emit an
+ * absolute URL, which is valid under either reading. Mirrors BASE_URL in
+ * src/constants/general.consts.ts.
+ */
+function cspReportEndpoint() {
+    const base = (process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me').replace(/\/$/, '')
+    return `${base}${CSP_REPORT_PATH}`
+}
+
+/**
  * Chain RPC endpoints, which have two independent sources that must both be
  * allowed: `rpcUrls` in src/constants/general.consts.ts (our own viem clients)
  * and viem's per-chain defaults, which wagmi's bare `http()` transports fall
@@ -139,7 +157,7 @@ function contentSecurityPolicyReportOnly() {
 const CSP_REPORT_GROUP = 'csp-endpoint'
 
 function reportingEndpointsHeader() {
-    return [{ key: 'Reporting-Endpoints', value: `${CSP_REPORT_GROUP}="${CSP_REPORT_PATH}"` }]
+    return [{ key: 'Reporting-Endpoints', value: `${CSP_REPORT_GROUP}="${cspReportEndpoint()}"` }]
 }
 
 // Get git commit hash at build time
