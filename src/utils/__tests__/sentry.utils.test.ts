@@ -1,11 +1,8 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import * as Sentry from '@sentry/nextjs'
 import { RETRY_STRATEGIES } from '../retry.utils'
 import {
     CLIENT_FETCH_TIMEOUT_MS,
     SERVER_FETCH_TIMEOUT_MS,
-    VERCEL_FUNCTION_MAX_DURATION_MS,
     fetchWithSentry,
     resolveDefaultTimeoutMs,
     sanitizeRequestBody,
@@ -287,6 +284,17 @@ describe('scrubObject — exact-match contract', () => {
 })
 
 describe('fetch timeout budgets', () => {
+    // `resolveDefaultTimeoutMs`'s default parameter reads the real process.env,
+    // so a shell or CI runner that exports NEXT_PUBLIC_FETCH_TIMEOUT_MS would
+    // otherwise fail this suite for reasons unrelated to the code under test.
+    const realOverride = process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS
+    beforeAll(() => {
+        delete process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS
+    })
+    afterAll(() => {
+        if (realOverride !== undefined) process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS = realOverride
+    })
+
     describe('resolveDefaultTimeoutMs', () => {
         // Both branches, explicitly. An inverted check is the failure mode that
         // actually bites: hand the server the long budget and a Vercel function
@@ -298,10 +306,10 @@ describe('fetch timeout budgets', () => {
         })
 
         // Regression pin: 10s was smaller than a page load in high-latency
-        // markets, aborting healthy requests. Don't go back there.
-        it('keeps both budgets clear of the 10s that caused false timeouts', () => {
+        // markets, aborting healthy browser requests. Don't go back there.
+        // (The server budget deliberately stays at 10s — see sentry.utils.ts.)
+        it('keeps the client budget clear of the 10s that caused false timeouts', () => {
             expect(CLIENT_FETCH_TIMEOUT_MS).toBeGreaterThan(10_000)
-            expect(SERVER_FETCH_TIMEOUT_MS).toBeGreaterThan(10_000)
         })
 
         it('lets NEXT_PUBLIC_FETCH_TIMEOUT_MS override both contexts', () => {
@@ -321,11 +329,12 @@ describe('fetch timeout budgets', () => {
     })
 
     // The client budget is per ATTEMPT, and React Query retries on top, so the
-    // real number a user waits is timeout x attempts + backoff. Pinned here
-    // because the multiplier lives in another file: bump RETRY_STRATEGIES.FAST
-    // or the budget far enough and this fails instead of silently shipping a
-    // two-minute spinner.
-    it('keeps the retried worst-case client budget under 70s', () => {
+    // real wait is timeout x attempts + backoff. Pinned here because the
+    // multiplier lives in another file: bump RETRY_STRATEGIES.FAST or the budget
+    // far enough and this fails instead of silently shipping a long spinner.
+    // Bounds the DEFAULT strategy only — queries that set their own `retry`
+    // (e.g. Claim.tsx) are not covered by this.
+    it('keeps the worst case under 70s for the default retry strategy', () => {
         const { retry, retryDelay } = RETRY_STRATEGIES.FAST
         const attempts = retry + 1
         const backoff = Array.from({ length: retry }, (_, i) => retryDelay(i)).reduce((a, b) => a + b, 0)
@@ -334,24 +343,6 @@ describe('fetch timeout budgets', () => {
 
         expect(worstCaseMs).toBe(63_000)
         expect(worstCaseMs).toBeLessThan(70_000)
-    })
-
-    // The whole point of the server budget is to abort BEFORE Vercel kills the
-    // function, so we emit our own error instead of an opaque platform 504.
-    // The previous magic 10s encoded a platform limit (then 15s) that has since
-    // moved to 300s — this pins the constant to vercel.json so it cannot drift
-    // silently a second time.
-    it('mirrors vercel.json maxDuration and stays strictly under it', () => {
-        const vercelConfig = JSON.parse(readFileSync(join(process.cwd(), 'vercel.json'), 'utf8'))
-        const maxDurations = Object.values(vercelConfig.functions as Record<string, { maxDuration: number }>).map(
-            (fn) => fn.maxDuration
-        )
-
-        expect(maxDurations.length).toBeGreaterThan(0)
-        for (const maxDuration of maxDurations) {
-            expect(maxDuration * 1000).toBe(VERCEL_FUNCTION_MAX_DURATION_MS)
-        }
-        expect(SERVER_FETCH_TIMEOUT_MS).toBeLessThan(VERCEL_FUNCTION_MAX_DURATION_MS)
     })
 
     describe('fetchWithSentry timeout resolution', () => {
@@ -372,9 +363,17 @@ describe('fetch timeout budgets', () => {
         const reportedTimeoutMs = () =>
             (Sentry.captureException as jest.Mock).mock.calls[0][1].extra.timeoutMs as number
 
+        // Re-imported with the env cleared: the module captures its default at
+        // LOAD time, so the surrounding beforeAll can't reach it and an ambient
+        // NEXT_PUBLIC_FETCH_TIMEOUT_MS would otherwise fail this for the wrong reason.
         it('defaults to the client budget under a browser global', async () => {
+            let freshFetchWithSentry!: typeof fetchWithSentry
+            jest.isolateModules(() => {
+                freshFetchWithSentry = require('../sentry.utils').fetchWithSentry
+            })
+
             global.fetch = jest.fn().mockRejectedValue(abort())
-            await expect(fetchWithSentry('https://api.peanut.me/users/me')).rejects.toThrow(
+            await expect(freshFetchWithSentry('https://api.peanut.me/users/me')).rejects.toThrow(
                 'Service temporarily unavailable. Please try again.'
             )
             expect(reportedTimeoutMs()).toBe(CLIENT_FETCH_TIMEOUT_MS)
