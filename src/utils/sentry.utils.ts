@@ -293,15 +293,50 @@ function shouldSkipReporting(url: string, status: number): boolean {
     return false
 }
 
-/** Use configured fetch timeout or default to 10s
- * We use 10s because vercel function timout is 15s and this function
- * can be called in that context, and we preffer to have control over
- * the error message and handling
+/**
+ * Vercel's function-duration ceiling, mirrored from the `functions` entry in
+ * `vercel.json` (300 seconds, expressed here in ms). Fluid compute's
+ * project-wide default is 300s too, so this equally bounds the server actions
+ * and RSC renders `serverFetch` runs inside. `sentry.utils.test.ts` reads
+ * vercel.json and fails if the two ever drift apart.
  */
-const DEFAULT_TIMEOUT_MS =
-    process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS && !isNaN(parseInt(process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS, 10))
-        ? parseInt(process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS, 10)
-        : 10000
+export const VERCEL_FUNCTION_MAX_DURATION_MS = 300_000
+
+/**
+ * Server-side budget. Must abort well before the platform ceiling above so we
+ * own the error surface instead of leaking an opaque platform 504. A Vercel
+ * function calling api.peanut.me is a datacenter-to-datacenter hop, so 30s is
+ * already generous — the ceiling is the safety net, not the target.
+ */
+export const SERVER_FETCH_TIMEOUT_MS = 30_000
+
+/**
+ * Client-side budget. No platform ceiling applies in a browser, only real
+ * mobile networks do. The previous shared 10s came from hand-copying a
+ * (long-since-stale) Vercel limit onto browsers that never run inside a
+ * function, and it was smaller than a page load in high-latency markets —
+ * Nigeria p90 LCP is 11.3s vs 6.1s globally — so healthy-but-slow requests were
+ * aborted and reported as failures. 20s clears that with margin while keeping
+ * the retried worst case bounded: RETRY_STRATEGIES.FAST adds 2 retries at
+ * 1s/2s backoff, so a fully-hung request errors after 3×20s + 3s = 63s.
+ */
+export const CLIENT_FETCH_TIMEOUT_MS = 20_000
+
+/**
+ * `NEXT_PUBLIC_FETCH_TIMEOUT_MS` is an explicit override of both budgets.
+ * `isServer` is a parameter rather than an inlined `typeof window` check so
+ * both branches stay reachable from the jsdom test environment.
+ */
+export const resolveDefaultTimeoutMs = (
+    isServer: boolean,
+    override: string | undefined = process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS
+): number => {
+    const parsed = override ? parseInt(override, 10) : NaN
+    if (!isNaN(parsed)) return parsed
+    return isServer ? SERVER_FETCH_TIMEOUT_MS : CLIENT_FETCH_TIMEOUT_MS
+}
+
+const DEFAULT_TIMEOUT_MS = resolveDefaultTimeoutMs(typeof window === 'undefined')
 
 const getErrorLevelFromStatus = (status: number): Sentry.SeverityLevel => {
     if (status >= 500) return 'error'
