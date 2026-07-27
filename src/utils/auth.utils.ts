@@ -11,7 +11,7 @@ import * as Sentry from '@sentry/nextjs'
  *
  * @param userId - Optional user ID for clearing user-scoped preferences
  */
-export const clearAuthState = (userId?: string) => {
+export const clearAuthState = async (userId?: string) => {
     try {
         // Clear user preferences if userId available
         if (userId) {
@@ -23,7 +23,7 @@ export const clearAuthState = (userId?: string) => {
 
         // Clear the JWT everywhere it can live — on native that's Preferences +
         // the in-memory cache, not the cookie this used to expire by hand.
-        void clearAuthToken()
+        await clearAuthToken()
 
         console.log('Cleared auth state', { userId: userId || 'none' })
     } catch (error) {
