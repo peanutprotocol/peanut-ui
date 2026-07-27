@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import {
     PeanutWebSocket,
     getWebSocketInstance,
@@ -6,6 +7,7 @@ import {
     type RailStatusUpdate,
     type RainCardBalanceChangedData,
 } from '@/services/websocket'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import { type HistoryEntry } from './useTransactionHistory'
 
 type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
@@ -50,6 +52,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     const [status, setStatus] = useState<WebSocketStatus>('disconnected')
     const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([])
     const wsRef = useRef<PeanutWebSocket | null>(null)
+    const queryClient = useQueryClient()
 
     const callbacksRef = useRef({
         onHistoryEntry,
@@ -159,6 +162,14 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
         const handleHistoryEntry = (entry: HistoryEntry) => {
             const kind = entry.extraData?.kind
+            if (!kind) {
+                // Charge-completion pings are minimal {uuid, status} payloads —
+                // the BE (charges-ws) expects clients to refetch, not render.
+                // Rendering one hits the transformer's fallback strategy and
+                // shows "Sent to Transaction $0.00 · Completed" (PEANUT-UI-QCW).
+                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                return
+            }
             if (
                 (kind === 'DIRECT_TRANSFER' || kind === 'P2P_REQUEST_FULFILL') &&
                 entry.status === 'NEW' &&
@@ -255,7 +266,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             ws.off('user_rail_status_changed', handleRailStatusUpdate)
             ws.off('rain_card_balance_changed', handleRainCardBalanceChanged)
         }
-    }, [autoConnect, connect, username])
+    }, [autoConnect, connect, username, queryClient])
 
     // Return exposed functionality
     return {
