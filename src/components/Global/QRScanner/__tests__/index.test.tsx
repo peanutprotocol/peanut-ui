@@ -117,6 +117,38 @@ it('chip tap: onScan failure is not misreported as a clipboard error', async () 
     expect(mockToastError).not.toHaveBeenCalledWith('Could not access clipboard')
 })
 
+it('"Click to paste": onScan failure is not misreported as a clipboard error', async () => {
+    mockIsAndroidNative.mockReturnValue(false)
+    mockHasStrings.mockResolvedValue(false)
+    mockRead.mockResolvedValue({ value: 'some text', type: 'text/plain' })
+
+    const onScan = jest.fn().mockRejectedValue(new Error('routing exploded'))
+    renderScanner(onScan)
+
+    const paste = await screen.findByText('Click to paste')
+    await act(async () => {
+        fireEvent.click(paste)
+    })
+    expect(onScan).toHaveBeenCalledWith('some text')
+    expect(mockToastError).toHaveBeenCalledWith('Error processing QR code')
+    expect(mockToastError).not.toHaveBeenCalledWith('Could not access clipboard')
+})
+
+it('Android chip: onScan failure surfaces a processing error instead of rejecting unhandled', async () => {
+    mockIsAndroidNative.mockReturnValue(true)
+    mockRead.mockResolvedValue({ value: ADDRESS, type: 'text/plain' })
+
+    const onScan = jest.fn().mockRejectedValue(new Error('routing exploded'))
+    renderScanner(onScan)
+
+    const chip = await screen.findByText(ADDRESS)
+    await act(async () => {
+        fireEvent.click(chip)
+    })
+    expect(onScan).toHaveBeenCalledWith(ADDRESS)
+    expect(mockToastError).toHaveBeenCalledWith('Error processing QR code')
+})
+
 it('chip tap: empty clipboard maps to the same copy as "Click to paste"', async () => {
     mockIsAndroidNative.mockReturnValue(false)
     mockHasStrings.mockResolvedValue(true)
