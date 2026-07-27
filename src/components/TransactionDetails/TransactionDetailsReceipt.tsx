@@ -20,7 +20,7 @@ import useClaimLink from '@/components/Claim/useClaimLink'
 import { formatAmount, formatDate, isStableCoin, formatCurrency } from '@/utils/general.utils'
 import { formatPoints } from '@/utils/format.utils'
 import { getAvatarUrl } from '@/utils/history.utils'
-import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
+import { printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
 import { cancelOnramp } from '@/app/actions/onramp'
 import { captureException } from '@sentry/nextjs'
@@ -39,8 +39,7 @@ import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
 import CopyToClipboard from '../Global/CopyToClipboard'
 import CancelSendLinkModal from '../Global/CancelSendLinkModal'
 import { twMerge } from 'tailwind-merge'
-import { isAddress } from 'viem'
-import { getBankAccountLabel } from './transaction-details.utils'
+import { getAccountCopyValue, getBankAccountLabel } from './transaction-details.utils'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useRouter } from 'next/navigation'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
@@ -418,11 +417,11 @@ export const TransactionDetailsReceipt = ({
                             label={'To'}
                             value={
                                 <div className="flex items-center gap-2">
-                                    <span>
-                                        {isAddress(transaction.userName)
-                                            ? printableAddress(transaction.userName)
-                                            : transaction.userName}
-                                    </span>
+                                    {/* printableAddress shortens Solana/Tron/EVM and
+                                        passes usernames through — no viem isAddress
+                                        pre-guard, which is EVM-only and let 44-char
+                                        Solana counterparties render full-length. */}
+                                    <span>{printableAddress(transaction.userName)}</span>
                                     <CopyToClipboard textToCopy={transaction.userName} iconSize="4" />
                                 </div>
                             }
@@ -556,7 +555,10 @@ export const TransactionDetailsReceipt = ({
                                         // visual privacy only; the user owns the account
                                         // and may need to paste it elsewhere.
                                         <CopyToClipboard
-                                            textToCopy={formatIban(transaction.bankAccountDetails.identifier)}
+                                            textToCopy={getAccountCopyValue(
+                                                transaction.bankAccountDetails.identifier,
+                                                transaction.bankAccountDetails.type
+                                            )}
                                             iconSize="4"
                                         />
                                     )}

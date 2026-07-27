@@ -31,6 +31,31 @@ function sentryCspReportUri() {
 }
 
 /**
+ * Chain RPC endpoints, which have two independent sources that must both be
+ * allowed: `rpcUrls` in src/constants/general.consts.ts (our own viem clients)
+ * and viem's per-chain defaults, which wagmi's bare `http()` transports fall
+ * back to for external-wallet flows. Neither is importable here — next.config
+ * is CommonJS and general.consts.ts is TS — so this list is a hand-kept mirror.
+ * Re-check it when either source gains a chain.
+ */
+const chainRpcHosts = [
+    'https://*.core.chainstack.com',
+    'https://*.publicnode.com',
+    'https://*.arbitrum.io',
+    'https://*.drpc.org',
+    'https://mainnet.optimism.io',
+    'https://mainnet.base.org',
+    'https://rpc.scroll.io',
+    'https://bsc-dataseed.bnbchain.org',
+    'https://eth.merkle.io',
+    'https://polygon-rpc.com',
+    'https://rpc.gnosischain.com',
+    'https://rpc.linea.build',
+    'https://forno.celo.org',
+    'https://*.rpc.thirdweb.com',
+]
+
+/**
  * First-draft CSP, shipped REPORT-ONLY.
  *
  * Nothing here is enforced yet: the app currently has no script-src at all, so
@@ -42,15 +67,15 @@ function sentryCspReportUri() {
  * Known-loose parts, to tighten before promotion:
  * - `'unsafe-inline'` / `'unsafe-eval'` in script-src: Next's inline bootstrap
  *   and the wallet SDKs need them today. Moving to nonces is its own change.
- * - connect-src can't enumerate every chain RPC (they come from env and vary by
- *   network), so the report stream is what completes this list.
+ * - `chainRpcHosts` is broad (provider-level wildcards), because a single
+ *   provider serves one subdomain per network.
  */
 function contentSecurityPolicyReportOnly() {
     const reportUri = sentryCspReportUri()
     const directives = [
         "default-src 'self'",
         // PostHog is same-origin via the /relay rewrite, so it needs no entry here.
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://client.crisp.chat https://static.sumsub.com",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://client.crisp.chat https://static.sumsub.com https://cdn.onesignal.com https://api.onesignal.com",
         "style-src 'self' 'unsafe-inline' https://client.crisp.chat",
         "img-src 'self' data: blob: https:",
         "font-src 'self' data: https://client.crisp.chat",
@@ -61,6 +86,12 @@ function contentSecurityPolicyReportOnly() {
             'https://*.ingest.sentry.io',
             'https://*.ingest.us.sentry.io',
             'https://www.google-analytics.com',
+            // GA4 beacons to a region-specific host, and GTM's audience/conversion
+            // pings go to doubleclick and www.google.com.
+            'https://analytics.google.com',
+            'https://*.analytics.google.com',
+            'https://stats.g.doubleclick.net',
+            'https://www.google.com',
             'https://rpc.zerodev.app',
             'https://*.g.alchemy.com',
             'https://rpc.ankr.com',
@@ -68,10 +99,14 @@ function contentSecurityPolicyReportOnly() {
             'https://coin-images.coingecko.com',
             'https://api.frankfurter.app',
             'https://dolarapi.com',
-            'https://client.crisp.chat',
+            'https://ipapi.co',
+            'https://api.justaname.id',
+            'https://*.crisp.chat',
             'wss://client.relay.crisp.chat',
             'https://*.sumsub.com',
             'https://widget.manteca.dev',
+            'https://*.onesignal.com',
+            ...chainRpcHosts,
         ].join(' '),
         "frame-src 'self' https://client.crisp.chat https://*.sumsub.com https://widget.manteca.dev https://mpago.la",
         "worker-src 'self' blob:",
