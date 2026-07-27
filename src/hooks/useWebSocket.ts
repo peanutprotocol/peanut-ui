@@ -163,11 +163,14 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         const handleHistoryEntry = (entry: HistoryEntry) => {
             const kind = entry.extraData?.kind
             if (!kind) {
-                // Charge-completion pings are minimal {uuid, status} payloads —
-                // the BE (charges-ws) expects clients to refetch, not render.
-                // Rendering one hits the transformer's fallback strategy and
-                // shows "Sent to Transaction $0.00 · Completed" (PEANUT-UI-QCW).
+                // Kindless entries are minimal {uuid, status} pings (BE:
+                // charges-ws charge completions, claim.ts sendlink claims) —
+                // the BE expects clients to refetch, not render. Rendering one
+                // hits the transformer's fallback strategy and shows "Sent to
+                // Transaction $0.00 · Completed" (PEANUT-UI-QCW). Balance moves
+                // with these events too, so refresh it alongside the feed.
                 queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                queryClient.invalidateQueries({ queryKey: ['balance'] })
                 return
             }
             if (
