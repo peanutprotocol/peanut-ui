@@ -2295,6 +2295,8 @@
             "close": "Close",
             "clipboardEmpty": "Clipboard is empty",
             "clipboardUnavailable": "Could not access clipboard",
+            "useCopiedAddress": "Use copied address",
+            "notAWalletAddress": "Copied text is not a wallet address",
             "startingCamera": "Starting camera…",
             "qrRecognized": "QR code recognized",
             "qrProcessingFailed": "QR code processing failed",

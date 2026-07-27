@@ -2295,6 +2295,8 @@
             "close": "Fechar",
             "clipboardEmpty": "A área de transferência está vazia",
             "clipboardUnavailable": "Não foi possível acessar a área de transferência",
+            "useCopiedAddress": "Usar endereço copiado",
+            "notAWalletAddress": "O texto copiado não é um endereço de carteira",
             "startingCamera": "Iniciando a câmera…",
             "qrRecognized": "Código QR reconhecido",
             "qrProcessingFailed": "Não foi possível processar o código QR",

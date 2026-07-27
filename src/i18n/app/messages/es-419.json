@@ -2295,6 +2295,8 @@
             "close": "Cerrar",
             "clipboardEmpty": "El portapapeles está vacío",
             "clipboardUnavailable": "No se pudo acceder al portapapeles",
+            "useCopiedAddress": "Usar dirección copiada",
+            "notAWalletAddress": "El texto copiado no es una dirección de billetera",
             "startingCamera": "Iniciando la cámara…",
             "qrRecognized": "Código QR reconocido",
             "qrProcessingFailed": "No se pudo procesar el código QR",
