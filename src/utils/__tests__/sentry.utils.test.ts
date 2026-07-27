@@ -315,11 +315,14 @@ describe('fetch timeout budgets', () => {
         it('lets NEXT_PUBLIC_FETCH_TIMEOUT_MS override both contexts', () => {
             expect(resolveDefaultTimeoutMs(false, '45000')).toBe(45_000)
             expect(resolveDefaultTimeoutMs(true, '45000')).toBe(45_000)
+            // Boundary: the largest value setTimeout can honour is still accepted.
+            expect(resolveDefaultTimeoutMs(false, '2147483647')).toBe(2_147_483_647)
         })
 
-        // parseInt would have read "30s" as 30ms and "0" as 0 — both abort every
+        // parseInt would have read "30s" as 30ms and "0" as 0, and anything past
+        // 2^31-1 overflows setTimeout and clamps to ~1ms — all of which abort every
         // request instantly. A malformed override must fall back, not brick fetches.
-        it.each([undefined, '', 'not-a-number', '30s', '0.5', '0', '-1', 'Infinity'])(
+        it.each([undefined, '', 'not-a-number', '30s', '0.5', '0', '-1', 'Infinity', '2147483648'])(
             'falls back to the context default for a malformed override: %p',
             (override) => {
                 expect(resolveDefaultTimeoutMs(false, override)).toBe(CLIENT_FETCH_TIMEOUT_MS)

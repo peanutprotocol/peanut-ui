@@ -326,18 +326,22 @@ export const CLIENT_FETCH_TIMEOUT_MS = 20_000
 
 /**
  * `NEXT_PUBLIC_FETCH_TIMEOUT_MS` is an explicit override of both budgets. It
- * must be a positive integer of milliseconds — `parseInt` would have accepted
- * `"30s"` as 30 and `"0"` as 0, silently aborting every request instantly, so
- * anything malformed falls back to the default rather than bricking fetches.
- * Both inputs are parameters so the function stays pure: jsdom always defines
- * `window`, so the server branch is otherwise unreachable from tests.
+ * must be a positive integer of milliseconds within the 32-bit timer range:
+ * `parseInt` would have accepted `"30s"` as 30 and `"0"` as 0, and anything
+ * above 2^31-1 overflows setTimeout and clamps to ~1ms — every one of which
+ * aborts requests instantly. Malformed values fall back to the default rather
+ * than bricking fetches. Both inputs are parameters so the function stays pure:
+ * jsdom always defines `window`, so the server branch is otherwise unreachable
+ * from tests.
  */
+const MAX_TIMER_MS = 2_147_483_647
+
 export const resolveDefaultTimeoutMs = (
     isServer: boolean,
     override: string | undefined = process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS
 ): number => {
     const parsed = Number(override)
-    if (override && Number.isInteger(parsed) && parsed > 0) return parsed
+    if (override && Number.isInteger(parsed) && parsed > 0 && parsed <= MAX_TIMER_MS) return parsed
     return isServer ? SERVER_FETCH_TIMEOUT_MS : CLIENT_FETCH_TIMEOUT_MS
 }
 
