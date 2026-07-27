@@ -85,9 +85,20 @@ const HomeHistory = ({
     // users who never got a card; only an issued card means they got through.
     const { overview: rainOverview } = useRainCardOverview()
 
-    // WebSocket for real-time updates
+    // WebSocket for real-time updates.
+    //
+    // Always subscribe to the SIGNED-IN user's own channel, never the `username`
+    // prop. On a public profile that prop is the profile owner, and this used to
+    // open a socket on their channel — which streamed their charge activity and
+    // KYC state to whoever was looking. The socket is now authenticated and the
+    // server rejects a channel that isn't yours, so passing someone else's
+    // username would simply fail to connect.
+    //
+    // The list itself is unaffected: it still comes from useTransactionHistory
+    // above, keyed on `username` with filterMutualTxs, which is what makes a
+    // profile show transactions mutual to the viewer.
     const { historyEntries: wsHistoryEntries } = useWebSocket({
-        username, // Pass the username to the WebSocket hook
+        username: user?.user.username ?? undefined,
         onHistoryEntry: useCallback(
             (entry: HistoryEntry) => {
                 const isCompleted = entry.status?.toUpperCase() === 'COMPLETED'
