@@ -42,6 +42,11 @@ async function hydrateFromPreferences(): Promise<void> {
     // POSTs like /manteca/qr-payment/init 400 with "authorization required",
     // while GETs still work via the native-http cookie fallback — a confusing
     // split that surfaced as "cannot pay through QR" (PEANUT-UI-R44 cohort).
+    // iOS-only in practice: Android's CapacitorCookies.getCookies evals
+    // document.cookie and ignores its url param, so the api-domain cookie is
+    // unreadable there — those sessions ride the OS HTTP client instead
+    // (preferNativeTransport in api-fetch) until the sliding refresh migrates
+    // them to Preferences.
     try {
         const { CapacitorCookies } = await import('@capacitor/core')
         const cookies = await CapacitorCookies.getCookies({ url: PEANUT_API_URL })

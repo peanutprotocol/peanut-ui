@@ -307,10 +307,28 @@ const demoMantecaWithdraw = () => ({
     updatedAt: CREATED_AT,
 })
 
-// Session-only, mirrors the server stamping activationCelebratedAt on dismiss:
-// keeps the "You're unlocked" celebration showing once per demo session instead
-// of on every home visit. In-memory (like demoCharges) — resets on full reload.
+// Mirrors the server stamping activationCelebratedAt on dismiss. Persisted to
+// localStorage so the "You're unlocked" celebration shows once per install —
+// the previous in-memory flag reset on every cold start, re-showing the modal
+// on every demo launch. The in-memory cache keeps dismissal working within the
+// session even when storage throws.
+const DEMO_CELEBRATED_AT_KEY = 'peanut_demo_activation_celebrated_at'
 let demoActivationCelebratedAt: string | null = null
+
+const getDemoActivationCelebratedAt = (): string | null => {
+    if (demoActivationCelebratedAt) return demoActivationCelebratedAt
+    try {
+        demoActivationCelebratedAt = window.localStorage.getItem(DEMO_CELEBRATED_AT_KEY)
+    } catch {}
+    return demoActivationCelebratedAt
+}
+
+const stampDemoActivationCelebrated = (): void => {
+    demoActivationCelebratedAt = new Date().toISOString()
+    try {
+        window.localStorage.setItem(DEMO_CELEBRATED_AT_KEY, demoActivationCelebratedAt)
+    } catch {}
+}
 
 // ---- routes (ordered: literal paths before :param paths) ----
 
@@ -319,10 +337,12 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     {
         method: 'GET',
         pattern: '/users/me',
-        handler: () =>
-            demoActivationCelebratedAt
-                ? { ...DEMO_USER, user: { ...DEMO_USER.user, activationCelebratedAt: demoActivationCelebratedAt } }
-                : DEMO_USER,
+        handler: () => {
+            const celebratedAt = getDemoActivationCelebratedAt()
+            return celebratedAt
+                ? { ...DEMO_USER, user: { ...DEMO_USER.user, activationCelebratedAt: celebratedAt } }
+                : DEMO_USER
+        },
     },
     {
         method: 'GET',
@@ -344,7 +364,7 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         pattern: '/update-user',
         handler: ({ options }) => {
             const body = parseBody(options)
-            if (body.dismissActivationCelebration) demoActivationCelebratedAt = new Date().toISOString()
+            if (body.dismissActivationCelebration) stampDemoActivationCelebrated()
             return demoApiUser(body.username ?? 'demo')
         },
     },

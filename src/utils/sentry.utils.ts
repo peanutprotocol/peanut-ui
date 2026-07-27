@@ -406,11 +406,50 @@ const noteNativeFallback = (url: string, cause: unknown): void => {
     })
 }
 
+// One Sentry note per session when a tokenless session runs on the OS HTTP
+// client — measures how many users still sit on legacy cookie-jar auth.
+let legacyCookieTransportReported = false
+const noteLegacyCookieTransport = (url: string): void => {
+    if (legacyCookieTransportReported) return
+    legacyCookieTransportReported = true
+    Sentry.captureMessage('legacy-cookie native transport engaged', {
+        level: 'info',
+        tags: { transport: 'cap-native-http', authMode: 'legacy-cookie' },
+        extra: { url: sanitizeUrl(url) },
+    })
+}
+
+export type FetchWithSentryOptions = RequestInit & { preferNativeTransport?: boolean }
+
 export const fetchWithSentry = async (
     url: string,
-    options: RequestInit = {},
+    optionsWithTransport: FetchWithSentryOptions = {},
     timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<Response> => {
+    const { preferNativeTransport, ...options } = optionsWithTransport
+
+    /*
+     * Tokenless native sessions go over the OS HTTP client FIRST, not as a
+     * rescue: legacy cookie-jar sessions hold the JWT only in the OS-level
+     * cookie store, which rides on CapacitorHttp requests but is invisible to
+     * JS (Android's CapacitorCookies.getCookies evals document.cookie and
+     * ignores its url param). A WebView POST reaches the backend with neither
+     * header nor cookie and 400s — and because it gets an HTTP response, the
+     * rejection fallback below never engages. On OS-client failure, fall
+     * through to the WebView path so logged-out flows behave as before.
+     */
+    if (preferNativeTransport && canUseNativeHttp(url, options)) {
+        try {
+            const response = await nativeHttpRequest(url, options, timeoutMs)
+            reportNetworkOk()
+            noteLegacyCookieTransport(url)
+            await reportNonOkResponse(url, options, response)
+            return response
+        } catch {
+            // OS client failed — the WebView path below is the report of record
+        }
+    }
+
     // Idempotent requests get one silent retry on timeout: stalled-transport
     // failures (Android webview, flaky mobile networks) usually clear on a
     // fresh attempt (PEANUT-UI-R44).
