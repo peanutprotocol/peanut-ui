@@ -53,7 +53,7 @@ function shouldForward(groupKey: string): boolean {
     return Math.random() < DUPLICATE_SAMPLE_RATE
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
     // Always 204, whatever happens. A non-2xx here makes browsers retry and
     // log console errors, which would be a second, self-inflicted noise source.
     const noContent = new NextResponse(null, { status: 204 })
