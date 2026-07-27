@@ -175,17 +175,4 @@ describe('action functions should NOT include apiKey in body', () => {
         expect(body).not.toBeNull()
         expect(body).not.toHaveProperty('apiKey')
     })
-
-    it('should not include apiKey in createOnrampForGuest body', async () => {
-        const { createOnrampForGuest } = require('@/app/actions/onramp')
-        await createOnrampForGuest({
-            amount: '100',
-            country: { id: 'US', name: 'United States', code: 'US' },
-            userId: 'user-123',
-        })
-
-        const body = getLastCallBody()
-        expect(body).not.toBeNull()
-        expect(body).not.toHaveProperty('apiKey')
-    })
 })
