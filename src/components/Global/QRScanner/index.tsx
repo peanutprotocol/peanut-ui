@@ -10,7 +10,9 @@ import { useQRScanner, type QRScanHandler } from './useQRScanner'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CameraPermissionModal from './CameraPermissionModal'
 import { Clipboard } from '@capacitor/clipboard'
+import { clipboardHasStrings } from '@/utils/clipboard-detect'
 import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
+import { isAndroidNative } from '@/utils/capacitor'
 import { printableAddress } from '@/utils/general.utils'
 
 // ============================================================================
@@ -96,10 +98,14 @@ function ScanRegionOverlay({
     onPaste,
     detectedAddress,
     onUseDetected,
+    showPasteChip,
+    onUsePasteChip,
 }: {
     onPaste: () => void
     detectedAddress: string | null
     onUseDetected: () => void
+    showPasteChip: boolean
+    onUsePasteChip: () => void
 }) {
     return (
         <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">
@@ -125,7 +131,7 @@ function ScanRegionOverlay({
                     <Icon name="paste" fill="white" height={16} width={16} />
                     <span className="text-sm">Click to paste</span>
                 </button>
-                {detectedAddress && (
+                {detectedAddress ? (
                     <button
                         onClick={onUseDetected}
                         className="mx-auto mt-3 flex items-center gap-1.5 rounded-full border border-white/40 px-3 py-1.5 text-white"
@@ -133,7 +139,15 @@ function ScanRegionOverlay({
                         <Icon name="wallet" fill="white" height={16} width={16} />
                         <span className="text-sm font-semibold">{printableAddress(detectedAddress)}</span>
                     </button>
-                )}
+                ) : showPasteChip ? (
+                    <button
+                        onClick={onUsePasteChip}
+                        className="mx-auto mt-3 flex items-center gap-1.5 rounded-full border border-white/40 px-3 py-1.5 text-white"
+                    >
+                        <Icon name="wallet" fill="white" height={16} width={16} />
+                        <span className="text-sm font-semibold">Use copied address</span>
+                    </button>
+                ) : null}
             </div>
         </div>
     )
@@ -159,43 +173,53 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         useQRScanner(onScan, onClose, isOpen)
     const toast = useToast()
     const [detectedAddress, setDetectedAddress] = useState<string | null>(null)
+    const [showPasteChip, setShowPasteChip] = useState(false)
 
-    // When the scanner opens, surface an EVM address already on the clipboard so the
-    // user can pay it in one tap without scanning. (Reading here trips Android's
-    // "pasted from clipboard" toast — the tradeoff for the shortcut.)
+    /*
+     * Platform-split clipboard shortcut. Android native: read at open and
+     * preview the copied EVM address — the read only trips the system paste
+     * toast, nothing blocking. iOS native: an un-gestured Clipboard.read()
+     * raises the "Allow Paste" alert, which raced the camera permission dialog
+     * and blocked it (PEANUT-UI-PYW) — so only a prompt-free hasStrings check
+     * runs here, and the actual read happens on the chip tap (a real gesture).
+     * Web/PWA: no pre-read at all; "Click to paste" remains.
+     */
     useEffect(() => {
         if (!isScanning) {
             setDetectedAddress(null)
+            setShowPasteChip(false)
             return
         }
         let cancelled = false
-        Clipboard.read()
-            .then(({ value }) => {
-                if (!cancelled) setDetectedAddress(extractPaymentValue((value ?? '').trim(), 'evmAddress'))
+        if (isAndroidNative()) {
+            Clipboard.read()
+                .then(({ value }) => {
+                    if (!cancelled) setDetectedAddress(extractPaymentValue((value ?? '').trim(), 'evmAddress'))
+                })
+                .catch(() => {
+                    if (!cancelled) setDetectedAddress(null)
+                })
+        } else {
+            clipboardHasStrings().then((hasStrings) => {
+                if (!cancelled) setShowPasteChip(hasStrings)
             })
-            .catch(() => {
-                if (!cancelled) setDetectedAddress(null)
-            })
+        }
         return () => {
             cancelled = true
         }
     }, [isScanning])
 
-    const handlePaste = async () => {
+    // Capacitor Clipboard reads through the native bridge on device (the
+    // WebView's navigator.clipboard.readText is unreliable/blocked in the
+    // Android WebView); its web shim falls back to navigator.clipboard.
+    // Returns trimmed text, or null after toasting the read failure. Android
+    // rejects with "There is no data on the clipboard" instead of resolving
+    // with an empty value.
+    const readClipboardText = async (): Promise<string | null> => {
         try {
-            // Capacitor Clipboard reads through the native bridge on device (the
-            // WebView's navigator.clipboard.readText is unreliable/blocked in the
-            // Android WebView); its web shim falls back to navigator.clipboard.
             const { value } = await Clipboard.read()
-            const text = (value ?? '').trim()
-            if (text) {
-                await onScan(text)
-            } else {
-                toast.error('Clipboard is empty')
-            }
+            return (value ?? '').trim()
         } catch (err) {
-            // Android rejects with "There is no data on the clipboard" instead of
-            // resolving with an empty value
             const message = err instanceof Error ? err.message : String(err)
             if (message.toLowerCase().includes('no data on the clipboard')) {
                 toast.error('Clipboard is empty')
@@ -203,7 +227,45 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                 console.error('Failed to read clipboard:', err)
                 toast.error('Could not access clipboard')
             }
+            return null
         }
+    }
+
+    // Every tap path funnels onScan through this so a payment/routing failure
+    // is reported as a processing error, never as a clipboard problem.
+    const scanValue = async (data: string) => {
+        try {
+            await onScan(data)
+        } catch (err) {
+            console.error('Error processing QR code:', err)
+            toast.error('Error processing QR code')
+        }
+    }
+
+    const handleUsePasteChip = async () => {
+        const text = await readClipboardText()
+        if (!text) {
+            setShowPasteChip(false)
+            if (text === '') toast.error('Clipboard is empty')
+            return
+        }
+        const address = extractPaymentValue(text, 'evmAddress')
+        if (!address) {
+            setShowPasteChip(false)
+            toast.error('Copied text is not a wallet address')
+            return
+        }
+        await scanValue(address)
+    }
+
+    const handlePaste = async () => {
+        const text = await readClipboardText()
+        if (text === null) return
+        if (!text) {
+            toast.error('Clipboard is empty')
+            return
+        }
+        await scanValue(text)
     }
 
     if (!isScanning) return null
@@ -235,7 +297,9 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                     <ScanRegionOverlay
                         onPaste={handlePaste}
                         detectedAddress={detectedAddress}
-                        onUseDetected={() => onScan(detectedAddress!)}
+                        onUseDetected={() => scanValue(detectedAddress!)}
+                        showPasteChip={showPasteChip}
+                        onUsePasteChip={handleUsePasteChip}
                     />
                 </>
             )}
