@@ -7,14 +7,17 @@
  * primitives are stubbed so only this component's own logic is under test.
  */
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 
 const mockUseMantecaDepositPolling = jest.fn()
 jest.mock('@/components/AddMoney/hooks/useMantecaDepositPolling', () => ({
     useMantecaDepositPolling: (...args: unknown[]) => mockUseMantecaDepositPolling(...args),
 }))
 
-jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => <div /> }))
+jest.mock('@/components/Global/NavHeader', () => ({
+    __esModule: true,
+    default: ({ onPrev }: { onPrev?: () => void }) => <div data-testid="nav-back" onClick={onPrev} />,
+}))
 jest.mock('@/components/Global/QRCodeWrapper', () => ({
     __esModule: true,
     default: ({ url, disabled }: { url: string; disabled?: boolean }) => (
@@ -67,6 +70,7 @@ describe('MantecaPixQrDeposit', () => {
                 depositDetails={baseDeposit}
                 currencyAmount="10"
                 onBack={jest.fn()}
+                onDone={jest.fn()}
                 onComplete={jest.fn()}
             />
         )
@@ -81,7 +85,14 @@ describe('MantecaPixQrDeposit', () => {
             ...baseDeposit,
             details: { ...baseDeposit.details, priceExpireAt: new Date(Date.now() - 1000).toISOString() },
         }
-        render(<MantecaPixQrDeposit depositDetails={expired} onBack={jest.fn()} onComplete={jest.fn()} />)
+        render(
+            <MantecaPixQrDeposit
+                depositDetails={expired}
+                onBack={jest.fn()}
+                onDone={jest.fn()}
+                onComplete={jest.fn()}
+            />
+        )
 
         expect(screen.getByText(/expired/i)).toBeInTheDocument()
         expect(screen.getByTestId('qr')).toHaveAttribute('data-disabled', 'true')
@@ -90,9 +101,47 @@ describe('MantecaPixQrDeposit', () => {
 
     it('shows the success state when the deposit completes', () => {
         mockUseMantecaDepositPolling.mockReturnValue({ status: 'completed' })
-        render(<MantecaPixQrDeposit depositDetails={baseDeposit} onBack={jest.fn()} onComplete={jest.fn()} />)
+        render(
+            <MantecaPixQrDeposit
+                depositDetails={baseDeposit}
+                onBack={jest.fn()}
+                onDone={jest.fn()}
+                onComplete={jest.fn()}
+            />
+        )
 
         expect(screen.getByText('Deposit received!')).toBeInTheDocument()
         expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
+    })
+
+    // Regression: both exits on the success screen used to call onBack, which the
+    // parent wires to step=inputAmount — so "Done" started a NEW deposit.
+    it('exits the flow via onDone (never onBack) from the success screen', () => {
+        mockUseMantecaDepositPolling.mockReturnValue({ status: 'completed' })
+        const onBack = jest.fn()
+        const onDone = jest.fn()
+        render(
+            <MantecaPixQrDeposit depositDetails={baseDeposit} onBack={onBack} onDone={onDone} onComplete={jest.fn()} />
+        )
+
+        fireEvent.click(screen.getByText('Done'))
+        fireEvent.click(screen.getByTestId('nav-back'))
+
+        expect(onDone).toHaveBeenCalledTimes(2)
+        expect(onBack).not.toHaveBeenCalled()
+    })
+
+    it('still uses onBack from the expired state — that one is a real go-back', () => {
+        const onBack = jest.fn()
+        const expired = {
+            ...baseDeposit,
+            details: { ...baseDeposit.details, priceExpireAt: new Date(Date.now() - 1000).toISOString() },
+        }
+        render(
+            <MantecaPixQrDeposit depositDetails={expired} onBack={onBack} onDone={jest.fn()} onComplete={jest.fn()} />
+        )
+
+        fireEvent.click(screen.getByText('Go back'))
+        expect(onBack).toHaveBeenCalledTimes(1)
     })
 })

@@ -4,7 +4,7 @@ import MantecaDepositShareDetails from '@/components/AddMoney/components/Manteca
 import MantecaPixQrDeposit from '@/components/AddMoney/components/MantecaPixQrDeposit'
 import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { type CountryData, countryData } from '@/components/AddMoney/consts'
@@ -38,6 +38,7 @@ const MantecaAddMoney: FC = () => {
     const params = useParams()
     const searchParams = useSearchParams()
     const queryClient = useQueryClient()
+    const router = useRouter()
 
     // URL state - persisted in query params
     // Example: /add-money/argentina/manteca?step=inputAmount&amount=100&currency=ARS
@@ -334,6 +335,9 @@ const MantecaAddMoney: FC = () => {
                 depositDetails={depositDetails}
                 currencyAmount={localCurrencyAmount}
                 onBack={() => setUrlState({ step: 'inputAmount' })}
+                // Terminal exit — `replace` so device/browser back can't pop into the
+                // finished deposit (whose step=showQR would redirect to a new one).
+                onDone={() => router.replace('/home')}
                 onComplete={() => queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })}
             />
         )
