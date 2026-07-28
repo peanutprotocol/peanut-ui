@@ -54,10 +54,10 @@ describe('useWebSocket — history_entry handling', () => {
 
         expect(result.current.historyEntries).toHaveLength(0)
         expect(onHistoryEntry).not.toHaveBeenCalled()
-        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [TRANSACTIONS] }, { cancelRefetch: false })
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [TRANSACTIONS] })
         // Charge completions move balance; the ping must refresh it since the
         // per-page callbacks (which used to) no longer see kindless entries.
-        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['balance'] }, { cancelRefetch: false })
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['balance'] })
     })
 
     it('full entry with a kind is surfaced to state and the callback', () => {

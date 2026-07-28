@@ -169,11 +169,12 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
                 // hits the transformer's fallback strategy and shows "Sent to
                 // Transaction $0.00 · Completed" (PEANUT-UI-QCW). Balance moves
                 // with these events too, so refresh it alongside the feed.
-                // cancelRefetch: false — several mounted hook instances see the
-                // same ping; let them join the in-flight refetch instead of
-                // abort-restarting it.
-                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] }, { cancelRefetch: false })
-                queryClient.invalidateQueries({ queryKey: ['balance'] }, { cancelRefetch: false })
+                // Default cancelRefetch (true) on purpose: a fetch already in
+                // flight when the ping arrives started pre-commit and may lack
+                // the new row — joining it would clear the invalidation with
+                // stale data. Abort-restart guarantees a post-event response.
+                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                queryClient.invalidateQueries({ queryKey: ['balance'] })
                 return
             }
             if (
