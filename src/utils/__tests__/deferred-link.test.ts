@@ -1,12 +1,12 @@
 // deferred deep linking payload: the string that survives the app-store hop.
 // build on web, parse back after install — the round-trip is the contract.
 import {
+    applyDeferredPayload,
     buildDeferredPayload,
     iosHandoffString,
     parseDeferredPayload,
     playStoreUrlWithReferrer,
     restoreDeferredContext,
-    PREFERRED_LOCALE_KEY,
 } from '../deferred-link'
 import { isAndroidNative, isIOSNative } from '../capacitor'
 import { clipboardHasStrings } from '../clipboard-detect'
@@ -106,10 +106,9 @@ describe('restoreDeferredContext', () => {
         mockIsAndroidNative.mockReturnValue(true)
         getReferrer.mockResolvedValue({ referrer: 'pnutdl=1&lang=es-419&invite=abc&campaign=off&dest=%2Fclaim%2FXYZ' })
 
-        await expect(restoreDeferredContext()).resolves.toBe('/claim/XYZ')
+        await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/claim/XYZ', locale: 'es-419' })
         expect(document.cookie).toContain('inviteCode=')
         expect(document.cookie).toContain('campaignTag=')
-        expect(localStorage.getItem(PREFERRED_LOCALE_KEY)).toBe('es-419')
 
         // consumed: second call never touches the plugin again
         getReferrer.mockClear()
@@ -126,12 +125,11 @@ describe('restoreDeferredContext', () => {
         expect(getReferrer).toHaveBeenCalledTimes(1)
     })
 
-    it('does not persist an invalid locale', async () => {
+    it('returns no locale for an unsupported language tag (device language must win)', async () => {
         mockIsAndroidNative.mockReturnValue(true)
         getReferrer.mockResolvedValue({ referrer: 'pnutdl=1&lang=xx-yy&invite=abc' })
 
-        await expect(restoreDeferredContext()).resolves.toBeNull()
-        expect(localStorage.getItem(PREFERRED_LOCALE_KEY)).toBeNull()
+        await expect(restoreDeferredContext()).resolves.toEqual({ dest: null, locale: null })
         expect(document.cookie).toContain('inviteCode=')
     })
 
@@ -139,7 +137,7 @@ describe('restoreDeferredContext', () => {
         mockIsAndroidNative.mockReturnValue(true)
         getReferrer.mockResolvedValue({ referrer: `pnutdl=1&dest=${encodeURIComponent('https://evil.com/x')}` })
 
-        await expect(restoreDeferredContext()).resolves.toBeNull()
+        await expect(restoreDeferredContext()).resolves.toEqual({ dest: null, locale: null })
     })
 
     it('survives a missing plugin (older binary) and still consumes', async () => {
@@ -158,5 +156,19 @@ describe('restoreDeferredContext', () => {
         await expect(restoreDeferredContext()).resolves.toBeNull()
         expect(mockClipboardHasStrings).toHaveBeenCalledTimes(1)
         expect(localStorage.getItem('deferredLinkConsumed')).toBe('1')
+    })
+})
+
+describe('applyDeferredPayload locale normalization', () => {
+    it('normalizes marketing tags to app locales', () => {
+        expect(applyDeferredPayload({ lang: 'pt-br' }).locale).toBe('pt-BR')
+        expect(applyDeferredPayload({ lang: 'es-ar' }).locale).toBe('es-419')
+        expect(applyDeferredPayload({ lang: 'es-419' }).locale).toBe('es-419')
+        expect(applyDeferredPayload({ lang: 'en' }).locale).toBe('en')
+    })
+
+    it('returns null locale for unsupported languages', () => {
+        expect(applyDeferredPayload({ lang: 'fr' }).locale).toBeNull()
+        expect(applyDeferredPayload({}).locale).toBeNull()
     })
 })

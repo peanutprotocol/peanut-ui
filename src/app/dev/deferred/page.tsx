@@ -14,14 +14,15 @@ import {
     parseDeferredPayload,
     playStoreUrlWithReferrer,
     CONSUMED_KEY,
-    PREFERRED_LOCALE_KEY,
 } from '@/utils/deferred-link'
 import { getFromCookie } from '@/utils/general.utils'
 import { getPlatform } from '@/utils/capacitor'
+import { useAppLocale } from '@/i18n/app/AppIntlProvider'
 
 const InstallReferrer = registerPlugin<{ getReferrer(): Promise<{ referrer: string | null }> }>('InstallReferrer')
 
 export default function DeferredLinkDevPage() {
+    const { locale, setLocale } = useAppLocale()
     const [state, setState] = useState<Record<string, string>>({})
     const [payload, setPayload] = useState('')
     const [rawReferrer, setRawReferrer] = useState('(not read)')
@@ -32,12 +33,12 @@ export default function DeferredLinkDevPage() {
     const refresh = useCallback(() => {
         setState({
             platform: getPlatform(),
+            appLocale: locale,
             consumedFlag: localStorage.getItem(CONSUMED_KEY) ?? '(unset)',
-            preferredLocale: localStorage.getItem(PREFERRED_LOCALE_KEY) ?? '(unset)',
             inviteCodeCookie: String(getFromCookie('inviteCode') ?? '(unset)'),
             campaignTagCookie: String(getFromCookie('campaignTag') ?? '(unset)'),
         })
-    }, [])
+    }, [locale])
 
     useEffect(() => refresh(), [refresh])
 
@@ -50,13 +51,16 @@ export default function DeferredLinkDevPage() {
         }
     }
 
-    const simulate = () => {
+    const simulate = async () => {
         const parsed = parseDeferredPayload(simulateInput)
         if (!parsed) {
             setSimulateResult('rejected (no pnutdl marker)')
         } else {
-            const dest = applyDeferredPayload(parsed)
-            setSimulateResult(`applied ${JSON.stringify(parsed)} → dest: ${dest ?? 'none'}`)
+            const { dest, locale: restoredLocale } = applyDeferredPayload(parsed)
+            if (restoredLocale) await setLocale(restoredLocale)
+            setSimulateResult(
+                `applied ${JSON.stringify(parsed)} → dest: ${dest ?? 'none'}, locale: ${restoredLocale ?? 'none'}`
+            )
         }
         refresh()
     }

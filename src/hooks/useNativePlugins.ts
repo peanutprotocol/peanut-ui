@@ -6,6 +6,7 @@ import { focusManager } from '@tanstack/react-query'
 import { captureMessage } from '@sentry/nextjs'
 import { isCapacitor, getPlatform } from '@/utils/capacitor'
 import { localeApplied } from '@/i18n/app/locale-store'
+import { useAppLocale } from '@/i18n/app/AppIntlProvider'
 import { deepLinkToNativePath } from '@/utils/native-routes'
 import { sanitizeRedirectURL } from '@/utils/general.utils'
 import { getOneSignalAdapter } from '@/services/onesignal'
@@ -21,6 +22,7 @@ let clickListenerFailureCaptured = false
 
 export function useNativePlugins() {
     const router = useRouter()
+    const { setLocale } = useAppLocale()
 
     useEffect(() => {
         if (!isCapacitor()) return
@@ -75,11 +77,12 @@ export function useNativePlugins() {
                 track(() => urlListener.remove())
 
                 // deferred deep link (store-install hand-off): always restores
-                // cookies/locale inside; only navigate when this launch wasn't
+                // cookies + locale; only navigate when this launch wasn't
                 // already a real deep link — the deep link wins.
                 const { restoreDeferredContext } = await import('@/utils/deferred-link')
-                const deferredDest = await restoreDeferredContext()
-                if (!launch?.url && deferredDest) router.push(deferredDest)
+                const restored = await restoreDeferredContext()
+                if (restored?.locale) await setLocale(restored.locale)
+                if (!launch?.url && restored?.dest) router.push(restored.dest)
             } catch (e) {
                 console.warn('failed to init app listeners:', e)
                 // without these listeners push-tap deep links never route, so surface the failure
@@ -169,5 +172,5 @@ export function useNativePlugins() {
             disposed = true
             cleanups.forEach((fn) => fn())
         }
-    }, [router])
+    }, [router, setLocale])
 }
