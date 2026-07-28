@@ -6,7 +6,8 @@
  * blocking tasks and advisory orphans (future-dated tasks on fully-enabled
  * users, which no rail references). accept-tos routes into the existing
  * BridgeTosStep; bridge-hosted exchanges the key for a hosted URL and opens
- * it in the IframeWrapper.
+ * it in the IframeWrapper. Open flows are snapshotted at tap time so they
+ * survive the task list flapping under the ~4s user auto-refresh.
  */
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
@@ -42,6 +43,11 @@ jest.mock('@/components/Global/IframeWrapper', () => ({
 }))
 
 const tosAction: NextAction = { key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' }
+const sepaTosAction: NextAction = {
+    key: 'accept-tos:sepa',
+    kind: 'accept-tos',
+    purpose: 'accept-bridge-tos-sepa',
+}
 const hostedAction: NextAction = {
     key: 'bridge-hosted',
     kind: 'bridge-hosted',
@@ -63,11 +69,23 @@ describe('PendingVerificationTasks', () => {
     })
 
     it('accept-tos task opens BridgeTosStep with the variant-matched reason code', () => {
-        mockNextActions = [{ ...tosAction, key: 'accept-tos:sepa', purpose: 'accept-bridge-tos-sepa' }]
+        mockNextActions = [sepaTosAction]
         render(<PendingVerificationTasks />)
 
         expect(screen.getByText('Accept SEPA Terms of Service')).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: /review terms/i }))
+        expect(screen.getByTestId('tos-step')).toHaveTextContent('bridge_tos_v2_required')
+    })
+
+    it('with BOTH ToS variants pending, each row opens the modal for ITS variant', () => {
+        mockNextActions = [tosAction, sepaTosAction]
+        render(<PendingVerificationTasks />)
+
+        expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()
+        expect(screen.getByText('Accept SEPA Terms of Service')).toBeInTheDocument()
+
+        const buttons = screen.getAllByRole('button', { name: /review terms/i })
+        fireEvent.click(buttons[1]) // sepa row (render order follows nextActions)
         expect(screen.getByTestId('tos-step')).toHaveTextContent('bridge_tos_v2_required')
     })
 
@@ -87,6 +105,25 @@ describe('PendingVerificationTasks', () => {
         expect(screen.queryByTestId('hosted-iframe')).not.toBeInTheDocument()
     })
 
+    it('an open hosted iframe SURVIVES its task disappearing from nextActions (auto-refresh flap)', async () => {
+        mockNextActions = [hostedAction]
+        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
+        const { rerender } = render(<PendingVerificationTasks />)
+
+        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
+        await screen.findByTestId('hosted-iframe')
+
+        // Bridge reclassifies mid-flow → the task vanishes on the next refetch.
+        mockNextActions = []
+        rerender(<PendingVerificationTasks />)
+
+        expect(screen.queryByText('Additional verification needed')).not.toBeInTheDocument()
+        expect(screen.getByTestId('hosted-iframe')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByText('close'))
+        expect(screen.queryByTestId('hosted-iframe')).not.toBeInTheDocument()
+    })
+
     it('manual iframe close does not refetch the user', async () => {
         mockNextActions = [hostedAction]
         mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
@@ -100,20 +137,35 @@ describe('PendingVerificationTasks', () => {
         expect(mockFetchUser).not.toHaveBeenCalled()
     })
 
-    it('start-action failure surfaces an inline error instead of an iframe', async () => {
+    it('start-action failure surfaces FRIENDLY copy (never the raw server error) and resyncs the user', async () => {
         mockNextActions = [hostedAction]
         mockStartHosted.mockResolvedValue({ error: 'Action not allowed for this user' })
         render(<PendingVerificationTasks />)
 
         fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        expect(await screen.findByText('Action not allowed for this user')).toBeInTheDocument()
+        expect(await screen.findByText(/couldn't start the verification/i)).toBeInTheDocument()
+        expect(screen.queryByText('Action not allowed for this user')).not.toBeInTheDocument()
         expect(screen.queryByTestId('hosted-iframe')).not.toBeInTheDocument()
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
     })
 
-    it('advisory task renders its deadline', () => {
+    it('advisory task renders its deadline and keep-access copy; blocking renders enable copy', () => {
         mockNextActions = [{ ...hostedAction, effectiveDate: '2099-09-01' }]
-        render(<PendingVerificationTasks />)
+        const { rerender } = render(<PendingVerificationTasks />)
         expect(screen.getByText(/complete before sep 1, 2099/i)).toBeInTheDocument()
+        expect(screen.getByText(/keep bank transfers available/i)).toBeInTheDocument()
+
+        mockNextActions = [hostedAction]
+        rerender(<PendingVerificationTasks />)
+        expect(screen.getByText(/enable bank transfers/i)).toBeInTheDocument()
+        expect(screen.queryByText(/complete before/i)).not.toBeInTheDocument()
+    })
+
+    it('malformed effectiveDate renders no deadline line instead of "Invalid Date"', () => {
+        mockNextActions = [{ ...hostedAction, effectiveDate: 'not-a-date' }]
+        render(<PendingVerificationTasks />)
+        expect(screen.queryByText(/complete before/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(/invalid date/i)).not.toBeInTheDocument()
     })
 
     it('renders both tasks when ToS and hosted verification are pending together', () => {
