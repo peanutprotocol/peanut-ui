@@ -15,9 +15,11 @@ import {
     readInstallReferrer,
     CONSUMED_KEY,
 } from '@/utils/deferred-link'
+import { notFound } from 'next/navigation'
 import { getFromCookie } from '@/utils/general.utils'
-import { getPlatform } from '@/utils/capacitor'
+import { getPlatform, isCapacitor } from '@/utils/capacitor'
 import { useAppLocale } from '@/i18n/app/AppIntlProvider'
+import { BASE_URL } from '@/constants/general.consts'
 
 export default function DeferredLinkDevPage() {
     const { locale, setLocale } = useAppLocale()
@@ -57,6 +59,12 @@ export default function DeferredLinkDevPage() {
         }
         refresh()
     }
+
+    // same wall as (mobile-ui)/dev/layout.tsx, with a native exception: the
+    // capacitor build ships with BASE_URL=peanut.me but needs this page for
+    // on-device verification. web prod stays blocked. (after hooks — throwing
+    // before them would break the rules of hooks.)
+    if (BASE_URL === 'https://peanut.me' && !isCapacitor()) notFound()
 
     return (
         <div className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-mono text-sm">
