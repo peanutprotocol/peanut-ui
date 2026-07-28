@@ -1,4 +1,7 @@
 'use client'
+import { useTranslations } from 'next-intl'
+// type-only: erased at build, so the catalog is not bundled here
+import type enMessages from '@/i18n/app/messages/en.json'
 import { Button } from '@/components/0_Bruddle/Button'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
@@ -9,6 +12,11 @@ interface NavHeaderProps {
     onPrev?: () => void
     disableBackBtn?: boolean
     title?: string
+    /** Localized title for callers that cannot call useTranslations — i.e. server
+     *  components, since this app has no server-side next-intl setup (locale is
+     *  resolved entirely client-side by AppIntlProvider). Resolved against the
+     *  `navigation` namespace. Prefer plain `title` from client components. */
+    titleKey?: keyof typeof enMessages.navigation
     href?: string
     hideLabel?: boolean
     icon?: IconName
@@ -18,6 +26,7 @@ interface NavHeaderProps {
 
 const NavHeader = ({
     title,
+    titleKey,
     icon = 'chevron-up',
     href,
     hideLabel = false,
@@ -27,6 +36,8 @@ const NavHeader = ({
     titleClassName,
 }: NavHeaderProps) => {
     const { logoutUser, isLoggingOut } = useAuth()
+    const tNav = useTranslations('navigation')
+    const label = title ?? (titleKey ? tNav(titleKey) : undefined)
 
     return (
         <div className="relative flex w-full flex-row items-center justify-between md:block">
@@ -62,7 +73,7 @@ const NavHeader = ({
                         titleClassName
                     )}
                 >
-                    {title}
+                    {label}
                 </div>
             )}
 

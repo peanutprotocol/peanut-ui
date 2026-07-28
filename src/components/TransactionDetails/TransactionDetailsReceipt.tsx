@@ -19,7 +19,7 @@ import { chargesApi } from '@/services/charges'
 import useClaimLink from '@/components/Claim/useClaimLink'
 import { formatAmount, isStableCoin, formatCurrency } from '@/utils/general.utils'
 import { formatPoints } from '@/utils/format.utils'
-import { getAvatarUrl } from '@/utils/history.utils'
+import { getAvatarUrl, isTestTransaction } from '@/utils/history.utils'
 import { printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
 import { captureException } from '@sentry/nextjs'
@@ -848,7 +848,7 @@ export const TransactionDetailsReceipt = ({
                 )}
 
             {/* support link section or passkey docs for test transactions */}
-            {transaction.userName === 'Enjoy Peanut!' ? (
+            {isTestTransaction(transaction.userName) ? (
                 <PasskeyDocsLink className="border-t-0 pt-0" />
             ) : (
                 <button

@@ -19,7 +19,7 @@ import {
     isStableCoin,
     shortenStringLong,
 } from '@/utils/general.utils'
-import { getAvatarUrl, getTransactionSign } from '@/utils/history.utils'
+import { getAvatarUrl, getTransactionSign, isTestTransaction } from '@/utils/history.utils'
 import React, { lazy, Suspense } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Image from 'next/image'
@@ -104,7 +104,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         transaction.showFullName && transaction.fullName ? transaction.fullName : transaction.userName
     const avatarUrl = getAvatarUrl(transaction)
     // check if this is a test transaction (setup confirmation)
-    const isTestTransaction = name === 'Enjoy Peanut!'
+    const isTest = isTestTransaction(name)
 
     // ENS reverse-lookup for raw addresses; hook is a no-op when name is a username.
     const { primaryName } = usePrimaryNameServer(isAddress(name) ? name : undefined)
@@ -189,7 +189,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
-                        {isTestTransaction ? (
+                        {isTest ? (
                             <div className={'relative flex size-7 items-center justify-center rounded-full p-0.5'}>
                                 <Image
                                     src={PEANUTMAN}
@@ -243,9 +243,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             </div>
                             {/* display the action icon and type text */}
                             <div className="flex items-center gap-1 text-xs font-medium text-gray-1">
-                                {!isTestTransaction && getActionIcon(type, transaction.direction, status)}
+                                {!isTest && getActionIcon(type, transaction.direction, status)}
                                 <span>
-                                    {isTestTransaction
+                                    {isTest
                                         ? t('type.setup')
                                         : isPerkRewardEntry
                                           ? t('type.reward')
@@ -258,7 +258,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     </div>
 
                     {/* amount and status on the right side */}
-                    {isTestTransaction ? (
+                    {isTest ? (
                         <InvitesIcon animate={false} className="size-4" />
                     ) : (
                         <div className="flex items-center gap-2">

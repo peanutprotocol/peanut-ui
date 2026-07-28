@@ -141,6 +141,21 @@ module.exports = [
                     message:
                         "Don't pass { history: 'push' } to nuqs useQueryState(s) — a history entry per URL write breaks the back button (useSafeBack steps through same-screen states instead of leaving). Use the default 'replace'; the URL stays shareable. If a flow genuinely needs push-per-step, add a scoped file exemption with a comment (see useNativePlugins).",
                 },
+                {
+                    // Toast copy must come from next-intl. `react/jsx-no-literals` below
+                    // only inspects JSX children, so toasts fired from hooks and contexts
+                    // (authContext, useLogin, useSendMoney, QRScanner) shipped English to
+                    // every locale unnoticed.
+                    //
+                    // Deliberately NOT extended to `throw new Error('…')`: those messages
+                    // are developer/Sentry breadcrumbs that the friendly-error mapper
+                    // collapses to `errors.genericSupport` before any user sees them, so
+                    // translating them would only fragment Sentry issue grouping.
+                    selector:
+                        "CallExpression[callee.object.name='toast'][callee.property.name=/^(error|success|info|warning|loading)$/] > :matches(Literal, TemplateLiteral):first-child",
+                    message:
+                        "Don't pass a string literal to toast.* — copy must come from next-intl. Import the right namespace with useTranslations and pass t('…'). If the value genuinely isn't copy (an id, a URL), assign it to a named const first.",
+                },
             ],
         },
     },

@@ -281,7 +281,7 @@ const JoinWaitlistPage = () => {
                                 type="email"
                                 variant="sm"
                                 aria-label={t('emailLabel')}
-                                placeholder="you@example.com"
+                                placeholder={t('emailPlaceholder')}
                                 value={emailValue}
                                 onChange={(e) => {
                                     setEmailValue(e.target.value)
