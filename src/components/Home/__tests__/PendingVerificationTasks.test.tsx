@@ -17,12 +17,18 @@ import PendingVerificationTasks from '../PendingVerificationTasks'
 let mockNextActions: NextAction[] = []
 const mockFetchUser = jest.fn()
 const mockStartHosted = jest.fn<Promise<{ url?: string; error?: string }>, []>()
+let mockStoredDismissal: string | undefined
+const mockUpdatePreferences = jest.fn()
 
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({ nextActions: mockNextActions }),
 }))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ fetchUser: mockFetchUser }),
+    useAuth: () => ({ user: { user: { userId: 'user-1' } }, fetchUser: mockFetchUser }),
+}))
+jest.mock('@/utils/general.utils', () => ({
+    getUserPreferences: () => ({ pendingVerificationTasksDismissed: mockStoredDismissal }),
+    updateUserPreferences: (userId: string, prefs: Record<string, unknown>) => mockUpdatePreferences(userId, prefs),
 }))
 jest.mock('@/app/actions/sumsub', () => ({
     startBridgeHostedVerification: () => mockStartHosted(),
@@ -60,6 +66,8 @@ describe('PendingVerificationTasks', () => {
         mockNextActions = []
         mockFetchUser.mockReset()
         mockStartHosted.mockReset()
+        mockStoredDismissal = undefined
+        mockUpdatePreferences.mockReset()
     })
 
     it('renders nothing when no bridge task is pending', () => {
@@ -173,5 +181,40 @@ describe('PendingVerificationTasks', () => {
         render(<PendingVerificationTasks />)
         expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()
         expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
+    })
+
+    describe('dismissal (home mount)', () => {
+        it('dismissible mount shows an X that hides the card and persists the task-key set', () => {
+            mockNextActions = [tosAction, hostedAction]
+            render(<PendingVerificationTasks dismissible />)
+
+            fireEvent.click(screen.getByRole('button', { name: /dismiss pending verification tasks/i }))
+            expect(screen.queryByText('Accept Terms of Service')).not.toBeInTheDocument()
+            expect(mockUpdatePreferences).toHaveBeenCalledWith('user-1', {
+                pendingVerificationTasksDismissed: 'accept-tos,bridge-hosted',
+            })
+        })
+
+        it('a stored dismissal for the SAME task set keeps the card hidden', () => {
+            mockStoredDismissal = 'accept-tos,bridge-hosted'
+            mockNextActions = [tosAction, hostedAction]
+            const { container } = render(<PendingVerificationTasks dismissible />)
+            expect(container).toBeEmptyDOMElement()
+        })
+
+        it('a DIFFERENT pending task set re-shows the card despite a stored dismissal', () => {
+            mockStoredDismissal = 'accept-tos'
+            mockNextActions = [tosAction, hostedAction]
+            render(<PendingVerificationTasks dismissible />)
+            expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
+        })
+
+        it('the non-dismissible (profile) mount ignores stored dismissals and has no X', () => {
+            mockStoredDismissal = 'accept-tos,bridge-hosted'
+            mockNextActions = [tosAction, hostedAction]
+            render(<PendingVerificationTasks />)
+            expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()
+            expect(screen.queryByRole('button', { name: /dismiss pending/i })).not.toBeInTheDocument()
+        })
     })
 })
