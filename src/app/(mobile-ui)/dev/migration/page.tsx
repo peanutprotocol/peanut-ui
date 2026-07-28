@@ -14,6 +14,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
+import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { PEANUTMAN, PEANUTMAN_MOBILE, PeanutWhistling } from '@/assets/mascot'
 import { PEANUT_LOGO_BLACK } from '@/assets/logos'
 import starImage from '@/assets/icons/star.png'
@@ -244,21 +245,39 @@ export default function MigrationMockupsPage() {
                 )}
             </Section>
 
-            {/* 05 Landing page */}
+            {/* 05 Landing page — responsive full-width hero (mirrors the real landing) */}
             <Section
                 n="05"
                 title="Landing page hero (new visitors)"
-                subtitle="Marketing homepage. Hero mascot + bold headline, CTA is 'Download' not 'Sign up', with a rating for trust (app-landing convention)."
+                subtitle="The real landing hero, reworked: brand-pink + drifting clouds + mascot, responsive (full-width on web, stacked on phone). CTA is 'Download' with store buttons + a rating — no 'Sign up'."
             >
-                <div className="relative mx-auto flex w-full max-w-[380px] flex-col items-center gap-5 overflow-hidden rounded-sm border border-n-1 bg-secondary-3 px-6 pb-8 pt-10 text-center">
-                    <Image src={PeanutWhistling.src} alt="Peanut" width={150} height={150} className="object-contain" />
-                    <h1 className="text-4xl font-extrabold leading-tight text-n-1">Send money like a text</h1>
-                    <p className="text-base text-n-1/80">No bank, no borders. Download the app and send in seconds.</p>
-                    <div className="flex w-full flex-col gap-2 rounded-sm bg-white/60 p-3">
-                        <StoreButtons platform={platform} />
-                    </div>
-                    <div className="flex items-center gap-1 text-sm font-semibold text-n-1">
-                        <Icon name="star" size={16} /> 4.8 · loved by thousands
+                <div className="relative w-full overflow-hidden rounded-sm border border-n-1 bg-primary-1 px-4 py-14 md:py-20">
+                    <CloudsCss />
+                    <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center gap-4 text-center">
+                        <Image
+                            src={PeanutWhistling.src}
+                            alt="Peanut"
+                            width={220}
+                            height={220}
+                            className="w-28 object-contain md:w-44"
+                        />
+                        <h1 className="font-roboto-flex-extrabold text-[2rem] font-extraBlack leading-none text-n-1 md:text-6xl">
+                            TAP. SCAN. ANYWHERE.
+                        </h1>
+                        <p className="max-w-md text-base text-n-1/80 md:text-xl">
+                            Send money like a text — no bank, no borders. Download the app and send in seconds.
+                        </p>
+                        <div className="mt-2 flex w-full max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
+                            <Button variant="dark" shadowSize="4" icon="mobile-install" className="sm:w-52">
+                                {STORE[platform]}
+                            </Button>
+                            <Button variant="stroke" shadowSize="4" className="bg-white sm:w-52">
+                                {STORE[platform === 'ios' ? 'android' : 'ios']}
+                            </Button>
+                        </div>
+                        <div className="mt-1 flex items-center gap-1 text-sm font-semibold text-n-1">
+                            <Icon name="star" size={16} /> 4.8 · loved by thousands
+                        </div>
                     </div>
                 </div>
             </Section>
