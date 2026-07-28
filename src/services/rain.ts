@@ -7,11 +7,13 @@
  * (via `js-cookie`) — matches the pattern in `services/manteca.ts`.
  */
 
-import Cookies from 'js-cookie'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { PEANUT_API_KEY, PEANUT_API_URL } from '@/constants/general.consts'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { PEANUT_API_KEY } from '@/constants/general.consts'
+import { getStepUpToken, STEP_UP_HEADER } from './step-up'
+import { apiFetch } from '@/utils/api-fetch'
+import { getAuthToken } from '@/utils/auth-token'
+import { isCapacitor } from '@/utils/capacitor'
 import type { SignedRainWithdrawal } from '@/hooks/wallet/useSignSpendBundle'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -94,8 +96,9 @@ export interface PrepareRainWithdrawalInput {
      *  `amount` (which is only the collateral shortfall). History shows this. */
     totalAmountCents?: string
     /** When this withdrawal pays a Peanut request/charge, the charge uuid.
-     *  The backend then uses the charge intent itself as the prep and marks it
-     *  COMPLETED on confirm — so the FE must NOT also call `recordPayment`. */
+     *  The backend then uses the charge intent itself as the prep and
+     *  completes it on confirm; a follow-up `recordPayment` re-enters the
+     *  same trusted-completion path (idempotent). */
     chargeId?: string
 }
 
@@ -320,31 +323,32 @@ interface RequestOpts {
     rateLimitSensitive?: boolean
     /** Mirror PCI no-cache intent on the client fetch for secrets endpoints. */
     noStore?: boolean
-    /** Override fetchWithSentry's default 10s timeout (e.g. UserOp submissions). */
+    /** Override the default 10s fetch timeout (e.g. UserOp submissions). */
     timeoutMs?: number
+    /**
+     * Prove a fresh WebAuthn assertion alongside the session. Prompts for Face
+     * ID unless a proof from the last few minutes is still good.
+     */
+    stepUp?: boolean
 }
 
 async function rainRequest<T>(opts: RequestOpts): Promise<T> {
-    const jwt = Cookies.get('jwt-token')
-    if (!jwt) throw new Error('Authentication required')
+    // Auth rides apiFetch: Authorization header on web, the native cookie jar
+    // on Capacitor — reading the cookie here would wrongly 401 native, where
+    // JS never holds the token.
+    if (!isCapacitor() && !getAuthToken()) throw new Error('Authentication required')
 
-    const headers: Record<string, string> = {
-        Authorization: `Bearer ${jwt}`,
-        'api-key': PEANUT_API_KEY,
-    }
-    if (opts.body !== undefined) headers['Content-Type'] = 'application/json'
+    const headers: Record<string, string> = { 'api-key': PEANUT_API_KEY }
     if (opts.noStore) headers['Cache-Control'] = 'no-store'
+    if (opts.stepUp) headers[STEP_UP_HEADER] = await getStepUpToken()
 
-    const response = await fetchWithSentry(
-        `${PEANUT_API_URL}${opts.path}`,
-        {
-            method: opts.method,
-            headers,
-            body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-            cache: 'no-store',
-        },
-        opts.timeoutMs
-    )
+    const response = await apiFetch(opts.path, {
+        method: opts.method,
+        headers,
+        body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+        cache: 'no-store',
+        timeoutMs: opts.timeoutMs,
+    })
 
     if (response.status === 429 && opts.rateLimitSensitive) {
         const err = await response.json().catch(() => ({}))
@@ -425,6 +429,10 @@ export const rainApi = {
     /**
      * Persist the serialized ZeroDev permission on the user's card so the
      * backend can submit session-key UserOps for collateral withdrawals.
+     *
+     * No step-up: the payload is itself a fresh passkey signature (the grant
+     * ceremony's enable sig) — an extra assertion here just doubles the
+     * fingerprint prompts on the grant flow.
      */
     submitWithdrawSessionApproval: async (input: { serializedApproval: string }): Promise<void> => {
         await rainRequest<{ ok: boolean }>({
@@ -438,6 +446,11 @@ export const rainApi = {
      * Stage a Rain V2 withdrawal: backend fetches Rain's executor signature,
      * reads the current adminNonce from the collateral proxy, and persists a
      * short-lived prep record. Caller then signs the admin EIP-712 payload.
+     *
+     * No step-up: a prep is inert until the passkey produces the admin
+     * EIP-712 signature that follows it, so the flow proves user presence on
+     * its own. Step-up here made every collateral-funded send cost three
+     * fingerprint prompts instead of two (the 2026-07 triple-prompt reports).
      */
     prepareWithdrawal: async (input: PrepareRainWithdrawalInput): Promise<PrepareRainWithdrawalResponse> => {
         return rainRequest<PrepareRainWithdrawalResponse>({
@@ -646,6 +659,7 @@ export const rainApi = {
         return rainRequest<RainCardDetailsResponse>({
             method: 'GET',
             path: `/rain/cards/${cardId}/details`,
+            stepUp: true,
             rateLimitSensitive: true,
             noStore: true,
         })
@@ -678,6 +692,7 @@ export const rainApi = {
         const { pin } = await rainRequest<{ pin: string | null }>({
             method: 'GET',
             path: `/rain/cards/${cardId}/pin`,
+            stepUp: true,
             rateLimitSensitive: true,
             noStore: true,
         })
@@ -689,6 +704,7 @@ export const rainApi = {
         await rainRequest<{ ok: boolean }>({
             method: 'PUT',
             path: `/rain/cards/${cardId}/pin`,
+            stepUp: true,
             body: { pin },
             noStore: true,
         })

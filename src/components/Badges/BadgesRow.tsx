@@ -40,7 +40,7 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
 
     // sort by earnedAt, newest first
     const sortedBadges = useMemo(() => {
-        return badges.sort((a, b) => {
+        return [...badges].sort((a, b) => {
             const at = a.earnedAt ? new Date(a.earnedAt).getTime() : 0
             const bt = b.earnedAt ? new Date(b.earnedAt).getTime() : 0
             return bt - at

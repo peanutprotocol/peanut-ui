@@ -24,7 +24,7 @@ import React, { lazy, Suspense } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Image from 'next/image'
 import { isAddress } from 'viem'
-import { usePrimaryName } from '@justaname.id/react'
+import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
 import { normalizeEnsName } from '@/utils/ens.utils'
 import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
@@ -107,11 +107,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const isTestTransaction = name === 'Enjoy Peanut!'
 
     // ENS reverse-lookup for raw addresses; hook is a no-op when name is a username.
-    const { primaryName } = usePrimaryName({
-        address: isAddress(name) ? (name as `0x${string}`) : undefined,
-        chainId: 1,
-        priority: 'onChain',
-    })
+    const { primaryName } = usePrimaryNameServer(isAddress(name) ? name : undefined)
     let displayName = normalizeEnsName(primaryName) ?? name
     // Shortens crypto addresses AND raw UUIDs (usernameless Peanut users whose
     // `identifier` arrives as a userId) so the feed row never renders a 36-char
@@ -175,6 +171,16 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // a failed refund (e.g. processing error) shouldn't be greyed out.
     const isDeclinedCardSpend =
         status === 'failed' && isCardPaymentEntry(transaction) && !transaction.extraDataForDrawer?.cardPayment?.isRefund
+
+    // Settlement cleared at a different amount than authorized (tip / FX
+    // true-up) — flag the row so the balance impact isn't invisible in the
+    // feed; the receipt carries the authorized/adjustment breakdown. Refunds
+    // excluded like isDeclinedCardSpend above — a refund-auth that clears at
+    // a different amount would otherwise render "Refund · Adjusted".
+    const isAdjustedCardSpend =
+        isCardPaymentEntry(transaction) &&
+        Boolean(transaction.extraDataForDrawer?.cardPayment?.settlementAdjusted) &&
+        !transaction.extraDataForDrawer?.cardPayment?.isRefund
 
     return (
         <>
@@ -246,6 +252,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                           : t(getActionLabelKey(type, status))}
                                 </span>
                                 {status && <StatusPill status={status} />}
+                                {isAdjustedCardSpend && <span>{t('adjustedSuffix')}</span>}
                             </div>
                         </div>
                     </div>

@@ -24,6 +24,9 @@ const Footer = ({ showSiteDirectory = true, locale = 'en' }: { showSiteDirectory
                             Squirrel Labs
                         </a>
                     </p>
+                    <p className="text-xs text-white/70">
+                        Peanut is a trading name of Squirrel Labs Ltd, registered in England &amp; Wales (No. 14558823)
+                    </p>
                 </section>
 
                 <section className="absolute left-1/2 top-5 flex -translate-x-1/2 flex-col items-center gap-4 md:static md:translate-x-0">
@@ -77,6 +80,9 @@ const Footer = ({ showSiteDirectory = true, locale = 'en' }: { showSiteDirectory
                         </Link>
                         <Link className="text-xl font-bold text-white" href={`/${locale}/privacy`}>
                             Privacy
+                        </Link>
+                        <Link className="text-xl font-bold text-white" href={`/${locale}/help/security-disclosure`}>
+                            Security
                         </Link>
                         <a
                             className="text-xl font-bold text-white"

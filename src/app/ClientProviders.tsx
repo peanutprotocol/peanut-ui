@@ -10,6 +10,7 @@ import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
 import RainCooldownIntroModal from '@/components/Global/RainCooldown/IntroModal'
 import StaleCardApprovalReEnableModal from '@/components/Global/StaleCardApproval/ReEnableModal'
 import BadgeEarnToast from '@/components/Badges/BadgeEarnToast'
+import { AppLockGate } from '@/components/Global/AppLock'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
 import { AppIntlProvider } from '@/i18n/app/AppIntlProvider'
@@ -65,7 +66,9 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                                         <HarnessBootstrap />
                                     </Suspense>
                                 )}
-                                {children}
+                                {/* Wraps rather than sits beside the page: while the
+                                    native app is locked, nothing protected renders. */}
+                                <AppLockGate>{children}</AppLockGate>
                             </TranslationSafeWrapper>
                         </FooterVisibilityProvider>
                     </ContextProvider>

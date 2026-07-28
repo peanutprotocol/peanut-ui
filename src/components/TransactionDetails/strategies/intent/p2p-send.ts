@@ -33,6 +33,8 @@ export const p2pSendOrRequestFulfill: TransactionStrategy = (entry: HistoryEntry
                 direction: 'receive',
                 transactionCardType: 'receive',
                 nameForDetails: entry.senderAccount?.username || entry.senderAccount?.identifier || 'Sender',
+                fullName: entry.senderAccount?.fullName ?? '',
+                showFullName: entry.senderAccount?.showFullName,
                 isPeerActuallyUser: !!entry.senderAccount?.isUser,
                 isLinkTx: false,
             }
@@ -51,6 +53,8 @@ export const p2pSendOrRequestFulfill: TransactionStrategy = (entry: HistoryEntry
         direction: 'send',
         transactionCardType: 'send',
         nameForDetails: entry.recipientAccount?.username || entry.recipientAccount?.identifier || 'Recipient',
+        fullName: entry.recipientAccount?.fullName ?? '',
+        showFullName: entry.recipientAccount?.showFullName,
         isPeerActuallyUser: !!entry.recipientAccount?.isUser,
         isLinkTx: false,
     }

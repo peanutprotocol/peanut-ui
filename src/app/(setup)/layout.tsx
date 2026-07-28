@@ -11,7 +11,7 @@ import { Banner } from '@/components/Global/Banner'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
-import { isCapacitor, isIOSNative } from '@/utils/capacitor'
+import { isCapacitor } from '@/utils/capacitor'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const dispatch = useAppDispatch()
@@ -22,13 +22,16 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
      * Bottom-inset fill color. Periwinkle is for Android 15 edge-to-edge (matches
      * the status-bar strip). On iOS the content directly above the home-indicator
      * inset is the white panel, so periwinkle reads as a stray bar on Face ID
-     * devices — fill with white there instead. State + effect (not a render-time
-     * platform check) so the static export's prerendered HTML hydrates cleanly.
+     * devices — fill with white there instead. This applies to ALL iOS (native
+     * app, home-screen PWA, and Safari), not just the Capacitor native build, so
+     * key off the device type rather than isIOSNative(). State + effect (not a
+     * render-time platform check) so the static export's prerendered HTML hydrates
+     * cleanly.
      */
     const [bottomInsetFill, setBottomInsetFill] = useState('bg-secondary-3')
     useEffect(() => {
-        if (isIOSNative()) setBottomInsetFill('bg-white')
-    }, [])
+        if (deviceType === DeviceType.IOS) setBottomInsetFill('bg-white')
+    }, [deviceType])
 
     // configure status bar for native. the setup/onboarding flow has a periwinkle
     // top (illustration + feedback ribbon), so tint the status bar to match — on

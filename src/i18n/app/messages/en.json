@@ -83,6 +83,10 @@
                 "title": "Verification issue",
                 "description": "Contact support for help with your verification.",
                 "cta": "Contact support"
+            },
+            "spendWithPeanut": {
+                "title": "Spend with Peanut",
+                "description": "Pay with your card or scan Pix and MercadoPago QR codes"
             }
         },
         "autoBalance": {
@@ -1175,7 +1179,8 @@
             "comingSoonTitle": "Coming soon!",
             "comingSoonBody": "Join our waiting list and be amongst the first to get it.",
             "joinCta": "Join waiting list",
-            "joinFailed": "Failed to join waitlist"
+            "joinFailed": "Failed to join waitlist",
+            "onListBodyPending": "You are on the list. We'll let you know when cards are ready to be shipped."
         },
         "yourCard": {
             "navTitle": "Your card",
@@ -1224,7 +1229,8 @@
             "signWithPasskey": "Sign with passkey…",
             "submitting": "Submitting…",
             "cta": "Recover funds"
-        }
+        },
+        "uploadProofOfAddress": "Upload proof of address"
     },
     "addMoney": {
         "title": "Add Money",
@@ -1451,7 +1457,8 @@
         },
         "compatibilityModal": {
             "title": "Is this address compatible?",
-            "description": "Only send to address that support the selected network and token. Incorrect transfers may be lost."
+            "description": "Only send to an address that supports the selected network and token. Incorrect transfers may be lost.",
+            "sendingTo": "You're sending to"
         },
         "pixKey": {
             "title": "Send with Pix",
@@ -1559,7 +1566,8 @@
             "unexpected": "Withdraw failed unexpectedly. If problem persists contact support",
             "completeAccountSetup": "Please complete your account setup. Go to Settings to update your profile.",
             "minWithdrawAmount": "Withdraw amount must be at least ${amount}"
-        }
+        },
+        "resolvesTo": "resolves to"
     },
     "transaction": {
         "drawerTitle": "Transaction Details",
@@ -1631,7 +1639,8 @@
             "attachment": "Attachment",
             "download": "Download",
             "reason": "Reason",
-            "accountNumber": "Account Number"
+            "accountNumber": "Account Number",
+            "address": "Address"
         },
         "perkBanner": {
             "title": "You earned a reward!",
@@ -1687,7 +1696,8 @@
             "pendingNote": "Authorized, awaiting settlement or reversal",
             "dispute": "Dispute",
             "evidenceRequested": "Evidence requested",
-            "flagAlt": "{country} flag"
+            "flagAlt": "{country} flag",
+            "initialHold": "Initial hold"
         },
         "dispute": {
             "pending": "Disputed — Awaiting review",
@@ -1728,7 +1738,8 @@
         "manteca": {
             "depositAddress": "Deposit Address"
         },
-        "enjoyPeanut": "Enjoy Peanut!"
+        "enjoyPeanut": "Enjoy Peanut!",
+        "adjustedSuffix": "· Adjusted"
     },
     "history": {
         "title": "Activity",
@@ -1908,7 +1919,7 @@
             "bridgeTosTitle": "One more step",
             "bridgeTosDescription": "Last step: accept terms of service to unlock bank transfers in the US, Europe, and Mexico.",
             "acceptTerms": "Accept Terms",
-            "completeTitle": "You're unlocked",
+            "completeTitle": "All set",
             "completeDescription": "Your account is ready to go."
         },
         "wrapper": {
@@ -2299,7 +2310,8 @@
                 "iosSafari1": "Step 1: tap “aA” in the address bar",
                 "iosSafari2": "Step 2: tap “Website Settings”",
                 "iosSafari3": "Step 3: set Camera to “Allow”"
-            }
+            },
+            "useCopiedAddress": "Use copied address"
         },
         "qrScannerOverlay": {
             "notSupportedWorking": "We're working on an integration.",
@@ -2666,5 +2678,12 @@
         "lowLiquidity": "Low liquidity. Please try a smaller amount or different route.",
         "networkBusyTimeout": "The network is busy and your request timed out. Please try again in a moment.",
         "genericSupport": "There was an issue with your request. Please contact support."
+    },
+    "appLock": {
+        "title": "Peanut is locked",
+        "subtitle": "Confirm it is you to continue.",
+        "subtitleFailed": "Could not confirm it is you. Try again to continue.",
+        "unlock": "Unlock",
+        "logout": "Log out"
     }
 }

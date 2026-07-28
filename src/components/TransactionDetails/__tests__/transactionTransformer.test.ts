@@ -3,7 +3,7 @@ import { EHistoryUserRole, EHistoryStatus, getTransactionSign, type HistoryEntry
 import { pipelineAlert } from '@/utils/pipelineAlerts'
 
 jest.mock('@/assets', () => ({}))
-jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '', SIMPLEFI: '' }))
+jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
 jest.mock('@/utils/pipelineAlerts', () => ({ pipelineAlert: jest.fn() }))
 
 type Account = NonNullable<HistoryEntry['recipientAccount']>
@@ -26,6 +26,21 @@ const bobUser: Account = {
     fullName: 'Bob Builder',
     userId: 'user-bob',
     showFullName: false,
+}
+
+// A Peanut user who has a display name (showFullName) but no @username — only
+// their wallet address as identifier. The strategy must thread fullName +
+// showFullName so the avatar resolves to their initials, not the address (which
+// would trip isAddress() → wallet icon in TransactionAvatarBadge).
+const displayNameOnlyUser: Account = {
+    // real hex address so isAddress() would be true on the old code path —
+    // faithfully reproduces the "avatar name is an address → wallet icon" symptom.
+    identifier: '0x1234567890abcdef1234567890abcdef12345678',
+    type: 'WALLET_SMART',
+    isUser: true,
+    fullName: 'Nancy Drew',
+    userId: 'user-nancy',
+    showFullName: true,
 }
 
 const externalEoa: Account = {
@@ -525,6 +540,39 @@ describe('mapTransactionDataForDrawer', () => {
                 })
             )
             expect(pipelineAlert).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('direct P2P avatar for display-name-only users (no @username)', () => {
+        // Regression guard: p2p-send used to drop fullName/showFullName, so a
+        // recipient/sender with only a display name fell back to their wallet
+        // address for the avatar name → isAddress() → wallet icon instead of
+        // initials. The strategy now threads both, matching every sibling.
+        it('outgoing send resolves the recipient display name → initials, not the address', () => {
+            const result = mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: displayNameOnlyUser,
+                    extraData: { kind: 'DIRECT_TRANSFER' },
+                })
+            ).transactionDetails
+            expect(result.fullName).toBe('Nancy Drew')
+            expect(result.showFullName).toBe(true)
+            expect(result.initials).toBe('ND')
+        })
+
+        it('incoming receive resolves the sender display name → initials, not the address', () => {
+            const result = mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    senderAccount: displayNameOnlyUser,
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'DIRECT_TRANSFER' },
+                })
+            ).transactionDetails
+            expect(result.fullName).toBe('Nancy Drew')
+            expect(result.showFullName).toBe(true)
+            expect(result.initials).toBe('ND')
         })
     })
 })

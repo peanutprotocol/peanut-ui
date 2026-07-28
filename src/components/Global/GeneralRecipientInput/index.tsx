@@ -23,6 +23,9 @@ type GeneralRecipientInputProps = {
      *  Solana/Tron short-circuit the IBAN/US-routing/ENS branches — a base58
      *  address is the only valid input for them. */
     addressFamily?: WithdrawAddressFamily
+    /** Destination chain id — ENS names resolve to their ENSIP-11 per-chain
+     *  address record for this chain (mainnet record when omitted). */
+    chainId?: string
 }
 
 export type GeneralRecipientUpdate = {
@@ -42,6 +45,7 @@ const GeneralRecipientInput = ({
     showInfoText = true,
     isWithdrawal = false,
     addressFamily = 'evm',
+    chainId,
 }: GeneralRecipientInputProps) => {
     const t = useTranslations('global')
     const recipientType = useRef<RecipientType>('address')
@@ -82,7 +86,12 @@ const GeneralRecipientInput = ({
                     isValid = true
                 } else {
                     try {
-                        const validation = await validateAndResolveRecipient(trimmedInput, isWithdrawal)
+                        const validation = await validateAndResolveRecipient(
+                            trimmedInput,
+                            isWithdrawal,
+                            addressFamily,
+                            chainId
+                        )
 
                         isValid = true
                         resolvedAddress.current = validation.resolvedAddress
@@ -105,7 +114,7 @@ const GeneralRecipientInput = ({
                 return false
             }
         },
-        [isWithdrawal, addressFamily, t]
+        [isWithdrawal, addressFamily, chainId, t]
     )
 
     const onInputUpdate = useCallback(

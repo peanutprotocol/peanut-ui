@@ -16,6 +16,7 @@ import LockCardModal from '@/components/Card/LockCardModal'
 import { shouldShowAutoRenewBanner, daysUntilExpiry } from '@/components/Card/cardExpiry.utils'
 import { useCardReveal } from '@/hooks/useCardReveal'
 import { useWalletPlatform } from '@/hooks/useWalletPlatform'
+import { cardBalanceDueCents } from '@/utils/balance.utils'
 import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
 import type { RainCardOverview, RainCardSummary } from '@/services/rain'
 
@@ -27,7 +28,7 @@ interface Props {
     onPrev?: () => void
 }
 
-const YourCardScreen: FC<Props> = ({ card, onPrev }) => {
+const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
     const t = useTranslations('card.yourCard')
     const [autoRenewDismissed, setAutoRenewDismissed] = useState(false)
     const [action, setAction] = useQueryState('action', parseAsStringEnum<CardAction>(['lock', 'unlock', 'cancel']))
@@ -42,6 +43,7 @@ const YourCardScreen: FC<Props> = ({ card, onPrev }) => {
     const closeAction = () => void setAction(null)
     const showAutoRenew = !autoRenewDismissed && shouldShowAutoRenewBanner(card.expiryMonth, card.expiryYear)
     const daysLeft = daysUntilExpiry(card.expiryMonth, card.expiryYear)
+    const balanceDueCents = cardBalanceDueCents(overview.balance?.spendingPower)
 
     const handleCopy = useCallback(
         (value: string, field: 'pan' | 'cvv') => {
@@ -85,6 +87,15 @@ const YourCardScreen: FC<Props> = ({ card, onPrev }) => {
                         <Icon name="chevron-up" size={16} className="rotate-45" />
                     </button>
                 </div>
+            )}
+
+            {balanceDueCents > 0 && (
+                <InfoCard
+                    variant="warning"
+                    icon="credit-card"
+                    title={`$${(balanceDueCents / 100).toFixed(2)} will be debited based on your next deposit`}
+                    description="A recent card payment ended up higher than the amount held at checkout. This happens with tips or updated totals. We'll cover the difference automatically."
+                />
             )}
 
             <InfoCard

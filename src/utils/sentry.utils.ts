@@ -293,15 +293,58 @@ function shouldSkipReporting(url: string, status: number): boolean {
     return false
 }
 
-/** Use configured fetch timeout or default to 10s
- * We use 10s because vercel function timout is 15s and this function
- * can be called in that context, and we preffer to have control over
- * the error message and handling
+/**
+ * Server-side budget — deliberately UNCHANGED at the historical 10s.
+ *
+ * A server fetch runs inside a Vercel function, so it must abort before the
+ * platform kills the function, otherwise we leak an opaque 504 instead of
+ * owning the error. The old comment here put that ceiling at 15s; today
+ * `vercel.json` says `maxDuration: 300` — but that entry declares the glob
+ * `app/api/**` while this project keeps its routes under `src/app/api/`, and
+ * Vercel requires the `src/` prefix for src-directory projects, so the entry
+ * currently matches nothing. The real ceiling is therefore the project default
+ * (300s with Fluid compute, far lower without), which cannot be read from the
+ * repo.
+ *
+ * Raising this buys little — a Vercel→api.peanut.me call is a datacenter hop,
+ * not a mobile network — and risks sitting ABOVE an unverified ceiling, which
+ * would reintroduce exactly the 504s the original 10s existed to prevent. So it
+ * stays put until the ceiling is confirmed. See the PR for the follow-up.
  */
-const DEFAULT_TIMEOUT_MS =
-    process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS && !isNaN(parseInt(process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS, 10))
-        ? parseInt(process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS, 10)
-        : 10000
+export const SERVER_FETCH_TIMEOUT_MS = 10_000
+
+/**
+ * Client-side budget — the actual fix. No platform ceiling applies in a
+ * browser, only real mobile networks, and 10s sat below the page load itself in
+ * high-latency markets (Nigeria p90 LCP 11.3s vs 6.1s globally), aborting
+ * healthy requests and reporting them as failures. Bounded above by React Query
+ * retries, which multiply it; the worst-case total for the default retry
+ * strategy is pinned in `sentry.utils.test.ts`.
+ */
+export const CLIENT_FETCH_TIMEOUT_MS = 20_000
+
+/**
+ * `NEXT_PUBLIC_FETCH_TIMEOUT_MS` is an explicit override of both budgets. It
+ * must be a positive integer of milliseconds within the 32-bit timer range:
+ * `parseInt` would have accepted `"30s"` as 30 and `"0"` as 0, and anything
+ * above 2^31-1 overflows setTimeout and clamps to ~1ms — every one of which
+ * aborts requests instantly. Malformed values fall back to the default rather
+ * than bricking fetches. Both inputs are parameters so the function stays pure:
+ * jsdom always defines `window`, so the server branch is otherwise unreachable
+ * from tests.
+ */
+const MAX_TIMER_MS = 2_147_483_647
+
+export const resolveDefaultTimeoutMs = (
+    isServer: boolean,
+    override: string | undefined = process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS
+): number => {
+    const parsed = Number(override)
+    if (override && Number.isInteger(parsed) && parsed > 0 && parsed <= MAX_TIMER_MS) return parsed
+    return isServer ? SERVER_FETCH_TIMEOUT_MS : CLIENT_FETCH_TIMEOUT_MS
+}
+
+const DEFAULT_TIMEOUT_MS = resolveDefaultTimeoutMs(typeof window === 'undefined')
 
 const getErrorLevelFromStatus = (status: number): Sentry.SeverityLevel => {
     if (status >= 500) return 'error'
@@ -429,7 +472,10 @@ export const fetchWithSentry = async (
         // fetch rejected (timeout / DNS / connection refused) — the request never
         // reached the backend, so flag a connectivity failure.
         reportNetworkError()
-        console.error(error)
+        // console.info, not error: captureConsoleIntegration would turn an
+        // error-level log into a second Sentry event on top of the explicit
+        // captures below.
+        console.info(error)
 
         if (error instanceof Error && error.name === 'AbortError') {
             const timeoutError = new Error(`Request to ${url} timed out after ${timeoutMs}ms`)

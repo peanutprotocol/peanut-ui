@@ -1,4 +1,4 @@
-import { Drawer, DrawerContent } from '@/components/Global/Drawer'
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import Image from 'next/image'
 import { useState } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
@@ -76,7 +76,9 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                                     <h2 className="flex items-center gap-2 text-xs font-medium text-grey-1">
                                         {t('unlocked')}
                                     </h2>
-                                    <h1 className={`text-lg font-extrabold md:text-4xl`}>{displayName}</h1>
+                                    <DrawerTitle className="text-lg font-extrabold md:text-4xl">
+                                        {displayName}
+                                    </DrawerTitle>
                                 </div>
                             </div>
                         </Card>

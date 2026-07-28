@@ -83,6 +83,10 @@
                 "title": "Problema na verificação",
                 "description": "Fale com o suporte para receber ajuda com sua verificação.",
                 "cta": "Falar com o suporte"
+            },
+            "spendWithPeanut": {
+                "title": "Pague com a Peanut",
+                "description": "Pague com seu cartão ou escaneie QR codes de Pix e MercadoPago"
             }
         },
         "autoBalance": {
@@ -1175,7 +1179,8 @@
             "comingSoonTitle": "Em breve!",
             "comingSoonBody": "Entre na nossa lista de espera e seja um dos primeiros a ter.",
             "joinCta": "Entrar na lista de espera",
-            "joinFailed": "Não foi possível entrar na lista de espera"
+            "joinFailed": "Não foi possível entrar na lista de espera",
+            "onListBodyPending": "Você está na lista. Avisamos quando os cartões estiverem prontos para envio."
         },
         "yourCard": {
             "navTitle": "Seu cartão",
@@ -1224,7 +1229,8 @@
             "signWithPasskey": "Assinar com passkey…",
             "submitting": "Enviando…",
             "cta": "Recuperar fundos"
-        }
+        },
+        "uploadProofOfAddress": "Enviar comprovante de endereço"
     },
     "addMoney": {
         "title": "Adicionar dinheiro",
@@ -1451,7 +1457,8 @@
         },
         "compatibilityModal": {
             "title": "Este endereço é compatível?",
-            "description": "Envie somente para endereços compatíveis com a rede e o token selecionados. Transferências incorretas podem ser perdidas."
+            "description": "Envie somente para endereços compatíveis com a rede e o token selecionados. Transferências incorretas podem ser perdidas.",
+            "sendingTo": "Você está enviando para"
         },
         "pixKey": {
             "title": "Enviar com Pix",
@@ -1559,7 +1566,8 @@
             "unexpected": "O saque falhou inesperadamente. Se o problema continuar, fale com o suporte",
             "completeAccountSetup": "Complete a configuração da sua conta. Vá em Configurações para atualizar seu perfil.",
             "minWithdrawAmount": "O valor do saque precisa ser de pelo menos ${amount}"
-        }
+        },
+        "resolvesTo": "resolve para"
     },
     "transaction": {
         "drawerTitle": "Detalhes da transação",
@@ -1631,7 +1639,8 @@
             "attachment": "Anexo",
             "download": "Baixar",
             "reason": "Motivo",
-            "accountNumber": "Número da conta"
+            "accountNumber": "Número da conta",
+            "address": "Endereço"
         },
         "perkBanner": {
             "title": "Você ganhou uma recompensa!",
@@ -1687,7 +1696,8 @@
             "pendingNote": "Autorizada, aguardando liquidação ou reversão",
             "dispute": "Contestação",
             "evidenceRequested": "Comprovação solicitada",
-            "flagAlt": "Bandeira de {country}"
+            "flagAlt": "Bandeira de {country}",
+            "initialHold": "Retenção inicial"
         },
         "dispute": {
             "pending": "Contestada — Aguardando análise",
@@ -1728,7 +1738,8 @@
         "manteca": {
             "depositAddress": "Endereço de depósito"
         },
-        "enjoyPeanut": "Aproveite o Peanut!"
+        "enjoyPeanut": "Aproveite o Peanut!",
+        "adjustedSuffix": "· Ajustado"
     },
     "history": {
         "title": "Atividade",
@@ -1908,7 +1919,7 @@
             "bridgeTosTitle": "Mais um passo",
             "bridgeTosDescription": "Último passo: aceite os termos de serviço para desbloquear as transferências bancárias nos Estados Unidos, na Europa e no México.",
             "acceptTerms": "Aceitar termos",
-            "completeTitle": "Tudo desbloqueado",
+            "completeTitle": "Tudo pronto",
             "completeDescription": "Sua conta está pronta para uso."
         },
         "wrapper": {
@@ -2299,7 +2310,8 @@
                 "iosSafari1": "Passo 1: toque em “aA” na barra de endereço",
                 "iosSafari2": "Passo 2: toque em “Ajustes do site”",
                 "iosSafari3": "Passo 3: defina a câmera como “Permitir”"
-            }
+            },
+            "useCopiedAddress": "Usar endereço copiado"
         },
         "qrScannerOverlay": {
             "notSupportedWorking": "Estamos trabalhando em uma integração.",
@@ -2666,5 +2678,12 @@
         "lowLiquidity": "Baixa liquidez. Tente um valor menor ou uma rota diferente.",
         "networkBusyTimeout": "A rede está congestionada e sua solicitação expirou. Tente novamente em instantes.",
         "genericSupport": "Ocorreu um problema com sua solicitação. Entre em contato com o suporte."
+    },
+    "appLock": {
+        "title": "A Peanut está bloqueada",
+        "subtitle": "Confirme sua identidade para continuar.",
+        "subtitleFailed": "Não foi possível confirmar sua identidade. Tente novamente para continuar.",
+        "unlock": "Desbloquear",
+        "logout": "Sair"
     }
 }

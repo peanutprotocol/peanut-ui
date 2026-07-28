@@ -3,6 +3,7 @@ import { type AddBankAccountPayload, BridgeEndorsementType, type InitiateKycResp
 import { type CounterpartyUser } from '@/interfaces/interfaces'
 import { type ContactsResponse } from '@/interfaces/interfaces'
 import { serverFetch } from '@/utils/api-fetch'
+import { withStepUpHeader } from '@/services/step-up'
 
 export const updateUserById = async (payload: Record<string, unknown>): Promise<{ data?: ApiUser; error?: string }> => {
     try {
@@ -67,6 +68,7 @@ export const addBankAccount = async (
         const response = await serverFetch('/users/accounts', {
             method: 'POST',
             body: JSON.stringify(payload),
+            headers: await withStepUpHeader({}),
         })
 
         const responseJson = await response.json()

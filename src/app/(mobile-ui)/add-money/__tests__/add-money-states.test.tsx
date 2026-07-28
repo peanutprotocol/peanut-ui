@@ -609,6 +609,9 @@ jest.mock('@/components/Common/CountryList', () => ({
             <button data-testid="country-germany" onClick={() => props.onCountryClick({ path: 'germany', id: 'DE' })}>
                 Germany
             </button>
+            <button data-testid="country-chad" onClick={() => props.onCountryClick({ path: 'chad', id: 'TD' })}>
+                Chad
+            </button>
         </div>
     ),
 }))
@@ -1035,12 +1038,31 @@ describe('GROUP 1: Landing / Method Selection', () => {
         expect(screen.getByText('Select your country')).toBeInTheDocument()
     })
 
-    test('selecting a country from list navigates to country page', () => {
+    // TASK-20033: picking a bank-supported country skips the redundant per-country
+    // method list and goes straight to the deposit screen (Manteca for AR/BR,
+    // Bridge bank otherwise). Coming-soon countries keep the per-country screen.
+    test('selecting a Manteca country (AR/BR) goes straight to the manteca deposit', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('country-argentina'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/argentina')
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/argentina/manteca')
+    })
+
+    test('selecting a Bridge-supported country goes straight to the bank deposit', () => {
+        resetQueryState({ method: 'bank' })
+        renderWithProviders(<AddMoneyPage />)
+
+        fireEvent.click(screen.getByTestId('country-germany'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/germany/bank')
+    })
+
+    test('selecting a coming-soon country keeps the per-country method screen', () => {
+        resetQueryState({ method: 'bank' })
+        renderWithProviders(<AddMoneyPage />)
+
+        fireEvent.click(screen.getByTestId('country-chad'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/chad')
     })
 
     test('back from method selection navigates to /home', () => {
@@ -1353,6 +1375,30 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 
         expect(screen.getByTestId('empty-state')).toBeInTheDocument()
         expect(screen.getByText('Country not found')).toBeInTheDocument()
+    })
+
+    // Manteca countries (BR/AR) must never render this Bridge SEPA page — it has no
+    // BR/AR currency and would show EUR (TASK-20225). Bounce them to /manteca instead.
+    test.each(['brazil', 'argentina'])(
+        'Manteca country (%s) redirects to the manteca route, never shows EUR bank UI',
+        (country) => {
+            setParams({ country })
+            renderWithProviders(<OnrampBankPage />)
+
+            expect(mockRouterReplace).toHaveBeenCalledWith(`/add-money/${country}/manteca`)
+            expect(screen.queryByText('How much do you want to add?')).not.toBeInTheDocument()
+            expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
+        }
+    )
+
+    // Control: a non-Manteca bank country (Mexico) must NOT be bounced — it stays on
+    // the Bridge amount UI. Guards against the redirect over-firing.
+    test('non-Manteca country (mexico) stays on the Bridge bank UI, no redirect', () => {
+        setParams({ country: 'mexico' })
+        renderWithProviders(<OnrampBankPage />)
+
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        expect(screen.getByText('How much do you want to add?')).toBeInTheDocument()
     })
 
     test('fresh user needs KYC before Bridge deposit confirmation', async () => {
