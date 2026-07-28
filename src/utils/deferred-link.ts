@@ -6,6 +6,7 @@
 import { registerPlugin } from '@capacitor/core'
 import { PLAY_STORE_URL } from '@/constants/general.consts'
 import { isValidLocale } from '@/i18n/config'
+import { resolveLocale, type AppLocale } from '@/i18n/app/config'
 import { isAndroidNative, isIOSNative } from './capacitor'
 import { clipboardHasStrings } from './clipboard-detect'
 import { getFromCookie, saveToCookie, sanitizeRedirectURL } from './general.utils'
@@ -15,8 +16,6 @@ import { deepLinkToNativePath } from './native-routes'
 // (utm_source=google-play&utm_medium=organic)
 const MARKER = 'pnutdl'
 export const CONSUMED_KEY = 'deferredLinkConsumed'
-// future in-app i18n reads this; nothing consumes it yet
-export const PREFERRED_LOCALE_KEY = 'preferredLocale'
 
 export interface DeferredPayload {
     lang?: string
@@ -104,14 +103,22 @@ export function parseDeferredPayload(raw: string): DeferredPayload | null {
 // native side — one-shot restore on first launch
 // ---------------------------------------------------------------------------
 
+export interface RestoredContext {
+    /** sanitized in-app path to navigate to, or null */
+    dest: string | null
+    /** normalized app locale to apply via setLocale, or null */
+    locale: AppLocale | null
+}
+
 /**
  * one-shot first-launch restore. reads the platform hand-off (android install
- * referrer / iOS clipboard), applies invite + campaign cookies and the
- * preferred locale, and returns the sanitized in-app destination path to
- * navigate to (or null). the consumed flag is set even when nothing is found,
- * so the iOS paste prompt can never fire twice.
+ * referrer / iOS clipboard), applies invite + campaign cookies, and returns
+ * the destination + locale for the caller to act on (locale goes through
+ * useAppLocale().setLocale so it applies live AND persists). the consumed
+ * flag is set even when nothing is found, so the iOS paste prompt can never
+ * fire twice.
  */
-export async function restoreDeferredContext(): Promise<string | null> {
+export async function restoreDeferredContext(): Promise<RestoredContext | null> {
     try {
         if (localStorage.getItem(CONSUMED_KEY)) return null
     } catch {
@@ -147,7 +154,7 @@ export async function restoreDeferredContext(): Promise<string | null> {
     const payload = raw ? parseDeferredPayload(raw) : null
     if (!payload) return null
 
-    const dest = applyDeferredPayload(payload)
+    const restored = applyDeferredPayload(payload)
 
     // privacy: clear the consumed hand-off off the clipboard. after the flag —
     // an interrupted clear can't cause a re-read. single space: some platforms
@@ -159,22 +166,25 @@ export async function restoreDeferredContext(): Promise<string | null> {
         } catch {}
     }
 
-    return dest
+    return restored
 }
 
 /**
- * applies a parsed payload (cookies + preferred locale) and returns the
- * sanitized in-app destination, or null. shared by the real restore and the
- * /dev/deferred simulator so there is exactly one apply path.
+ * applies a parsed payload (cookies) and returns the sanitized destination +
+ * normalized locale. shared by the real restore and the /dev/deferred
+ * simulator so there is exactly one apply path. the locale is returned rather
+ * than persisted here: only useAppLocale().setLocale both persists and
+ * re-renders the running session.
  */
-export function applyDeferredPayload(payload: DeferredPayload): string | null {
+export function applyDeferredPayload(payload: DeferredPayload): RestoredContext {
     if (payload.invite) saveToCookie('inviteCode', payload.invite)
     if (payload.campaign) saveToCookie('campaignTag', payload.campaign)
-    if (payload.lang && isValidLocale(payload.lang)) {
-        try {
-            localStorage.setItem(PREFERRED_LOCALE_KEY, payload.lang)
-        } catch {}
-    }
-    if (!payload.dest) return null
-    return sanitizeRedirectURL(deepLinkToNativePath(payload.dest) ?? payload.dest)
+
+    // resolveLocale maps any unknown tag to 'en', which would override the
+    // device language — only pass through tags whose language is supported
+    const langPrefix = payload.lang?.trim().toLowerCase().split('-')[0]
+    const locale = langPrefix && ['en', 'es', 'pt'].includes(langPrefix) ? resolveLocale(payload.lang) : null
+
+    const dest = payload.dest ? sanitizeRedirectURL(deepLinkToNativePath(payload.dest) ?? payload.dest) : null
+    return { dest, locale }
 }
