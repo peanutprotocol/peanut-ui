@@ -2653,7 +2653,8 @@
             "sendExactAmount": "Send the exact amount!"
         },
         "betaBanner": "Peanut is in beta! Thank you for being an early user, share your feedback here",
-        "demoBanner": "Demo mode — you're previewing Peanut with a simulated wallet. Balances and transactions aren't real."
+        "demoBanner": "Demo mode — you're previewing Peanut with a simulated wallet. Balances and transactions aren't real.",
+        "rainCooldownPill": "Card cool-down"
     },
     "errors": {
         "balanceSettling": "Your balance isn't fully available yet. Please try again in a few seconds.",
@@ -2688,7 +2689,13 @@
         "sendLinkAlreadyClaimed": "Send link already claimed",
         "lowLiquidity": "Low liquidity. Please try a smaller amount or different route.",
         "networkBusyTimeout": "The network is busy and your request timed out. Please try again in a moment.",
-        "genericSupport": "There was an issue with your request. Please contact support."
+        "genericSupport": "There was an issue with your request. Please contact support.",
+        "rainCooldownRetry": "A previous card withdrawal is still active. Try again in about {minutes, plural, one {# minute} other {# minutes}}.",
+        "rainCooldownRetryShortly": "A previous card withdrawal is still active. Please try again shortly.",
+        "rainInsufficientCollateral": "Your card doesn’t have enough collateral for this withdrawal.",
+        "staleCardApproval": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
+        "cardRateLimited": "Too many card requests. Please wait a moment and try again.",
+        "linkTransactionHashFetch": "We couldn’t load this link’s transaction. Please refresh and try again."
     },
     "appLock": {
         "title": "Welcome back!",

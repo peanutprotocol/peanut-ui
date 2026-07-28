@@ -75,13 +75,15 @@ describe('friendlyError', () => {
         expect(friendlyError(settling)).toEqual({ kind: 'code', code: 'balanceSettling' })
     })
 
-    test('rain collateral errors pass BACKEND text through verbatim, ahead of the timeout matcher', () => {
+    // Pre-contract fallback: these fixtures carry no wire `code`, which is
+    // exactly the shape an API that predates the error-code contract returns.
+    test('rain collateral errors WITHOUT a wire code still pass backend text through verbatim', () => {
         const cooldown = new Error('A previous withdrawal is still active for this card. Try again in about 2 min.')
         expect(rainCollateralErrorMessage(cooldown)).toBe(cooldown.message)
         expect(friendlyError(cooldown)).toEqual({ kind: 'text', text: cooldown.message })
     })
 
-    test('stale-card-approval passes its backend copy through as text, not the fallback code', () => {
+    test('stale-card-approval without a wire code still passes its backend copy through', () => {
         // Matched by error name so the inline path matches the global re-enable
         // modal instead of dead-ending on the generic support fallback.
         const stale = new Error('Your card needs to be re-enabled before you can withdraw.')
@@ -140,6 +142,11 @@ describe('friendly error copy catalog', () => {
         'lowLiquidity',
         'networkBusyTimeout',
         'genericSupport',
+        'staleCardApproval',
+        'rainInsufficientCollateral',
+        'rainCooldownRetryShortly',
+        'cardRateLimited',
+        'linkTransactionHashFetch',
     ]
 
     const errors: Record<string, string> = en.errors
@@ -152,5 +159,76 @@ describe('friendly error copy catalog', () => {
 
     it('has copy for the balance-gate code rendered directly by components', () => {
         expect(errors['notEnoughBalanceAddFunds']).toBeTruthy()
+    })
+})
+
+describe('backend wire codes', () => {
+    test('a wire-coded stale approval maps to localized copy instead of passthrough', () => {
+        const stale = Object.assign(new Error('Your card needs to be re-enabled before you can withdraw.'), {
+            name: 'StaleCardApprovalError',
+            code: 'STALE_CARD_APPROVAL',
+        })
+        expect(friendlyError(stale)).toEqual({ kind: 'code', code: 'staleCardApproval' })
+    })
+
+    test('a wire-coded collateral shortfall maps to localized copy', () => {
+        const err = Object.assign(new Error('Insufficient collateral balance for this withdrawal'), {
+            code: 'INSUFFICIENT_COLLATERAL',
+        })
+        expect(friendlyError(err)).toEqual({ kind: 'code', code: 'rainInsufficientCollateral' })
+    })
+
+    test('cooldown yields minutes, rounded up and floored at 1', () => {
+        const at = (retryAfterSec: number | null) =>
+            Object.assign(new Error('A previous withdrawal is still active for this card.'), {
+                code: 'WITHDRAWAL_COOLDOWN_ACTIVE',
+                retryAfterSec,
+            })
+        expect(friendlyError(at(90))).toEqual({ kind: 'params', code: 'rainCooldownRetry', values: { minutes: 2 } })
+        // 20s must not render "0 minutes"
+        expect(friendlyError(at(20))).toEqual({ kind: 'params', code: 'rainCooldownRetry', values: { minutes: 1 } })
+        expect(friendlyError(at(null))).toEqual({ kind: 'code', code: 'rainCooldownRetryShortly' })
+    })
+
+    test('both cooldown discriminants render the same copy', () => {
+        const sigCooldown = Object.assign(new Error('A previous withdrawal signature is still active.'), {
+            code: 'WITHDRAWAL_SIGNATURE_COOLDOWN',
+            retryAfterSec: 120,
+        })
+        expect(friendlyError(sigCooldown)).toEqual({
+            kind: 'params',
+            code: 'rainCooldownRetry',
+            values: { minutes: 2 },
+        })
+    })
+
+    // The allow-list is load-bearing: third-party libraries set `.code` too, and
+    // mapping an arbitrary one straight to a translation key would turn every
+    // ethers error into a missing-message crash.
+    test('an unknown .code falls through to the message matchers', () => {
+        const ethersish = Object.assign(new Error('The request timed out.'), { code: 'NETWORK_ERROR' })
+        expect(friendlyError(ethersish)).toEqual({ kind: 'code', code: 'networkBusyTimeout' })
+    })
+
+    test('a numeric .code (EIP-1193 wallets) is ignored', () => {
+        const walletRejection = Object.assign(new Error('User rejected the request'), { code: 4001 })
+        expect(friendlyError(walletRejection)).toEqual({ kind: 'code', code: 'userRejectedRequest' })
+    })
+
+    test('ServiceUnavailableError keeps the retryable timeout code', () => {
+        // fetchWithSentry rethrows this with the real timeout on `.cause`, which
+        // the classifier does not walk — without the name match it collapsed to
+        // the generic support fallback.
+        const wrapped = Object.assign(new Error('Service temporarily unavailable. Please try again.'), {
+            name: 'ServiceUnavailableError',
+        })
+        expect(friendlyError(wrapped)).toEqual({ kind: 'code', code: 'networkBusyTimeout' })
+    })
+
+    test('the SDK transactionHash fetch failure is now localized, not passed through', () => {
+        expect(friendlyError(new Error('Error getting the link with transactionHash 0xabc'))).toEqual({
+            kind: 'code',
+            code: 'linkTransactionHashFetch',
+        })
     })
 })
