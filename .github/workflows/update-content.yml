@@ -13,14 +13,19 @@ jobs:
     update:
         runs-on: ubuntu-latest
         steps:
-            # Base the bump on `dev` (the PR target), NOT the repo default branch.
-            # Branching off a different branch than the base is what let unrelated
-            # code drift leak into the auto-PR (#2226) and made it conflict with dev
-            # once dev's content pointer moved (#2247). Off `dev`, the PR is
-            # content-only by construction and always cleanly mergeable.
+            # Base the bump on `main` — the branch peanut.me actually deploys from.
+            # This used to target `dev`, which was a dead end: `dev` only ever
+            # receives content pointers *downward* via the main->dev back-merge, so
+            # it was never ahead of main and a release could never carry a content
+            # bump up. 29 auto-PRs were opened against `dev` and not one ever
+            # merged. Publishing to production was a manual signed PR every time.
+            #
+            # Branch off the SAME ref we target, so the PR is content-only by
+            # construction — branching off a different base is what let unrelated
+            # code drift leak into the auto-PR (#2226) and conflict (#2247).
             - uses: actions/checkout@v4
               with:
-                  ref: dev
+                  ref: main
 
             - name: Init and update submodule
               env:
@@ -41,19 +46,23 @@ jobs:
                     echo "changed=true" >> "$GITHUB_OUTPUT"
                   fi
 
-            - name: Create PR + auto-merge (content-only)
+            - name: Create PR (content-only)
               if: steps.check.outputs.changed == 'true'
-              # Prefer a PAT (CONTENT_BOT_TOKEN) so the PR triggers CI and auto-merge
-              # can fire on green checks. Falls back to GITHUB_TOKEN — the PR still
-              # opens, but GITHUB_TOKEN-created PRs don't trigger CI, so auto-merge
-              # won't fire until the PAT is configured (no regression vs today).
+              # Prefer a PAT (CONTENT_BOT_TOKEN) so the PR triggers CI. Falls back to
+              # GITHUB_TOKEN — the PR still opens, but GITHUB_TOKEN-created PRs don't
+              # trigger CI, so nothing would ever gate or merge it.
+              #
+              # Approve + merge are deliberately NOT done here: that belongs to
+              # content-publish-automerge.yml, which runs from `main` (tamper-proof)
+              # and re-verifies the content-only diff AND green `ci-success` before
+              # merging. One guard, in one place, on the base branch.
               env:
                   GH_TOKEN: ${{ secrets.CONTENT_BOT_TOKEN || secrets.GITHUB_TOKEN }}
               run: |
                   set -euo pipefail
                   BRANCH="auto/update-content-$(date -u +%Y%m%d-%H%M%S)"
                   SUBMODULE_SHA=$(git -C src/content rev-parse HEAD)
-                  PARENT=$(git rev-parse HEAD)   # dev tip — bump is content-only vs dev
+                  PARENT=$(git rev-parse HEAD)   # main tip — bump is content-only vs main
                   BASE_TREE=$(gh api repos/${{ github.repository }}/git/commits/$PARENT --jq '.tree.sha')
                   # Create tree via API with updated submodule pointer
                   TREE=$(gh api repos/${{ github.repository }}/git/trees \
@@ -64,30 +73,34 @@ jobs:
                     -f "tree[][type]=commit" \
                     -f "tree[][sha]=$SUBMODULE_SHA" \
                     --jq '.sha')
-                  # Create signed commit via API (verified signature)
+                  # Create the bump commit via the Git Data API. NOTE: API-created
+                  # commits are UNSIGNED, and `required_signatures` is active on both
+                  # the "All branches" and "Protect Prod" rulesets. This works only
+                  # because CONTENT_BOT_TOKEN belongs to an OrganizationAdmin, who has
+                  # `bypass_mode: always` on both. If that token is ever moved to a
+                  # non-admin account, this step starts failing at ref-creation and the
+                  # bump must be made as a locally signed commit instead.
                   COMMIT_SHA=$(gh api repos/${{ github.repository }}/git/commits \
                     --method POST \
                     -f message="Update content submodule to latest main" \
                     -f "tree=$TREE" \
                     -f "parents[]=$PARENT" \
                     --jq '.sha')
-                  # Create branch pointing to signed commit
+                  # Create branch pointing at the bump commit
                   gh api repos/${{ github.repository }}/git/refs \
                     --method POST \
                     -f "ref=refs/heads/$BRANCH" \
                     -f "sha=$COMMIT_SHA"
-                  PR_URL=$(gh pr create \
+                  cat > /tmp/pr-body.md <<'BODY'
+                  Auto-generated: bumps `src/content` to latest peanut-content `main`.
+
+                  Based on `main`, so the diff is exactly the submodule pointer.
+                  `content-publish-automerge.yml` approves and merges this once
+                  `ci-success` is green. Anything other than a lone `src/content`
+                  change falls back to the normal 1-review gate.
+                  BODY
+                  gh pr create \
                     --head "$BRANCH" \
-                    --base dev \
-                    --title "Update content submodule" \
-                    --body "Auto-generated: bumps the content submodule to latest peanut-content main. Based on dev, so it's content-only and auto-merges once checks pass.")
-                  # Guard: only auto-merge when the PR touches NOTHING but the submodule
-                  # pointer. If anything else slipped in, leave it for a human.
-                  FILES=$(gh pr diff "$PR_URL" --name-only)
-                  if [ "$FILES" = "src/content" ]; then
-                    gh pr merge "$PR_URL" --auto --squash \
-                      || echo "::warning::auto-merge not enabled/permitted — left for manual merge ($PR_URL)"
-                  else
-                    echo "::warning::PR touches more than src/content — left for manual review:"
-                    echo "$FILES"
-                  fi
+                    --base main \
+                    --title "content: publish latest to production (src/content → peanut-content@${SUBMODULE_SHA:0:7})" \
+                    --body-file /tmp/pr-body.md
