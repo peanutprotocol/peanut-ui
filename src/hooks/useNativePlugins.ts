@@ -36,13 +36,21 @@ export function useNativePlugins() {
             else cleanups.push(cleanup)
         }
 
-        const openDeepLink = (url?: string | null) => {
-            if (!url) return
+        // true once ANY deep link actually navigated (cold start, warm start,
+        // push tap) — the deferred-restore dest yields only to a navigation
+        // that really happened, not to a launch url that was rejected.
+        let anyDeepLinkNavigated = false
+
+        const openDeepLink = (url?: string | null): boolean => {
+            if (!url) return false
             const target = deepLinkToNativePath(url)
-            if (!target) return
+            if (!target) return false
             // same-origin guard: only ever navigate to an in-app relative path
             const safe = sanitizeRedirectURL(target)
-            if (safe) router.push(safe)
+            if (!safe) return false
+            router.push(safe)
+            anyDeepLinkNavigated = true
+            return true
         }
 
         const init = async () => {
@@ -76,13 +84,27 @@ export function useNativePlugins() {
                 const urlListener = await App.addListener('appUrlOpen', ({ url }: { url: string }) => openDeepLink(url))
                 track(() => urlListener.remove())
 
-                // deferred deep link (store-install hand-off): always restores
-                // cookies + locale; only navigate when this launch wasn't
-                // already a real deep link — the deep link wins.
-                const { restoreDeferredContext } = await import('@/utils/deferred-link')
-                const restored = await restoreDeferredContext()
-                if (restored?.locale) await setLocale(restored.locale)
-                if (!launch?.url && restored?.dest) router.push(restored.dest)
+                // deferred deep link (store-install hand-off). deliberately NOT
+                // awaited: the iOS clipboard read can sit on the system paste
+                // prompt and the android referrer service can be slow — neither
+                // may hold up the rest of init (push listener, splash hide).
+                import('@/utils/deferred-link')
+                    .then(({ restoreDeferredContext }) => restoreDeferredContext())
+                    .then((restored) => {
+                        if (!restored) return
+                        // a deep link that actually navigated wins the landing
+                        if (restored.dest && !anyDeepLinkNavigated) router.push(restored.dest)
+                        if (restored.locale) {
+                            const locale = restored.locale
+                            // wait for the startup locale to paint so the
+                            // provider's initial swap can't clobber ours; the
+                            // race guard mirrors the splash-screen timeout
+                            Promise.race([localeApplied(), new Promise((r) => setTimeout(r, 3000))])
+                                .then(() => setLocale(locale))
+                                .catch((e) => console.warn('failed to apply deferred locale:', e))
+                        }
+                    })
+                    .catch((e) => console.warn('deferred link restore failed:', e))
             } catch (e) {
                 console.warn('failed to init app listeners:', e)
                 // without these listeners push-tap deep links never route, so surface the failure
