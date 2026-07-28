@@ -49,11 +49,15 @@ jobs:
                   RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
               run: |
                   set -uo pipefail
-
-                  # Every API call is `|| true`: the step shell is `bash -e`, so an
-                  # unguarded 403 aborts mid-script and surfaces as a bare red run
-                  # indistinguishable from a real content alert. That happened once
-                  # (actions:read 403). Collect what we can, then decide explicitly.
+                  # `set +e` is deliberate, and `-e` here is actively harmful.
+                  # GitHub runs this step as `bash -e {0}`, which combined with
+                  # pipefail means ANY non-zero anywhere kills the script at that
+                  # line with no output at all — a red run and an empty log. It bit
+                  # twice: a 403 from the Actions API, then a `grep` with no match
+                  # inside the mirrored-paths filter (grep exits 1 on no-match, which
+                  # is a normal answer, not an error). This script decides everything
+                  # explicitly below; it must never die silently mid-check.
+                  set +e
 
                   # ---- hop 3: what production is serving -----------------------
                   LIVE=$(GH_TOKEN=$UI_TOKEN gh api "repos/$REPO/contents/src/content?ref=main" --jq '.sha' || true)
@@ -86,6 +90,15 @@ jobs:
                                    printf '%s\n' "$FILES" | grep '^content/_system/generated/'; } | head -1 )
                     if [ -n "$PUBLISHED" ]; then EXPECTED="$SHA"; break; fi
                   done
+
+                  # On failure `gh` prints its error body to stdout, which would land
+                  # in these vars and read as a bogus sha. Keep only real ones, so a
+                  # broken call resolves to empty and trips the DEGRADED branch below
+                  # instead of being compared as if it were data.
+                  only_sha() { printf '%s' "${1:-}" | grep -Eox '[0-9a-f]{40}' || true; }
+                  LIVE=$(only_sha "$LIVE")
+                  TIP=$(only_sha "$TIP")
+                  EXPECTED=$(only_sha "$EXPECTED")
 
                   MIRRORED=$(printf '%s' "$TIP_MSG" | sed -nE 's/.*mono@([0-9a-f]+).*/\1/p')
 
