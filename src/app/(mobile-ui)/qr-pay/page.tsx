@@ -21,8 +21,9 @@ import AmountInput from '@/components/Global/AmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
-import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
-import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
+import { SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
+import { friendlyError } from '@/utils/friendly-error.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
 import { formatNumberForDisplay } from '@/utils/general.utils'
@@ -93,6 +94,7 @@ export default function QRPayPage() {
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const tErrors = useTranslations('errors')
+    const toFriendlyError = useFriendlyError()
     // Shown wherever the backend rejects a Pix payment below the rail minimum
     // (typed 400 PIX_MIN_AMOUNT — fires at lock-init for merchant-encoded amounts
     // and at re-init for user-entered amounts on open-amount QRs).
@@ -690,18 +692,22 @@ export default function QRPayPage() {
                 kind: 'QR_PAY',
             })
         } catch (error) {
-            const rainMsg = rainCollateralErrorMessage(error)
-            if (error instanceof InsufficientSpendableError) {
-                setErrorMessage(tErrors('balanceSettling'), 'balanceSettling')
-            } else if (error instanceof SessionKeyGrantRequiredError) {
+            // Route through the shared classifier so backend wire codes reach this
+            // screen too; the two branches ahead of it are deliberately per-flow.
+            const classified = friendlyError(error)
+            if (error instanceof SessionKeyGrantRequiredError) {
                 setErrorMessage(t('errors.cardAuthNeeded'))
-            } else if (rainMsg) {
-                setErrorMessage(rainMsg)
             } else if ((error as Error).toString().includes('not allowed')) {
+                // Looser than the classifier's 'not allowed by the user agent';
+                // kept as-is so this screen's matching doesn't narrow.
                 setErrorMessage(t('errors.confirmTransaction'), 'confirmTransaction')
-            } else {
+            } else if (classified.kind === 'code' && classified.code === 'genericSupport') {
+                // Keep the flow-specific fallback — "couldn't sign" beats the
+                // generic support copy on a signing failure — and the Sentry report.
                 captureException(error)
                 setErrorMessage(t('errors.signFailed'))
+            } else {
+                setErrorMessage(toFriendlyError(error), classified.kind === 'text' ? null : classified.code)
             }
             setIsSuccess(false)
             setLoadingState('Idle')
@@ -797,7 +803,7 @@ export default function QRPayPage() {
         qrType,
         handleStaleSession,
         t,
-        tErrors,
+        toFriendlyError,
         setErrorMessage,
         pixMinAmountErrorMessage,
     ])
