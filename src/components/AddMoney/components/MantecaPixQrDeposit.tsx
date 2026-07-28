@@ -68,10 +68,14 @@ const MantecaPixQrDeposit: FC<{
     }
 
     // Payment detected, settling — show the branded processing screen (same as PIX payments).
+    // `processing` means stage >= 2, i.e. the fiat HAS left the user's bank, so this exits
+    // like `completed` does: going "back" here would offer the amount input, pre-filled with
+    // the amount they just paid, one tap from paying twice. The credit doesn't depend on this
+    // screen — the webhook/poller post it server-side.
     if (status === 'processing') {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
-                <NavHeader title="Add Money" onPrev={onBack} />
+                <NavHeader title="Add Money" onPrev={onDone} />
                 <div className="my-auto flex flex-col justify-center">
                     <CyclingLoading />
                 </div>
