@@ -235,8 +235,9 @@ export default function Home() {
                     {/* Pending Bridge verification tasks (ToS / hosted re-verification).
                         Sibling of ActivationCTAs on purpose: it must show for users
                         who can already transact (the advisory cohort), whom the
-                        activation card deliberately stands down for. Self-hiding. */}
-                    <PendingVerificationTasks />
+                        activation card deliberately stands down for. Self-hiding;
+                        dismissible here — resurfaces under Profile → Unlocked regions. */}
+                    <PendingVerificationTasks dismissible />
                     {isActivated ? (
                         <HomeCarouselCTA />
                     ) : (

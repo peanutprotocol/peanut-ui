@@ -497,6 +497,10 @@ export type UserPreferences = {
      *  string. DISPLAY-only seed so a cold start paints the previous number instead
      *  of $0 while /rain/cards is in flight or failing — see lastKnownSpendable.ts. */
     lastKnownSpendable?: { units: string; at: number }
+    /** The sorted, comma-joined task keys of the pending Bridge verification
+     *  tasks card the user dismissed on /home. A DIFFERENT task set re-shows
+     *  the card; the tasks stay reachable under Profile → Unlocked regions. */
+    pendingVerificationTasksDismissed?: string
 }
 
 export const updateUserPreferences = (

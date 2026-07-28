@@ -10,6 +10,7 @@ import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import type { NextAction } from '@/types/capabilities'
 import { selectBridgeTasks } from '@/utils/bridge-tasks.utils'
+import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import Card from '../Global/Card'
 
 function taskCopy(task: NextAction): { title: string; description: string } {
@@ -65,22 +66,44 @@ function formatDeadline(isoDate: string): string | null {
  * user refetch (~4s auto-refresh while rails are pending), and an open
  * modal/iframe must survive its task disappearing mid-flow — the card hides,
  * the flow keeps running.
+ *
+ * `dismissible` (the /home mount): an X persists the dismissal per task-key
+ * set (carousel-CTA pattern) — a DIFFERENT set of pending tasks re-shows the
+ * card. The Profile → Unlocked regions mount is non-dismissible, so dismissed
+ * tasks stay reachable there.
  */
-export default function PendingVerificationTasks() {
+export default function PendingVerificationTasks({ dismissible = false }: { dismissible?: boolean }) {
     const { nextActions } = useCapabilities()
-    const { fetchUser } = useAuth()
+    const { user, fetchUser } = useAuth()
     const [activeTosTask, setActiveTosTask] = useState<NextAction | null>(null)
     const [hostedUrl, setHostedUrl] = useState<string | null>(null)
     const [isStartingHosted, setIsStartingHosted] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [dismissedKeys, setDismissedKeys] = useState<string | null>(null)
 
+    const userId = user?.user?.userId
     const tasks = selectBridgeTasks(nextActions)
-    const taskKeys = tasks.map((task) => task.key).join(',')
+    const taskKeys = tasks
+        .map((task) => task.key)
+        .sort()
+        .join(',')
 
     // A new task set means the previous failure context is gone.
     useEffect(() => {
         setError(null)
     }, [taskKeys])
+
+    useEffect(() => {
+        if (!dismissible || !userId) return
+        setDismissedKeys(getUserPreferences(userId)?.pendingVerificationTasksDismissed ?? null)
+    }, [dismissible, userId])
+
+    const handleDismiss = useCallback(() => {
+        updateUserPreferences(userId, { pendingVerificationTasksDismissed: taskKeys })
+        setDismissedKeys(taskKeys)
+    }, [userId, taskKeys])
+
+    const isDismissed = dismissible && dismissedKeys !== null && dismissedKeys === taskKeys
 
     const handleOpenTask = useCallback(
         async (task: NextAction) => {
@@ -118,13 +141,23 @@ export default function PendingVerificationTasks() {
 
     const closeTos = useCallback(() => setActiveTosTask(null), [])
 
-    if (tasks.length === 0 && !activeTosTask && !hostedUrl) return null
+    if ((tasks.length === 0 || isDismissed) && !activeTosTask && !hostedUrl) return null
 
     return (
         <>
-            {tasks.length > 0 && (
+            {tasks.length > 0 && !isDismissed && (
                 <Card position="single" className="p-0">
-                    <div className="flex flex-col gap-5 px-4 py-5">
+                    <div className="relative flex flex-col gap-5 px-4 py-5">
+                        {dismissible && (
+                            <button
+                                type="button"
+                                aria-label="Dismiss pending verification tasks"
+                                onClick={handleDismiss}
+                                className="absolute right-3 top-3 z-10 cursor-pointer p-0 text-black outline-none"
+                            >
+                                <Icon name="cancel" size={16} />
+                            </button>
+                        )}
                         {tasks.map((task) => {
                             const copy = taskCopy(task)
                             const isHosted = task.kind === 'bridge-hosted'
