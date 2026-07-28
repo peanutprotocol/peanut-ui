@@ -5,7 +5,6 @@
 // restore from any raw string (the android dev loop — real referrer data only
 // exists for play-delivered installs).
 import { useCallback, useEffect, useState } from 'react'
-import { registerPlugin } from '@capacitor/core'
 import {
     applyDeferredPayload,
     buildDeferredPayload,
@@ -13,13 +12,12 @@ import {
     iosHandoffString,
     parseDeferredPayload,
     playStoreUrlWithReferrer,
+    readInstallReferrer,
     CONSUMED_KEY,
 } from '@/utils/deferred-link'
 import { getFromCookie } from '@/utils/general.utils'
 import { getPlatform } from '@/utils/capacitor'
 import { useAppLocale } from '@/i18n/app/AppIntlProvider'
-
-const InstallReferrer = registerPlugin<{ getReferrer(): Promise<{ referrer: string | null }> }>('InstallReferrer')
 
 export default function DeferredLinkDevPage() {
     const { locale, setLocale } = useAppLocale()
@@ -43,12 +41,7 @@ export default function DeferredLinkDevPage() {
     useEffect(() => refresh(), [refresh])
 
     const readReferrer = async () => {
-        try {
-            const { referrer } = await InstallReferrer.getReferrer()
-            setRawReferrer(referrer ?? '(null)')
-        } catch (e) {
-            setRawReferrer(`unavailable: ${e instanceof Error ? e.message : String(e)}`)
-        }
+        setRawReferrer((await readInstallReferrer()) ?? '(null / unavailable)')
     }
 
     const simulate = async () => {

@@ -6,7 +6,7 @@
 import { registerPlugin } from '@capacitor/core'
 import { PLAY_STORE_URL } from '@/constants/general.consts'
 import { isValidLocale } from '@/i18n/config'
-import { resolveLocale, type AppLocale } from '@/i18n/app/config'
+import { APP_LOCALES, resolveLocale, type AppLocale } from '@/i18n/app/config'
 import { isAndroidNative, isIOSNative } from './capacitor'
 import { clipboardHasStrings } from './clipboard-detect'
 import { getFromCookie, saveToCookie, sanitizeRedirectURL } from './general.utils'
@@ -28,6 +28,16 @@ export interface DeferredPayload {
 // implemented" on iOS/web and on older binaries running OTA'd JS — callers
 // catch and treat as null.
 const InstallReferrer = registerPlugin<{ getReferrer(): Promise<{ referrer: string | null }> }>('InstallReferrer')
+
+/** raw play install referrer string, or null anywhere it can't be read. */
+export async function readInstallReferrer(): Promise<string | null> {
+    try {
+        return (await InstallReferrer.getReferrer()).referrer ?? null
+    } catch {
+        // older binary without the plugin, iOS/web, or referrer service unavailable
+        return null
+    }
+}
 
 // ---------------------------------------------------------------------------
 // web side — building the hand-off
@@ -127,11 +137,7 @@ export async function restoreDeferredContext(): Promise<RestoredContext | null> 
 
     let raw: string | null = null
     if (isAndroidNative()) {
-        try {
-            raw = (await InstallReferrer.getReferrer()).referrer ?? null
-        } catch {
-            // older binary without the plugin, or referrer service unavailable
-        }
+        raw = await readInstallReferrer()
     } else if (isIOSNative()) {
         try {
             // prompt-free presence check first, so organic installs with an
@@ -182,8 +188,9 @@ export function applyDeferredPayload(payload: DeferredPayload): RestoredContext 
 
     // resolveLocale maps any unknown tag to 'en', which would override the
     // device language — only pass through tags whose language is supported
+    const supportedLangs = APP_LOCALES.map((l) => l.split('-')[0])
     const langPrefix = payload.lang?.trim().toLowerCase().split('-')[0]
-    const locale = langPrefix && ['en', 'es', 'pt'].includes(langPrefix) ? resolveLocale(payload.lang) : null
+    const locale = langPrefix && supportedLangs.includes(langPrefix) ? resolveLocale(payload.lang) : null
 
     const dest = payload.dest ? sanitizeRedirectURL(deepLinkToNativePath(payload.dest) ?? payload.dest) : null
     return { dest, locale }
