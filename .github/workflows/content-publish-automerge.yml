@@ -102,7 +102,13 @@ jobs:
                   SHA: ${{ github.event.workflow_run.head_sha }}
                   REPO: ${{ github.repository }}
               run: |
-                  set -euo pipefail
+                  set -uo pipefail
+                  # `set +e` deliberately. GitHub runs this as `bash -e {0}`, so any
+                  # unguarded non-zero — a transient `gh` 5xx, a PR that closed between
+                  # the list and the diff — kills the step mid-loop with no output and
+                  # a bare red run. Every branch below checks its own inputs and says
+                  # what it decided; dying silently is strictly worse than continuing.
+                  set +e
 
                   # Key off the `ci-success` check run, NOT `workflow_run.conclusion`.
                   # `ci-success` is the single check the "Protect Prod" ruleset gates
@@ -115,8 +121,15 @@ jobs:
                   # carries TWO ci-success check runs. Require at least one and ALL of
                   # them green — a single red run must block the merge.
                   RUNS="repos/$REPO/commits/$SHA/check-runs?per_page=100"
-                  TOTAL=$(gh api "$RUNS" --jq '[.check_runs[] | select(.name=="ci-success")] | length')
-                  GREEN=$(gh api "$RUNS" --jq '[.check_runs[] | select(.name=="ci-success" and .conclusion=="success")] | length')
+                  TOTAL=$(gh api "$RUNS" --jq '[.check_runs[] | select(.name=="ci-success")] | length' || echo 0)
+                  GREEN=$(gh api "$RUNS" --jq '[.check_runs[] | select(.name=="ci-success" and .conclusion=="success")] | length' || echo 0)
+                  # On failure `gh` prints its JSON error body to stdout, which lands
+                  # in these vars. Without this, `[ "$TOTAL" -eq 0 ]` errors out and the
+                  # loop below iterates over the error text as if the words were PR
+                  # numbers. Anything non-numeric means "we don't know" -> don't merge.
+                  case "$TOTAL" in '' | *[!0-9]*) TOTAL=0 ;; esac
+                  case "$GREEN" in '' | *[!0-9]*) GREEN=-1 ;; esac
+
                   if [ "$TOTAL" -eq 0 ] || [ "$TOTAL" -ne "$GREEN" ]; then
                     echo "ci-success not green for $SHA ($GREEN/$TOTAL) — nothing to merge."
                     exit 0
@@ -140,12 +153,35 @@ jobs:
                   fi
 
                   for PR in $PRS; do
-                    FILES=$(gh pr diff "$PR" --repo "$REPO" --name-only)
+                    # Same reason: never treat a fragment of an error body as a PR number.
+                    case "$PR" in '' | *[!0-9]*) echo "::warning::ignoring non-numeric PR id '$PR'"; continue ;; esac
+                    FILES=$(gh pr diff "$PR" --repo "$REPO" --name-only || echo UNKNOWN)
                     if [ "$FILES" != "src/content" ]; then
                       echo "::notice::#$PR is not content-only — normal review gate stays in place."
                       continue
                     fi
                     echo "Merging #$PR — diff is exactly src/content, ci-success green ($GREEN/$TOTAL) on $SHA."
-                    gh pr merge "$PR" --repo "$REPO" --merge \
-                      || echo "::warning::merge failed for #$PR (already merged, or bypass unavailable) — merge manually."
+                    # `--admin` is required, not optional. Being an OrganizationAdmin
+                    # does NOT make `gh pr merge` bypass "Protect Prod" — gh enforces
+                    # the branch policy and tells you to pass --admin explicitly.
+                    # Without it every merge here fails with "the base branch policy
+                    # prohibits the merge", which is exactly what happened to #2547.
+                    #
+                    # --admin also skips the required status check, so note what it is
+                    # NOT skipping: this job has already established, itself, that the
+                    # diff is exactly src/content and that every ci-success run on this
+                    # commit is green. The gate is enforced above, in code, before we
+                    # get here — --admin only waives the human review, which is the
+                    # whole point of this workflow.
+                    if ! MERGE_ERR=$(gh pr merge "$PR" --repo "$REPO" --merge --admin 2>&1); then
+                      # A merge we decided to make and then failed to make is the exact
+                      # silent failure this pipeline exists to prevent. Be loud.
+                      echo "::error::MERGE FAILED for #$PR — content will NOT reach production. $MERGE_ERR"
+                      FAILED=1
+                    fi
                   done
+
+                  if [ "${FAILED:-0}" = "1" ]; then
+                    echo "At least one content publish could not be merged (see errors above)."
+                    exit 1
+                  fi
