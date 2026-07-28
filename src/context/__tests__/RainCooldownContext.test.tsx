@@ -1,5 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
 import { ToastProvider } from '@/components/0_Bruddle/Toast'
+import en from '@/i18n/app/messages/en.json'
 import { RainCooldownProvider, useRainCooldown } from '../RainCooldownContext'
 
 // Dispatch the same window event that `rainRequest` fires on a 425 from
@@ -10,10 +12,13 @@ function fireCooldown(retryAfterSec: number, message = 'cooling down') {
     window.dispatchEvent(new CustomEvent('rain:cooldown', { detail: { retryAfterSec, message } }))
 }
 
+// The countdown pill renders localized copy, so the provider is required.
 const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <ToastProvider>
-        <RainCooldownProvider>{children}</RainCooldownProvider>
-    </ToastProvider>
+    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        <ToastProvider>
+            <RainCooldownProvider>{children}</RainCooldownProvider>
+        </ToastProvider>
+    </NextIntlClientProvider>
 )
 
 describe('RainCooldownContext', () => {
