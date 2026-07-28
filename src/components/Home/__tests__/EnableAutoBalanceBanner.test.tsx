@@ -16,14 +16,8 @@
  */
 import React from 'react'
 import { render as rtlRender, screen, fireEvent, act } from '@testing-library/react'
-import { NextIntlClientProvider } from 'next-intl'
-import en from '@/i18n/app/messages/en.json'
+import { IntlWrapper } from '@/test-utils/intl'
 
-const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
-    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
-        {children}
-    </NextIntlClientProvider>
-)
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 import type { GrantSessionKeyError } from '@/hooks/wallet/useGrantSessionKey'
 

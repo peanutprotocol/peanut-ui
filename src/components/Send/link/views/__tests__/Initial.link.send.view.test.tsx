@@ -11,9 +11,9 @@
  */
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { LinkSendFlowProvider, useLinkSendFlow } from '@/context/LinkSendFlowContext'
-import { NextIntlClientProvider } from 'next-intl'
 import en from '@/i18n/app/messages/en.json'
 
 const COOLDOWN_MESSAGE = 'A previous withdrawal signature is still active. Try again in about 2 min.'
@@ -121,14 +121,14 @@ const SetAmount = ({ amount }: { amount: string }) => {
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
 const viewTree = (amount: string) => (
-    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+    <IntlWrapper>
         <QueryClientProvider client={queryClient}>
             <LinkSendFlowProvider>
                 <SetAmount amount={amount} />
                 <LinkSendInitialView />
             </LinkSendFlowProvider>
         </QueryClientProvider>
-    </NextIntlClientProvider>
+    </IntlWrapper>
 )
 
 const renderView = (amount: string) => {

@@ -11,16 +11,9 @@
  */
 import React from 'react'
 import { render as rtlRender, screen } from '@testing-library/react'
-import { NextIntlClientProvider } from 'next-intl'
-import enMessages from '@/i18n/app/messages/en.json'
+import { IntlWrapper } from '@/test-utils/intl'
 // jest.mock calls are hoisted above this import, so the mocks below apply to it
 import MantecaAddMoney from '../MantecaAddMoney'
-
-const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
-    <NextIntlClientProvider locale="en" messages={enMessages} timeZone="UTC">
-        {children}
-    </NextIntlClientProvider>
-)
 
 const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
     rtlRender(ui, { wrapper: IntlWrapper, ...options })

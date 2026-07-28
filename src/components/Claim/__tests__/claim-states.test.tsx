@@ -10,9 +10,8 @@
  */
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { NextIntlClientProvider } from 'next-intl'
-import en from '@/i18n/app/messages/en.json'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
 
@@ -241,11 +240,11 @@ function createQueryClient() {
 function renderClaim() {
     const queryClient = createQueryClient()
     return render(
-        <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        <IntlWrapper>
             <QueryClientProvider client={queryClient}>
                 <Claim />
             </QueryClientProvider>
-        </NextIntlClientProvider>
+        </IntlWrapper>
     )
 }
 
