@@ -9,7 +9,7 @@ import {
     restoreDeferredContext,
 } from '../deferred-link'
 import { isAndroidNative, isIOSNative } from '../capacitor'
-import { clipboardHasStrings } from '../clipboard-detect'
+import { clipboardHasStrings, clipboardHasProbableWebUrl } from '../clipboard-detect'
 import { saveToCookie } from '../general.utils'
 
 const getReferrer = jest.fn()
@@ -17,6 +17,11 @@ const getReferrer = jest.fn()
 jest.mock('@capacitor/core', () => ({
     registerPlugin: jest.fn(() => ({ getReferrer: () => getReferrer() })),
 }))
+
+jest.mock('../general.utils', () => {
+    const actual = jest.requireActual('../general.utils')
+    return { ...actual, saveToCookie: jest.fn(actual.saveToCookie) }
+})
 
 jest.mock('../capacitor', () => ({
     isCapacitor: jest.fn(() => false),
@@ -27,11 +32,22 @@ jest.mock('../capacitor', () => ({
 
 jest.mock('../clipboard-detect', () => ({
     clipboardHasStrings: jest.fn(() => Promise.resolve(false)),
+    clipboardHasProbableWebUrl: jest.fn(() => Promise.resolve(false)),
+}))
+
+const clipboardRead = jest.fn()
+const clipboardWrite = jest.fn()
+jest.mock('@capacitor/clipboard', () => ({
+    Clipboard: { read: () => clipboardRead(), write: (o: unknown) => clipboardWrite(o) },
 }))
 
 const mockIsAndroidNative = isAndroidNative as jest.MockedFunction<typeof isAndroidNative>
 const mockIsIOSNative = isIOSNative as jest.MockedFunction<typeof isIOSNative>
 const mockClipboardHasStrings = clipboardHasStrings as jest.MockedFunction<typeof clipboardHasStrings>
+const mockClipboardHasProbableWebUrl = clipboardHasProbableWebUrl as jest.MockedFunction<
+    typeof clipboardHasProbableWebUrl
+>
+const mockSaveToCookie = saveToCookie as jest.MockedFunction<typeof saveToCookie>
 
 const clearCookies = () => {
     for (const cookie of document.cookie.split(';')) {
@@ -155,7 +171,69 @@ describe('restoreDeferredContext', () => {
 
         await expect(restoreDeferredContext()).resolves.toBeNull()
         expect(mockClipboardHasStrings).toHaveBeenCalledTimes(1)
+        expect(clipboardRead).not.toHaveBeenCalled()
         expect(localStorage.getItem('deferredLinkConsumed')).toBe('1')
+    })
+
+    it('never prompts for clipboard text that is not a probable web url', async () => {
+        mockIsAndroidNative.mockReturnValue(false)
+        mockIsIOSNative.mockReturnValue(true)
+        mockClipboardHasStrings.mockResolvedValue(true)
+        mockClipboardHasProbableWebUrl.mockResolvedValue(false)
+
+        await expect(restoreDeferredContext()).resolves.toBeNull()
+        expect(clipboardRead).not.toHaveBeenCalled()
+    })
+
+    it('restores from the iOS hand-off url and clears the clipboard after', async () => {
+        mockIsAndroidNative.mockReturnValue(false)
+        mockIsIOSNative.mockReturnValue(true)
+        mockClipboardHasStrings.mockResolvedValue(true)
+        mockClipboardHasProbableWebUrl.mockResolvedValue(true)
+        clipboardRead.mockResolvedValue({ value: 'https://peanut.me/?pnutdl=1&invite=test&dest=%2Fhome' })
+        clipboardWrite.mockResolvedValue(undefined)
+
+        await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
+        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'test', 30)
+        expect(clipboardWrite).toHaveBeenCalled()
+    })
+})
+
+describe('applyDeferredPayload hardening', () => {
+    it('writes durable 30-day cookies, not session cookies', () => {
+        applyDeferredPayload({ invite: 'abc', campaign: 'off' })
+        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'abc', 30)
+        expect(mockSaveToCookie).toHaveBeenCalledWith('campaignTag', 'off', 30)
+    })
+
+    it('normalizes invite and campaign like the existing writers', () => {
+        applyDeferredPayload({ invite: ' @Alice ', campaign: ' OFFRAMP ' })
+        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'alice', 30)
+        expect(mockSaveToCookie).toHaveBeenCalledWith('campaignTag', 'offramp', 30)
+    })
+
+    it('strips the marketing locale prefix from dest (native export has no /{locale} routes)', () => {
+        expect(applyDeferredPayload({ dest: '/es-419/claim/XYZ?t=1' }).dest).toBe('/claim/XYZ?t=1')
+        expect(applyDeferredPayload({ dest: '/pt-br/home' }).dest).toBe('/home')
+        expect(applyDeferredPayload({ dest: '/claim/XYZ' }).dest).toBe('/claim/XYZ')
+    })
+})
+
+describe('buildDeferredPayload locale-prefixed pages', () => {
+    it('strips the locale prefix from the default dest but keeps it as lang', () => {
+        window.history.replaceState({}, '', '/es-419/claim/ABC?x=2')
+        expect(parseDeferredPayload(buildDeferredPayload())).toEqual({ lang: 'es-419', dest: '/claim/ABC?x=2' })
+    })
+})
+
+describe('restoreDeferredContext in-flight guard', () => {
+    it('overlapping calls share one platform read', async () => {
+        mockIsAndroidNative.mockReturnValue(true)
+        getReferrer.mockResolvedValue({ referrer: 'pnutdl=1&dest=%2Fhome' })
+
+        const [a, b] = await Promise.all([restoreDeferredContext(), restoreDeferredContext()])
+        expect(getReferrer).toHaveBeenCalledTimes(1)
+        expect(a).toEqual(b)
     })
 })
 

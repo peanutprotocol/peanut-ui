@@ -8,7 +8,6 @@ import { PLAY_STORE_URL } from '@/constants/general.consts'
 import { isValidLocale } from '@/i18n/config'
 import { APP_LOCALES, resolveLocale, type AppLocale } from '@/i18n/app/config'
 import { isAndroidNative, isIOSNative } from './capacitor'
-import { clipboardHasStrings } from './clipboard-detect'
 import { getFromCookie, saveToCookie, sanitizeRedirectURL } from './general.utils'
 import { deepLinkToNativePath } from './native-routes'
 
@@ -44,9 +43,19 @@ export async function readInstallReferrer(): Promise<string | null> {
 // ---------------------------------------------------------------------------
 
 /**
+ * strips a leading marketing locale segment (/es-419/claim/X → /claim/X).
+ * locale-prefixed routes only exist on the web — in the native static export
+ * they 404, so they must never survive into a dest.
+ */
+function stripLocalePrefix(path: string): string {
+    const [, first, ...rest] = path.split('/')
+    return first && isValidLocale(first) ? '/' + rest.join('/') : path
+}
+
+/**
  * builds the payload querystring from the current web context: locale from the
  * /{locale}/ path prefix, invite/campaign from their existing cookies, dest
- * from the argument (defaults to the current path + query).
+ * from the argument (defaults to the current path + query, locale stripped).
  */
 export function buildDeferredPayload(dest?: string): string {
     const params = new URLSearchParams({ [MARKER]: '1' })
@@ -60,7 +69,7 @@ export function buildDeferredPayload(dest?: string): string {
     const campaign = getFromCookie('campaignTag')
     if (typeof campaign === 'string' && campaign) params.set('campaign', campaign)
 
-    const destination = dest ?? window.location.pathname + window.location.search
+    const destination = dest ?? stripLocalePrefix(window.location.pathname) + window.location.search
     if (destination && destination !== '/') params.set('dest', destination)
 
     return params.toString()
@@ -128,7 +137,20 @@ export interface RestoredContext {
  * flag is set even when nothing is found, so the iOS paste prompt can never
  * fire twice.
  */
-export async function restoreDeferredContext(): Promise<RestoredContext | null> {
+let restoreInFlight: Promise<RestoredContext | null> | null = null
+
+export function restoreDeferredContext(): Promise<RestoredContext | null> {
+    // in-flight guard: overlapping calls (react strict-mode double-effect,
+    // effect re-runs) share one read so the iOS paste prompt can't stack
+    if (!restoreInFlight) {
+        restoreInFlight = doRestore().finally(() => {
+            restoreInFlight = null
+        })
+    }
+    return restoreInFlight
+}
+
+async function doRestore(): Promise<RestoredContext | null> {
     try {
         if (localStorage.getItem(CONSUMED_KEY)) return null
     } catch {
@@ -140,9 +162,12 @@ export async function restoreDeferredContext(): Promise<RestoredContext | null> 
         raw = await readInstallReferrer()
     } else if (isIOSNative()) {
         try {
-            // prompt-free presence check first, so organic installs with an
-            // empty clipboard never see the iOS 16 paste prompt
-            if (await clipboardHasStrings()) {
+            // both gates are prompt-free metadata checks. the hand-off is
+            // always a url, so only a probable-web-url clipboard is worth the
+            // iOS 16 paste prompt — organic installs with unrelated text
+            // (a password, a message draft) are never prompted.
+            const { clipboardHasStrings, clipboardHasProbableWebUrl } = await import('./clipboard-detect')
+            if ((await clipboardHasStrings()) && (await clipboardHasProbableWebUrl())) {
                 const { Clipboard } = await import('@capacitor/clipboard')
                 raw = (await Clipboard.read()).value ?? null
             }
@@ -183,8 +208,16 @@ export async function restoreDeferredContext(): Promise<RestoredContext | null> 
  * re-renders the running session.
  */
 export function applyDeferredPayload(payload: DeferredPayload): RestoredContext {
-    if (payload.invite) saveToCookie('inviteCode', payload.invite)
-    if (payload.campaign) saveToCookie('campaignTag', payload.campaign)
+    // normalize like every existing writer (InvitesPage lowercases ?code and
+    // utm_campaign; toInviteCode trims/strips @) — a hand-built referrer with
+    // an uppercase tag must not break the case-sensitive badge award.
+    // 30-day expiry matches useZeroDev's invite cookie: a session cookie would
+    // be dropped by the webview before the user finishes signup, and the
+    // one-shot consumed flag means it could never be re-read.
+    const invite = payload.invite?.trim().replace(/^@/, '').toLowerCase()
+    if (invite) saveToCookie('inviteCode', invite, 30)
+    const campaign = payload.campaign?.trim().toLowerCase()
+    if (campaign) saveToCookie('campaignTag', campaign, 30)
 
     // resolveLocale maps any unknown tag to 'en', which would override the
     // device language — only pass through tags whose language is supported
@@ -192,6 +225,7 @@ export function applyDeferredPayload(payload: DeferredPayload): RestoredContext 
     const langPrefix = payload.lang?.trim().toLowerCase().split('-')[0]
     const locale = langPrefix && supportedLangs.includes(langPrefix) ? resolveLocale(payload.lang) : null
 
-    const dest = payload.dest ? sanitizeRedirectURL(deepLinkToNativePath(payload.dest) ?? payload.dest) : null
+    const rawDest = payload.dest ? stripLocalePrefix(payload.dest) : null
+    const dest = rawDest ? sanitizeRedirectURL(deepLinkToNativePath(rawDest) ?? rawDest) : null
     return { dest, locale }
 }
