@@ -71,6 +71,33 @@ export function setAuthToken(token: string): void {
 }
 
 /**
+ * Resolve the raw session token for the ONE consumer that cannot use any of
+ * the normal credential paths: the charges WebSocket.
+ *
+ * Every other call reads the token through getAuthToken (web cookie, or the
+ * native in-memory cache) and sends it as an Authorization header. A WebSocket
+ * can do neither: the browser API cannot set headers, and the web `jwt-token`
+ * cookie is host-only on peanut.me so it is never sent to api.peanut.me. The
+ * token therefore has to be handed to the socket explicitly, as its first frame.
+ *
+ * On native the token comes from the hydrated Preferences cache, with the
+ * legacy CapacitorHttp cookie jar as a fallback for sessions created by older
+ * cookie-auth binaries.
+ */
+export async function getSessionTokenForSocket(): Promise<string | null> {
+    if (!isCapacitor()) return getAuthToken()
+    await authReady()
+    if (nativeToken) return nativeToken
+    try {
+        const { CapacitorCookies } = await import('@capacitor/core')
+        const cookies = await CapacitorCookies.getCookies({ url: PEANUT_API_URL })
+        return cookies?.[JWT_COOKIE_KEY] ?? null
+    } catch {
+        return null
+    }
+}
+
+/**
  * capacitor-only: is there a stored session? Awaits hydration, then falls
  * back to the legacy CapacitorHttp cookie jar so sessions created by older
  * cookie-auth binaries still route to home. Used for cheap routing hints

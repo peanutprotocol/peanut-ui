@@ -12,21 +12,36 @@ name: Content publish auto-merge
 # in force for real code. eslint is already advisory (not in `ci-success`), so
 # "green tests" here means the real test/typecheck/build jobs, not lint.
 #
+# TWO PATHS TO MERGE, because the approver can't always approve:
+#
+#   1. `approve-and-merge` (pull_request_target) — approve, then `--auto --merge`.
+#      GitHub enforces `ci-success` before auto-merge fires. This is the path for
+#      any publish authored by someone other than CONTENT_BOT_TOKEN's user.
+#
+#   2. `merge-on-green` (workflow_run) — for publishes that CONTENT_BOT_TOKEN's
+#      own user authored, where GitHub forbids self-approval so path 1 can never
+#      complete. Since `update-content.yml` now opens its PRs as that user, this
+#      is the common path, not the exception. It merges via the org-admin bypass,
+#      which skips the review requirement (intended — the diff guard replaces it)
+#      AND the required status check (NOT intended). So this job re-establishes
+#      green `ci-success` ITSELF before merging. Never merge on the bypass alone.
+#
 # Security model:
-#   - `pull_request_target` runs THIS logic from the base branch (main), so a PR
-#     cannot tamper with the guard or the approve step. We never check out or run
-#     PR code — only `gh` API calls by PR number — so pull_request_target is safe
-#     here (no untrusted-code execution).
-#   - Same-repo branches only (fork guard on the job).
-#   - The approval is submitted by CONTENT_BOT_TOKEN's user (Hugo0). GitHub
-#     forbids approving your own PR, so this auto-approves anyone's content
-#     publish EXCEPT one that same user authored — those fall back to a manual
-#     merge (org-admin bypass). Konrad-authored publishes (the target case) work.
+#   - `pull_request_target` and `workflow_run` both run THIS logic from the
+#     default branch (main), so a PR cannot tamper with the guard or the merge
+#     step. We never check out or run PR code — only `gh` API calls by PR number
+#     — so both triggers are safe here (no untrusted-code execution).
+#   - Same-repo branches only (fork guards on both jobs).
+#   - Both paths require the diff to be EXACTLY `src/content` and are fail-closed:
+#     any extra file, any `gh` error, any missing check → no merge.
 
 on:
     pull_request_target:
         types: [opened, synchronize, reopened, ready_for_review]
         branches: [main]
+    workflow_run:
+        workflows: ['Tests']
+        types: [completed]
 
 permissions:
     contents: read
@@ -35,7 +50,7 @@ permissions:
 jobs:
     approve-and-merge:
         # Same-repo PRs only — never a fork.
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name == github.repository
         runs-on: ubuntu-latest
         steps:
             - name: Guard — diff must be exactly the content submodule pointer
@@ -64,13 +79,73 @@ jobs:
                   REPO: ${{ github.repository }}
               run: |
                   set -euo pipefail
-                  # Approve — satisfies the 1-review rule. Fails only when the bot
-                  # user authored the PR (GitHub blocks self-approval); in that
-                  # case leave it for a manual merge.
+                  # Approve — satisfies the 1-review rule. Fails when the bot user
+                  # authored the PR (GitHub blocks self-approval); `merge-on-green`
+                  # picks those up once CI is green.
                   if gh pr review "$PR" --repo "$REPO" --approve; then
                     # main ruleset allows merge commits only (not squash/rebase).
                     gh pr merge "$PR" --repo "$REPO" --auto --merge \
                       || echo "::warning::auto-merge not enabled/permitted — merge manually."
                   else
-                    echo "::warning::Could not approve (bot may be the PR author) — merge manually."
+                    echo "::notice::Could not approve (bot authored this PR) — merge-on-green will handle it once ci-success is green."
                   fi
+
+    merge-on-green:
+        # Self-approval fallback. Fires when `Tests` finishes for any commit; the
+        # job itself works out whether there's a content publish to merge.
+        if: github.event_name == 'workflow_run'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Merge content-only publishes once ci-success is green
+              env:
+                  GH_TOKEN: ${{ secrets.CONTENT_BOT_TOKEN }}
+                  SHA: ${{ github.event.workflow_run.head_sha }}
+                  REPO: ${{ github.repository }}
+              run: |
+                  set -euo pipefail
+
+                  # Key off the `ci-success` check run, NOT `workflow_run.conclusion`.
+                  # `ci-success` is the single check the "Protect Prod" ruleset gates
+                  # on; the run conclusion also folds in advisory jobs. Today eslint is
+                  # `continue-on-error: true` so it happens not to move the conclusion —
+                  # but that's an eslint config detail, not a guarantee. Gate on exactly
+                  # what the ruleset gates on.
+                  #
+                  # `Tests` runs on both `push` and `pull_request`, so a commit usually
+                  # carries TWO ci-success check runs. Require at least one and ALL of
+                  # them green — a single red run must block the merge.
+                  RUNS="repos/$REPO/commits/$SHA/check-runs?per_page=100"
+                  TOTAL=$(gh api "$RUNS" --jq '[.check_runs[] | select(.name=="ci-success")] | length')
+                  GREEN=$(gh api "$RUNS" --jq '[.check_runs[] | select(.name=="ci-success" and .conclusion=="success")] | length')
+                  if [ "$TOTAL" -eq 0 ] || [ "$TOTAL" -ne "$GREEN" ]; then
+                    echo "ci-success not green for $SHA ($GREEN/$TOTAL) — nothing to merge."
+                    exit 0
+                  fi
+
+                  # Open, non-draft, same-repo PRs into main still sitting on this exact
+                  # commit. The head.sha match stops us merging a PR that has since
+                  # moved on to an untested commit.
+                  PRS=$(gh api "repos/$REPO/commits/$SHA/pulls" --jq "
+                    .[]
+                    | select(.state == \"open\")
+                    | select(.draft == false)
+                    | select(.base.ref == \"main\")
+                    | select(.head.repo.full_name == \"$REPO\")
+                    | select(.head.sha == \"$SHA\")
+                    | .number")
+
+                  if [ -z "$PRS" ]; then
+                    echo "No open content-publish candidates on $SHA."
+                    exit 0
+                  fi
+
+                  for PR in $PRS; do
+                    FILES=$(gh pr diff "$PR" --repo "$REPO" --name-only)
+                    if [ "$FILES" != "src/content" ]; then
+                      echo "::notice::#$PR is not content-only — normal review gate stays in place."
+                      continue
+                    fi
+                    echo "Merging #$PR — diff is exactly src/content, ci-success green ($GREEN/$TOTAL) on $SHA."
+                    gh pr merge "$PR" --repo "$REPO" --merge \
+                      || echo "::warning::merge failed for #$PR (already merged, or bypass unavailable) — merge manually."
+                  done

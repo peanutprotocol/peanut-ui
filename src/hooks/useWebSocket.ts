@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import {
     PeanutWebSocket,
     getWebSocketInstance,
@@ -6,6 +7,7 @@ import {
     type RailStatusUpdate,
     type RainCardBalanceChangedData,
 } from '@/services/websocket'
+import { TRANSACTIONS } from '@/constants/query.consts'
 import { type HistoryEntry } from './useTransactionHistory'
 
 type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
@@ -50,6 +52,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     const [status, setStatus] = useState<WebSocketStatus>('disconnected')
     const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([])
     const wsRef = useRef<PeanutWebSocket | null>(null)
+    const queryClient = useQueryClient()
 
     const callbacksRef = useRef({
         onHistoryEntry,
@@ -159,6 +162,21 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
         const handleHistoryEntry = (entry: HistoryEntry) => {
             const kind = entry.extraData?.kind
+            if (!kind) {
+                // Kindless entries are minimal {uuid, status} pings (BE:
+                // charges-ws charge completions, claim.ts sendlink claims) —
+                // the BE expects clients to refetch, not render. Rendering one
+                // hits the transformer's fallback strategy and shows "Sent to
+                // Transaction $0.00 · Completed" (PEANUT-UI-QCW). Balance moves
+                // with these events too, so refresh it alongside the feed.
+                // Default cancelRefetch (true) on purpose: a fetch already in
+                // flight when the ping arrives started pre-commit and may lack
+                // the new row — joining it would clear the invalidation with
+                // stale data. Abort-restart guarantees a post-event response.
+                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                queryClient.invalidateQueries({ queryKey: ['balance'] })
+                return
+            }
             if (
                 (kind === 'DIRECT_TRANSFER' || kind === 'P2P_REQUEST_FULFILL') &&
                 entry.status === 'NEW' &&
@@ -255,7 +273,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             ws.off('user_rail_status_changed', handleRailStatusUpdate)
             ws.off('rain_card_balance_changed', handleRainCardBalanceChanged)
         }
-    }, [autoConnect, connect, username])
+    }, [autoConnect, connect, username, queryClient])
 
     // Return exposed functionality
     return {

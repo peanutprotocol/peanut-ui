@@ -1,6 +1,7 @@
 import { compileMDX } from 'next-mdx-remote/rsc'
 import remarkGfm from 'remark-gfm'
 import { mdxComponents } from '@/components/Marketing/mdx/components'
+import { remarkNoExecutableContent } from '@/lib/mdx-security'
 
 /**
  * Compile markdown/MDX content into a React element with registered components.
@@ -14,6 +15,9 @@ import { mdxComponents } from '@/components/Marketing/mdx/components'
  *
  * Limitation: next-mdx-remote/rsc strips JSX expression props ({...}).
  * Components that need structured data accept JSON strings instead.
+ *
+ * remarkNoExecutableContent — content is published to production without human
+ * review, so it must not be able to execute. See mdx-security.ts.
  */
 export async function renderContent(source: string) {
     return compileMDX<Record<string, unknown>>({
@@ -22,7 +26,7 @@ export async function renderContent(source: string) {
         options: {
             mdxOptions: {
                 format: 'mdx',
-                remarkPlugins: [remarkGfm],
+                remarkPlugins: [remarkNoExecutableContent, remarkGfm],
             },
         },
     })
