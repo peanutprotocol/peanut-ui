@@ -73,6 +73,13 @@ export function useNativePlugins() {
                 openDeepLink(launch?.url)
                 const urlListener = await App.addListener('appUrlOpen', ({ url }: { url: string }) => openDeepLink(url))
                 track(() => urlListener.remove())
+
+                // deferred deep link (store-install hand-off): always restores
+                // cookies/locale inside; only navigate when this launch wasn't
+                // already a real deep link — the deep link wins.
+                const { restoreDeferredContext } = await import('@/utils/deferred-link')
+                const deferredDest = await restoreDeferredContext()
+                if (!launch?.url && deferredDest) router.push(deferredDest)
             } catch (e) {
                 console.warn('failed to init app listeners:', e)
                 // without these listeners push-tap deep links never route, so surface the failure
