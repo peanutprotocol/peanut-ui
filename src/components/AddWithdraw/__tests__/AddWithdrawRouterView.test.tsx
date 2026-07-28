@@ -14,7 +14,6 @@
 import React, { useEffect } from 'react'
 import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
-import en from '@/i18n/app/messages/en.json'
 
 const mockRouterPush = jest.fn()
 jest.mock('next/navigation', () => ({
@@ -119,8 +118,8 @@ jest.mock('../../Global/TokenAndNetworkConfirmationModal', () => ({
 import { AddWithdrawRouterView } from '../AddWithdrawRouterView'
 import { WithdrawFlowContextProvider, useWithdrawFlow } from '@/context/WithdrawFlowContext'
 
-// these components call useTranslations; give them the en catalog so the
-// English assertions below keep asserting the real shipped copy
+// these components call useTranslations; IntlWrapper supplies the en catalog
+// so the English assertions below keep asserting the real shipped copy
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const makeUser = (): MockUser => ({

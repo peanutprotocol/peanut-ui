@@ -42,7 +42,8 @@
         "pay": "Pagar",
         "cashout": "Saque",
         "claim": "Resgatar",
-        "peanutLogoAlt": "Logo da Peanut"
+        "peanutLogoAlt": "Logo da Peanut",
+        "receipt": "Recibo"
     },
     "home": {
         "rewards": "Recompensas",
@@ -1816,7 +1817,8 @@
         "skipTheLine": "Fure a fila: informe o usuário do membro que convidou você.",
         "acceptFailed": "Algo deu errado. Tente de novo ou fale com o suporte.",
         "pleaseWait": "Aguarde...",
-        "logInDifferentAccount": "Entrar com outra conta"
+        "logInDifferentAccount": "Entrar com outra conta",
+        "emailPlaceholder": "voce@exemplo.com"
     },
     "badges": {
         "title": "Selos",
@@ -2322,6 +2324,10 @@
                 "iosSafari1": "Passo 1: toque em “aA” na barra de endereço",
                 "iosSafari2": "Passo 2: toque em “Ajustes do site”",
                 "iosSafari3": "Passo 3: defina a câmera como “Permitir”"
+            },
+            "paymentMethods": {
+                "evmName": "ETH e EVMs",
+                "evmAlt": "Ethereum e EVMs"
             }
         },
         "qrScannerOverlay": {
@@ -2654,7 +2660,9 @@
         },
         "betaBanner": "Peanut está em beta! Obrigado por ser um dos primeiros usuários, compartilhe sua opinião aqui",
         "demoBanner": "Modo demo — você está testando a Peanut com uma carteira simulada. Saldos e transações não são reais.",
-        "rainCooldownPill": "Resfriamento do cartão"
+        "rainCooldownPill": "Resfriamento do cartão",
+        "betaBannerThumbsUpAlt": "Joinha",
+        "easterEggImageAlt": "Ilustração de easter egg"
     },
     "errors": {
         "balanceSettling": "Seu saldo ainda não está totalmente disponível. Tente novamente em alguns segundos.",
@@ -2695,7 +2703,11 @@
         "rainInsufficientCollateral": "Seu cartão não tem colateral suficiente para este saque.",
         "staleCardApproval": "Você precisa reativar seu cartão antes de sacar. Basta um toque com sua passkey.",
         "cardRateLimited": "Muitas solicitações com o cartão. Aguarde um momento e tente novamente.",
-        "linkTransactionHashFetch": "Não conseguimos carregar a transação deste link. Atualize a página e tente novamente."
+        "linkTransactionHashFetch": "Não conseguimos carregar a transação deste link. Atualize a página e tente novamente.",
+        "cardApprovalCancelled": "Aprovação cancelada — você pode tentar novamente quando quiser.",
+        "cardApprovalFailed": "Não foi possível aprovar o cartão. Tente novamente.",
+        "logoutFailed": "Não foi possível sair da sua conta. Tente novamente.",
+        "loginIncomplete": "O login não foi concluído. Tente novamente."
     },
     "appLock": {
         "title": "Olá de novo!",

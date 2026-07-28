@@ -74,7 +74,7 @@ function FeedbackBanner() {
             <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
                 <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">
                     {t('betaBanner')}
-                    <Image src={HandThumbsUp} alt="Thumbs up" className="h-4 w-4" />
+                    <Image src={HandThumbsUp} alt={t('betaBannerThumbsUpAlt')} className="h-4 w-4" />
                     {!IS_PRODUCTION && <span className="ml-2 text-sm font-semibold">version: {GIT_COMMIT_HASH}</span>}
                     {mode && (
                         // High-contrast yellow-on-black pill. Visually impossible

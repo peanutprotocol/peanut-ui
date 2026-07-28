@@ -11,7 +11,6 @@
 import React from 'react'
 import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
-import en from '@/i18n/app/messages/en.json'
 
 const mockCancelOnramp = jest.fn()
 jest.mock('@/app/actions/onramp', () => ({
@@ -85,8 +84,8 @@ jest.mock('@/components/Global/ActionModal', () => ({
 // import must come after jest.mock
 import { CancelDepositActions } from '../CancelDepositActions'
 
-// these components call useTranslations; give them the en catalog so the
-// English assertions below keep asserting the real shipped copy
+// these components call useTranslations; IntlWrapper supplies the en catalog
+// so the English assertions below keep asserting the real shipped copy
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const pendingBridgeOnramp = {

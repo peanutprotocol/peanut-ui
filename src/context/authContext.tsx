@@ -1,4 +1,5 @@
 'use client'
+import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useUserQuery } from '@/hooks/query/user'
 import { useUserAutoRefresh } from '@/hooks/useUserAutoRefresh'
@@ -65,6 +66,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const _router = useRouter()
     const dispatch = useAppDispatch()
     const toast = useToast()
+    const tErrors = useTranslations('errors')
     const queryClient = useQueryClient()
     const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
 
@@ -302,12 +304,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 captureException(error)
                 console.error('Error logging out user', error)
                 // TODO: remove debug info after native testing
-                toast.error('Error logging out')
+                toast.error(tErrors('logoutFailed'))
             } finally {
                 setIsLoggingOut(false)
             }
         },
-        [clearLocalAuthState, fetchUser, isLoggingOut, toast]
+        [clearLocalAuthState, fetchUser, isLoggingOut, toast, tErrors]
     )
 
     return (

@@ -463,3 +463,11 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
         },
     }
 }
+
+/** Marker `userName` the backend sends for the onboarding test transaction.
+ *  Compared against BACKEND data, never against localized copy, so this is
+ *  locale-safe — but it is still a magic string the backend owns. Follow-up:
+ *  have the API send an explicit `isTestTransaction` flag and delete this. */
+const TEST_TRANSACTION_USER_NAME = 'Enjoy Peanut!'
+
+export const isTestTransaction = (name: string | null | undefined): boolean => name === TEST_TRANSACTION_USER_NAME

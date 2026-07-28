@@ -42,7 +42,8 @@
         "pay": "Pagar",
         "cashout": "Retiro",
         "claim": "Reclamar",
-        "peanutLogoAlt": "Logo de Peanut"
+        "peanutLogoAlt": "Logo de Peanut",
+        "receipt": "Recibo"
     },
     "home": {
         "rewards": "Recompensas",
@@ -1816,7 +1817,8 @@
         "skipTheLine": "Sáltate la fila: escribe el usuario del miembro que te invitó.",
         "acceptFailed": "Algo salió mal. Inténtalo de nuevo o comunícate con soporte.",
         "pleaseWait": "Espera un momento...",
-        "logInDifferentAccount": "Iniciar sesión con otra cuenta"
+        "logInDifferentAccount": "Iniciar sesión con otra cuenta",
+        "emailPlaceholder": "tu@ejemplo.com"
     },
     "badges": {
         "title": "Insignias",
@@ -2322,6 +2324,10 @@
                 "iosSafari1": "Paso 1: toca “aA” en la barra de direcciones",
                 "iosSafari2": "Paso 2: toca “Ajustes del sitio web”",
                 "iosSafari3": "Paso 3: configura la cámara en “Permitir”"
+            },
+            "paymentMethods": {
+                "evmName": "ETH y EVMs",
+                "evmAlt": "Ethereum y EVMs"
             }
         },
         "qrScannerOverlay": {
@@ -2654,7 +2660,9 @@
         },
         "betaBanner": "¡Peanut está en beta! Gracias por ser uno de los primeros usuarios, comparte tu opinión aquí",
         "demoBanner": "Modo demo: estás viendo Peanut con una billetera simulada. Los saldos y las transacciones no son reales.",
-        "rainCooldownPill": "Enfriamiento de tarjeta"
+        "rainCooldownPill": "Enfriamiento de tarjeta",
+        "betaBannerThumbsUpAlt": "Pulgar arriba",
+        "easterEggImageAlt": "Ilustración de huevo de pascua"
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Inténtalo de nuevo en unos segundos.",
@@ -2695,7 +2703,11 @@
         "rainInsufficientCollateral": "Tu tarjeta no tiene suficiente colateral para este retiro.",
         "staleCardApproval": "Necesitas volver a habilitar tu tarjeta antes de retirar. Solo toma un toque con tu passkey.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Espera un momento e inténtalo de nuevo.",
-        "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualiza la página e inténtalo de nuevo."
+        "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualiza la página e inténtalo de nuevo.",
+        "cardApprovalCancelled": "Aprobación cancelada: puedes volver a intentarlo cuando quieras.",
+        "cardApprovalFailed": "No se pudo aprobar la tarjeta. Inténtalo de nuevo.",
+        "logoutFailed": "No pudimos cerrar tu sesión. Inténtalo de nuevo.",
+        "loginIncomplete": "No se completó el inicio de sesión. Inténtalo de nuevo."
     },
     "appLock": {
         "title": "¡Hola de nuevo!",

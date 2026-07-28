@@ -12,7 +12,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import CameraPermissionModal from './CameraPermissionModal'
 import { Clipboard } from '@capacitor/clipboard'
 import { clipboardHasStrings } from '@/utils/clipboard-detect'
-import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
+import { extractPaymentValue, readClipboard } from '@/utils/clipboard-extract.utils'
 import { isAndroidNative } from '@/utils/capacitor'
 import { printableAddress } from '@/utils/general.utils'
 
@@ -24,7 +24,9 @@ const PAYMENT_METHODS = [
     { src: PEANUTMAN, alt: 'Peanut', name: 'Peanut' },
     { src: MERCADO_PAGO, alt: 'Mercado Pago', name: 'Mercado Pago' },
     { src: PIX, alt: 'PIX', name: 'PIX' },
-    { src: ETHEREUM_ICON, alt: 'Ethereum and EVMs', name: 'ETH & EVMs' },
+    // Brand names above are proper nouns and stay verbatim; this row's label
+    // and alt are descriptive prose, so they resolve from the catalog at render.
+    { src: ETHEREUM_ICON, alt: null, name: null },
 ] as const
 
 const CORNER_POSITIONS = [
@@ -124,7 +126,12 @@ function ScanRegionOverlay({
             <div className="flex-column z-50 translate-y-[100%] transform items-center text-center">
                 <div className="mt-10 flex flex-wrap justify-center gap-2">
                     {PAYMENT_METHODS.map((method) => (
-                        <PaymentMethodBadge key={method.name} {...method} />
+                        <PaymentMethodBadge
+                            key={method.name ?? 'evm'}
+                            src={method.src}
+                            alt={method.alt ?? t('qrScanner.paymentMethods.evmAlt')}
+                            name={method.name ?? t('qrScanner.paymentMethods.evmName')}
+                        />
                     ))}
                 </div>
                 <button
@@ -215,22 +222,14 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
     }, [isScanning])
 
     const handleUsePasteChip = async () => {
-        let address: string | null
-        try {
-            const { value } = await Clipboard.read()
-            address = extractPaymentValue((value ?? '').trim(), 'evmAddress')
-        } catch (err) {
+        const result = await readClipboard()
+        if (!result.ok) {
             setShowPasteChip(false)
-            // Android rejects with "There is no data on the clipboard" instead of
-            // resolving with an empty value — same mapping as handlePaste.
-            const message = err instanceof Error ? err.message : String(err)
-            toast.error(
-                message.toLowerCase().includes('no data on the clipboard')
-                    ? t('qrScanner.clipboardEmpty')
-                    : t('qrScanner.clipboardUnavailable')
-            )
+            if (result.reason === 'unavailable') console.error('Failed to read clipboard:', result.cause)
+            toast.error(t(result.reason === 'empty' ? 'qrScanner.clipboardEmpty' : 'qrScanner.clipboardUnavailable'))
             return
         }
+        const address = extractPaymentValue(result.text, 'evmAddress')
         if (!address) {
             setShowPasteChip(false)
             toast.error(t('qrScanner.notAWalletAddress'))
@@ -245,27 +244,17 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
     }
 
     const handlePaste = async () => {
+        const result = await readClipboard()
+        if (!result.ok) {
+            if (result.reason === 'unavailable') console.error('Failed to read clipboard:', result.cause)
+            toast.error(t(result.reason === 'empty' ? 'qrScanner.clipboardEmpty' : 'qrScanner.clipboardUnavailable'))
+            return
+        }
         try {
-            // Capacitor Clipboard reads through the native bridge on device (the
-            // WebView's navigator.clipboard.readText is unreliable/blocked in the
-            // Android WebView); its web shim falls back to navigator.clipboard.
-            const { value } = await Clipboard.read()
-            const text = (value ?? '').trim()
-            if (text) {
-                await onScan(text)
-            } else {
-                toast.error(t('qrScanner.clipboardEmpty'))
-            }
+            await onScan(result.text)
         } catch (err) {
-            // Android rejects with "There is no data on the clipboard" instead of
-            // resolving with an empty value
-            const message = err instanceof Error ? err.message : String(err)
-            if (message.toLowerCase().includes('no data on the clipboard')) {
-                toast.error(t('qrScanner.clipboardEmpty'))
-            } else {
-                console.error('Failed to read clipboard:', err)
-                toast.error(t('qrScanner.clipboardUnavailable'))
-            }
+            console.error('Error processing QR code:', err)
+            toast.error(t('qrScanner.qrProcessingFailed'))
         }
     }
 

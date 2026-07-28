@@ -1,6 +1,7 @@
 'use client'
 
 import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
+import { isTestTransaction } from '@/utils/history.utils'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import { printableUserHandle } from '@/utils/general.utils'
@@ -69,7 +70,7 @@ const getTitle = (
 
         // check if this is a test transaction (setup confirmation)
         // note: bad check, but its a quick fix for now - kush (18 nov 2025), to be handled in the backend post devconnect.
-        const isTestTransaction = displayName === 'Enjoy Peanut!'
+        const isTest = isTestTransaction(displayName)
 
         switch (direction) {
             case 'send':
@@ -111,8 +112,8 @@ const getTitle = (
                 break
             case 'add':
             case 'bank_deposit':
-                if (isTestTransaction) {
-                    titleText = 'Enjoy Peanut!'
+                if (isTest) {
+                    titleText = t('enjoyPeanut')
                 } else {
                     titleText = t(status === 'completed' ? 'title.addedFrom' : 'title.addingFrom', {
                         name: displayName,
@@ -210,8 +211,8 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     const nameForAvatar = showFullName && fullName ? fullName : userName
 
     // check if this is a test transaction (setup confirmation)
-    const isTestTransaction = userName === 'Enjoy Peanut!'
-    const icon = getIcon(direction, isLinkTransaction, isTestTransaction)
+    const isTest = isTestTransaction(userName)
+    const icon = getIcon(direction, isLinkTransaction, isTest)
 
     const handleUserPfpClick = () => {
         if (isAvatarClickable) {
@@ -223,7 +224,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
 
     return (
         <Card className="relative p-4 md:p-6" position="single">
-            {isTestTransaction ? (
+            {isTest ? (
                 <div className="flex items-center gap-3">
                     <div>
                         <Image src={PEANUTMAN} alt="Peanut Logo" width={64} height={64} className="size-8" />
