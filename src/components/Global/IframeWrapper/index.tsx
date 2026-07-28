@@ -98,6 +98,12 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
     // track completed event from iframe and close the modal
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
+            // A hidden-but-mounted wrapper must not react: several surfaces keep
+            // a wrapper mounted after a manual close (e.g. the multi-phase KYC
+            // flow's ToS iframe), and a sibling iframe's completion event would
+            // otherwise fire BOTH handlers — double ToS confirms + phantom flow
+            // transitions.
+            if (!visible) return
             const data = event.data
             if (data?.name === 'complete' && data?.metadata?.status === 'completed') {
                 onClose('completed')
@@ -111,7 +117,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
 
         window.addEventListener('message', handleMessage)
         return () => window.removeEventListener('message', handleMessage)
-    }, [onClose])
+    }, [onClose, visible])
 
     return (
         <Modal

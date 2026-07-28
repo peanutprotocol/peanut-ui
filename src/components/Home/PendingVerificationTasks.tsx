@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { startBridgeHostedVerification } from '@/app/actions/sumsub'
 import { Button } from '@/components/0_Bruddle/Button'
 import IframeWrapper from '@/components/Global/IframeWrapper'
@@ -12,31 +12,40 @@ import type { NextAction } from '@/types/capabilities'
 import { selectBridgeTasks } from '@/utils/bridge-tasks.utils'
 import Card from '../Global/Card'
 
-const TASK_COPY = {
-    tosBase: {
-        title: 'Accept Terms of Service',
-        description: "Accept our payment partner's terms to keep bank transfers available.",
-    },
-    tosSepa: {
-        title: 'Accept SEPA Terms of Service',
-        description: "Accept our payment partner's updated terms to keep EUR and GBP bank transfers available.",
-    },
-    hosted: {
-        title: 'Additional verification needed',
-        description: 'Complete a quick verification with our payment partner to keep bank transfers available.',
-    },
-} as const
-
 function taskCopy(task: NextAction): { title: string; description: string } {
+    // Advisory tasks (future-dated, rails still usable) are about KEEPING
+    // access; blocking tasks are about ENABLING it — don't tell a blocked
+    // user their transfers are "available".
+    const advisory = !!task.effectiveDate
     if (task.kind === 'accept-tos') {
-        return task.key === 'accept-tos:sepa' ? TASK_COPY.tosSepa : TASK_COPY.tosBase
+        if (task.key === 'accept-tos:sepa') {
+            return {
+                title: 'Accept SEPA Terms of Service',
+                description: advisory
+                    ? "Accept our payment partner's updated terms to keep EUR and GBP bank transfers available."
+                    : "Accept our payment partner's updated terms to enable EUR and GBP bank transfers.",
+            }
+        }
+        return {
+            title: 'Accept Terms of Service',
+            description: advisory
+                ? "Accept our payment partner's terms to keep bank transfers available."
+                : "Accept our payment partner's terms to enable bank transfers.",
+        }
     }
-    return TASK_COPY.hosted
+    return {
+        title: 'Additional verification needed',
+        description: advisory
+            ? 'Complete a quick verification with our payment partner to keep bank transfers available.'
+            : 'Complete a quick verification with our payment partner to enable bank transfers.',
+    }
 }
 
 /** "2099-03-01" → "Mar 1, 2099" — UTC so the date never shifts across timezones. */
-function formatDeadline(isoDate: string): string {
-    return new Date(`${isoDate}T00:00:00Z`).toLocaleDateString('en-US', {
+function formatDeadline(isoDate: string): string | null {
+    const parsed = new Date(`${isoDate.slice(0, 10)}T00:00:00Z`)
+    if (Number.isNaN(parsed.getTime())) return null
+    return parsed.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
@@ -48,36 +57,52 @@ function formatDeadline(isoDate: string): string {
  * Home card listing the user's pending Bridge verification tasks — the in-app
  * mirror of Bridge's "additional verification needed" dashboard state. Reads
  * top-level capability `nextActions` (NOT rail gates), so it also catches the
- * advisory orphans (future-dated tasks on fully-enabled users) and sidesteps
- * ActivationCTAs' can-already-transact stand-down. Renders nothing when no
- * task is pending.
+ * orphan actions no rail references (both blocking hosted tasks and advisory
+ * future-dated ones) and sidesteps ActivationCTAs' can-already-transact
+ * stand-down. Renders nothing when no task is pending.
+ *
+ * Open flows are SNAPSHOTTED at tap time: the task list re-derives from every
+ * user refetch (~4s auto-refresh while rails are pending), and an open
+ * modal/iframe must survive its task disappearing mid-flow — the card hides,
+ * the flow keeps running.
  */
 export default function PendingVerificationTasks() {
     const { nextActions } = useCapabilities()
     const { fetchUser } = useAuth()
-    const [tosOpen, setTosOpen] = useState(false)
+    const [activeTosTask, setActiveTosTask] = useState<NextAction | null>(null)
     const [hostedUrl, setHostedUrl] = useState<string | null>(null)
     const [isStartingHosted, setIsStartingHosted] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     const tasks = selectBridgeTasks(nextActions)
-    const tosTask = tasks.find((task) => task.kind === 'accept-tos')
+    const taskKeys = tasks.map((task) => task.key).join(',')
 
-    const handleOpenTask = useCallback(async (task: NextAction) => {
+    // A new task set means the previous failure context is gone.
+    useEffect(() => {
         setError(null)
-        if (task.kind === 'accept-tos') {
-            setTosOpen(true)
-            return
-        }
-        setIsStartingHosted(true)
-        const { url, error: startError } = await startBridgeHostedVerification()
-        setIsStartingHosted(false)
-        if (!url) {
-            setError(startError ?? 'Something went wrong. Please try again.')
-            return
-        }
-        setHostedUrl(url)
-    }, [])
+    }, [taskKeys])
+
+    const handleOpenTask = useCallback(
+        async (task: NextAction) => {
+            setError(null)
+            if (task.kind === 'accept-tos') {
+                setActiveTosTask(task)
+                return
+            }
+            setIsStartingHosted(true)
+            const { url } = await startBridgeHostedVerification()
+            setIsStartingHosted(false)
+            if (!url) {
+                // Friendly copy regardless of the server detail (a 403 here just
+                // means the action aged out); refetch so a stale card self-corrects.
+                setError("We couldn't start the verification. Please try again in a moment.")
+                void fetchUser()
+                return
+            }
+            setHostedUrl(url)
+        },
+        [fetchUser]
+    )
 
     const handleHostedClose = useCallback(
         (source?: 'manual' | 'completed' | 'tos_accepted') => {
@@ -91,55 +116,60 @@ export default function PendingVerificationTasks() {
         [fetchUser]
     )
 
-    if (tasks.length === 0) return null
+    const closeTos = useCallback(() => setActiveTosTask(null), [])
+
+    if (tasks.length === 0 && !activeTosTask && !hostedUrl) return null
 
     return (
         <>
-            <Card position="single" className="p-0">
-                <div className="flex flex-col gap-5 px-4 py-5">
-                    {tasks.map((task) => {
-                        const copy = taskCopy(task)
-                        const isHosted = task.kind === 'bridge-hosted'
-                        return (
-                            <div key={task.key} className="flex flex-col items-center gap-2 text-center">
-                                <div className="flex size-10 items-center justify-center rounded-full bg-secondary-1">
-                                    <Icon name={isHosted ? 'user-id' : 'badge'} size={20} />
+            {tasks.length > 0 && (
+                <Card position="single" className="p-0">
+                    <div className="flex flex-col gap-5 px-4 py-5">
+                        {tasks.map((task) => {
+                            const copy = taskCopy(task)
+                            const isHosted = task.kind === 'bridge-hosted'
+                            const deadline = task.effectiveDate ? formatDeadline(task.effectiveDate) : null
+                            return (
+                                <div key={task.key} className="flex flex-col items-center gap-2 text-center">
+                                    <div className="flex size-10 items-center justify-center rounded-full bg-secondary-1">
+                                        <Icon name={isHosted ? 'user-id' : 'badge'} size={20} />
+                                    </div>
+                                    <div className="w-full">
+                                        <div className="text-base font-bold">{copy.title}</div>
+                                        <div className="text-sm text-grey-1">{copy.description}</div>
+                                        {deadline && (
+                                            <div className="mt-1 text-xs font-medium">Complete before {deadline}</div>
+                                        )}
+                                    </div>
+                                    <Button
+                                        variant="purple"
+                                        shadowSize="4"
+                                        className="mt-1 w-full"
+                                        disabled={isStartingHosted}
+                                        onClick={() => handleOpenTask(task)}
+                                    >
+                                        {isHosted
+                                            ? isStartingHosted
+                                                ? 'Loading...'
+                                                : 'Complete verification'
+                                            : 'Review terms'}
+                                    </Button>
                                 </div>
-                                <div className="w-full">
-                                    <div className="text-base font-bold">{copy.title}</div>
-                                    <div className="text-sm text-grey-1">{copy.description}</div>
-                                    {task.effectiveDate && (
-                                        <div className="mt-1 text-xs font-medium">
-                                            Complete before {formatDeadline(task.effectiveDate)}
-                                        </div>
-                                    )}
-                                </div>
-                                <Button
-                                    variant="purple"
-                                    shadowSize="4"
-                                    className="mt-1 w-full"
-                                    disabled={isHosted && isStartingHosted}
-                                    onClick={() => handleOpenTask(task)}
-                                >
-                                    {isHosted
-                                        ? isStartingHosted
-                                            ? 'Loading...'
-                                            : 'Complete verification'
-                                        : 'Review terms'}
-                                </Button>
-                            </div>
-                        )
-                    })}
-                    {error && <p className="text-center text-sm text-error">{error}</p>}
-                </div>
-            </Card>
+                            )
+                        })}
+                        {error && <p className="text-center text-sm text-error">{error}</p>}
+                    </div>
+                </Card>
+            )}
 
-            {tosTask && (
+            {activeTosTask && (
                 <BridgeTosStep
-                    visible={tosOpen}
-                    onComplete={() => setTosOpen(false)}
-                    onSkip={() => setTosOpen(false)}
-                    reasonCode={tosTask.key === 'accept-tos:sepa' ? 'bridge_tos_v2_required' : 'bridge_tos_required'}
+                    visible
+                    onComplete={closeTos}
+                    onSkip={closeTos}
+                    reasonCode={
+                        activeTosTask.key === 'accept-tos:sepa' ? 'bridge_tos_v2_required' : 'bridge_tos_required'
+                    }
                 />
             )}
 
