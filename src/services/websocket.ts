@@ -2,6 +2,7 @@ import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type PendingPerk } from '@/services/perks'
 import { isDemoMode } from '@/utils/demo'
 import { isCapacitor } from '@/utils/capacitor'
+import { getSessionTokenForSocket } from '@/utils/auth-token'
 export type { PendingPerk }
 
 function isValidWsUrl(url: string): boolean {
@@ -47,6 +48,9 @@ export type WebSocketMessage = {
     type:
         | 'ping'
         | 'pong'
+        // Handshake: the server sends one of these in reply to our `auth` frame.
+        | 'auth_ok'
+        | 'auth_error'
         | 'history_entry'
         | 'kyc_status_update'
         | 'manteca_kyc_status_update'
@@ -64,6 +68,8 @@ export class PeanutWebSocket {
     private reconnectTimeout: NodeJS.Timeout | null = null
     private eventListeners: Map<string, Set<(data: any) => void>> = new Map()
     private isConnected = false
+    /** Set when the server refused our credential; suppresses the reconnect loop. */
+    private authFailed = false
     private reconnectAttempts = 0
     private readonly maxReconnectAttempts = 5
     private readonly reconnectDelay = 3000 // 3 seconds
@@ -81,6 +87,10 @@ export class PeanutWebSocket {
         ) {
             return
         }
+
+        // A caller reconnecting deliberately (e.g. after a fresh login) gets a
+        // clean slate — the previous credential rejection should not stick.
+        this.authFailed = false
 
         try {
             const fullUrl = new URL(this.path, this.url).toString()
@@ -133,11 +143,41 @@ export class PeanutWebSocket {
         }
     }
 
-    private handleOpen(): void {
+    /**
+     * The server subscribes this socket to nothing until it receives an `auth`
+     * frame carrying a session JWT that resolves to the user in the path, so
+     * send it immediately on open. Async because native reads the token from
+     * the native cookie jar — which is exactly why auth is a message frame and
+     * not a header or query param.
+     */
+    private async handleOpen(): Promise<void> {
         this.isConnected = true
         this.reconnectAttempts = 0
         this.startPingInterval()
         this.emit('connect', null)
+
+        const token = await getSessionTokenForSocket()
+        if (!token) {
+            // No session to present. The server would drop us on its auth
+            // deadline anyway; close now and do not retry, or we would spin
+            // reconnecting a socket that can never authenticate.
+            this.authFailed = true
+            this.emit('auth_error', { reason: 'no-session' })
+            this.disconnect()
+            // `disconnect()` nulls onclose before closing, so handleClose — the
+            // only other place that emits 'disconnect' — never runs on this
+            // path. Emit it here or consumers that track connect/disconnect
+            // pairs (useWebSocket maps them straight onto its status) stay
+            // stuck reporting "connected" forever, with no reconnect scheduled
+            // to correct it. We already emitted 'connect' above: the socket did
+            // open, we are closing it again.
+            this.emit('disconnect', { code: 0, reason: 'no-session' })
+            return
+        }
+
+        if (this.socket?.readyState === WebSocket.OPEN) {
+            this.socket.send(JSON.stringify({ type: 'auth', token }))
+        }
     }
 
     private handleMessage(event: MessageEvent): void {
@@ -148,6 +188,20 @@ export class PeanutWebSocket {
                 case 'pong':
                     // Server responded to our ping
                     this.emit('pong', null)
+                    break
+
+                case 'auth_ok':
+                    // Handshake accepted — event frames start flowing now.
+                    this.authFailed = false
+                    this.emit('auth_ok', null)
+                    break
+
+                case 'auth_error':
+                    // The credential was refused, not the transport. Reconnecting
+                    // would present the same bad token again, so mark it
+                    // permanent; handleClose reads this to skip the backoff loop.
+                    this.authFailed = true
+                    this.emit('auth_error', message.data ?? null)
                     break
 
                 case 'history_entry':
@@ -210,10 +264,28 @@ export class PeanutWebSocket {
         }
     }
 
+    /** Server-side auth close codes (see peanut-api-ts routes/charges-ws). */
+    private static readonly CLOSE_AUTH_FAILED = 4401
+    private static readonly CLOSE_AUTH_TIMEOUT = 4408
+
     private handleClose(event: CloseEvent): void {
         this.isConnected = false
         this.clearPingInterval()
         this.emit('disconnect', { code: event.code, reason: event.reason })
+
+        const authRejected =
+            this.authFailed ||
+            event.code === PeanutWebSocket.CLOSE_AUTH_FAILED ||
+            event.code === PeanutWebSocket.CLOSE_AUTH_TIMEOUT
+
+        // An auth rejection arrives as a non-clean close, so without this check
+        // it would fall straight into the 5x exponential-backoff loop and
+        // hammer the API with a credential already known to be bad.
+        if (authRejected) {
+            this.authFailed = true
+            this.emit('auth_error', { code: event.code, reason: event.reason })
+            return
+        }
 
         if (!event.wasClean) {
             this.scheduleReconnect()

@@ -36,6 +36,32 @@ export function setAuthToken(token: string): void {
 }
 
 /**
+ * Resolve the raw session token for the ONE consumer that cannot use any of
+ * the normal credential paths: the charges WebSocket.
+ *
+ * Every other call either rides the native cookie jar (CapacitorHttp attaches
+ * it automatically) or reads the web cookie via getAuthToken. A WebSocket can
+ * do neither: the browser API cannot set headers, the web `jwt-token` cookie is
+ * host-only on peanut.me so it is never sent to api.peanut.me, and on native
+ * the WebView's own WebSocket does not read CapacitorHttp's jar. The token
+ * therefore has to be handed to the socket explicitly, as its first frame.
+ *
+ * This is the deliberate exception to "JS is not a token custodian on native"
+ * in the header comment above — scoped to one caller, and the token goes
+ * straight into a frame rather than being stored anywhere.
+ */
+export async function getSessionTokenForSocket(): Promise<string | null> {
+    if (!isCapacitor()) return getAuthToken()
+    try {
+        const { CapacitorCookies } = await import('@capacitor/core')
+        const cookies = await CapacitorCookies.getCookies({ url: PEANUT_API_URL })
+        return cookies?.[JWT_COOKIE_KEY] ?? null
+    } catch {
+        return null
+    }
+}
+
+/**
  * capacitor-only: does the native cookie jar hold a session cookie for the
  * API? Async because the jar lives on the native side. Used for cheap
  * routing hints (e.g. cold-start home-vs-setup) — the /users/me query
