@@ -124,33 +124,17 @@ describe('cspReportGroupKey', () => {
         const inline = cspReportGroupKey({
             'effective-directive': 'script-src',
             'violated-directive': "script-src 'unsafe-inline'",
-            'blocked-uri': 'inline',
+            'blocked-uri': 'self',
         })
         const evaluated = cspReportGroupKey({
             'effective-directive': 'script-src',
             'violated-directive': "script-src 'unsafe-eval'",
-            'blocked-uri': 'eval',
+            'blocked-uri': 'self',
         })
 
         expect(inline).toBe('script-src|unsafe-inline')
         expect(evaluated).toBe('script-src|unsafe-eval')
         expect(inline).not.toBe(evaluated)
-    })
-
-    it('groups one keyword consistently even when browsers report a different blocked-uri', () => {
-        expect(
-            cspReportGroupKey({
-                'effective-directive': 'script-src',
-                'violated-directive': "script-src 'unsafe-inline'",
-                'blocked-uri': 'inline',
-            })
-        ).toBe(
-            cspReportGroupKey({
-                'effective-directive': 'script-src',
-                'violated-directive': "script-src 'unsafe-inline'",
-                'blocked-uri': 'self',
-            })
-        )
     })
 
     // What browsers actually emit: the specific sub-directive that was checked.
@@ -163,7 +147,7 @@ describe('cspReportGroupKey', () => {
                 cspReportGroupKey({
                     'effective-directive': directive,
                     'violated-directive': `${directive} 'unsafe-inline'`,
-                    'blocked-uri': 'inline',
+                    'blocked-uri': 'self',
                 })
             ).toBe(`${directive}|unsafe-inline`)
         }
@@ -177,6 +161,42 @@ describe('cspReportGroupKey', () => {
                 'blocked-uri': 'https://cdn.example/x.js',
             })
         ).toBe('script-src|https://cdn.example')
+    })
+
+    // The regression that matters most. Our own script-src contains
+    // 'unsafe-inline' and 'unsafe-eval', and Firefox/Safari echo the entire
+    // source list back in violated-directive. Keying on the keyword without
+    // checking that the violation was local collapsed every blocked
+    // third-party script into the ubiquitous inline group, where the 1%
+    // duplicate sampling would bury it — the exact issue-loss the grouping
+    // exists to prevent.
+    it('keys a blocked third-party script on its origin even when the policy text names unsafe-inline', () => {
+        const realPolicy = "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com"
+
+        const blockedCdn = cspReportGroupKey({
+            'effective-directive': 'script-src-elem',
+            'violated-directive': realPolicy,
+            'blocked-uri': 'https://cdn.attacker.example/x.js',
+        })
+        const ourInlineBootstrap = cspReportGroupKey({
+            'effective-directive': 'script-src-elem',
+            'violated-directive': realPolicy,
+            'blocked-uri': 'self',
+        })
+
+        expect(blockedCdn).toBe('script-src-elem|https://cdn.attacker.example')
+        expect(blockedCdn).not.toBe(ourInlineBootstrap)
+    })
+
+    // Firefox omits effective-directive and sends the full source list, so an
+    // un-normalized key would embed the whole policy and reset on every edit.
+    it('normalizes a full Firefox violated-directive down to the bare directive', () => {
+        expect(
+            cspReportGroupKey({
+                'violated-directive': "connect-src 'self' https://api.peanut.me https://*.peanut.me",
+                'blocked-uri': 'wss://api.peanut.me/charges',
+            })
+        ).toBe('connect-src|wss://api.peanut.me')
     })
 
     it('falls back to violated-directive when the effective one is absent', () => {

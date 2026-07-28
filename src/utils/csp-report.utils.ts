@@ -116,35 +116,57 @@ export function normalizeCspReports(payload: unknown): CspReport[] {
 }
 
 /**
+ * Blocked-URIs that Sentry normalizes to "local" — the violation came from our
+ * own document rather than a third-party origin. Chrome reports the keyword
+ * (`inline` / `eval`) instead and is deliberately NOT in this list, matching
+ * Sentry, which keys those on the keyword URI and raises a separate issue.
+ */
+const LOCAL_BLOCKED_URIS = ['', 'self', "'self'"]
+
+/**
  * Grouping key used to decide whether a report is the first of its kind.
  * Mirrors how Sentry groups CSP issues (directive + blocked origin), so "first
  * of its kind here" means "would create a new Sentry issue".
  */
 export function cspReportGroupKey(report: CspReport): string {
-    const directive = report['effective-directive'] || report['violated-directive'] || 'unknown'
+    // Take the first token, not the raw string. Firefox omits
+    // `effective-directive` entirely and sends `violated-directive` as the FULL
+    // directive text with its source list attached, so without this every
+    // Firefox group key embeds the whole policy and churns on any policy edit.
+    const directive = (report['effective-directive'] || report['violated-directive'] || 'unknown').split(' ')[0]
+    const blocked = report['blocked-uri'] || 'unknown'
 
     // Sentry's csp:v1 strategy drops the blocked URI entirely and keys on the
-    // keyword when script-src is violated by 'unsafe-inline' / 'unsafe-eval',
-    // so it raises TWO issues where a URI-based key sees one. Mirror that:
-    // otherwise whichever of the pair arrives second looks like a duplicate,
-    // gets sampled away, and its issue may never be created — and those two
-    // are the top of this policy's "tighten before enforcing" list, precisely
-    // the signal the de-duplication must never swallow.
+    // keyword when a *local* script-src violation names 'unsafe-inline' /
+    // 'unsafe-eval', so it raises TWO issues where a URI-based key sees one.
+    // Mirror that: otherwise whichever of the pair arrives second looks like a
+    // duplicate, gets sampled away, and its issue may never be created — and
+    // those two are the top of this policy's "tighten before enforcing" list.
     //
-    // Matches the whole script-src family, not just the bare directive:
-    // browsers report the specific sub-directive they checked, so inline
-    // <script> violations arrive as `script-src-elem` and inline handlers as
-    // `script-src-attr` (only eval stays plain `script-src`). Keying more
-    // finely than Sentry is always safe — it can only over-forward — whereas
-    // keying more coarsely is what loses an issue.
-    const violated = String(report['violated-directive'] ?? '')
-    if (directive === 'script-src' || directive.startsWith('script-src-')) {
+    // The LOCAL_BLOCKED_URIS guard is load-bearing, not decoration. Our own
+    // script-src literally contains 'unsafe-inline' and 'unsafe-eval', and
+    // Firefox/Safari echo the entire source list back in violated-directive —
+    // so without the guard EVERY script-src report matches a keyword,
+    // including a genuinely blocked third-party script. That report would then
+    // be grouped with the ubiquitous inline violation and sampled away at 1%,
+    // which is precisely the issue-loss this de-duplication exists to prevent,
+    // in the one directive that matters most for XSS. Match the quoted form
+    // for the same reason Sentry does: an unquoted substring would also hit a
+    // host in the source list.
+    //
+    // Matching the whole script-src family is deliberate: browsers report the
+    // specific sub-directive they checked, so inline <script> violations
+    // arrive as `script-src-elem` and inline handlers as `script-src-attr`
+    // (only eval stays plain `script-src`). Keying more finely than Sentry is
+    // always safe — it can only over-forward — whereas keying more coarsely is
+    // what loses an issue.
+    if ((directive === 'script-src' || directive.startsWith('script-src-')) && LOCAL_BLOCKED_URIS.includes(blocked)) {
+        const violated = String(report['violated-directive'] ?? '')
         for (const keyword of ['unsafe-inline', 'unsafe-eval']) {
-            if (violated.includes(keyword)) return `${directive}|${keyword}`
+            if (violated.includes(`'${keyword}'`)) return `${directive}|${keyword}`
         }
     }
 
-    const blocked = report['blocked-uri'] || 'unknown'
     // Only the origin matters for grouping; paths and query strings vary per
     // request and would otherwise make every single report look distinct.
     let origin = blocked

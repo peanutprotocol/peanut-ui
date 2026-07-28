@@ -5,6 +5,7 @@ import {
     normalizeCspReports,
     sentryCspIngestUrl,
     shouldIgnoreCspReport,
+    type CspReport,
 } from '@/utils/csp-report.utils'
 
 export const dynamic = 'force-dynamic'
@@ -58,7 +59,13 @@ const MAX_FORWARDS_PER_REQUEST = 20
 function shouldForward(groupKey: string): boolean {
     if (!seenGroups.has(groupKey)) {
         // Bound the memory: a flood of distinct groups must not grow forever.
-        if (seenGroups.size >= SEEN_GROUPS_MAX) seenGroups.clear()
+        // Evict the oldest rather than clearing — a Set iterates in insertion
+        // order, so this drops one stale group instead of dumping all 500 and
+        // letting every still-active violation re-forward at once.
+        if (seenGroups.size >= SEEN_GROUPS_MAX) {
+            const oldest = seenGroups.values().next().value
+            if (oldest !== undefined) seenGroups.delete(oldest)
+        }
         seenGroups.add(groupKey)
         return true
     }
@@ -79,20 +86,44 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         const reports = normalizeCspReports(await request.json())
 
-        // Cap BEFORE shouldForward, never after: shouldForward records each
-        // group as seen, so truncating afterwards would mark groups seen that
-        // were never actually sent — their real first sighting would be lost
-        // and every later repeat sampled away as a duplicate.
-        const forwardable = reports
-            .filter((report) => !shouldIgnoreCspReport(report))
-            .slice(0, MAX_FORWARDS_PER_REQUEST)
-            .filter((report) => shouldForward(cspReportGroupKey(report)))
+        const seenInBatch = new Set<string>()
+        const forwardable: CspReport[] = []
+        for (const report of reports) {
+            if (shouldIgnoreCspReport(report)) continue
+
+            const groupKey = cspReportGroupKey(report)
+            // One slot per distinct group: a batch is usually dominated by
+            // repeats of a single violation, and 20 copies of it must not
+            // crowd a genuinely new group out of the per-request cap.
+            if (seenInBatch.has(groupKey)) continue
+            seenInBatch.add(groupKey)
+
+            // Cap BEFORE shouldForward, never after: shouldForward records
+            // each group as seen, so admitting more than we can send would
+            // mark groups seen that were never actually sent — their real
+            // first sighting lost, every later repeat sampled away.
+            if (seenInBatch.size > MAX_FORWARDS_PER_REQUEST) break
+
+            if (shouldForward(groupKey)) forwardable.push(report)
+        }
+
+        // Sentry derives the event's browser and request context from the
+        // headers of whoever POSTs to its security endpoint. That used to be
+        // the browser itself; now it is us, so pass the originals through or
+        // every CSP event is attributed to one Vercel egress IP running
+        // undici — deleting the "which browser / how many users" dimension
+        // these reports are read for.
+        const forwardedHeaders: Record<string, string> = { 'Content-Type': 'application/csp-report' }
+        const userAgent = request.headers.get('user-agent')
+        if (userAgent) forwardedHeaders['User-Agent'] = userAgent
+        const forwardedFor = request.headers.get('x-forwarded-for')
+        if (forwardedFor) forwardedHeaders['X-Forwarded-For'] = forwardedFor
 
         await Promise.allSettled(
             forwardable.map((report) =>
                 fetch(ingestUrl, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/csp-report' },
+                    headers: forwardedHeaders,
                     body: JSON.stringify({ 'csp-report': report }),
                     signal: AbortSignal.timeout(FORWARD_TIMEOUT_MS),
                 })
