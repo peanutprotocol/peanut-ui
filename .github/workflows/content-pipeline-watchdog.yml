@@ -55,21 +55,31 @@ jobs:
 
                   # ---- hop 2: what the mirror has published --------------------
                   TIP=$(GH_TOKEN=$CONTENT_TOKEN gh api repos/peanutprotocol/peanut-content/commits/main --jq '.sha')
-                  TIP_MSG=$(GH_TOKEN=$CONTENT_TOKEN gh api repos/peanutprotocol/peanut-content/commits/main --jq '.commit.message' | head -1)
                   TIP_AT=$(GH_TOKEN=$CONTENT_TOKEN gh api repos/peanutprotocol/peanut-content/commits/main --jq '.commit.committer.date')
 
-                  # ---- hop 1: what mono says the content should be -------------
-                  # The mirror stamps "mirror: sync from mono@<sha>", so a mismatch
-                  # here means the mirror itself is stuck — invisible from hops 2/3
-                  # alone, which would look perfectly consistent with each other.
-                  MONO_SHA=$(GH_TOKEN=$MONO_TOKEN gh api "repos/peanutprotocol/mono/commits?path=content&per_page=1" --jq '.[0].sha' | cut -c1-7)
-                  MIRRORED_SHA=$(printf '%s' "$TIP_MSG" | sed -nE 's/.*mono@([0-9a-f]+).*/\1/p' | cut -c1-7)
+                  # ---- hop 1: is the mirror itself healthy? --------------------
+                  # Deliberately NOT a SHA comparison against the "mirror: sync from
+                  # mono@<sha>" stamp. The mirror publishes content/ MINUS _system/
+                  # (plus _system/generated/), so a mono commit touching only
+                  # content/_system/** is correctly never published — and a SHA
+                  # comparison reads that as permanent staleness and alerts every 15
+                  # minutes forever. That is exactly what happened on the first live
+                  # run (d9a33de, a docs edit to content/_system/ARCHITECTURE.md).
+                  #
+                  # Ask the question that has a real yes/no answer instead: did the
+                  # mirror's last completed run succeed? A mirror that ran and
+                  # published nothing is healthy; one that errored is not.
+                  MIRROR=$(GH_TOKEN=$MONO_TOKEN gh api \
+                    "repos/peanutprotocol/mono/actions/workflows/mirror-to-peanut-content.yml/runs?per_page=1&status=completed" \
+                    --jq '.workflow_runs[0].conclusion // "none"')
 
-                  echo "mono content@$MONO_SHA | mirrored from @${MIRRORED_SHA:-?} | peanut-content ${TIP:0:7} | live ${LIVE:0:7}"
+                  echo "mirror last run: $MIRROR | peanut-content ${TIP:0:7} | live ${LIVE:0:7}"
 
                   STALE=""
-                  if [ -n "$MIRRORED_SHA" ] && [ "$MONO_SHA" != "$MIRRORED_SHA" ]; then
-                    STALE="the mirror is behind mono (mono content@\`$MONO_SHA\`, mirror published \`$MIRRORED_SHA\`)"
+                  MIRROR_BROKEN=false
+                  if [ "$MIRROR" != "success" ] && [ "$MIRROR" != "none" ]; then
+                    STALE="the mirror workflow's last run concluded \`$MIRROR\` — content is not leaving mono"
+                    MIRROR_BROKEN=true
                   elif [ "$LIVE" != "$TIP" ]; then
                     STALE="production is behind peanut-content (live \`${LIVE:0:7}\`, latest \`${TIP:0:7}\`)"
                   fi
@@ -86,7 +96,8 @@ jobs:
                           --json number,headRefName \
                           --jq '[.[] | select((.headRefName | startswith("auto/update-content-")) or (.headRefName | startswith("content/publish-to-main")))] | first | .number // empty')
 
-                  DOOMED=false
+                  # A failed mirror will not fix itself, so skip the grace period.
+                  DOOMED=$MIRROR_BROKEN
                   if [ -n "$NUM" ]; then
                     SHA=$(GH_TOKEN=$UI_TOKEN gh api "repos/$REPO/pulls/$NUM" --jq '.head.sha')
                     CI=$(GH_TOKEN=$UI_TOKEN gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" \
