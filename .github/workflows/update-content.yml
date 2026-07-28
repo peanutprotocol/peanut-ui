@@ -9,6 +9,15 @@ permissions:
     contents: write
     pull-requests: write
 
+# A burst of content pushes dispatches several runs. Without this they race:
+# each branches off the same `main` and opens its own PR, and once the first
+# merges the rest conflict on the `src/content` gitlink and can NEVER merge.
+# The newest dispatch wins — it checks out peanut-content's tip, so it already
+# contains everything the runs it cancels would have published.
+concurrency:
+    group: update-content
+    cancel-in-progress: true
+
 jobs:
     update:
         runs-on: ubuntu-latest
@@ -99,8 +108,28 @@ jobs:
                   `ci-success` is green. Anything other than a lone `src/content`
                   change falls back to the normal 1-review gate.
                   BODY
-                  gh pr create \
+                  PR_URL=$(gh pr create \
                     --head "$BRANCH" \
                     --base main \
                     --title "content: publish latest to production (src/content → peanut-content@${SUBMODULE_SHA:0:7})" \
-                    --body-file /tmp/pr-body.md
+                    --body-file /tmp/pr-body.md)
+                  echo "Opened $PR_URL"
+
+                  # Retire every older auto-PR. They point at stale content, and once
+                  # this one merges they conflict on the gitlink and can never merge —
+                  # they'd just pile up. (29 of them did, on `dev`.) Closing them keeps
+                  # exactly one live publish PR. Best-effort: a failure here must not
+                  # fail the publish we just opened.
+                  NEW="${PR_URL##*/}"
+                  STALE=$(gh pr list --repo "${{ github.repository }}" --state open --base main \
+                            --json number,headRefName \
+                            --jq '.[] | select(.headRefName | startswith("auto/update-content-")) | .number' \
+                          || true)
+                  for N in $STALE; do
+                    if [ "$N" != "$NEW" ]; then
+                      echo "Closing superseded #$N"
+                      gh pr close "$N" --repo "${{ github.repository }}" --delete-branch \
+                        --comment "Superseded by $PR_URL (newer content pointer)." \
+                        || echo "::warning::could not close #$N"
+                    fi
+                  done
