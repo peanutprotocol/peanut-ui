@@ -128,9 +128,29 @@ describe('MantecaPixQrDeposit', () => {
         )
 
         fireEvent.click(screen.getByText('Done'))
+        expect(onDone).toHaveBeenCalled()
+
+        onDone.mockClear()
+        fireEvent.click(screen.getByTestId('nav-back'))
+        expect(onDone).toHaveBeenCalled()
+
+        expect(onBack).not.toHaveBeenCalled()
+    })
+
+    // Same class, one state earlier: `processing` means stage >= 2 — the fiat already
+    // left the user's bank, so backing out to a pre-filled amount input invites a
+    // duplicate payment. Exit, don't go back.
+    it('exits via onDone from the processing screen — the fiat has already been sent', () => {
+        mockUseMantecaDepositPolling.mockReturnValue({ status: 'processing' })
+        const onBack = jest.fn()
+        const onDone = jest.fn()
+        render(
+            <MantecaPixQrDeposit depositDetails={baseDeposit} onBack={onBack} onDone={onDone} onComplete={jest.fn()} />
+        )
+
         fireEvent.click(screen.getByTestId('nav-back'))
 
-        expect(onDone).toHaveBeenCalledTimes(2)
+        expect(onDone).toHaveBeenCalled()
         expect(onBack).not.toHaveBeenCalled()
     })
 
