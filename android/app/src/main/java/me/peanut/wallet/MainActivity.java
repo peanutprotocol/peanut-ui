@@ -16,6 +16,8 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // app-local plugin, not auto-discovered — must register before super.onCreate
+        registerPlugin(InstallReferrerPlugin.class);
         super.onCreate(savedInstanceState);
 
         Bridge bridge = this.getBridge();

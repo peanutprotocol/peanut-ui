@@ -3,6 +3,7 @@ import { isIOSNative } from './capacitor'
 
 interface ClipboardDetectPlugin {
     hasStrings(): Promise<{ value: boolean }>
+    hasProbableWebUrl(): Promise<{ value: boolean }>
 }
 
 // App-local iOS plugin (ios/App/App/ClipboardDetectPlugin.swift); no web/Android
@@ -20,6 +21,23 @@ export async function clipboardHasStrings(): Promise<boolean> {
     if (!isIOSNative()) return false
     try {
         const { value } = await ClipboardDetect.hasStrings()
+        return value
+    } catch {
+        return false
+    }
+}
+
+/**
+ * iOS-native only: prompt-free "does the clipboard probably contain a web
+ * url?" via UIPasteboard.detectPatterns — pattern confidence only, content is
+ * never read, so no paste alert. Gates the deferred-deep-link clipboard read
+ * (the hand-off is always a url) so unrelated clipboard text never triggers
+ * the prompt. False on other platforms and binaries without the method.
+ */
+export async function clipboardHasProbableWebUrl(): Promise<boolean> {
+    if (!isIOSNative()) return false
+    try {
+        const { value } = await ClipboardDetect.hasProbableWebUrl()
         return value
     } catch {
         return false
