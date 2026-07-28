@@ -14,6 +14,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { GIT_COMMIT_HASH, IS_PRODUCTION } from '@/constants/general.consts'
 import { getRunMode, isRealMoneyMode, logRunMode } from '@/utils/mode'
 import { isDemoMode } from '@/utils/demo'
+import { isIOSNative } from '@/utils/capacitor'
 
 export function Banner() {
     const pathname = usePathname()
@@ -45,6 +46,14 @@ export function Banner() {
         pathname.startsWith('/lp')
     )
         return null
+
+    // The beta feedback banner is hidden in the iOS app: it's a marquee strip
+    // pinned above every screen, and on iPhone it eats vertical space directly
+    // under the notch for what is a web-era "we're in beta, tell us things"
+    // prompt. Support is still reachable from Settings. Deliberately iOS-only —
+    // Android and web keep it, and so does the non-prod run-mode pill below,
+    // which is how testers tell sandbox from real money at a glance.
+    if (isIOSNative()) return null
 
     // show beta feedback banner when not in maintenance
     return <FeedbackBanner />
