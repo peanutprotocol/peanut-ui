@@ -16,17 +16,11 @@
  */
 import React from 'react'
 import { render as rtlRender, screen, fireEvent, within } from '@testing-library/react'
-import { NextIntlClientProvider } from 'next-intl'
-import en from '@/i18n/app/messages/en.json'
+import { IntlWrapper } from '@/test-utils/intl'
 import AddWithdrawCountriesList from '../AddWithdrawCountriesList'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 
-const render = (ui: React.ReactElement) =>
-    rtlRender(
-        <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
-            {ui}
-        </NextIntlClientProvider>
-    )
+const render = (ui: React.ReactElement) => rtlRender(<IntlWrapper>{ui}</IntlWrapper>)
 
 // ---- routing ----
 const mockPush = jest.fn()

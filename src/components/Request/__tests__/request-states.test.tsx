@@ -9,9 +9,8 @@
  */
 import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { NextIntlClientProvider } from 'next-intl'
-import en from '@/i18n/app/messages/en.json'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
 
@@ -331,12 +330,6 @@ function createQueryClient() {
         },
     })
 }
-
-const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
-    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
-        {children}
-    </NextIntlClientProvider>
-)
 
 function renderCreateRequest(params: Record<string, string> = {}) {
     setSearchParams(params)

@@ -1,7 +1,5 @@
 import { render as rtlRender, screen } from '@testing-library/react'
-import { type ReactNode } from 'react'
-import { NextIntlClientProvider } from 'next-intl'
-import en from '@/i18n/app/messages/en.json'
+import { IntlWrapper } from '@/test-utils/intl'
 import { KycActionRequired } from '../KycActionRequired'
 
 // Integration-level companion to KycStates.test.tsx: that suite mocks
@@ -10,11 +8,6 @@ import { KycActionRequired } from '../KycActionRequired'
 // DUPLICATE_EMAIL → "Email already in use" mapping (the whole point of the
 // precedence fix) actually fails a test instead of shipping silently.
 
-const IntlWrapper = ({ children }: { children: ReactNode }) => (
-    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
-        {children}
-    </NextIntlClientProvider>
-)
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 jest.mock('use-haptic', () => ({

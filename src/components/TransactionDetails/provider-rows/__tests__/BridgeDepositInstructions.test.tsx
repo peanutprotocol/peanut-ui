@@ -10,7 +10,7 @@
  */
 import React from 'react'
 import { render as rtlRender, screen } from '@testing-library/react'
-import { NextIntlClientProvider } from 'next-intl'
+import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 
 jest.mock('@/components/Payment/PaymentInfoRow', () => ({
@@ -33,11 +33,6 @@ import { BridgeDepositInstructions } from '../BridgeDepositInstructions'
 
 // these components call useTranslations; give them the en catalog so the
 // English assertions below keep asserting the real shipped copy
-const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
-    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
-        {children}
-    </NextIntlClientProvider>
-)
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const FULL_REFERENCE = 'BRGTESTREF1234567890'

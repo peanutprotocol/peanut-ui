@@ -7,9 +7,8 @@
  */
 import React from 'react'
 import { render, screen } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { NextIntlClientProvider } from 'next-intl'
-import en from '@/i18n/app/messages/en.json'
 import PhysicalCardScreen from '@/components/Card/PhysicalCardScreen'
 import { rainApi } from '@/services/rain'
 
@@ -31,11 +30,11 @@ const mockGet = rainApi.getPhysicalWaitlist as jest.Mock
 const renderScreen = () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     return render(
-        <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        <IntlWrapper>
             <QueryClientProvider client={queryClient}>
                 <PhysicalCardScreen cardId="card-1" last4="4242" />
             </QueryClientProvider>
-        </NextIntlClientProvider>
+        </IntlWrapper>
     )
 }
 

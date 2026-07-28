@@ -10,7 +10,7 @@
  */
 import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
-import { NextIntlClientProvider } from 'next-intl'
+import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import { Clipboard } from '@capacitor/clipboard'
 import { clipboardHasStrings } from '@/utils/clipboard-detect'
@@ -57,9 +57,9 @@ const CHIP_LABEL = en.global.qrScanner.useCopiedAddress
 
 const renderScanner = (onScan = jest.fn().mockResolvedValue({ success: true })) => {
     render(
-        <NextIntlClientProvider locale="en" messages={en}>
+        <IntlWrapper>
             <QRScanner onScan={onScan} />
-        </NextIntlClientProvider>
+        </IntlWrapper>
     )
     return onScan
 }

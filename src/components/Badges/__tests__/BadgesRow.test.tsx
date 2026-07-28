@@ -1,7 +1,6 @@
 import { render } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import type { ComponentProps } from 'react'
-import { NextIntlClientProvider } from 'next-intl'
-import en from '@/i18n/app/messages/en.json'
 import BadgesRow from '@/components/Badges/BadgesRow'
 
 jest.mock('next/image', () => ({
@@ -33,9 +32,9 @@ describe('BadgesRow', () => {
         ]
 
         render(
-            <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+            <IntlWrapper>
                 <BadgesRow badges={badges} />
-            </NextIntlClientProvider>
+            </IntlWrapper>
         )
 
         expect(badges.map((b) => b.code)).toEqual(['OLDEST', 'MIDDLE', 'NEWEST'])

@@ -13,7 +13,7 @@
  */
 import React, { useEffect } from 'react'
 import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
-import { NextIntlClientProvider } from 'next-intl'
+import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 
 const mockRouterPush = jest.fn()
@@ -121,11 +121,6 @@ import { WithdrawFlowContextProvider, useWithdrawFlow } from '@/context/Withdraw
 
 // these components call useTranslations; give them the en catalog so the
 // English assertions below keep asserting the real shipped copy
-const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
-    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
-        {children}
-    </NextIntlClientProvider>
-)
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const makeUser = (): MockUser => ({
@@ -146,12 +141,12 @@ function SelectedMethodProbe() {
 function Harness({ user }: { user: MockUser }) {
     mockUser = user
     return (
-        <NextIntlClientProvider locale="en" messages={en}>
+        <IntlWrapper>
             <WithdrawFlowContextProvider>
                 <AddWithdrawRouterView flow="withdraw" pageTitle="Withdraw" mainHeading="How?" />
                 <SelectedMethodProbe />
             </WithdrawFlowContextProvider>
-        </NextIntlClientProvider>
+        </IntlWrapper>
     )
 }
 
