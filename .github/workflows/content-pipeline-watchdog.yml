@@ -111,7 +111,10 @@ jobs:
                   Stuck for **${AGE}m** — $WHERE
                   Runbook: \`skills/publish-content/scripts/pipeline-status.sh\`
                   $RUN_URL"
-                    python3 -c "import json,os,urllib.request; d=json.dumps({'content':os.environ['ALERT']}).encode(); urllib.request.urlopen(urllib.request.Request(os.environ['DISCORD_WEBHOOK'],data=d,headers={'Content-Type':'application/json'}),timeout=15); print('alerted Discord')" \
+                    # The User-Agent is load-bearing, not decoration: Cloudflare 403s
+                    # Discord webhook posts sent with python-urllib's default UA.
+                    # Verified 2026-07-28 — without it this silently never alerts.
+                    python3 -c "import json,os,urllib.request; d=json.dumps({'content':os.environ['ALERT']}).encode(); urllib.request.urlopen(urllib.request.Request(os.environ['DISCORD_WEBHOOK'],data=d,headers={'Content-Type':'application/json','User-Agent':'peanut-content-watchdog/1.0'}),timeout=15); print('alerted Discord')" \
                       || echo "::warning::Discord post failed — the failed run below is still the alert."
                   else
                     echo "::warning::CONTENT_PIPELINE_DISCORD_WEBHOOK is not set — alerting via this failed run only."
