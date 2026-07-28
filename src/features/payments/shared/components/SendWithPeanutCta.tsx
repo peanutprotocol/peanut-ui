@@ -8,7 +8,8 @@
  * - logged in: "send with peanut" + executes payment
  */
 
-import { PEANUT_LOGO_BLACK, PEANUTMAN } from '@/assets'
+import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
+import { PEANUTMAN } from '@/assets/mascot'
 import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
 import type { IconName } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
@@ -19,6 +20,7 @@ import { saveRedirectUrl, saveToLocalStorage, toInviteCode } from '@/utils/gener
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 
 interface SendWithPeanutCtaProps extends ButtonProps {
     title?: string
@@ -47,6 +49,7 @@ export default function SendWithPeanutCta({
     ...props
 }: SendWithPeanutCtaProps) {
     const router = useRouter()
+    const t = useTranslations('payment')
     const dispatch = useAppDispatch()
     const { user, isFetchingUser } = useAuth()
 
@@ -118,17 +121,17 @@ export default function SendWithPeanutCta({
         >
             {!showAsLoggedIn ? (
                 <div className="flex items-center gap-1">
-                    <div>Join </div>
+                    <div>{t('cta.join')} </div>
                     {peanutLogo}
                 </div>
             ) : insufficientBalance ? (
                 <div className="flex items-center gap-1">
-                    <div>Add funds to </div>
+                    <div>{t('cta.addFundsTo')} </div>
                     {peanutLogo}
                 </div>
             ) : (
                 <div className="flex items-center gap-1">
-                    <div>{title || 'Send with '} </div>
+                    <div>{title || t('cta.sendWith')} </div>
                     {peanutLogo}
                 </div>
             )}

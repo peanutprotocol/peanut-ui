@@ -22,7 +22,6 @@ async function getInviteCodeData(inviteCode: string) {
 }
 
 export async function generateMetadata({
-    params,
     searchParams,
 }: {
     params: Promise<{ id?: string }>

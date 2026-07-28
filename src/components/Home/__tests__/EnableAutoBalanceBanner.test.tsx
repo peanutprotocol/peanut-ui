@@ -15,7 +15,16 @@
  *    stuck-after-success escape + Sentry/console signal.
  */
 import React from 'react'
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, act } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
+
+const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 import type { GrantSessionKeyError } from '@/hooks/wallet/useGrantSessionKey'
 
 const mockGrant = jest.fn<Promise<{ ok: boolean; overviewFresh?: boolean }>, []>()

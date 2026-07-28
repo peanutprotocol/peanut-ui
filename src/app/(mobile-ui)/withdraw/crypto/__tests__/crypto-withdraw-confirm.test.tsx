@@ -13,7 +13,9 @@
  * module level; assert on the context-setter mocks rather than re-rendering.
  */
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import enMessages from '@/i18n/app/messages/en.json'
 
 // ---------- module-level mocks ----------
 
@@ -42,7 +44,7 @@ jest.mock('@/hooks/useSafeBack', () => ({
     useSafeBack: () => jest.fn(),
 }))
 
-jest.mock('@/context', () => {
+jest.mock('@/context/tokenSelector.context', () => {
     const ReactActual = jest.requireActual('react')
     return {
         tokenSelectorContext: ReactActual.createContext({ resetTokenContextProvider: jest.fn() }),
@@ -94,6 +96,10 @@ jest.mock('@/utils/url.utils', () => ({
 
 jest.mock('@/utils/friendly-error.utils', () => ({
     ErrorHandler: (err: unknown) => (err instanceof Error ? err.message : 'Something went wrong'),
+}))
+
+jest.mock('@/hooks/useFriendlyError', () => ({
+    useFriendlyError: () => (err: unknown) => (err instanceof Error ? err.message : 'Something went wrong'),
 }))
 
 jest.mock('@/interfaces/peanut-sdk-types', () => ({
@@ -245,6 +251,15 @@ jest.mock('@/features/payments/shared/hooks/usePaymentRecorder', () => ({
 }))
 
 import WithdrawCryptoPage from '../page'
+
+const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={enMessages} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+
+const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
+    rtlRender(ui, { wrapper: IntlWrapper, ...options })
 
 // ---------- helpers ----------
 

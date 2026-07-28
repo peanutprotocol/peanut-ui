@@ -35,7 +35,16 @@ function json(data: unknown, status = 200): Response {
     })
 }
 
-function parseBody(options?: RequestInit): Record<string, any> {
+type DemoRequestBody = {
+    tokenAmount?: string | number
+    requestProps?: { tokenAmount?: string | number }
+    local_price?: { amount?: string | number }
+    reference?: string
+    dismissActivationCelebration?: boolean
+    username?: string
+}
+
+function parseBody(options?: RequestInit): DemoRequestBody {
     try {
         return typeof options?.body === 'string' ? JSON.parse(options.body) : {}
     } catch {

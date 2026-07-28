@@ -1,5 +1,6 @@
 'use client'
 import { type FC, useRef } from 'react'
+import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
  * the dots focuses the input so mobile keyboards open.
  */
 const PinInput: FC<Props> = ({ value, onChange, length = 4, autoFocus = true, disabled = false, className }) => {
+    const t = useTranslations('card.pin')
     const inputRef = useRef<HTMLInputElement>(null)
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,7 +58,7 @@ const PinInput: FC<Props> = ({ value, onChange, length = 4, autoFocus = true, di
                 onChange={handleChange}
                 maxLength={length}
                 className="pointer-events-none absolute -left-[9999px] h-0 w-0 opacity-0"
-                aria-label="PIN input"
+                aria-label={t('inputAriaLabel')}
                 disabled={disabled}
             />
         </button>

@@ -1,6 +1,7 @@
 import Divider from '@/components/0_Bruddle/Divider'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
+import { useTranslations } from 'next-intl'
 import { useRef, useState } from 'react'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
 
@@ -14,6 +15,7 @@ interface QRBottomDrawerProps {
 }
 
 const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, className }: QRBottomDrawerProps) => {
+    const t = useTranslations('global')
     const contentRef = useRef<HTMLDivElement>(null)
 
     const snapPoints = [0.75, 1]
@@ -41,8 +43,8 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                     <div ref={contentRef}>
                         <QRCodeWrapper url={url} />
                         <div className="mx-auto mt-4 w-full p-2 text-center text-base text-gray-500">{text}</div>
-                        <Divider className="text-gray-500" text="or" />
-                        <ShareButton url={url} title="Share your profile">
+                        <Divider className="text-gray-500" text={t('qrBottomDrawer.or')} />
+                        <ShareButton url={url} title={t('qrBottomDrawer.shareTitle')}>
                             {buttonText}
                         </ShareButton>
                     </div>

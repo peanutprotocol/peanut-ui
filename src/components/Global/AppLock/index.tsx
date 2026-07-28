@@ -18,6 +18,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'
 import { isCapacitor } from '@/utils/capacitor'
@@ -44,20 +45,19 @@ function LockScreen({
     onUnlock: () => void
     onLogout: () => void
 }) {
+    const t = useTranslations('appLock')
     return (
         <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-6 bg-white px-6">
             <div className="text-center">
-                <h1 className="text-2xl font-bold">Peanut is locked</h1>
-                <p className="mt-2 text-sm text-grey-1">
-                    {failed ? 'Could not confirm it is you. Try again to continue.' : 'Confirm it is you to continue.'}
-                </p>
+                <h1 className="text-2xl font-bold">{t('title')}</h1>
+                <p className="mt-2 text-sm text-grey-1">{failed ? t('subtitleFailed') : t('subtitle')}</p>
             </div>
             <div className="flex w-full max-w-xs flex-col gap-3">
                 <Button variant="purple" shadowSize="4" loading={unlocking} onClick={onUnlock}>
-                    Unlock
+                    {t('unlock')}
                 </Button>
                 <Button variant="stroke" shadowSize="4" onClick={onLogout}>
-                    Log out
+                    {t('logout')}
                 </Button>
             </div>
         </div>

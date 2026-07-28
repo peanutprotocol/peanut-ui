@@ -6,6 +6,11 @@
 import { demoRespond } from '@/utils/demo-api'
 import { DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_USER } from '@/constants/demo-data'
 
+// The web-safe test requires @/utils/demo → general.utils → app/actions/clients, whose
+// module-scope viem clients start 60s RPC-ranking timers (fallback rank) that keep the
+// Jest worker alive → "force exited" warning. Nothing here needs the clients.
+jest.mock('@/app/actions/clients', () => ({}))
+
 const body = async (path: string, options?: RequestInit) => {
     const res = await demoRespond(path, options)
     return { res, data: await res.json() }
@@ -165,7 +170,6 @@ describe('demo mode is web-safe', () => {
     it('isDemoMode() is false when not running under Capacitor', () => {
         jest.resetModules()
         jest.doMock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { isDemoMode, enableDemoMode } = require('@/utils/demo')
         enableDemoMode() // even with the flag set...
         expect(isDemoMode()).toBe(false) // ...web stays inert

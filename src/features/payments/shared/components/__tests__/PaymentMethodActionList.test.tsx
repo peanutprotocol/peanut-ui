@@ -6,8 +6,17 @@
  * a silent no-op (dead button). The card must only render when the caller can
  * honor it (i.e. provides the handler — the semantic-request flow does).
  */
-import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import React, { type ReactNode } from 'react'
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
+
+const IntlWrapper = ({ children }: { children: ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const mockRouterPush = jest.fn()
 jest.mock('next/navigation', () => ({

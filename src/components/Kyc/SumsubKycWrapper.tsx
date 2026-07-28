@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import Modal from '@/components/Global/Modal'
 import ActionModal from '@/components/Global/ActionModal'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
@@ -57,6 +58,8 @@ export const SumsubKycWrapper = ({
     const [sdkContainer, setSdkContainer] = useState<HTMLDivElement | null>(null)
     const sdkInstanceRef = useRef<SnsWebSdkInstance | null>(null)
     const { setIsSupportModalOpen } = useModalsContext()
+    const t = useTranslations('kyc')
+    const tCommon = useTranslations('common')
 
     // callback refs to avoid stale closures in sdk init effect
     const onCompleteRef = useRef(onComplete)
@@ -311,19 +314,19 @@ export const SumsubKycWrapper = ({
     const modalDetails = useMemo(() => {
         if (modalVariant === 'trouble') {
             return {
-                title: 'Need a hand?',
-                description: "If the ID check isn't loading or working properly, our support team will help.",
+                title: t('wrapper.troubleTitle'),
+                description: t('wrapper.troubleDescription'),
                 icon: 'question-mark' as IconName,
                 iconContainerClassName: 'bg-primary-1',
                 ctas: [
                     {
-                        text: 'Chat with support',
+                        text: t('wrapper.chatWithSupport'),
                         onClick: () => setIsSupportModalOpen(true),
                         variant: 'purple' as ButtonVariant,
                         shadowSize: '4' as const,
                     },
                     {
-                        text: 'Cancel',
+                        text: tCommon('cancel'),
                         onClick: () => setIsHelpModalOpen(false),
                         variant: 'transparent' as ButtonVariant,
                         className: 'underline text-sm font-medium w-full h-fit mt-3',
@@ -333,13 +336,13 @@ export const SumsubKycWrapper = ({
         }
 
         return {
-            title: 'Exit for now?',
-            description: 'You can pick up where you left off later — your progress is saved.',
+            title: t('wrapper.exitForNowTitle'),
+            description: t('wrapper.exitForNowDescription'),
             icon: 'alert' as IconName,
             iconContainerClassName: 'bg-secondary-1',
             ctas: [
                 {
-                    text: 'Exit',
+                    text: t('wrapper.exit'),
                     onClick: () => {
                         setIsHelpModalOpen(false)
                         onClose()
@@ -348,14 +351,14 @@ export const SumsubKycWrapper = ({
                     shadowSize: '4' as const,
                 },
                 {
-                    text: 'Continue',
+                    text: tCommon('continue'),
                     onClick: () => setIsHelpModalOpen(false),
                     variant: 'transparent' as ButtonVariant,
                     className: 'underline text-sm font-medium w-full h-fit mt-3',
                 },
             ],
         }
-    }, [modalVariant, onClose, setIsSupportModalOpen])
+    }, [modalVariant, onClose, setIsSupportModalOpen, t, tCommon])
 
     return (
         <>
@@ -373,11 +376,9 @@ export const SumsubKycWrapper = ({
                 {sdkLoadError ? (
                     <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
                         <Icon name="alert" size={24} className="text-red-500" />
-                        <p className="text-center text-lg font-medium">
-                            Failed to load verification. Please check your connection and try again.
-                        </p>
+                        <p className="text-center text-lg font-medium">{t('wrapper.loadError')}</p>
                         <Button variant="purple" shadowSize="4" onClick={onClose}>
-                            Close
+                            {tCommon('close')}
                         </Button>
                     </div>
                 ) : (

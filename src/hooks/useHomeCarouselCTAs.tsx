@@ -2,6 +2,7 @@
 
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
+import { useTranslations } from 'next-intl'
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useNotifications } from './useNotifications'
@@ -16,7 +17,7 @@ import { useGeoLocation } from './useGeoLocation'
 import { useCardInfo } from './useCardInfo'
 import { useActivationStatus } from './useActivationStatus'
 import { useTransactionHistory } from './useTransactionHistory'
-import { STAR_STRAIGHT_ICON } from '@/assets'
+import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useToast } from '@/components/0_Bruddle/Toast'
 
@@ -71,6 +72,7 @@ const getDismissedCTAs = (userId: string | undefined): Map<string, Date> => {
 }
 
 export const useHomeCarouselCTAs = () => {
+    const t = useTranslations('home.carousel')
     const [carouselCTAs, setCarouselCTAs] = useState<CarouselCTA[]>([])
     const { user } = useAuth()
     const dismissedRef = useRef<Map<string, Date>>(new Map())
@@ -132,6 +134,7 @@ export const useHomeCarouselCTAs = () => {
 
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
+        const b = (chunks: React.ReactNode) => <b>{chunks}</b>
 
         // Home CTAs gate on "user can do a bank deposit or a pay" — provider-blind.
         // Rain (card) does NOT count; a card-only user must still see the verify CTA.
@@ -146,16 +149,8 @@ export const useHomeCarouselCTAs = () => {
         if (!underMaintenanceConfig.disableCardPioneers && hasCardAccessGranted === false) {
             _carouselCTAs.push({
                 id: 'card-pioneer',
-                title: (
-                    <span>
-                        Get your <b>Peanut Card</b>
-                    </span>
-                ),
-                description: (
-                    <span>
-                        Closed beta. <b>Badges skip the line.</b> $10 unlocks on your first $100 spend.
-                    </span>
-                ),
+                title: <span>{t.rich('card.title', { b })}</span>,
+                description: <span>{t.rich('card.description', { b })}</span>,
                 iconContainerClassName: 'bg-purple-1',
                 icon: 'credit-card',
                 onClick: () => {
@@ -169,8 +164,8 @@ export const useHomeCarouselCTAs = () => {
         if (!isLatamUser && isActivated && !hasSentInvites) {
             _carouselCTAs.push({
                 id: 'invite-friends',
-                title: 'Invite friends. Earn rewards',
-                description: 'Earn rewards every time your friends use Peanut.',
+                title: t('invite.title'),
+                description: t('invite.description'),
                 icon: 'invite-heart',
                 logo: STAR_STRAIGHT_ICON,
                 logoSize: 30,
@@ -184,8 +179,8 @@ export const useHomeCarouselCTAs = () => {
         if (oneSignalInitialized && !isPermissionGranted && !isPushOptedIn && (isPwa || isCapacitor())) {
             _carouselCTAs.push({
                 id: 'notification-prompt',
-                title: 'Stay in the loop!',
-                description: 'Turn on notifications and get alerts for all your wallet activity.',
+                title: t('notifications.title'),
+                description: t('notifications.description'),
                 icon: 'bell',
                 onClick: async () => {
                     // On the web PWA a denied browser permission can't be re-prompted —
@@ -201,7 +196,7 @@ export const useHomeCarouselCTAs = () => {
                     // 'default' = browser suppressed prompt (policy/Shields) or
                     // user dismissed it — calling again won't help this session.
                     if (result === 'default') {
-                        toast.warning('Notifications blocked by your browser. Enable them in site settings and reload.')
+                        toast.warning(t('notifications.blockedToast'))
                         dismissCTA('notification-prompt')
                     }
                 },
@@ -211,8 +206,8 @@ export const useHomeCarouselCTAs = () => {
         if (deviceType === DeviceType.IOS && !isPwa && !isCapacitor()) {
             _carouselCTAs.push({
                 id: 'ios-pwa-install',
-                title: 'Add Peanut to your home screen',
-                description: 'Follow a quick guide to add the app to your home screen, no download needed.',
+                title: t('iosPwa.title'),
+                description: t('iosPwa.description'),
                 iconContainerClassName: 'bg-secondary-1',
                 icon: 'mobile-install',
                 onClick: () => {
@@ -227,16 +222,8 @@ export const useHomeCarouselCTAs = () => {
         if (hasKycApproval && hasMadeQrPayment === false) {
             _carouselCTAs.push({
                 id: 'qr-payment',
-                title: (
-                    <span>
-                        Pay with <b>QR code payments</b>
-                    </span>
-                ),
-                description: (
-                    <span>
-                        Get the best exchange rate, pay like a <b>local</b> and earn <b>rewards</b>.
-                    </span>
-                ),
+                title: <span>{t.rich('qrPay.title', { b })}</span>,
+                description: <span>{t.rich('qrPay.description', { b })}</span>,
                 iconContainerClassName: 'bg-secondary-1',
                 icon: 'qr-code',
                 onClick: () => {
@@ -252,16 +239,8 @@ export const useHomeCarouselCTAs = () => {
         if (isLatamUser && isActivated && !hasSentInvites) {
             _carouselCTAs.push({
                 id: 'latam-cashback-invite',
-                title: (
-                    <span>
-                        Earn <b>rewards</b> on QR payments
-                    </span>
-                ),
-                description: (
-                    <span>
-                        Invite friends to <b>earn more rewards</b>. The more they use, the more you earn!
-                    </span>
-                ),
+                title: <span>{t.rich('latamInvite.title', { b })}</span>,
+                description: <span>{t.rich('latamInvite.description', { b })}</span>,
                 iconContainerClassName: 'bg-secondary-1',
                 icon: 'gift',
                 onClick: () => {
@@ -279,12 +258,8 @@ export const useHomeCarouselCTAs = () => {
         if (isActivated && !hasSupportSurvivorBadge) {
             _carouselCTAs.push({
                 id: 'bug-bounty',
-                title: (
-                    <span>
-                        Help us improve and <b>get $5!</b>
-                    </span>
-                ),
-                description: 'Report a bug. Get rewarded! No questions asked.',
+                title: <span>{t.rich('bugBounty.title', { b })}</span>,
+                description: t('bugBounty.description'),
                 iconContainerClassName: 'bg-primary-1',
                 icon: 'bug',
                 iconSize: 20,
@@ -305,16 +280,8 @@ export const useHomeCarouselCTAs = () => {
         if (!hasKycApproval && !isInFlight && hasCardAccessGranted === false) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
-                title: (
-                    <span>
-                        Unlock <b>QR code payments</b>
-                    </span>
-                ),
-                description: (
-                    <span>
-                        Confirm your ID to pay with <b>Mercado Pago</b> and <b>PIX</b> QR codes
-                    </span>
-                ),
+                title: <span>{t.rich('kyc.title', { b })}</span>,
+                description: <span>{t.rich('kyc.description', { b })}</span>,
                 iconContainerClassName: 'bg-secondary-1',
                 icon: 'qr-code',
                 iconSize: 16,
@@ -326,6 +293,7 @@ export const useHomeCarouselCTAs = () => {
 
         setCarouselCTAs(_carouselCTAs.filter((cta) => !dismissedRef.current.has(cta.id)))
     }, [
+        t,
         user?.user?.userId,
         isPermissionGranted,
         isPermissionDenied,

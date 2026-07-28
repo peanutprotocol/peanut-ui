@@ -22,9 +22,11 @@ import { useState } from 'react'
 import { useAuth } from '@/context/authContext'
 import { RequestPotActionList } from '../components/RequestPotActionList'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useTranslations } from 'next-intl'
 
 export function ContributePotInputView() {
     const onBack = useSafeBack('/')
+    const t = useTranslations('payment')
     const { isFetchingUser } = useAuth()
     const {
         amount,
@@ -75,7 +77,7 @@ export function ContributePotInputView() {
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader onPrev={onBack} title="Pay" />
+            <NavHeader onPrev={onBack} title={t('headers.pay')} />
 
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {/* recipient card with pot info */}
@@ -110,9 +112,7 @@ export function ContributePotInputView() {
                 />
 
                 {/* error display */}
-                {isInsufficientBalance && (
-                    <ErrorAlert description="Not enough balance to fulfill this request with Peanut" />
-                )}
+                {isInsufficientBalance && <ErrorAlert description={t('errors.insufficientRequest')} />}
                 {error.showError && <ErrorAlert description={error.errorMessage} />}
 
                 {/* payment options */}

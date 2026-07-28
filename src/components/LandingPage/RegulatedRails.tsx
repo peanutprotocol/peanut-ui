@@ -1,17 +1,15 @@
 import Image from 'next/image'
 import { MarqueeWrapper } from '../Global/MarqueeWrapper'
-import {
-    BBVA_ICON,
-    BRUBANK_ICON,
-    N26_ICON,
-    SANTANDER_ICON,
-    REVOLUT_ICON,
-    STRIPE_ICON,
-    MERCADO_PAGO_ICON,
-    PIX_ICON,
-    WISE_ICON,
-    Star,
-} from '@/assets'
+import BBVA_ICON from '@/assets/icons/bbva-logo.svg'
+import BRUBANK_ICON from '@/assets/icons/brubank-logo.svg'
+import N26_ICON from '@/assets/icons/n26-logo.svg'
+import SANTANDER_ICON from '@/assets/icons/santander-logo.svg'
+import REVOLUT_ICON from '@/assets/icons/revolut-logo.svg'
+import STRIPE_ICON from '@/assets/icons/stripe-logo.svg'
+import MERCADO_PAGO_ICON from '@/assets/icons/mercado-pago-logo.svg'
+import PIX_ICON from '@/assets/icons/pix-logo.svg'
+import WISE_ICON from '@/assets/icons/wise-logo.svg'
+import Star from '@/assets/illustrations/star.svg'
 import { CloudsCss } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 
@@ -45,10 +43,10 @@ export function RegulatedRails() {
 
             <div className="relative max-w-5xl px-10 py-8 md:px-24 md:py-16">
                 <AnimateOnView className="absolute -right-72 -top-12" delay="0.2s" x="5px" rotate="22deg">
-                    <img src={Star.src} alt="" width={50} height={50} />
+                    <Image src={Star} alt="" width={50} height={50} />
                 </AnimateOnView>
                 <AnimateOnView className="absolute -right-0 -top-16 md:top-58" delay="0.6s" x="5px" rotate="22deg">
-                    <img src={Star.src} alt="" width={50} height={50} />
+                    <Image src={Star} alt="" width={50} height={50} />
                 </AnimateOnView>
 
                 <h1 className="font-roboto-flex-extrabold text-left text-[3.25rem] font-extraBlack !leading-[5rem] md:text-6xl lg:text-headingMedium">

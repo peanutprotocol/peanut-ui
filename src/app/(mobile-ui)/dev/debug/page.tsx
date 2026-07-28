@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react'
+import Link from 'next/link'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'
@@ -122,9 +123,9 @@ export default function DebugPage() {
                 <div className="p-6">
                     <p className="font-mono text-sm">
                         Not signed in. Sign up via{' '}
-                        <a className="underline" href="/setup">
+                        <Link className="underline" href="/setup">
                             /setup
-                        </a>{' '}
+                        </Link>{' '}
                         first, then come back.
                     </p>
                 </div>
@@ -537,21 +538,21 @@ export default function DebugPage() {
                     <h2 className="mb-2 font-display text-lg">Shortcuts</h2>
                     <div className="space-y-1 font-mono text-xs">
                         <div>
-                            <a className="underline" href="/home">
+                            <Link className="underline" href="/home">
                                 /home
-                            </a>{' '}
+                            </Link>{' '}
                             — check balance + activity
                         </div>
                         <div>
-                            <a className="underline" href="/history">
+                            <Link className="underline" href="/history">
                                 /history
-                            </a>{' '}
+                            </Link>{' '}
                             — full activity feed
                         </div>
                         <div>
-                            <a className="underline" href="/add-money">
+                            <Link className="underline" href="/add-money">
                                 /add-money
-                            </a>{' '}
+                            </Link>{' '}
                             — Bridge onramp instructions (after KYC)
                         </div>
                         <div>

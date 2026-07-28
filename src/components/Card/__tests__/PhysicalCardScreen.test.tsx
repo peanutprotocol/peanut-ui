@@ -6,10 +6,21 @@
  * blindly renders "You are #null on the list."
  */
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import enMessages from '@/i18n/app/messages/en.json'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import PhysicalCardScreen from '@/components/Card/PhysicalCardScreen'
 import { rainApi } from '@/services/rain'
+
+const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={enMessages} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+
+const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
+    rtlRender(ui, { wrapper: IntlWrapper, ...options })
 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { accounts: [] }, fetchUser: jest.fn() }),

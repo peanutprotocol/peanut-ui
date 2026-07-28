@@ -7,8 +7,17 @@
  * degraded the Rain lookup).
  */
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 import CardFace, { type RevealedCardDetails } from '@/components/Card/CardFace'
+
+const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const revealed: RevealedCardDetails = {
     pan: '4111111111111234',

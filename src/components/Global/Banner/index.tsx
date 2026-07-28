@@ -1,13 +1,14 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
 import { ConnectivityBanner } from './ConnectivityBanner'
 import { useConnectivity } from '@/hooks/useConnectivity'
 import { MaintenanceBanner } from './MaintenanceBanner'
 import { MarqueeWrapper } from '../MarqueeWrapper'
 import maintenanceConfig from '@/config/underMaintenance.config'
-import { HandThumbsUp } from '@/assets'
+import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import Image from 'next/image'
 import { useModalsContext } from '@/context/ModalsContext'
 import { GIT_COMMIT_HASH, IS_PRODUCTION } from '@/constants/general.consts'
@@ -45,6 +46,7 @@ export function Banner() {
 }
 
 function FeedbackBanner() {
+    const t = useTranslations('global')
     const { setIsSupportModalOpen } = useModalsContext()
 
     // Log run-mode once on mount (dev only). Big yellow banner in the
@@ -65,10 +67,7 @@ function FeedbackBanner() {
         return (
             <div className="w-full">
                 <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
-                    <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">
-                        Demo mode — you’re previewing Peanut with a simulated wallet. Balances and transactions aren’t
-                        real.
-                    </span>
+                    <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">{t('demoBanner')}</span>
                 </MarqueeWrapper>
             </div>
         )
@@ -81,7 +80,7 @@ function FeedbackBanner() {
         <button onClick={handleClick} className="w-full cursor-pointer">
             <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
                 <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">
-                    Peanut is in beta! Thank you for being an early user, share your feedback here
+                    {t('betaBanner')}
                     <Image src={HandThumbsUp} alt="Thumbs up" className="h-4 w-4" />
                     {!IS_PRODUCTION && <span className="ml-2 text-sm font-semibold">version: {GIT_COMMIT_HASH}</span>}
                     {mode && (

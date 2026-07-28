@@ -10,7 +10,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { captureException } from '@sentry/nextjs'
 
 import { CLAIM_LINK, CLAIM_LINK_XCHAIN, TRANSACTIONS } from '@/constants/query.consts'
-import { loadingStateContext } from '@/context'
+import { loadingStateContext } from '@/context/loadingStates.context'
 import { getTokenSymbol, isTestnetChain } from '@/utils/general.utils'
 import { sendLinksApi, ESendLinkStatus } from '@/services/sendLinks'
 import { PEANUT_API_URL } from '@/constants/general.consts'
@@ -28,7 +28,7 @@ const JSON_HEADERS = { 'Content-Type': 'application/json' } as const
 /**
  * Helper to make POST requests with consistent error handling
  */
-async function postJson<T>(url: string, body: Record<string, any>): Promise<T> {
+async function postJson<T>(url: string, body: Record<string, unknown>): Promise<T> {
     const response = await fetch(url, {
         method: 'POST',
         headers: JSON_HEADERS,
@@ -108,7 +108,13 @@ async function executeClaim({
 }): Promise<string | undefined> {
     const payload = await createClaimPayload(link, recipientAddress)
 
-    const result = await postJson<any>(baseUrl, {
+    const result = await postJson<{
+        status?: string
+        transactionHash?: string
+        txHash?: string
+        hash?: string
+        tx_hash?: string
+    }>(baseUrl, {
         claimParams: payload.claimParams,
         chainId: payload.chainId,
         version: payload.contractVersion,
@@ -253,14 +259,14 @@ const useClaimLink = () => {
                     let lastTransactionCount = 0
 
                     // Get initial transaction count
-                    const initialData = queryClient.getQueryData([TRANSACTIONS]) as any
+                    const initialData = queryClient.getQueryData<unknown[]>([TRANSACTIONS])
                     lastTransactionCount = initialData?.length || 0
 
                     const pollInterval = setInterval(() => {
                         pollCount++
 
                         // Check if backend has finished processing (new transaction appeared)
-                        const currentData = queryClient.getQueryData([TRANSACTIONS]) as any
+                        const currentData = queryClient.getQueryData<unknown[]>([TRANSACTIONS])
                         const currentCount = currentData?.length || 0
 
                         if (currentCount > lastTransactionCount) {

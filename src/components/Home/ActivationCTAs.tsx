@@ -9,6 +9,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 import Card from '../Global/Card'
 import CardLaunchCTABanner from '@/components/Home/CardLaunchCTA/CardLaunchCTABanner'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
@@ -37,42 +38,6 @@ interface StepConfig {
     dismissable?: boolean
 }
 
-const STEPS: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = {
-    verify: {
-        icon: 'globe-lock',
-        iconBg: 'bg-primary-1',
-        title: 'Unlock payments',
-        description: 'Bank deposits, QR codes, and local payment methods',
-        ctaLabel: 'Unlock now',
-        href: '/profile/identity-verification',
-    },
-    deposit: {
-        icon: 'arrow-down',
-        iconBg: 'bg-primary-1',
-        title: 'Deposit',
-        description: 'Add money to make your first payment',
-        ctaLabel: 'Add money',
-        href: '/add-money',
-    },
-    card: {
-        icon: 'credit-card',
-        iconBg: 'bg-yellow-1',
-        title: 'Spend anywhere Visa is accepted',
-        description: 'Use your balance at 150M+ merchants. Online, contactless.',
-        ctaLabel: 'Get your card',
-        href: '/card',
-        dismissable: true,
-    },
-    outbound: {
-        icon: 'qr-code',
-        iconBg: 'bg-primary-1',
-        title: 'Make your first payment',
-        description: 'Start paying to Pix and MercadoPago QR codes',
-        ctaLabel: 'Start Spending',
-        href: '/send',
-    },
-}
-
 /**
  * single activation CTA for non-activated users on the home screen.
  * shows only the current step the user needs to complete.
@@ -80,6 +45,8 @@ const STEPS: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = {
  * the deposit/outbound step with a "complete your setup" message.
  */
 export default function ActivationCTAs({ activationStep, onDismissCard }: ActivationCTAsProps) {
+    const t = useTranslations('home.activation')
+    const tCommon = useTranslations('common')
     const router = useRouter()
     const { setIsQRScannerOpen, openSupportWithMessage } = useModalsContext()
     const { rails, channelOf, nextActions } = useCapabilities()
@@ -150,6 +117,45 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         if (hasCardAccess !== true) setShowSpendChooser(false)
     }, [hasCardAccess])
 
+    const steps: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = useMemo(
+        () => ({
+            verify: {
+                icon: 'globe-lock',
+                iconBg: 'bg-primary-1',
+                title: t('steps.verify.title'),
+                description: t('steps.verify.description'),
+                ctaLabel: t('steps.verify.cta'),
+                href: '/profile/identity-verification',
+            },
+            deposit: {
+                icon: 'arrow-down',
+                iconBg: 'bg-primary-1',
+                title: t('steps.deposit.title'),
+                description: t('steps.deposit.description'),
+                ctaLabel: t('steps.deposit.cta'),
+                href: '/add-money',
+            },
+            card: {
+                icon: 'credit-card',
+                iconBg: 'bg-yellow-1',
+                title: t('steps.card.title'),
+                description: t('steps.card.description'),
+                ctaLabel: t('steps.card.cta'),
+                href: '/card',
+                dismissable: true,
+            },
+            outbound: {
+                icon: 'qr-code',
+                iconBg: 'bg-primary-1',
+                title: t('steps.outbound.title'),
+                description: t('steps.outbound.description'),
+                ctaLabel: t('steps.outbound.cta'),
+                href: '/send',
+            },
+        }),
+        [t]
+    )
+
     // Inline self-heal so the home "Upload document" CTA opens the Sumsub document
     // re-upload directly, instead of routing to /profile/identity-verification (which
     // only showed the regions list, forcing the user to hunt for the Upload-document
@@ -206,10 +212,9 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 return {
                     icon: 'globe-lock',
                     iconBg: 'bg-primary-1',
-                    title: 'Add your email',
-                    description:
-                        primaryRejectionMessage || 'We need an email address to finish setting up your account.',
-                    ctaLabel: 'Add email',
+                    title: t('addEmail.title'),
+                    description: primaryRejectionMessage || t('addEmail.description'),
+                    ctaLabel: t('addEmail.cta'),
                     href: '', // handled in onClick
                 }
             }
@@ -217,9 +222,9 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 return {
                     icon: 'globe-lock',
                     iconBg: 'bg-primary-1',
-                    title: 'Complete your setup',
-                    description: primaryRejectionMessage || 'We need an updated document before you can add money.',
-                    ctaLabel: 'Upload document',
+                    title: t('completeSetup.title'),
+                    description: primaryRejectionMessage || t('completeSetup.description'),
+                    ctaLabel: t('completeSetup.cta'),
                     href: '/profile/identity-verification',
                 }
             }
@@ -227,9 +232,9 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             return {
                 icon: 'globe-lock',
                 iconBg: 'bg-primary-1',
-                title: 'Verification issue',
-                description: 'Contact support for help with your verification.',
-                ctaLabel: 'Contact support',
+                title: t('verificationIssue.title'),
+                description: t('verificationIssue.description'),
+                ctaLabel: t('verificationIssue.cta'),
                 href: '', // handled in onClick
             }
         }
@@ -239,15 +244,17 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         // never tease a card they can't get.
         if (activationStep === 'outbound' && hasCardAccess) {
             return {
-                ...STEPS.outbound,
+                ...steps.outbound,
                 icon: 'credit-card',
-                title: 'Spend with Peanut',
-                description: 'Pay with your card or scan Pix and MercadoPago QR codes',
+                title: t('spendWithPeanut.title'),
+                description: t('spendWithPeanut.description'),
             }
         }
 
-        return STEPS[activationStep as Exclude<ActivationStep, 'completed'>]
+        return steps[activationStep as Exclude<ActivationStep, 'completed'>]
     }, [
+        t,
+        steps,
         activationStep,
         hasProviderRejection,
         hasFixableRejection,
@@ -324,7 +331,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 </Button>
                 {step.dismissable && onDismissCard && (
                     <button type="button" onClick={onDismissCard} className="text-sm font-medium text-black underline">
-                        Maybe later
+                        {tCommon('maybeLater')}
                     </button>
                 )}
             </div>

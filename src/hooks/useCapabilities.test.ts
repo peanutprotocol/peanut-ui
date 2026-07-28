@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react'
+import { renderHook } from '@testing-library/react'
 import { useAuth } from '@/context/authContext'
 import { type UserCapabilities } from '@/types/capabilities'
 import { useCapabilities } from './useCapabilities'

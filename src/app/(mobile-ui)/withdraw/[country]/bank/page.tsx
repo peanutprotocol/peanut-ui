@@ -12,15 +12,15 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zer
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
-import { AccountType, type Account } from '@/interfaces'
+import { AccountType, type Account } from '@/interfaces/interfaces'
 import { formatIban, shortenStringLong, isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
-import { ErrorHandler } from '@/utils/friendly-error.utils'
-import { INSUFFICIENT_BALANCE_MESSAGE, isAmountWithinBalance } from '@/utils/balance.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
+import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { getBridgeChainName } from '@/utils/bridge-accounts.utils'
 import { getOfframpConfigFromAccount, getCountryFromPath, railJurisdictionForBank } from '@/utils/bridge.utils'
 import { createOfframp, confirmOfframp } from '@/app/actions/offramp'
@@ -48,19 +48,23 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawCountryUrl } from '@/utils/native-routes'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useTranslations } from 'next-intl'
 
 type View = 'INITIAL' | 'SUCCESS'
 
-// Copy shown when the on-chain deposit to the Bridge address succeeded but the
-// subsequent `/bridge/transfers/:id/confirm` call failed (most often a
-// fetchWithSentry timeout). The Bridge transfer row exists on the BE; the
-// poller / Bridge webhook will eventually complete it. We MUST NOT show a
-// Retry button in this state — retrying re-runs sendMoney() and would send
-// funds to the deposit address a second time (Sentry PEANUT-UI-QH9, 2026-06-01).
-const CONFIRM_PENDING_COPY =
-    'Your transfer is processing. Funds were sent on-chain successfully — this can take a few minutes to confirm. If you don’t see the withdrawal in your activity within 30 minutes, please contact support.'
-
 export default function WithdrawBankPage() {
+    const t = useTranslations('withdraw')
+    const tNav = useTranslations('navigation')
+    const tCommon = useTranslations('common')
+    const tErrors = useTranslations('errors')
+    const toFriendlyError = useFriendlyError()
+    // Copy shown when the on-chain deposit to the Bridge address succeeded but the
+    // subsequent `/bridge/transfers/:id/confirm` call failed (most often a
+    // fetchWithSentry timeout). The Bridge transfer row exists on the BE; the
+    // poller / Bridge webhook will eventually complete it. We MUST NOT show a
+    // Retry button in this state — retrying re-runs sendMoney() and would send
+    // funds to the deposit address a second time (Sentry PEANUT-UI-QH9, 2026-06-01).
+    const confirmPendingCopy = t('bank.confirmPending')
     const {
         amountToWithdraw,
         selectedBankAccount: bankAccount,
@@ -146,7 +150,7 @@ export default function WithdrawBankPage() {
                 router.replace('/withdraw')
             }
         }
-    }, [country, isBridgeSupportedCountry, router])
+    }, [country, router])
 
     // check if we came from send flow - using method param to detect (only bank goes through this page)
     const methodParam = searchParams.get('method')
@@ -244,13 +248,13 @@ export default function WithdrawBankPage() {
         setError({ showError: false, errorMessage: '' })
 
         if (!bankAccount || !user?.user.bridgeCustomerId || !address) {
-            setError({ showError: true, errorMessage: 'User details, bridge account, or wallet address not found.' })
+            setError({ showError: true, errorMessage: t('errors.userDetailsMissing') })
             setIsLoading(false)
             return
         }
 
         if (!bankAccount.bridgeAccountId) {
-            setError({ showError: true, errorMessage: 'Bank account is missing.' })
+            setError({ showError: true, errorMessage: t('errors.bankAccountMissing') })
             setIsLoading(false)
             return
         }
@@ -292,7 +296,7 @@ export default function WithdrawBankPage() {
             }
 
             if (!data?.depositInstructions?.toAddress || !data.transferId) {
-                setError({ showError: true, errorMessage: 'Failed to get deposit address from the backend.' })
+                setError({ showError: true, errorMessage: t('errors.depositAddressFailed') })
                 throw new Error('Failed to get deposit address from the backend.')
             }
 
@@ -329,7 +333,7 @@ export default function WithdrawBankPage() {
                 // with a Retry button — see CONFIRM_PENDING_COPY + the gate below.
                 setError({
                     showError: true,
-                    errorMessage: CONFIRM_PENDING_COPY,
+                    errorMessage: confirmPendingCopy,
                 })
                 throw new Error(confirmResult.error)
             }
@@ -345,14 +349,14 @@ export default function WithdrawBankPage() {
                 method_type: 'bridge',
                 country,
             })
-        } catch (e: any) {
-            const error = ErrorHandler(e)
+        } catch (e) {
+            const error = toFriendlyError(e)
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
                 method_type: 'bridge',
                 error_message: error,
             })
             if (error.includes('Something failed. Please try again.')) {
-                setError({ showError: true, errorMessage: e.message })
+                setError({ showError: true, errorMessage: e instanceof Error ? e.message : String(e) })
             } else {
                 setError({ showError: true, errorMessage: error })
             }
@@ -398,8 +402,10 @@ export default function WithdrawBankPage() {
 
         // gate on the displayed total; an in-transit shortfall passes here and
         // fails late with the settling message at execution.
-        setBalanceErrorMessage(isAmountWithinBalance(amountToWithdraw, balance) ? null : INSUFFICIENT_BALANCE_MESSAGE)
-    }, [amountToWithdraw, balance, hasPendingTransactions, isLoading])
+        setBalanceErrorMessage(
+            isAmountWithinBalance(amountToWithdraw, balance) ? null : tErrors('notEnoughBalanceAddFunds')
+        )
+    }, [amountToWithdraw, balance, hasPendingTransactions, isLoading, tErrors])
 
     if (!bankAccount) {
         return null
@@ -408,7 +414,7 @@ export default function WithdrawBankPage() {
     return (
         <div className="flex min-h-[inherit] w-full flex-col justify-start gap-8 self-start">
             <NavHeader
-                title={fromSendFlow ? 'Send' : 'Withdraw'}
+                title={fromSendFlow ? tNav('send') : tNav('withdraw')}
                 icon={view === 'SUCCESS' ? 'cancel' : undefined}
                 onPrev={() => {
                     if (view === 'SUCCESS') {
@@ -430,7 +436,7 @@ export default function WithdrawBankPage() {
                         avatarSize="small"
                         transactionType={'WITHDRAW_BANK_ACCOUNT'}
                         recipientType={'BANK_ACCOUNT'}
-                        recipientName={bankAccount?.identifier ?? 'Bank Account'}
+                        recipientName={bankAccount?.identifier ?? t('bank.bankAccount')}
                         amount={amountToWithdraw}
                         tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
                     />
@@ -440,43 +446,41 @@ export default function WithdrawBankPage() {
                         <InfoCard
                             variant="info"
                             icon="info"
-                            title="We send EUR to your bank"
-                            description={
-                                'Withdrawals are sent in EUR. Your bank may charge conversion fees or reject the transaction if EUR deposits are not supported.'
-                            }
+                            title={t('bank.eurTitle')}
+                            description={t('bank.eurDescription')}
                         />
                     )}
 
                     <Card className="rounded-sm">
                         <PaymentInfoRow
-                            label={'Account Owner'}
+                            label={t('bank.accountOwner')}
                             value={bankAccount?.details?.accountOwnerName || user?.user.fullName || 'N/A'}
                         />
                         {bankAccount?.type === AccountType.IBAN ? (
                             <>
                                 <PaymentInfoRow
-                                    label={'IBAN'}
+                                    label={t('bank.iban')}
                                     value={
                                         bankAccount?.identifier
                                             ? formatIban(bankAccount.identifier)
                                             : '' /* fallback to empty string to avoid runtime error */
                                     }
                                 />
-                                <PaymentInfoRow label="BIC" value={getBicAndRoutingNumber()} />
+                                <PaymentInfoRow label={t('bank.bic')} value={getBicAndRoutingNumber()} />
                             </>
                         ) : bankAccount?.type === AccountType.CLABE ? (
                             <>
-                                <PaymentInfoRow label={'CLABE'} value={bankAccount?.identifier.toUpperCase()} />
+                                <PaymentInfoRow label={t('bank.clabe')} value={bankAccount?.identifier.toUpperCase()} />
                             </>
                         ) : bankAccount?.type === AccountType.GB ? (
                             <>
-                                <PaymentInfoRow label={'Account Number'} value={bankAccount?.identifier} />
-                                <PaymentInfoRow label={'Sort Code'} value={getBicAndRoutingNumber()} />
+                                <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
+                                <PaymentInfoRow label={t('bank.sortCode')} value={getBicAndRoutingNumber()} />
                             </>
                         ) : (
                             <>
-                                <PaymentInfoRow label={'Account Number'} value={bankAccount?.identifier} />
-                                <PaymentInfoRow label={'Routing Number'} value={getBicAndRoutingNumber()} />
+                                <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
+                                <PaymentInfoRow label={t('bank.routingNumber')} value={getBicAndRoutingNumber()} />
                             </>
                         )}
                         <ExchangeRate
@@ -484,7 +488,7 @@ export default function WithdrawBankPage() {
                             nonEuroCurrency={nonEuroCurrency}
                             amountToConvert={amountToWithdraw}
                         />
-                        <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
+                        <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={`$ 0.00`} />
                     </Card>
 
                     {submittedTxHash ? (
@@ -501,7 +505,7 @@ export default function WithdrawBankPage() {
                                 setSelectedMethod(null)
                             }}
                         >
-                            Done
+                            {tCommon('done')}
                         </Button>
                     ) : error.showError ? (
                         <Button
@@ -513,7 +517,7 @@ export default function WithdrawBankPage() {
                             icon="retry"
                             iconSize={14}
                         >
-                            Retry
+                            {tCommon('retry')}
                         </Button>
                     ) : (
                         <Button
@@ -525,15 +529,15 @@ export default function WithdrawBankPage() {
                             disabled={isLoading || !bankAccount || !!balanceErrorMessage}
                             className="w-full"
                         >
-                            Withdraw
+                            {tNav('withdraw')}
                         </Button>
                     )}
                     {submittedTxHash ? (
                         <InfoCard
                             variant="info"
                             icon="info"
-                            title="Transfer processing"
-                            description={CONFIRM_PENDING_COPY}
+                            title={t('bank.transferProcessing')}
+                            description={confirmPendingCopy}
                         />
                     ) : (
                         error.showError && <ErrorAlert description={error.errorMessage} />

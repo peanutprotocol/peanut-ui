@@ -22,6 +22,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { useEffect, useState } from 'react'
 import { type ParsedURL } from '@/lib/url-parser/types/payment'
 import { formatAmount } from '@/utils/general.utils'
+import { useTranslations } from 'next-intl'
 
 interface SemanticRequestPageWrapperProps {
     recipient: string[]
@@ -29,6 +30,7 @@ interface SemanticRequestPageWrapperProps {
 
 export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWrapperProps) {
     const onBack = useSafeBack('/home')
+    const t = useTranslations('payment')
     const searchParams = useSearchParams()
     const chargeIdFromUrl = searchParams.get('chargeId')
 
@@ -52,7 +54,7 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
         }
 
         if (!recipient || recipient.length === 0) {
-            setError({ message: 'Invalid URL format' } as ParseUrlError)
+            setError({ message: t('errors.invalidUrlFormat') } as ParseUrlError)
             setIsLoading(false)
             return
         }
@@ -75,18 +77,18 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
             })
             .catch((err) => {
                 console.error('failed to parse url:', err)
-                setError({ message: 'Invalid URL format' } as ParseUrlError)
+                setError({ message: t('errors.invalidUrlFormat') } as ParseUrlError)
             })
             .finally(() => {
                 setIsLoading(false)
             })
-    }, [recipient, chargeIdFromUrl])
+    }, [recipient, chargeIdFromUrl, t])
 
     // loading state
     if (isLoading) {
         return (
             <div className="flex min-h-[inherit] w-full flex-col gap-4">
-                <NavHeader title="Pay" onPrev={onBack} />
+                <NavHeader title={t('headers.pay')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
                     <PeanutLoading />
                 </div>
@@ -98,8 +100,8 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
     if (error || !parsedUrl) {
         return (
             <div className="flex w-full flex-col gap-4">
-                <NavHeader title="Pay" onPrev={onBack} />
-                <ErrorAlert description={error?.message || 'invalid payment url'} />
+                <NavHeader title={t('headers.pay')} onPrev={onBack} />
+                <ErrorAlert description={error?.message || t('errors.invalidPaymentUrl')} />
             </div>
         )
     }

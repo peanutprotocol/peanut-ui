@@ -200,7 +200,7 @@ export default function LeaderboardPage() {
                 const timestamp = localToUtc(value)
                 updateURL(timestamp)
                 debouncedFetch(timestamp)
-            } catch (e) {
+            } catch {
                 // Invalid date format while typing, ignore
             }
         },

@@ -21,6 +21,7 @@ import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptio
 import Loading from '@/components/Global/Loading'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { saveRedirectUrl } from '@/utils/general.utils'
+import { useTranslations } from 'next-intl'
 
 interface PaymentMethodActionListProps {
     isAmountEntered: boolean
@@ -43,6 +44,8 @@ export function PaymentMethodActionList({
     onPayWithExternalWallet,
 }: PaymentMethodActionListProps) {
     const router = useRouter()
+    const t = useTranslations('payment')
+    const tCommon = useTranslations('common')
     // Display-only "REQUIRES VERIFICATION" badges, provider-blind. The real
     // gate happens later in the add-money flow.
     //   QR-pay methods (mercadopago / pix) ← any rail with `pay` op enabled
@@ -94,7 +97,7 @@ export function PaymentMethodActionList({
 
     return (
         <div className="space-y-2">
-            {showDivider && <Divider text="or" />}
+            {showDivider && <Divider text={tCommon('or')} />}
             <div className="space-y-2">
                 {visibleMethods.map((method) => {
                     // does this method's gate require identity verification (badge display only)?
@@ -113,7 +116,7 @@ export function PaymentMethodActionList({
                                     {(method.soon || methodRequiresVerification) && (
                                         <StatusBadge
                                             status={methodRequiresVerification ? 'custom' : 'soon'}
-                                            customText={methodRequiresVerification ? 'REQUIRES VERIFICATION' : ''}
+                                            customText={methodRequiresVerification ? t('requiresVerification') : ''}
                                         />
                                     )}
                                 </div>

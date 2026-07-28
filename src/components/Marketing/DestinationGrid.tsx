@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { Card } from '@/components/0_Bruddle/Card'
 import { COUNTRIES_SEO, getCountryName } from '@/data/seo'
@@ -34,7 +35,7 @@ export function DestinationGrid({ countries, exclude, title = 'Send money to', l
                         <Link key={slug} href={localizedPath('send-money-to', locale, slug)}>
                             <Card shadowSize="4" className={`flex-row items-center gap-3 p-4 ${CARD_HOVER}`}>
                                 {flagCode && (
-                                    <img
+                                    <Image
                                         src={getFlagUrl(flagCode)}
                                         alt={`${countryName} flag`}
                                         width={32}

@@ -1,5 +1,5 @@
 import { useAuth } from '@/context/authContext'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import { useMemo } from 'react'
 import { ARBISCAN_ADDRESS_BASE_URL, POSTHOG_PERSON_BASE_URL, BRIDGE_DASHBOARD_BASE_URL } from '@/constants/support'
 

@@ -1,8 +1,9 @@
 'use client'
 import { countryData as ALL_METHODS_DATA, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { formatIban } from '@/utils/general.utils'
-import { AccountType, type Account } from '@/interfaces'
+import { AccountType, type Account } from '@/interfaces/interfaces'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import { Icon } from '@/components/Global/Icons/Icon'
 
 import NavHeader from '../Global/NavHeader'
@@ -36,17 +37,22 @@ export default function SavedAccountsView({
     onAccountClick,
     onSelectNewMethodClick,
 }: SavedAccountListProps) {
+    const t = useTranslations('global')
     return (
         <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
             <NavHeader title={pageTitle} onPrev={onPrev} />
             <div className="space-y-4">
                 <div className="flex h-full flex-col justify-center space-y-2">
-                    <h2 className="text-base font-bold">Saved accounts</h2>
+                    <h2 className="text-base font-bold">{t('savedAccounts.title')}</h2>
                     <SavedAccountsMapping accounts={savedAccounts} onItemClick={onAccountClick} />
                 </div>
-                <Divider textClassname="font-bold text-grey-1" dividerClassname="bg-grey-1" text="or" />
+                <Divider
+                    textClassname="font-bold text-grey-1"
+                    dividerClassname="bg-grey-1"
+                    text={t('savedAccounts.or')}
+                />
                 <Button icon="plus" onClick={onSelectNewMethodClick} shadowSize="4">
-                    Select new method
+                    {t('savedAccounts.selectNewMethod')}
                 </Button>
             </div>
         </div>
@@ -60,6 +66,7 @@ export function SavedAccountsMapping({
     accounts: Account[]
     onItemClick: (account: Account, path: string) => void
 }) {
+    const t = useTranslations('global')
     return (
         <div className="flex flex-col">
             {accounts.map((account, index) => {
@@ -113,7 +120,11 @@ export function SavedAccountsMapping({
                                 {countryCodeForFlag ? (
                                     <Image
                                         src={getFlagUrl(account.type === AccountType.US ? 'us' : countryCodeForFlag)}
-                                        alt={`${details.countryName ?? 'country'} flag`}
+                                        alt={
+                                            details.countryName
+                                                ? t('savedAccounts.flagAlt', { country: details.countryName })
+                                                : t('savedAccounts.flagAltGeneric')
+                                        }
                                         width={80}
                                         height={80}
                                         className="h-8 w-8 rounded-full object-cover"

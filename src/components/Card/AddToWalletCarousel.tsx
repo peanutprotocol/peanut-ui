@@ -1,6 +1,7 @@
 'use client'
 import { type FC, type PointerEvent as ReactPointerEvent, useRef, useState } from 'react'
 import Image, { type StaticImageData } from 'next/image'
+import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -11,23 +12,25 @@ import { useWalletPlatform, type WalletPlatform } from '@/hooks/useWalletPlatfor
 // feel jumpy on desktop trackpads; larger values miss short mobile flicks.
 const SWIPE_THRESHOLD_PX = 50
 
+type StepTitleKey = `addToWallet.${'ios' | 'android'}Step${1 | 2 | 3 | 4}`
+
 interface Step {
-    title: string
+    titleKey: StepTitleKey
     image: StaticImageData
 }
 
 const STEPS_BY_PLATFORM: Record<Exclude<WalletPlatform, 'other'>, Step[]> = {
     ios: [
-        { title: 'Open Wallet App', image: APPLE_WALLET_STEPS[0] },
-        { title: 'Tap + in the top right', image: APPLE_WALLET_STEPS[1] },
-        { title: 'Tap Debit or Credit Card', image: APPLE_WALLET_STEPS[2] },
-        { title: 'Follow onscreen steps', image: APPLE_WALLET_STEPS[3] },
+        { titleKey: 'addToWallet.iosStep1', image: APPLE_WALLET_STEPS[0] },
+        { titleKey: 'addToWallet.iosStep2', image: APPLE_WALLET_STEPS[1] },
+        { titleKey: 'addToWallet.iosStep3', image: APPLE_WALLET_STEPS[2] },
+        { titleKey: 'addToWallet.iosStep4', image: APPLE_WALLET_STEPS[3] },
     ],
     android: [
-        { title: 'Open Wallet App', image: GOOGLE_WALLET_STEPS[0] },
-        { title: 'Tap + add to wallet', image: GOOGLE_WALLET_STEPS[1] },
-        { title: 'Tap Payment card', image: GOOGLE_WALLET_STEPS[2] },
-        { title: 'Follow onscreen steps', image: GOOGLE_WALLET_STEPS[3] },
+        { titleKey: 'addToWallet.androidStep1', image: GOOGLE_WALLET_STEPS[0] },
+        { titleKey: 'addToWallet.androidStep2', image: GOOGLE_WALLET_STEPS[1] },
+        { titleKey: 'addToWallet.androidStep3', image: GOOGLE_WALLET_STEPS[2] },
+        { titleKey: 'addToWallet.androidStep4', image: GOOGLE_WALLET_STEPS[3] },
     ],
 }
 
@@ -37,8 +40,10 @@ interface Props {
 }
 
 const AddToWalletCarousel: FC<Props> = ({ onDone, onPrev }) => {
+    const t = useTranslations('card')
+    const tCommon = useTranslations('common')
     const platform = useWalletPlatform()
-    const platformLabel = platform === 'android' ? 'Google Wallet' : 'Apple Wallet'
+    const platformLabel = platform === 'android' ? t('addToWallet.googleWallet') : t('addToWallet.appleWallet')
     const steps: Step[] = STEPS_BY_PLATFORM[platform === 'android' ? 'android' : 'ios']
     const [index, setIndex] = useState(0)
     const isLast = index === steps.length - 1
@@ -93,9 +98,12 @@ const AddToWalletCarousel: FC<Props> = ({ onDone, onPrev }) => {
                         <Image src={step.image} alt="" aria-hidden className="h-auto w-full" priority />
                     </div>
 
-                    <div className="text-xl font-extrabold">{step.title}</div>
+                    <div className="text-xl font-extrabold">{t(step.titleKey)}</div>
 
-                    <div className="flex items-center gap-2" aria-label={`Step ${index + 1} of ${steps.length}`}>
+                    <div
+                        className="flex items-center gap-2"
+                        aria-label={t('addToWallet.stepIndicator', { current: index + 1, total: steps.length })}
+                    >
                         {steps.map((_, i) => (
                             <span
                                 key={i}
@@ -109,7 +117,7 @@ const AddToWalletCarousel: FC<Props> = ({ onDone, onPrev }) => {
                 </div>
 
                 <Button variant="purple" shadowSize="4" className="w-full" onClick={onNext}>
-                    {isLast ? 'Done' : 'Next'}
+                    {isLast ? tCommon('done') : tCommon('next')}
                 </Button>
             </div>
         </div>

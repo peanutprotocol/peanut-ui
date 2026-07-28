@@ -230,17 +230,6 @@ export const nativeCurrencyAddresses: string[] = [
     '0x0000000000000000000000000000000000000000',
 ]
 
-export const pathTitles: { [key: string]: string } = {
-    '/home': 'Dashboard',
-    '/send': 'Send',
-    '/request/create': 'Request',
-    '/request/pay': 'Pay',
-    '/cashout': 'Cashout',
-    '/history': 'History',
-    '/support': 'Support',
-    '/claim': 'Claim',
-}
-
 export const STABLE_COINS = ['USDC', 'USDT', 'DAI', 'BUSD']
 
 export const ROUTE_NOT_FOUND_ERROR =

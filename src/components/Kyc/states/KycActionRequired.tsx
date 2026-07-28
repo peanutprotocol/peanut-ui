@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl'
 import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
 import { RejectLabelsList } from '../RejectLabelsList'
 import InfoCard from '@/components/Global/InfoCard'
@@ -24,9 +25,12 @@ export const KycActionRequired = ({
     actionMessage?: string
     rejectLabels?: string[] | null
 }) => {
+    const t = useTranslations('kyc')
+    const tCommon = useTranslations('common')
+
     return (
         <div className="space-y-4 p-1">
-            <KYCStatusDrawerItem status="pending" customText="Action needed" />
+            <KYCStatusDrawerItem status="pending" customText={t('actionNeeded')} />
 
             {!rejectLabels?.length && actionMessage ? (
                 <InfoCard variant="info" icon="alert" description={actionMessage} />
@@ -41,7 +45,7 @@ export const KycActionRequired = ({
                 onClick={() => onResume()}
                 disabled={isLoading}
             >
-                {isLoading ? 'Loading...' : 'Re-submit verification'}
+                {isLoading ? tCommon('loading') : t('resubmitVerification')}
             </Button>
         </div>
     )

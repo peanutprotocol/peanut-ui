@@ -9,11 +9,12 @@ import { loadingStateContext } from '@/context/loadingStates.context'
 import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
-import { ErrorHandler } from '@/utils/friendly-error.utils'
-import { INSUFFICIENT_BALANCE_MESSAGE, isAmountWithinBalance } from '@/utils/balance.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
+import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import { parseUnits } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import FileUploadInput from '../../../Global/FileUploadInput'
@@ -23,6 +24,11 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const LinkSendInitialView = () => {
+    const t = useTranslations('send')
+    const tCommon = useTranslations('common')
+    const tLoading = useTranslations('loadingStates')
+    const tErrors = useTranslations('errors')
+    const toFriendlyError = useFriendlyError()
     const {
         attachmentOptions,
         setAttachmentOptions,
@@ -58,7 +64,11 @@ const LinkSendInitialView = () => {
             // a tap before the query resolves would false-reject. Gates on the
             // displayed total; an in-transit shortfall fails late with the settling copy.
             if (balance !== undefined && !isAmountWithinBalance(tokenValue, balance)) {
-                setErrorState({ showError: true, errorMessage: INSUFFICIENT_BALANCE_MESSAGE })
+                setErrorState({
+                    showError: true,
+                    errorMessage: tErrors('notEnoughBalanceAddFunds'),
+                    errorCode: 'notEnoughBalanceAddFunds',
+                })
                 return
             }
 
@@ -109,7 +119,7 @@ const LinkSendInitialView = () => {
             }, 0)
         } catch (error) {
             // handle errors
-            const errorString = ErrorHandler(error)
+            const errorString = toFriendlyError(error)
             setErrorState({ showError: true, errorMessage: errorString })
             posthog.capture(ANALYTICS_EVENTS.SEND_LINK_FAILED, {
                 amount: tokenValue,
@@ -131,6 +141,8 @@ const LinkSendInitialView = () => {
         setView,
         setErrorState,
         balance,
+        tErrors,
+        toFriendlyError,
     ])
 
     useEffect(() => {
@@ -146,7 +158,7 @@ const LinkSendInitialView = () => {
             // amount would be a dead button). A momentarily-unavailable balance is
             // NOT a user action: release only the gate's own error, never a
             // submit-time failure the user hasn't acted on yet.
-            if (!tokenValue || errorState?.errorMessage === INSUFFICIENT_BALANCE_MESSAGE) {
+            if (!tokenValue || errorState?.errorCode === 'notEnoughBalanceAddFunds') {
                 setErrorState({ showError: false, errorMessage: '' })
             }
             return
@@ -161,10 +173,14 @@ const LinkSendInitialView = () => {
             // around the amount boundary, and overwriting here let the recovery
             // branch below clear the swapped-in message, silently swallowing the
             // real error while the user still couldn't spend.
-            if (!errorState?.showError || errorState.errorMessage === INSUFFICIENT_BALANCE_MESSAGE) {
-                setErrorState({ showError: true, errorMessage: INSUFFICIENT_BALANCE_MESSAGE })
+            if (!errorState?.showError || errorState.errorCode === 'notEnoughBalanceAddFunds') {
+                setErrorState({
+                    showError: true,
+                    errorMessage: tErrors('notEnoughBalanceAddFunds'),
+                    errorCode: 'notEnoughBalanceAddFunds',
+                })
             }
-        } else if (errorState?.errorMessage === INSUFFICIENT_BALANCE_MESSAGE) {
+        } else if (errorState?.errorCode === 'notEnoughBalanceAddFunds') {
             // only clear OUR balance-gate error — never wipe a submit-time failure
             // message (e.g. the settling copy) that handleOnNext set on a late failure.
             setErrorState({ showError: false, errorMessage: '' })
@@ -177,7 +193,8 @@ const LinkSendInitialView = () => {
         hasPendingTransactions,
         isLoading,
         errorState?.showError,
-        errorState?.errorMessage,
+        errorState?.errorCode,
+        tErrors,
     ])
 
     // A changed amount means the previous failure no longer describes what the
@@ -206,7 +223,7 @@ const LinkSendInitialView = () => {
 
             <FileUploadInput
                 className="h-11"
-                placeholder="Comment"
+                placeholder={tCommon('comment')}
                 attachmentOptions={attachmentOptions}
                 setAttachmentOptions={setAttachmentOptions}
             />
@@ -214,7 +231,7 @@ const LinkSendInitialView = () => {
             <div className="flex flex-col gap-4">
                 {errorState?.showError ? (
                     <Button shadowSize="4" icon="retry" onClick={handleOnNext} loading={isLoading} disabled={isLoading}>
-                        Retry
+                        {tCommon('retry')}
                     </Button>
                 ) : (
                     <Button
@@ -223,7 +240,7 @@ const LinkSendInitialView = () => {
                         loading={isLoading}
                         disabled={isLoading || !tokenValue || !!errorState?.showError}
                     >
-                        {isLoading ? 'Creating link' : 'Create link'}
+                        {isLoading ? tLoading('creatingLink') : t('link.createLink')}
                     </Button>
                 )}
                 {errorState?.showError && <ErrorAlert description={errorState.errorMessage} />}

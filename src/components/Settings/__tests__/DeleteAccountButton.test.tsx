@@ -5,9 +5,18 @@
  * can drive confirm -> loading -> done -> logout and the error-toast branch.
  */
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+
+const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const mockLogout = jest.fn()
 const mockToastError = jest.fn()

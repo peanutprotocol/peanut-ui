@@ -9,7 +9,9 @@
  * neither.
  */
 import React from 'react'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import enMessages from '@/i18n/app/messages/en.json'
 import { Clipboard } from '@capacitor/clipboard'
 import { clipboardHasStrings } from '@/utils/clipboard-detect'
 import { isAndroidNative } from '@/utils/capacitor'
@@ -44,6 +46,15 @@ jest.mock('../useQRScanner', () => ({
 }))
 
 import QRScanner from '../index'
+
+const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={enMessages} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+
+const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
+    rtlRender(ui, { wrapper: IntlWrapper, ...options })
 
 const mockRead = Clipboard.read as jest.MockedFunction<typeof Clipboard.read>
 const mockHasStrings = clipboardHasStrings as jest.MockedFunction<typeof clipboardHasStrings>

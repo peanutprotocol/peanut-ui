@@ -1,9 +1,9 @@
 // client-side replacement for next/cache's unstable_cache.
 // provides in-memory TTL caching since server cache doesn't exist in static export.
 
-const cache = new Map<string, { data: any; expiry: number }>()
+const cache = new Map<string, { data: unknown; expiry: number }>()
 
-export const unstable_cache = <T extends (...args: any[]) => Promise<any>>(
+export const unstable_cache = <T extends (...args: never[]) => Promise<unknown>>(
     fn: T,
     keys: string[],
     opts?: { revalidate?: number; tags?: string[] }
@@ -11,7 +11,7 @@ export const unstable_cache = <T extends (...args: any[]) => Promise<any>>(
     const ttlMs = (opts?.revalidate ?? 60) * 1000
     const baseKey = keys.join(':')
 
-    return (async (...args: any[]) => {
+    return (async (...args: Parameters<T>) => {
         const fullKey = `${baseKey}:${JSON.stringify(args)}`
         const entry = cache.get(fullKey)
         if (entry && Date.now() < entry.expiry) {

@@ -10,6 +10,7 @@ import type { RhinoChainType } from '@/services/services.types'
 import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 interface AddMoneyMethodSelectionProps {
     onBankTransferClick: () => void
@@ -18,6 +19,7 @@ interface AddMoneyMethodSelectionProps {
 const AddMoneyMethodSelection = ({ onBankTransferClick }: AddMoneyMethodSelectionProps) => {
     const router = useRouter()
     const { user } = useAuth()
+    const t = useTranslations('addMoney')
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
     // offramp migrants get a tailored, de-cluttered arbitrum deposit entry
@@ -31,12 +33,12 @@ const AddMoneyMethodSelection = ({ onBankTransferClick }: AddMoneyMethodSelectio
     return (
         <>
             <div className="flex flex-col gap-2">
-                <h2 className="text-base font-bold">How would you like to add money?</h2>
+                <h2 className="text-base font-bold">{t('howWouldYouLikeToAdd')}</h2>
                 <div className="flex flex-col">
                     {hasOfframpBadge && (
                         <ActionListCard
-                            title="Migrate from Offramp"
-                            description="Move your Offramp balance to Peanut"
+                            title={t('methods.migrateFromOfframp')}
+                            description={t('methods.migrateFromOfframpDescription')}
                             position="first"
                             leftIcon={
                                 <AvatarWithBadge icon="wallet-outline" size="extra-small" className="bg-yellow-1" />
@@ -45,15 +47,15 @@ const AddMoneyMethodSelection = ({ onBankTransferClick }: AddMoneyMethodSelectio
                         />
                     )}
                     <ActionListCard
-                        title="Crypto"
-                        description="Deposit from a wallet or exchange"
+                        title={t('methods.crypto')}
+                        description={t('methods.cryptoDescription')}
                         position={hasOfframpBadge ? 'middle' : 'first'}
                         leftIcon={<AvatarWithBadge icon="wallet-outline" size="extra-small" className="bg-yellow-1" />}
                         onClick={() => setIsDrawerOpen(true)}
                     />
                     <ActionListCard
-                        title="Bank Transfer"
-                        description="KYC required"
+                        title={t('methods.bankTransfer')}
+                        description={t('methods.kycRequired')}
                         position="last"
                         leftIcon={
                             <AvatarWithBadge

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useSubmissionWindow, isInSubmissionWindow } from '@/hooks/useSubmissionWindow'
-import type { IUserProfile } from '@/interfaces'
+import type { IUserProfile } from '@/interfaces/interfaces'
 
 /**
  * Singleton auto-refresh poller for the `[USER]` query. Mount EXACTLY ONCE

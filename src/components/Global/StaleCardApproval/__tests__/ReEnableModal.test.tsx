@@ -8,8 +8,17 @@
  * again" confirmation; a failed grant surfaces a recoverable message.
  */
 import React from 'react'
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, act } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 import { RAIN_STALE_APPROVAL_EVENT } from '@/services/rain'
+
+const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const mockGrant = jest.fn<Promise<{ ok: boolean; error?: { kind: string } }>, []>()
 jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({

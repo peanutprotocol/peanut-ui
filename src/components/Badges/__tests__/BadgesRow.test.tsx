@@ -1,6 +1,18 @@
-import { render } from '@testing-library/react'
+import { render as rtlRender } from '@testing-library/react'
+import React from 'react'
+import { NextIntlClientProvider } from 'next-intl'
+import enMessages from '@/i18n/app/messages/en.json'
 import type { ComponentProps } from 'react'
 import BadgesRow from '@/components/Badges/BadgesRow'
+
+const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={enMessages} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+
+const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
+    rtlRender(ui, { wrapper: IntlWrapper, ...options })
 
 jest.mock('next/image', () => ({
     __esModule: true,

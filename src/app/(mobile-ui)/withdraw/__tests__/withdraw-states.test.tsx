@@ -10,6 +10,8 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 import { parseUnits } from 'viem'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
@@ -112,15 +114,6 @@ jest.mock('@/hooks/useGetExchangeRate', () => ({
     default: () => mockUseGetExchangeRate(),
 }))
 
-jest.mock('@/interfaces', () => ({
-    AccountType: {
-        IBAN: 'iban',
-        US: 'us',
-        GB: 'gb',
-        CLABE: 'clabe',
-    },
-}))
-
 const mockUseLimitsValidation = jest.fn()
 jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
     useLimitsValidation: (...args: any[]) => mockUseLimitsValidation(...args),
@@ -128,7 +121,7 @@ jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
 
 jest.mock('@/features/limits/components/LimitsWarningCard', () => ({
     __esModule: true,
-    default: (props: any) => <div data-testid="limits-warning-card" />,
+    default: (_props: any) => <div data-testid="limits-warning-card" />,
 }))
 
 jest.mock('@/features/limits/utils', () => ({
@@ -233,9 +226,11 @@ function renderWithdraw(params: Record<string, string> = {}) {
     setSearchParams(params)
     const queryClient = createQueryClient()
     return render(
-        <QueryClientProvider client={queryClient}>
-            <WithdrawPage />
-        </QueryClientProvider>
+        <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+            <QueryClientProvider client={queryClient}>
+                <WithdrawPage />
+            </QueryClientProvider>
+        </NextIntlClientProvider>
     )
 }
 

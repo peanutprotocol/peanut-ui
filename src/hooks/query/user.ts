@@ -1,4 +1,4 @@
-import { type IUserProfile } from '@/interfaces'
+import { type IUserProfile } from '@/interfaces/interfaces'
 import { useAppDispatch, useUserStore } from '@/redux/hooks'
 import { userActions } from '@/redux/slices/user-slice'
 import posthog from 'posthog-js'

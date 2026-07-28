@@ -1,6 +1,7 @@
 'use client'
 import { type FC, useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import Modal from '@/components/Global/Modal'
@@ -24,23 +25,25 @@ interface Props {
     onClose: () => void
 }
 
-const COPY: Record<Mode, { title: string; body: string; success: string; successBody: (linkLabel: string) => string }> =
-    {
-        lock: {
-            title: 'Lock your card?',
-            body: 'Card will not work for any transactions until you unlock it.',
-            success: 'Card locked',
-            successBody: (link) => `Come back at any time to ${link} it.`,
-        },
-        unlock: {
-            title: 'Unlock your card?',
-            body: 'Your card will work again for any transactions.',
-            success: 'Card unlocked',
-            successBody: () => 'Your card is active again.',
-        },
-    }
+const COPY_KEYS = {
+    lock: {
+        title: 'lockModal.lockTitle',
+        body: 'lockModal.lockBody',
+        success: 'lockModal.lockSuccess',
+        successBody: 'lockModal.lockSuccessBody',
+        failed: 'lockModal.lockFailed',
+    },
+    unlock: {
+        title: 'lockModal.unlockTitle',
+        body: 'lockModal.unlockBody',
+        success: 'lockModal.unlockSuccess',
+        successBody: 'lockModal.unlockSuccessBody',
+        failed: 'lockModal.unlockFailed',
+    },
+} as const satisfies Record<Mode, Record<string, string>>
 
 const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
+    const t = useTranslations('card')
     const [phase, setPhase] = useState<Phase>('prompt')
     const [error, setError] = useState<string | null>(null)
     const queryClient = useQueryClient()
@@ -56,7 +59,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
         }
     }, [isOpen])
 
-    const copy = COPY[mode]
+    const copyKeys = COPY_KEYS[mode]
 
     const run = async () => {
         setPhase('loading')
@@ -71,7 +74,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                 let verifiedWithdrawal: import('@/hooks/wallet/useSignSpendBundle').SignedRainWithdrawal | undefined
                 if (spendingPowerUnits > 0n) {
                     if (!smartWalletAddress) {
-                        throw new Error('Wallet not ready — please retry in a moment')
+                        throw new Error(t('errors.walletNotReady'))
                     }
                     // Force collateral-only routing: smart=0n eliminates the
                     // smart-only and mixed branches, so the strategy resolver
@@ -84,7 +87,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                         kind: 'CRYPTO_WITHDRAW',
                     })
                     if (artifact.strategy !== 'collateral-only') {
-                        throw new Error('Unexpected withdrawal strategy — please contact support')
+                        throw new Error(t('errors.unexpectedStrategy'))
                     }
                     verifiedWithdrawal = artifact.rainWithdrawal
                 }
@@ -98,11 +101,11 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
         } catch (e) {
             // Friendlier copy for the two known sign-time errors. Any other
             // throw (passkey cancelled, network, backend) keeps its message.
-            let message = e instanceof Error ? e.message : `Failed to ${mode} card`
+            let message = e instanceof Error ? e.message : t(copyKeys.failed)
             if (e instanceof InsufficientSpendableError) {
-                message = 'Could not return your card balance. Please try again or contact support.'
+                message = t('errors.balanceReturnFailed')
             } else if (e instanceof SessionKeyGrantRequiredError) {
-                message = 'Card authorization failed. Please try again or contact support.'
+                message = t('errors.authorizationFailed')
             }
             setError(message)
             posthog.capture(ANALYTICS_EVENTS.CARD_LOCK_FAILED, { mode, error_message: message })
@@ -118,20 +121,20 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-1">
                             <Icon name="lock" size={20} />
                         </div>
-                        <div className="text-xl font-extrabold">{copy.success}</div>
-                        <p className="text-sm text-grey-1">{copy.successBody(mode === 'lock' ? 'unlock' : 'lock')}</p>
+                        <div className="text-xl font-extrabold">{t(copyKeys.success)}</div>
+                        <p className="text-sm text-grey-1">{t(copyKeys.successBody)}</p>
                     </div>
                 ) : (
                     <div className="flex flex-col items-center gap-4 text-center">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-1">
                             <Icon name="lock" size={20} />
                         </div>
-                        <div className="text-xl font-extrabold">{copy.title}</div>
-                        <p className="text-sm text-grey-1">{copy.body}</p>
+                        <div className="text-xl font-extrabold">{t(copyKeys.title)}</div>
+                        <p className="text-sm text-grey-1">{t(copyKeys.body)}</p>
                         {phase === 'error' && error && <p className="text-sm text-red">{error}</p>}
                         {mode === 'lock' ? (
                             <SlideToAction
-                                label={phase === 'loading' ? 'Locking…' : 'Slide to Lock'}
+                                label={phase === 'loading' ? t('lockModal.locking') : t('lockModal.slideToLock')}
                                 onComplete={run}
                                 disabled={phase === 'loading'}
                             />
@@ -144,7 +147,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                                 loading={phase === 'loading'}
                                 disabled={phase === 'loading'}
                             >
-                                Unlock
+                                {t('lockModal.unlockCta')}
                             </Button>
                         )}
                     </div>

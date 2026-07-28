@@ -17,7 +17,7 @@ interface UserHeaderProps {
     isVerified?: boolean
 }
 
-export const UserHeader = ({ username, fullName, isVerified }: UserHeaderProps) => {
+export const UserHeader = ({ username, fullName }: UserHeaderProps) => {
     const { user } = useAuth()
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const nameForAvatar = user?.user.showFullName && fullName ? fullName : username

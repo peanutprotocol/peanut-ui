@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
 import posthog from 'posthog-js'
@@ -69,6 +70,7 @@ const PeanutIcon = ({ className }: { className?: string }) => (
  * displays peanut logo and options to retry or log out
  */
 export default function BackendErrorScreen() {
+    const t = useTranslations('global')
     const { logoutUser, isLoggingOut } = useAuth()
 
     useEffect(() => {
@@ -92,19 +94,19 @@ export default function BackendErrorScreen() {
                 <PeanutIcon className="h-full w-full" />
             </div>
             <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold text-gray-800">Something went wrong</h1>
-                <p className="max-w-md text-sm text-gray-600">We&apos;re having trouble connecting to our servers.</p>
+                <h1 className="text-2xl font-bold text-gray-800">{t('backendErrorScreen.title')}</h1>
+                <p className="max-w-md text-sm text-gray-600">{t('backendErrorScreen.description')}</p>
             </div>
             <div className="flex flex-col items-center gap-6">
                 <Button shadowSize="4" icon="retry" size="medium" className="w-fit rounded-full" onClick={handleRetry}>
-                    Try Again
+                    {t('backendErrorScreen.tryAgain')}
                 </Button>
                 <button
                     onClick={handleForceLogout}
                     disabled={isLoggingOut}
                     className="text-sm text-gray-600 underline hover:text-gray-800 disabled:opacity-50"
                 >
-                    {isLoggingOut ? 'Logging out...' : 'Log out'}
+                    {isLoggingOut ? t('backendErrorScreen.loggingOut') : t('backendErrorScreen.logOut')}
                 </button>
             </div>
         </div>

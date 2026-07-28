@@ -12,7 +12,7 @@ jest.mock('@/services/manteca', () => ({
     mantecaApi: { getDepositStatus: mockGetDepositStatus },
 }))
 
-// eslint-disable-next-line import/first -- must come after jest.mock
+// must come after the jest.mock calls above
 import { useMantecaDepositPolling } from '../useMantecaDepositPolling'
 
 describe('useMantecaDepositPolling', () => {

@@ -1,7 +1,16 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render as rtlRender, screen } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 import { type ReactNode } from 'react'
 import { KycActionRequired } from '../KycActionRequired'
 import { KycFailed } from '../KycFailed'
+
+const IntlWrapper = ({ children }: { children: ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 jest.mock('use-haptic', () => ({
     useHaptic: () => ({ triggerHaptic: jest.fn() }),

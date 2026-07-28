@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { verifyConnectivity } from '@/hooks/useNetworkStatus'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
 // inline peanut icon svg to ensure it works offline without needing to fetch external assets
@@ -127,6 +128,7 @@ const PeanutIcon = ({ className }: { className?: string }) => (
  * when connection is restored, page automatically reloads
  */
 export default function OfflineScreen() {
+    const t = useTranslations('global')
     const [isChecking, setIsChecking] = useState(false)
 
     // verify with a real fetch instead of trusting navigator.onLine
@@ -146,10 +148,8 @@ export default function OfflineScreen() {
                 <PeanutIcon className="h-full w-full" />
             </div>
             <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold text-gray-800">You&apos;re Offline</h1>
-                <p className="max-w-md text-sm text-gray-600">
-                    No internet connection detected. Please check your network settings and try again.
-                </p>
+                <h1 className="text-2xl font-bold text-gray-800">{t('offlineScreen.title')}</h1>
+                <p className="max-w-md text-sm text-gray-600">{t('offlineScreen.description')}</p>
             </div>
             <Button
                 shadowSize="4"
@@ -159,7 +159,7 @@ export default function OfflineScreen() {
                 onClick={handleRetryConnection}
                 disabled={isChecking}
             >
-                {isChecking ? 'Checking...' : 'Check Connection'}
+                {isChecking ? t('offlineScreen.checking') : t('offlineScreen.checkConnection')}
             </Button>
         </div>
     )

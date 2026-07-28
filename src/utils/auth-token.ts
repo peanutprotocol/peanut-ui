@@ -1,13 +1,14 @@
 // client-side jwt token management.
 // web: the token lives in a readable cookie; we mirror it into the
 //      Authorization header (existing behavior, 40+ call sites).
-// capacitor: JS never holds the token. The server's Set-Cookie lands in
-//      CapacitorHttp's NATIVE cookie jar, which attaches it to every
-//      api.peanut.me request — durable across the passkey (Face ID) prompt
-//      and webview storage eviction, which made localStorage-based header
-//      auth fail (PEANUT-UI-QTQ). getAuthToken is therefore null on native
-//      by design; auth state checks belong on the user query or the jar
-//      (see hasNativeSessionCookie).
+// capacitor: the token lives in native Preferences (SharedPreferences /
+//      UserDefaults), hydrated into an in-memory cache at startup and sent
+//      as an Authorization header — same as web. Native storage survives
+//      webview data eviction, which is what broke localStorage-based header
+//      auth (PEANUT-UI-QTQ). The CapacitorHttp cookie jar is no longer the
+//      credential store (its Android GET proxy stalls, PEANUT-UI-R44), but
+//      older cookie-auth binaries keep working: the server still accepts the
+//      jwt-token cookie, and hasNativeSession falls back to the jar.
 
 import Cookies from 'js-cookie'
 import { isCapacitor } from './capacitor'
@@ -16,33 +17,70 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
 const JWT_COOKIE_KEY = 'jwt-token'
 const JWT_STORAGE_KEY = 'jwt-token'
 
+let nativeToken: string | null = null
+let hydration: Promise<void> | null = null
+
+async function hydrateFromPreferences(): Promise<void> {
+    try {
+        const { Preferences } = await import('@capacitor/preferences')
+        const { value } = await Preferences.get({ key: JWT_STORAGE_KEY })
+        // a login that raced hydration is fresher than the stored value
+        if (value && nativeToken === null) nativeToken = value
+    } catch {
+        // plugin missing (older binary running OTA'd JS) — those builds still
+        // authenticate via the CapacitorHttp cookie jar, so this is benign.
+    }
+}
+
+/**
+ * resolves once the native token cache is hydrated from Preferences.
+ * Instant on web. Await this before building auth headers on native so a
+ * cold start can't race the async Preferences read.
+ */
+export function authReady(): Promise<void> {
+    if (!isCapacitor()) return Promise.resolve()
+    if (!hydration) hydration = hydrateFromPreferences()
+    return hydration
+}
+
 /**
  * reads the jwt token for Authorization-header auth.
- * web: from cookie via js-cookie. capacitor: always null — the native cookie
- * jar authenticates requests; JS is not a token custodian.
+ * web: from cookie via js-cookie. capacitor: from the in-memory cache
+ * (callers that can run at cold start must await authReady() first).
  */
 export function getAuthToken(): string | null {
-    if (isCapacitor()) return null
+    if (isCapacitor()) return nativeToken
     return Cookies.get(JWT_COOKIE_KEY) ?? null
 }
 
 /**
- * stores the jwt token (web only). On capacitor this is a no-op: the server's
- * Set-Cookie already updated the native jar, which is the source of truth.
+ * stores the jwt token. web: readable cookie. capacitor: in-memory cache +
+ * native Preferences (fire-and-forget; the cache is authoritative for this
+ * session). Fed by the login-verify capture and the /users/me sliding
+ * refresh.
  */
 export function setAuthToken(token: string): void {
-    if (isCapacitor()) return
+    if (isCapacitor()) {
+        nativeToken = token
+        import('@capacitor/preferences')
+            .then(({ Preferences }) => Preferences.set({ key: JWT_STORAGE_KEY, value: token }))
+            .catch(() => {})
+        return
+    }
     Cookies.set(JWT_COOKIE_KEY, token, { expires: 30, path: '/' })
 }
 
 /**
- * capacitor-only: does the native cookie jar hold a session cookie for the
- * API? Async because the jar lives on the native side. Used for cheap
- * routing hints (e.g. cold-start home-vs-setup) — the /users/me query
- * remains the authority on whether the session is actually valid.
+ * capacitor-only: is there a stored session? Awaits hydration, then falls
+ * back to the legacy CapacitorHttp cookie jar so sessions created by older
+ * cookie-auth binaries still route to home. Used for cheap routing hints
+ * (e.g. cold-start home-vs-setup) — the /users/me query remains the
+ * authority on whether the session is actually valid.
  */
-export async function hasNativeSessionCookie(): Promise<boolean> {
+export async function hasNativeSession(): Promise<boolean> {
     if (!isCapacitor()) return false
+    await authReady()
+    if (nativeToken) return true
     try {
         const { CapacitorCookies } = await import('@capacitor/core')
         const cookies = await CapacitorCookies.getCookies({ url: PEANUT_API_URL })
@@ -54,19 +92,24 @@ export async function hasNativeSessionCookie(): Promise<boolean> {
 
 /**
  * clears the session.
- * capacitor: clears the native cookie jar (the actual credential) plus any
- * localStorage remnant from older builds.
+ * capacitor: clears the in-memory cache, native Preferences, the legacy
+ * cookie jar, and any localStorage remnant from older builds.
  * web: removes the cookie.
- * returns a promise for the native jar clear so logout can await it before
+ * returns a promise for the native clears so logout can await it before
  * reloading; other callers may safely ignore it.
  */
 export function clearAuthToken(): Promise<void> {
     let nativeClear: Promise<void> = Promise.resolve()
     if (isCapacitor()) {
+        nativeToken = null
         localStorage.removeItem(JWT_STORAGE_KEY)
-        nativeClear = import('@capacitor/core')
+        const prefsClear = import('@capacitor/preferences')
+            .then(({ Preferences }) => Preferences.remove({ key: JWT_STORAGE_KEY }))
+            .catch(() => {})
+        const jarClear = import('@capacitor/core')
             .then(({ CapacitorCookies }) => CapacitorCookies.clearCookies({ url: PEANUT_API_URL }))
             .catch(() => {})
+        nativeClear = Promise.all([prefsClear, jarClear]).then(() => undefined)
     }
     // always clear cookie too in case it was set by backend Set-Cookie header
     Cookies.remove(JWT_COOKIE_KEY, { path: '/' })
@@ -75,9 +118,8 @@ export function clearAuthToken(): Promise<void> {
 }
 
 /**
- * builds headers for authenticated api calls.
- * web: includes Authorization bearer token. capacitor: no Authorization —
- * the native cookie jar authenticates the request.
+ * builds headers for authenticated api calls: Authorization bearer token on
+ * both web and capacitor when a token is available.
  */
 export function getAuthHeaders(extraHeaders?: Record<string, string>): Record<string, string> {
     const headers: Record<string, string> = {}

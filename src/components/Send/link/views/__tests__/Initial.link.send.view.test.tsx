@@ -5,7 +5,7 @@
  * settling copy) share one errorState slot. Regression suite for the
  * "error message disappears" bug: right after a collateral spend the polled
  * spendable balance oscillates around the typed amount, and the gate was
- * overwriting the submit-time error with INSUFFICIENT_BALANCE_MESSAGE on the
+ * overwriting the submit-time error with en.errors.notEnoughBalanceAddFunds on the
  * dip, then clearing it on the recovery — silently swallowing the real error.
  * (PostHog session 019f8f8c-d4d5-775c-97ab-3e47c532a694, 2026-07-23.)
  */
@@ -13,7 +13,8 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { LinkSendFlowProvider, useLinkSendFlow } from '@/context/LinkSendFlowContext'
-import { INSUFFICIENT_BALANCE_MESSAGE } from '@/utils/balance.utils'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 
 const COOLDOWN_MESSAGE = 'A previous withdrawal signature is still active. Try again in about 2 min.'
 
@@ -120,12 +121,14 @@ const SetAmount = ({ amount }: { amount: string }) => {
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
 const viewTree = (amount: string) => (
-    <QueryClientProvider client={queryClient}>
-        <LinkSendFlowProvider>
-            <SetAmount amount={amount} />
-            <LinkSendInitialView />
-        </LinkSendFlowProvider>
-    </QueryClientProvider>
+    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        <QueryClientProvider client={queryClient}>
+            <LinkSendFlowProvider>
+                <SetAmount amount={amount} />
+                <LinkSendInitialView />
+            </LinkSendFlowProvider>
+        </QueryClientProvider>
+    </NextIntlClientProvider>
 )
 
 const renderView = (amount: string) => {
@@ -192,14 +195,18 @@ describe('LinkSendInitialView error ownership', () => {
 
         // ...and the gate immediately re-flags a genuine shortfall on the new amount
         fireEvent.change(screen.getByTestId('amount-input'), { target: { value: '200' } })
-        await waitFor(() => expect(screen.getByTestId('error-alert')).toHaveTextContent(INSUFFICIENT_BALANCE_MESSAGE))
+        await waitFor(() =>
+            expect(screen.getByTestId('error-alert')).toHaveTextContent(en.errors.notEnoughBalanceAddFunds)
+        )
     })
 
     test('balance-gate error appears on shortfall and clears on recovery when no submit error is showing', async () => {
         mockUseWallet.mockReturnValue(walletState(10))
 
         const utils = renderView('20')
-        await waitFor(() => expect(screen.getByTestId('error-alert')).toHaveTextContent(INSUFFICIENT_BALANCE_MESSAGE))
+        await waitFor(() =>
+            expect(screen.getByTestId('error-alert')).toHaveTextContent(en.errors.notEnoughBalanceAddFunds)
+        )
 
         mockUseWallet.mockReturnValue(walletState(100))
         rerenderView(utils, '20')

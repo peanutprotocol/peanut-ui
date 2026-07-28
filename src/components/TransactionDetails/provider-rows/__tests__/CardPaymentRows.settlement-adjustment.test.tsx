@@ -9,7 +9,9 @@
  * path live in CardAdjustmentNotice (tested separately).
  */
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import enMessages from '@/i18n/app/messages/en.json'
 
 jest.mock('@/components/Payment/PaymentInfoRow', () => ({
     PaymentInfoRow: ({ label, value }: { label: React.ReactNode; value: React.ReactNode }) => (
@@ -24,6 +26,15 @@ jest.mock('next/image', () => ({ __esModule: true, default: () => <span /> }))
 // import must come after jest.mock
 import { CardPaymentRows } from '../CardPaymentRows'
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+
+const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={enMessages} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+
+const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
+    rtlRender(ui, { wrapper: IntlWrapper, ...options })
 
 const CARD_PAYMENT_BASE = {
     merchantName: 'Savannah Taphouse',

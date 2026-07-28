@@ -152,6 +152,7 @@ export type IconName =
     | 'lock'
     | 'split'
     | 'globe-lock'
+    | 'globe'
     | 'bulb'
     | 'undo'
     | 'upload-cloud'
@@ -289,6 +290,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     lock: (props) => <LucideWrapper Icon={Lock} {...props} />,
     split: (props) => <LucideWrapper Icon={Users} {...props} />,
     'globe-lock': (props) => <LucideWrapper Icon={Globe} {...props} />,
+    globe: (props) => <LucideWrapper Icon={Globe} {...props} />,
     'plus-circle': (props) => <LucideWrapper Icon={CirclePlus} {...props} />,
     'minus-circle': (props) => <LucideWrapper Icon={CircleMinus} {...props} />,
     meter: (props) => <LucideWrapper Icon={Gauge} {...props} />,

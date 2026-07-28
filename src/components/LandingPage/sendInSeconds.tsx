@@ -2,7 +2,7 @@ import Image from 'next/image'
 import exclamations from '@/assets/illustrations/exclamations.svg'
 import payZeroFees from '@/assets/illustrations/pay-zero-fees.svg'
 import mobileSendInSeconds from '@/assets/illustrations/mobile-send-in-seconds.svg'
-import { Star } from '@/assets'
+import Star from '@/assets/illustrations/star.svg'
 import { CloudsCss } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import { SendInSecondsCTA } from './SendInSecondsCTA'
@@ -48,7 +48,7 @@ export function SendInSeconds() {
                     x={config.x}
                     rotate={config.rotate}
                 >
-                    <img src={Star.src} alt="" width={config.width} height={config.height} />
+                    <Image src={Star} alt="" width={config.width} height={config.height} />
                 </AnimateOnView>
             ))}
 

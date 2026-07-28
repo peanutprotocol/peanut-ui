@@ -4,6 +4,7 @@ import InfoCard from '@/components/Global/InfoCard'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { extractMerchantIso2 } from '@/components/TransactionDetails/transaction-details.utils'
 import { LOCAL_RAIL_BY_COUNTRY } from '@/components/TransactionDetails/provider-rows/local-rail-countries'
+import { useTranslations } from 'next-intl'
 
 /**
  * Countries whose local currency IS the US dollar — a USD card charge there is
@@ -26,6 +27,8 @@ const USD_COUNTRIES = new Set(['US', 'PR', 'GU', 'VI', 'AS', 'MP', 'EC', 'SV', '
  * message — one nudge per receipt.
  */
 export function CardUsdAbroadNotice({ transaction }: { transaction: TransactionDetails }) {
+    const t = useTranslations('transaction')
+
     // Card spends only. Refunds map to a 'receive' card type — same gate as
     // LocalRailNudge, and this advice makes no sense on a refund.
     if (transaction.extraDataForDrawer?.transactionCardType !== 'card_pay') return null
@@ -47,8 +50,8 @@ export function CardUsdAbroadNotice({ transaction }: { transaction: TransactionD
         <InfoCard
             variant="info"
             icon="info"
-            title="Pay in local currency next time"
-            description="You were charged in US dollars. When a terminal offers to bill in dollars, choose the local currency instead — Peanut's exchange rate is usually better."
+            title={t('nudge.usdAbroadTitle')}
+            description={t('nudge.usdAbroadDescription')}
         />
     )
 }

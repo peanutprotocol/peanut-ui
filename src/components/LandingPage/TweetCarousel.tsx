@@ -1,6 +1,7 @@
 'use client'
 
 import { TWEETS, type Tweet } from '@/constants/tweets.consts'
+import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import Marquee from 'react-fast-marquee'
 
@@ -53,10 +54,11 @@ const Avatar = ({ tweet }: { tweet: Tweet }) => {
     }
 
     return (
-        <img
+        <Image
             src={tweet.avatar}
             alt={tweet.author}
-            loading="lazy"
+            width={32}
+            height={32}
             className="h-8 w-8 flex-shrink-0 rounded-full object-cover"
             onError={() => setImgError(true)}
         />
@@ -128,11 +130,12 @@ const FeaturedCard = ({ tweet }: { tweet: Tweet }) => {
         >
             {photoMedia && !imgError ? (
                 <div className="relative h-[220px] w-full flex-shrink-0 overflow-hidden border-b-2 border-n-1 bg-grey-2">
-                    <img
+                    <Image
                         src={photoMedia.url}
                         alt="Tweet media"
-                        loading="lazy"
-                        className="h-full w-full object-cover"
+                        fill
+                        sizes="280px"
+                        className="object-cover"
                         onError={() => setImgError(true)}
                     />
                     {hasVideo && <PlayOverlay />}

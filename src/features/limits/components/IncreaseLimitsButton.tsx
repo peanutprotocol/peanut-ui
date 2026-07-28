@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useLimits } from '@/hooks/useLimits'
@@ -18,6 +19,7 @@ const INCREASE_LIMITS_MESSAGE = 'Hi, I would like to increase my payment limits.
  * - Everyone else: opens support chat with prefilled message
  */
 export default function IncreaseLimitsButton() {
+    const t = useTranslations('limits.increase')
     const { openSupportWithMessage } = useModalsContext()
     const { mantecaLimits, isLoading: isLimitsLoading, refetch } = useLimits()
 
@@ -40,7 +42,7 @@ export default function IncreaseLimitsButton() {
     if (actionFlow.isComplete) {
         return (
             <div className="rounded-sm border border-n-1 bg-success-3 p-4 text-center text-sm font-medium">
-                Document submitted! Your limits will be updated shortly.
+                {t('submitted')}
             </div>
         )
     }
@@ -54,7 +56,7 @@ export default function IncreaseLimitsButton() {
                 loading={actionFlow.isLoading || isLimitsLoading}
                 disabled={actionFlow.isLoading || isLimitsLoading}
             >
-                Increase my limits
+                {t('cta')}
             </Button>
 
             {actionFlow.error && <p className="text-center text-xs text-error">{actionFlow.error}</p>}

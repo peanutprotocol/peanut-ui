@@ -68,9 +68,9 @@ function remoteSignerByAddress(address: Address): LocalAccount {
         type: 'local',
         source: 'remote-session-key',
         publicKey: '0x' as Hex,
-        signMessage: throwSign as any,
-        signTransaction: throwSign as any,
-        signTypedData: throwSign as any,
+        signMessage: throwSign,
+        signTransaction: throwSign,
+        signTypedData: throwSign,
     } as unknown as LocalAccount
 }
 
@@ -153,7 +153,7 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
                 },
                 {
                     target: coordinatorAddress,
-                    selector: toFunctionSelector(rainCoordinatorAbi[0] as any),
+                    selector: toFunctionSelector(rainCoordinatorAbi[0]),
                 },
             ],
         })

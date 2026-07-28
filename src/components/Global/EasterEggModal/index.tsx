@@ -1,12 +1,11 @@
 'use client'
 
 import ActionModal from '@/components/Global/ActionModal'
+import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 
 export interface EasterEggCountryConfig {
     image: string
-    caption: string
-    subtitle: string
 }
 
 /**
@@ -14,46 +13,14 @@ export interface EasterEggCountryConfig {
  * so we show a fun modal instead of the normal flow.
  */
 export const EASTER_EGG_COUNTRIES: Record<string, EasterEggCountryConfig> = {
-    AQ: {
-        image: '/easter-eggs/antarctica.webp',
-        caption: '🐧 No banks here, only penguins!',
-        subtitle: "Antarctica isn't a real country... yet",
-    },
-    BV: {
-        image: '/easter-eggs/bouvet.webp',
-        caption: '🧊 Population: 0. Banks: also 0.',
-        subtitle: 'An uninhabited Norwegian glacier in the South Atlantic',
-    },
-    CX: {
-        image: '/easter-eggs/christmas.webp',
-        caption: "🦀 Red crabs don't need bank accounts",
-        subtitle: '45 million crabs, zero ATMs',
-    },
-    CC: {
-        image: '/easter-eggs/cocos.webp',
-        caption: '🥥 Coconuts accepted, wire transfers not so much',
-        subtitle: 'Population: 544. Financial infrastructure: vibes',
-    },
-    GS: {
-        image: '/easter-eggs/southgeorgia.webp',
-        caption: '🐧 More penguins than people',
-        subtitle: 'South Georgia: 30 researchers, 3 million penguins, 0 banks',
-    },
-    HM: {
-        image: '/easter-eggs/heard.webp',
-        caption: '🌋 Active volcano, inactive banking sector',
-        subtitle: 'Heard Island: uninhabited, unless you count the seals',
-    },
-    PN: {
-        image: '/easter-eggs/pitcairn.webp',
-        caption: '🏴\u200d☠️ 47 people. 0 ATMs. All vibes.',
-        subtitle: "The world's least populated jurisdiction with a .pn domain",
-    },
-    TK: {
-        image: '/easter-eggs/tokelau.webp',
-        caption: '🌊 No roads, no banks, no problem',
-        subtitle: 'Three atolls, 1,500 people, and the .tk domain empire',
-    },
+    AQ: { image: '/easter-eggs/antarctica.webp' },
+    BV: { image: '/easter-eggs/bouvet.webp' },
+    CX: { image: '/easter-eggs/christmas.webp' },
+    CC: { image: '/easter-eggs/cocos.webp' },
+    GS: { image: '/easter-eggs/southgeorgia.webp' },
+    HM: { image: '/easter-eggs/heard.webp' },
+    PN: { image: '/easter-eggs/pitcairn.webp' },
+    TK: { image: '/easter-eggs/tokelau.webp' },
 }
 
 interface EasterEggModalProps {
@@ -63,15 +30,28 @@ interface EasterEggModalProps {
 }
 
 const EasterEggModal = ({ visible, onClose, countryCode }: EasterEggModalProps) => {
+    const t = useTranslations('global')
     const config = EASTER_EGG_COUNTRIES[countryCode]
-    if (!config) return null
+    // Spelled out rather than built from a template key so next-intl's typed messages still check them.
+    const copy: Record<string, { caption: string; subtitle: string }> = {
+        AQ: { caption: t('easterEggModal.AQ.caption'), subtitle: t('easterEggModal.AQ.subtitle') },
+        BV: { caption: t('easterEggModal.BV.caption'), subtitle: t('easterEggModal.BV.subtitle') },
+        CX: { caption: t('easterEggModal.CX.caption'), subtitle: t('easterEggModal.CX.subtitle') },
+        CC: { caption: t('easterEggModal.CC.caption'), subtitle: t('easterEggModal.CC.subtitle') },
+        GS: { caption: t('easterEggModal.GS.caption'), subtitle: t('easterEggModal.GS.subtitle') },
+        HM: { caption: t('easterEggModal.HM.caption'), subtitle: t('easterEggModal.HM.subtitle') },
+        PN: { caption: t('easterEggModal.PN.caption'), subtitle: t('easterEggModal.PN.subtitle') },
+        TK: { caption: t('easterEggModal.TK.caption'), subtitle: t('easterEggModal.TK.subtitle') },
+    }
+    const countryCopy = copy[countryCode]
+    if (!config || !countryCopy) return null
 
     return (
         <ActionModal
             visible={visible}
             onClose={onClose}
-            title={config.caption}
-            description={config.subtitle}
+            title={countryCopy.caption}
+            description={countryCopy.subtitle}
             icon={
                 <Image
                     src={config.image}
@@ -85,7 +65,7 @@ const EasterEggModal = ({ visible, onClose, countryCode }: EasterEggModalProps) 
             iconContainerClassName="size-auto rounded-none bg-transparent w-full"
             ctas={[
                 {
-                    text: 'Got it',
+                    text: t('easterEggModal.gotItCta'),
                     variant: 'stroke',
                     shadowSize: '4',
                     onClick: onClose,

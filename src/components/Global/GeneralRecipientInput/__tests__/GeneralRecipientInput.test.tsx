@@ -1,10 +1,20 @@
-import { render, act } from '@testing-library/react'
+import { render as rtlRender, act } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import type { ReactNode } from 'react'
+import en from '@/i18n/app/messages/en.json'
 import GeneralRecipientInput from '../index'
 import * as bridgeUtils from '@/utils/bridge-accounts.utils'
 import * as sentryUtils from '@/utils/sentry.utils'
 import * as ens from '@/app/actions/ens'
-import type { RecipientType } from '@/interfaces'
+import type { RecipientType } from '@/interfaces/interfaces'
 import { validateEnsName } from '@/utils/general.utils'
+
+const IntlWrapper = ({ children }: { children: ReactNode }) => (
+    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+        {children}
+    </NextIntlClientProvider>
+)
+const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 // Test case type definition for better maintainability
 type TestCase = {

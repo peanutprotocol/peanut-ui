@@ -7,7 +7,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import { type ITokenPriceData } from '@/interfaces'
+import { type ITokenPriceData } from '@/interfaces/interfaces'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { formatAmount, printableAddress } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
@@ -15,6 +15,7 @@ import { useContext, useEffect, useMemo, useRef } from 'react'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { addressFamilyForChainId } from '@/lib/validation/addressFamily'
+import { useTranslations } from 'next-intl'
 import { validateAndResolveRecipient } from '@/lib/validation/recipient'
 
 interface InitialWithdrawViewProps {
@@ -26,6 +27,8 @@ interface InitialWithdrawViewProps {
 
 export default function InitialWithdrawView({ amount, onReview, onBack, isProcessing }: InitialWithdrawViewProps) {
     const { usdAmount, withdrawData } = useWithdrawFlow()
+    const t = useTranslations('withdraw')
+    const tNav = useTranslations('navigation')
     const router = useRouter()
     const {
         selectedTokenData,
@@ -135,7 +138,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
         } else {
             setError({
                 showError: true,
-                errorMessage: 'Withdrawal details are missing',
+                errorMessage: t('initial.detailsMissing'),
             })
             console.error('Token, chain, or address not selected/entered', {
                 hasToken: !!selectedTokenData,
@@ -166,7 +169,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
         // flex/gap shell per the page-layout rules — space-y on the outer div
         // conflicts with centering and clipped the CTA on short viewports
         <div className="flex min-h-[inherit] flex-col gap-8">
-            <NavHeader title="Withdraw" onPrev={onBack || defaultOnBack} />
+            <NavHeader title={tNav('withdraw')} onPrev={onBack || defaultOnBack} />
 
             <div className="space-y-4">
                 <PeanutActionDetailsCard
@@ -181,7 +184,9 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                 <TokenSelector viewType="withdraw" />
 
                 <GeneralRecipientInput
-                    placeholder={addressFamily === 'evm' ? 'Enter an address or ENS' : 'Enter an address'}
+                    placeholder={
+                        addressFamily === 'evm' ? t('initial.placeholderEns') : t('initial.placeholderAddress')
+                    }
                     addressFamily={addressFamily}
                     chainId={selectedChainID}
                     recipient={recipient}
@@ -203,7 +208,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     review/warning step (external tester feedback). */}
                 {!!recipient.name && !!recipient.address && isValidRecipient && !inputChanging && (
                     <p className="text-left text-xs text-grey-1">
-                        {recipient.name} resolves to{' '}
+                        {recipient.name} {t('resolvesTo')}{' '}
                         <span className="font-mono">{printableAddress(recipient.address)}</span>
                     </p>
                 )}
@@ -224,7 +229,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     loading={isProcessing}
                     className="w-full"
                 >
-                    Review
+                    {t('review')}
                 </Button>
 
                 {error.showError && !!error.errorMessage && <ErrorAlert description={error.errorMessage} />}
