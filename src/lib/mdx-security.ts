@@ -1,16 +1,28 @@
 /**
- * MDX is code, not text.
+ * Make it a build error for content to contain executable JavaScript.
  *
- * An expression in a content file compiles straight through to executable
- * JavaScript — `{require('fs').readFileSync('/etc/passwd')}` survives
- * compilation verbatim — and then runs wherever the page is rendered: the CI
- * runner during `next build`, and the production build on Vercel. Both carry
- * environment secrets.
+ * Raw MDX compiles expressions straight through to executable JS —
+ * `{require('fs').readFileSync('/etc/passwd')}` survives verbatim — which would
+ * run during `next build`, in CI and on Vercel, both of which carry secrets.
  *
- * That was tolerable while every content publish went through a human. It isn't
- * now: `.github/workflows/content-publish-automerge.yml` merges content-only
- * bumps to production with no review, on the premise that "content can't do
- * anything dangerous". This module enforces that premise instead of assuming it.
+ * We are not exposed to that today, and this module is NOT the thing preventing
+ * it: `next-mdx-remote@6` already strips the same node set by default, via
+ * `removeJavaScriptExpressions` (`blockJS`) and `removeImportsExportsPlugin`
+ * (`useDynamicImport: false`). This exists for two reasons anyway:
+ *
+ * 1. That protection is a dependency's *default*, on a path that now publishes
+ *    to production with no human review. A major upgrade, or someone passing
+ *    `blockJS: false` or `useDynamicImport: true` for an unrelated reason,
+ *    re-opens it silently. This asserts the invariant in our own repo, where it
+ *    is visible and tested.
+ * 2. next-mdx-remote *silently strips*; we run first in `remarkPlugins`, so we
+ *    *throw*. An author who writes `{price}` expecting interpolation currently
+ *    gets a page that quietly renders nothing and auto-publishes. They should
+ *    get a failed build naming the file and line.
+ *
+ * So: the value here is failing loud and pinning the invariant, not closing a
+ * live hole. Do not delete it on the grounds that "the library handles it" —
+ * that is precisely the assumption it exists to keep honest.
  *
  * It is deliberately not a blanket ban on `{...}` — content legitimately uses
  * two inert forms, and breaking them would just push authors around the guard:
