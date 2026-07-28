@@ -91,7 +91,10 @@ export default function DeferredLinkDevPage() {
                 <h2 className="font-bold">web → store hand-off</h2>
                 <button
                     className="border border-n-1 px-2 py-1"
-                    onClick={() => setPayload(buildDeferredPayload('/home'))}
+                    onClick={() => {
+                        setPayload(buildDeferredPayload('/home'))
+                        setCopied(false)
+                    }}
                 >
                     build payload from current context (dest=/home)
                 </button>
