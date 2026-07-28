@@ -1,0 +1,165 @@
+name: Content pipeline watchdog
+
+# Content publishes to production with no human in the loop. The failure mode
+# that creates is silence: a broken internal link fails `validate-links`, the
+# publish PR never merges, and nothing anywhere goes red — the content simply
+# never appears and nobody finds out until someone notices the site is stale.
+#
+# This asserts the end-to-end invariant instead of instrumenting each failure:
+#
+#     is production's content the same as the content on mono `main`?
+#
+# One question, every failure mode — mirror died, dispatch never fired,
+# update-content errored, CI red, PR conflicted, and whatever we haven't
+# thought of yet.
+#
+# It lives here rather than in mono because peanut-ui already holds tokens to
+# read all three repos (MONO_READ_TOKEN, SUBMODULE_TOKEN); mono has no secrets.
+#
+# Loud by construction: a stuck pipeline ALWAYS fails the run (red in Actions),
+# and additionally posts to Discord when the webhook is configured. A missing
+# webhook degrades the alert; it never silences it.
+
+on:
+    schedule:
+        - cron: '*/15 * * * *'
+    workflow_dispatch:
+
+permissions:
+    contents: read
+    pull-requests: read
+
+# How long the pipeline may legitimately be mid-flight. Mirror ~1min + CI ~5min
+# + Vercel ~8min lands around 15-20min in practice; 45 leaves room for a queue
+# without letting a real stall hide for long.
+env:
+    GRACE_MINUTES: 45
+
+jobs:
+    check:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Is production's content current?
+              env:
+                  UI_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  CONTENT_TOKEN: ${{ secrets.SUBMODULE_TOKEN }}
+                  MONO_TOKEN: ${{ secrets.MONO_READ_TOKEN }}
+                  DISCORD_WEBHOOK: ${{ secrets.CONTENT_PIPELINE_DISCORD_WEBHOOK }}
+                  REPO: ${{ github.repository }}
+                  RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+              run: |
+                  set -uo pipefail
+
+                  # Every API call is `|| true`: the step shell is `bash -e`, so an
+                  # unguarded 403 aborts mid-script and surfaces as a bare red run
+                  # indistinguishable from a real content alert. That happened once
+                  # (actions:read 403). Collect what we can, then decide explicitly.
+
+                  # ---- hop 3: what production is serving -----------------------
+                  LIVE=$(GH_TOKEN=$UI_TOKEN gh api "repos/$REPO/contents/src/content?ref=main" --jq '.sha' || true)
+
+                  # ---- hop 2: what the mirror has published --------------------
+                  TIP=$(GH_TOKEN=$CONTENT_TOKEN gh api repos/peanutprotocol/peanut-content/commits/main --jq '.sha' || true)
+                  TIP_MSG=$(GH_TOKEN=$CONTENT_TOKEN gh api repos/peanutprotocol/peanut-content/commits/main --jq '.commit.message' 2>/dev/null | head -1 || true)
+                  TIP_AT=$(GH_TOKEN=$CONTENT_TOKEN gh api repos/peanutprotocol/peanut-content/commits/main --jq '.commit.committer.date' || true)
+
+                  # ---- hop 1: is the mirror itself healthy? --------------------
+                  # Deliberately NOT a SHA comparison against the "mirror: sync from
+                  # mono@<sha>" stamp. The mirror publishes content/ MINUS _system/
+                  # (plus _system/generated/), so a mono commit touching only
+                  # content/_system/** is correctly never published — and a SHA
+                  # comparison reads that as permanent staleness and alerts every 15
+                  # minutes forever. That is exactly what happened on the first live
+                  # run (d9a33de, a docs edit to content/_system/ARCHITECTURE.md).
+                  #
+                  # Instead, find the newest mono commit that touched a path the
+                  # mirror actually publishes, and compare THAT against the stamp.
+                  # Reading the Actions API for the mirror's run status would be
+                  # simpler but MONO_READ_TOKEN has contents:read only — it 403s on
+                  # actions:read, which is how the first attempt at this fix failed.
+                  EXPECTED=""
+                  for SHA in $(GH_TOKEN=$MONO_TOKEN gh api \
+                        "repos/peanutprotocol/mono/commits?path=content&per_page=15" --jq '.[].sha' || true); do
+                    FILES=$(GH_TOKEN=$MONO_TOKEN gh api "repos/peanutprotocol/mono/commits/$SHA" --jq '.files[].filename' || true)
+                    # Published: content/** except content/_system/**, plus content/_system/generated/**
+                    PUBLISHED=$( { printf '%s\n' "$FILES" | grep '^content/' | grep -v '^content/_system/'
+                                   printf '%s\n' "$FILES" | grep '^content/_system/generated/'; } | head -1 )
+                    if [ -n "$PUBLISHED" ]; then EXPECTED="$SHA"; break; fi
+                  done
+
+                  MIRRORED=$(printf '%s' "$TIP_MSG" | sed -nE 's/.*mono@([0-9a-f]+).*/\1/p')
+
+                  echo "expected mono@${EXPECTED:0:7} | mirrored @${MIRRORED:-none} | peanut-content ${TIP:0:7} | live ${LIVE:0:7}"
+
+                  # Cannot evaluate == broken watchdog, which must NOT look like a
+                  # broken pipeline. Label it distinctly so nobody debugs the wrong
+                  # thing, but still be loud — a watchdog that can't watch is an
+                  # outage of the thing that tells us about outages.
+                  if [ -z "$EXPECTED" ] || [ -z "$MIRRORED" ] || [ -z "$LIVE" ] || [ -z "$TIP" ]; then
+                    echo "::error::WATCHDOG DEGRADED — could not evaluate the pipeline (expected=${EXPECTED:0:7} mirrored=${MIRRORED:-none} live=${LIVE:0:7} tip=${TIP:0:7}). This is a watchdog fault, not necessarily a content fault."
+                    DEGRADED=true
+                  else
+                    DEGRADED=false
+                  fi
+
+                  STALE=""
+                  MIRROR_BROKEN=false
+                  if [ "$DEGRADED" = true ]; then
+                    STALE="**the watchdog itself could not evaluate the pipeline** — check its permissions before assuming content is stuck"
+                    MIRROR_BROKEN=true
+                  elif [ "${EXPECTED:0:7}" != "${MIRRORED:0:7}" ]; then
+                    STALE="the mirror is behind mono (expected \`${EXPECTED:0:7}\`, published \`${MIRRORED:0:7}\`)"
+                    MIRROR_BROKEN=true
+                  elif [ "$LIVE" != "$TIP" ]; then
+                    STALE="production is behind peanut-content (live \`${LIVE:0:7}\`, latest \`${TIP:0:7}\`)"
+                  fi
+
+                  if [ -z "$STALE" ]; then
+                    echo "production content is current."
+                    exit 0
+                  fi
+
+                  AGE=$(( ( $(date -u +%s) - $(date -u -d "${TIP_AT:-now}" +%s) ) / 60 ))
+
+                  # ---- which hop, and is it already doomed? --------------------
+                  NUM=$(GH_TOKEN=$UI_TOKEN gh pr list --repo "$REPO" --state open --base main \
+                          --json number,headRefName \
+                          --jq '[.[] | select((.headRefName | startswith("auto/update-content-")) or (.headRefName | startswith("content/publish-to-main")))] | first | .number // empty' || true)
+
+                  # A failed mirror will not fix itself, so skip the grace period.
+                  DOOMED=$MIRROR_BROKEN
+                  if [ -n "$NUM" ]; then
+                    PR_SHA=$(GH_TOKEN=$UI_TOKEN gh api "repos/$REPO/pulls/$NUM" --jq '.head.sha' || true)
+                    CI=$(GH_TOKEN=$UI_TOKEN gh api "repos/$REPO/commits/$PR_SHA/check-runs?per_page=100" \
+                           --jq '[.check_runs[] | select(.name=="ci-success")] | if length == 0 then "pending" elif all(.conclusion == "success") then "green" else "RED" end')
+                    WHERE="publish PR #$NUM is open, ci-success=$CI"
+                    [ "$CI" = "RED" ] && DOOMED=true
+                  else
+                    WHERE="no publish PR is open — the mirror, the dispatch, or update-content.yml failed"
+                  fi
+
+                  # Red CI never self-resolves, so don't wait out the grace period.
+                  if [ "$DOOMED" = false ] && [ "$AGE" -lt "$GRACE_MINUTES" ]; then
+                    echo "$STALE — ${AGE}m old, within ${GRACE_MINUTES}m grace ($WHERE). Not alerting yet."
+                    exit 0
+                  fi
+
+                  echo "::error::$STALE — stuck ${AGE}m — $WHERE"
+
+                  if [ -n "${DISCORD_WEBHOOK:-}" ]; then
+                    export ALERT=":rotating_light: **Content is not reaching production.**
+                  $STALE
+                  Stuck for **${AGE}m** — $WHERE
+                  Runbook: \`skills/publish-content/scripts/pipeline-status.sh\`
+                  $RUN_URL"
+                    # The User-Agent is load-bearing, not decoration: Cloudflare 403s
+                    # Discord webhook posts sent with python-urllib's default UA.
+                    # Verified 2026-07-28 — without it this silently never alerts.
+                    python3 -c "import json,os,urllib.request; d=json.dumps({'content':os.environ['ALERT']}).encode(); urllib.request.urlopen(urllib.request.Request(os.environ['DISCORD_WEBHOOK'],data=d,headers={'Content-Type':'application/json','User-Agent':'peanut-content-watchdog/1.0'}),timeout=15); print('alerted Discord')" \
+                      || echo "::warning::Discord post failed — the failed run below is still the alert."
+                  else
+                    echo "::warning::CONTENT_PIPELINE_DISCORD_WEBHOOK is not set — alerting via this failed run only."
+                  fi
+
+                  # Always loud, webhook or not.
+                  exit 1

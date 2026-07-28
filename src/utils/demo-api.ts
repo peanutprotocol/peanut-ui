@@ -391,7 +391,6 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         }),
     },
     { method: 'POST', pattern: '/bridge/onramp/create', handler: () => ({ success: true }) },
-    { method: 'POST', pattern: '/bridge/onramp/create-for-guest', handler: () => ({ success: true }) },
     { method: 'DELETE', pattern: '/bridge/onramp/:transferId/cancel', handler: () => ({ success: true }) },
     {
         method: 'POST',
