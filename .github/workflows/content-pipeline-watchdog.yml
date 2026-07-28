@@ -1,0 +1,124 @@
+name: Content pipeline watchdog
+
+# Content publishes to production with no human in the loop. The failure mode
+# that creates is silence: a broken internal link fails `validate-links`, the
+# publish PR never merges, and nothing anywhere goes red — the content simply
+# never appears and nobody finds out until someone notices the site is stale.
+#
+# This asserts the end-to-end invariant instead of instrumenting each failure:
+#
+#     is production's content the same as the content on mono `main`?
+#
+# One question, every failure mode — mirror died, dispatch never fired,
+# update-content errored, CI red, PR conflicted, and whatever we haven't
+# thought of yet.
+#
+# It lives here rather than in mono because peanut-ui already holds tokens to
+# read all three repos (MONO_READ_TOKEN, SUBMODULE_TOKEN); mono has no secrets.
+#
+# Loud by construction: a stuck pipeline ALWAYS fails the run (red in Actions),
+# and additionally posts to Discord when the webhook is configured. A missing
+# webhook degrades the alert; it never silences it.
+
+on:
+    schedule:
+        - cron: '*/15 * * * *'
+    workflow_dispatch:
+
+permissions:
+    contents: read
+    pull-requests: read
+
+# How long the pipeline may legitimately be mid-flight. Mirror ~1min + CI ~5min
+# + Vercel ~8min lands around 15-20min in practice; 45 leaves room for a queue
+# without letting a real stall hide for long.
+env:
+    GRACE_MINUTES: 45
+
+jobs:
+    check:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Is production's content current?
+              env:
+                  UI_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  CONTENT_TOKEN: ${{ secrets.SUBMODULE_TOKEN }}
+                  MONO_TOKEN: ${{ secrets.MONO_READ_TOKEN }}
+                  DISCORD_WEBHOOK: ${{ secrets.CONTENT_PIPELINE_DISCORD_WEBHOOK }}
+                  REPO: ${{ github.repository }}
+                  RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+              run: |
+                  set -uo pipefail
+
+                  # ---- hop 3: what production is serving -----------------------
+                  LIVE=$(GH_TOKEN=$UI_TOKEN gh api "repos/$REPO/contents/src/content?ref=main" --jq '.sha')
+
+                  # ---- hop 2: what the mirror has published --------------------
+                  TIP=$(GH_TOKEN=$CONTENT_TOKEN gh api repos/peanutprotocol/peanut-content/commits/main --jq '.sha')
+                  TIP_MSG=$(GH_TOKEN=$CONTENT_TOKEN gh api repos/peanutprotocol/peanut-content/commits/main --jq '.commit.message' | head -1)
+                  TIP_AT=$(GH_TOKEN=$CONTENT_TOKEN gh api repos/peanutprotocol/peanut-content/commits/main --jq '.commit.committer.date')
+
+                  # ---- hop 1: what mono says the content should be -------------
+                  # The mirror stamps "mirror: sync from mono@<sha>", so a mismatch
+                  # here means the mirror itself is stuck — invisible from hops 2/3
+                  # alone, which would look perfectly consistent with each other.
+                  MONO_SHA=$(GH_TOKEN=$MONO_TOKEN gh api "repos/peanutprotocol/mono/commits?path=content&per_page=1" --jq '.[0].sha' | cut -c1-7)
+                  MIRRORED_SHA=$(printf '%s' "$TIP_MSG" | sed -nE 's/.*mono@([0-9a-f]+).*/\1/p' | cut -c1-7)
+
+                  echo "mono content@$MONO_SHA | mirrored from @${MIRRORED_SHA:-?} | peanut-content ${TIP:0:7} | live ${LIVE:0:7}"
+
+                  STALE=""
+                  if [ -n "$MIRRORED_SHA" ] && [ "$MONO_SHA" != "$MIRRORED_SHA" ]; then
+                    STALE="the mirror is behind mono (mono content@\`$MONO_SHA\`, mirror published \`$MIRRORED_SHA\`)"
+                  elif [ "$LIVE" != "$TIP" ]; then
+                    STALE="production is behind peanut-content (live \`${LIVE:0:7}\`, latest \`${TIP:0:7}\`)"
+                  fi
+
+                  if [ -z "$STALE" ]; then
+                    echo "production content is current."
+                    exit 0
+                  fi
+
+                  AGE=$(( ( $(date -u +%s) - $(date -u -d "$TIP_AT" +%s) ) / 60 ))
+
+                  # ---- which hop, and is it already doomed? --------------------
+                  NUM=$(GH_TOKEN=$UI_TOKEN gh pr list --repo "$REPO" --state open --base main \
+                          --json number,headRefName \
+                          --jq '[.[] | select((.headRefName | startswith("auto/update-content-")) or (.headRefName | startswith("content/publish-to-main")))] | first | .number // empty')
+
+                  DOOMED=false
+                  if [ -n "$NUM" ]; then
+                    SHA=$(GH_TOKEN=$UI_TOKEN gh api "repos/$REPO/pulls/$NUM" --jq '.head.sha')
+                    CI=$(GH_TOKEN=$UI_TOKEN gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" \
+                           --jq '[.check_runs[] | select(.name=="ci-success")] | if length == 0 then "pending" elif all(.conclusion == "success") then "green" else "RED" end')
+                    WHERE="publish PR #$NUM is open, ci-success=$CI"
+                    [ "$CI" = "RED" ] && DOOMED=true
+                  else
+                    WHERE="no publish PR is open — the mirror, the dispatch, or update-content.yml failed"
+                  fi
+
+                  # Red CI never self-resolves, so don't wait out the grace period.
+                  if [ "$DOOMED" = false ] && [ "$AGE" -lt "$GRACE_MINUTES" ]; then
+                    echo "$STALE — ${AGE}m old, within ${GRACE_MINUTES}m grace ($WHERE). Not alerting yet."
+                    exit 0
+                  fi
+
+                  echo "::error::$STALE — stuck ${AGE}m — $WHERE"
+
+                  if [ -n "${DISCORD_WEBHOOK:-}" ]; then
+                    export ALERT=":rotating_light: **Content is not reaching production.**
+                  $STALE
+                  Stuck for **${AGE}m** — $WHERE
+                  Runbook: \`skills/publish-content/scripts/pipeline-status.sh\`
+                  $RUN_URL"
+                    # The User-Agent is load-bearing, not decoration: Cloudflare 403s
+                    # Discord webhook posts sent with python-urllib's default UA.
+                    # Verified 2026-07-28 — without it this silently never alerts.
+                    python3 -c "import json,os,urllib.request; d=json.dumps({'content':os.environ['ALERT']}).encode(); urllib.request.urlopen(urllib.request.Request(os.environ['DISCORD_WEBHOOK'],data=d,headers={'Content-Type':'application/json','User-Agent':'peanut-content-watchdog/1.0'}),timeout=15); print('alerted Discord')" \
+                      || echo "::warning::Discord post failed — the failed run below is still the alert."
+                  else
+                    echo "::warning::CONTENT_PIPELINE_DISCORD_WEBHOOK is not set — alerting via this failed run only."
+                  fi
+
+                  # Always loud, webhook or not.
+                  exit 1
