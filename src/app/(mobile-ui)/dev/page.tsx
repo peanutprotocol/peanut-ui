@@ -40,6 +40,13 @@ export default function DevToolsPage() {
             icon: 'dollar',
         },
         {
+            name: 'Safe Area',
+            description:
+                'Per-device status-bar/system-bar insets: env() vs the natively measured values Capacitor injects, plus webview version and platform context.',
+            path: '/dev/safe-area',
+            icon: 'globe-lock',
+        },
+        {
             name: 'Home CTAs',
             description:
                 'Force-renders every home-screen CTA in isolation (card launch banner, carousel CTAs, activation steps) ignoring auth/state/launch gating.',

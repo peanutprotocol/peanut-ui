@@ -75,9 +75,9 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
                 UNDER the status bar — without this the ribbon/status icons collide
                 in a blank strip (see bug report). Fill the inset with the brand
                 periwinkle (matches the onboarding illustration) so the top reads as
-                intentional. env(safe-area-inset-top) resolves to 0 on web and on
+                intentional. --safe-top resolves to env(), which is 0 on web and on
                 non-edge-to-edge Android, so this is a no-op there. */}
-            <div className="bg-secondary-3" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+            <div className="bg-secondary-3 pt-safe-top">
                 <Banner />
             </div>
             {children}
@@ -87,8 +87,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
                 brand periwinkle so the bottom matches the top. No-op on web (inset = 0). */}
             <div
                 aria-hidden
-                className={`pointer-events-none fixed inset-x-0 bottom-0 -z-10 ${bottomInsetFill}`}
-                style={{ height: 'env(safe-area-inset-bottom)' }}
+                className={`pointer-events-none fixed inset-x-0 bottom-0 -z-10 h-safe-bottom ${bottomInsetFill}`}
             />
             <SupportDrawer />
         </>

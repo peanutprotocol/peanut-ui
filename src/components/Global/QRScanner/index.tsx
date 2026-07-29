@@ -78,7 +78,8 @@ function PaymentMethodBadge({ src, alt, name }: { src: string; alt: string; name
 function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onToggleCamera: () => void }) {
     const t = useTranslations('global')
     return (
-        <div className="fixed left-0 top-8 z-50 grid w-full grid-flow-col items-center py-2 text-center text-white">
+        // portalled overlay escapes the layout's safe-area padding; max() keeps the old 2.5rem on web
+        <div className="fixed left-0 top-0 z-50 grid w-full grid-flow-col items-center pb-2 pt-[max(2.5rem,calc(var(--safe-top)_+_0.5rem))] text-center text-white">
             <Button
                 variant="transparent-light"
                 className="border-1 mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
