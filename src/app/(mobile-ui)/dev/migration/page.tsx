@@ -28,49 +28,42 @@ import starImage from '@/assets/icons/star.png'
 type Platform = 'ios' | 'android' | 'desktop'
 const STORE = { ios: 'App Store', android: 'Google Play' } as const
 
-// device-aware download CTAs. mobile -> the user's store is primary (purple), the
-// other is secondary. desktop -> store links are useless on a laptop, so we show a
-// "Show QR" button that opens a scan-to-download modal (mirrors InstallPWA's
-// DesktopInstructions). brand logos (Apple / Play) aren't in the icon set yet — TODO.
-function storeCtas(platform: Platform, onQr: () => void) {
-    if (platform === 'desktop')
-        return [
-            {
-                text: 'Show QR to download',
-                variant: 'purple' as const,
-                shadowSize: '4' as const,
-                icon: 'qr-code' as const,
-                onClick: onQr,
-            },
-        ]
-    const other: Platform = platform === 'ios' ? 'android' : 'ios'
-    return [
-        {
-            text: STORE[platform],
-            variant: 'purple' as const,
-            shadowSize: '4' as const,
-            icon: 'mobile-install' as const,
-        },
-        { text: STORE[other], variant: 'stroke' as const, shadowSize: '4' as const },
-    ]
-}
-function StoreButtons({ platform, onQr }: { platform: Platform; onQr: () => void }) {
-    if (platform === 'desktop')
-        return (
-            <Button variant="purple" shadowSize="4" icon="qr-code" className="w-full" onClick={onQr}>
-                Show QR to download
-            </Button>
-        )
-    const other: Platform = platform === 'ios' ? 'android' : 'ios'
+const STORE_URL = {
+    ios: 'https://apps.apple.com/app/peanut',
+    android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
+} as const
+
+// scan-to-download with a store toggle. on the web we can't know the visitor's phone OS,
+// so we show both store QRs behind a toggle instead of guessing which to display.
+// (A single smart link — peanut.me/app redirecting by device — would remove the toggle.)
+function DownloadQR() {
+    const [store, setStore] = useState<'ios' | 'android'>('ios')
     return (
-        <div className="flex w-full flex-col gap-2">
-            <Button variant="purple" shadowSize="4" icon="mobile-install" className="w-full">
-                {STORE[platform]}
-            </Button>
-            <Button variant="stroke" shadowSize="4" className="w-full">
-                {STORE[other]}
-            </Button>
+        <div className="flex flex-col items-center gap-3 py-2">
+            <div className="flex overflow-hidden rounded-sm border border-n-1">
+                {(['ios', 'android'] as const).map((s) => (
+                    <button
+                        key={s}
+                        onClick={() => setStore(s)}
+                        className={`px-4 py-1.5 text-sm font-semibold ${store === s ? 'bg-primary-1 text-n-1' : 'bg-white text-grey-1'}`}
+                    >
+                        {STORE[s]}
+                    </button>
+                ))}
+            </div>
+            <QRCodeWrapper url={STORE_URL[store]} />
+            <span className="text-xs text-grey-1">Scan with your phone camera</span>
         </div>
+    )
+}
+
+// one primary CTA per device: the visitor's store on mobile, the scan-to-download QR on desktop.
+function StoreButtons({ platform }: { platform: Platform }) {
+    if (platform === 'desktop') return <DownloadQR />
+    return (
+        <Button variant="purple" shadowSize="4" icon="mobile-install" className="w-full">
+            {STORE[platform]}
+        </Button>
     )
 }
 
@@ -138,7 +131,7 @@ function Section({
 const INDEX = [
     [
         '01 Download prompt',
-        'A modal asking logged-in web users to get the app. Countdown variant warns the site is closing.',
+        'A modal telling logged-in web users Peanut is becoming app-only, with the deadline in the copy. QR shown inline on desktop.',
         'Web app, after login, during the migration window.',
     ],
     [
@@ -173,7 +166,7 @@ const INDEX = [
     ],
     [
         '08 Scan-to-download (QR)',
-        'On desktop, store links do nothing — this modal shows a QR to scan with your phone. Replaces the store buttons wherever a download CTA appears on web.',
+        "On desktop we can't tell iOS from Android, so the QR carries a store toggle — one QR at a time. Shown inline (01) or as a modal (03, 05) wherever a download CTA appears on web.",
         'Every download CTA when the visitor is on a desktop browser.',
     ],
 ]
@@ -181,7 +174,6 @@ const INDEX = [
 export default function MigrationMockupsPage() {
     const [platform, setPlatform] = useState<Platform>('ios')
     const [downloadModal, setDownloadModal] = useState(false)
-    const [countdown, setCountdown] = useState(false)
     const [reviewModal, setReviewModal] = useState(false)
     const [pushModal, setPushModal] = useState(false)
     const [qrModal, setQrModal] = useState(false)
@@ -242,59 +234,43 @@ export default function MigrationMockupsPage() {
             <Section
                 n="01"
                 title="Download prompt (logged-in web users)"
-                subtitle="Shown after login on the website. Dismissible. The countdown variant makes the deadline loud."
+                subtitle="Shown after login on the website. One variant, deadline baked into the copy. On mobile: your store's button. On desktop: the QR is shown inline (no extra click)."
             >
-                <div className="flex flex-wrap gap-3">
-                    <Button
-                        variant="stroke"
-                        onClick={() => {
-                            setCountdown(false)
-                            setDownloadModal(true)
-                        }}
-                    >
-                        Open (reminder)
-                    </Button>
-                    <Button
-                        variant="stroke"
-                        onClick={() => {
-                            setCountdown(true)
-                            setDownloadModal(true)
-                        }}
-                    >
-                        Open (with countdown)
-                    </Button>
-                </div>
+                <Button variant="stroke" onClick={() => setDownloadModal(true)}>
+                    Open download prompt
+                </Button>
                 <ActionModal
                     visible={downloadModal}
                     onClose={() => setDownloadModal(false)}
                     icon="mobile-install"
-                    title="Peanut is moving to your phone"
+                    title="Peanut is becoming an app"
                     description={
-                        <div className="spacey-y-4">
-                            <p>
-                                Get the Peanut app to keep using your account — it's faster and you'll get alerts when
-                                money lands.
-                            </p>
-                            {countdown && (
-                                <div className="flex flex-col items-center gap-1">
-                                    <span className="text-3xl font-extrabold leading-none text-n-1">14 days</span>
-                                    <span className="text-xs font-semibold uppercase tracking-wide text-n-1">
-                                        until the website closes
-                                    </span>
-                                </div>
-                            )}
-                        </div>
+                        <p className="py-1">
+                            Peanut is moving to the App Store and Google Play. In{' '}
+                            <b className="text-black">14 days</b> it will only work in the app — download it now to keep
+                            using your account.
+                        </p>
                     }
-                    ctas={storeCtas(platform, openQr)}
+                    content={platform === 'desktop' ? <DownloadQR /> : undefined}
+                    ctas={
+                        platform === 'desktop'
+                            ? []
+                            : [
+                                  {
+                                      text: STORE[platform],
+                                      variant: 'purple' as const,
+                                      shadowSize: '4' as const,
+                                      icon: 'mobile-install' as const,
+                                  },
+                              ]
+                    }
                     footer={
-                        !countdown && (
-                            <button
-                                className="mt-3 w-full text-center text-xs text-grey-1 underline"
-                                onClick={() => setDownloadModal(false)}
-                            >
-                                Remind me later
-                            </button>
-                        )
+                        <button
+                            className="mt-3 w-full text-center text-xs text-grey-1 underline"
+                            onClick={() => setDownloadModal(false)}
+                        >
+                            Remind me later
+                        </button>
                     }
                 />
             </Section>
@@ -310,7 +286,7 @@ export default function MigrationMockupsPage() {
                     sub="The website has closed. Download the app to get back into your account — your money is safe."
                     footer={
                         <>
-                            <StoreButtons platform={platform} onQr={openQr} />
+                            <StoreButtons platform={platform} />
                             <a className="text-center text-sm text-black underline" href="#">
                                 Can&apos;t download the app? Contact support
                             </a>
@@ -360,21 +336,25 @@ export default function MigrationMockupsPage() {
             <Section
                 n="05"
                 title="Landing page hero (new visitors)"
-                subtitle="The real landing hero (same component as peanut.me). Only change from live: the single CTA is device-based — App Store on iOS, Google Play on Android, 'Download the app' on desktop."
+                subtitle="The real landing hero (same component as peanut.me). CTA says 'Download now' for everyone; on mobile it deep-links to the visitor's store, on desktop it opens the scan-to-download QR."
             >
-                <div className="overflow-hidden rounded-sm border border-n-1">
+                <div
+                    className="overflow-hidden rounded-sm border border-n-1"
+                    onClickCapture={
+                        platform === 'desktop'
+                            ? (e) => {
+                                  e.preventDefault()
+                                  setQrModal(true)
+                              }
+                            : undefined
+                    }
+                >
                     <Hero
                         buttonVisible
-                        primaryCta={
-                            platform === 'ios'
-                                ? { label: 'Download on the App Store', href: 'https://apps.apple.com/app/peanut' }
-                                : platform === 'android'
-                                  ? {
-                                        label: 'Get it on Google Play',
-                                        href: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
-                                    }
-                                  : { label: 'Download the app', href: '#' }
-                        }
+                        primaryCta={{
+                            label: 'Download now',
+                            href: platform === 'ios' ? STORE_URL.ios : platform === 'android' ? STORE_URL.android : '#',
+                        }}
                     />
                 </div>
             </Section>
@@ -438,14 +418,10 @@ export default function MigrationMockupsPage() {
             <ActionModal
                 visible={qrModal}
                 onClose={() => setQrModal(false)}
-                icon="mobile-install"
+                icon="qr-code"
                 title="Scan to download Peanut"
-                description="Point your phone's camera at the code to get the app from your store."
-                content={
-                    <div className="mx-auto py-2">
-                        <QRCodeWrapper url="https://peanut.me/app" />
-                    </div>
-                }
+                description="Pick your phone's store, then scan the code with your camera."
+                content={<DownloadQR />}
                 ctas={[{ text: 'Done', variant: 'purple', shadowSize: '4', onClick: () => setQrModal(false) }]}
             />
         </div>
