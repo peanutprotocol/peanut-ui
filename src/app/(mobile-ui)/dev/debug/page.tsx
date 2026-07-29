@@ -18,13 +18,17 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { debugLog } from '@/utils/debug-console'
+import DevPageShell from '../_components/DevPageShell'
+import DevSectionLabel from '../_components/DevSectionLabel'
 
 type ActionResult = { ok: boolean; raw: any; ms: number }
+
+const DEBUG_DESCRIPTION =
+    'Sandbox-only cheats: one-click full setup, fund USDC, fast-forward KYC, complete pending intents. Every action also logs to the console in pink.'
 
 const WAITLIST_SKIP_BADGES = [
     { code: 'OG_2025_10_12', holders: 2196 },
@@ -115,21 +119,23 @@ export default function DebugPage() {
         if (userId) refreshWhoami()
     }, [userId, refreshWhoami])
 
-    if (isFetchingUser) return <div className="p-4 font-mono text-sm">loading user…</div>
+    if (isFetchingUser)
+        return (
+            <DevPageShell title="Debug" description={DEBUG_DESCRIPTION} width="prose">
+                <p className="font-mono text-sm">loading user…</p>
+            </DevPageShell>
+        )
     if (!userId) {
         return (
-            <div className="flex min-h-screen flex-col">
-                <NavHeader title="Debug" />
-                <div className="p-6">
-                    <p className="font-mono text-sm">
-                        Not signed in. Sign up via{' '}
-                        <Link className="underline" href="/setup">
-                            /setup
-                        </Link>{' '}
-                        first, then come back.
-                    </p>
-                </div>
-            </div>
+            <DevPageShell title="Debug" description={DEBUG_DESCRIPTION} width="prose">
+                <p className="font-mono text-sm">
+                    Not signed in. Sign up via{' '}
+                    <Link className="text-black underline" href="/setup">
+                        /setup
+                    </Link>{' '}
+                    first, then come back.
+                </p>
+            </DevPageShell>
         )
     }
 
@@ -449,9 +455,8 @@ export default function DebugPage() {
     ]
 
     return (
-        <div className="flex min-h-screen flex-col">
-            <NavHeader title="Debug" />
-            <div className="space-y-4 p-4 pb-24">
+        <DevPageShell title="Debug" description={DEBUG_DESCRIPTION} width="prose">
+            <div className="space-y-4">
                 <section className="border border-n-1 bg-primary-3 p-3 font-mono text-xs">
                     <div className="mb-2 font-bold">User</div>
                     <div>
@@ -495,7 +500,7 @@ export default function DebugPage() {
 
                 {sections.map((section) => (
                     <section key={section.title}>
-                        <h2 className="mb-2 font-display text-lg">{section.title}</h2>
+                        <DevSectionLabel className="mb-2">{section.title}</DevSectionLabel>
                         <div className="space-y-2">
                             {section.actions.map((a) => {
                                 const r = results[a.key]
@@ -520,7 +525,7 @@ export default function DebugPage() {
                                         {r && (
                                             <pre
                                                 className={`mt-2 max-h-48 overflow-auto border border-n-1 p-2 text-[10px] leading-tight ${
-                                                    r.ok ? 'bg-green-1/30' : 'bg-red-100'
+                                                    r.ok ? 'bg-green-1/30' : 'bg-error-1/20'
                                                 }`}
                                             >
                                                 {`(${r.ms}ms) `}
@@ -535,7 +540,7 @@ export default function DebugPage() {
                 ))}
 
                 <section className="pt-4">
-                    <h2 className="mb-2 font-display text-lg">Shortcuts</h2>
+                    <DevSectionLabel className="mb-2">Shortcuts</DevSectionLabel>
                     <div className="space-y-1 font-mono text-xs">
                         <div>
                             <Link className="underline" href="/home">
@@ -571,6 +576,6 @@ export default function DebugPage() {
                     </div>
                 </section>
             </div>
-        </div>
+        </DevPageShell>
     )
 }
