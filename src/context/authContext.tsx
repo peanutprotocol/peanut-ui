@@ -25,6 +25,7 @@ import { createContext, type ReactNode, useContext, useState, useEffect, useMemo
 import { captureException, setUser as setSentryUser } from '@sentry/nextjs'
 // import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
 import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
+import { purgeCaches } from '@/utils/cache.utils'
 import { clearStepUpToken } from '@/services/step-up'
 
 interface AuthContextType {
@@ -225,18 +226,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         dispatch(zerodevActions.resetZeroDevState())
 
         // clear service worker caches (non-fatal if it fails)
-        if ('caches' in window) {
-            try {
-                const cacheNames = await caches.keys()
-                await Promise.all(
-                    cacheNames
-                        .filter((name) => USER_DATA_CACHE_PATTERNS.some((pattern) => name.includes(pattern)))
-                        .map((name) => caches.delete(name))
-                )
-            } catch (e) {
-                console.warn('failed to clear caches on logout:', e)
-            }
-        }
+        await purgeCaches(USER_DATA_CACHE_PATTERNS)
 
         // clear session flags
         try {
