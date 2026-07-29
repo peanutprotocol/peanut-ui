@@ -15,6 +15,10 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
+import PeanutActionDetailsCard, { type PeanutActionDetailsCardTransactionType } from '@/components/Global/PeanutActionDetailsCard'
+import { ActionListCard } from '@/components/ActionListCard'
+import Divider from '@/components/0_Bruddle/Divider'
+import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { PEANUTMAN, PEANUTMAN_MOBILE, PeanutWhistling } from '@/assets/mascot'
 import { PEANUT_LOGO_BLACK } from '@/assets/logos'
 import starImage from '@/assets/icons/star.png'
@@ -235,9 +239,9 @@ export default function MigrationMockupsPage() {
                 subtitle="Whole page a non-user lands on. Same hero as today, primary action is 'Continue with Peanut' (opens the app, or the store if not installed). Mock data."
             >
                 <div className="grid gap-6 lg:grid-cols-3">
-                    <GuestPage kind="claim" name="alice" amount="$25.00" />
-                    <GuestPage kind="request" name="bob" amount="$40.00" />
-                    <GuestPage kind="invite" name="carol" amount="" />
+                    <GuestPage kind="claim" />
+                    <GuestPage kind="request" />
+                    <GuestPage kind="invite" />
                 </div>
             </Section>
 
@@ -321,7 +325,7 @@ export default function MigrationMockupsPage() {
                     description="A quick rating helps other people find us."
                     ctas={[
                         { text: 'Love it', variant: 'purple', shadowSize: '4', onClick: () => setReviewModal(false) },
-                        { text: 'Could be better', variant: 'stroke', shadowSize: '4', onClick: () => setReviewModal(false) },
+                        { text: 'Meh', variant: 'stroke', shadowSize: '4', onClick: () => setReviewModal(false) },
                     ]}
                 />
             </Section>
@@ -369,59 +373,66 @@ export default function MigrationMockupsPage() {
                         <QRCodeWrapper url="https://peanut.me/app" />
                     </div>
                 }
-                ctas={[{ text: 'Done', variant: 'stroke', shadowSize: '4', onClick: () => setQrModal(false) }]}
+                ctas={[{ text: 'Done', variant: 'purple', shadowSize: '4', onClick: () => setQrModal(false) }]}
             />
         </div>
     )
 }
 
-function GuestPage({ kind, name, amount }: { kind: 'claim' | 'request' | 'invite'; name: string; amount: string }) {
-    const hero =
-        kind === 'claim'
-            ? { label: `${name} sent you`, big: amount }
-            : kind === 'request'
-              ? { label: `${name} is requesting`, big: amount }
-              : { label: `${name} invited you to`, big: '' }
+// mirrors the real claim/request page: centered header -> PeanutActionDetailsCard hero
+// (avatar + "alice sent you" + big amount) -> Continue with Peanut -> Divider -> ActionListCard rows.
+const GUEST = {
+    claim: { header: 'Receive', tx: 'CLAIM_LINK', name: 'alice', amount: '25', message: '' },
+    request: { header: 'Pay', tx: 'REQUEST_PAYMENT', name: 'bob', amount: '40', message: 'for dinner' },
+    invite: { header: 'Receive', tx: 'CLAIM_LINK', name: 'carol', amount: '25', message: '' },
+} satisfies Record<string, { header: string; tx: PeanutActionDetailsCardTransactionType; name: string; amount: string; message: string }>
+
+function GuestPage({ kind }: { kind: 'claim' | 'request' | 'invite' }) {
+    const c = GUEST[kind]
     return (
-        <div className="mx-auto flex h-[560px] w-full max-w-[340px] flex-col overflow-hidden rounded-sm border border-n-1 bg-white">
-            {/* header */}
-            <div className="flex items-center justify-center border-b border-n-1/10 py-3">
-                <Image src={PEANUT_LOGO_BLACK} alt="Peanut" className="h-4 w-auto" />
-            </div>
-            {/* hero */}
-            <div className="flex flex-col items-center gap-3 px-6 pb-4 pt-8">
-                <AvatarWithBadge name={name} size="large" />
-                <div className="text-center">
-                    <div className="text-sm text-grey-1">{hero.label}</div>
-                    {hero.big ? (
-                        <div className="text-4xl font-extrabold text-n-1">{hero.big}</div>
-                    ) : (
-                        <div className="mt-1 flex items-center justify-center gap-1 text-2xl font-extrabold text-n-1">
-                            <Image src={PEANUT_LOGO_BLACK} alt="Peanut" className="h-5 w-auto" />
-                        </div>
-                    )}
+        <div className="mx-auto flex h-[600px] w-full max-w-[360px] flex-col justify-between gap-6 overflow-hidden rounded-sm border border-n-1 bg-white p-5">
+            <div className="pb-1 text-center text-2xl font-extrabold text-n-1">{c.header}</div>
+            <div className="my-auto flex flex-col gap-4">
+                <PeanutActionDetailsCard
+                    avatarSize="small"
+                    transactionType={c.tx}
+                    recipientType="USERNAME"
+                    recipientName={c.name}
+                    amount={c.amount}
+                    tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
+                    message={c.message}
+                />
+                {kind === 'invite' && (
+                    <div className="flex items-center justify-center gap-1">
+                        <Image src={starImage.src} alt="" width={18} height={18} />
+                        <p className="text-center text-sm">Invited by {c.name}, you have early access!</p>
+                        <Image src={starImage.src} alt="" width={18} height={18} />
+                    </div>
+                )}
+                <div className="space-y-2">
+                    <ContinueWithPeanut />
+                    <Divider text="or" />
+                    <div>
+                        <ActionListCard
+                            position="first"
+                            leftIcon={<Icon name="bank" size={20} />}
+                            title="Bank transfer"
+                            description="1-2 business days"
+                            onClick={() => {}}
+                        />
+                        <ActionListCard
+                            position="last"
+                            leftIcon={<Icon name="bank" size={20} />}
+                            title="Pix"
+                            description="Instant, Brazil"
+                            onClick={() => {}}
+                        />
+                    </div>
                 </div>
             </div>
-            {/* actions */}
-            <div className="mt-auto flex flex-col gap-3 p-5">
-                <ContinueWithPeanut />
-                {kind !== 'invite' && (
-                    <>
-                        <div className="flex items-center gap-3 text-xs text-grey-1">
-                            <span className="h-px flex-1 bg-n-1/15" /> or <span className="h-px flex-1 bg-n-1/15" />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            {['Claim to bank account', 'Claim to Pix'].map((m) => (
-                                <div key={m} className="flex items-center gap-3 rounded-sm border border-n-1 px-4 py-3">
-                                    <Icon name="bank" size={18} />
-                                    <span className="text-sm font-medium text-n-1">{m}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </>
-                )}
-                <p className="text-center text-xs text-grey-1">Opens the Peanut app — or the store if you don&apos;t have it yet.</p>
-            </div>
+            <p className="text-center text-xs text-grey-1">
+                Continue with Peanut opens the app — or the store if you don&apos;t have it.
+            </p>
         </div>
     )
 }
