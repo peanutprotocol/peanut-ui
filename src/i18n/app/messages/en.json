@@ -1067,7 +1067,8 @@
             "balanceReturnFailed": "Could not return your card balance. Please try again or contact support.",
             "authorizationFailed": "Card authorization failed. Please try again or contact support.",
             "walletNotReady": "Wallet not ready — please retry in a moment",
-            "unexpectedStrategy": "Unexpected withdrawal strategy — please contact support"
+            "unexpectedStrategy": "Unexpected withdrawal strategy — please contact support",
+            "cardDetailsLoading": "Card details are still loading — please retry in a moment"
         },
         "countryConfirm": {
             "noCandidatesTitle": "We need to check your details",

@@ -1067,7 +1067,8 @@
             "balanceReturnFailed": "No pudimos devolver el saldo de tu tarjeta. Inténtalo de nuevo o contacta a soporte.",
             "authorizationFailed": "Falló la autorización de la tarjeta. Inténtalo de nuevo o contacta a soporte.",
             "walletNotReady": "La billetera no está lista — vuelve a intentarlo en un momento",
-            "unexpectedStrategy": "Estrategia de retiro inesperada — contacta a soporte"
+            "unexpectedStrategy": "Estrategia de retiro inesperada — contacta a soporte",
+            "cardDetailsLoading": "Los datos de la tarjeta aún están cargando — vuelve a intentarlo en un momento"
         },
         "countryConfirm": {
             "noCandidatesTitle": "Necesitamos revisar tus datos",

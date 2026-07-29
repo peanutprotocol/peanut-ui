@@ -60,6 +60,12 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
         setPhase('canceling')
         setError(null)
         try {
+            // An unloaded overview reads as zero spending power below, which
+            // would skip the withdrawal and get the cancel rejected by the
+            // backend ("Withdrawal signature required"). Fail closed instead.
+            if (!overview) {
+                throw new Error(t('errors.cardDetailsLoading'))
+            }
             // Cancel can be terminal on Rain's side (collateral contract may
             // become unreachable), so we MUST drain it BEFORE the cancel.
             // Backend enforces order — this just delivers the signed body.
@@ -75,6 +81,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                     recipient: smartWalletAddress as `0x${string}`,
                     rainSpendingPower: spendingPowerUnits,
                     kind: 'CRYPTO_WITHDRAW',
+                    forceStrategy: 'collateral-only',
                 })
                 if (artifact.strategy !== 'collateral-only') {
                     throw new Error(t('errors.unexpectedStrategy'))
