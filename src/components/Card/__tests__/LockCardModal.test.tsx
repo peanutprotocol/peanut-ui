@@ -150,4 +150,13 @@ describe('CancelCardModal', () => {
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockCancelCard).not.toHaveBeenCalled()
     })
+
+    it('cancels without signing when there is no spending power to return', async () => {
+        setup({ balance: { spendingPower: 0 } })
+        renderCancel()
+        fireEvent.click(screen.getByText('Slide to Cancel'))
+        expect(await screen.findByText('Card canceled')).toBeInTheDocument()
+        expect(mockSignSpend).not.toHaveBeenCalled()
+        expect(mockCancelCard).toHaveBeenCalledWith('card-1', { verifiedWithdrawal: undefined })
+    })
 })
