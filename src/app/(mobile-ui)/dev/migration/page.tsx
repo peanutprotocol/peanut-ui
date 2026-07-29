@@ -246,9 +246,8 @@ export default function MigrationMockupsPage() {
                     title="Peanut is becoming an app"
                     description={
                         <p className="py-1">
-                            Peanut is moving to the App Store and Google Play. In{' '}
-                            <b className="text-black">14 days</b> it will only work in the app — download it now to keep
-                            using your account.
+                            Peanut is moving to the App Store and Google Play. In <b className="text-black">14 days</b>{' '}
+                            it will only work in the app — download it now to keep using your account.
                         </p>
                     }
                     content={platform === 'desktop' ? <DownloadQR /> : undefined}
