@@ -67,12 +67,14 @@ function StoreButtons({ platform }: { platform: Platform }) {
     )
 }
 
-// mascot-holding-phone hero over white content. used for the access-ending screen + landing.
-const STARS = ['left-[8%] top-[16%] size-8', 'right-[12%] top-[12%] size-9', 'right-[16%] bottom-[18%] size-7'] as const
+// mascot hero over white content. used for the access-ending screen.
+// height is content-driven (no fixed h) so the desktop QR never overflows, and the
+// mascot is size-capped with margin inside the hero so its feet never clip.
+const STARS = ['left-[8%] top-[18%] size-8', 'right-[12%] top-[14%] size-9', 'right-[14%] bottom-[16%] size-7'] as const
 function InstallScreen({ heading, sub, footer }: { heading: string; sub: string; footer?: React.ReactNode }) {
     return (
-        <div className="relative mx-auto flex h-[660px] w-full max-w-[380px] flex-col overflow-hidden rounded-sm border border-n-1 bg-white">
-            <section className="relative flex h-2/5 w-full items-center justify-center overflow-hidden bg-secondary-3">
+        <div className="mx-auto flex w-full max-w-[380px] flex-col overflow-hidden rounded-sm border border-n-1 bg-white">
+            <section className="relative flex h-64 w-full items-center justify-center overflow-hidden bg-secondary-3 px-6">
                 {STARS.map((pos, i) => (
                     <Image
                         key={i}
@@ -83,12 +85,18 @@ function InstallScreen({ heading, sub, footer }: { heading: string; sub: string;
                         className={`absolute z-10 ${pos}`}
                     />
                 ))}
-                <Image src={PEANUTMAN_MOBILE} alt="Peanut" width={150} height={150} className="z-0 object-contain" />
+                <Image
+                    src={PEANUTMAN_MOBILE}
+                    alt="Peanut"
+                    width={200}
+                    height={200}
+                    className="z-0 h-40 w-auto object-contain"
+                />
             </section>
-            <section className="flex flex-1 flex-col gap-3 bg-white p-6">
+            <section className="flex flex-col gap-3 bg-white p-6">
                 <h1 className="text-3xl font-bold text-n-1">{heading}</h1>
                 <p className="text-base text-grey-1">{sub}</p>
-                <div className="mt-auto flex flex-col gap-4">{footer}</div>
+                <div className="mt-4 flex flex-col gap-4">{footer}</div>
             </section>
         </div>
     )
