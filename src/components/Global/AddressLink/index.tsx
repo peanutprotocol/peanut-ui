@@ -29,6 +29,9 @@ const AddressLink = ({ address, className = '', isLink = true }: AddressLinkProp
             setUrlAddress(normalizedEnsName)
         } else {
             setDisplayAddress(isCryptoAddress(address) ? printableAddress(address) : address)
+            // keep the link target in sync — a cached/evicted ens name must not
+            // leave the href pointing at a name this address may no longer own
+            setUrlAddress(address)
         }
     }, [address, ensName])
 

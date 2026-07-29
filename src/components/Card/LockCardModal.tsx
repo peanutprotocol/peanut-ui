@@ -66,6 +66,12 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
         setError(null)
         try {
             if (mode === 'lock') {
+                // An unloaded overview reads as zero spending power below, which
+                // would skip the withdrawal and get the lock rejected by the
+                // backend ("Withdrawal signature required"). Fail closed instead.
+                if (!overview) {
+                    throw new Error('Card details still loading — please retry in a moment')
+                }
                 // If the user has spending power, return collateral to their
                 // smart wallet BEFORE locking so funds stay liquid. The
                 // backend gates the lock on a successful withdrawal — order
@@ -76,15 +82,17 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                     if (!smartWalletAddress) {
                         throw new Error(t('errors.walletNotReady'))
                     }
-                    // Force collateral-only routing: smart=0n eliminates the
-                    // smart-only and mixed branches, so the strategy resolver
-                    // picks 'collateral-only' and signs a Rain withdrawal
-                    // straight to the user's smart wallet (1 passkey tap).
+                    // Routing MUST NOT pick smart-only here: the point of this
+                    // spend is to drain Rain collateral back to the wallet, so a
+                    // smart-account transfer would be a self-transfer no-op that
+                    // leaves the collateral behind. (The `smartBalance: 0n` that
+                    // used to force this was removed in cb302d35a.)
                     const artifact = await signSpend({
                         requiredUsdcAmount: spendingPowerUnits,
                         recipient: smartWalletAddress as `0x${string}`,
                         rainSpendingPower: spendingPowerUnits,
                         kind: 'CRYPTO_WITHDRAW',
+                        forceStrategy: 'collateral-only',
                     })
                     if (artifact.strategy !== 'collateral-only') {
                         throw new Error(t('errors.unexpectedStrategy'))
