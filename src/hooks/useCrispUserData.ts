@@ -1,3 +1,4 @@
+import { buildSupportVerificationSummary } from '@/utils/support-verification'
 import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces'
 import { useMemo } from 'react'
@@ -7,7 +8,6 @@ import {
     POSTHOG_PERSON_BASE_URL,
     BRIDGE_DASHBOARD_BASE_URL,
 } from '@/constants/support'
-import { buildSupportVerificationSummary } from '@/utils/support-verification'
 
 export interface CrispUserData {
     username: string | undefined
