@@ -8,8 +8,9 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { renderWithIntl } from '@/test-utils/intl'
 
 const mockRouterReplace = jest.fn()
 jest.mock('next/navigation', () => ({
@@ -67,7 +68,7 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 import MantecaAddMoney from '../MantecaAddMoney'
 
 const renderFlow = () =>
-    render(
+    renderWithIntl(
         <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
             <MantecaAddMoney />
         </QueryClientProvider>

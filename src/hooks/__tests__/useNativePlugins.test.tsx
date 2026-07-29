@@ -38,6 +38,10 @@ jest.mock('@capacitor/status-bar', () => ({
 
 jest.mock('@capacitor/splash-screen', () => ({ SplashScreen: { hide: jest.fn() } }))
 
+// the splash hold races this against a 2s timeout — unresolved, every assertion
+// after the splash block would wait out that timeout instead of the test's.
+jest.mock('@/i18n/app/locale-store', () => ({ localeApplied: jest.fn(() => Promise.resolve()) }))
+
 jest.mock('@/utils/deferred-link', () => ({
     restoreDeferredContext: jest.fn(() => Promise.resolve(null)),
 }))
