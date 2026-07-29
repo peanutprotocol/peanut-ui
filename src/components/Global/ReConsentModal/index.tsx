@@ -8,6 +8,7 @@ import { useAuth } from '@/context/authContext'
 import { acceptedLegalDocument, consentApi, type ConsentStatusDocument } from '@/services/consent'
 import { LEGAL_DOCUMENT_VERSIONS, type LegalDocumentSlug } from '@/constants/legal-versions.generated'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
+import { isReConsentSnoozed, snoozeReConsent } from './utils'
 
 const DOC_LABELS: Record<string, { name: string; href: string }> = {
     terms: { name: 'Terms of Service', href: '/terms' },
@@ -19,12 +20,21 @@ const DOC_LABELS: Record<string, { name: string; href: string }> = {
     'card-prohibited-activities': { name: 'Prohibited Activities Policy', href: '/card-prohibited-activities' },
 }
 
+/** Keep "Not now" stacked BELOW the primary CTA at every width — side-by-side
+ *  would read as two equally-weighted choices. */
+const STACKED_CTAS = 'flex-col sm:flex-col'
+
 /**
  * Re-consent click-through (tos-v1 phase 2, ToS §17): when a legal document's
- * published version moves past what the user last provably accepted, this
- * blocking modal lists the updated documents and appends fresh consent-ledger
- * rows on acceptance. Backed by GET /users/consent/status and
- * POST /users/consent/accept — see peanut-api.
+ * published version moves past what the user last provably accepted, this modal
+ * lists the updated documents and appends fresh consent-ledger rows on
+ * acceptance. Backed by GET /users/consent/status and POST /users/consent/accept.
+ *
+ * It is a PROMPT, not a gate. §17.2 gives material changes 30 days and offers
+ * the click-through as a way to accept sooner; §17.3 requires that a user who
+ * declines can still stop using the Services — which, for a non-custodial
+ * wallet, means they must be able to reach `/withdraw`. So "Not now" always
+ * exists, and dismissing never writes a ledger row (declining is not consent).
  */
 const ReConsentModal = () => {
     const { user } = useAuth()
@@ -45,6 +55,8 @@ const ReConsentModal = () => {
         setOutdatedDocs([])
         setChecked(false)
         setError(null)
+        // a recent "Not now" defers the prompt — don't even spend the request
+        if (isReConsentSnoozed(userId)) return
         consentApi
             .getStatus()
             .then((status) => {
@@ -62,7 +74,7 @@ const ReConsentModal = () => {
                 })
             })
             .catch((e) => {
-                // a failed status check must never lock the app — retry next
+                // a failed status check must never block the app — retry next
                 // session. Sentry (not console): a systematic failure here means
                 // re-consent silently stops rolling out, and prod must say so.
                 Sentry.captureException(e, { tags: { feature: 're-consent', action: 'status' } })
@@ -75,7 +87,9 @@ const ReConsentModal = () => {
         setError(null)
         try {
             await consentApi.accept(outdatedDocs.map((d) => acceptedLegalDocument(d.slug as LegalDocumentSlug)))
-            posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, {
+            // CTA_CLICKED, not DISMISSED — acceptance and refusal must be
+            // distinguishable, since their ratio is the rollout's headline metric
+            posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
                 modal_type: MODAL_TYPES.RE_CONSENT,
                 documents: outdatedDocs.map((d) => d.slug),
             })
@@ -84,8 +98,8 @@ const ReConsentModal = () => {
             // must start with an unticked box
             setChecked(false)
         } catch (e) {
-            // Sentry (not console): if /accept fails systematically, every user
-            // sits behind this undismissable modal — that must be visible in prod
+            // Sentry (not console): if /accept fails systematically, nobody can
+            // record consent at all — that must be visible in prod
             Sentry.captureException(e, { tags: { feature: 're-consent', action: 'accept' } })
             setError('Could not save your acceptance — please try again.')
         } finally {
@@ -93,27 +107,40 @@ const ReConsentModal = () => {
         }
     }
 
+    /** "Not now", the close button, backdrop and Escape all land here. */
+    const handlePostpone = () => {
+        if (submitting) return
+        const userId = user?.user.userId
+        if (userId) snoozeReConsent(userId)
+        posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, {
+            modal_type: MODAL_TYPES.RE_CONSENT,
+            documents: outdatedDocs.map((d) => d.slug),
+        })
+        setOutdatedDocs([])
+        setChecked(false)
+        setError(null)
+    }
+
     if (!outdatedDocs.length) return null
 
     return (
         <ActionModal
             visible
-            onClose={() => undefined}
-            preventClose
-            hideModalCloseButton
+            onClose={handlePostpone}
             icon="info"
             title="We've updated our terms"
             content={
-                <>
+                <div className="w-full space-y-3 text-left">
                     <p className="text-sm text-grey-1">
-                        To keep using Peanut, please review and accept the updated documents:
+                        We've refreshed the documents below. Give them a read and accept when you're ready — you can
+                        keep using Peanut in the meantime.
                     </p>
-                    <ul className="list-disc pl-5 text-sm">
+                    <ul className="space-y-1 text-sm">
                         {outdatedDocs.map((doc) => {
                             const label = DOC_LABELS[doc.slug] ?? { name: doc.slug, href: `/${doc.slug}` }
                             return (
                                 <li key={doc.slug}>
-                                    <DocsLink href={label.href} className="underline">
+                                    <DocsLink href={label.href} className="text-black underline dark:text-white">
                                         {label.name}
                                     </DocsLink>
                                 </li>
@@ -121,7 +148,7 @@ const ReConsentModal = () => {
                         })}
                     </ul>
                     {error && <p className="text-sm text-error">{error}</p>}
-                </>
+                </div>
             }
             checkbox={{
                 text: 'I have read and accept the updated documents',
@@ -131,10 +158,19 @@ const ReConsentModal = () => {
             ctas={[
                 {
                     text: submitting ? 'Saving…' : 'Accept & continue',
+                    variant: 'purple',
+                    shadowSize: '4',
                     disabled: !checked || submitting,
                     onClick: handleAccept,
                 },
+                {
+                    text: 'Not now',
+                    variant: 'transparent',
+                    disabled: submitting,
+                    onClick: handlePostpone,
+                },
             ]}
+            ctaClassName={STACKED_CTAS}
         />
     )
 }

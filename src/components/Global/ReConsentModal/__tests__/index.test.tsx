@@ -1,12 +1,13 @@
 /** @jest-environment jsdom */
 /**
- * ReConsentModal — the ToS §17 blocking click-through.
+ * ReConsentModal — the ToS §17 click-through.
  *
- * This modal gates the entire app, so the safety properties matter more than
- * the happy path: a failed status check must NEVER lock the app (fail-open),
- * a failed accept must keep the retry path alive, and an account switch must
- * not leak the previous user's consent state (a regression already caught
- * once in review).
+ * The safety properties matter more than the happy path: a failed status check
+ * must NEVER block the app (fail-open), a failed accept must keep the retry
+ * path alive, an account switch must not leak the previous user's consent state
+ * (a regression already caught once in review), and — because §17.2 gives a
+ * 30-day runway and §17.3 requires a decliner to still reach their funds — the
+ * prompt must ALWAYS be escapable and must never ledger a refusal as consent.
  */
 import React from 'react'
 import { render, screen, fireEvent, act } from '@testing-library/react'
@@ -64,7 +65,8 @@ jest.mock('@/components/Global/DocsLink', () => ({
     default: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
 }))
 
-jest.mock('posthog-js', () => ({ capture: jest.fn() }))
+const mockCapture = jest.fn()
+jest.mock('posthog-js', () => ({ capture: (...args: unknown[]) => mockCapture(...args) }))
 
 const mockCaptureException = jest.fn()
 jest.mock('@sentry/nextjs', () => ({
@@ -85,8 +87,13 @@ const flush = () => act(async () => {})
 
 beforeEach(() => {
     jest.clearAllMocks()
+    // the snooze is persisted per-user in localStorage — a leaked entry would
+    // silently suppress the prompt in every later test
+    window.localStorage.clear()
     mockUser = { user: { userId: 'user-1' } }
 })
+
+const capturedEvents = () => mockCapture.mock.calls.map(([event]) => event)
 
 describe('ReConsentModal', () => {
     it('fails open: a failed status check never shows (or locks) the modal', async () => {
@@ -138,6 +145,71 @@ describe('ReConsentModal', () => {
             expect.objectContaining({ slug: 'privacy' }),
         ])
         expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        // acceptance must be distinguishable from refusal in analytics —
+        // the accept-vs-postpone ratio is the rollout's headline metric
+        expect(capturedEvents()).toEqual(['modal_shown', 'modal_cta_clicked'])
+    })
+
+    it('"Not now" is always available and never gated on the checkbox', async () => {
+        mockGetStatus.mockResolvedValue({ needsReConsent: true, documents: [statusDoc('terms')] })
+        render(<ReConsentModal />)
+        await flush()
+
+        expect(screen.getByText('Accept & continue')).toBeDisabled()
+        // the escape hatch must not require ticking a consent box first
+        expect(screen.getByText('Not now')).not.toBeDisabled()
+    })
+
+    it('"Not now" dismisses without recording any consent (a refusal is not a ledger row)', async () => {
+        mockGetStatus.mockResolvedValue({ needsReConsent: true, documents: [statusDoc('terms')] })
+        render(<ReConsentModal />)
+        await flush()
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Not now'))
+        })
+
+        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        expect(mockAccept).not.toHaveBeenCalled()
+        expect(capturedEvents()).toEqual(['modal_shown', 'modal_dismissed'])
+    })
+
+    it('a postponed prompt stays away on the next session, then returns once the snooze lapses', async () => {
+        mockGetStatus.mockResolvedValue({ needsReConsent: true, documents: [statusDoc('terms')] })
+        const first = render(<ReConsentModal />)
+        await flush()
+        await act(async () => {
+            fireEvent.click(screen.getByText('Not now'))
+        })
+        first.unmount()
+
+        // fresh session (remount → fresh refs), still inside the snooze window
+        render(<ReConsentModal />)
+        await flush()
+        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        // and we don't even spend the request while snoozed
+        expect(mockGetStatus).toHaveBeenCalledTimes(1)
+
+        // snooze lapses → the prompt comes back
+        window.localStorage.setItem('peanut.reconsent.snoozedUntil.user-1', String(Date.now() - 1))
+        render(<ReConsentModal />)
+        await flush()
+        expect(screen.getByTestId('modal')).toBeInTheDocument()
+    })
+
+    it('one user postponing does not suppress the prompt for a different account', async () => {
+        mockGetStatus.mockResolvedValue({ needsReConsent: true, documents: [statusDoc('terms')] })
+        const first = render(<ReConsentModal />)
+        await flush()
+        await act(async () => {
+            fireEvent.click(screen.getByText('Not now'))
+        })
+        first.unmount()
+
+        mockUser = { user: { userId: 'user-2' } }
+        render(<ReConsentModal />)
+        await flush()
+        expect(screen.getByTestId('modal')).toBeInTheDocument()
     })
 
     it('a failed accept keeps the modal, shows the error, and leaves retry enabled', async () => {
