@@ -23,6 +23,7 @@ import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { rainApi, type ApplyForCardResponse } from '@/services/rain'
+import { cardConsentDocuments } from '@/services/consent'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -346,7 +347,12 @@ const CardPage: FC = () => {
                 with_session_key: !!serializedApproval,
             })
             try {
-                const res = await rainApi.applyForCard({ termsAccepted, serializedApproval })
+                // Consent-ledger echo: on acceptance, send the exact documents
+                // CardTermsScreen displayed for this region (version + hash).
+                const acceptedDocuments = termsAccepted
+                    ? cardConsentDocuments(pendingTerms?.isUsResident ?? false)
+                    : undefined
+                const res = await rainApi.applyForCard({ termsAccepted, serializedApproval, acceptedDocuments })
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
                 if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
                     setSumsubToken(res.sumsubAccessToken)
@@ -361,7 +367,7 @@ const CardPage: FC = () => {
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [advanceFromApplyResponse]
+        [advanceFromApplyResponse, pendingTerms]
     )
 
     const handleAcceptTerms = useCallback(async () => {
