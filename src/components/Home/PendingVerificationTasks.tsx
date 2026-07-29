@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { startBridgeHostedVerification } from '@/app/actions/sumsub'
 import { Button } from '@/components/0_Bruddle/Button'
+import Carousel from '@/components/Global/Carousel'
 import IframeWrapper from '@/components/Global/IframeWrapper'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
@@ -60,7 +61,9 @@ function formatDeadline(isoDate: string): string | null {
  * top-level capability `nextActions` (NOT rail gates), so it also catches the
  * orphan actions no rail references (both blocking hosted tasks and advisory
  * future-dated ones) and sidesteps ActivationCTAs' can-already-transact
- * stand-down. Renders nothing when no task is pending.
+ * stand-down. Renders nothing when no task is pending. Multiple tasks render
+ * as full-width horizontal carousel slides (same embla setup as
+ * HomeCarouselCTA); a single task looks identical to a static card.
  *
  * Open flows are SNAPSHOTTED at tap time: the task list re-derives from every
  * user refetch (~4s auto-refresh while rails are pending), and an open
@@ -146,53 +149,57 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
     return (
         <>
             {tasks.length > 0 && !isDismissed && (
-                <Card position="single" className="p-0">
-                    <div className="relative flex flex-col gap-5 px-4 py-5">
-                        {dismissible && (
-                            <button
-                                type="button"
-                                aria-label="Dismiss pending verification tasks"
-                                onClick={handleDismiss}
-                                className="absolute right-3 top-3 z-10 cursor-pointer p-0 text-black outline-none"
-                            >
-                                <Icon name="cancel" size={16} />
-                            </button>
-                        )}
+                <div className="relative">
+                    {dismissible && (
+                        <button
+                            type="button"
+                            aria-label="Dismiss pending verification tasks"
+                            onClick={handleDismiss}
+                            className="absolute right-3 top-3 z-10 cursor-pointer p-0 text-black outline-none"
+                        >
+                            <Icon name="cancel" size={16} />
+                        </button>
+                    )}
+                    <Carousel>
                         {tasks.map((task) => {
                             const copy = taskCopy(task)
                             const isHosted = task.kind === 'bridge-hosted'
                             const deadline = task.effectiveDate ? formatDeadline(task.effectiveDate) : null
                             return (
-                                <div key={task.key} className="flex flex-col items-center gap-2 text-center">
-                                    <div className="flex size-10 items-center justify-center rounded-full bg-secondary-1">
-                                        <Icon name={isHosted ? 'user-id' : 'badge'} size={20} />
+                                <Card key={task.key} position="single" className="embla__slide p-0">
+                                    <div className="flex flex-col items-center gap-2 px-4 py-5 text-center">
+                                        <div className="flex size-10 items-center justify-center rounded-full bg-secondary-1">
+                                            <Icon name={isHosted ? 'user-id' : 'badge'} size={20} />
+                                        </div>
+                                        <div className="w-full">
+                                            <div className="text-base font-bold">{copy.title}</div>
+                                            <div className="text-sm text-grey-1">{copy.description}</div>
+                                            {deadline && (
+                                                <div className="mt-1 text-xs font-medium">
+                                                    Complete before {deadline}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <Button
+                                            variant="purple"
+                                            shadowSize="4"
+                                            className="mt-1 w-full"
+                                            disabled={isStartingHosted}
+                                            onClick={() => handleOpenTask(task)}
+                                        >
+                                            {isHosted
+                                                ? isStartingHosted
+                                                    ? 'Loading...'
+                                                    : 'Complete verification'
+                                                : 'Review terms'}
+                                        </Button>
                                     </div>
-                                    <div className="w-full">
-                                        <div className="text-base font-bold">{copy.title}</div>
-                                        <div className="text-sm text-grey-1">{copy.description}</div>
-                                        {deadline && (
-                                            <div className="mt-1 text-xs font-medium">Complete before {deadline}</div>
-                                        )}
-                                    </div>
-                                    <Button
-                                        variant="purple"
-                                        shadowSize="4"
-                                        className="mt-1 w-full"
-                                        disabled={isStartingHosted}
-                                        onClick={() => handleOpenTask(task)}
-                                    >
-                                        {isHosted
-                                            ? isStartingHosted
-                                                ? 'Loading...'
-                                                : 'Complete verification'
-                                            : 'Review terms'}
-                                    </Button>
-                                </div>
+                                </Card>
                             )
                         })}
-                        {error && <p className="text-center text-sm text-error">{error}</p>}
-                    </div>
-                </Card>
+                    </Carousel>
+                    {error && <p className="mt-2 text-center text-sm text-error">{error}</p>}
+                </div>
             )}
 
             {activeTosTask && (
