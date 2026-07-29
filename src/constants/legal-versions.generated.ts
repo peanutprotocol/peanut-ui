@@ -21,8 +21,8 @@ export const LEGAL_DOCUMENT_VERSIONS = {
         hash: 'd0ea9e1b239179c9ca4e5c26badb49506d8453399958ed040f68bb6650fd6e6c',
     },
     'card-terms-international': {
-        version: '2026-06-01',
-        hash: 'a6476057cd5bcf553f2c1faffc5261ad3c5e59eecbc8bf068e3b561df22035cf',
+        version: '2026-07-14',
+        hash: '9eb731e649de21ef8a28fca821f4123d63be55f0765a0843fe42bac31bbbe0bd',
     },
     'card-terms-us': {
         version: '2026-06-01',
