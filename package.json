@@ -9,7 +9,7 @@
     "scripts": {
         "dev": "NODE_OPTIONS=\"--max-old-space-size=8192\" next dev --turbo",
         "dev:clean": "rm -rf .next && NODE_OPTIONS=\"--max-old-space-size=8192\" next dev --turbo",
-        "dev:fallback": "next dev",
+        "dev:fallback": "next dev --webpack",
         "postinstall": "node scripts/copy-flags.mjs",
         "copy-flags": "node scripts/copy-flags.mjs",
         "prebuild": "node scripts/copy-flags.mjs",
