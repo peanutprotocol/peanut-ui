@@ -3,13 +3,14 @@
 import { useState } from 'react'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Button } from '@/components/0_Bruddle/Button'
-import NavHeader from '@/components/Global/NavHeader'
 import GlobalCard from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useHaptic } from 'use-haptic'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { extractInviteeName } from '@/utils/general.utils'
+import DevNoteCard from '../_components/DevNoteCard'
+import DevPageShell from '../_components/DevPageShell'
 
 type MockPerk = {
     id: string
@@ -88,19 +89,19 @@ export default function PerkSuccessTestPage() {
     const inviteeName = extractInviteeName(currentPerk.reason)
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-4 pb-8">
-            <NavHeader title="Perk Success Test" />
-
-            <div className="space-y-4 px-4">
-                {/* Instructions */}
-                <Card className="bg-blue-50 p-4">
-                    <p className="text-sm font-bold text-blue-900">Test the perk claim success screen</p>
-                    <ul className="mt-1 space-y-1 text-sm text-blue-800">
-                        <li>1. Click "Trigger Success" to show the success screen</li>
+        <DevPageShell
+            title="Perk Success Test"
+            description="Fires the perk-claim success screen against mock perks — no real perk needed."
+            width="prose"
+        >
+            <div className="space-y-4">
+                <DevNoteCard title="Test the perk claim success screen">
+                    <ul className="space-y-1">
+                        <li>1. Click &ldquo;Trigger Success&rdquo; to show the success screen</li>
                         <li>2. Wait 2 seconds before you can dismiss (debounce)</li>
                         <li>3. Tap to dismiss and load next mock perk</li>
                     </ul>
-                </Card>
+                </DevNoteCard>
 
                 {/* Current Perk Info */}
                 <Card className="p-4">
@@ -185,6 +186,6 @@ export default function PerkSuccessTestPage() {
                     </Button>
                 </div>
             </div>
-        </div>
+        </DevPageShell>
     )
 }

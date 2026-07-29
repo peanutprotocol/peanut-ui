@@ -19,6 +19,12 @@ export type FunnelStateId =
 
 export type SurfaceKind = 'step' | 'carousel' | 'modal' | 'card-screen'
 
+/**
+ * How much of the machinery the board exposes. `product` reads as a cockpit
+ * (copy + flow only); `dev` adds gating predicates, source files and event types.
+ */
+export type JourneyViewMode = 'product' | 'dev'
+
 export interface InAppSurface {
     id: string
     kind: SurfaceKind
