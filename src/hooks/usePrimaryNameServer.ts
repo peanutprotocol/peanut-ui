@@ -2,6 +2,7 @@
 
 import { usePrimaryName } from '@justaname.id/react'
 import { useQuery } from '@tanstack/react-query'
+import { useEffect, useMemo } from 'react'
 import { isAddress } from 'viem'
 import { serverFetch } from '@/utils/api-fetch'
 
@@ -25,6 +26,44 @@ const PRIMARY_NAME_TTL_MS = 24 * 60 * 60 * 1000 // 1 day
  * `{ primaryName }` shape. If both paths fail, callers degrade to the raw
  * address exactly as before.
  */
+const CACHE_KEY = 'ens-primary-name-cache'
+
+type NameCache = Record<string, { name: string; ts: number }>
+
+// localstorage warm cache so a fresh page load (mobile reopening the pwa)
+// paints the last-known name immediately instead of flashing the raw
+// address while the async lookup runs. lookups still revalidate on mount.
+function readNameCache(): NameCache {
+    if (typeof window === 'undefined') return {}
+    try {
+        return JSON.parse(window.localStorage.getItem(CACHE_KEY) ?? '{}') as NameCache
+    } catch {
+        return {}
+    }
+}
+
+function getCachedName(address?: string): string | undefined {
+    if (!address) return undefined
+    const entry = readNameCache()[address.toLowerCase()]
+    return entry && Date.now() - entry.ts < PRIMARY_NAME_TTL_MS ? entry.name : undefined
+}
+
+function writeCachedName(address: string, name: string | undefined) {
+    if (typeof window === 'undefined') return
+    try {
+        const cache = readNameCache()
+        const key = address.toLowerCase()
+        if (name) {
+            cache[key] = { name, ts: Date.now() }
+        } else {
+            delete cache[key]
+        }
+        window.localStorage.setItem(CACHE_KEY, JSON.stringify(cache))
+    } catch {
+        // storage full/blocked — warm cache is best-effort
+    }
+}
+
 export function usePrimaryNameServer(address?: string): { primaryName: string | undefined } {
     const enabled = !!address && isAddress(address)
 
@@ -52,5 +91,24 @@ export function usePrimaryNameServer(address?: string): { primaryName: string | 
         priority: 'onChain',
     })
 
-    return { primaryName: data ?? (isError ? clientName : undefined) }
+    // resolved: authoritative answer from either path. `data === null` means the
+    // server positively said "no name" — don't mask it with a stale cached name.
+    const settledNoName = data === null
+    const resolved = data ?? (isError ? normalizeToUndefined(clientName) : undefined)
+
+    useEffect(() => {
+        if (!enabled || !address) return
+        if (resolved) writeCachedName(address, resolved)
+        else if (settledNoName) writeCachedName(address, undefined)
+    }, [enabled, address, resolved, settledNoName])
+
+    // read once per address, not on every render — history feeds mount many rows
+    const cachedName = useMemo(() => (enabled ? getCachedName(address) : undefined), [enabled, address])
+
+    return { primaryName: resolved ?? (settledNoName ? undefined : cachedName) }
+}
+
+// justaname resolves "not found" as '' — treat it as undefined
+function normalizeToUndefined(name: string | undefined): string | undefined {
+    return name || undefined
 }
