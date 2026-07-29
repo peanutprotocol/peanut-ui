@@ -299,7 +299,32 @@ export const ANALYTICS_EVENTS = {
     MIGRATION_STORE_CTA_CLICKED: 'migration_store_cta_clicked',
     MIGRATION_QR_SHOWN: 'migration_qr_shown',
     MIGRATION_KEEP_WEB_USED: 'migration_keep_web_used',
+    // ── Deferred deep linking (TASK-20772) ──
+    // Fired once per fresh install, on the one-shot restore. `outcome` is a
+    // DEFERRED_LINK_OUTCOMES value and is the whole point of the event: it's the
+    // only way to tell a working store→install hand-off from one that silently
+    // matches nothing, since a declined iOS paste prompt and an organic install
+    // both simply produce no payload.
+    DEFERRED_LINK_RESTORED: 'deferred_link_restored',
+    // Fired on the web side when a store bounce writes the hand-off.
+    DEFERRED_LINK_HANDOFF_CREATED: 'deferred_link_handoff_created',
 } as const
+
+/**
+ * Outcomes for DEFERRED_LINK_RESTORED — why a first-launch restore did or did
+ * not recover context. Distinguishing the empty cases is the reason this event
+ * exists: `clipboard_unavailable` (user declined the paste prompt, or the
+ * plugin is missing) and `no_handoff` (organic install) are indistinguishable
+ * without it, and only the first indicates a broken hand-off.
+ */
+export const DEFERRED_LINK_OUTCOMES = {
+    RESTORED: 'restored',
+    NO_HANDOFF: 'no_handoff',
+    MARKER_MISSING: 'marker_missing',
+    CLIPBOARD_UNAVAILABLE: 'clipboard_unavailable',
+} as const
+
+export type DeferredLinkOutcome = (typeof DEFERRED_LINK_OUTCOMES)[keyof typeof DEFERRED_LINK_OUTCOMES]
 
 /**
  * Valid modal_type values for MODAL_SHOWN / MODAL_DISMISSED / MODAL_CTA_CLICKED events.
