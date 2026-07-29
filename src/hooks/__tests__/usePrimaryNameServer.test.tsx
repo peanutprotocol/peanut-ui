@@ -36,10 +36,14 @@ describe('usePrimaryNameServer', () => {
     })
 
     it('returns undefined when the backend reports no name', async () => {
-        mockServerFetch.mockResolvedValue(jsonResponse({ name: null }))
+        const json = jest.fn(async () => ({ name: null }))
+        mockServerFetch.mockResolvedValue({ ok: true, json } as unknown as Response)
         const { result } = renderHook(() => usePrimaryNameServer(ADDRESS), { wrapper })
-        await waitFor(() => expect(mockServerFetch).toHaveBeenCalled())
+        // wait for the resolved-null query to re-render the hook, not just for the fetch call
+        await waitFor(() => expect(mockUsePrimaryName.mock.calls.length).toBeGreaterThan(1))
         expect(result.current.primaryName).toBeUndefined()
+        // a live endpoint answering "no name" is authoritative — client fallback stays disabled
+        expect(mockUsePrimaryName).toHaveBeenLastCalledWith(expect.objectContaining({ address: undefined }))
     })
 
     it('falls back to the client-side lookup on a non-OK response (e.g. route not deployed)', async () => {
