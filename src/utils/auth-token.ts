@@ -362,6 +362,7 @@ export async function hasNativeSession(): Promise<boolean> {
  * reloading; other callers may safely ignore it.
  */
 export function clearAuthToken(): Promise<void> {
+    clearEpoch++
     let nativeClear: Promise<void> = Promise.resolve()
     if (isCapacitor()) {
         nativeToken = null
@@ -387,6 +388,16 @@ export function clearAuthToken(): Promise<void> {
     Cookies.remove(JWT_COOKIE_KEY, { path: '/' })
     document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
     return nativeClear
+}
+
+/**
+ * monotonic counter incremented by every clearAuthToken. Capture it before an
+ * authenticated request and compare after: a changed value means the session
+ * was cleared while the request was in flight, so any token the response
+ * carries must not be re-persisted.
+ */
+export function getClearEpoch(): number {
+    return clearEpoch
 }
 
 /**

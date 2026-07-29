@@ -26,8 +26,8 @@
  * rendered at all. Web is unaffected.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'
 import { isCapacitor } from '@/utils/capacitor'
@@ -61,14 +61,14 @@ function LockScreen({
         <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-6 bg-white px-6">
             <div className="text-center">
                 <h1 className="text-2xl font-bold">{t('title')}</h1>
-                <p className="mt-2 text-sm text-grey-1">{failed ? t('subtitleFailed') : t('subtitle')}</p>
+                <p className="mt-2 text-sm text-grey-1">{failed ? t('promptFailed') : t('prompt')}</p>
             </div>
             <div className="flex w-full max-w-xs flex-col gap-3">
                 <Button variant="purple" shadowSize="4" loading={unlocking} onClick={onUnlock}>
                     {t('unlock')}
                 </Button>
                 <Button variant="stroke" shadowSize="4" onClick={onLogout}>
-                    {t('logout')}
+                    {t('logOut')}
                 </Button>
             </div>
         </div>
