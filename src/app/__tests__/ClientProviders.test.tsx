@@ -12,6 +12,7 @@ import React from 'react'
 import { ClientProviders } from '../ClientProviders'
 
 jest.mock('@/hooks/useOtaUpdates', () => ({ useOtaUpdates: jest.fn() }))
+jest.mock('@/hooks/useZeroLegacyAndroidSafeAreaInsets', () => ({ useZeroLegacyAndroidSafeAreaInsets: jest.fn() }))
 // Both sit ABOVE the two providers under test, so stubbing them can't mask the
 // contract. PeanutProvider pulls the wagmi config (http() at module scope) and
 // nuqs ships ESM jest won't transform — neither survives jsdom import.
