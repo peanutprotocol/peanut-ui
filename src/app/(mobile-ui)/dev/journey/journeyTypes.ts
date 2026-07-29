@@ -144,7 +144,7 @@ export interface EmailDecisionFlag {
     note: string
 }
 
-// ---------- live user inspector (GET /__dev/journey-inspect?userId=…) ----------
+// ---------- live user inspector (GET /__dev/journey-inspect?username=…|userId=…) ----------
 
 export interface InspectDue {
     userId: string
@@ -163,12 +163,14 @@ export interface InspectHistoryRow {
 }
 
 export interface JourneyInspectResponse {
+    /** The resolved user — the API 404s instead of returning a null user. */
     user: {
+        userId: string
         username: string | null
         email: string | null
         createdAt: string
         cardAccessGrantedAt: string | null
-    } | null
+    }
     due: InspectDue | null
     history: InspectHistoryRow[]
 }
