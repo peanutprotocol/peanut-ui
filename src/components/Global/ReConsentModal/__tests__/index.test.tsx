@@ -74,6 +74,40 @@ jest.mock('@sentry/nextjs', () => ({
 }))
 
 import ReConsentModal from '../index'
+import { nextPromptAt, LEGAL_NOTICE_PERIOD_DAYS, MIN_SNOOZE_DAYS } from '../utils'
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+describe('nextPromptAt', () => {
+    // 2026-07-15 + 30d = 2026-08-14, the date the current terms take effect
+    const posted = '2026-07-15'
+    const dayAfterPosting = Date.parse('2026-07-16')
+
+    it('defers to the effective date — the full §17.2 notice period, not a fixed interval', () => {
+        expect(nextPromptAt([posted], dayAfterPosting)).toBe(Date.parse('2026-08-14'))
+    })
+
+    it('uses the LATEST effective date when several documents are shown at once', () => {
+        expect(nextPromptAt(['2026-07-01', posted], dayAfterPosting)).toBe(Date.parse('2026-08-14'))
+    })
+
+    it('floors to MIN_SNOOZE_DAYS once a document is already past its notice period', () => {
+        // §17.3 already makes continued use acceptance here, so the prompt only
+        // still asks to record explicit consent — it must not nag every open
+        const longAfter = Date.parse('2027-01-01')
+        expect(nextPromptAt([posted], longAfter)).toBe(longAfter + MIN_SNOOZE_DAYS * DAY_MS)
+    })
+
+    it('falls back to the floor rather than throwing on an unparseable version', () => {
+        const now = Date.parse('2026-07-29')
+        expect(nextPromptAt(['not-a-date'], now)).toBe(now + MIN_SNOOZE_DAYS * DAY_MS)
+        expect(nextPromptAt([], now)).toBe(now + MIN_SNOOZE_DAYS * DAY_MS)
+    })
+
+    it('pins the notice period to the 30 days our own ToS §17.2 promises', () => {
+        expect(LEGAL_NOTICE_PERIOD_DAYS).toBe(30)
+    })
+})
 
 const statusDoc = (slug: string) => ({
     slug,

@@ -111,7 +111,13 @@ const ReConsentModal = () => {
     const handlePostpone = () => {
         if (submitting) return
         const userId = user?.user.userId
-        if (userId) snoozeReConsent(userId)
+        // defer to the date these documents actually take effect (§17.2), not a
+        // fixed interval — a doc posted today buys the user its full 30 days
+        if (userId)
+            snoozeReConsent(
+                userId,
+                outdatedDocs.map((d) => d.currentVersion)
+            )
         posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, {
             modal_type: MODAL_TYPES.RE_CONSENT,
             documents: outdatedDocs.map((d) => d.slug),
