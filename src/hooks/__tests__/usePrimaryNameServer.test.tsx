@@ -89,6 +89,19 @@ describe('usePrimaryNameServer', () => {
         await waitFor(() => expect(window.localStorage.getItem('ens-primary-name-cache')).not.toContain('stale.eth'))
     })
 
+    it('evicts the cached name when the client fallback settles with no name', async () => {
+        window.localStorage.setItem(
+            'ens-primary-name-cache',
+            JSON.stringify({ [ADDRESS.toLowerCase()]: { name: 'stale.eth', ts: Date.now() } })
+        )
+        mockServerFetch.mockResolvedValue(jsonResponse({}, false))
+        // justaname settles "not found" as '' (undefined would mean still loading)
+        mockUsePrimaryName.mockReturnValue({ primaryName: '', isLoading: false, error: null })
+        const { result } = renderHook(() => usePrimaryNameServer(ADDRESS), { wrapper })
+        await waitFor(() => expect(window.localStorage.getItem('ens-primary-name-cache')).not.toContain('stale.eth'))
+        expect(result.current.primaryName).toBeUndefined()
+    })
+
     it('does not query for a non-address input', () => {
         renderHook(() => usePrimaryNameServer('not-an-address'), { wrapper })
         expect(mockServerFetch).not.toHaveBeenCalled()

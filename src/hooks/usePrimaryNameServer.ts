@@ -93,10 +93,12 @@ export function usePrimaryNameServer(address?: string): { primaryName: string | 
         priority: 'onChain',
     })
 
-    // resolved: authoritative answer from either path. `data === null` means the
-    // server positively said "no name" — don't mask it with a stale cached name.
-    const settledNoName = data === null
-    const resolved = data ?? (isError ? normalizeToUndefined(clientName) : undefined)
+    // authoritative "no name" from either path: server settles null/'' or, when
+    // the server call failed, the client lookup settles '' (justaname's not-found
+    // value — undefined means still loading). don't mask any of these with a
+    // stale cached name, and evict below so it can't repaint next mount.
+    const settledNoName = data === null || data === '' || (isError && clientName === '')
+    const resolved = (data || undefined) ?? (isError ? clientName || undefined : undefined)
 
     useEffect(() => {
         if (!enabled || !address) return
@@ -108,9 +110,4 @@ export function usePrimaryNameServer(address?: string): { primaryName: string | 
     const cachedName = useMemo(() => (enabled ? getCachedName(address) : undefined), [enabled, address])
 
     return { primaryName: resolved ?? (settledNoName ? undefined : cachedName) }
-}
-
-// justaname resolves "not found" as '' — treat it as undefined
-function normalizeToUndefined(name: string | undefined): string | undefined {
-    return name || undefined
 }
