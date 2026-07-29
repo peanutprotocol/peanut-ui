@@ -37,6 +37,10 @@ jest.mock('@/components/Global/Modal', () => ({
     },
 }))
 
+let onCapacitor = false
+jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => onCapacitor }))
+jest.mock('../SumsubNativeSdk', () => ({ SumsubNativeSdk: () => <div data-testid="native-sdk" /> }))
+
 jest.mock('@/components/Global/ActionModal', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div>loading</div> }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }) }))
@@ -56,6 +60,7 @@ describe('SumsubKycWrapper', () => {
     beforeEach(() => {
         launch.mockClear()
         capture.mockClear()
+        onCapacitor = false
         installSdk()
     })
 
@@ -63,6 +68,26 @@ describe('SumsubKycWrapper', () => {
         // don't leak the global — a later test may need the script-loading path
         // (snsWebSdk absent -> script injected -> onload) to be reachable.
         delete (window as unknown as { snsWebSdk?: unknown }).snsWebSdk
+    })
+
+    // The wrapper is the single choke point every KYC entry point funnels
+    // through — card application, POA, self-heal, start-action, restart-identity
+    // included. Selecting the driver here is what keeps the WebSDK (and its
+    // unreportable in-iframe "Initialization error") out of the WebView.
+    it('drives the native SDK on Capacitor and never loads the websdk', async () => {
+        onCapacitor = true
+        render(
+            <SumsubKycWrapper
+                visible
+                accessToken="tok_abc"
+                onClose={jest.fn()}
+                onComplete={jest.fn()}
+                onRefreshToken={jest.fn().mockResolvedValue('tok_abc')}
+            />
+        )
+
+        expect(await screen.findByTestId('native-sdk')).toBeInTheDocument()
+        expect(launch).not.toHaveBeenCalled()
     })
 
     it('launches the SDK when an already-mounted wrapper is opened (portal mounts container late)', async () => {

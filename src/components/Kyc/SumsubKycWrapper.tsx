@@ -5,12 +5,16 @@ import { useTranslations } from 'next-intl'
 import Modal from '@/components/Global/Modal'
 import ActionModal from '@/components/Global/ActionModal'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
-import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
+import { type ButtonVariant } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
 import posthog from 'posthog-js'
 import { useModalsContext } from '@/context/ModalsContext'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { isCapacitor } from '@/utils/capacitor'
 import { evaluateSumsubStatusEvent, type SumsubStatusEventPayload } from './sumsubStatusEvent.utils'
+import { SumsubNativeSdk } from './SumsubNativeSdk'
+import { SumsubSdkErrorView } from './SumsubSdkErrorView'
+import type { SumsubSdkProps } from './sumsubSdk.types'
 
 // todo: move to consts
 const SUMSUB_SDK_URL = 'https://static.sumsub.com/idensic/static/sns-websdk-builder.js'
@@ -25,18 +29,19 @@ const SUMSUB_SDK_URL = 'https://static.sumsub.com/idensic/static/sns-websdk-buil
  */
 const SDK_LAUNCH_TIMEOUT_MS = 20_000
 
-interface SumsubKycWrapperProps {
-    visible: boolean
-    accessToken: string | null
-    onClose: () => void
-    onComplete: () => void
-    onError?: (error: unknown) => void
-    onRefreshToken: () => Promise<string>
-    /** multi-level workflow (e.g. LATAM) — don't close SDK on Level 1 submission */
-    isMultiLevel?: boolean
+/**
+ * Every KYC entry point funnels through here, so this is the one place that
+ * knows which Sumsub SDK to drive. Native gets the Cordova SDK: the WebSDK does
+ * run inside the Capacitor WebView, but a Sumsub-side init failure there paints
+ * their "Initialization error" screen inside a cross-origin iframe, silent to
+ * every handler and every reporter we have.
+ */
+export const SumsubKycWrapper = (props: SumsubSdkProps) => {
+    if (isCapacitor()) return <SumsubNativeSdk {...props} />
+    return <SumsubWebSdkModal {...props} />
 }
 
-export const SumsubKycWrapper = ({
+const SumsubWebSdkModal = ({
     visible,
     accessToken,
     onClose,
@@ -44,7 +49,7 @@ export const SumsubKycWrapper = ({
     onError,
     onRefreshToken,
     isMultiLevel,
-}: SumsubKycWrapperProps) => {
+}: SumsubSdkProps) => {
     const [sdkLoaded, setSdkLoaded] = useState(false)
     const [sdkLoadError, setSdkLoadError] = useState(false)
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
@@ -374,13 +379,7 @@ export const SumsubKycWrapper = ({
                 hideOverlay={false}
             >
                 {sdkLoadError ? (
-                    <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
-                        <Icon name="alert" size={24} className="text-red-500" />
-                        <p className="text-center text-lg font-medium">{t('wrapper.loadError')}</p>
-                        <Button variant="purple" shadowSize="4" onClick={onClose}>
-                            {tCommon('close')}
-                        </Button>
-                    </div>
+                    <SumsubSdkErrorView onClose={onClose} message={t('wrapper.loadError')} />
                 ) : (
                     <div className="flex h-full flex-col">
                         <div className="flex items-center justify-between px-4 py-2">
