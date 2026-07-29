@@ -17,10 +17,14 @@ export default function JourneyBoard({
     spec,
     specError,
     view,
+    isReviewed,
+    onOpenEmail,
 }: {
     spec: JourneySpec | null
     specError: string | null
     view: JourneyViewMode
+    isReviewed: (id: string) => boolean
+    onOpenEmail: (eventType: string, example: number) => void
 }) {
     const showDev = view === 'dev'
     const mappedStageNames = new Set(FUNNEL_STATES.flatMap((s) => s.specStages))
@@ -73,7 +77,12 @@ export default function JourneyBoard({
                                                 <p className="text-[10px] italic leading-snug text-grey-1">
                                                     On signup (immediate):
                                                 </p>
-                                                <EmailCard step={spec.welcome} showDev={showDev} />
+                                                <EmailCard
+                                                    step={spec.welcome}
+                                                    showDev={showDev}
+                                                    isReviewed={isReviewed}
+                                                    onOpen={onOpenEmail}
+                                                />
                                             </>
                                         )}
                                         {stages.map((stage) => (
@@ -85,7 +94,13 @@ export default function JourneyBoard({
                                                     </p>
                                                 )}
                                                 {stage.steps.map((step) => (
-                                                    <EmailCard key={step.type} step={step} showDev={showDev} />
+                                                    <EmailCard
+                                                        key={step.type}
+                                                        step={step}
+                                                        showDev={showDev}
+                                                        isReviewed={isReviewed}
+                                                        onOpen={onOpenEmail}
+                                                    />
                                                 ))}
                                             </div>
                                         ))}

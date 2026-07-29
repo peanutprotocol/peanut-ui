@@ -1,33 +1,94 @@
 'use client'
 
-import { JOURNEY_API_BASE } from './journeyData'
+import { twMerge } from 'tailwind-merge'
+import DevChip from '../_components/DevChip'
+import { REVIEW_PENDING_CLASS, decisionFlagFor, emailPreviewUrl, examplesForStep, renderId } from './emailReview'
 import StuckBadge from './StuckBadge'
 import type { SpecEmailStep } from './journeyTypes'
 
 /**
- * Compact card for one lifecycle email step. Links to the API's live rendered
- * preview (opens in a new tab against the sandbox API).
+ * Compact card for one lifecycle email step.
+ *
+ * Doubles as the review unit: until every one of the email's renders has a
+ * verdict the card carries the amber dashed `review-pending` treatment and a
+ * "needs verdict" chip, so what still needs a product call is legible from
+ * across the board. Clicking opens the in-place preview panel; the `raw ↗` link
+ * stays as the external fallback.
  */
-export default function EmailCard({ step, showDev }: { step: SpecEmailStep; showDev: boolean }) {
+export default function EmailCard({
+    step,
+    showDev,
+    isReviewed,
+    onOpen,
+}: {
+    step: SpecEmailStep
+    showDev: boolean
+    isReviewed: (id: string) => boolean
+    onOpen: (eventType: string, example: number) => void
+}) {
+    const examples = examplesForStep(step)
+    const reviewedCount = examples.filter((example) => isReviewed(renderId(step.type, example.index))).length
+    const pending = reviewedCount < examples.length
+    const decision = decisionFlagFor(step.type)
+
     return (
-        <a
-            href={`${JOURNEY_API_BASE}/__dev/email-preview/${step.type}?example=0`}
-            target="_blank"
-            rel="noreferrer"
-            className="block rounded-sm border border-n-1 bg-white p-2.5 hover:bg-primary-3/30"
+        <div
+            data-review-state={pending ? 'pending' : 'reviewed'}
+            data-email-type={step.type}
+            className={twMerge('rounded-sm border border-n-1 bg-white', pending && REVIEW_PENDING_CLASS)}
         >
-            <div className="flex items-start justify-between gap-2">
-                <div className="text-xs font-bold leading-tight">{step.subject}</div>
-                {typeof step.afterDaysStuck === 'number' && <StuckBadge days={step.afterDaysStuck} />}
+            <button
+                type="button"
+                onClick={() => onOpen(step.type, 0)}
+                className="block w-full p-2.5 text-left hover:bg-primary-3/30"
+            >
+                <div className="flex items-start justify-between gap-2">
+                    <div className="text-xs font-bold leading-tight">{step.subject}</div>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                        {typeof step.afterDaysStuck === 'number' && <StuckBadge days={step.afterDaysStuck} />}
+                        {pending ? (
+                            <DevChip tone="yellow" title="No product verdict recorded for this copy yet.">
+                                needs verdict{examples.length > 1 && ` ${reviewedCount}/${examples.length}`}
+                            </DevChip>
+                        ) : (
+                            <DevChip tone="green" title="Marked reviewed in the preview panel.">
+                                reviewed ✓
+                            </DevChip>
+                        )}
+                    </div>
+                </div>
+                <p className="mt-1 text-[11px] leading-snug text-grey-1">{step.preview}</p>
+                <p className="mt-1 text-[11px] leading-snug">
+                    <span className="rounded-sm bg-yellow-1 px-1 font-bold">{step.ctaText}</span>
+                    <span className="text-grey-1"> → {step.ctaPath}</span>
+                </p>
+                {decision && (
+                    <div className="mt-1.5 flex flex-col gap-0.5">
+                        <DevChip tone="pink" className="self-start" title={decision.note}>
+                            {decision.label}
+                        </DevChip>
+                        <p className="text-[10px] leading-snug text-grey-1">{decision.note}</p>
+                    </div>
+                )}
+                {examples.length > 1 && (
+                    <p className="mt-1 text-[10px] leading-snug text-grey-1">
+                        {examples.length} copy variants: {examples.map((example) => example.label).join(' / ')}
+                    </p>
+                )}
+            </button>
+            <div className="flex items-center justify-between gap-2 border-t border-n-1 px-2.5 py-1">
+                <span className="truncate font-mono text-[9px] leading-tight text-grey-1">
+                    {showDev ? step.type : 'click to review'}
+                </span>
+                <a
+                    href={emailPreviewUrl(step.type, 0, false)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shrink-0 text-[9px] font-bold text-black underline"
+                >
+                    raw ↗
+                </a>
             </div>
-            <p className="mt-1 text-[11px] leading-snug text-grey-1">{step.preview}</p>
-            <p className="mt-1 text-[11px] leading-snug">
-                <span className="rounded-sm bg-yellow-1 px-1 font-bold">{step.ctaText}</span>
-                <span className="text-grey-1"> → {step.ctaPath}</span>
-            </p>
-            <p className="mt-1.5 font-mono text-[9px] leading-tight text-grey-1">
-                {showDev ? `${step.type} · preview ↗` : 'preview ↗'}
-            </p>
-        </a>
+        </div>
     )
 }

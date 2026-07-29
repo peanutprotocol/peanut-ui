@@ -114,6 +114,36 @@ export interface JourneySpec {
     emailPreviewBase: string
 }
 
+// ---------- copy review (email renders awaiting a product verdict) ----------
+
+/**
+ * One `?example=N` of an email. Most lifecycle emails render a single example;
+ * the two first_spend steps render a second one for the rewards branch.
+ */
+export interface EmailExample {
+    index: number
+    /** Human label for the variant toggle ("plain" / "rewards"). */
+    label: string
+}
+
+/** One reviewable email render — an (email, example) pair, in board order. */
+export interface EmailRenderRef {
+    /** `${eventType}#${example}` — the localStorage verdict key. */
+    id: string
+    eventType: string
+    example: number
+    exampleLabel: string
+    step: SpecEmailStep
+}
+
+/** An open product decision attached to an email, surfaced as a chip on its card. */
+export interface EmailDecisionFlag {
+    /** Chip text — imperative, so the board reads as a to-do list. */
+    label: string
+    /** One line explaining what is actually being decided. */
+    note: string
+}
+
 // ---------- live user inspector (GET /__dev/journey-inspect?userId=…) ----------
 
 export interface InspectDue {
