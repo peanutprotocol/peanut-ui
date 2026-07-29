@@ -23,7 +23,7 @@ import React, { lazy, Suspense } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Image from 'next/image'
 import { isAddress } from 'viem'
-import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
+import { usePrimaryName } from '@justaname.id/react'
 import { normalizeEnsName } from '@/utils/ens.utils'
 import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
@@ -105,7 +105,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const isTestTransaction = name === 'Enjoy Peanut!'
 
     // ENS reverse-lookup for raw addresses; hook is a no-op when name is a username.
-    const { primaryName } = usePrimaryNameServer(isAddress(name) ? name : undefined)
+    const { primaryName } = usePrimaryName({
+        address: isAddress(name) ? (name as `0x${string}`) : undefined,
+        chainId: 1,
+        priority: 'onChain',
+    })
     let displayName = normalizeEnsName(primaryName) ?? name
     // Shortens crypto addresses AND raw UUIDs (usernameless Peanut users whose
     // `identifier` arrives as a userId) so the feed row never renders a 36-char
