@@ -3,26 +3,35 @@
 import { useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { JOURNEY_API_BASE } from './journeyData'
+import { inspectParam } from './userLookup'
 import type { JourneyInspectResponse } from './journeyTypes'
 
 /**
  * Live user lookup: which lifecycle nudge is due for this user right now, and
- * what have they already received (GET /__dev/journey-inspect?userId=…).
+ * what have they already received (GET /__dev/journey-inspect).
+ *
+ * Takes a username or a raw userId — nobody remembers uuids, and the support
+ * thread you came from only ever names the user by handle.
  */
 export default function UserInspector() {
-    const [userId, setUserId] = useState('')
+    const [term, setTerm] = useState('')
     const [result, setResult] = useState<JourneyInspectResponse | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
 
     const inspect = async () => {
-        const id = userId.trim()
-        if (!id) return
+        const lookup = term.trim()
+        if (!lookup) return
         setLoading(true)
         setError(null)
         setResult(null)
         try {
-            const res = await fetch(`${JOURNEY_API_BASE}/__dev/journey-inspect?userId=${encodeURIComponent(id)}`)
+            const query = `${inspectParam(lookup)}=${encodeURIComponent(lookup)}`
+            const res = await fetch(`${JOURNEY_API_BASE}/__dev/journey-inspect?${query}`)
+            if (res.status === 404) {
+                setError(`No user matches “${lookup}”. Check the spelling, or paste the raw userId.`)
+                return
+            }
             if (!res.ok) throw new Error(`HTTP ${res.status}`)
             setResult((await res.json()) as JourneyInspectResponse)
         } catch {
@@ -44,12 +53,12 @@ export default function UserInspector() {
         <div className="flex max-w-2xl flex-col gap-3">
             <div className="flex gap-2">
                 <input
-                    value={userId}
-                    onChange={(e) => setUserId(e.target.value)}
+                    value={term}
+                    onChange={(e) => setTerm(e.target.value)}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') void inspect()
                     }}
-                    placeholder="userId (uuid)"
+                    placeholder="username or userId"
                     className="h-10 flex-1 rounded-sm border border-n-1 px-3 font-mono text-sm outline-none"
                 />
                 <Button variant="purple" shadowSize="4" className="w-auto px-6" onClick={() => void inspect()}>
@@ -59,16 +68,16 @@ export default function UserInspector() {
 
             {error && <div className="rounded-sm border border-n-1 bg-yellow-1/40 p-3 text-sm">{error}</div>}
 
-            {result && !result.user && (
-                <div className="rounded-sm border border-n-1 bg-yellow-1/40 p-3 text-sm">User not found.</div>
-            )}
-
-            {result?.user && (
+            {result && (
                 <div className="rounded-sm border border-n-1 bg-white p-3">
                     <div className="text-sm font-bold">
                         {result.user.username ?? '(no username)'}{' '}
                         <span className="font-normal text-grey-1">{result.user.email ?? '(no email)'}</span>
                     </div>
+                    <p className="mt-0.5 font-mono text-[11px] text-grey-1">
+                        resolved {result.user.username ? `@${result.user.username}` : '(no username)'} →{' '}
+                        {result.user.userId}
+                    </p>
                     <p className="mt-0.5 text-xs text-grey-1">
                         signed up {new Date(result.user.createdAt).toLocaleDateString()} · card access{' '}
                         {result.user.cardAccessGrantedAt
