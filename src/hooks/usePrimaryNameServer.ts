@@ -36,7 +36,9 @@ type NameCache = Record<string, { name: string; ts: number }>
 function readNameCache(): NameCache {
     if (typeof window === 'undefined') return {}
     try {
-        return JSON.parse(window.localStorage.getItem(CACHE_KEY) ?? '{}') as NameCache
+        // guard the root shape — JSON.parse("null") etc. passes but would blow up on lookup
+        const cache: unknown = JSON.parse(window.localStorage.getItem(CACHE_KEY) ?? '{}')
+        return cache && typeof cache === 'object' && !Array.isArray(cache) ? (cache as NameCache) : {}
     } catch {
         return {}
     }
