@@ -14,12 +14,14 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
-import { CloudsCss } from '@/components/LandingPage/CloudsCss'
-import PeanutActionDetailsCard, { type PeanutActionDetailsCardTransactionType } from '@/components/Global/PeanutActionDetailsCard'
+import { Hero } from '@/components/LandingPage/hero'
+import PeanutActionDetailsCard, {
+    type PeanutActionDetailsCardTransactionType,
+} from '@/components/Global/PeanutActionDetailsCard'
 import { ActionListCard } from '@/components/ActionListCard'
 import Divider from '@/components/0_Bruddle/Divider'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
-import { PEANUTMAN, PEANUTMAN_MOBILE, PeanutWhistling } from '@/assets/mascot'
+import { PEANUTMAN, PEANUTMAN_MOBILE } from '@/assets/mascot'
 import { PEANUT_LOGO_BLACK } from '@/assets/logos'
 import starImage from '@/assets/icons/star.png'
 
@@ -32,10 +34,23 @@ const STORE = { ios: 'App Store', android: 'Google Play' } as const
 // DesktopInstructions). brand logos (Apple / Play) aren't in the icon set yet — TODO.
 function storeCtas(platform: Platform, onQr: () => void) {
     if (platform === 'desktop')
-        return [{ text: 'Show QR to download', variant: 'purple' as const, shadowSize: '4' as const, icon: 'qr-code' as const, onClick: onQr }]
+        return [
+            {
+                text: 'Show QR to download',
+                variant: 'purple' as const,
+                shadowSize: '4' as const,
+                icon: 'qr-code' as const,
+                onClick: onQr,
+            },
+        ]
     const other: Platform = platform === 'ios' ? 'android' : 'ios'
     return [
-        { text: STORE[platform], variant: 'purple' as const, shadowSize: '4' as const, icon: 'mobile-install' as const },
+        {
+            text: STORE[platform],
+            variant: 'purple' as const,
+            shadowSize: '4' as const,
+            icon: 'mobile-install' as const,
+        },
         { text: STORE[other], variant: 'stroke' as const, shadowSize: '4' as const },
     ]
 }
@@ -66,7 +81,14 @@ function InstallScreen({ heading, sub, footer }: { heading: string; sub: string;
         <div className="relative mx-auto flex h-[660px] w-full max-w-[380px] flex-col overflow-hidden rounded-sm border border-n-1 bg-white">
             <section className="relative flex h-2/5 w-full items-center justify-center overflow-hidden bg-secondary-3">
                 {STARS.map((pos, i) => (
-                    <Image key={i} src={starImage.src} alt="" width={38} height={38} className={`absolute z-10 ${pos}`} />
+                    <Image
+                        key={i}
+                        src={starImage.src}
+                        alt=""
+                        width={38}
+                        height={38}
+                        className={`absolute z-10 ${pos}`}
+                    />
                 ))}
                 <Image src={PEANUTMAN_MOBILE} alt="Peanut" width={150} height={150} className="z-0 object-contain" />
             </section>
@@ -80,9 +102,9 @@ function InstallScreen({ heading, sub, footer }: { heading: string; sub: string;
 }
 
 // the live "Continue with Peanut" button (mascot + wordmark) from SendLinkActionList.
-function ContinueWithPeanut() {
+function ContinueWithPeanut({ onClick }: { onClick?: () => void }) {
     return (
-        <Button shadowSize="4" className="flex w-full items-center justify-center gap-1">
+        <Button shadowSize="4" onClick={onClick} className="flex w-full items-center justify-center gap-1">
             <span>Continue with</span>
             <Image src={PEANUTMAN} alt="" className="size-5" />
             <Image src={PEANUT_LOGO_BLACK} alt="Peanut" className="h-4 w-auto" />
@@ -90,7 +112,17 @@ function ContinueWithPeanut() {
     )
 }
 
-function Section({ n, title, subtitle, children }: { n: string; title: string; subtitle: string; children: React.ReactNode }) {
+function Section({
+    n,
+    title,
+    subtitle,
+    children,
+}: {
+    n: string
+    title: string
+    subtitle: string
+    children: React.ReactNode
+}) {
     return (
         <section className="flex flex-col gap-4 border-b border-n-1/15 py-10">
             <div>
@@ -104,14 +136,46 @@ function Section({ n, title, subtitle, children }: { n: string; title: string; s
 }
 
 const INDEX = [
-    ['01 Download prompt', 'A modal asking logged-in web users to get the app. Countdown variant warns the site is closing.', 'Web app, after login, during the migration window.'],
-    ['02 Access-ending screen', 'Full screen shown once the website is switched off — download is the only way forward.', 'Web app, after the cutover date, on every route.'],
-    ['03 Guest link pages', 'The claim / request / invite pages a non-user lands on. Primary action is "Continue with Peanut" (opens the app / store).', 'Public links: /claim, /request, /invite, /pay, /profile.'],
-    ['04 Get-the-app banner', 'A home-carousel card nudging users to install, without blocking anything.', 'Home screen carousel (web).'],
-    ['05 Landing page', 'The marketing homepage hero — CTA is "Download", not "Sign up".', 'peanut.me for new / anonymous visitors.'],
-    ['06 Review prompt', 'Asks happy users to rate the app; unhappy ones go to support instead.', 'In the app, after a good moment (money received, payment done).'],
-    ['07 Notifications prompt', 'Custom ask before the OS permission popup, so we can ask again later.', 'In the app, at launch for users who never enabled push.'],
-    ['08 Scan-to-download (QR)', 'On desktop, store links do nothing — this modal shows a QR to scan with your phone. Replaces the store buttons wherever a download CTA appears on web.', 'Every download CTA when the visitor is on a desktop browser.'],
+    [
+        '01 Download prompt',
+        'A modal asking logged-in web users to get the app. Countdown variant warns the site is closing.',
+        'Web app, after login, during the migration window.',
+    ],
+    [
+        '02 Access-ending screen',
+        'Full screen shown once the website is switched off — download is the only way forward.',
+        'Web app, after the cutover date, on every route.',
+    ],
+    [
+        '03 Guest link pages',
+        'The claim / request / invite pages a non-user lands on. Primary action is "Continue with Peanut" (opens the app / store).',
+        'Public links: /claim, /request, /invite, /pay, /profile.',
+    ],
+    [
+        '04 Get-the-app banner',
+        'A home-carousel card nudging users to install, without blocking anything.',
+        'Home screen carousel (web).',
+    ],
+    [
+        '05 Landing page',
+        'The marketing homepage hero — CTA is "Download", not "Sign up".',
+        'peanut.me for new / anonymous visitors.',
+    ],
+    [
+        '06 Review prompt',
+        'Asks happy users to rate the app; unhappy ones go to support instead.',
+        'In the app, after a good moment (money received, payment done).',
+    ],
+    [
+        '07 Notifications prompt',
+        'Custom ask before the OS permission popup, so we can ask again later.',
+        'In the app, at launch for users who never enabled push.',
+    ],
+    [
+        '08 Scan-to-download (QR)',
+        'On desktop, store links do nothing — this modal shows a QR to scan with your phone. Replaces the store buttons wherever a download CTA appears on web.',
+        'Every download CTA when the visitor is on a desktop browser.',
+    ],
 ]
 
 export default function MigrationMockupsPage() {
@@ -181,10 +245,22 @@ export default function MigrationMockupsPage() {
                 subtitle="Shown after login on the website. Dismissible. The countdown variant makes the deadline loud."
             >
                 <div className="flex flex-wrap gap-3">
-                    <Button variant="stroke" onClick={() => { setCountdown(false); setDownloadModal(true) }}>
+                    <Button
+                        variant="stroke"
+                        onClick={() => {
+                            setCountdown(false)
+                            setDownloadModal(true)
+                        }}
+                    >
                         Open (reminder)
                     </Button>
-                    <Button variant="stroke" onClick={() => { setCountdown(true); setDownloadModal(true) }}>
+                    <Button
+                        variant="stroke"
+                        onClick={() => {
+                            setCountdown(true)
+                            setDownloadModal(true)
+                        }}
+                    >
                         Open (with countdown)
                     </Button>
                 </div>
@@ -193,18 +269,29 @@ export default function MigrationMockupsPage() {
                     onClose={() => setDownloadModal(false)}
                     icon="mobile-install"
                     title="Peanut is moving to your phone"
-                    description="Get the Peanut app to keep using your account — it's faster and you'll get alerts when money lands."
+                    description={
+                        <div className="spacey-y-4">
+                            <p>
+                                Get the Peanut app to keep using your account — it's faster and you'll get alerts when
+                                money lands.
+                            </p>
+                            {countdown && (
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className="text-3xl font-extrabold leading-none text-n-1">14 days</span>
+                                    <span className="text-xs font-semibold uppercase tracking-wide text-n-1">
+                                        until the website closes
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    }
                     ctas={storeCtas(platform, openQr)}
                     footer={
-                        countdown ? (
-                            <div className="mt-4 flex flex-col items-center gap-1 rounded-sm border border-n-1 bg-primary-1 px-4 py-3">
-                                <span className="text-3xl font-extrabold leading-none text-n-1">14 days</span>
-                                <span className="text-xs font-semibold uppercase tracking-wide text-n-1">
-                                    until the website closes
-                                </span>
-                            </div>
-                        ) : (
-                            <button className="mt-3 w-full text-center text-xs text-grey-1 underline" onClick={() => setDownloadModal(false)}>
+                        !countdown && (
+                            <button
+                                className="mt-3 w-full text-center text-xs text-grey-1 underline"
+                                onClick={() => setDownloadModal(false)}
+                            >
                                 Remind me later
                             </button>
                         )
@@ -239,9 +326,9 @@ export default function MigrationMockupsPage() {
                 subtitle="Whole page a non-user lands on. Same hero as today, primary action is 'Continue with Peanut' (opens the app, or the store if not installed). Mock data."
             >
                 <div className="grid gap-6 lg:grid-cols-3">
-                    <GuestPage kind="claim" />
-                    <GuestPage kind="request" />
-                    <GuestPage kind="invite" />
+                    <GuestPage kind="claim" onCta={platform === 'desktop' ? openQr : () => {}} />
+                    <GuestPage kind="request" onCta={platform === 'desktop' ? openQr : () => {}} />
+                    <GuestPage kind="invite" onCta={platform === 'desktop' ? openQr : () => {}} />
                 </div>
             </Section>
 
@@ -263,50 +350,32 @@ export default function MigrationMockupsPage() {
                         />
                     </div>
                 ) : (
-                    <Button variant="stroke" onClick={() => setBannerOpen(true)}>Reset banner</Button>
+                    <Button variant="stroke" onClick={() => setBannerOpen(true)}>
+                        Reset banner
+                    </Button>
                 )}
             </Section>
 
-            {/* 05 Landing page — responsive full-width hero (mirrors the real landing) */}
+            {/* 05 Landing page — the real <Hero> component, only the CTA is device-based */}
             <Section
                 n="05"
                 title="Landing page hero (new visitors)"
-                subtitle="The real landing hero, reworked: brand-pink + drifting clouds + mascot, responsive (full-width on web, stacked on phone). CTA is 'Download' with store buttons + a rating — no 'Sign up'."
+                subtitle="The real landing hero (same component as peanut.me). Only change from live: the single CTA is device-based — App Store on iOS, Google Play on Android, 'Download the app' on desktop."
             >
-                <div className="relative w-full overflow-hidden rounded-sm border border-n-1 bg-primary-1 px-4 py-14 md:py-20">
-                    <CloudsCss />
-                    <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center gap-4 text-center">
-                        <Image
-                            src={PeanutWhistling.src}
-                            alt="Peanut"
-                            width={220}
-                            height={220}
-                            className="w-28 object-contain md:w-44"
-                        />
-                        <h1 className="font-roboto-flex-extrabold text-[2rem] font-extraBlack leading-none text-n-1 md:text-6xl">
-                            TAP. SCAN. ANYWHERE.
-                        </h1>
-                        <p className="max-w-md text-base text-n-1/80 md:text-xl">
-                            Send money like a text — no bank, no borders. Download the app and send in seconds.
-                        </p>
-                        {platform === 'desktop' ? (
-                            <Button variant="dark" shadowSize="4" icon="qr-code" className="mt-2 w-full max-w-sm" onClick={openQr}>
-                                Show QR to download
-                            </Button>
-                        ) : (
-                            <div className="mt-2 flex w-full max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
-                                <Button variant="dark" shadowSize="4" icon="mobile-install" className="sm:w-52">
-                                    {STORE[platform]}
-                                </Button>
-                                <Button variant="stroke" shadowSize="4" className="bg-white sm:w-52">
-                                    {STORE[platform === 'ios' ? 'android' : 'ios']}
-                                </Button>
-                            </div>
-                        )}
-                        <div className="mt-1 flex items-center gap-1 text-sm font-semibold text-n-1">
-                            <Icon name="star" size={16} /> 4.8 · loved by thousands
-                        </div>
-                    </div>
+                <div className="overflow-hidden rounded-sm border border-n-1">
+                    <Hero
+                        buttonVisible
+                        primaryCta={
+                            platform === 'ios'
+                                ? { label: 'Download on the App Store', href: 'https://apps.apple.com/app/peanut' }
+                                : platform === 'android'
+                                  ? {
+                                        label: 'Get it on Google Play',
+                                        href: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
+                                    }
+                                  : { label: 'Download the app', href: '#' }
+                        }
+                    />
                 </div>
             </Section>
 
@@ -316,7 +385,9 @@ export default function MigrationMockupsPage() {
                 title="Review prompt (in-app, after a good moment)"
                 subtitle="Custom pre-prompt. 'Love it' opens the store rating sheet; 'Could be better' opens support instead — so bad reviews never reach the store."
             >
-                <Button variant="stroke" onClick={() => setReviewModal(true)}>Open review prompt</Button>
+                <Button variant="stroke" onClick={() => setReviewModal(true)}>
+                    Open review prompt
+                </Button>
                 <ActionModal
                     visible={reviewModal}
                     onClose={() => setReviewModal(false)}
@@ -336,7 +407,9 @@ export default function MigrationMockupsPage() {
                 title="Notifications prompt (in-app launch)"
                 subtitle="Our own ask before the OS popup — if they say not now, we can ask again later (the OS popup only fires on 'Allow')."
             >
-                <Button variant="stroke" onClick={() => setPushModal(true)}>Open notifications prompt</Button>
+                <Button variant="stroke" onClick={() => setPushModal(true)}>
+                    Open notifications prompt
+                </Button>
                 <ActionModal
                     visible={pushModal}
                     onClose={() => setPushModal(false)}
@@ -365,7 +438,7 @@ export default function MigrationMockupsPage() {
             <ActionModal
                 visible={qrModal}
                 onClose={() => setQrModal(false)}
-                icon="qr-code"
+                icon="mobile-install"
                 title="Scan to download Peanut"
                 description="Point your phone's camera at the code to get the app from your store."
                 content={
@@ -385,9 +458,12 @@ const GUEST = {
     claim: { header: 'Receive', tx: 'CLAIM_LINK', name: 'alice', amount: '25', message: '' },
     request: { header: 'Pay', tx: 'REQUEST_PAYMENT', name: 'bob', amount: '40', message: 'for dinner' },
     invite: { header: 'Receive', tx: 'CLAIM_LINK', name: 'carol', amount: '25', message: '' },
-} satisfies Record<string, { header: string; tx: PeanutActionDetailsCardTransactionType; name: string; amount: string; message: string }>
+} satisfies Record<
+    string,
+    { header: string; tx: PeanutActionDetailsCardTransactionType; name: string; amount: string; message: string }
+>
 
-function GuestPage({ kind }: { kind: 'claim' | 'request' | 'invite' }) {
+function GuestPage({ kind, onCta }: { kind: 'claim' | 'request' | 'invite'; onCta: () => void }) {
     const c = GUEST[kind]
     return (
         <div className="mx-auto flex h-[600px] w-full max-w-[360px] flex-col justify-between gap-6 overflow-hidden rounded-sm border border-n-1 bg-white p-5">
@@ -410,7 +486,7 @@ function GuestPage({ kind }: { kind: 'claim' | 'request' | 'invite' }) {
                     </div>
                 )}
                 <div className="space-y-2">
-                    <ContinueWithPeanut />
+                    <ContinueWithPeanut onClick={onCta} />
                     <Divider text="or" />
                     <div>
                         <ActionListCard
@@ -418,14 +494,14 @@ function GuestPage({ kind }: { kind: 'claim' | 'request' | 'invite' }) {
                             leftIcon={<Icon name="bank" size={20} />}
                             title="Bank transfer"
                             description="1-2 business days"
-                            onClick={() => {}}
+                            onClick={onCta}
                         />
                         <ActionListCard
                             position="last"
                             leftIcon={<Icon name="bank" size={20} />}
                             title="Pix"
                             description="Instant, Brazil"
-                            onClick={() => {}}
+                            onClick={onCta}
                         />
                     </div>
                 </div>
