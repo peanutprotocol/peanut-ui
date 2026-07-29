@@ -17,7 +17,7 @@ import PendingVerificationTasks from '../PendingVerificationTasks'
 let mockNextActions: NextAction[] = []
 const mockFetchUser = jest.fn()
 const mockStartHosted = jest.fn<Promise<{ url?: string; error?: string }>, []>()
-let mockStoredDismissal: string | undefined
+let mockStoredDismissal: string[] | undefined
 const mockUpdatePreferences = jest.fn()
 
 jest.mock('@/hooks/useCapabilities', () => ({
@@ -184,37 +184,51 @@ describe('PendingVerificationTasks', () => {
     })
 
     describe('dismissal (home mount)', () => {
-        it('dismissible mount shows an X that hides the card and persists the task-key set', () => {
+        it("a slide's X dismisses ONLY that task — the other slide stays and the key persists", () => {
             mockNextActions = [tosAction, hostedAction]
             render(<PendingVerificationTasks dismissible />)
 
-            fireEvent.click(screen.getByRole('button', { name: /dismiss pending verification tasks/i }))
+            fireEvent.click(screen.getByRole('button', { name: /dismiss accept terms of service/i }))
             expect(screen.queryByText('Accept Terms of Service')).not.toBeInTheDocument()
+            expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
             expect(mockUpdatePreferences).toHaveBeenCalledWith('user-1', {
-                pendingVerificationTasksDismissed: 'accept-tos,bridge-hosted',
+                pendingVerificationTasksDismissed: ['accept-tos'],
             })
         })
 
-        it('a stored dismissal for the SAME task set keeps the card hidden', () => {
-            mockStoredDismissal = 'accept-tos,bridge-hosted'
+        it('dismissing the last remaining task hides the card entirely', () => {
+            mockStoredDismissal = ['accept-tos']
+            mockNextActions = [tosAction, hostedAction]
+            const { container } = render(<PendingVerificationTasks dismissible />)
+
+            fireEvent.click(screen.getByRole('button', { name: /dismiss additional verification needed/i }))
+            expect(container).toBeEmptyDOMElement()
+            expect(mockUpdatePreferences).toHaveBeenCalledWith('user-1', {
+                pendingVerificationTasksDismissed: ['accept-tos', 'bridge-hosted'],
+            })
+        })
+
+        it('stored dismissed keys hide only their tasks; undismissed tasks still show', () => {
+            mockStoredDismissal = ['accept-tos']
+            mockNextActions = [tosAction, hostedAction]
+            render(<PendingVerificationTasks dismissible />)
+            expect(screen.queryByText('Accept Terms of Service')).not.toBeInTheDocument()
+            expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
+        })
+
+        it('all pending tasks stored as dismissed → card hidden', () => {
+            mockStoredDismissal = ['accept-tos', 'bridge-hosted']
             mockNextActions = [tosAction, hostedAction]
             const { container } = render(<PendingVerificationTasks dismissible />)
             expect(container).toBeEmptyDOMElement()
         })
 
-        it('a DIFFERENT pending task set re-shows the card despite a stored dismissal', () => {
-            mockStoredDismissal = 'accept-tos'
-            mockNextActions = [tosAction, hostedAction]
-            render(<PendingVerificationTasks dismissible />)
-            expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
-        })
-
         it('the non-dismissible (profile) mount ignores stored dismissals and has no X', () => {
-            mockStoredDismissal = 'accept-tos,bridge-hosted'
+            mockStoredDismissal = ['accept-tos', 'bridge-hosted']
             mockNextActions = [tosAction, hostedAction]
             render(<PendingVerificationTasks />)
             expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()
-            expect(screen.queryByRole('button', { name: /dismiss pending/i })).not.toBeInTheDocument()
+            expect(screen.queryByRole('button', { name: /dismiss/i })).not.toBeInTheDocument()
         })
     })
 })

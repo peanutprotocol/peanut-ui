@@ -501,7 +501,7 @@ export type UserPreferences = {
     /** The sorted, comma-joined task keys of the pending Bridge verification
      *  tasks card the user dismissed on /home. A DIFFERENT task set re-shows
      *  the card; the tasks stay reachable under Profile → Unlocked regions. */
-    pendingVerificationTasksDismissed?: string
+    pendingVerificationTasksDismissed?: string[]
 }
 
 export const updateUserPreferences = (

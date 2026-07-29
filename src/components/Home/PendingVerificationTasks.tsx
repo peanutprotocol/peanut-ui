@@ -70,10 +70,11 @@ function formatDeadline(isoDate: string): string | null {
  * modal/iframe must survive its task disappearing mid-flow — the card hides,
  * the flow keeps running.
  *
- * `dismissible` (the /home mount): an X persists the dismissal per task-key
- * set (carousel-CTA pattern) — a DIFFERENT set of pending tasks re-shows the
- * card. The Profile → Unlocked regions mount is non-dismissible, so dismissed
- * tasks stay reachable there.
+ * `dismissible` (the /home mount): each slide carries its own X that
+ * dismisses ONLY that task (persisted per task key) — the other slides stay.
+ * A dismissed key stays hidden on /home until the task resolves; the
+ * Profile → Unlocked regions mount is non-dismissible, so dismissed tasks
+ * stay reachable there.
  */
 export default function PendingVerificationTasks({ dismissible = false }: { dismissible?: boolean }) {
     const { nextActions } = useCapabilities()
@@ -82,7 +83,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
     const [hostedUrl, setHostedUrl] = useState<string | null>(null)
     const [isStartingHosted, setIsStartingHosted] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [dismissedKeys, setDismissedKeys] = useState<string | null>(null)
+    const [dismissedKeys, setDismissedKeys] = useState<string[]>([])
 
     const userId = user?.user?.userId
     const tasks = selectBridgeTasks(nextActions)
@@ -98,15 +99,21 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
 
     useEffect(() => {
         if (!dismissible || !userId) return
-        setDismissedKeys(getUserPreferences(userId)?.pendingVerificationTasksDismissed ?? null)
+        setDismissedKeys(getUserPreferences(userId)?.pendingVerificationTasksDismissed ?? [])
     }, [dismissible, userId])
 
-    const handleDismiss = useCallback(() => {
-        updateUserPreferences(userId, { pendingVerificationTasksDismissed: taskKeys })
-        setDismissedKeys(taskKeys)
-    }, [userId, taskKeys])
+    const handleDismissTask = useCallback(
+        (taskKey: string) => {
+            setDismissedKeys((prev) => {
+                const next = [...prev, taskKey]
+                updateUserPreferences(userId, { pendingVerificationTasksDismissed: next })
+                return next
+            })
+        },
+        [userId]
+    )
 
-    const isDismissed = dismissible && dismissedKeys !== null && dismissedKeys === taskKeys
+    const visibleTasks = dismissible ? tasks.filter((task) => !dismissedKeys.includes(task.key)) : tasks
 
     const handleOpenTask = useCallback(
         async (task: NextAction) => {
@@ -144,30 +151,30 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
 
     const closeTos = useCallback(() => setActiveTosTask(null), [])
 
-    if ((tasks.length === 0 || isDismissed) && !activeTosTask && !hostedUrl) return null
+    if (visibleTasks.length === 0 && !activeTosTask && !hostedUrl) return null
 
     return (
         <>
-            {tasks.length > 0 && !isDismissed && (
-                <div className="relative">
-                    {dismissible && (
-                        <button
-                            type="button"
-                            aria-label="Dismiss pending verification tasks"
-                            onClick={handleDismiss}
-                            className="absolute right-3 top-3 z-10 cursor-pointer p-0 text-black outline-none"
-                        >
-                            <Icon name="cancel" size={16} />
-                        </button>
-                    )}
+            {visibleTasks.length > 0 && (
+                <div>
                     <Carousel>
-                        {tasks.map((task) => {
+                        {visibleTasks.map((task) => {
                             const copy = taskCopy(task)
                             const isHosted = task.kind === 'bridge-hosted'
                             const deadline = task.effectiveDate ? formatDeadline(task.effectiveDate) : null
                             return (
-                                <Card key={task.key} position="single" className="embla__slide p-0">
+                                <Card key={task.key} position="single" className="embla__slide relative p-0">
                                     <div className="flex flex-col items-center gap-2 px-4 py-5 text-center">
+                                        {dismissible && (
+                                            <button
+                                                type="button"
+                                                aria-label={`Dismiss ${copy.title}`}
+                                                onClick={() => handleDismissTask(task.key)}
+                                                className="absolute right-3 top-3 z-10 cursor-pointer p-0 text-black outline-none"
+                                            >
+                                                <Icon name="cancel" size={16} />
+                                            </button>
+                                        )}
                                         <div className="flex size-10 items-center justify-center rounded-full bg-secondary-1">
                                             <Icon name={isHosted ? 'user-id' : 'badge'} size={20} />
                                         </div>
