@@ -55,7 +55,7 @@ const EasterEggModal = ({ visible, onClose, countryCode }: EasterEggModalProps) 
             icon={
                 <Image
                     src={config.image}
-                    alt="Easter egg"
+                    alt={t('easterEggImageAlt')}
                     width={400}
                     height={400}
                     className="h-auto w-full"

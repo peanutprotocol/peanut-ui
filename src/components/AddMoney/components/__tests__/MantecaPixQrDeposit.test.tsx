@@ -8,15 +8,9 @@
  */
 import React from 'react'
 import { render as rtlRender, screen } from '@testing-library/react'
-import { NextIntlClientProvider } from 'next-intl'
-import en from '@/i18n/app/messages/en.json'
+import { IntlWrapper } from '@/test-utils/intl'
 
-const render = (ui: React.ReactElement) =>
-    rtlRender(
-        <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
-            {ui}
-        </NextIntlClientProvider>
-    )
+const render = (ui: React.ReactElement) => rtlRender(<IntlWrapper>{ui}</IntlWrapper>)
 
 const mockUseMantecaDepositPolling = jest.fn()
 jest.mock('@/components/AddMoney/hooks/useMantecaDepositPolling', () => ({

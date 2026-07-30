@@ -10,14 +10,8 @@
  */
 import React from 'react'
 import { render as rtlRender, screen, fireEvent, waitFor, type RenderOptions } from '@testing-library/react'
-import { NextIntlClientProvider } from 'next-intl'
-import en from '@/i18n/app/messages/en.json'
+import { IntlWrapper } from '@/test-utils/intl'
 
-const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
-    <NextIntlClientProvider locale="en" messages={en}>
-        {children}
-    </NextIntlClientProvider>
-)
 const render = (ui: React.ReactElement, options?: RenderOptions) => rtlRender(ui, { wrapper: IntlWrapper, ...options })
 
 const mockCancelOnramp = jest.fn()

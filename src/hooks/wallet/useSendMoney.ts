@@ -137,9 +137,9 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
                 // User cancelled or the grant failed — no transaction happened.
                 // Let the caller show its own UI for this; default to a toast.
                 if (error.cause.kind === 'user-cancelled') {
-                    toast.error('Approval cancelled — you can retry anytime.')
+                    toast.error(tErrors('cardApprovalCancelled'))
                 } else {
-                    toast.error('Card approval failed — please try again.')
+                    toast.error(tErrors('cardApprovalFailed'))
                 }
                 return
             }
