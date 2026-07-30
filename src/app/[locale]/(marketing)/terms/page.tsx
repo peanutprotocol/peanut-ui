@@ -6,6 +6,7 @@ import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import { readPageContentLocalized } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
+import { Hero } from '@/components/Marketing/mdx/Hero'
 
 interface PageProps {
     params: Promise<{ locale: string }>
@@ -77,6 +78,7 @@ export default async function TermsPage({ params }: PageProps) {
                     : undefined
             }
         >
+            <Hero title={displayTitle} subtitle={i18n.legalHeroSubtitleTerms} />
             {content}
         </ContentPage>
     )

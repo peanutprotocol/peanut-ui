@@ -144,6 +144,10 @@ export interface Translations {
     landingWallOfLove: string
     landingWallOfLoveBody: string
 
+    // Legal page headers (privacy/terms carry no <Hero> in their verbatim markdown)
+    legalHeroSubtitlePrivacy: string
+    legalHeroSubtitleTerms: string
+
     // Exchange-rate widget (marketing surfaces)
     exchangeYouSend: string
     exchangeRecipientGets: string
