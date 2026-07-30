@@ -17,6 +17,17 @@ export const MIGRATION_CUTOVER_DATE = new Date('2026-12-31T00:00:00Z')
 // how long "Remind me later" snoozes the download prompt modal
 export const DOWNLOAD_PROMPT_SNOOZE_DAYS = 3
 
+// how long "Not now" on the notifications pre-prompt snoozes before re-asking
+// (only during the migration window; flag off keeps closed-forever)
+export const NOTIF_PROMPT_SNOOZE_DAYS = 14
+
+// store review deep links ("Love it" on the review prompt). the ios
+// write-review action needs the real numeric app id — placeholder until launch.
+export const REVIEW_URL = {
+    ios: 'https://apps.apple.com/app/peanut?action=write-review',
+    android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
+} as const
+
 // support escape hatch for users who can't install the app: support DMs
 // `/home?keep-web=<token>`; visiting it stores a 90-day cookie that bypasses
 // the sunset block.

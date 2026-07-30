@@ -1836,8 +1836,8 @@
         "today": "Hoje",
         "yesterday": "Ontem",
         "iconAlt": "ícone",
-        "setupTitle": "Ativar as notificações?",
-        "setupDescription": "Ative as notificações e receba alertas de toda a atividade da sua carteira.",
+        "setupTitle": "Receba alertas de dinheiro",
+        "setupDescription": "Avisamos na hora quando o dinheiro chegar ou alguém pedir um pagamento.",
         "enable": "Ativar notificações",
         "requesting": "Solicitando...",
         "notNow": "Agora não"

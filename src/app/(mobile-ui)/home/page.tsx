@@ -52,6 +52,7 @@ const WelcomeUnlockModal = lazy(() => import('@/components/Home/WelcomeUnlockMod
 const IosPwaInstallModal = lazy(() => import('@/components/Global/IosPwaInstallModal'))
 const MigrationDownloadModal = lazy(() => import('@/components/Migration/MigrationDownloadModal'))
 const ScanToDownloadModal = lazy(() => import('@/components/Migration/ScanToDownloadModal'))
+const ReviewPromptModal = lazy(() => import('@/components/Migration/ReviewPromptModal'))
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -354,6 +355,19 @@ export default function Home() {
             {/* Card Pioneer Modal - Show to all users who haven't purchased */}
             {/* Eligibility check happens during the flow (geo screen), not here */}
             <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
+
+            {/* App review nudge (native only, once ever) — lowest priority */}
+            {!showMigrationModal &&
+                !showPermissionModal &&
+                !showBalanceWarningModal &&
+                !showKycModal &&
+                !isPostSignupActionModalVisible && (
+                    <LazyLoadErrorBoundary>
+                        <Suspense fallback={null}>
+                            <ReviewPromptModal />
+                        </Suspense>
+                    </LazyLoadErrorBoundary>
+                )}
         </PageContainer>
     )
 }
