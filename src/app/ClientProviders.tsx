@@ -9,6 +9,7 @@
 import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
 import RainCooldownIntroModal from '@/components/Global/RainCooldown/IntroModal'
 import StaleCardApprovalReEnableModal from '@/components/Global/StaleCardApproval/ReEnableModal'
+import StaleDeploymentReload from '@/components/Global/StaleDeploymentReload'
 import BadgeEarnToast from '@/components/Badges/BadgeEarnToast'
 import { AppLockGate } from '@/components/Global/AppLock'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
@@ -61,6 +62,11 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                                 {/* Non-intrusive "badge unlocked" toast on /home (TASK-19791).
                                 Global so it surfaces wherever the user lands after earning. */}
                                 <BadgeEarnToast />
+                                {/* Mounted inside the providers (not called in this
+                                component's body like useOtaUpdates) because it
+                                reads the query client, redux and loading-state
+                                context to know when a reload is safe. */}
+                                <StaleDeploymentReload />
                                 {HarnessBootstrap && (
                                     <Suspense fallback={null}>
                                         <HarnessBootstrap />
