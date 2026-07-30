@@ -132,5 +132,14 @@
     "footerLanguage": "Language",
     "localeSuggestionText": "If you prefer to see this page in English,",
     "localeSuggestionCta": "click here!",
-    "localeSuggestionDismiss": "Dismiss"
+    "localeSuggestionDismiss": "Dismiss",
+    "exchangeYouSend": "You Send",
+    "exchangeRecipientGets": "Recipient Gets",
+    "exchangeSwapCurrencies": "Swap currencies",
+    "exchangeRateUnavailable": "Rate currently unavailable",
+    "exchangeBankFee": "Bank fee",
+    "exchangePeanutFee": "Peanut fee",
+    "exchangeFree": "Free!",
+    "exchangeArrivesHours": "Should arrive in hours.",
+    "exchangeArrivesMinutes": "Should arrive in minutes."
 }

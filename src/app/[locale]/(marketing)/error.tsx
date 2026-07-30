@@ -5,9 +5,11 @@ import Link from 'next/link'
 import { recoverFromChunkError } from '@/utils/chunk-error-recovery'
 import { getTranslations } from '@/i18n'
 import { useUrlLocale } from '@/i18n/useUrlLocale'
+import { DEFAULT_LOCALE } from '@/i18n/types'
 
 export default function MarketingError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-    const i18n = getTranslations(useUrlLocale())
+    const locale = useUrlLocale()
+    const i18n = getTranslations(locale)
 
     useEffect(() => {
         console.error(error)
@@ -28,7 +30,7 @@ export default function MarketingError({ error, reset }: { error: Error & { dige
                     {i18n.errorTryAgain}
                 </button>
                 <Link
-                    href="/"
+                    href={locale === DEFAULT_LOCALE ? '/' : `/${locale}`}
                     className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50"
                 >
                     {i18n.errorGoHome}

@@ -31,7 +31,7 @@ const Footer = ({
             <footer className="bg-black px-8 py-8 md:px-20">
                 <div className="flex flex-wrap items-center justify-between gap-6">
                     <section className="flex flex-col gap-1">
-                        <Link href="/lp" className="flex">
+                        <Link href={locale === DEFAULT_LOCALE ? '/' : `/${locale}`} className="flex">
                             <Image src={PEANUT_LOGO} alt="Peanut Logo" width={110} height={40} />
                         </Link>
                         <p className="text-xs text-white">
@@ -97,7 +97,7 @@ const Footer = ({
                     </a>
 
                     {/* Reads as the next nav item, set off by double the nav gap. */}
-                    <div className="ml-12 flex items-center gap-4">
+                    <div className="flex w-full items-center justify-center gap-4 md:ml-12 md:w-auto">
                         <a
                             href="https://t.me/clubpeanut"
                             target="_blank"

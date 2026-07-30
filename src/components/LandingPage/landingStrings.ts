@@ -25,6 +25,18 @@ export interface LandingStrings {
     cardCta: string
     wallOfLove: string
     wallOfLoveBody: string
+    /** Passed straight through to ExchangeRateWidget's `labels`. */
+    exchange: {
+        youSend: string
+        recipientGets: string
+        swapCurrencies: string
+        rateUnavailable: string
+        bankFee: string
+        peanutFee: string
+        free: string
+        arrivesHours: string
+        arrivesMinutes: string
+    }
 }
 
 export function landingStrings(i18n: Translations): LandingStrings {
@@ -49,6 +61,17 @@ export function landingStrings(i18n: Translations): LandingStrings {
         cardCta: i18n.landingCardCta,
         wallOfLove: i18n.landingWallOfLove,
         wallOfLoveBody: i18n.landingWallOfLoveBody,
+        exchange: {
+            youSend: i18n.exchangeYouSend,
+            recipientGets: i18n.exchangeRecipientGets,
+            swapCurrencies: i18n.exchangeSwapCurrencies,
+            rateUnavailable: i18n.exchangeRateUnavailable,
+            bankFee: i18n.exchangeBankFee,
+            peanutFee: i18n.exchangePeanutFee,
+            free: i18n.exchangeFree,
+            arrivesHours: i18n.exchangeArrivesHours,
+            arrivesMinutes: i18n.exchangeArrivesMinutes,
+        },
     }
 }
 

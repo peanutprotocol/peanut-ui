@@ -132,5 +132,14 @@
     "footerLanguage": "Idioma",
     "localeSuggestionText": "Si prefieres ver esta página en español,",
     "localeSuggestionCta": "¡haz clic aquí!",
-    "localeSuggestionDismiss": "Descartar"
+    "localeSuggestionDismiss": "Descartar",
+    "exchangeYouSend": "Tú envías",
+    "exchangeRecipientGets": "El destinatario recibe",
+    "exchangeSwapCurrencies": "Intercambiar monedas",
+    "exchangeRateUnavailable": "Tipo de cambio no disponible por ahora",
+    "exchangeBankFee": "Comisión bancaria",
+    "exchangePeanutFee": "Comisión de Peanut",
+    "exchangeFree": "¡Gratis!",
+    "exchangeArrivesHours": "Debería llegar en unas horas.",
+    "exchangeArrivesMinutes": "Debería llegar en minutos."
 }

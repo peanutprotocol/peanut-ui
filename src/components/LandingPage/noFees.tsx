@@ -164,7 +164,12 @@ export function NoFees({
                     />
                 </div>
 
-                <ExchangeRateWidget ctaIcon="arrow-up-right" ctaLabel={strings.sendMoney} ctaAction={handleCtaAction} />
+                <ExchangeRateWidget
+                    ctaIcon="arrow-up-right"
+                    ctaLabel={strings.sendMoney}
+                    ctaAction={handleCtaAction}
+                    labels={strings.exchange}
+                />
 
                 <ContextualLinks
                     className="mt-6"

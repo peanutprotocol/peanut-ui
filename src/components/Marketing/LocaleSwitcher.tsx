@@ -33,34 +33,32 @@ export function LocaleSwitcher({ locale, label }: { locale: Locale; label: strin
     const [open, setOpen] = useState(false)
     const wrapperRef = useRef<HTMLDivElement | null>(null)
 
+    // Attached once on mount rather than whenever `open` flips. Binding it on
+    // open means the listener goes live while the click that opened the menu is
+    // still being dispatched, so it catches that same interaction and closes the
+    // menu again — it opens and vanishes before it paints. A stable listener has
+    // no such race: a click on the trigger is inside the wrapper, so this never
+    // fires for it, and the button's own onClick owns the toggle.
     useEffect(() => {
-        if (!open) return
         const onDown = (e: Event) => {
             if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setOpen(false)
         }
         const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape') setOpen(false)
         }
-        // Attached on the next tick, not synchronously: the effect flushes while
-        // the click that opened the menu is still being dispatched, so a
-        // same-tick listener catches that very interaction and shuts the menu
-        // again — it opens and vanishes before anything renders.
-        const timer = setTimeout(() => {
-            document.addEventListener('pointerdown', onDown)
-            document.addEventListener('keydown', onKey)
-        }, 0)
+        document.addEventListener('pointerdown', onDown)
+        document.addEventListener('keydown', onKey)
         return () => {
-            clearTimeout(timer)
             document.removeEventListener('pointerdown', onDown)
             document.removeEventListener('keydown', onKey)
         }
-    }, [open])
+    }, [])
 
     return (
         <div ref={wrapperRef} className="relative">
             <button
                 type="button"
-                aria-haspopup="listbox"
+                aria-haspopup="true"
                 aria-expanded={open}
                 aria-label={`${label}: ${LOCALE_META[locale].shortLabel}`}
                 onClick={() => setOpen((v) => !v)}
@@ -73,13 +71,12 @@ export function LocaleSwitcher({ locale, label }: { locale: Locale; label: strin
             </button>
             {open && (
                 <ul
-                    role="listbox"
                     className={`${TRIGGER_WIDTH} absolute right-0 top-full z-30 mt-1 flex flex-col overflow-hidden rounded-sm border border-n-1 bg-white shadow-[2px_2px_0_0_#000]`}
                 >
                     {LOCALE_ORDER.map((loc) => {
                         const isCurrent = loc === locale
                         return (
-                            <li key={loc} role="option" aria-selected={isCurrent}>
+                            <li key={loc}>
                                 <Link
                                     href={localeHref(pathname, loc)}
                                     hrefLang={loc}

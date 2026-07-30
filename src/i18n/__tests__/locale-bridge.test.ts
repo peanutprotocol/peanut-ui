@@ -1,5 +1,6 @@
 import { toAppLocale, toMarketingLocale } from '../localeBridge'
 import { APP_LOCALES } from '../app/config'
+import { localizeContentHref } from '../config'
 import { SUPPORTED_LOCALES } from '../types'
 
 describe('toAppLocale', () => {
@@ -47,5 +48,28 @@ describe('toMarketingLocale', () => {
         expect(toMarketingLocale('PT-BR')).toBe('pt-br')
         expect(toMarketingLocale('ES-419')).toBe('es-419')
         expect(toMarketingLocale('EN')).toBe('en')
+    })
+})
+
+describe('localizeContentHref', () => {
+    it('re-points a locale-prefixed href', () => {
+        expect(localizeContentHref('/en/help/passkeys', 'es-419')).toBe('/es-419/help/passkeys')
+        expect(localizeContentHref('/pt-br/compare/wise', 'en')).toBe('/en/compare/wise')
+    })
+
+    it('prefixes an href authored without a locale', () => {
+        // Content authors write both forms; RelatedLink hrefs use the bare form.
+        expect(localizeContentHref('/help/account-recovery', 'pt-br')).toBe('/pt-br/help/account-recovery')
+    })
+
+    it('leaves external links and anchors alone', () => {
+        for (const href of ['https://peanut.me/shhhhh', '#chat', 'mailto:hi@peanut.me']) {
+            expect(localizeContentHref(href, 'es-419')).toBe(href)
+        }
+    })
+
+    it('is idempotent', () => {
+        const once = localizeContentHref('/help/x', 'es-419')
+        expect(localizeContentHref(once, 'es-419')).toBe(once)
     })
 })

@@ -210,6 +210,7 @@ export function LandingPageClient({
                 buttonVisible={buttonVisible}
                 buttonScale={buttonScale}
                 strings={strings}
+                locale={locale}
             />
             <Marquee {...marqueeProps} />
             {mantecaSlot}

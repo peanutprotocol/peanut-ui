@@ -144,6 +144,17 @@ export interface Translations {
     landingWallOfLove: string
     landingWallOfLoveBody: string
 
+    // Exchange-rate widget (marketing surfaces)
+    exchangeYouSend: string
+    exchangeRecipientGets: string
+    exchangeSwapCurrencies: string
+    exchangeRateUnavailable: string
+    exchangeBankFee: string
+    exchangePeanutFee: string
+    exchangeFree: string
+    exchangeArrivesHours: string
+    exchangeArrivesMinutes: string
+
     // Footer
     footerMadeWithLove: string
     footerLegalEntity: string
