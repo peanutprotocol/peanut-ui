@@ -157,7 +157,7 @@ const ReConsentModal = () => {
                 </div>
             }
             checkbox={{
-                text: 'I have read and accept the updated documents',
+                text: 'I accept the updated documents',
                 checked,
                 onChange: setChecked,
             }}
@@ -168,12 +168,17 @@ const ReConsentModal = () => {
                     shadowSize: '4',
                     disabled: !checked || submitting,
                     onClick: handleAccept,
+                    // ActionModal's sm:flex-1 (meant for its side-by-side layout)
+                    // squashes h-13 buttons when the CTAs are stacked
+                    className: 'sm:flex-none',
                 },
                 {
                     text: 'Not now',
                     variant: 'transparent',
                     disabled: submitting,
                     onClick: handlePostpone,
+                    // secondary de-emphasis: .btn is font-bold by default
+                    className: 'sm:flex-none font-normal text-grey-1',
                 },
             ]}
             ctaClassName={STACKED_CTAS}
