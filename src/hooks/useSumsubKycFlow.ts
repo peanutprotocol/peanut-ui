@@ -11,24 +11,12 @@ import {
 } from '@/app/actions/sumsub'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
-import { isCapacitor } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
 
 interface UseSumsubKycFlowOptions {
     onKycSuccess?: () => void
     onManualClose?: () => void
     regionIntent?: KYCRegionIntent
-}
-
-// minimal shape of the native Sumsub SDK the capacitor shell injects on window
-interface SumsubNativeSdkBuilder {
-    withHandlers(handlers: { onStatusChanged: (event: { newStatus?: string }) => void }): SumsubNativeSdkBuilder
-    withLocale(locale: string): SumsubNativeSdkBuilder
-    withDebug(debug: boolean): SumsubNativeSdkBuilder
-    build(): { launch(): Promise<{ status?: string } | undefined> }
-}
-interface SumsubNativeSdk {
-    init(token: string, tokenRefresh: () => Promise<string>): SumsubNativeSdkBuilder
 }
 
 // Time-escalating schedule for the verification-progress-modal status poll.
@@ -319,52 +307,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 }
 
                 if (response.data?.token) {
-                    // in capacitor, launch native sumsub sdk instead of web wrapper
-                    if (isCapacitor()) {
-                        try {
-                            const SNSMobileSDK = (window as Window & { SNSMobileSDK?: SumsubNativeSdk }).SNSMobileSDK
-                            if (!SNSMobileSDK) {
-                                userInitiatedRef.current = false
-                                setError(t('errorSdkUnavailable'))
-                                return
-                            }
-                            const effectiveRegionIntent = overrideIntent ?? regionIntent
-                            const sdk = SNSMobileSDK.init(response.data.token, async () => {
-                                // keep parity with the web refreshToken below — dropping
-                                // targetCountry here would mint a token for a different
-                                // (suffix-less) applicant action than the one the user is in.
-                                const r = await initiateSumsubKyc({
-                                    regionIntent: effectiveRegionIntent,
-                                    levelName: levelNameRef.current,
-                                    targetCountry: targetCountryRef.current,
-                                })
-                                return r.data?.token || ''
-                            })
-                                .withHandlers({
-                                    onStatusChanged: (event) => {
-                                        console.log('[useSumsubKycFlow] native onStatusChanged:', JSON.stringify(event))
-                                        if (event?.newStatus === 'Approved') {
-                                            onKycSuccess?.()
-                                        }
-                                    },
-                                })
-                                .withLocale('en')
-                                .withDebug(process.env.NODE_ENV === 'development')
-                                .build()
-
-                            const result = await sdk.launch()
-                            console.log('[useSumsubKycFlow] native SDK result:', JSON.stringify(result))
-                            if (result?.status === 'Approved') {
-                                onKycSuccess?.()
-                            }
-                        } catch (nativeErr) {
-                            console.error('[useSumsubKycFlow] native SDK error:', nativeErr)
-                            userInitiatedRef.current = false
-                            setError(t('errorVerificationFailed'))
-                        }
-                        return
-                    }
-
+                    // Native included: SumsubKycWrapper picks the Cordova SDK over
+                    // the WebSDK by platform, so every flow that mints a token —
+                    // not just this one — reaches the right SDK.
                     setAccessToken(response.data.token)
                     setIsActionFlow(!!response.data.actionType)
                     setShowWrapper(true)
