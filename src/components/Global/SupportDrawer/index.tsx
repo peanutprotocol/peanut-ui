@@ -10,6 +10,7 @@ import PeanutLoading from '../PeanutLoading'
 import { Button } from '@/components/0_Bruddle/Button'
 import { SUPPORT_EMAIL } from '@/constants/crisp'
 import { isCapacitor } from '@/utils/capacitor'
+import { ensureNativeCrispConfigured } from '@/utils/crisp'
 
 const DISMISS_THRESHOLD = 100
 
@@ -64,33 +65,37 @@ const SupportDrawer = () => {
     useEffect(() => {
         if (!isSupportModalOpen || !isCapacitor() || isAwaitingToken) return
 
-        import('@capgo/capacitor-crisp').then(({ CapacitorCrisp }) => {
-            // set user data before opening
-            if (userData.email || userData.fullName) {
-                CapacitorCrisp.setUser({
-                    email: userData.email || undefined,
-                    nickname: userData.fullName || userData.username || undefined,
-                    avatar: userData.avatar || undefined,
-                })
-            }
-            if (crispTokenId) {
-                CapacitorCrisp.setTokenID({ tokenID: crispTokenId })
-            }
-            // set custom data for support agents
-            if (userData.walletAddress) {
-                CapacitorCrisp.setString({ key: 'wallet_address', value: userData.walletAddress })
-            }
-            if (userData.userId) {
-                CapacitorCrisp.setString({ key: 'user_id', value: userData.userId })
-            }
-            if (prefilledMessage) {
-                CapacitorCrisp.sendMessage({ value: prefilledMessage })
-            }
+        ensureNativeCrispConfigured()
+            .then((CapacitorCrisp) => {
+                // set user data before opening
+                if (userData.email || userData.fullName) {
+                    CapacitorCrisp.setUser({
+                        email: userData.email || undefined,
+                        nickname: userData.fullName || userData.username || undefined,
+                        avatar: userData.avatar || undefined,
+                    })
+                }
+                if (crispTokenId) {
+                    CapacitorCrisp.setTokenID({ tokenID: crispTokenId })
+                }
+                // set custom data for support agents
+                if (userData.walletAddress) {
+                    CapacitorCrisp.setString({ key: 'wallet_address', value: userData.walletAddress })
+                }
+                if (userData.userId) {
+                    CapacitorCrisp.setString({ key: 'user_id', value: userData.userId })
+                }
+                if (prefilledMessage) {
+                    CapacitorCrisp.sendMessage({ value: prefilledMessage })
+                }
 
-            CapacitorCrisp.openMessenger()
-            // close our drawer since native UI takes over
-            setIsSupportModalOpen(false)
-        })
+                CapacitorCrisp.openMessenger()
+                // close our drawer since native UI takes over
+                setIsSupportModalOpen(false)
+            })
+            .catch((err: unknown) => {
+                console.warn('[SupportDrawer] native crisp open failed:', err)
+            })
     }, [isSupportModalOpen, isAwaitingToken, userData, crispTokenId, prefilledMessage, setIsSupportModalOpen])
 
     // drag-to-dismiss state
