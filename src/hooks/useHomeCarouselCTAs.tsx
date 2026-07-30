@@ -215,8 +215,21 @@ export const useHomeCarouselCTAs = () => {
                     // the user must reinstall — so route to the install modal. On native
                     // the OS prompt falls back to the Settings app (handled in requestPermission),
                     // so let it through instead of showing a PWA-install dead end.
+                    // During the migration window the reinstall answer is the native
+                    // app, not the retiring PWA.
                     if (isPermissionDenied && !isCapacitor()) {
-                        setIsIosPwaInstallModalOpen(true)
+                        if (migrationOn) {
+                            if (deviceType === DeviceType.WEB) {
+                                setIsGetAppModalOpen(true)
+                            } else {
+                                openStore(
+                                    deviceType === DeviceType.ANDROID ? 'android' : 'ios',
+                                    MIGRATION_SURFACES.HOME_BANNER
+                                )
+                            }
+                        } else {
+                            setIsIosPwaInstallModalOpen(true)
+                        }
                         return
                     }
                     const result = await requestPermission()

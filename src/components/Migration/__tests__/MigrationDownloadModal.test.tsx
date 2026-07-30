@@ -9,9 +9,14 @@
 import React from 'react'
 import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
-import { MIGRATION_CUTOVER_DATE } from '@/constants/migration.consts'
+import { DOWNLOAD_PROMPT_SNOOZE_DAYS, MIGRATION_CUTOVER_DATE } from '@/constants/migration.consts'
 
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
+
+// freeze "now" 30 days before the cutover so the notice-window cases don't
+// start failing once the real calendar passes MIGRATION_CUTOVER_DATE
+const DAY_MS = 24 * 60 * 60 * 1000
+const FROZEN_NOW = MIGRATION_CUTOVER_DATE.getTime() - 30 * DAY_MS
 
 let mockFlagOn = false
 jest.mock('@/hooks/useMigrationFlag', () => ({
@@ -50,11 +55,16 @@ jest.mock('@/components/Global/ActionModal', () => ({
 
 import MigrationDownloadModal from '../MigrationDownloadModal'
 
+let nowSpy: jest.SpyInstance<number, []>
 beforeEach(() => {
     jest.clearAllMocks()
     mockFlagOn = false
     mockIsCapacitor = false
     mockGetPrefs.mockReturnValue(undefined)
+    nowSpy = jest.spyOn(Date, 'now').mockReturnValue(FROZEN_NOW)
+})
+afterEach(() => {
+    nowSpy.mockRestore()
 })
 
 describe('MigrationDownloadModal', () => {
@@ -78,24 +88,22 @@ describe('MigrationDownloadModal', () => {
 
     it('stays hidden while a recent snooze is active, reappears after it expires', () => {
         mockFlagOn = true
-        mockGetPrefs.mockReturnValue({ migrationPromptSnoozedAt: new Date().toISOString() })
+        mockGetPrefs.mockReturnValue({ migrationPromptSnoozedAt: new Date(FROZEN_NOW).toISOString() })
         const { unmount } = render(<MigrationDownloadModal />)
         expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
         unmount()
 
-        const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
-        mockGetPrefs.mockReturnValue({ migrationPromptSnoozedAt: tenDaysAgo })
+        const justExpired = new Date(FROZEN_NOW - (DOWNLOAD_PROMPT_SNOOZE_DAYS + 1) * DAY_MS).toISOString()
+        mockGetPrefs.mockReturnValue({ migrationPromptSnoozedAt: justExpired })
         render(<MigrationDownloadModal />)
         expect(screen.getByTestId('modal')).toBeInTheDocument()
     })
 
     it('stays hidden past the cutover (the sunset block owns that state)', () => {
         mockFlagOn = true
-        const afterCutover = MIGRATION_CUTOVER_DATE.getTime() + 1000
-        const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(afterCutover)
+        nowSpy.mockReturnValue(MIGRATION_CUTOVER_DATE.getTime() + 1000)
         render(<MigrationDownloadModal />)
         expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
-        nowSpy.mockRestore()
     })
 
     it('remind-me-later snoozes and reports visibility', () => {

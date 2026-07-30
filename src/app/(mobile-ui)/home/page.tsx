@@ -332,7 +332,7 @@ export default function Home() {
             <LazyLoadErrorBoundary>
                 <Suspense fallback={null}>
                     <BalanceWarningModal
-                        visible={showBalanceWarningModal}
+                        visible={showBalanceWarningModal && !showMigrationModal}
                         onCloseAction={() => {
                             setShowBalanceWarningModal(false)
                             updateUserPreferences(user!.user.userId, {

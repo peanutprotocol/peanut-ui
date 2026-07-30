@@ -32,17 +32,10 @@ import { useNativePlugins } from '@/hooks/useNativePlugins'
 import '@/hooks/useSafeBack'
 import { isCapacitor } from '@/utils/capacitor'
 import { isDemoMode, enableDemoMode } from '@/utils/demo'
-import posthog from 'posthog-js'
 import SunsetScreen from '@/components/Migration/SunsetScreen'
+import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
-import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import {
-    KEEP_WEB_COOKIE,
-    KEEP_WEB_COOKIE_DAYS,
-    KEEP_WEB_TOKEN,
-    MIGRATION_CUTOVER_DATE,
-} from '@/constants/migration.consts'
-import { getFromCookie, saveToCookie } from '@/utils/general.utils'
+import { MIGRATION_CUTOVER_DATE } from '@/constants/migration.consts'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
@@ -63,20 +56,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const router = useRouter()
     const { showIosPwaInstallScreen } = useSetupStore()
     const migrationOn = useMigrationFlag()
-
-    // support escape hatch for the sunset block: `?keep-web=<token>` (DM'd by
-    // support) persists a cookie that lets this browser keep using the web app.
-    const [hasKeepWebBypass, setHasKeepWebBypass] = useState(
-        () => typeof document !== 'undefined' && getFromCookie(KEEP_WEB_COOKIE) === KEEP_WEB_TOKEN
-    )
-    useEffect(() => {
-        const param = new URLSearchParams(window.location.search).get(KEEP_WEB_COOKIE)
-        if (param === KEEP_WEB_TOKEN) {
-            saveToCookie(KEEP_WEB_COOKIE, KEEP_WEB_TOKEN, KEEP_WEB_COOKIE_DAYS)
-            posthog.capture(ANALYTICS_EVENTS.MIGRATION_KEEP_WEB_USED)
-            setHasKeepWebBypass(true)
-        }
-    }, [])
+    const hasKeepWebBypass = useKeepWebBypass()
 
     // detect online/offline status for full-page offline screen
     const { isOnline, isInitialized } = useNetworkStatus()

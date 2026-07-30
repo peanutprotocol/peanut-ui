@@ -39,10 +39,17 @@ export default function MigrationDownloadModal({
     const userId = user?.user.userId
 
     useEffect(() => {
-        if (!migrationOn || !userId || isCapacitor()) return
-        if (Date.now() >= MIGRATION_CUTOVER_DATE.getTime()) return // sunset block owns post-cutover
+        // sunset block owns post-cutover; every ineligible path clears state so
+        // an already-shown modal disappears if the flag flips off mid-session
+        if (!migrationOn || !userId || isCapacitor() || Date.now() >= MIGRATION_CUTOVER_DATE.getTime()) {
+            setVisible(false)
+            return
+        }
         const snoozedAt = getUserPreferences(userId)?.migrationPromptSnoozedAt
-        if (snoozedAt && Date.now() - new Date(snoozedAt).getTime() < SNOOZE_MS) return
+        if (snoozedAt && Date.now() - new Date(snoozedAt).getTime() < SNOOZE_MS) {
+            setVisible(false)
+            return
+        }
         setVisible(true)
         posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.MIGRATION_DOWNLOAD })
     }, [migrationOn, userId])
