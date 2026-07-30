@@ -48,6 +48,7 @@ const NoMoreJailModal = lazy(() => import('@/components/Global/NoMoreJailModal')
 const EarlyUserModal = lazy(() => import('@/components/Global/EarlyUserModal'))
 const WelcomeUnlockModal = lazy(() => import('@/components/Home/WelcomeUnlockModal'))
 const IosPwaInstallModal = lazy(() => import('@/components/Global/IosPwaInstallModal'))
+const MigrationDownloadModal = lazy(() => import('@/components/Migration/MigrationDownloadModal'))
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -79,6 +80,9 @@ export default function Home() {
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
     const [showKycModal, setShowKycModal] = useState(false)
+    // migration download prompt outranks every other home modal (self-gating,
+    // only during the pwa-sunset notice window)
+    const [showMigrationModal, setShowMigrationModal] = useState(false)
 
     // Track if this is a fresh signup session - captured once on mount so it persists
     // even after NoMoreJailModal clears the sessionStorage key
@@ -157,14 +161,23 @@ export default function Home() {
             if (
                 balanceInUsd > BALANCE_WARNING_THRESHOLD &&
                 !hasSeenBalanceWarning &&
-                !showPermissionModal && // highest priority
+                !showMigrationModal && // highest priority
+                !showPermissionModal &&
                 !showKycModal &&
                 !isPostSignupActionModalVisible
             ) {
                 setShowBalanceWarningModal(true)
             }
         }
-    }, [balance, isFetchingBalance, showPermissionModal, showKycModal, isPostSignupActionModalVisible, user])
+    }, [
+        balance,
+        isFetchingBalance,
+        showMigrationModal,
+        showPermissionModal,
+        showKycModal,
+        isPostSignupActionModalVisible,
+        user,
+    ])
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
@@ -241,20 +254,26 @@ export default function Home() {
                     />
                 </div>
 
-                {showPermissionModal && !showBalanceWarningModal && (
+                {showPermissionModal && !showBalanceWarningModal && !showMigrationModal && (
                     <LazyLoadErrorBoundary>
                         <Suspense fallback={null}>
                             <SetupNotificationsModal />
                         </Suspense>
                     </LazyLoadErrorBoundary>
                 )}
+
+                <LazyLoadErrorBoundary>
+                    <Suspense fallback={null}>
+                        <MigrationDownloadModal onVisibilityChange={setShowMigrationModal} />
+                    </Suspense>
+                </LazyLoadErrorBoundary>
             </div>
             {/* Add Money Prompt Modal */}
             {/* TODO @dev Disabling this, re-enable after properly fixing */}
             {/* <AddMoneyPromptModal visible={showAddMoneyPromptModal} onClose={() => setShowAddMoneyPromptModal(false)} /> */}
 
             {/* these modals manage their own state internally */}
-            {!showBalanceWarningModal && (
+            {!showBalanceWarningModal && !showMigrationModal && (
                 <>
                     <LazyLoadErrorBoundary>
                         <Suspense fallback={null}>
@@ -273,7 +292,7 @@ export default function Home() {
             <LazyLoadErrorBoundary>
                 <Suspense fallback={null}>
                     <WelcomeUnlockModal
-                        isOpen={showKycModal && !showBalanceWarningModal}
+                        isOpen={showKycModal && !showBalanceWarningModal && !showMigrationModal}
                         onClose={async () => {
                             // close the modal immediately for better ux
                             setShowKycModal(false)

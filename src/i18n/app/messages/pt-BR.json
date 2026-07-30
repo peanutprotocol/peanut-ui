@@ -2705,5 +2705,34 @@
         "promptFailed": "Desbloqueie novamente para abrir o app.",
         "unlock": "Desbloquear",
         "logOut": "Sair"
+    },
+    "migration": {
+        "downloadPrompt": {
+            "title": "O Peanut está virando um app",
+            "description": "O Peanut está migrando para a App Store e o Google Play. Em {days, plural, one {# dia} other {# dias}} ele só funcionará no app — baixe agora para continuar usando sua conta.",
+            "remindLater": "Lembrar depois"
+        },
+        "sunset": {
+            "heading": "O Peanut agora mora no seu celular",
+            "sub": "O site foi encerrado. Baixe o app para voltar à sua conta — seu dinheiro está seguro.",
+            "supportLink": "Não consegue baixar o app? Fale com o suporte"
+        },
+        "qr": {
+            "title": "Escaneie para baixar o Peanut",
+            "description": "Escolha a loja do seu celular e escaneie o código com a câmera.",
+            "scanHint": "Escaneie com a câmera do seu celular",
+            "done": "Pronto"
+        },
+        "banner": {
+            "title": "Baixe o app do Peanut",
+            "description": "Pagamentos mais rápidos e alertas quando o dinheiro chega"
+        },
+        "review": {
+            "title": "Está gostando do Peanut?",
+            "description": "Uma avaliação rápida ajuda outras pessoas a nos encontrar.",
+            "loveIt": "Adorei",
+            "meh": "Pode melhorar"
+        },
+        "downloadNow": "Baixar agora"
     }
 }

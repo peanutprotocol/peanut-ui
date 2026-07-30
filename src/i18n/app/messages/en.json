@@ -2705,5 +2705,34 @@
         "promptFailed": "Unlock again to open the app.",
         "unlock": "Unlock",
         "logOut": "Log out"
+    },
+    "migration": {
+        "downloadPrompt": {
+            "title": "Peanut is becoming an app",
+            "description": "Peanut is moving to the App Store and Google Play. In {days, plural, one {# day} other {# days}} it will only work in the app — download it now to keep using your account.",
+            "remindLater": "Remind me later"
+        },
+        "sunset": {
+            "heading": "Peanut lives on your phone now",
+            "sub": "The website has closed. Download the app to get back into your account — your money is safe.",
+            "supportLink": "Can't download the app? Contact support"
+        },
+        "qr": {
+            "title": "Scan to download Peanut",
+            "description": "Pick your phone's store, then scan the code with your camera.",
+            "scanHint": "Scan with your phone camera",
+            "done": "Done"
+        },
+        "banner": {
+            "title": "Get the Peanut app",
+            "description": "Faster payments and alerts when money lands"
+        },
+        "review": {
+            "title": "Loving Peanut so far?",
+            "description": "A quick rating helps other people find us.",
+            "loveIt": "Love it",
+            "meh": "Could be better"
+        },
+        "downloadNow": "Download now"
     }
 }

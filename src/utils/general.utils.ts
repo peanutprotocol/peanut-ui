@@ -493,6 +493,8 @@ export type UserPreferences = {
      *  Read by useHomeCarouselCTAs to apply a per-CTA cooldown before re-showing.
      *  Legacy shape was `string[]` (permanent dismissal); both are accepted on read. */
     dismissedCarouselCTAs?: string[] | Record<string, string>
+    /** ISO timestamp of the last "Remind me later" on the app-migration download prompt. */
+    migrationPromptSnoozedAt?: string
 }
 
 export const updateUserPreferences = (

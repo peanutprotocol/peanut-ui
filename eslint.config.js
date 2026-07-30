@@ -220,7 +220,7 @@ module.exports = [
         files: [
             'src/app/(mobile-ui)/**/*.tsx',
             'src/app/(setup)/**/*.tsx',
-            'src/components/{Home,Send,Request,Profile,Setup,Settings,Card,AddMoney,AddWithdraw,Withdraw,Claim,Payment,Points,Badges,Notifications,Invites,TransactionDetails,Kyc,IdentityVerification,ExchangeRate,Common,ForceIOSPWAInstall,User}/**/*.tsx',
+            'src/components/{Home,Send,Request,Profile,Setup,Settings,Card,AddMoney,AddWithdraw,Withdraw,Claim,Payment,Points,Badges,Notifications,Invites,TransactionDetails,Kyc,IdentityVerification,ExchangeRate,Common,ForceIOSPWAInstall,User,Migration}/**/*.tsx',
             'src/components/Global/**/*.tsx',
             'src/features/**/*.tsx',
         ],
