@@ -1,7 +1,7 @@
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { AccountType } from '@/interfaces/interfaces'
 import { PEANUT_API_URL } from '@/constants/general.consts'
-import { getAuthHeaders } from '@/utils/auth-token'
+import { authReady, getAuthHeaders } from '@/utils/auth-token'
 
 export interface OnrampQuoteResponse {
     from: string
@@ -34,6 +34,9 @@ export async function getOnrampQuote(
             url.searchParams.append('sourceAmount', String(sourceAmount))
         }
 
+        // park until the session token can legitimately be read (guarded mode
+        // holds this until unlock) so this caller never fires unauthenticated
+        await authReady()
         const response = await fetchWithSentry(url.toString(), {
             method: 'GET',
             headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
