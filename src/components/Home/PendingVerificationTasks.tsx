@@ -84,7 +84,11 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
     const [hostedUrl, setHostedUrl] = useState<string | null>(null)
     const [isStartingHosted, setIsStartingHosted] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [dismissedKeys, setDismissedKeys] = useState<string[]>([])
+    // null = stored dismissals not yet hydrated (localStorage is unreadable
+    // during SSR, hence the post-render effect). The dismissible mount must
+    // not paint until then — rendering with an empty list would flash tasks
+    // the user already dismissed.
+    const [dismissedKeys, setDismissedKeys] = useState<string[] | null>(null)
 
     const userId = user?.user?.userId
     const tasks = selectBridgeTasks(nextActions)
@@ -106,7 +110,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
     const handleDismissTask = useCallback(
         (task: NextAction) => {
             setDismissedKeys((prev) => {
-                const next = [...prev, bridgeTaskDismissalKey(task)]
+                const next = [...(prev ?? []), bridgeTaskDismissalKey(task)]
                 updateUserPreferences(userId, { pendingVerificationTasksDismissed: next })
                 return next
             })
@@ -114,9 +118,11 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
         [userId]
     )
 
-    const visibleTasks = dismissible
-        ? tasks.filter((task) => !dismissedKeys.includes(bridgeTaskDismissalKey(task)))
-        : tasks
+    const visibleTasks = !dismissible
+        ? tasks
+        : dismissedKeys === null
+          ? [] // hold the first paint until stored dismissals hydrate
+          : tasks.filter((task) => !dismissedKeys.includes(bridgeTaskDismissalKey(task)))
 
     const handleOpenTask = useCallback(
         async (task: NextAction) => {
