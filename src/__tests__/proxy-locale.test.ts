@@ -32,9 +32,16 @@ describe('proxy — locale redirect on /', () => {
         expect(get('/', { 'app-locale': 'es-419' }).status).toBe(307)
     })
 
-    it('always sets Vary: Cookie on / so a CDN cannot leak one visitor cache to all', () => {
-        expect(get('/').headers.get('vary')).toBe('Cookie')
+    it('sets Vary: Cookie on the redirect it issues', () => {
         expect(get('/', { 'app-locale': 'es-419' }).headers.get('vary')).toBe('Cookie')
+    })
+
+    it('does not claim Vary on the pass-through response', () => {
+        // Next rewrites Vary with its own RSC list after the proxy runs, so
+        // setting it here would be a lie. Verified ineffective via next.config
+        // headers() and vercel.json alike on a preview deploy. Safe because the
+        // proxy runs ahead of the cache on every request to `/`.
+        expect(get('/').headers.get('vary')).toBeNull()
     })
 
     it('coerces an unsupported stored tag rather than redirecting to a dead route', () => {

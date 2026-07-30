@@ -18,15 +18,6 @@
     },
     "headers": [
         {
-            "source": "/",
-            "headers": [
-                {
-                    "key": "Vary",
-                    "value": "Cookie"
-                }
-            ]
-        },
-        {
             "source": "/(.*)",
             "headers": [
                 {

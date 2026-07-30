@@ -75,11 +75,13 @@ export function proxy(request: NextRequest) {
 
     // Set headers to disable caching for specified paths
     const response = NextResponse.next()
-    // `/` varies by the locale cookie above — without this a CDN could cache one
-    // visitor's landing page (or redirect) and serve it to everyone.
-    if (url.pathname === '/') {
-        response.headers.set('Vary', 'Cookie')
-    }
+    // No `Vary: Cookie` on this path: Next overwrites Vary with its own RSC list
+    // after the proxy runs, and neither next.config headers() nor vercel.json
+    // headers survive it (both were tried and verified ineffective on a preview
+    // deploy). It isn't load-bearing — the proxy runs ahead of the cache on
+    // every request to `/`, so a cached English `/` still gets redirected for a
+    // visitor whose cookie says otherwise. The redirect response above does
+    // carry Vary, since nothing rewrites it.
     if (url.pathname.startsWith('/api/')) {
         response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
         response.headers.set('Pragma', 'no-cache')
