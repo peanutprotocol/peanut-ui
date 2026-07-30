@@ -53,7 +53,7 @@ export default function NativeReceiptPage() {
     return (
         <PageContainer className="flex min-h-[100dvh] flex-col items-center justify-center p-6">
             <div className="md:hidden">
-                <NavHeader title="Receipt" />
+                <NavHeader titleKey="receipt" />
             </div>
             <div className="flex flex-1 flex-col items-center justify-center">
                 {isLoading || !entry ? (

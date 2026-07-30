@@ -12,7 +12,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import CameraPermissionModal from './CameraPermissionModal'
 import { Clipboard } from '@capacitor/clipboard'
 import { clipboardHasStrings } from '@/utils/clipboard-detect'
-import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
+import { extractPaymentValue, readClipboard } from '@/utils/clipboard-extract.utils'
 import { isAndroidNative } from '@/utils/capacitor'
 import { printableAddress } from '@/utils/general.utils'
 
@@ -20,11 +20,14 @@ import { printableAddress } from '@/utils/general.utils'
 // Configuration
 // ============================================================================
 
+// Brand names stay verbatim — they are proper nouns in every locale. The EVM
+// row is the odd one out: its label and alt text are descriptive prose, so it
+// carries a key instead and is resolved at render.
 const PAYMENT_METHODS = [
     { src: PEANUTMAN, alt: 'Peanut', name: 'Peanut' },
     { src: MERCADO_PAGO, alt: 'Mercado Pago', name: 'Mercado Pago' },
     { src: PIX, alt: 'PIX', name: 'PIX' },
-    { src: ETHEREUM_ICON, alt: 'Ethereum and EVMs', name: 'ETH & EVMs' },
+    { src: ETHEREUM_ICON, alt: null, name: null },
 ] as const
 
 const CORNER_POSITIONS = [
@@ -124,7 +127,12 @@ function ScanRegionOverlay({
             <div className="flex-column z-50 translate-y-[100%] transform items-center text-center">
                 <div className="mt-10 flex flex-wrap justify-center gap-2">
                     {PAYMENT_METHODS.map((method) => (
-                        <PaymentMethodBadge key={method.name} {...method} />
+                        <PaymentMethodBadge
+                            key={method.name ?? 'evm'}
+                            src={method.src}
+                            alt={method.alt ?? t('qrScanner.paymentMethods.evmAlt')}
+                            name={method.name ?? t('qrScanner.paymentMethods.evmName')}
+                        />
                     ))}
                 </div>
                 <button
@@ -217,23 +225,13 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
     // Capacitor Clipboard reads through the native bridge on device (the
     // WebView's navigator.clipboard.readText is unreliable/blocked in the
     // Android WebView); its web shim falls back to navigator.clipboard.
-    // Returns trimmed text, or null after toasting the read failure. Android
-    // rejects with "There is no data on the clipboard" instead of resolving
-    // with an empty value.
+    // Returns trimmed text, or null after toasting the read failure.
     const readClipboardText = async (): Promise<string | null> => {
-        try {
-            const { value } = await Clipboard.read()
-            return (value ?? '').trim()
-        } catch (err) {
-            const message = err instanceof Error ? err.message : String(err)
-            if (message.toLowerCase().includes('no data on the clipboard')) {
-                toast.error(t('qrScanner.clipboardEmpty'))
-            } else {
-                console.error('Failed to read clipboard:', err)
-                toast.error(t('qrScanner.clipboardUnavailable'))
-            }
-            return null
-        }
+        const result = await readClipboard()
+        if (result.ok) return result.text
+        if (result.reason === 'unavailable') console.error('Failed to read clipboard:', result.cause)
+        toast.error(t(result.reason === 'empty' ? 'qrScanner.clipboardEmpty' : 'qrScanner.clipboardUnavailable'))
+        return null
     }
 
     // Every tap path funnels onScan through this so a payment/routing failure
@@ -243,7 +241,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
             await onScan(data)
         } catch (err) {
             console.error('Error processing QR code:', err)
-            toast.error('Error processing QR code')
+            toast.error(t('qrScanner.qrProcessingError'))
         }
     }
 
@@ -251,13 +249,13 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         const text = await readClipboardText()
         if (!text) {
             setShowPasteChip(false)
-            if (text === '') toast.error('Clipboard is empty')
+            if (text === '') toast.error(t('qrScanner.clipboardEmpty'))
             return
         }
         const address = extractPaymentValue(text, 'evmAddress')
         if (!address) {
             setShowPasteChip(false)
-            toast.error('Copied text is not a wallet address')
+            toast.error(t('qrScanner.pastedTextNotAnAddress'))
             return
         }
         await scanValue(address)
@@ -267,7 +265,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         const text = await readClipboardText()
         if (text === null) return
         if (!text) {
-            toast.error('Clipboard is empty')
+            toast.error(t('qrScanner.clipboardEmpty'))
             return
         }
         await scanValue(text)

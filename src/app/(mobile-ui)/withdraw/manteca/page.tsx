@@ -3,8 +3,9 @@
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
-import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
-import { rainCollateralErrorMessage } from '@/utils/friendly-error.utils'
+import { SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
+import { friendlyError } from '@/utils/friendly-error.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
@@ -101,6 +102,7 @@ function MantecaBankWithdrawFlow() {
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
     const tErrors = useTranslations('errors')
+    const toFriendlyError = useFriendlyError()
     const flowId = useId() // Unique ID per flow instance to prevent cache collisions
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>(undefined)
     const [usdAmount, setUsdAmount] = useState<string | undefined>(undefined)
@@ -385,21 +387,22 @@ function MantecaBankWithdrawFlow() {
                     kind: 'FIAT_OFFRAMP',
                 })
             } catch (error) {
-                const rainMsg = rainCollateralErrorMessage(error)
-                if (error instanceof InsufficientSpendableError) {
-                    setErrorMessage(tErrors('balanceSettling'), 'balanceSettling')
-                } else if (error instanceof SessionKeyGrantRequiredError) {
+                // Route through the shared classifier so backend wire codes reach
+                // this screen too; the branches ahead of it are per-flow.
+                const classified = friendlyError(error)
+                if (error instanceof SessionKeyGrantRequiredError) {
                     // Grant prompt was attempted inside signSpend and failed.
                     // Telling the user "you'll be asked" is misleading — they
                     // may retry and hit the same loop. Give an actionable hint.
                     setErrorMessage(t('errors.cardAuthFailed'))
-                } else if (rainMsg) {
-                    setErrorMessage(rainMsg)
                 } else if ((error as Error).toString().includes('not allowed')) {
                     setErrorMessage(t('errors.confirmTransaction'))
-                } else {
+                } else if (classified.kind === 'code' && classified.code === 'genericSupport') {
+                    // Keep the flow-specific fallback and the Sentry report.
                     captureException(error)
                     setErrorMessage(t('errors.signFailed'))
+                } else {
+                    setErrorMessage(toFriendlyError(error), classified.kind === 'text' ? null : classified.code)
                 }
                 setLoadingState('Idle')
                 return

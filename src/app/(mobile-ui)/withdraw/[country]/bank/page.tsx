@@ -265,6 +265,14 @@ export default function WithdrawBankPage() {
             country,
         })
 
+        // Set alongside every pre-throw setError below: those messages are already
+        // the right copy (backend-authored, or the confirm-pending notice), and the
+        // catch must not overwrite them with the generic mapper output. Replaces a
+        // check of the mapper's OUTPUT against the English literal "Something
+        // failed. Please try again." — a comparison of a translated string to a
+        // literal that exists in no catalog, so it was dead in every locale.
+        let errorAlreadyDisplayed = false
+
         try {
             // Step 1: create the transfer to get deposit instructions
             const destination = destinationDetails(bankAccount)
@@ -292,11 +300,13 @@ export default function WithdrawBankPage() {
 
             if (error) {
                 setError({ showError: true, errorMessage: error })
+                errorAlreadyDisplayed = true
                 throw new Error(error)
             }
 
             if (!data?.depositInstructions?.toAddress || !data.transferId) {
                 setError({ showError: true, errorMessage: t('errors.depositAddressFailed') })
+                errorAlreadyDisplayed = true
                 throw new Error('Failed to get deposit address from the backend.')
             }
 
@@ -335,6 +345,7 @@ export default function WithdrawBankPage() {
                     showError: true,
                     errorMessage: confirmPendingCopy,
                 })
+                errorAlreadyDisplayed = true
                 throw new Error(confirmResult.error)
             }
 
@@ -355,9 +366,7 @@ export default function WithdrawBankPage() {
                 method_type: 'bridge',
                 error_message: error,
             })
-            if (error.includes('Something failed. Please try again.')) {
-                setError({ showError: true, errorMessage: e instanceof Error ? e.message : String(e) })
-            } else {
+            if (!errorAlreadyDisplayed) {
                 setError({ showError: true, errorMessage: error })
             }
         } finally {

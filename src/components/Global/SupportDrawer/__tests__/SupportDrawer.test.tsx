@@ -15,17 +15,11 @@
  */
 import React from 'react'
 import { render as rtlRender, screen, act, waitFor, fireEvent } from '@testing-library/react'
-import { NextIntlClientProvider } from 'next-intl'
-import en from '@/i18n/app/messages/en.json'
+import { IntlWrapper } from '@/test-utils/intl'
 import SupportDrawer from '../index'
 import { isCapacitor } from '@/utils/capacitor'
 import { SUPPORT_EMAIL } from '@/constants/crisp'
 
-const IntlWrapper = ({ children }: { children: React.ReactNode }) => (
-    <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
-        {children}
-    </NextIntlClientProvider>
-)
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const mockUseCrispUserData = jest.fn()
