@@ -3,7 +3,7 @@
 import { usePWAStatus } from '@/hooks/usePWAStatus'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useRef, useState, Suspense } from 'react'
 import { setupSteps } from '../../components/Setup/Setup.consts'
 import '../../styles/globals.css'
 import PeanutLoading from '@/components/Global/PeanutLoading'
@@ -14,7 +14,8 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import SunsetScreen from '@/components/Migration/SunsetScreen'
-import { MIGRATION_CUTOVER_DATE } from '@/constants/migration.consts'
+import { MIGRATION_CUTOVER_DATE, PWA_SUNSET_FLAG } from '@/constants/migration.consts'
+import { isFeatureFlagEnabled } from '@/utils/featureFlag.utils'
 import { isCapacitor } from '@/utils/capacitor'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
@@ -57,14 +58,27 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
             .catch(() => {})
     }, [])
 
+    // Latched ONCE at the first effect run instead of reacting to the async
+    // PostHog flag load: a mid-load true-flip would re-dispatch setSteps, whose
+    // new identity re-runs determineInitialStep and yanks a mid-flow user back
+    // to the landing step (losing e.g. a typed username). Returning visitors
+    // read the cached flag correctly; only first-ever visitors in the seconds
+    // before flags cache get the legacy flow — acceptable transitional cohort.
+    const migrationOnAtEntry = useRef<boolean | null>(null)
+
     useEffect(() => {
+        if (migrationOnAtEntry.current === null) {
+            migrationOnAtEntry.current = isFeatureFlagEnabled(PWA_SUNSET_FLAG)
+        }
+        const migrationSteps = migrationOnAtEntry.current
+
         // filter steps and set them in redux state
         const filteredSteps = setupSteps.filter((step) => {
             // pwa-sunset notice window: stop onboarding new users into the PWA —
             // the InstallPWA screens go away, store links show on the landing
             // step instead (TASK-20830 / TASK-20600)
             if (
-                migrationOn &&
+                migrationSteps &&
                 ['pwa-install', 'android-initial-pwa-install', 'unsupported-browser'].includes(step.screenId)
             ) {
                 return false
@@ -78,12 +92,12 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
 
         // if ios and not in pwa, show ios pwa install screen after setup flow is completed
         // (retired during the migration window — the app download replaces the PWA)
-        if (!migrationOn && deviceType === DeviceType.IOS && !isPWA) {
+        if (!migrationSteps && deviceType === DeviceType.IOS && !isPWA) {
             dispatch(setupActions.setShowIosPwaInstallScreen(true))
         } else {
             dispatch(setupActions.setShowIosPwaInstallScreen(false))
         }
-    }, [isPWA, deviceType, dispatch, migrationOn])
+    }, [isPWA, deviceType, dispatch])
 
     usePullToRefresh()
 

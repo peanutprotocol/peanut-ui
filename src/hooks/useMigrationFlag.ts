@@ -1,4 +1,5 @@
 'use client'
+import { useEffect, useState } from 'react'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { PWA_SUNSET_FLAG } from '@/constants/migration.consts'
 
@@ -19,5 +20,11 @@ import { PWA_SUNSET_FLAG } from '@/constants/migration.consts'
  */
 export function useMigrationFlag(): boolean {
     const isEnabled = useFeatureFlags()
-    return isEnabled(PWA_SUNSET_FLAG)
+    // hydration-safe: posthog serves CACHED flags synchronously for returning
+    // visitors, so a render-time read would disagree with the flag-off SSR
+    // HTML on prerendered surfaces (landing, setup) and hard-fail hydration.
+    // false until mounted keeps server and first client render identical.
+    const [mounted, setMounted] = useState(false)
+    useEffect(() => setMounted(true), [])
+    return mounted && isEnabled(PWA_SUNSET_FLAG)
 }

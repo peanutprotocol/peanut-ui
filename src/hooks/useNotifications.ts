@@ -291,7 +291,8 @@ function closePermissionModal() {
 
 // update permission state after user interacts with permission prompt
 async function afterPermissionAttempt() {
-    // mark modal as closed to prevent it from showing again
+    // mark modal as closed (permanent flag-off; 14-day snooze while the
+    // pwa-sunset flag is on — see evaluateVisibility)
     updateUserPreferences(currentExternalId ?? undefined, {
         notifModalClosed: true,
         notifModalClosedAt: new Date().toISOString(),

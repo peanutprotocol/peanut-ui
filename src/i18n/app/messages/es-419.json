@@ -1836,8 +1836,10 @@
         "today": "Hoy",
         "yesterday": "Ayer",
         "iconAlt": "ícono",
-        "setupTitle": "Recibe alertas de dinero",
-        "setupDescription": "Te avisamos al instante cuando llegue dinero o alguien te pida un pago.",
+        "setupTitle": "¿Activar las notificaciones?",
+        "setupDescription": "Activa las notificaciones y recibe alertas de toda la actividad de tu billetera.",
+        "migrationSetupTitle": "Recibe alertas de dinero",
+        "migrationSetupDescription": "Te avisamos al instante cuando llegue dinero o alguien te pida un pago.",
         "enable": "Activar notificaciones",
         "requesting": "Solicitando...",
         "notNow": "Ahora no"

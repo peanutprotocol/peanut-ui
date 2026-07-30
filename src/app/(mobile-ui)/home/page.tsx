@@ -101,6 +101,13 @@ export default function Home() {
         fetchUser()
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+    // the migration prompt outranks the post-signup modal; unmounting the
+    // manager skips its onVisibilityChange(false), so clear the state here or
+    // it stays stuck true and suppresses the balance-warning/review modals
+    useEffect(() => {
+        if (showMigrationModal) setIsPostSignupActionModalVisible(false)
+    }, [showMigrationModal])
+
     // Show the "You're unlocked" celebration exactly once: the user has a usable
     // rail (isKycApproved) and has never dismissed it (activationCelebratedAt is
     // null, stamped server-side on dismiss). A KYC re-approval can't resurface it
@@ -354,7 +361,11 @@ export default function Home() {
 
             {/* Card Pioneer Modal - Show to all users who haven't purchased */}
             {/* Eligibility check happens during the flow (geo screen), not here */}
-            <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
+            {/* unmounted while the migration prompt shows (it re-checks on
+                remount); the effect below clears its stuck visibility state */}
+            {!showMigrationModal && (
+                <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
+            )}
 
             {/* App review nudge (native only, once ever) — lowest priority */}
             {!showMigrationModal &&

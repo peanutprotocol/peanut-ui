@@ -40,13 +40,15 @@ export default function ReviewPromptModal() {
         if (!migrationOn || !userId || !isCapacitor() || !hasTransacted) return
         if (getUserPreferences(userId)?.reviewPromptShownAt) return
         setVisible(true)
-        // stamp on show — ask once, ever
-        updateUserPreferences(userId, { reviewPromptShownAt: new Date().toISOString() })
         posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.APP_REVIEW })
     }, [migrationOn, userId, hasTransacted])
 
     const close = (cta?: 'love' | 'meh') => {
         setVisible(false)
+        // stamp on interaction, not on show — home's priority wrapper can
+        // unmount a just-shown modal, and a show-time stamp would burn the
+        // once-ever ask before the user ever saw it
+        updateUserPreferences(userId, { reviewPromptShownAt: new Date().toISOString() })
         if (cta) {
             posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, { modal_type: MODAL_TYPES.APP_REVIEW, cta })
         } else {

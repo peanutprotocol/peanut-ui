@@ -1836,8 +1836,10 @@
         "today": "Today",
         "yesterday": "Yesterday",
         "iconAlt": "icon",
-        "setupTitle": "Get money alerts",
-        "setupDescription": "We'll ping you the moment money lands or someone asks you to pay.",
+        "setupTitle": "Turn on notifications?",
+        "setupDescription": "Enable notifications and get alerts for all wallet activity.",
+        "migrationSetupTitle": "Get money alerts",
+        "migrationSetupDescription": "We'll ping you the moment money lands or someone asks you to pay.",
         "enable": "Enable notifications",
         "requesting": "Requesting...",
         "notNow": "Not now"
