@@ -5,8 +5,9 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 
-import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Bridge;
+import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.BridgeWebViewClient;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -23,12 +24,19 @@ public class MainActivity extends BridgeActivity {
         Bridge bridge = this.getBridge();
         if (bridge != null) {
             WebView webView = bridge.getWebView();
-            final android.webkit.WebViewClient originalClient = webView.getWebViewClient();
 
-            webView.setWebViewClient(new android.webkit.WebViewClient() {
+            /*
+             * Extends BridgeWebViewClient instead of wrapping it in a plain
+             * WebViewClient: the wrapper forwarded only shouldInterceptRequest and
+             * shouldOverrideUrlLoading, silently dropping the other six callbacks —
+             * most critically onRenderProcessGone (a WebView renderer crash killed
+             * the app instead of recovering) and the onPageStarted/Finished
+             * notifications Capacitor plugins rely on.
+             */
+            webView.setWebViewClient(new BridgeWebViewClient(bridge) {
                 @Override
                 public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                    WebResourceResponse response = originalClient.shouldInterceptRequest(view, request);
+                    WebResourceResponse response = super.shouldInterceptRequest(view, request);
 
                     if (response == null && "GET".equals(request.getMethod())) {
                         String path = request.getUrl().getPath();
@@ -38,11 +46,6 @@ public class MainActivity extends BridgeActivity {
                     }
 
                     return response;
-                }
-
-                @Override
-                public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                    return originalClient.shouldOverrideUrlLoading(view, request);
                 }
 
                 /**

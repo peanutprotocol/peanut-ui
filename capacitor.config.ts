@@ -19,9 +19,13 @@ const config: CapacitorConfig = {
     appName: 'Peanut',
     webDir: 'out',
     // no server.url — static export loads from local out/ directory
+    // matches the app shell background so there's no white flash between the
+    // splash screen tearing down and the first web paint
+    backgroundColor: '#FFFFFF',
     android: {
         allowMixedContent: false,
-        webContentsDebuggingEnabled: process.env.NODE_ENV !== 'production',
+        // WEBVIEW_DEBUG=true re-enables chrome://inspect on a release build for on-device profiling
+        webContentsDebuggingEnabled: process.env.WEBVIEW_DEBUG === 'true' || process.env.NODE_ENV !== 'production',
     },
     plugins: {
         CapacitorUpdater: {

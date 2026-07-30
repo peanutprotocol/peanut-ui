@@ -546,6 +546,8 @@ async function main() {
             fs.unlinkSync(backupConfig)
         }
 
+        pruneExportedAssets()
+
         buildSucceeded = true
         console.log('\n✅ Native build completed successfully!')
         console.log('   Output directory: ./out')
@@ -561,6 +563,28 @@ async function main() {
         console.log('\n📱 Next steps:')
         console.log('   pnpm cap:sync         # Sync with native projects')
         console.log('   pnpm cap:open:android # Open in Android Studio')
+    }
+}
+
+// Web-only dead weight in the bundled export (~8 MB): /dev test pages and the
+// iOS-PWA install videos are unreachable from native flows. KEEP_DEV_PAGES=true
+// retains /dev for profiling/test builds (e.g. the confetti repro page).
+function pruneExportedAssets() {
+    const outDir = path.join(__dirname, '..', 'out')
+
+    const targets = []
+    if (process.env.KEEP_DEV_PAGES !== 'true') {
+        targets.push(path.join(outDir, 'dev'))
+    }
+    for (const entry of fs.readdirSync(outDir)) {
+        if (entry.endsWith('.mov')) targets.push(path.join(outDir, entry))
+    }
+
+    for (const target of targets) {
+        if (fs.existsSync(target)) {
+            fs.rmSync(target, { recursive: true })
+            console.log(`🧹 Pruned ${path.relative(outDir, target)} from export`)
+        }
     }
 }
 
