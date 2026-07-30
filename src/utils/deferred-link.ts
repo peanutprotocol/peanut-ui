@@ -9,7 +9,7 @@ import { ANALYTICS_EVENTS, DEFERRED_LINK_OUTCOMES, type DeferredLinkOutcome } fr
 import { PLAY_STORE_URL } from '@/constants/general.consts'
 import { isValidLocale } from '@/i18n/config'
 import { isAndroidNative, isIOSNative } from './capacitor'
-import { getFromCookie, saveToCookie, sanitizeRedirectURL } from './general.utils'
+import { getFromCookie, saveToCookie, sanitizeRedirectURL, toInviteCode } from './general.utils'
 import { deepLinkToNativePath } from './native-routes'
 
 // marker param distinguishing our payload from Play's organic referrer
@@ -111,11 +111,15 @@ export async function readInstallReferrer(): Promise<string | null> {
 /**
  * strips a leading marketing locale segment (/es-419/claim/X → /claim/X).
  * locale-prefixed routes only exist on the web — in the native static export
- * they 404, so they must never survive into a dest.
+ * they 404, so they must never survive into a dest. query/hash split off
+ * first so /pt-br?x=1 is recognized too.
  */
 function stripLocalePrefix(path: string): string {
-    const [, first, ...rest] = path.split('/')
-    return first && isValidLocale(first) ? '/' + rest.join('/') : path
+    const suffixIndex = path.search(/[?#]/)
+    const pathname = suffixIndex >= 0 ? path.slice(0, suffixIndex) : path
+    const suffix = suffixIndex >= 0 ? path.slice(suffixIndex) : ''
+    const [, first, ...rest] = pathname.split('/')
+    return first && isValidLocale(first) ? '/' + rest.join('/') + suffix : path
 }
 
 /**
@@ -224,6 +228,14 @@ async function doRestore(): Promise<RestoredContext | null> {
 
     const channel = isAndroidNative() ? 'referrer' : isIOSNative() ? 'clipboard' : 'none'
 
+    let consumed = false
+    const markConsumed = () => {
+        consumed = true
+        try {
+            localStorage.setItem(CONSUMED_KEY, '1')
+        } catch {}
+    }
+
     let raw: string | null = null
     // Tracked separately from `raw === null`: a declined paste prompt is a
     // broken hand-off, an empty clipboard is an organic install, and reporting
@@ -231,6 +243,12 @@ async function doRestore(): Promise<RestoredContext | null> {
     let clipboardUnavailable = false
     if (isAndroidNative()) {
         raw = await readInstallReferrer()
+        // the android read is prompt-free and the referrer stays readable for
+        // ~90 days — a transient failure (5s timeout, service unavailable on
+        // a busy first boot) resolves null and must NOT burn the one-shot;
+        // the next launch retries. a definitive read (incl. play's organic
+        // utm string) consumes.
+        if (raw !== null) markConsumed()
     } else if (isIOSNative()) {
         try {
             // both gates are prompt-free metadata checks. the hand-off is
@@ -239,33 +257,41 @@ async function doRestore(): Promise<RestoredContext | null> {
             // (a password, a message draft) are never prompted.
             const { clipboardHasStrings, clipboardHasProbableWebUrl } = await import('./clipboard-detect')
             if ((await clipboardHasStrings()) && (await clipboardHasProbableWebUrl())) {
+                // consume BEFORE the prompt-raising read: killing the app while
+                // the system paste prompt is up must never cause a re-prompt on
+                // the next launch (losing the hand-off is the lesser harm).
+                markConsumed()
                 const { Clipboard } = await import('@capacitor/clipboard')
                 raw = (await Clipboard.read()).value ?? null
+            } else {
+                markConsumed()
             }
         } catch {
             // user declined the paste prompt, or clipboard unavailable
+            markConsumed()
             clipboardUnavailable = true
         }
+    } else {
+        markConsumed()
     }
-
-    // one shot, even on failure: android's referrer stays readable for months
-    // and iOS must never re-prompt
-    try {
-        localStorage.setItem(CONSUMED_KEY, '1')
-    } catch {}
 
     const payload = raw ? parseDeferredPayload(raw) : null
     if (!payload) {
-        // `raw` present but unparsed means the marker was absent — an organic
-        // Play referrer, or unrelated clipboard text that passed the url gate.
-        captureRestore(
-            channel,
-            raw
-                ? DEFERRED_LINK_OUTCOMES.MARKER_MISSING
-                : clipboardUnavailable
-                  ? DEFERRED_LINK_OUTCOMES.CLIPBOARD_UNAVAILABLE
-                  : DEFERRED_LINK_OUTCOMES.NO_HANDOFF
-        )
+        // an unconsumed one-shot is a transient android referrer failure that
+        // the next launch retries — counting it would both duplicate the
+        // install and file a broken read as an organic one. `raw` present but
+        // unparsed means the marker was absent: an organic Play referrer, or
+        // unrelated clipboard text that passed the url gate.
+        if (consumed) {
+            captureRestore(
+                channel,
+                raw
+                    ? DEFERRED_LINK_OUTCOMES.MARKER_MISSING
+                    : clipboardUnavailable
+                      ? DEFERRED_LINK_OUTCOMES.CLIPBOARD_UNAVAILABLE
+                      : DEFERRED_LINK_OUTCOMES.NO_HANDOFF
+            )
+        }
         return null
     }
 
@@ -296,21 +322,28 @@ async function doRestore(): Promise<RestoredContext | null> {
  * the /dev/deferred simulator so there is exactly one apply path.
  */
 export function applyDeferredPayload(payload: DeferredPayload): RestoredContext {
-    // normalize like every existing writer (InvitesPage lowercases ?code and
-    // utm_campaign; toInviteCode trims/strips @) — a hand-built referrer with
-    // an uppercase tag must not break the case-sensitive badge award.
-    // 30-day expiry matches useZeroDev's invite cookie: a session cookie would
-    // be dropped by the webview before the user finishes signup, and the
-    // one-shot consumed flag means it could never be re-read.
-    const invite = payload.invite?.trim().replace(/^@/, '').toLowerCase()
-    if (invite) saveToCookie('inviteCode', invite, 30)
+    // inviteCode: SESSION cookie, exactly matching the web invite flow
+    // (InvitesPage). the cookie routes /setup past Landing — the only screen
+    // with Log In — so a durable cookie would lock an existing user who
+    // installed via a friend's invite link out of login (the PR #2346
+    // regression class). session scope keeps attribution for the
+    // install→open→signup funnel and self-heals on app restart.
+    const invite = payload.invite ? toInviteCode(payload.invite) : ''
+    if (invite) saveToCookie('inviteCode', invite)
+    // campaignTag doesn't gate the setup step (removed in the #2346 fix), so
+    // it can safely outlive the session for badge attribution. lowercased
+    // like InvitesPage's utm_campaign handling — badge matching is
+    // case-sensitive.
     const campaign = payload.campaign?.trim().toLowerCase()
     if (campaign) saveToCookie('campaignTag', campaign, 30)
 
     const locale = payload.lang ? resolveAppLocale(payload.lang) : null
     if (locale) persistRestoredLocale(locale)
 
+    // must-map, like openDeepLink: an unmappable dest (off-host, malformed
+    // encoding) is dropped, never pushed verbatim into the static export
     const rawDest = payload.dest ? stripLocalePrefix(payload.dest) : null
-    const dest = rawDest ? sanitizeRedirectURL(deepLinkToNativePath(rawDest) ?? rawDest) : null
+    const mapped = rawDest ? deepLinkToNativePath(rawDest) : null
+    const dest = mapped ? sanitizeRedirectURL(mapped) : null
     return { dest, locale }
 }

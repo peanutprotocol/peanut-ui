@@ -139,15 +139,15 @@ describe('parseDeferredPayload rejection', () => {
 })
 
 describe('applyDeferredPayload', () => {
-    it('writes durable 30-day cookies, not session cookies', () => {
+    it('writes a SESSION inviteCode cookie (matching InvitesPage — a durable one locks existing users out of login) and a 30-day campaignTag', () => {
         applyDeferredPayload({ invite: 'abc', campaign: 'off' })
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'abc', 30)
+        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'abc')
         expect(mockSaveToCookie).toHaveBeenCalledWith('campaignTag', 'off', 30)
     })
 
     it('normalizes invite and campaign like the existing writers', () => {
         applyDeferredPayload({ invite: ' @Alice ', campaign: ' OFFRAMP ' })
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'alice', 30)
+        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'alice')
         expect(mockSaveToCookie).toHaveBeenCalledWith('campaignTag', 'offramp', 30)
     })
 
@@ -155,6 +155,13 @@ describe('applyDeferredPayload', () => {
         expect(applyDeferredPayload({ dest: '/es-419/claim/XYZ?t=1' }).dest).toBe('/claim/XYZ?t=1')
         expect(applyDeferredPayload({ dest: '/pt-br/home' }).dest).toBe('/home')
         expect(applyDeferredPayload({ dest: '/claim/XYZ' }).dest).toBe('/claim/XYZ')
+        // locale with only a query after it
+        expect(applyDeferredPayload({ dest: '/pt-br?x=1' }).dest).toBe('/?x=1')
+    })
+
+    it('drops an unmappable dest instead of pushing it verbatim', () => {
+        // stray % makes decodeURIComponent throw inside deepLinkToNativePath
+        expect(applyDeferredPayload({ dest: '/send/50%' }).dest).toBeNull()
     })
 
     it('normalizes and persists supported locales under the app-locale key', async () => {
@@ -193,6 +200,20 @@ describe('restoreDeferredContext', () => {
         expect(getReferrer).not.toHaveBeenCalled()
     })
 
+    it('does NOT consume on a transient android read failure — next launch retries', async () => {
+        mockIsAndroidNative.mockReturnValue(true)
+        // timeout / SERVICE_UNAVAILABLE path: plugin resolves {referrer: null}
+        getReferrer.mockResolvedValue({ referrer: null })
+
+        await expect(restoreDeferredContext()).resolves.toBeNull()
+        expect(localStorage.getItem('deferredLinkConsumed')).toBeNull()
+
+        // "next launch": the read now succeeds and the payload still lands
+        getReferrer.mockResolvedValue({ referrer: 'pnutdl=1&dest=%2Fhome' })
+        await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
+        expect(localStorage.getItem('deferredLinkConsumed')).toBe('1')
+    })
+
     it('consumes even when nothing is found (organic install)', async () => {
         mockIsAndroidNative.mockReturnValue(true)
         getReferrer.mockResolvedValue({ referrer: 'utm_source=google-play&utm_medium=organic' })
@@ -209,12 +230,28 @@ describe('restoreDeferredContext', () => {
         await expect(restoreDeferredContext()).resolves.toEqual({ dest: null, locale: null })
     })
 
-    it('survives a missing plugin (older binary) and still consumes', async () => {
+    it('survives a missing plugin (older binary) without consuming — the retry is a single cheap no-op per launch', async () => {
         mockIsAndroidNative.mockReturnValue(true)
         getReferrer.mockRejectedValue(new Error('"InstallReferrer" plugin is not implemented on android'))
 
         await expect(restoreDeferredContext()).resolves.toBeNull()
+        expect(localStorage.getItem('deferredLinkConsumed')).toBeNull()
+    })
+
+    it('iOS: consumes BEFORE the paste prompt so kill-during-prompt never re-prompts', async () => {
+        mockIsIOSNative.mockReturnValue(true)
+        mockClipboardHasStrings.mockResolvedValue(true)
+        mockClipboardHasProbableWebUrl.mockResolvedValue(true)
+        // user declined the prompt (or killed the app — read never resolves ok)
+        clipboardRead.mockRejectedValue(new Error('denied'))
+
+        await expect(restoreDeferredContext()).resolves.toBeNull()
         expect(localStorage.getItem('deferredLinkConsumed')).toBe('1')
+
+        // next launch: no clipboard access at all
+        mockClipboardHasStrings.mockClear()
+        await expect(restoreDeferredContext()).resolves.toBeNull()
+        expect(mockClipboardHasStrings).not.toHaveBeenCalled()
     })
 
     it('overlapping calls share one platform read', async () => {
@@ -253,7 +290,7 @@ describe('restoreDeferredContext', () => {
         clipboardWrite.mockResolvedValue(undefined)
 
         await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'test', 30)
+        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'test')
         expect(clipboardWrite).toHaveBeenCalled()
     })
 })
@@ -285,21 +322,31 @@ describe('restore telemetry', () => {
     })
 
     it('separates an organic install from a declined iOS paste prompt', async () => {
-        mockIsAndroidNative.mockReturnValue(true)
-        getReferrer.mockResolvedValue({ referrer: null })
+        mockIsIOSNative.mockReturnValue(true)
+        mockClipboardHasStrings.mockResolvedValue(false)
         await restoreDeferredContext()
-        expect(lastRestoreEvent()).toEqual({ channel: 'referrer', outcome: 'no_handoff' })
+        expect(lastRestoreEvent()).toEqual({ channel: 'clipboard', outcome: 'no_handoff' })
 
         posthogCapture.mockClear()
         localStorage.clear()
-        mockIsAndroidNative.mockReturnValue(false)
-        mockIsIOSNative.mockReturnValue(true)
         mockClipboardHasStrings.mockResolvedValue(true)
         mockClipboardHasProbableWebUrl.mockResolvedValue(true)
         clipboardRead.mockRejectedValue(new Error('user declined'))
 
         await restoreDeferredContext()
         expect(lastRestoreEvent()).toEqual({ channel: 'clipboard', outcome: 'clipboard_unavailable' })
+    })
+
+    // a null android referrer is a failed read, not an organic install (that
+    // arrives as Play's utm string) — the one-shot stays unburned and the next
+    // launch retries, so reporting it would double-count the install.
+    it('stays silent on a transient android referrer failure so the retry is not counted', async () => {
+        mockIsAndroidNative.mockReturnValue(true)
+        getReferrer.mockResolvedValue({ referrer: null })
+
+        await restoreDeferredContext()
+
+        expect(lastRestoreEvent()).toBeUndefined()
     })
 
     it('reports a present-but-unmarked referrer as marker_missing, not no_handoff', async () => {
