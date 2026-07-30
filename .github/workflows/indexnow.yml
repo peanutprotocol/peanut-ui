@@ -56,13 +56,24 @@ jobs:
                       exit 0
                   fi
 
+                  # checkout clones submodules at the superproject's depth; the commit we last
+                  # submitted for can sit outside it, so take the whole content history.
+                  if [ "$(git -C src/content rev-parse --is-shallow-repository)" = 'true' ]; then
+                      git -C src/content fetch --unshallow --quiet || true
+                  fi
+
                   prev_content_sha=$(jq -r '.contentSha // empty' "$state")
                   if [ -n "$prev_content_sha" ] && git -C src/content cat-file -e "$prev_content_sha^{commit}" 2>/dev/null; then
                       changed=$(git -C src/content diff --name-only "$prev_content_sha" "$content_sha")
+                      force_full=false
                   else
-                      echo "Previous content commit unavailable — new URLs are still detected via the sitemap diff."
+                      # Without the diff we cannot tell which existing pages were edited, and the
+                      # sitemap diff only surfaces new URLs. Resubmit everything rather than skip.
+                      echo "Previous content commit unavailable — falling back to a full submission."
                       changed=""
+                      force_full=true
                   fi
+                  echo "force_full=$force_full" >> "$GITHUB_OUTPUT"
 
                   {
                       echo 'changed_files<<EOF'
@@ -81,7 +92,7 @@ jobs:
                   fi
 
                   if [ -z "$changed" ] && [ -z "$sources_changed" ] && [ "$prev_content_sha" = "$content_sha" ] \
-                      && [ "${{ inputs.full }}" != "true" ]; then
+                      && [ "$force_full" != 'true' ] && [ "${{ inputs.full }}" != 'true' ]; then
                       echo 'Nothing that affects the sitemap changed since the last submission — skipping.'
                       echo "run=false" >> "$GITHUB_OUTPUT"
                   else
@@ -105,7 +116,7 @@ jobs:
               env:
                   # Not a secret by design — IndexNow requires it to be served at public/<key>.txt.
                   INDEXNOW_KEY: '054e10e6239a45cb2d06e92d669f5b6f'
-                  INDEXNOW_FULL: ${{ inputs.full }}
+                  INDEXNOW_FULL: ${{ inputs.full == true || steps.changes.outputs.force_full == 'true' }}
                   INDEXNOW_CHANGED_FILES: ${{ steps.changes.outputs.changed_files }}
                   INDEXNOW_CONTENT_SHA: ${{ steps.changes.outputs.content_sha }}
               run: pnpm tsx scripts/ping-indexnow.ts

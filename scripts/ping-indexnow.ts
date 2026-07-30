@@ -116,33 +116,41 @@ function urlTouchedBy(url: string, slugSets: string[][]): boolean {
     )
 }
 
+/** Exits non-zero on any failure, which leaves the state file untouched so the next run retries. */
 async function submit(urls: string[]) {
     let failures = 0
 
     for (let i = 0; i < urls.length; i += MAX_URLS_PER_REQUEST) {
         const batch = urls.slice(i, i + MAX_URLS_PER_REQUEST)
+        const label = `Batch ${Math.floor(i / MAX_URLS_PER_REQUEST) + 1}`
 
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), 30_000)
-        const res = await fetch(INDEXNOW_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({
-                host: 'peanut.me',
-                key: KEY,
-                keyLocation: `${PRODUCTION_ORIGIN}/${KEY}.txt`,
-                urlList: batch,
-            }),
-            signal: controller.signal,
-        }).finally(() => clearTimeout(timeout))
+        try {
+            const res = await fetch(INDEXNOW_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({
+                    host: 'peanut.me',
+                    key: KEY,
+                    keyLocation: `${PRODUCTION_ORIGIN}/${KEY}.txt`,
+                    urlList: batch,
+                }),
+                signal: controller.signal,
+            })
 
-        console.log(
-            `Batch ${Math.floor(i / MAX_URLS_PER_REQUEST) + 1}: ${res.status} ${res.statusText} (${batch.length} URLs)`
-        )
+            console.log(`${label}: ${res.status} ${res.statusText} (${batch.length} URLs)`)
 
-        if (res.status >= 400) {
-            console.error('  Error:', await res.text())
+            if (res.status >= 400) {
+                console.error('  Error:', await res.text())
+                failures++
+            }
+        } catch (err) {
+            // A timeout or transport error is a failed batch, not a reason to abandon the rest.
+            console.error(`${label}: request failed (${batch.length} URLs) —`, err)
             failures++
+        } finally {
+            clearTimeout(timeout)
         }
     }
 
