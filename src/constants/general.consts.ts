@@ -253,3 +253,5 @@ export const ENS_NAME_REGEX = /^(?:[-a-zA-Z0-9]+\.)+[-a-zA-Z0-9]+$/
 
 // Mirrors the backend username minimum (USERNAME_REGEX = /^[a-z][a-z0-9]{3,11}$/).
 export const USERNAME_MIN_LENGTH = 4
+
+export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=me.peanut.wallet'
