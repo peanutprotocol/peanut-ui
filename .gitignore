@@ -110,3 +110,6 @@ coverage/
 # See .github/workflows/tests.yml — `Fetch BE render-snapshot baseline` step.
 # Never commit; the canonical 49-entry baseline lives in the BE repo.
 src/components/TransactionDetails/__tests__/fixtures/be-entries.json
+
+# IndexNow submission state, restored from the Actions cache (see .github/workflows/indexnow.yml).
+.indexnow-state/

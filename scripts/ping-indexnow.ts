@@ -1,97 +1,147 @@
 /**
- * Pings IndexNow (Bing, Yandex, etc.) with all sitemap URLs.
+ * Submits URLs to IndexNow (Bing, Yandex, Seznam, Naver).
+ *
+ * IndexNow is for URLs that were added, updated or deleted — resubmitting the whole
+ * site on every deploy burns the daily quota and gets the host deprioritised. So the
+ * default mode is a delta: the sitemap's URL set is diffed against the set submitted
+ * last time, and content files changed since then are mapped back to the pages they
+ * render.
  *
  * Usage:
- *   INDEXNOW_KEY=your-key-here tsx scripts/ping-indexnow.ts
+ *   INDEXNOW_KEY=xxx tsx scripts/ping-indexnow.ts              # delta vs. previous run
+ *   INDEXNOW_KEY=xxx INDEXNOW_FULL=true tsx …                  # every sitemap URL
+ *   INDEXNOW_KEY=xxx tsx scripts/ping-indexnow.ts /en/brazil   # explicit paths
  *
- * Or pass specific paths:
- *   INDEXNOW_KEY=xxx tsx scripts/ping-indexnow.ts /en/argentina /en/brazil
+ * Env:
+ *   INDEXNOW_KEY            required; must match public/<key>.txt
+ *   INDEXNOW_FULL           'true' to submit the full sitemap
+ *   INDEXNOW_CHANGED_FILES  newline-separated paths, relative to the content submodule
+ *   INDEXNOW_CONTENT_SHA    content submodule commit, recorded for the next run's diff
+ *   GITHUB_SHA              superproject commit, recorded for the next run's diff
+ *   INDEXNOW_STATE_FILE     defaults to .indexnow-state/urls.json
  */
 
-const BASE_URL = 'https://peanut.me'
+import fs from 'fs'
+import path from 'path'
+import generateSitemap from '../src/app/sitemap'
+import { BASE_URL } from '../src/constants/general.consts'
+
+const PRODUCTION_ORIGIN = 'https://peanut.me'
 const INDEXNOW_ENDPOINT = 'https://api.indexnow.org/IndexNow'
+const MAX_URLS_PER_REQUEST = 10_000
+
 const KEY = process.env.INDEXNOW_KEY
+const STATE_FILE = process.env.INDEXNOW_STATE_FILE || path.join(process.cwd(), '.indexnow-state/urls.json')
 
 if (!KEY) {
     console.error('INDEXNOW_KEY environment variable is required')
     process.exit(1)
 }
 
-// If CLI args provided, use those. Otherwise build full URL list.
-const cliPaths = process.argv.slice(2)
-
-async function getAllPaths(): Promise<string[]> {
-    // Dynamic import to reuse the same data sources as sitemap.ts
-    const { COUNTRIES_SEO, CORRIDORS, COMPETITORS, EXCHANGES, PAYMENT_METHOD_SLUGS } =
-        await import('../src/data/seo/index')
-    const { SUPPORTED_LOCALES } = await import('../src/i18n/types')
-    const { listContentSlugs } = await import('../src/lib/content')
-
-    const paths: string[] = ['/', '/lp/card', '/careers', '/exchange', '/privacy', '/terms']
-
-    for (const locale of SUPPORTED_LOCALES) {
-        for (const country of Object.keys(COUNTRIES_SEO)) {
-            paths.push(`/${locale}/${country}`)
-            paths.push(`/${locale}/send-money-to/${country}`)
-        }
-        for (const corridor of CORRIDORS) {
-            paths.push(`/${locale}/send-money-from/${corridor.from}/to/${corridor.to}`)
-        }
-        const receiveSources = [...new Set(CORRIDORS.map((c: { from: string }) => c.from))]
-        for (const source of receiveSources) {
-            paths.push(`/${locale}/receive-money-from/${source}`)
-        }
-        for (const slug of Object.keys(COMPETITORS)) {
-            paths.push(`/${locale}/compare/peanut-vs-${slug}`)
-        }
-        for (const slug of Object.keys(EXCHANGES)) {
-            paths.push(`/${locale}/deposit/from-${slug}`)
-        }
-        for (const method of PAYMENT_METHOD_SLUGS) {
-            paths.push(`/${locale}/pay-with/${method}`)
-        }
-        paths.push(`/${locale}/help`)
-        for (const slug of listContentSlugs('help')) {
-            paths.push(`/${locale}/help/${slug}`)
-        }
-    }
-
-    return paths
+interface State {
+    /** Commits the last submission accounted for, so the next run knows what to diff against. */
+    sha?: string
+    contentSha?: string
+    submittedAt?: string
+    urls: string[]
 }
 
-async function main() {
-    const paths = cliPaths.length > 0 ? cliPaths : await getAllPaths()
-    const urlList = paths.map((p) => `${BASE_URL}${p}`)
+function readState(): State | null {
+    try {
+        const parsed = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')) as State
+        return Array.isArray(parsed.urls) ? parsed : null
+    } catch {
+        return null
+    }
+}
 
-    console.log(`Submitting ${urlList.length} URLs to IndexNow...`)
+function writeState(urls: string[]) {
+    const state: State = {
+        sha: process.env.GITHUB_SHA || undefined,
+        contentSha: process.env.INDEXNOW_CONTENT_SHA || undefined,
+        submittedAt: new Date().toISOString(),
+        urls,
+    }
+    fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true })
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state))
+}
 
-    // IndexNow accepts up to 10,000 URLs per request
-    const batchSize = 10000
+/**
+ * The sitemap is the single source of truth for which URLs exist. It is built with
+ * BASE_URL, which is env-dependent — rewrite onto the production origin so a stray
+ * NEXT_PUBLIC_BASE_URL can never make us submit preview URLs for peanut.me.
+ */
+async function listSitemapUrls(): Promise<string[]> {
+    const entries = await generateSitemap()
+    const urls = entries.map((entry) =>
+        entry.url.startsWith(BASE_URL) ? `${PRODUCTION_ORIGIN}${entry.url.slice(BASE_URL.length)}` : entry.url
+    )
+    return [...new Set(urls)]
+}
+
+/**
+ * Reduce a changed content file to the slugs that identify the page it renders.
+ *
+ * Paths are content/{intent}/{slug}/{lang}.md, content/{intent}/{lang}.md (singleton) or
+ * content/send-to/{dst}/from/{src}/{lang}.md (corridor). The intent segment is dropped
+ * when a slug follows it, since routes rename intents (`compare` → `/compare/peanut-vs-…`,
+ * `send-to` → `/send-money-to/…`) and matching on it would sweep in every sibling page.
+ * Matching on slugs alone needs no intent→route table, so there is nothing to drift.
+ */
+function changedSlugSets(files: string[]): string[][] {
+    const sets = new Map<string, string[]>()
+    for (const file of files) {
+        const segments = file.split('/').filter(Boolean)
+        if (segments[0] === 'content') segments.shift()
+        segments.pop() // {lang}.md — every locale of a page maps to the same slugs
+        const slugs = (segments.length > 1 ? segments.slice(1) : segments).filter((s) => s !== 'from')
+        if (slugs.length > 0) sets.set(slugs.join('/'), slugs)
+    }
+    return [...sets.values()]
+}
+
+/**
+ * A URL is touched when one of a changed page's slugs is its leaf segment and the rest
+ * appear earlier in the path. Anchoring on the leaf is what keeps `help` (the singleton
+ * index) off every `/help/{article}`; the "rest appear earlier" half is what pins a
+ * corridor's {dst, src} pair to `/send-money-from/{src}/to/{dst}` alone.
+ */
+function urlTouchedBy(url: string, slugSets: string[][]): boolean {
+    const segments = new URL(url).pathname.split('/').filter(Boolean)
+    const leaf = segments[segments.length - 1] ?? ''
+    const isLeaf = (slug: string) =>
+        leaf === slug || leaf === `peanut-vs-${slug}` || leaf === `from-${slug}` || leaf === `via-${slug}`
+    return slugSets.some(
+        (slugs) => slugs.some(isLeaf) && slugs.every((slug) => isLeaf(slug) || segments.includes(slug))
+    )
+}
+
+async function submit(urls: string[]) {
     let failures = 0
-    for (let i = 0; i < urlList.length; i += batchSize) {
-        const batch = urlList.slice(i, i + batchSize)
 
-        const payload = {
-            host: 'peanut.me',
-            key: KEY,
-            keyLocation: `${BASE_URL}/${KEY}.txt`,
-            urlList: batch,
-        }
+    for (let i = 0; i < urls.length; i += MAX_URLS_PER_REQUEST) {
+        const batch = urls.slice(i, i + MAX_URLS_PER_REQUEST)
 
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), 30_000)
         const res = await fetch(INDEXNOW_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify(payload),
+            body: JSON.stringify({
+                host: 'peanut.me',
+                key: KEY,
+                keyLocation: `${PRODUCTION_ORIGIN}/${KEY}.txt`,
+                urlList: batch,
+            }),
             signal: controller.signal,
         }).finally(() => clearTimeout(timeout))
 
-        console.log(`Batch ${Math.floor(i / batchSize) + 1}: ${res.status} ${res.statusText} (${batch.length} URLs)`)
+        console.log(
+            `Batch ${Math.floor(i / MAX_URLS_PER_REQUEST) + 1}: ${res.status} ${res.statusText} (${batch.length} URLs)`
+        )
 
         if (res.status >= 400) {
-            const body = await res.text()
-            console.error('  Error:', body)
+            console.error('  Error:', await res.text())
             failures++
         }
     }
@@ -100,7 +150,57 @@ async function main() {
         console.error(`${failures} batch(es) failed.`)
         process.exit(1)
     }
+}
 
+async function main() {
+    const cliPaths = process.argv.slice(2)
+    if (cliPaths.length > 0) {
+        const urls = cliPaths.map((p) => `${PRODUCTION_ORIGIN}${p}`)
+        console.log(`Submitting ${urls.length} explicitly requested URLs.`)
+        await submit(urls)
+        console.log('Done.')
+        return
+    }
+
+    const current = await listSitemapUrls()
+    const previous = readState()
+
+    if (!previous) {
+        console.log(`No previous submission on record — submitting all ${current.length} sitemap URLs.`)
+        await submit(current)
+        writeState(current)
+        console.log('Done.')
+        return
+    }
+
+    if (process.env.INDEXNOW_FULL === 'true') {
+        console.log(`Full submission requested — submitting all ${current.length} sitemap URLs.`)
+        await submit(current)
+        writeState(current)
+        console.log('Done.')
+        return
+    }
+
+    const known = new Set(previous.urls)
+    const added = current.filter((url) => !known.has(url))
+
+    const slugSets = changedSlugSets((process.env.INDEXNOW_CHANGED_FILES || '').split('\n').filter(Boolean))
+    const isAdded = new Set(added)
+    const updated = slugSets.length > 0 ? current.filter((url) => !isAdded.has(url) && urlTouchedBy(url, slugSets)) : []
+
+    const urls = [...added, ...updated]
+    console.log(
+        `Sitemap has ${current.length} URLs: ${added.length} new, ${updated.length} touched by ${slugSets.length} changed page(s).`
+    )
+
+    if (urls.length === 0) {
+        console.log('Nothing changed — skipping IndexNow submission.')
+        writeState(current)
+        return
+    }
+
+    await submit(urls)
+    writeState(current)
     console.log('Done.')
 }
 
