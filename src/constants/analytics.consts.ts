@@ -270,6 +270,15 @@ export const ANALYTICS_EVENTS = {
     DELETE_ACCOUNT_INITIATED: 'delete_account_initiated',
     DELETE_ACCOUNT_CONFIRMED: 'delete_account_confirmed',
     DELETE_ACCOUNT_FAILED: 'delete_account_failed',
+
+    // ── PWA sunset / app migration ──
+    // Funnel: modal_shown(migration_download) → store_cta_clicked / qr_shown
+    // → install (first native-platform event per distinct id, PostHog-side).
+    // `surface` ∈ MIGRATION_SURFACES, `store` ∈ 'ios' | 'android'.
+    MIGRATION_SUNSET_VIEWED: 'migration_sunset_viewed',
+    MIGRATION_STORE_CTA_CLICKED: 'migration_store_cta_clicked',
+    MIGRATION_QR_SHOWN: 'migration_qr_shown',
+    MIGRATION_KEEP_WEB_USED: 'migration_keep_web_used',
 } as const
 
 /**
@@ -283,6 +292,8 @@ export const MODAL_TYPES = {
     CARD_PIONEER: 'card_pioneer',
     KYC_COMPLETED: 'kyc_completed',
     INVITE: 'invite',
+    MIGRATION_DOWNLOAD: 'migration_download',
+    APP_REVIEW: 'app_review',
 } as const
 
 /**
