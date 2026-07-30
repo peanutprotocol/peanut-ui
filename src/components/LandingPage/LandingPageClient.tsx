@@ -8,12 +8,18 @@ import { SUPPORTED_RAILS_FAQ_ID } from '@/constants/faq.consts'
 import TweetCarousel from '@/components/LandingPage/TweetCarousel'
 import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
+import ScanToDownloadModal from '@/components/Migration/ScanToDownloadModal'
+import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
+import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { useMigrationFlag } from '@/hooks/useMigrationFlag'
+import { trackStoreClick } from '@/utils/migration.utils'
 
 type CTAButton = {
     label: string
     href: string
     isExternal?: boolean
     subtext?: string
+    onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void
 }
 
 type FAQQuestion = {
@@ -53,6 +59,35 @@ export function LandingPageClient({
     footerSlot,
 }: LandingPageClientProps) {
     const { isFooterVisible } = useFooterVisibility()
+    const migrationOn = useMigrationFlag()
+    const { deviceType } = useDeviceType()
+    const [qrModalOpen, setQrModalOpen] = useState(false)
+
+    // pwa-sunset: the hero CTA becomes "Download now" — the visitor's store on
+    // mobile, the scan-to-download QR on desktop. English-only like the rest of
+    // this surface; the permanent label change goes through the content system
+    // post-cutover, at which point this override is deleted (TASK-20600).
+    const primaryCta = useMemo((): CTAButton => {
+        if (!migrationOn) return heroConfig.primaryCta
+        if (deviceType === DeviceType.WEB) {
+            return {
+                label: 'Download now',
+                href: '#',
+                onClick: (e) => {
+                    e.preventDefault()
+                    setQrModalOpen(true)
+                },
+            }
+        }
+        const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
+        return {
+            label: 'Download now',
+            href: STORE_URL[store],
+            isExternal: true,
+            // the anchor navigates; only track here
+            onClick: () => trackStoreClick(store, MIGRATION_SURFACES.LANDING_HERO),
+        }
+    }, [migrationOn, deviceType, heroConfig.primaryCta])
 
     // Memoized: this component re-renders per scroll frame during the button
     // animation — don't rebuild the FAQ array + rich answer element each time.
@@ -199,7 +234,14 @@ export function LandingPageClient({
 
     return (
         <>
-            <Hero primaryCta={heroConfig.primaryCta} buttonVisible={buttonVisible} buttonScale={buttonScale} />
+            <Hero primaryCta={primaryCta} buttonVisible={buttonVisible} buttonScale={buttonScale} />
+            {qrModalOpen && (
+                <ScanToDownloadModal
+                    visible={qrModalOpen}
+                    onClose={() => setQrModalOpen(false)}
+                    surface={MIGRATION_SURFACES.LANDING_HERO}
+                />
+            )}
             <Marquee {...marqueeProps} />
             {mantecaSlot}
             <Marquee {...marqueeProps} />

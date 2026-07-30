@@ -11,6 +11,10 @@ interface ModalsContextType {
     isSignInModalOpen: boolean
     setIsSignInModalOpen: (isOpen: boolean) => void
 
+    // Get-the-app scan-to-download modal (pwa-sunset, desktop surfaces)
+    isGetAppModalOpen: boolean
+    setIsGetAppModalOpen: (isOpen: boolean) => void
+
     // Support Drawer
     isSupportModalOpen: boolean
     setIsSupportModalOpen: (isOpen: boolean) => void
@@ -38,6 +42,9 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
     // Guest Login/Sign In Modal
     const [isSignInModalOpen, setIsSignInModalOpen] = useState(false)
 
+    // Get-the-app scan-to-download modal
+    const [isGetAppModalOpen, setIsGetAppModalOpen] = useState(false)
+
     // Support Drawer
     const [isSupportModalOpen, setIsSupportModalOpen] = useState(false)
     const [supportPrefilledMessage, setSupportPrefilledMessage] = useState('')
@@ -63,6 +70,10 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
             isSignInModalOpen,
             setIsSignInModalOpen,
 
+            // Get-the-app scan-to-download modal
+            isGetAppModalOpen,
+            setIsGetAppModalOpen,
+
             // Support Drawer
             isSupportModalOpen,
             setIsSupportModalOpen,
@@ -81,6 +92,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
         [
             isIosPwaInstallModalOpen,
             isSignInModalOpen,
+            isGetAppModalOpen,
             isSupportModalOpen,
             supportPrefilledMessage,
             openSupportWithMessage,

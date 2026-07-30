@@ -11,12 +11,17 @@ import { Banner } from '@/components/Global/Banner'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
+import { useMigrationFlag } from '@/hooks/useMigrationFlag'
+import SunsetScreen from '@/components/Migration/SunsetScreen'
+import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN, MIGRATION_CUTOVER_DATE } from '@/constants/migration.consts'
 import { isCapacitor } from '@/utils/capacitor'
+import { getFromCookie } from '@/utils/general.utils'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const dispatch = useAppDispatch()
     const isPWA = usePWAStatus()
     const { deviceType } = useDeviceType()
+    const migrationOn = useMigrationFlag()
 
     /*
      * Bottom-inset fill color. Periwinkle is for Android 15 edge-to-edge (matches
@@ -54,6 +59,15 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     useEffect(() => {
         // filter steps and set them in redux state
         const filteredSteps = setupSteps.filter((step) => {
+            // pwa-sunset notice window: stop onboarding new users into the PWA —
+            // the InstallPWA screens go away, store links show on the landing
+            // step instead (TASK-20830 / TASK-20600)
+            if (
+                migrationOn &&
+                ['pwa-install', 'android-initial-pwa-install', 'unsupported-browser'].includes(step.screenId)
+            ) {
+                return false
+            }
             // Filter out pwa-install if already in PWA
             if (step.screenId === 'pwa-install' && isPWA) return false
 
@@ -62,14 +76,27 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
         dispatch(setupActions.setSteps(filteredSteps))
 
         // if ios and not in pwa, show ios pwa install screen after setup flow is completed
-        if (deviceType === DeviceType.IOS && !isPWA) {
+        // (retired during the migration window — the app download replaces the PWA)
+        if (!migrationOn && deviceType === DeviceType.IOS && !isPWA) {
             dispatch(setupActions.setShowIosPwaInstallScreen(true))
         } else {
             dispatch(setupActions.setShowIosPwaInstallScreen(false))
         }
-    }, [isPWA, deviceType, dispatch])
+    }, [isPWA, deviceType, dispatch, migrationOn])
 
     usePullToRefresh()
+
+    // pwa-sunset: past the cutover the web signup is switched off too — same
+    // block as the mobile-ui layout (this route group has its own layout, so
+    // it needs its own gate). keep-web cookie bypasses.
+    if (
+        migrationOn &&
+        !isCapacitor() &&
+        Date.now() >= MIGRATION_CUTOVER_DATE.getTime() &&
+        getFromCookie(KEEP_WEB_COOKIE) !== KEEP_WEB_TOKEN
+    ) {
+        return <SunsetScreen />
+    }
 
     return (
         <>

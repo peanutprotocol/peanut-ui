@@ -20,6 +20,10 @@ import { useTransactionHistory } from './useTransactionHistory'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { PEANUTMAN_MOBILE } from '@/assets/mascot'
+import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { useMigrationFlag } from './useMigrationFlag'
+import { openStore } from '@/utils/migration.utils'
 
 // Days a dismissed CTA stays hidden before reappearing. Set above 1 so dismiss feels
 // "sticky" but below 14 so we still nudge users about valuable actions they haven't
@@ -73,6 +77,8 @@ const getDismissedCTAs = (userId: string | undefined): Map<string, Date> => {
 
 export const useHomeCarouselCTAs = () => {
     const t = useTranslations('home.carousel')
+    const tMigration = useTranslations('migration')
+    const migrationOn = useMigrationFlag()
     const [carouselCTAs, setCarouselCTAs] = useState<CarouselCTA[]>([])
     const { user } = useAuth()
     const dismissedRef = useRef<Map<string, Date>>(new Map())
@@ -94,7 +100,7 @@ export const useHomeCarouselCTAs = () => {
     const isInFlight = rails.some((rail) => rail.status === 'pending' || rail.status === 'requires-info')
     const { deviceType } = useDeviceType()
     const isPwa = usePWAStatus()
-    const { setIsIosPwaInstallModalOpen, openSupportWithMessage } = useModalsContext()
+    const { setIsIosPwaInstallModalOpen, openSupportWithMessage, setIsGetAppModalOpen } = useModalsContext()
 
     const { setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
@@ -135,6 +141,28 @@ export const useHomeCarouselCTAs = () => {
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
         const b = (chunks: React.ReactNode) => <b>{chunks}</b>
+
+        // pwa-sunset notice window: get-the-app nudge leads the carousel and
+        // supersedes the ios-pwa-install CTA below (TASK-20829). Mobile goes
+        // straight to the visitor's store; desktop opens the scan-to-download QR.
+        if (migrationOn && !isCapacitor()) {
+            _carouselCTAs.push({
+                id: 'app-install',
+                title: tMigration('banner.title'),
+                description: tMigration('banner.description'),
+                iconContainerClassName: 'bg-secondary-1',
+                icon: 'mobile-install',
+                logo: PEANUTMAN_MOBILE,
+                iconSize: 16,
+                onClick: () => {
+                    if (deviceType === DeviceType.WEB) {
+                        setIsGetAppModalOpen(true)
+                    } else {
+                        openStore(deviceType === DeviceType.ANDROID ? 'android' : 'ios', MIGRATION_SURFACES.HOME_BANNER)
+                    }
+                },
+            })
+        }
 
         // Home CTAs gate on "user can do a bank deposit or a pay" — provider-blind.
         // Rain (card) does NOT count; a card-only user must still see the verify CTA.
@@ -203,7 +231,7 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        if (deviceType === DeviceType.IOS && !isPwa && !isCapacitor()) {
+        if (!migrationOn && deviceType === DeviceType.IOS && !isPwa && !isCapacitor()) {
             _carouselCTAs.push({
                 id: 'ios-pwa-install',
                 title: t('iosPwa.title'),
@@ -320,6 +348,9 @@ export const useHomeCarouselCTAs = () => {
         toast,
         dismissCTA,
         openSupportWithMessage,
+        migrationOn,
+        tMigration,
+        setIsGetAppModalOpen,
     ])
 
     useEffect(() => {

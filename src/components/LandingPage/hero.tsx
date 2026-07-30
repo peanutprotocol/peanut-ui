@@ -77,6 +77,7 @@ type CTAButton = {
     href: string
     isExternal?: boolean
     subtext?: string
+    onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void
 }
 
 type HeroProps = {
@@ -127,6 +128,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
                     href={cta.href}
                     target={cta.isExternal ? '_blank' : undefined}
                     rel={cta.isExternal ? 'noopener noreferrer' : undefined}
+                    onClick={cta.onClick}
                 >
                     <Button
                         shadowSize="4"

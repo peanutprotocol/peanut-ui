@@ -38,6 +38,8 @@ import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { useModalsContext } from '@/context/ModalsContext'
 
 // Lazy load heavy modal components (~20-30KB each) to reduce initial bundle size
 // Components are only loaded when user triggers them
@@ -49,6 +51,7 @@ const EarlyUserModal = lazy(() => import('@/components/Global/EarlyUserModal'))
 const WelcomeUnlockModal = lazy(() => import('@/components/Home/WelcomeUnlockModal'))
 const IosPwaInstallModal = lazy(() => import('@/components/Global/IosPwaInstallModal'))
 const MigrationDownloadModal = lazy(() => import('@/components/Migration/MigrationDownloadModal'))
+const ScanToDownloadModal = lazy(() => import('@/components/Migration/ScanToDownloadModal'))
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -57,6 +60,7 @@ export default function Home() {
     const t = useTranslations('home')
     const tNav = useTranslations('navigation')
     const { showPermissionModal } = useNotifications()
+    const { isGetAppModalOpen, setIsGetAppModalOpen } = useModalsContext()
     const { balance, isFetchingBalance, spendableBalance, isFetchingSpendableBalance } = useWallet()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { resetWithdrawFlow } = useWithdrawFlow()
@@ -267,6 +271,19 @@ export default function Home() {
                         <MigrationDownloadModal onVisibilityChange={setShowMigrationModal} />
                     </Suspense>
                 </LazyLoadErrorBoundary>
+
+                {/* desktop target of the get-the-app carousel CTA */}
+                {isGetAppModalOpen && (
+                    <LazyLoadErrorBoundary>
+                        <Suspense fallback={null}>
+                            <ScanToDownloadModal
+                                visible={isGetAppModalOpen}
+                                onClose={() => setIsGetAppModalOpen(false)}
+                                surface={MIGRATION_SURFACES.HOME_BANNER}
+                            />
+                        </Suspense>
+                    </LazyLoadErrorBoundary>
+                )}
             </div>
             {/* Add Money Prompt Modal */}
             {/* TODO @dev Disabling this, re-enable after properly fixing */}

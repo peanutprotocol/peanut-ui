@@ -12,9 +12,14 @@ import { useEffect } from 'react'
 import { disableDemoMode } from '@/utils/demo'
 import DocsLink from '@/components/Global/DocsLink'
 import { useTranslations } from 'next-intl'
+import StoreButtons from '@/components/Migration/StoreButtons'
+import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 
 const LandingStep = () => {
     const t = useTranslations('setup')
+    const tMigration = useTranslations('migration')
+    const migrationOn = useMigrationFlag()
     const { handleNext } = useSetupFlow()
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
@@ -72,6 +77,14 @@ const LandingStep = () => {
                         {t('landing.recoverWallet')}
                     </DocsLink>
                 </div>
+                {/* pwa-sunset notice window: the app replaces the PWA — offer the
+                    store up front (TASK-20600) */}
+                {migrationOn && (
+                    <div className="space-y-2 border-t border-n-1/15 pt-4">
+                        <p className="text-center text-sm font-semibold text-n-1">{tMigration('banner.title')}</p>
+                        <StoreButtons surface={MIGRATION_SURFACES.SETUP} />
+                    </div>
+                )}
             </Card.Content>
         </Card>
     )
