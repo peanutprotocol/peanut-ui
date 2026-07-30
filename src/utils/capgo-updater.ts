@@ -49,33 +49,46 @@ export async function initCapgoUpdater(
 
     // Demo sessions are the app-store review sandbox — no OTA, and skipping the
     // check keeps the reviewer's device from adding to the Capgo rate limit.
+    // The check itself is deferred past first paint so its network round-trip
+    // and bundle download don't contend with app startup (notifyAppReady above
+    // stays immediate — it must land within appReadyTimeout).
     if (!isDemoMode()) {
-        try {
-            const latest = await CapacitorUpdater.getLatest()
-            // getLatest resolves with a url only when a genuinely newer bundle exists.
-            if (latest.url && latest.version) {
-                const bundle = await CapacitorUpdater.download({
-                    url: latest.url,
-                    version: latest.version,
-                    checksum: latest.checksum,
-                    sessionKey: latest.sessionKey,
-                    manifest: latest.manifest,
-                })
-                onUpdateAvailable?.(bundle)
-                // apply on next launch (no mid-session reload — avoids yanking the
-                // UI out from under the user). set() reloads IMMEDIATELY; next()
-                // is the deferred variant.
-                await CapacitorUpdater.next({ id: bundle.id })
-            }
-        } catch (err) {
-            const message = err instanceof Error ? err.message : String(err ?? '')
-            // "No new version available" is the normal up-to-date path, not a failure.
-            if (message !== 'No new version available') {
-                console.error('[capgo] update check failed:', message)
-                onUpdateFailed?.(message)
-            }
-        }
+        setTimeout(() => void checkAndStageUpdate(onUpdateAvailable, onUpdateFailed), UPDATE_CHECK_DELAY_MS)
     }
 
     return () => listeners.forEach((l) => l.remove())
+}
+
+const UPDATE_CHECK_DELAY_MS = 5_000
+
+async function checkAndStageUpdate(
+    onUpdateAvailable?: (bundle: BundleInfo) => void,
+    onUpdateFailed?: (error: string) => void
+): Promise<void> {
+    const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
+    try {
+        const latest = await CapacitorUpdater.getLatest()
+        // getLatest resolves with a url only when a genuinely newer bundle exists.
+        if (latest.url && latest.version) {
+            const bundle = await CapacitorUpdater.download({
+                url: latest.url,
+                version: latest.version,
+                checksum: latest.checksum,
+                sessionKey: latest.sessionKey,
+                manifest: latest.manifest,
+            })
+            onUpdateAvailable?.(bundle)
+            // apply on next launch (no mid-session reload — avoids yanking the
+            // UI out from under the user). set() reloads IMMEDIATELY; next()
+            // is the deferred variant.
+            await CapacitorUpdater.next({ id: bundle.id })
+        }
+    } catch (err) {
+        const message = err instanceof Error ? err.message : String(err ?? '')
+        // "No new version available" is the normal up-to-date path, not a failure.
+        if (message !== 'No new version available') {
+            console.error('[capgo] update check failed:', message)
+            onUpdateFailed?.(message)
+        }
+    }
 }
