@@ -825,9 +825,7 @@ export default function QRPayPage() {
         }
 
         // 4. Trigger confetti immediately
-        setTimeout(() => {
-            shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })
-        }, 100)
+        shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })
 
         // 5. Surface the reward. The perk was already issued AND claimed
         //    server-side during QR-payment processing, and qrPayment.perk

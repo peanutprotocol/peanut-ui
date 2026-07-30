@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import QrScannerLib from 'qr-scanner'
+import type QrScannerLib from 'qr-scanner'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import { isCapacitor } from '@/utils/capacitor'
 
@@ -16,8 +16,13 @@ const CONFIG = {
     // in iOS PWA (WKWebView), getUserMedia can hang forever after denial
     // instead of rejecting. timeout ensures the permission modal still shows.
     CAMERA_START_TIMEOUT_MS: 5000,
-    SCANNER_MAX_SCANS_PER_SECOND: 8,
-    SCANNER_CLOSE_DELAY_MS: 1500,
+    // 4 Hz halves the per-second canvas-draw + worker-decode cost vs 8 and
+    // still reads as instant; each scan draws the region to canvas on the
+    // main thread before the worker decodes it.
+    SCANNER_MAX_SCANS_PER_SECOND: 4,
+    // just long enough to cover the drawer close animation — the camera keeps
+    // streaming until this fires
+    SCANNER_CLOSE_DELAY_MS: 300,
     VIDEO_ELEMENT_RETRY_DELAY_MS: 100,
     MAX_VIDEO_ELEMENT_RETRIES: 2,
 } as const
@@ -49,7 +54,7 @@ const calculateScanRegion = (video: HTMLVideoElement) => {
 const SCANNER_OPTIONS = {
     returnDetailedScanResult: true,
     highlightScanRegion: false,
-    highlightCodeOutline: true,
+    highlightCodeOutline: false,
     maxScansPerSecond: CONFIG.SCANNER_MAX_SCANS_PER_SECOND,
     calculateScanRegion,
 } as const
@@ -256,7 +261,10 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     await new Promise((resolve) => setTimeout(resolve, CONFIG.IOS_CAMERA_DELAY_MS))
                 }
 
-                const scanner = new QrScannerLib(videoRef.current, (result) => handleQRScan(result.data), {
+                // lazy-loaded: QRScannerOverlay mounts in the app shell, so a static
+                // import would put the decoder library on every page's critical path
+                const { default: QrScanner } = await import('qr-scanner')
+                const scanner = new QrScanner(videoRef.current, (result) => handleQRScan(result.data), {
                     ...SCANNER_OPTIONS,
                     preferredCamera,
                 })
