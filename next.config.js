@@ -4,6 +4,7 @@ const withBundleAnalyzer =
     process.env.ANALYZE === 'true' ? require('@next/bundle-analyzer')({ enabled: true }) : (config) => config
 
 const redirectsConfig = require('./redirects.json')
+const { googleAdsRemarketingHosts } = require('./csp-google-domains')
 
 /**
  * Same-origin collector for violation reports (src/app/api/csp-report). It
@@ -26,12 +27,21 @@ const CSP_REPORT_PATH = '/api/csp-report'
 // are present. Don't "fix" this to an absolute URL.
 
 /**
- * Chain RPC endpoints, which have two independent sources that must both be
- * allowed: `rpcUrls` in src/constants/general.consts.ts (our own viem clients)
- * and viem's per-chain defaults, which wagmi's bare `http()` transports fall
- * back to for external-wallet flows. Neither is importable here — next.config
- * is CommonJS and general.consts.ts is TS — so this list is a hand-kept mirror.
- * Re-check it when either source gains a chain.
+ * Chain RPC endpoints, which have three independent sources that must all be
+ * allowed: `rpcUrls` in src/constants/general.consts.ts (our own viem clients),
+ * viem's per-chain defaults, which wagmi's bare `http()` transports fall back to
+ * for external-wallet flows, and — the one this list kept missing — viem's
+ * defaults for every EVM chain in src/constants/chainRegistry.consts.ts.
+ *
+ * That third source is the whole selectable-chain list, not just the ten wired
+ * into wagmi.config: `getPublicClient` (src/app/actions/clients.ts) hands any
+ * chain absent from `rpcUrls` a bare `http()`, and it is reached from client
+ * code via `fetchTokenSymbol` on the token selector, whose chain list comes from
+ * the API. So picking a token on Avalanche or Mantle talks to that chain's viem
+ * default from the browser.
+ *
+ * None of these are importable here — next.config is CommonJS, the rest is TS —
+ * so this list is a hand-kept mirror. Re-check it when any source gains a chain.
  */
 const chainRpcHosts = [
     'https://*.core.chainstack.com',
@@ -48,6 +58,20 @@ const chainRpcHosts = [
     'https://rpc.linea.build',
     'https://forno.celo.org',
     'https://*.rpc.thirdweb.com',
+    // viem defaults for the remaining EVM chains in the registry. Silent in the
+    // report-only data because these are rarely-picked chains, not because they
+    // are unreachable — the same reason the wss:// gap stayed invisible until
+    // it was looked for (#2519).
+    'https://api.avax.network', // 43114 Avalanche
+    'https://rpc.hyperliquid.xyz', // 999 HyperEVM
+    'https://rpc-gel.inkonchain.com', // 57073 Ink
+    'https://rpc-qnd.inkonchain.com', // 57073 Ink (second default)
+    'https://rpc.katana.network', // 747474 Katana
+    'https://rpc.mantle.xyz', // 5000 Mantle
+    'https://rpc.plasma.to', // 9745 Plasma
+    'https://rpc.stable.xyz', // 988 Stable
+    'https://rpc.presto.tempo.xyz', // 4217 Tempo
+    'https://public-en.node.kaia.io', // 8217 Kaia
 ]
 
 /**
@@ -69,8 +93,11 @@ function contentSecurityPolicyReportOnly() {
     const directives = [
         "default-src 'self'",
         // PostHog is same-origin via the /relay rewrite, so it needs no entry here.
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://client.crisp.chat https://static.sumsub.com https://cdn.onesignal.com https://api.onesignal.com",
-        "style-src 'self' 'unsafe-inline' https://client.crisp.chat",
+        // jsdelivr serves the mermaid bundle for /dev/kyc-flows. Dev-only route,
+        // but it is a real violation on a real deployment.
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://client.crisp.chat https://static.sumsub.com https://cdn.onesignal.com https://api.onesignal.com https://cdn.jsdelivr.net",
+        // Typeform injects a stylesheet from embed.typeform.com/next/css/.
+        "style-src 'self' 'unsafe-inline' https://client.crisp.chat https://embed.typeform.com",
         "img-src 'self' data: blob: https:",
         "font-src 'self' data: https://client.crisp.chat",
         [
@@ -92,14 +119,18 @@ function contentSecurityPolicyReportOnly() {
             // sharding is already visible on analytics.google.com below.
             'https://*.google-analytics.com',
             // GA4 beacons to a region-specific host, and GTM's audience/conversion
-            // pings go to doubleclick and www.google.com. The GTM container
-            // itself is fetched as well as executed, so it needs a connect-src
-            // entry on top of the script-src one.
+            // pings go to doubleclick. The GTM container itself is fetched as
+            // well as executed, so it needs a connect-src entry on top of the
+            // script-src one.
             'https://analytics.google.com',
             'https://*.analytics.google.com',
             'https://stats.g.doubleclick.net',
-            'https://www.google.com',
             'https://www.googletagmanager.com',
+            // Every Google country domain, because the remarketing beacon goes
+            // to the user's own — see csp-google-domains.js for why this cannot
+            // be a wildcard. Supersedes the former lone 'https://www.google.com'
+            // entry, which is the first element of this list.
+            ...googleAdsRemarketingHosts,
             'https://rpc.zerodev.app',
             'https://*.g.alchemy.com',
             'https://rpc.ankr.com',
@@ -122,6 +153,16 @@ function contentSecurityPolicyReportOnly() {
             'wss://*.sumsub.com',
             'https://widget.manteca.dev',
             'https://*.onesignal.com',
+            // Testimonial avatars on the landing page. They render as <img>, so
+            // img-src would normally cover them — but serwist's runtime cache
+            // re-fetches them from inside sw.js, and in a service worker EVERY
+            // fetch() is connect-src regardless of what the response is used
+            // for. The violations arrive with document-uri https://peanut.me/sw.js
+            // for exactly this reason; sw.js is served by the same /:path*
+            // header rule, so it inherits this policy.
+            'https://pbs.twimg.com',
+            // Only reached in the SDK's single-embed mode; see frame-src below.
+            'https://api.typeform.com',
             ...chainRpcHosts,
         ].join(' '),
         // Bridge is the terms-of-service iframe BridgeTosStep renders through
@@ -130,7 +171,12 @@ function contentSecurityPolicyReportOnly() {
         // runtime (compliance.bridge.xyz today) rather than by us. Crisp is
         // wildcarded to match connect-src: the widget pulls attachments from
         // assets.crisp.chat, not just client.
-        "frame-src 'self' https://*.crisp.chat https://*.sumsub.com https://widget.manteca.dev https://mpago.la https://*.bridge.xyz",
+        // form.typeform.com is the SDK's DEFAULT_DOMAIN — the iframe the feedback
+        // Widget in Global/Layout renders. Currently unreachable (its Modal is
+        // never opened), so it produces no violations today; allow-listed because
+        // re-arming it is a one-line change and the failure would be a blank
+        // iframe under enforcement.
+        "frame-src 'self' https://*.crisp.chat https://*.sumsub.com https://widget.manteca.dev https://mpago.la https://*.bridge.xyz https://form.typeform.com",
         "worker-src 'self' blob:",
         "object-src 'none'",
         "base-uri 'self'",
