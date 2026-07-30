@@ -23,8 +23,9 @@ const mockUpdatePreferences = jest.fn()
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({ nextActions: mockNextActions }),
 }))
+let mockUserId = 'user-1'
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { userId: 'user-1' } }, fetchUser: mockFetchUser }),
+    useAuth: () => ({ user: { user: { userId: mockUserId } }, fetchUser: mockFetchUser }),
 }))
 jest.mock('@/utils/general.utils', () => ({
     getUserPreferences: () => ({ pendingVerificationTasksDismissed: mockStoredDismissal }),
@@ -69,6 +70,7 @@ describe('PendingVerificationTasks', () => {
         mockStartHosted.mockReset()
         mockStoredDismissal = undefined
         mockUpdatePreferences.mockReset()
+        mockUserId = 'user-1'
     })
 
     it('renders nothing when no bridge task is pending', () => {
@@ -260,6 +262,21 @@ describe('PendingVerificationTasks', () => {
             mockNextActions = [tosAction, hostedAction]
             const { container } = render(<PendingVerificationTasks dismissible />)
             expect(container).toBeEmptyDOMElement()
+        })
+
+        it("a user switch does not inherit the previous user's dismissals", () => {
+            mockStoredDismissal = [tosFingerprint, hostedFingerprint]
+            mockNextActions = [tosAction, hostedAction]
+            const { container, rerender } = render(<PendingVerificationTasks dismissible />)
+            expect(container).toBeEmptyDOMElement()
+
+            // user-2 logs in on the same mount with no stored dismissals —
+            // user-1's in-memory keys must not hide user-2's tasks.
+            mockUserId = 'user-2'
+            mockStoredDismissal = undefined
+            rerender(<PendingVerificationTasks dismissible />)
+            expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()
+            expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
         })
 
         it('the non-dismissible (profile) mount ignores stored dismissals and has no X', () => {

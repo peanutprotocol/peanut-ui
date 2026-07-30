@@ -84,11 +84,13 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
     const [hostedUrl, setHostedUrl] = useState<string | null>(null)
     const [isStartingHosted, setIsStartingHosted] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    // null = stored dismissals not yet hydrated (localStorage is unreadable
-    // during SSR, hence the post-render effect). The dismissible mount must
-    // not paint until then — rendering with an empty list would flash tasks
-    // the user already dismissed.
-    const [dismissedKeys, setDismissedKeys] = useState<string[] | null>(null)
+    // Stored dismissals, tagged with the user they were loaded for
+    // (localStorage is unreadable during SSR, hence the post-render effect).
+    // The dismissible mount must not paint until the CURRENT user's entry is
+    // hydrated: an empty list would flash already-dismissed tasks, and an
+    // untagged list would leak the previous user's dismissals for one render
+    // after a logout/login.
+    const [storedDismissals, setStoredDismissals] = useState<{ forUserId: string; keys: string[] } | null>(null)
 
     const userId = user?.user?.userId
     const tasks = selectBridgeTasks(nextActions)
@@ -104,15 +106,23 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
 
     useEffect(() => {
         if (!dismissible || !userId) return
-        setDismissedKeys(getUserPreferences(userId)?.pendingVerificationTasksDismissed ?? [])
+        setStoredDismissals({
+            forUserId: userId,
+            keys: getUserPreferences(userId)?.pendingVerificationTasksDismissed ?? [],
+        })
     }, [dismissible, userId])
+
+    // Hydrated only when the stored entry belongs to the current user.
+    const dismissedKeys = storedDismissals && storedDismissals.forUserId === userId ? storedDismissals.keys : null
 
     const handleDismissTask = useCallback(
         (task: NextAction) => {
-            setDismissedKeys((prev) => {
-                const next = [...(prev ?? []), bridgeTaskDismissalKey(task)]
+            if (!userId) return
+            setStoredDismissals((prev) => {
+                const keys = prev && prev.forUserId === userId ? prev.keys : []
+                const next = [...keys, bridgeTaskDismissalKey(task)]
                 updateUserPreferences(userId, { pendingVerificationTasksDismissed: next })
-                return next
+                return { forUserId: userId, keys: next }
             })
         },
         [userId]
