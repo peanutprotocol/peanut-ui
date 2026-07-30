@@ -3,15 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import type { Locale } from '@/i18n/types'
-
-const LOCALE_META: Record<Locale, { flag: string; label: string }> = {
-    en: { flag: '/flags/us.svg', label: 'English' },
-    'es-419': { flag: '/flags/mx.svg', label: 'Español (Latam)' },
-    'es-ar': { flag: '/flags/ar.svg', label: 'Español (Argentina)' },
-    'es-es': { flag: '/flags/es.svg', label: 'Español (España)' },
-    'pt-br': { flag: '/flags/br.svg', label: 'Português (Brasil)' },
-}
-const LOCALE_ORDER: Locale[] = ['en', 'es-419', 'es-ar', 'es-es', 'pt-br']
+import { LOCALE_META, LOCALE_ORDER } from '@/i18n/localeMeta'
 
 interface Props {
     /** Display name of the parent hub (e.g. "Blog", "Stories"). */

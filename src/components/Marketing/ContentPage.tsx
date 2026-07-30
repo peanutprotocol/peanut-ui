@@ -4,6 +4,8 @@ import { JsonLd } from './JsonLd'
 import { articleSchema, type ArticleMeta } from '@/lib/seo/schemas'
 import { BASE_URL } from '@/constants/general.consts'
 import { MarketingErrorBoundary } from './MarketingErrorBoundary'
+import { getTranslations } from '@/i18n'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
 interface ContentPageProps {
     /** Compiled MDX content element */
@@ -12,8 +14,8 @@ interface ContentPageProps {
     breadcrumbs: Array<{ name: string; href: string }>
     /** Article schema data for freshness signals */
     article?: ArticleMeta
-    /** @deprecated locale prop is no longer used — SEO footer moved to layout */
-    locale?: string
+    /** Page locale — used for the error-boundary fallback copy. */
+    locale?: Locale
 }
 
 /**
@@ -21,7 +23,8 @@ interface ContentPageProps {
  * Handles BreadcrumbList JSON-LD + visible breadcrumb nav.
  * The MDX body owns all layout (Hero is full-bleed, prose sections are contained).
  */
-export function ContentPage({ children, breadcrumbs, article }: ContentPageProps) {
+export function ContentPage({ children, breadcrumbs, article, locale = DEFAULT_LOCALE }: ContentPageProps) {
+    const i18n = getTranslations(locale)
     const breadcrumbSchema = {
         '@context': 'https://schema.org',
         '@type': 'BreadcrumbList',
@@ -37,7 +40,7 @@ export function ContentPage({ children, breadcrumbs, article }: ContentPageProps
         <>
             <JsonLd data={breadcrumbSchema} />
             {article && <JsonLd data={articleSchema(article)} />}
-            <MarketingErrorBoundary>
+            <MarketingErrorBoundary strings={{ title: i18n.errorContentUnavailable, body: i18n.errorTryRefreshing }}>
                 <article className="content-page select-text bg-background">
                     {children}
                     <nav aria-label="Breadcrumb" className="mx-auto max-w-[640px] px-6 pb-8 pt-4 md:px-4">

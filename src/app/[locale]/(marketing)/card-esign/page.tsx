@@ -53,7 +53,7 @@ export default async function CardEsignPage({ params }: PageProps) {
     const mdxSource = readPageContentLocalized<LegalFrontmatter>('legal', SLUG, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
-    const { content } = await renderContent(mdxSource.body)
+    const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
 
     const displayTitle = mdxSource.frontmatter.title.replace(/\s*\|\s*Peanut$/, '')

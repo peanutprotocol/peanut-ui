@@ -48,7 +48,7 @@ export default async function UseCasePage({ params }: PageProps) {
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('use-cases', slug, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
-    const { content } = await renderContent(mdxSource.body)
+    const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
     const url = `/${locale}/use-cases/${slug}`
     const hubHref = `/${locale}/content?type=use-cases`

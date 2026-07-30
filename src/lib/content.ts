@@ -27,10 +27,11 @@ import type { Locale } from '@/i18n/types'
 const CONTENT_ROOT = path.join(process.cwd(), 'src/content')
 
 // --- Locale fallback chains ---
-// es-ar → es-419 → en
-// es-es → en
-// pt-br → en
 // es-419 → en
+// pt-br → en
+//
+// Retired es-ar/es-es keep their chains so content files that still carry those
+// suffixes resolve during the mirror lag; the routes themselves 301 to es-419.
 
 const FALLBACK_CHAINS: Record<string, string[]> = {
     en: [],

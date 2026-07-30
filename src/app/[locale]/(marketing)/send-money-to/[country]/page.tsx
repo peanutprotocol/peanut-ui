@@ -49,7 +49,7 @@ export default async function SendMoneyToCountryPageLocalized({ params }: PagePr
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('send-to', country, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
-    const { content } = await renderContent(mdxSource.body)
+    const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
     const countryName = getCountryName(country, locale)
     const url = localizedPath('send-money-to', locale, country)

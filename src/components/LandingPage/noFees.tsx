@@ -14,8 +14,18 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAuth } from '@/context/authContext'
 import { twMerge } from 'tailwind-merge'
 import { ContextualLinks } from './ContextualLinks'
+import type { LandingStrings } from './landingStrings'
+import type { Locale } from '@/i18n/types'
 
-export function NoFees({ className }: { className?: string }) {
+export function NoFees({
+    className,
+    locale,
+    strings,
+}: {
+    className?: string
+    locale: Locale
+    strings: LandingStrings
+}) {
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
     const router = useRouter()
     const { fetchBalance, balance } = useWallet()
@@ -140,7 +150,7 @@ export function NoFees({ className }: { className?: string }) {
                 />
 
                 <h1 className="font-roboto-flex-extrabold text-heading text-black md:text-headingMedium">
-                    ZERO TRANSFER FEES
+                    {strings.zeroFees}
                 </h1>
 
                 {/* No hidden fees SVG */}
@@ -154,15 +164,15 @@ export function NoFees({ className }: { className?: string }) {
                     />
                 </div>
 
-                <ExchangeRateWidget ctaIcon="arrow-up-right" ctaLabel="Send Money" ctaAction={handleCtaAction} />
+                <ExchangeRateWidget ctaIcon="arrow-up-right" ctaLabel={strings.sendMoney} ctaAction={handleCtaAction} />
 
                 <ContextualLinks
                     className="mt-6"
-                    label="See the markup on:"
+                    label={strings.seeMarkupOn}
                     links={[
-                        { label: 'Wise', href: '/en/compare/wise' },
-                        { label: 'PayPal', href: '/en/compare/paypal' },
-                        { label: 'Western Union', href: '/en/compare/western-union' },
+                        { label: 'Wise', href: `/${locale}/compare/wise` },
+                        { label: 'PayPal', href: `/${locale}/compare/paypal` },
+                        { label: 'Western Union', href: `/${locale}/compare/western-union` },
                     ]}
                 />
             </div>

@@ -2,6 +2,8 @@ import { Children, isValidElement, type ReactNode } from 'react'
 import { FAQsPanel } from '@/components/Global/FAQs'
 import PeanutsBG from '@/assets/illustrations/peanuts-bg.svg'
 import { JsonLd } from '@/components/Marketing/JsonLd'
+import { getTranslations } from '@/i18n'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
 interface FAQItemProps {
     question: string
@@ -17,6 +19,8 @@ export function FAQItem({ question, children }: FAQItemProps) {
 
 interface FAQProps {
     title?: string
+    /** Injected by createMdxComponents — never authored in MDX. */
+    locale?: Locale
     children: ReactNode
 }
 
@@ -34,7 +38,8 @@ function extractText(node: ReactNode): string {
  * MDX FAQ component. Purple section with peanut pattern overlay,
  * animated accordion, and FAQPage JSON-LD. Matches LP styling exactly.
  */
-export function FAQ({ title = 'FAQ', children }: FAQProps) {
+export function FAQ({ title, children, locale = DEFAULT_LOCALE }: FAQProps) {
+    const heading = title ?? getTranslations(locale).faqTitle
     // Collect FAQItem children into question/answer pairs
     const questions: Array<{ id: string; question: string; answer: string }> = []
 
@@ -72,7 +77,7 @@ export function FAQ({ title = 'FAQ', children }: FAQProps) {
                 backgroundRepeat: 'repeat',
             }}
         >
-            <FAQsPanel heading={title} questions={questions} />
+            <FAQsPanel heading={heading} questions={questions} />
             <JsonLd data={faqSchema} />
         </section>
     )

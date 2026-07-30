@@ -3,8 +3,9 @@
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
+import type { LandingStrings } from './landingStrings'
 
-export function SendInSecondsCTA() {
+export function SendInSecondsCTA({ strings }: { strings: LandingStrings }) {
     return (
         <div className="relative mt-12 inline-block md:mt-24">
             <motion.div
@@ -26,7 +27,7 @@ export function SendInSecondsCTA() {
                         shadowSize="4"
                         className="bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl"
                     >
-                        SEND NOW
+                        {strings.sendNow}
                     </Button>
                 </Link>
             </motion.div>

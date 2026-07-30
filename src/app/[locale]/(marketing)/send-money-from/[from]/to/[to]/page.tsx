@@ -51,7 +51,7 @@ export default async function FromToCorridorPage({ params }: PageProps) {
     const mdxSource = readCorridorContentLocalized<ContentFrontmatter>(to, from, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
-    const { content } = await renderContent(mdxSource.body)
+    const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
     const fromName = getCountryName(from, locale)
     const toName = getCountryName(to, locale)

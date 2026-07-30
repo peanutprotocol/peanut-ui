@@ -1,3 +1,4 @@
+import { BASE_URL } from '@/constants/general.consts'
 import { type Locale, SUPPORTED_LOCALES, DEFAULT_LOCALE } from './types'
 
 /** All marketing route slugs — same across all locales (Wise pattern) */
@@ -33,8 +34,6 @@ export type RouteSlug = (typeof ROUTE_SLUGS)[number]
 const HREFLANG_MAP: Record<Locale, string> = {
     en: 'en',
     'es-419': 'es-419',
-    'es-ar': 'es-AR',
-    'es-es': 'es-ES',
     'pt-br': 'pt-BR',
 }
 
@@ -55,10 +54,10 @@ export function getAlternates(route: RouteSlug, ...segments: string[]): Record<s
     const alternates: Record<string, string> = {}
     for (const locale of SUPPORTED_LOCALES) {
         const langCode = locale === 'en' ? 'x-default' : HREFLANG_MAP[locale]
-        alternates[langCode] = `https://peanut.me${localizedPath(route, locale, ...segments)}`
+        alternates[langCode] = `${BASE_URL}${localizedPath(route, locale, ...segments)}`
     }
     // Also add 'en' explicitly alongside x-default
-    alternates['en'] = `https://peanut.me${localizedPath(route, 'en', ...segments)}`
+    alternates['en'] = `${BASE_URL}${localizedPath(route, 'en', ...segments)}`
     return alternates
 }
 
@@ -67,9 +66,22 @@ export function getBareAlternates(...segments: string[]): Record<string, string>
     const alternates: Record<string, string> = {}
     for (const locale of SUPPORTED_LOCALES) {
         const langCode = locale === 'en' ? 'x-default' : HREFLANG_MAP[locale]
-        alternates[langCode] = `https://peanut.me${localizedBarePath(locale, ...segments)}`
+        alternates[langCode] = `${BASE_URL}${localizedBarePath(locale, ...segments)}`
     }
-    alternates['en'] = `https://peanut.me${localizedBarePath('en', ...segments)}`
+    alternates['en'] = `${BASE_URL}${localizedBarePath('en', ...segments)}`
+    return alternates
+}
+
+/**
+ * hreflang for the landing page. English lives at `/`, not `/en` (which
+ * redirects), so it can't go through getBareAlternates.
+ */
+export function getLandingAlternates(): Record<string, string> {
+    const alternates: Record<string, string> = { 'x-default': `${BASE_URL}/`, en: `${BASE_URL}/` }
+    for (const locale of SUPPORTED_LOCALES) {
+        if (locale === DEFAULT_LOCALE) continue
+        alternates[HREFLANG_MAP[locale]] = `${BASE_URL}/${locale}`
+    }
     return alternates
 }
 

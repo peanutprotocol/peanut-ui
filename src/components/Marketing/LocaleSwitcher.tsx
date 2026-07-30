@@ -1,0 +1,105 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
+import { isValidLocale } from '@/i18n/config'
+import { LOCALE_META, LOCALE_ORDER } from '@/i18n/localeMeta'
+import { toAppLocale } from '@/i18n/localeBridge'
+import { persistLocale } from '@/i18n/app/locale-store'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+
+/**
+ * Same-page href for `target`.
+ *
+ * Marketing routes are all `/{locale}/rest`, so switching swaps the first
+ * segment. Paths whose first segment is NOT a locale (`/`, `/lp`, `/exchange`,
+ * `/quests`) have no localized twin, so they resolve to that locale's landing
+ * instead of inventing a `/es-419/lp` that would 404. English landing is `/`,
+ * not `/en` — `/en` redirects.
+ */
+export function localeHref(pathname: string, target: Locale): string {
+    const segments = pathname.split('/').filter(Boolean)
+    const rest = isValidLocale(segments[0] ?? '') ? segments.slice(1) : []
+    if (rest.length === 0) return target === DEFAULT_LOCALE ? '/' : `/${target}`
+    return `/${target}/${rest.join('/')}`
+}
+
+// Fixed so the trigger keeps its size whichever language is selected.
+const TRIGGER_WIDTH = 'w-40'
+
+export function LocaleSwitcher({ locale, label }: { locale: Locale; label: string }) {
+    const pathname = usePathname() ?? '/'
+    const [open, setOpen] = useState(false)
+    const wrapperRef = useRef<HTMLDivElement | null>(null)
+
+    useEffect(() => {
+        if (!open) return
+        const onDown = (e: Event) => {
+            if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setOpen(false)
+        }
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setOpen(false)
+        }
+        // Attached on the next tick, not synchronously: the effect flushes while
+        // the click that opened the menu is still being dispatched, so a
+        // same-tick listener catches that very interaction and shuts the menu
+        // again — it opens and vanishes before anything renders.
+        const timer = setTimeout(() => {
+            document.addEventListener('pointerdown', onDown)
+            document.addEventListener('keydown', onKey)
+        }, 0)
+        return () => {
+            clearTimeout(timer)
+            document.removeEventListener('pointerdown', onDown)
+            document.removeEventListener('keydown', onKey)
+        }
+    }, [open])
+
+    return (
+        <div ref={wrapperRef} className="relative">
+            <button
+                type="button"
+                aria-haspopup="listbox"
+                aria-expanded={open}
+                aria-label={`${label}: ${LOCALE_META[locale].shortLabel}`}
+                onClick={() => setOpen((v) => !v)}
+                className={`${TRIGGER_WIDTH} inline-flex items-center justify-between rounded-sm border border-n-1 bg-white px-3 py-1.5 text-sm font-semibold text-n-1 transition-colors hover:border-white hover:bg-black hover:text-white`}
+            >
+                {LOCALE_META[locale].shortLabel}
+                <span aria-hidden className="text-grey-1">
+                    ▾
+                </span>
+            </button>
+            {open && (
+                <ul
+                    role="listbox"
+                    className={`${TRIGGER_WIDTH} absolute right-0 top-full z-30 mt-1 flex flex-col overflow-hidden rounded-sm border border-n-1 bg-white shadow-[2px_2px_0_0_#000]`}
+                >
+                    {LOCALE_ORDER.map((loc) => {
+                        const isCurrent = loc === locale
+                        return (
+                            <li key={loc} role="option" aria-selected={isCurrent}>
+                                <Link
+                                    href={localeHref(pathname, loc)}
+                                    hrefLang={loc}
+                                    // Same cookie the product UI reads, so a choice made
+                                    // on marketing carries into the app and back.
+                                    onClick={() => {
+                                        persistLocale(toAppLocale(loc))
+                                        setOpen(false)
+                                    }}
+                                    className={`block whitespace-nowrap px-3 py-2 text-sm transition-colors hover:bg-black hover:text-white ${
+                                        isCurrent ? 'bg-primary-1/20 font-bold text-n-1' : 'text-n-1'
+                                    }`}
+                                >
+                                    {LOCALE_META[loc].shortLabel}
+                                </Link>
+                            </li>
+                        )
+                    })}
+                </ul>
+            )}
+        </div>
+    )
+}

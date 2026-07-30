@@ -8,6 +8,7 @@ import Image from 'next/image'
 import { useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from './CloudsCss'
+import type { LandingStrings } from './landingStrings'
 
 /**
  * Peanut mascot that positions itself so only 6% of its height (the feet)
@@ -80,6 +81,7 @@ type CTAButton = {
 }
 
 type HeroProps = {
+    strings: LandingStrings
     primaryCta?: CTAButton
     secondaryCta?: CTAButton
     buttonVisible?: boolean
@@ -113,7 +115,7 @@ const transitionConfig = { type: 'spring', damping: 15 } as const
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
     `relative z-20 mt-8 md:mt-12 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
 
-export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 }: HeroProps) {
+export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1, strings }: HeroProps) {
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
         return (
             <motion.div
@@ -178,7 +180,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
 
             <div className="relative z-20 flex w-full flex-col items-center justify-center">
                 <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:text-heading">
-                    TAP. SCAN. ANYWHERE.
+                    {strings.heroTapScan}
                 </h2>
                 <span
                     className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
@@ -198,7 +200,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
                     .
                 </span>
                 <span className="mt-2 block text-center text-sm text-n-1/70 md:text-base" style={{ fontWeight: 400 }}>
-                    No local ID or bank required.
+                    {strings.heroNoLocalId}
                 </span>
                 {primaryCta && renderCTAButton(primaryCta, 'primary')}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}

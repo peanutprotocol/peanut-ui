@@ -4,6 +4,8 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import maintenanceConfig from '@/config/underMaintenance.config'
+import { LOCALE_COOKIE, toMarketingLocale } from '@/i18n/localeBridge'
+import { DEFAULT_LOCALE } from '@/i18n/types'
 
 export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
@@ -45,6 +47,25 @@ export function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL('/home', request.url))
     }
 
+    // Send a returning visitor to the landing page in the language they picked.
+    // Deliberately keyed on the app-locale cookie and NOT Accept-Language:
+    // Google's localized-versions guidance warns against redirecting on
+    // *perceived* language, since crawlers arrive from US IPs sending `en` and
+    // would never reach the localized pages. A cookie is an explicit choice and
+    // bots don't send one, so crawlers always get the English `/` and hreflang
+    // keeps routing them. First-time humans get LocaleSuggestion's banner
+    // instead. Placed after the auth check so signed-in users still go to /home.
+    if (request.nextUrl.pathname === '/') {
+        const stored = request.cookies.get(LOCALE_COOKIE)?.value
+        const locale = stored ? toMarketingLocale(stored) : DEFAULT_LOCALE
+        if (locale !== DEFAULT_LOCALE) {
+            // 307, not 308: `/` stays the canonical English URL.
+            const localized = NextResponse.redirect(new URL(`/${locale}`, request.url), 307)
+            localized.headers.set('Vary', 'Cookie')
+            return localized
+        }
+    }
+
     // Handle promo link redirection
     if (isPromoLink(url)) {
         const fragment = url.searchParams.toString()
@@ -54,6 +75,11 @@ export function proxy(request: NextRequest) {
 
     // Set headers to disable caching for specified paths
     const response = NextResponse.next()
+    // `/` varies by the locale cookie above — without this a CDN could cache one
+    // visitor's landing page (or redirect) and serve it to everyone.
+    if (url.pathname === '/') {
+        response.headers.set('Vary', 'Cookie')
+    }
     if (url.pathname.startsWith('/api/')) {
         response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
         response.headers.set('Pragma', 'no-cache')

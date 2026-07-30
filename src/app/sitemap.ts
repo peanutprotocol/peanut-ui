@@ -47,6 +47,11 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         const isDefault = locale === 'en'
         const basePriority = isDefault ? 1.0 : 0.9 // EN gets slightly higher priority
 
+        // Localized landing page (English lives at '/', already listed above)
+        if (!isDefault) {
+            pages.push({ path: `/${locale}`, priority: 1.0 * basePriority, changeFrequency: 'weekly' })
+        }
+
         // Country hub pages
         for (const country of Object.keys(COUNTRIES_SEO)) {
             pages.push({ path: `/${locale}/${country}`, priority: 0.9 * basePriority, changeFrequency: 'weekly' })

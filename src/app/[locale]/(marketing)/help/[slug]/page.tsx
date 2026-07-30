@@ -55,7 +55,7 @@ export default async function HelpArticlePage({ params }: PageProps) {
     const mdxSource = readPageContentLocalized<HelpFrontmatter>('help', slug, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
-    const { content } = await renderContent(mdxSource.body)
+    const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
 
     const displayTitle = mdxSource.frontmatter.title.replace(/\s*\|\s*Peanut Help$/, '')

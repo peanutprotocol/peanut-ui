@@ -64,7 +64,7 @@ export default async function ComparisonPageLocalized({ params }: PageProps) {
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('compare', slug, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
-    const { content } = await renderContent(mdxSource.body)
+    const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
     const url = `/${locale}/compare/peanut-vs-${slug}`
     const hubHref = `/${locale}/content?type=compare`

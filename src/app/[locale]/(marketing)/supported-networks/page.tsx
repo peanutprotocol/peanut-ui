@@ -44,7 +44,7 @@ export default async function SupportedNetworksPage({ params }: PageProps) {
     const mdxSource = readSingletonContentLocalized<ContentFrontmatter>('supported-networks', locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
-    const { content } = await renderContent(mdxSource.body)
+    const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
     const url = `/${locale}/supported-networks`
 

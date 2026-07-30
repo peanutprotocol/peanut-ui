@@ -92,7 +92,7 @@ export default async function DepositPageLocalized({ params }: PageProps) {
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('deposit', deposit.key, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
-    const { content } = await renderContent(mdxSource.body)
+    const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
     const url = `/${locale}/deposit/${rawSlug}`
 

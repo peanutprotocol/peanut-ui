@@ -48,7 +48,7 @@ export default async function StoryPage({ params }: PageProps) {
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('stories', slug, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
-    const { content } = await renderContent(mdxSource.body)
+    const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
     const url = `/${locale}/stories/${slug}`
 

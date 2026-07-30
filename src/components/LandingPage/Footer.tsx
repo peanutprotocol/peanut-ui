@@ -1,7 +1,7 @@
 import GITHUB_WHITE_ICON from '@/assets/icons/github-white.png'
 import PEANUT_LOGO from '@/assets/logos/peanut-logo.svg'
-import TELEGRAM_ICON from '@/assets/icons/telegram.svg'
-import TWITTER_ICON from '@/assets/icons/twitter-logo.svg'
+import TELEGRAM_ICON from '@/assets/icons/telegram-white.svg'
+import X_ICON from '@/assets/icons/x-logo.svg'
 import Image from 'next/image'
 import Link from 'next/link'
 import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
@@ -9,36 +9,95 @@ import handWaving from '@/assets/illustrations/hand-waving.svg'
 import handPeace from '@/assets/illustrations/hand-peace.svg'
 import handMiddleFinger from '@/assets/illustrations/hand-middle-finger.svg'
 import { SEOFooter } from './SEOFooter'
+import { LocaleSwitcher } from '@/components/Marketing/LocaleSwitcher'
+import { getTranslations } from '@/i18n'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
-const Footer = ({ showSiteDirectory = true, locale = 'en' }: { showSiteDirectory?: boolean; locale?: string }) => {
+const NAV_LINK = 'text-xl font-bold text-white'
+
+const Footer = ({
+    showSiteDirectory = true,
+    locale = DEFAULT_LOCALE,
+}: {
+    showSiteDirectory?: boolean
+    locale?: Locale
+}) => {
+    const i18n = getTranslations(locale)
+
     return (
         <>
-            <footer className="relative flex h-52 items-end justify-between bg-black px-8 pb-10 md:items-center md:px-20 md:pb-0">
-                <section className="flex flex-col gap-1">
-                    <Link href="/lp" className="flex">
-                        <Image src={PEANUT_LOGO} alt="Peanut Logo" width={110} height={40} />
-                    </Link>
-                    <p className="text-xs text-white">
-                        made with love by{' '}
-                        <a className="underline" href="https://squirrellabs.dev/" target="_blank" rel="noreferrer">
-                            Squirrel Labs
-                        </a>
-                    </p>
-                    <p className="text-xs text-white/70">
-                        Peanut is a trading name of Squirrel Labs Ltd, registered in England &amp; Wales (No. 14558823)
-                    </p>
-                </section>
+            {/* Two rows rather than one: the nav labels change width per locale,
+                so a single row overflowed once the copy was translated. */}
+            <footer className="bg-black px-8 py-8 md:px-20">
+                <div className="flex flex-wrap items-center justify-between gap-6">
+                    <section className="flex flex-col gap-1">
+                        <Link href="/lp" className="flex">
+                            <Image src={PEANUT_LOGO} alt="Peanut Logo" width={110} height={40} />
+                        </Link>
+                        <p className="text-xs text-white">
+                            {i18n.footerMadeWithLove}{' '}
+                            <a className="underline" href="https://squirrellabs.dev/" target="_blank" rel="noreferrer">
+                                Squirrel Labs
+                            </a>
+                        </p>
+                        <p className="text-xs text-white/70">{i18n.footerLegalEntity}</p>
+                    </section>
 
-                <section className="absolute left-1/2 top-5 flex -translate-x-1/2 flex-col items-center gap-4 md:static md:translate-x-0">
-                    <div className="flex gap-2">
-                        {/* <a
-                        href="https://discord.gg/B99T9mQqBv"
-                        target="_blank"
+                    <div className="flex items-center gap-6">
+                        <LocaleSwitcher locale={locale} label={i18n.footerLanguage} />
+                        <section className="flex gap-3">
+                            <a
+                                href="https://youtube.com/shorts/qd2FbzLS380?si=T5xk7xrTGYiIiWFu"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="Watch Peanut teaser on YouTube (opens in a new tab)"
+                            >
+                                <Image src={handPeace} alt="" width={20} height={20} />
+                            </a>
+                            <Image src={handThumbsUp.src} alt="Hand thumbs up" width={20} height={20} />
+                            <a
+                                href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="Never gonna give you up (opens in a new tab)"
+                            >
+                                <Image src={handMiddleFinger.src} alt="Hand Middle finger" width={20} height={20} />
+                            </a>
+                            <Image src={handWaving.src} alt="Hand waving" width={25} height={25} />
+                        </section>
+                    </div>
+                </div>
+
+                <nav className="mt-8 flex flex-wrap items-center justify-center gap-6">
+                    <Link className={NAV_LINK} href="/support">
+                        {i18n.footerSupport}
+                    </Link>
+                    <Link className={NAV_LINK} href={`/${locale}/content`}>
+                        {i18n.content}
+                    </Link>
+                    <Link className={NAV_LINK} href={`/${locale}/help`}>
+                        {i18n.footerDocs}
+                    </Link>
+                    <Link className={NAV_LINK} href={`/${locale}/terms`}>
+                        {i18n.footerTerms}
+                    </Link>
+                    <Link className={NAV_LINK} href={`/${locale}/privacy`}>
+                        {i18n.footerPrivacy}
+                    </Link>
+                    <Link className={NAV_LINK} href={`/${locale}/help/security-disclosure`}>
+                        {i18n.footerSecurity}
+                    </Link>
+                    <a
+                        className={NAV_LINK}
+                        href="https://peanutprotocol.notion.site/Career-b351de56d92e405e962f0027b3a60f52"
                         rel="noopener noreferrer"
-                        aria-label="Join us on Discord"
+                        target="_blank"
                     >
-                        <Image src={DISCORD_ICON} alt="Discord" width={20} height={20} />
-                    </a> */}
+                        {i18n.footerJobs}
+                    </a>
+
+                    {/* Reads as the next nav item, set off by double the nav gap. */}
+                    <div className="ml-12 flex items-center gap-4">
                         <a
                             href="https://t.me/clubpeanut"
                             target="_blank"
@@ -51,9 +110,9 @@ const Footer = ({ showSiteDirectory = true, locale = 'en' }: { showSiteDirectory
                             href="https://x.com/joinpeanut"
                             target="_blank"
                             rel="noopener noreferrer"
-                            aria-label="Follow us on Twitter"
+                            aria-label="Follow us on X"
                         >
-                            <Image src={TWITTER_ICON} alt="Twitter" width={20} height={20} />
+                            <Image src={X_ICON} alt="X" width={20} height={20} />
                         </a>
                         <a
                             href="https://github.com/peanutprotocol"
@@ -64,57 +123,7 @@ const Footer = ({ showSiteDirectory = true, locale = 'en' }: { showSiteDirectory
                             <Image src={GITHUB_WHITE_ICON} alt="GitHub" width={20} height={20} />
                         </a>
                     </div>
-
-                    <div className="flex gap-2">
-                        <Link className="text-xl font-bold text-white" href="/support">
-                            Support
-                        </Link>
-                        <Link className="text-xl font-bold text-white" href={`/${locale}/content`}>
-                            Content
-                        </Link>
-                        <Link className="text-xl font-bold text-white" href={`/${locale}/help`}>
-                            Docs
-                        </Link>
-                        <Link className="text-xl font-bold text-white" href={`/${locale}/terms`}>
-                            Terms
-                        </Link>
-                        <Link className="text-xl font-bold text-white" href={`/${locale}/privacy`}>
-                            Privacy
-                        </Link>
-                        <Link className="text-xl font-bold text-white" href={`/${locale}/help/security-disclosure`}>
-                            Security
-                        </Link>
-                        <a
-                            className="text-xl font-bold text-white"
-                            href="https://peanutprotocol.notion.site/Career-b351de56d92e405e962f0027b3a60f52"
-                            rel="noopener noreferrer"
-                            target="_blank"
-                        >
-                            Jobs
-                        </a>
-                    </div>
-                </section>
-
-                <section className="flex gap-3">
-                    <a
-                        href="https://youtube.com/shorts/qd2FbzLS380?si=T5xk7xrTGYiIiWFu"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Watch Peanut teaser on YouTube (opens in a new tab)"
-                    >
-                        <Image src={handPeace} alt="" width={20} height={20} />
-                    </a>
-                    <Image src={handThumbsUp.src} alt="Hand thumbs up" width={20} height={20} />
-                    <a
-                        href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Never gonna give you up (opens in a new tab)"
-                    >
-                        <Image src={handMiddleFinger.src} alt="Hand Middle finger" width={20} height={20} />
-                    </a>
-                    <Image src={handWaving.src} alt="Hand waving" width={25} height={25} />
-                </section>
+                </nav>
             </footer>
             {showSiteDirectory && <SEOFooter locale={locale} />}
         </>

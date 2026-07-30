@@ -1,6 +1,7 @@
 import { compileMDX } from 'next-mdx-remote/rsc'
 import remarkGfm from 'remark-gfm'
-import { mdxComponents } from '@/components/Marketing/mdx/components'
+import { createMdxComponents } from '@/components/Marketing/mdx/components'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import { remarkNoExecutableContent } from '@/lib/mdx-security'
 
 /**
@@ -19,10 +20,10 @@ import { remarkNoExecutableContent } from '@/lib/mdx-security'
  * remarkNoExecutableContent — content is published to production without human
  * review, so it must not be able to execute. See mdx-security.ts.
  */
-export async function renderContent(source: string) {
+export async function renderContent(source: string, locale: Locale = DEFAULT_LOCALE) {
     return compileMDX<Record<string, unknown>>({
         source,
-        components: mdxComponents,
+        components: createMdxComponents(locale),
         options: {
             mdxOptions: {
                 format: 'mdx',

@@ -50,7 +50,7 @@ export default async function CountryHubPage({ params }: PageProps) {
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('countries', country, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
-    const { content } = await renderContent(mdxSource.body)
+    const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
     const countryName = getCountryName(country, locale)
     const url = `/${locale}/${country}`

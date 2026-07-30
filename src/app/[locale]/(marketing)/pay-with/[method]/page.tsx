@@ -51,7 +51,7 @@ export default async function PayWithPage({ params }: PageProps) {
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('pay-with', method, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
-    const { content } = await renderContent(mdxSource.body)
+    const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
     const url = `/${locale}/pay-with/${method}`
 
