@@ -68,6 +68,13 @@ export default function MigrationDownloadModal({
     const isDesktop = deviceType === DeviceType.WEB
     const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
 
+    const remindLaterCta = {
+        text: t('downloadPrompt.remindLater'),
+        variant: 'transparent' as const,
+        className: 'underline h-6',
+        onClick: snooze,
+    }
+
     return (
         <ActionModal
             visible={visible}
@@ -76,9 +83,10 @@ export default function MigrationDownloadModal({
             title={t('downloadPrompt.title')}
             description={t('downloadPrompt.description', { days: daysLeft })}
             content={isDesktop ? <DownloadQR surface={MIGRATION_SURFACES.DOWNLOAD_MODAL} /> : undefined}
+            ctaClassName="md:flex-col gap-4"
             ctas={
                 isDesktop
-                    ? []
+                    ? [remindLaterCta]
                     : [
                           {
                               text: STORE_NAME[store],
@@ -93,12 +101,8 @@ export default function MigrationDownloadModal({
                                   openStore(store, MIGRATION_SURFACES.DOWNLOAD_MODAL)
                               },
                           },
+                          remindLaterCta,
                       ]
-            }
-            footer={
-                <button className="mt-3 w-full text-center text-xs text-grey-1 underline" onClick={snooze}>
-                    {t('downloadPrompt.remindLater')}
-                </button>
             }
         />
     )

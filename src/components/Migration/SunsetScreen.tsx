@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import Image from 'next/image'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
+import { Button } from '@/components/0_Bruddle/Button'
 import StoreButtons from '@/components/Migration/StoreButtons'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -54,12 +55,13 @@ export default function SunsetScreen() {
                     <p className="text-base text-grey-1">{t('sunset.sub')}</p>
                     <div className="mt-4 flex flex-col gap-4">
                         <StoreButtons surface={MIGRATION_SURFACES.SUNSET_SCREEN} />
-                        <button
-                            className="text-center text-sm text-black underline"
+                        <Button
+                            variant="transparent"
+                            className="h-6 text-sm font-normal text-black underline"
                             onClick={() => setIsSupportModalOpen(true)}
                         >
                             {t('sunset.supportLink')}
-                        </button>
+                        </Button>
                     </div>
                 </section>
             </div>

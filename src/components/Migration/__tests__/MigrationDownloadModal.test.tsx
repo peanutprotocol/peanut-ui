@@ -44,11 +44,15 @@ jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
 jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,
-    default: (props: { visible: boolean; title?: string; footer?: React.ReactNode }) =>
+    default: (props: { visible: boolean; title?: string; ctas?: { text: string; onClick?: () => void }[] }) =>
         props.visible ? (
             <div data-testid="modal">
                 <h3>{props.title}</h3>
-                {props.footer}
+                {props.ctas?.map((c) => (
+                    <button key={c.text} onClick={c.onClick}>
+                        {c.text}
+                    </button>
+                ))}
             </div>
         ) : null,
 }))

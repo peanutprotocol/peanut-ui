@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
+import { Button } from '@/components/0_Bruddle/Button'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { STORE_NAME, STORE_URL, type MigrationSurface, type StoreKind } from '@/constants/migration.consts'
@@ -20,13 +21,15 @@ export default function DownloadQR({ surface }: { surface: MigrationSurface }) {
         <div className="flex flex-col items-center gap-3 py-2">
             <div className="flex overflow-hidden rounded-sm border border-n-1">
                 {(['ios', 'android'] as const).map((s) => (
-                    <button
+                    <Button
                         key={s}
+                        variant={store === s ? 'purple' : 'transparent'}
+                        size="small"
                         onClick={() => setStore(s)}
-                        className={`px-4 py-1.5 text-sm font-semibold ${store === s ? 'bg-primary-1 text-n-1' : 'bg-white text-grey-1'}`}
+                        className={`w-auto rounded-none px-4 text-sm font-semibold ${store === s ? '' : 'text-grey-1'}`}
                     >
                         {STORE_NAME[s]}
-                    </button>
+                    </Button>
                 ))}
             </div>
             <QRCodeWrapper url={STORE_URL[store]} />
