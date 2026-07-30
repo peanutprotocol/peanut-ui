@@ -44,6 +44,7 @@ jest.mock('@/components/Global/IframeWrapper', () => ({
             <div data-testid="hosted-iframe" data-src={props.src}>
                 <button onClick={() => props.onClose('completed')}>finish</button>
                 <button onClick={() => props.onClose('manual')}>close</button>
+                <button onClick={() => props.onClose('tos_accepted')}>accept-embedded-tos</button>
             </div>
         ) : null,
 }))
@@ -157,6 +158,25 @@ describe('PendingVerificationTasks', () => {
         expect(mockFetchUser).toHaveBeenCalledTimes(1)
     })
 
+    it('an EMBEDDED ToS step inside the hosted flow does NOT close the iframe (mid-flow progress)', async () => {
+        mockNextActions = [hostedAction]
+        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
+        render(<PendingVerificationTasks />)
+
+        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
+        await screen.findByTestId('hosted-iframe')
+
+        // Bridge's hosted kyc_link flow can open with a ToS-acceptance page;
+        // its signedAgreementId postMessage maps to onClose('tos_accepted').
+        fireEvent.click(screen.getByText('accept-embedded-tos'))
+        expect(screen.getByTestId('hosted-iframe')).toBeInTheDocument()
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+
+        // The user then finishes the identity steps — completion still closes.
+        fireEvent.click(screen.getByText('finish'))
+        expect(screen.queryByTestId('hosted-iframe')).not.toBeInTheDocument()
+    })
+
     it('advisory task renders its deadline and keep-access copy; blocking renders enable copy', () => {
         mockNextActions = [{ ...hostedAction, effectiveDate: '2099-09-01' }]
         const { rerender } = render(<PendingVerificationTasks />)
@@ -184,7 +204,10 @@ describe('PendingVerificationTasks', () => {
     })
 
     describe('dismissal (home mount)', () => {
-        it("a slide's X dismisses ONLY that task — the other slide stays and the key persists", () => {
+        const tosFingerprint = 'accept-tos||due-now'
+        const hostedFingerprint = 'bridge-hosted|kyc_approval|due-now'
+
+        it("a slide's X dismisses ONLY that task — the other slide stays and the fingerprint persists", () => {
             mockNextActions = [tosAction, hostedAction]
             render(<PendingVerificationTasks dismissible />)
 
@@ -192,39 +215,55 @@ describe('PendingVerificationTasks', () => {
             expect(screen.queryByText('Accept Terms of Service')).not.toBeInTheDocument()
             expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
             expect(mockUpdatePreferences).toHaveBeenCalledWith('user-1', {
-                pendingVerificationTasksDismissed: ['accept-tos'],
+                pendingVerificationTasksDismissed: [tosFingerprint],
             })
         })
 
         it('dismissing the last remaining task hides the card entirely', () => {
-            mockStoredDismissal = ['accept-tos']
+            mockStoredDismissal = [tosFingerprint]
             mockNextActions = [tosAction, hostedAction]
             const { container } = render(<PendingVerificationTasks dismissible />)
 
             fireEvent.click(screen.getByRole('button', { name: /dismiss additional verification needed/i }))
             expect(container).toBeEmptyDOMElement()
             expect(mockUpdatePreferences).toHaveBeenCalledWith('user-1', {
-                pendingVerificationTasksDismissed: ['accept-tos', 'bridge-hosted'],
+                pendingVerificationTasksDismissed: [tosFingerprint, hostedFingerprint],
             })
         })
 
-        it('stored dismissed keys hide only their tasks; undismissed tasks still show', () => {
-            mockStoredDismissal = ['accept-tos']
+        it('stored dismissed fingerprints hide only their tasks; undismissed tasks still show', () => {
+            mockStoredDismissal = [tosFingerprint]
             mockNextActions = [tosAction, hostedAction]
             render(<PendingVerificationTasks dismissible />)
             expect(screen.queryByText('Accept Terms of Service')).not.toBeInTheDocument()
             expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
         })
 
+        it('a dismissed ADVISORY task re-surfaces when it turns blocking (same key, date gone)', () => {
+            // User dismissed the "complete before Sep 1" reminder in July…
+            mockStoredDismissal = ['accept-tos:sepa|tos_v2_acceptance|2099-09-01']
+            // …and on Sep 1 Bridge reclassifies the same requirement as due now.
+            mockNextActions = [{ ...sepaTosAction, requirementKey: 'tos_v2_acceptance' }]
+            render(<PendingVerificationTasks dismissible />)
+            expect(screen.getByText('Accept SEPA Terms of Service')).toBeInTheDocument()
+        })
+
+        it('a NEW requirement under the shared bridge-hosted key re-surfaces despite a dismissal', () => {
+            mockStoredDismissal = [hostedFingerprint]
+            mockNextActions = [{ ...hostedAction, requirementKey: 'kyc_with_proof_of_address' }]
+            render(<PendingVerificationTasks dismissible />)
+            expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
+        })
+
         it('all pending tasks stored as dismissed → card hidden', () => {
-            mockStoredDismissal = ['accept-tos', 'bridge-hosted']
+            mockStoredDismissal = [tosFingerprint, hostedFingerprint]
             mockNextActions = [tosAction, hostedAction]
             const { container } = render(<PendingVerificationTasks dismissible />)
             expect(container).toBeEmptyDOMElement()
         })
 
         it('the non-dismissible (profile) mount ignores stored dismissals and has no X', () => {
-            mockStoredDismissal = ['accept-tos', 'bridge-hosted']
+            mockStoredDismissal = [tosFingerprint, hostedFingerprint]
             mockNextActions = [tosAction, hostedAction]
             render(<PendingVerificationTasks />)
             expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()

@@ -10,7 +10,7 @@ import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import type { NextAction } from '@/types/capabilities'
-import { selectBridgeTasks } from '@/utils/bridge-tasks.utils'
+import { bridgeTaskDismissalKey, selectBridgeTasks } from '@/utils/bridge-tasks.utils'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import Card from '../Global/Card'
 
@@ -71,10 +71,11 @@ function formatDeadline(isoDate: string): string | null {
  * the flow keeps running.
  *
  * `dismissible` (the /home mount): each slide carries its own X that
- * dismisses ONLY that task (persisted per task key) — the other slides stay.
- * A dismissed key stays hidden on /home until the task resolves; the
- * Profile → Unlocked regions mount is non-dismissible, so dismissed tasks
- * stay reachable there.
+ * dismisses ONLY that task — the other slides stay. Dismissals persist per
+ * task FINGERPRINT (key + requirement + due state, see
+ * bridgeTaskDismissalKey), so a task that turns blocking or changes substance
+ * re-surfaces despite an old dismissal; the Profile → Unlocked regions mount
+ * is non-dismissible, so dismissed tasks stay reachable there.
  */
 export default function PendingVerificationTasks({ dismissible = false }: { dismissible?: boolean }) {
     const { nextActions } = useCapabilities()
@@ -103,9 +104,9 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
     }, [dismissible, userId])
 
     const handleDismissTask = useCallback(
-        (taskKey: string) => {
+        (task: NextAction) => {
             setDismissedKeys((prev) => {
-                const next = [...prev, taskKey]
+                const next = [...prev, bridgeTaskDismissalKey(task)]
                 updateUserPreferences(userId, { pendingVerificationTasksDismissed: next })
                 return next
             })
@@ -113,7 +114,9 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
         [userId]
     )
 
-    const visibleTasks = dismissible ? tasks.filter((task) => !dismissedKeys.includes(task.key)) : tasks
+    const visibleTasks = dismissible
+        ? tasks.filter((task) => !dismissedKeys.includes(bridgeTaskDismissalKey(task)))
+        : tasks
 
     const handleOpenTask = useCallback(
         async (task: NextAction) => {
@@ -139,6 +142,16 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
 
     const handleHostedClose = useCallback(
         (source?: 'manual' | 'completed' | 'tos_accepted') => {
+            // Bridge's hosted kyc_link flow can EMBED a ToS-acceptance step
+            // before the identity steps — exactly for this cohort, which owes
+            // both. The wrapper maps that step's signedAgreementId postMessage
+            // to 'tos_accepted'; treating it as a close would kill the
+            // verification mid-flow. Keep the iframe open and sync the
+            // acceptance; only 'completed' / 'manual' actually close.
+            if (source === 'tos_accepted') {
+                void fetchUser()
+                return
+            }
             setHostedUrl(null)
             if (source === 'completed') {
                 // Bridge re-checks the customer asynchronously — refresh so the
@@ -169,7 +182,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                             <button
                                                 type="button"
                                                 aria-label={`Dismiss ${copy.title}`}
-                                                onClick={() => handleDismissTask(task.key)}
+                                                onClick={() => handleDismissTask(task)}
                                                 className="absolute right-3 top-3 z-10 cursor-pointer p-0 text-black outline-none"
                                             >
                                                 <Icon name="cancel" size={16} />
