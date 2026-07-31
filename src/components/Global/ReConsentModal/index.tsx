@@ -148,7 +148,7 @@ const ReConsentModal = () => {
                     </p>
                     <p className="text-sm text-grey-1">
                         We've rewritten the documents below in plain language so they match what Peanut is today,
-                        including the Peanut Card and Rewards. There's no rush — read them whenever, and keep using
+                        including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using
                         Peanut as usual.
                     </p>
                     <ul className="space-y-1 text-sm">
