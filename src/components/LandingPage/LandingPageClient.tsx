@@ -9,18 +9,11 @@ import TweetCarousel from '@/components/LandingPage/TweetCarousel'
 import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import ScanToDownloadModal from '@/components/Migration/ScanToDownloadModal'
+import { type CTAButton } from '@/components/LandingPage/landing.types'
 import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { trackStoreClick } from '@/utils/migration.utils'
-
-type CTAButton = {
-    label: string
-    href: string
-    isExternal?: boolean
-    subtext?: string
-    onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void
-}
 
 type FAQQuestion = {
     id: string

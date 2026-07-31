@@ -8,6 +8,7 @@ import Image from 'next/image'
 import { useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from './CloudsCss'
+import { type CTAButton } from '@/components/LandingPage/landing.types'
 
 /**
  * Peanut mascot that positions itself so only 6% of its height (the feet)
@@ -70,14 +71,6 @@ function PeanutMascot() {
             className="absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain"
         />
     )
-}
-
-type CTAButton = {
-    label: string
-    href: string
-    isExternal?: boolean
-    subtext?: string
-    onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void
 }
 
 type HeroProps = {

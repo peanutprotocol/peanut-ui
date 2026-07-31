@@ -19,10 +19,11 @@ import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils
  * unhappy users never reach the store.
  *
  * ponytail: "good moment" V1 = user has at least one transaction and visits
- * home (shares the useTransactionHistory cache with HomeHistory, so the read
- * is free). Wiring the exact success screens is the upgrade path. Store-page
- * deep link for the rating; @capacitor-community/in-app-review for the native
- * sheet if conversion matters.
+ * home (same {mode:'latest', limit:50} query key useHomeCarouselCTAs already
+ * fetches there, so the read is free). Wiring the exact success screens is the
+ * upgrade path. Store-page deep link for the rating;
+ * @capacitor-community/in-app-review for the native sheet if conversion
+ * matters.
  */
 export default function ReviewPromptModal() {
     const t = useTranslations('migration')
