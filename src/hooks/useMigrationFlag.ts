@@ -15,8 +15,10 @@ import { PWA_SUNSET_FLAG } from '@/constants/migration.consts'
  * - PostHog UI (project 138913): add a release condition on `pwa-sunset`
  *   matching your `email` at 100%.
  * - Locally / on a preview: run
- *   `posthog.featureFlags.overrideFeatureFlags({ 'pwa-sunset': true })`
- *   in the console (persists for the session).
+ *   `posthog.featureFlags.overrideFeatureFlags({ flags: { 'pwa-sunset': true } })`
+ *   in the console (persists for the session; posthog-js >=1.3xx requires the
+ *   `flags` wrapper — a flat object is silently ignored). Clear with
+ *   `overrideFeatureFlags(false)`.
  */
 export function useMigrationFlag(): boolean {
     const isEnabled = useFeatureFlags()
