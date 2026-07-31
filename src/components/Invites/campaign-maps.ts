@@ -43,6 +43,10 @@ export const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
     'card-alpha': 'CARD_ALPHA',
     'irl-nomads': 'IRL_NOMADS',
     manicero: 'MANICERO',
+    // Creator collab. Nita's link is /invite?code=<her invite code>&campaign=nita,
+    // so the tag arrives in the explicit param — source 1 below maps it here. Her
+    // own invite code stays personal, so there is no INVITE_CODE_TO_CAMPAIGN_MAP entry.
+    nita: 'NITA',
 }
 
 // Resolve the effective campaigns (badge codes, or raw passthrough tags) from
