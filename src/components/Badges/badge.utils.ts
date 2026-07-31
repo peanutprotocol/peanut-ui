@@ -238,6 +238,16 @@ export const BADGES: Record<string, BadgeMeta> = {
         path: '/badges/skip_pass.svg',
         description: 'They skipped the waitlist. A friend handed them the key and they walked right in.',
     },
+    // Creator collab with Nita Cervio — her invite link carries ?campaign=nita.
+    // The badge also skips the card waitlist (backend SKIP_BADGE_CODES).
+    // displayName is set so the locked title renders even before the backend
+    // seeds the definition — syncBadgeDefinitions never sets iconUrl, so this
+    // entry is what keeps the badge off the Peanutman fallback.
+    NITA: {
+        path: '/badges/nita.svg',
+        description: 'Nita sent you. You skipped the card line on her word.',
+        displayName: "Nita's Recommendation",
+    },
 }
 
 /** All known badge codes — derived from BADGES so we never duplicate the
