@@ -29,42 +29,43 @@ export default function SunsetScreen() {
     }, [])
 
     return (
-        <div className="flex min-h-[100dvh] w-full items-center justify-center bg-background p-6">
-            <div className="mx-auto flex w-full max-w-[380px] flex-col overflow-hidden rounded-sm border border-n-1 bg-white">
-                <section className="relative flex h-64 w-full items-center justify-center overflow-hidden bg-secondary-3 px-6">
-                    {STARS.map((pos) => (
-                        <Image
-                            key={pos}
-                            src={starImage.src}
-                            alt=""
-                            width={38}
-                            height={38}
-                            className={`absolute z-10 ${pos}`}
-                        />
-                    ))}
+        <div className="flex min-h-[100dvh] w-full flex-col bg-white">
+            <section
+                className="relative flex h-72 w-full shrink-0 items-center justify-center overflow-hidden bg-secondary-3 px-6"
+                style={{ paddingTop: 'env(safe-area-inset-top)' }}
+            >
+                {STARS.map((pos) => (
                     <Image
-                        src={PEANUTMAN_MOBILE}
-                        alt="Peanut"
-                        width={200}
-                        height={200}
-                        className="z-0 h-40 w-auto object-contain"
+                        key={pos}
+                        src={starImage.src}
+                        alt=""
+                        width={38}
+                        height={38}
+                        className={`absolute z-10 ${pos}`}
                     />
-                </section>
-                <section className="flex flex-col gap-3 bg-white p-6">
-                    <h1 className="text-3xl font-bold text-n-1">{t('sunset.heading')}</h1>
-                    <p className="text-base text-grey-1">{t('sunset.sub')}</p>
-                    <div className="mt-4 flex flex-col gap-4">
-                        <StoreButtons surface={MIGRATION_SURFACES.SUNSET_SCREEN} />
-                        <Button
-                            variant="transparent"
-                            className="h-6 text-sm font-normal text-black underline"
-                            onClick={() => setIsSupportModalOpen(true)}
-                        >
-                            {t('sunset.supportLink')}
-                        </Button>
-                    </div>
-                </section>
-            </div>
+                ))}
+                <Image
+                    src={PEANUTMAN_MOBILE}
+                    alt="Peanut"
+                    width={200}
+                    height={200}
+                    className="z-0 h-44 w-auto object-contain"
+                />
+            </section>
+            <section className="mx-auto flex w-full max-w-md flex-1 flex-col gap-3 p-6">
+                <h1 className="text-3xl font-bold text-n-1">{t('sunset.heading')}</h1>
+                <p className="text-base text-grey-1">{t('sunset.sub')}</p>
+                <div className="mt-4 flex flex-col gap-4">
+                    <StoreButtons surface={MIGRATION_SURFACES.SUNSET_SCREEN} />
+                    <Button
+                        variant="transparent"
+                        className="h-6 text-sm font-normal text-black underline"
+                        onClick={() => setIsSupportModalOpen(true)}
+                    >
+                        {t('sunset.supportLink')}
+                    </Button>
+                </div>
+            </section>
             {/* the layout's SupportDrawer never mounts when this screen replaces it */}
             <SupportDrawer />
         </div>
