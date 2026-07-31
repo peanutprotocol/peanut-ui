@@ -29,9 +29,12 @@ export default function SunsetScreen() {
     }, [])
 
     return (
-        <div className="flex min-h-[100dvh] w-full flex-col bg-white">
+        // mobile: 50/50 vertical split, copy at the top of the lower half and
+        // the CTA pinned to the bottom. desktop (md+): 50/50 row, hero left,
+        // content centered right.
+        <div className="flex min-h-[100dvh] w-full flex-col bg-white md:flex-row">
             <section
-                className="relative flex h-72 w-full shrink-0 items-center justify-center overflow-hidden bg-secondary-3 px-6"
+                className="relative flex h-[50dvh] w-full items-center justify-center overflow-hidden bg-secondary-3 px-6 md:h-auto md:w-1/2"
                 style={{ paddingTop: 'env(safe-area-inset-top)' }}
             >
                 {STARS.map((pos) => (
@@ -49,13 +52,15 @@ export default function SunsetScreen() {
                     alt="Peanut"
                     width={200}
                     height={200}
-                    className="z-0 h-44 w-auto object-contain"
+                    className="z-0 h-44 w-auto object-contain md:h-56"
                 />
             </section>
-            <section className="mx-auto flex w-full max-w-md flex-1 flex-col gap-3 p-6">
-                <h1 className="text-3xl font-bold text-n-1">{t('sunset.heading')}</h1>
-                <p className="text-base text-grey-1">{t('sunset.sub')}</p>
-                <div className="mt-4 flex flex-col gap-4">
+            <section className="flex flex-1 flex-col justify-between p-6 pb-[calc(1.5rem_+_env(safe-area-inset-bottom))] md:w-1/2 md:justify-center md:gap-10">
+                <div className="mx-auto flex w-full max-w-md flex-col gap-3">
+                    <h1 className="text-3xl font-bold text-n-1">{t('sunset.heading')}</h1>
+                    <p className="text-base text-grey-1">{t('sunset.sub')}</p>
+                </div>
+                <div className="mx-auto flex w-full max-w-md flex-col gap-4">
                     <StoreButtons surface={MIGRATION_SURFACES.SUNSET_SCREEN} />
                     <Button
                         variant="transparent"
