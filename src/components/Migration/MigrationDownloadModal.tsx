@@ -66,7 +66,7 @@ export default function MigrationDownloadModal({
     const remindLaterCta = {
         text: t('downloadPrompt.remindLater'),
         variant: 'transparent' as const,
-        className: 'underline h-6',
+        className: 'underline h-6 text-sm',
         onClick: snooze,
     }
 
