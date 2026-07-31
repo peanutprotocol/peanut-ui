@@ -12,7 +12,12 @@ import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { PEANUTMAN_MOBILE } from '@/assets/mascot'
 import starImage from '@/assets/icons/star.png'
 
-const STARS = ['left-[8%] top-[18%] size-8', 'right-[12%] top-[14%] size-9', 'right-[14%] bottom-[16%] size-7'] as const
+const STARS = [
+    'left-[8%] top-[18%] size-8',
+    'right-[12%] top-[14%] size-9',
+    'right-[14%] bottom-[16%] size-7',
+    'left-[12%] bottom-[14%] size-7',
+] as const
 
 /**
  * Full-screen block once the website is switched off (TASK-20827) — rendered
