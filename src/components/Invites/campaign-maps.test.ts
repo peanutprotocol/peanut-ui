@@ -112,4 +112,11 @@ describe('resolveCampaign', () => {
         expect(resolveCampaign(undefined, 'not-a-special-code', undefined)).toBeUndefined()
         expect(resolveCampaign(null, undefined, undefined)).toBeUndefined()
     })
+
+    // The exact URL shape handed to a paid creator: a personal invite code for
+    // the referral plus the campaign tag for the badge. The personal code is not
+    // in INVITE_CODE_TO_CAMPAIGN_MAP, so the tag has to carry the badge alone.
+    it('resolves a creator link that pairs a personal invite code with a campaign tag', () => {
+        expect(resolveCampaign('nita', 'somepersonalcode', undefined)).toBe('NITA')
+    })
 })

@@ -239,10 +239,10 @@ export const BADGES: Record<string, BadgeMeta> = {
         description: 'They skipped the waitlist. A friend handed them the key and they walked right in.',
     },
     // Creator collab with Nita Cervio — her invite link carries ?campaign=nita.
-    // The badge also skips the card waitlist (backend SKIP_BADGE_CODES).
-    // displayName is set so the locked title renders even before the backend
-    // seeds the definition — syncBadgeDefinitions never sets iconUrl, so this
-    // entry is what keeps the badge off the Peanutman fallback.
+    // The badge also skips the card waitlist (backend POSTLAUNCH_SKIP_BADGE_CODES).
+    // `path` is the load-bearing field: syncBadgeDefinitions never sets iconUrl,
+    // so without this entry the badge renders the Peanutman fallback. displayName
+    // mirrors the backend name to pin the agreed title on the FE side.
     NITA: {
         path: '/badges/nita.svg',
         description: 'Nita sent you. You skipped the card line on her word.',
