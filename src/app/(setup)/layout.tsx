@@ -14,8 +14,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import SunsetScreen from '@/components/Migration/SunsetScreen'
-import { MIGRATION_CUTOVER_DATE, PWA_SUNSET_FLAG } from '@/constants/migration.consts'
-import { isFeatureFlagEnabled } from '@/utils/featureFlag.utils'
+import { getMigrationCutoverTime, isPwaSunsetOn } from '@/utils/migration.utils'
 import { isCapacitor } from '@/utils/capacitor'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
@@ -68,7 +67,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
 
     useEffect(() => {
         if (migrationOnAtEntry.current === null) {
-            migrationOnAtEntry.current = isFeatureFlagEnabled(PWA_SUNSET_FLAG)
+            migrationOnAtEntry.current = isPwaSunsetOn()
         }
         const migrationSteps = migrationOnAtEntry.current
 
@@ -104,7 +103,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     // pwa-sunset: past the cutover the web signup is switched off too — same
     // block as the mobile-ui layout (this route group has its own layout, so
     // it needs its own gate). keep-web cookie/param bypasses.
-    if (migrationOn && !isCapacitor() && !hasKeepWebBypass && Date.now() >= MIGRATION_CUTOVER_DATE.getTime()) {
+    if (migrationOn && !isCapacitor() && !hasKeepWebBypass && Date.now() >= getMigrationCutoverTime()) {
         return <SunsetScreen />
     }
 

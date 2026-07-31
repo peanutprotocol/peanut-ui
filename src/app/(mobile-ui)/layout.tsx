@@ -35,7 +35,7 @@ import { isDemoMode, enableDemoMode } from '@/utils/demo'
 import SunsetScreen from '@/components/Migration/SunsetScreen'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
-import { MIGRATION_CUTOVER_DATE } from '@/constants/migration.consts'
+import { getMigrationCutoverTime } from '@/utils/migration.utils'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
@@ -167,7 +167,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         !isPublicPath &&
         !isCapacitor() &&
         !hasKeepWebBypass &&
-        Date.now() >= MIGRATION_CUTOVER_DATE.getTime()
+        Date.now() >= getMigrationCutoverTime()
     ) {
         return <SunsetScreen />
     }

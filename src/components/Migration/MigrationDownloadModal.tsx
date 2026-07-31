@@ -4,14 +4,9 @@ import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import DownloadQR from '@/components/Migration/DownloadQR'
-import { openStore } from '@/utils/migration.utils'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
-import {
-    DOWNLOAD_PROMPT_SNOOZE_DAYS,
-    MIGRATION_CUTOVER_DATE,
-    MIGRATION_SURFACES,
-    STORE_NAME,
-} from '@/constants/migration.consts'
+import { DOWNLOAD_PROMPT_SNOOZE_DAYS, MIGRATION_SURFACES, STORE_NAME } from '@/constants/migration.consts'
+import { getMigrationCutoverTime, openStore } from '@/utils/migration.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useUserStore } from '@/redux/hooks'
@@ -41,7 +36,7 @@ export default function MigrationDownloadModal({
     useEffect(() => {
         // sunset block owns post-cutover; every ineligible path clears state so
         // an already-shown modal disappears if the flag flips off mid-session
-        if (!migrationOn || !userId || isCapacitor() || Date.now() >= MIGRATION_CUTOVER_DATE.getTime()) {
+        if (!migrationOn || !userId || isCapacitor() || Date.now() >= getMigrationCutoverTime()) {
             setVisible(false)
             return
         }
@@ -64,7 +59,7 @@ export default function MigrationDownloadModal({
         posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, { modal_type: MODAL_TYPES.MIGRATION_DOWNLOAD })
     }
 
-    const daysLeft = Math.max(1, Math.ceil((MIGRATION_CUTOVER_DATE.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+    const daysLeft = Math.max(1, Math.ceil((getMigrationCutoverTime() - Date.now()) / (24 * 60 * 60 * 1000)))
     const isDesktop = deviceType === DeviceType.WEB
     const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
 

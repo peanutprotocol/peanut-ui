@@ -8,8 +8,8 @@ import { isDemoMode } from '@/utils/demo'
 import { useUserStore } from '@/redux/hooks'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
-import { NOTIF_PROMPT_SNOOZE_DAYS, PWA_SUNSET_FLAG } from '@/constants/migration.consts'
-import { isFeatureFlagEnabled } from '@/utils/featureFlag.utils'
+import { NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
+import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
 
 const NOTIF_PROMPT_SNOOZE_MS = NOTIF_PROMPT_SNOOZE_DAYS * 24 * 60 * 60 * 1000
@@ -133,7 +133,7 @@ async function evaluateVisibility() {
         updateUserPreferences(currentExternalId ?? undefined, { notifModalClosedAt: closedAt })
     }
     const snoozeExpired = !!closedAt && Date.now() - new Date(closedAt).getTime() >= NOTIF_PROMPT_SNOOZE_MS
-    const modalClosed = !!closedAt && !(isFeatureFlagEnabled(PWA_SUNSET_FLAG) && snoozeExpired)
+    const modalClosed = !!closedAt && !(isPwaSunsetOn() && snoozeExpired)
 
     // don't show modal if permission is denied (carousel cta will handle it)
     if (state.permissionState === 'denied') {
