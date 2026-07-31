@@ -134,12 +134,22 @@ const ReConsentModal = () => {
             visible
             onClose={handlePostpone}
             icon="info"
-            title="We've updated our terms"
+            title="A small update to our terms"
             content={
                 <div className="w-full space-y-3 text-left">
+                    {/* The first sentence answers the question this modal actually raises
+                     * ("is something being taken from me?") before anything else. The
+                     * what-changed line describes the 2026-07-15 tos-v1 rewrite — revisit
+                     * it when a future version bump shows this modal for a different
+                     * change. "No rush" is literal: "Not now" snoozes to the effective
+                     * date (see utils.ts). */}
                     <p className="text-sm text-grey-1">
-                        We've refreshed the documents below. Give them a read and accept when you're ready — you can
-                        keep using Peanut in the meantime.
+                        Nothing changes about your fees, your funds, or how we handle your data.
+                    </p>
+                    <p className="text-sm text-grey-1">
+                        We've rewritten the documents below in plain language so they match what Peanut is today,
+                        including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using
+                        Peanut as usual.
                     </p>
                     <ul className="space-y-1 text-sm">
                         {outdatedDocs.map((doc) => {
@@ -157,7 +167,7 @@ const ReConsentModal = () => {
                 </div>
             }
             checkbox={{
-                text: 'I have read and accept the updated documents',
+                text: 'I accept the updated documents',
                 checked,
                 onChange: setChecked,
             }}
@@ -168,12 +178,17 @@ const ReConsentModal = () => {
                     shadowSize: '4',
                     disabled: !checked || submitting,
                     onClick: handleAccept,
+                    // ActionModal's sm:flex-1 (meant for its side-by-side layout)
+                    // squashes h-13 buttons when the CTAs are stacked
+                    className: 'sm:flex-none',
                 },
                 {
                     text: 'Not now',
                     variant: 'transparent',
                     disabled: submitting,
                     onClick: handlePostpone,
+                    // secondary de-emphasis: .btn is font-bold by default
+                    className: 'sm:flex-none font-normal text-grey-1',
                 },
             ]}
             ctaClassName={STACKED_CTAS}
