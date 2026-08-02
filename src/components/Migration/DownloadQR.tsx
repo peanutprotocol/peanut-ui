@@ -1,39 +1,25 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
-import { Button } from '@/components/0_Bruddle/Button'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { STORE_NAME, STORE_URL, type MigrationSurface, type StoreKind } from '@/constants/migration.consts'
+import { SELF_URL } from '@/constants/general.consts'
+import { STORE_URL, type MigrationSurface } from '@/constants/migration.consts'
 import { trackStoreClick } from '@/utils/migration.utils'
 
-// scan-to-download with a store toggle. on desktop we can't know the visitor's
-// phone OS, so we show both store QRs behind a toggle instead of guessing.
+// one smart QR instead of a per-store toggle: it encodes /app, which
+// redirects to the store of whichever phone scans it.
 export default function DownloadQR({ surface }: { surface: MigrationSurface }) {
     const t = useTranslations('migration')
-    const [store, setStore] = useState<StoreKind>('ios')
 
     useEffect(() => {
-        posthog.capture(ANALYTICS_EVENTS.MIGRATION_QR_SHOWN, { surface, store })
-    }, [surface, store])
+        posthog.capture(ANALYTICS_EVENTS.MIGRATION_QR_SHOWN, { surface })
+    }, [surface])
 
     return (
         <div className="flex flex-col items-center gap-3 py-2">
-            <div className="flex overflow-hidden rounded-sm border border-n-1">
-                {(['ios', 'android'] as const).map((s) => (
-                    <Button
-                        key={s}
-                        variant={store === s ? 'purple' : 'transparent'}
-                        size="small"
-                        onClick={() => setStore(s)}
-                        className={`w-auto rounded-none px-4 text-sm font-semibold ${store === s ? '' : 'text-grey-1'}`}
-                    >
-                        {STORE_NAME[s]}
-                    </Button>
-                ))}
-            </div>
-            <QRCodeWrapper url={STORE_URL[store]} />
+            <QRCodeWrapper url={`${SELF_URL}/app`} />
             <span className="text-xs text-grey-1">{t('qr.scanHint')}</span>
             {/* desktop can install directly too (e.g. Google Play from the browser) */}
             <div className="flex items-center gap-4">

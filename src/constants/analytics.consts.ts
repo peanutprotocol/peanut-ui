@@ -274,7 +274,9 @@ export const ANALYTICS_EVENTS = {
     // ── PWA sunset / app migration ──
     // Funnel: modal_shown(migration_download) → store_cta_clicked / qr_shown
     // → install (first native-platform event per distinct id, PostHog-side).
-    // `surface` ∈ MIGRATION_SURFACES, `store` ∈ 'ios' | 'android'.
+    // `surface` ∈ MIGRATION_SURFACES; store_cta_clicked also carries
+    // `store` ∈ 'ios' | 'android'. qr_shown fires once per QR display (the
+    // smart QR serves both stores, so it has no store dimension).
     MIGRATION_SUNSET_VIEWED: 'migration_sunset_viewed',
     MIGRATION_STORE_CTA_CLICKED: 'migration_store_cta_clicked',
     MIGRATION_QR_SHOWN: 'migration_qr_shown',
