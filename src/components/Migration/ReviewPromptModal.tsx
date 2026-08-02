@@ -30,7 +30,7 @@ export default function ReviewPromptModal() {
     const migrationOn = useMigrationFlag()
     const { deviceType } = useDeviceType()
     const { user } = useUserStore()
-    const { setIsSupportModalOpen } = useModalsContext()
+    const { openSupportWithMessage } = useModalsContext()
     const { data: latestHistory } = useTransactionHistory({ mode: 'latest', limit: 50 })
     const [visible, setVisible] = useState(false)
 
@@ -80,7 +80,8 @@ export default function ReviewPromptModal() {
                     shadowSize: '4',
                     onClick: () => {
                         close('meh')
-                        setIsSupportModalOpen(true)
+                        // prefilled so the drawer opens ready for feedback
+                        openSupportWithMessage(t('review.supportPrefill'))
                     },
                 },
             ]}

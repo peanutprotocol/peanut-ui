@@ -17,6 +17,10 @@ export const MIGRATION_CUTOVER_DATE = new Date('2026-12-31T00:00:00Z')
 // how long "Remind me later" snoozes the download prompt modal
 export const DOWNLOAD_PROMPT_SNOOZE_DAYS = 3
 
+// download prompt copy switches from celebratory to friendly-urgency once
+// the cutover is this close (Hugo's two-phase notice window)
+export const MIGRATION_URGENCY_THRESHOLD_DAYS = 14
+
 // how long "Not now" on the notifications pre-prompt snoozes before re-asking
 // (only during the migration window; flag off keeps closed-forever)
 export const NOTIF_PROMPT_SNOOZE_DAYS = 14

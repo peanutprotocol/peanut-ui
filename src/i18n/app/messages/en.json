@@ -2710,19 +2710,23 @@
     },
     "migration": {
         "downloadPrompt": {
-            "title": "Peanut is becoming an app",
-            "description": "Peanut is moving to the App Store and Google Play. In {days, plural, one {# day} other {# days}} it will only work in the app — download it now to keep using your account.",
+            "earlyTitle": "The Peanut app is here",
+            "earlyDescription": "Peanut now lives on the App Store and Google Play — faster, smoother, and it pings you the moment money lands. Your account comes with you, nothing to set up.",
+            "maybeLater": "Maybe later",
+            "title": "Peanut is going app-only",
+            "description": "In {days, plural, one {# day} other {# days}} Peanut moves fully to the app. Download it now and pick up right where you left off — your account and money move with you automatically.",
             "remindLater": "Remind me later"
         },
         "sunset": {
-            "heading": "Peanut lives on your phone now",
-            "sub": "The website has closed. Download the app to get back into your account — your money is safe.",
-            "supportLink": "Can't download the app? Contact support"
+            "heading": "Peanut is now app-only",
+            "sub": "Download the app to pick up right where you left off — your account and money are already there waiting for you.",
+            "supportLink": "Can't use the app? We'll help — contact support"
         },
         "qr": {
-            "title": "Scan to download Peanut",
-            "description": "Pick your phone's store, then scan the code with your camera.",
-            "scanHint": "Scan with your phone camera",
+            "title": "Get the Peanut app",
+            "scanHint": "Scan with your phone camera to download.",
+            "openIos": "Open App Store ↗",
+            "openAndroid": "Open Google Play ↗",
             "done": "Done"
         },
         "banner": {
@@ -2733,7 +2737,8 @@
             "title": "Loving Peanut so far?",
             "description": "A quick rating helps other people find us.",
             "loveIt": "Love it",
-            "meh": "Could be better"
+            "meh": "Could be better",
+            "supportPrefill": "I have some feedback about the app — here's what could be better: "
         },
         "downloadNow": "Download now"
     }

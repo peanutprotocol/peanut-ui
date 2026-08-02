@@ -22,7 +22,6 @@ export default function ScanToDownloadModal({
             onClose={onClose}
             icon="qr-code"
             title={t('qr.title')}
-            description={t('qr.description')}
             content={<DownloadQR surface={surface} />}
             ctas={[{ text: t('qr.done'), variant: 'purple', shadowSize: '4', onClick: onClose }]}
         />

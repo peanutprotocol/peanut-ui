@@ -5,7 +5,12 @@ import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import DownloadQR from '@/components/Migration/DownloadQR'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
-import { DOWNLOAD_PROMPT_SNOOZE_DAYS, MIGRATION_SURFACES, STORE_NAME } from '@/constants/migration.consts'
+import {
+    DOWNLOAD_PROMPT_SNOOZE_DAYS,
+    MIGRATION_SURFACES,
+    MIGRATION_URGENCY_THRESHOLD_DAYS,
+    STORE_NAME,
+} from '@/constants/migration.consts'
 import { getMigrationCutoverTime, openStore } from '@/utils/migration.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
@@ -63,8 +68,12 @@ export default function MigrationDownloadModal({
     const isDesktop = deviceType === DeviceType.WEB
     const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
 
+    // two-phase copy: celebrate the app while the cutover is far, switch to
+    // friendly urgency (deadline in the copy) for the final stretch
+    const isUrgent = daysLeft <= MIGRATION_URGENCY_THRESHOLD_DAYS
+
     const remindLaterCta = {
-        text: t('downloadPrompt.remindLater'),
+        text: t(isUrgent ? 'downloadPrompt.remindLater' : 'downloadPrompt.maybeLater'),
         variant: 'transparent' as const,
         className: 'underline h-6 text-sm',
         onClick: snooze,
@@ -75,8 +84,10 @@ export default function MigrationDownloadModal({
             visible={visible}
             onClose={snooze}
             icon="mobile-install"
-            title={t('downloadPrompt.title')}
-            description={t('downloadPrompt.description', { days: daysLeft })}
+            title={t(isUrgent ? 'downloadPrompt.title' : 'downloadPrompt.earlyTitle')}
+            description={
+                isUrgent ? t('downloadPrompt.description', { days: daysLeft }) : t('downloadPrompt.earlyDescription')
+            }
             content={isDesktop ? <DownloadQR surface={MIGRATION_SURFACES.DOWNLOAD_MODAL} /> : undefined}
             ctaClassName="md:flex-col gap-4"
             ctas={
