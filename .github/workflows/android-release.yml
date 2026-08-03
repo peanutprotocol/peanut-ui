@@ -114,6 +114,11 @@ jobs:
                   fi
 
             - name: Build signed AAB
+              env:
+                  # native sentry sdk dsn — read by android/app/build.gradle into a
+                  # manifest placeholder. same project dsn the js layer bakes into
+                  # the static export above; no new secret needed.
+                  SENTRY_DSN_ANDROID: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
               run: |
                   # versionName: manual dispatch input wins; else the tag name minus
                   # its leading 'v' (v1.0.10 -> 1.0.10); else build.gradle's

@@ -1,6 +1,7 @@
 package me.peanut.wallet;
 
 import android.os.Bundle;
+import android.provider.Settings;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
@@ -20,6 +21,25 @@ public class MainActivity extends BridgeActivity {
         // app-local plugin, not auto-discovered — must register before super.onCreate
         registerPlugin(InstallReferrerPlugin.class);
         super.onCreate(savedInstanceState);
+
+        /*
+         * Sentry reconciliation hook (TASK-20964): deliberately crash the native
+         * process to verify crash capture + crash-free-session accounting end to
+         * end on a real device. adb-only:
+         *   adb shell am start -n me.peanut.wallet/.MainActivity --ez sentry_test_crash true
+         * Gated on debug builds or usb-debugging-enabled devices so a third-party
+         * app firing this intent extra can't crash the app on a normal user's phone.
+         */
+        if (getIntent() != null && getIntent().getBooleanExtra("sentry_test_crash", false)) {
+            // triggering via adb implies usb debugging is on, so this gate costs
+            // nothing for the intended use while blocking third-party apps from
+            // crashing the app on a normal user's phone (adb off).
+            boolean adbEnabled = Settings.Global.getInt(
+                    getContentResolver(), Settings.Global.ADB_ENABLED, 0) == 1;
+            if (adbEnabled) {
+                throw new RuntimeException("sentry native test crash (deliberate, adb-triggered)");
+            }
+        }
 
         Bridge bridge = this.getBridge();
         if (bridge != null) {
