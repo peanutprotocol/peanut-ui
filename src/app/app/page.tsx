@@ -41,7 +41,7 @@ export default function SmartStoreRedirect() {
                     <p className="text-base text-grey-1">
                         {redirecting
                             ? 'Taking you to the store…'
-                            : 'Global cash, local feel — pick your store to download.'}
+                            : 'Global cash, local feel. Pick your store to download.'}
                     </p>
                 </div>
                 <div className="mx-auto flex w-full max-w-md flex-col gap-4">
@@ -50,7 +50,7 @@ export default function SmartStoreRedirect() {
                             <Button
                                 variant={i === 0 ? 'purple' : 'stroke'}
                                 shadowSize="4"
-                                icon={redirecting ? undefined : 'mobile-install'}
+                                icon={redirecting ? undefined : s === 'ios' ? 'apple-logo' : 'google-play'}
                                 className="w-full"
                                 loading={redirecting && i === 0}
                                 disabled={redirecting && i === 0}

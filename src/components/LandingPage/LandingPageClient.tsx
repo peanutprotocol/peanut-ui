@@ -9,6 +9,7 @@ import TweetCarousel from '@/components/LandingPage/TweetCarousel'
 import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import ScanToDownloadModal from '@/components/Migration/ScanToDownloadModal'
+import StoreBadges from '@/components/Migration/StoreBadges'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
 import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
@@ -227,7 +228,12 @@ export function LandingPageClient({
 
     return (
         <>
-            <Hero primaryCta={primaryCta} buttonVisible={buttonVisible} buttonScale={buttonScale} />
+            <Hero
+                primaryCta={primaryCta}
+                buttonVisible={buttonVisible}
+                buttonScale={buttonScale}
+                belowPrimaryCta={migrationOn ? <StoreBadges surface={MIGRATION_SURFACES.LANDING_HERO} /> : undefined}
+            />
             {qrModalOpen && (
                 <ScanToDownloadModal
                     visible={qrModalOpen}

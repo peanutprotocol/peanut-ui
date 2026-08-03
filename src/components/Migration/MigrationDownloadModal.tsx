@@ -98,7 +98,7 @@ export default function MigrationDownloadModal({
                               text: STORE_NAME[store],
                               variant: 'purple',
                               shadowSize: '4',
-                              icon: 'mobile-install',
+                              icon: store === 'ios' ? ('apple-logo' as const) : ('google-play' as const),
                               onClick: () => {
                                   posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
                                       modal_type: MODAL_TYPES.MIGRATION_DOWNLOAD,

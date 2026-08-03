@@ -11,7 +11,13 @@ export default function StoreButtons({ surface }: { surface: MigrationSurface })
     if (deviceType === DeviceType.WEB) return <DownloadQR surface={surface} />
     const store: StoreKind = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
     return (
-        <Button variant="purple" shadowSize="4" className="w-full" onClick={() => openStore(store, surface)}>
+        <Button
+            variant="purple"
+            shadowSize="4"
+            icon={store === 'ios' ? 'apple-logo' : 'google-play'}
+            className="w-full"
+            onClick={() => openStore(store, surface)}
+        >
             {STORE_NAME[store]}
         </Button>
     )

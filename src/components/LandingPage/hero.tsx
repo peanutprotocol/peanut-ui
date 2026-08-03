@@ -78,6 +78,8 @@ type HeroProps = {
     secondaryCta?: CTAButton
     buttonVisible?: boolean
     buttonScale?: number
+    /** rendered under the primary CTA (app-store badge pair during the migration window) */
+    belowPrimaryCta?: React.ReactNode
 }
 
 const getInitialAnimation = (variant: 'primary' | 'secondary') => ({
@@ -107,7 +109,7 @@ const transitionConfig = { type: 'spring', damping: 15 } as const
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
     `relative z-20 mt-8 md:mt-12 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
 
-export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 }: HeroProps) {
+export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1, belowPrimaryCta }: HeroProps) {
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
         return (
             <motion.div
@@ -133,6 +135,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
                 {cta.subtext && (
                     <span className="mt-2 block text-center text-sm italic text-n-1 md:text-base">{cta.subtext}</span>
                 )}
+                {variant === 'primary' && belowPrimaryCta && <div className="mt-3">{belowPrimaryCta}</div>}
             </motion.div>
         )
     }
