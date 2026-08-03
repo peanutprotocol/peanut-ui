@@ -19,6 +19,7 @@ import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { captureBetaFlow } from '@/utils/betaFlow.utils'
 import { useTranslations } from 'next-intl'
 
 // static — peanut wallet is always on arbitrum
@@ -71,6 +72,7 @@ const AddMoneyCryptoPage = () => {
                 method_type: isOfframp ? 'offramp_migration' : 'crypto',
                 acquisition_source: user?.invitedBy ? 'referred' : 'organic',
             })
+            captureBetaFlow('deposit')
             setDepositResult(statusData ?? { status: 'completed', amount })
             setShowSuccessView(true)
         },

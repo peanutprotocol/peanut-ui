@@ -58,6 +58,7 @@ import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation
 import { MIN_MANTECA_WITHDRAW_AMOUNT } from '@/constants/payment.consts'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { captureBetaFlow } from '@/utils/betaFlow.utils'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps, isBrUserEligibleForLimitIncrease } from '@/features/limits/utils'
 import { withdrawCountryUrl } from '@/utils/native-routes'
@@ -478,6 +479,7 @@ function MantecaBankWithdrawFlow() {
                 method_type: 'manteca',
                 country: countryPath,
             })
+            captureBetaFlow('withdraw')
         } catch (error) {
             console.error('Manteca withdraw error:', error)
             if (handleStaleSession(error)) return

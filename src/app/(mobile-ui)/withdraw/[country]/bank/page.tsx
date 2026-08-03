@@ -46,6 +46,7 @@ import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { captureBetaFlow } from '@/utils/betaFlow.utils'
 import { withdrawCountryUrl } from '@/utils/native-routes'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
@@ -360,6 +361,7 @@ export default function WithdrawBankPage() {
                 method_type: 'bridge',
                 country,
             })
+            captureBetaFlow('withdraw')
         } catch (e) {
             const error = toFriendlyError(e)
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {

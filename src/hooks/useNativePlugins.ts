@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { focusManager } from '@tanstack/react-query'
 import { captureMessage } from '@sentry/nextjs'
 import { isCapacitor, getPlatform } from '@/utils/capacitor'
+import { captureBetaFlow } from '@/utils/betaFlow.utils'
 import { localeApplied } from '@/i18n/app/locale-store'
 import { deepLinkToNativePath } from '@/utils/native-routes'
 import { sanitizeRedirectURL } from '@/utils/general.utils'
@@ -40,7 +41,11 @@ export function useNativePlugins() {
             if (!target) return
             // same-origin guard: only ever navigate to an in-app relative path
             const safe = sanitizeRedirectURL(target)
-            if (safe) router.push(safe)
+            if (safe) {
+                router.push(safe)
+                // beta checklist F10: the link routed into the app, not the browser
+                captureBetaFlow('deep_link')
+            }
         }
 
         const init = async () => {

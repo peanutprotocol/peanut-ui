@@ -270,6 +270,13 @@ export const ANALYTICS_EVENTS = {
     DELETE_ACCOUNT_INITIATED: 'delete_account_initiated',
     DELETE_ACCOUNT_CONFIRMED: 'delete_account_confirmed',
     DELETE_ACCOUNT_FAILED: 'delete_account_failed',
+
+    // ── Native-app beta (TASK-20968) ──
+    // One event per successfully completed core-checklist flow (F1–F10 in the
+    // Notion tester tracker). Fires on every platform; the beta exit gates
+    // filter `platform` to android-native / ios-native in PostHog.
+    // Props: flow (BetaFlow), platform, tester_id. See utils/betaFlow.utils.ts.
+    BETA_FLOW_COMPLETED: 'beta_flow_completed',
 } as const
 
 /**

@@ -38,6 +38,7 @@ import { appBaseUrl } from '@/utils/url.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { captureBetaFlow } from '@/utils/betaFlow.utils'
 import { useTranslations } from 'next-intl'
 
 export default function WithdrawCryptoPage() {
@@ -447,6 +448,7 @@ export default function WithdrawCryptoPage() {
                 amount_usd: usdAmount,
                 method_type: 'crypto',
             })
+            captureBetaFlow('withdraw')
         } catch (err) {
             console.error('Withdrawal execution failed:', err)
             const errMsg = toFriendlyError(err)

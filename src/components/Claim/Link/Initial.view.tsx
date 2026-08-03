@@ -54,6 +54,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { captureBetaFlow } from '@/utils/betaFlow.utils'
 import { useFormatter, useTranslations } from 'next-intl'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
@@ -399,6 +400,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 }
 
                 setTransactionHash(claimTxHash)
+                captureBetaFlow('receive_claim')
                 onCustom('SUCCESS')
 
                 // note: with optimisticReturn, balance/transactions refresh happens in SUCCESS view

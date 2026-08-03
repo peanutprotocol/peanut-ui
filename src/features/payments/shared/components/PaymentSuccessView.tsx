@@ -43,6 +43,7 @@ import { PeanutCheering } from '@/assets/mascot'
 import { useHaptic } from 'use-haptic'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { captureBetaFlow } from '@/utils/betaFlow.utils'
 import PointsCard from '@/components/Common/PointsCard'
 import { BASE_URL } from '@/constants/general.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
@@ -210,6 +211,14 @@ const PaymentSuccessView = ({
 
     const pointsDivRef = useRef<HTMLDivElement>(null)
     usePointsConfetti(points, pointsDivRef)
+
+    useEffect(() => {
+        // beta checklist F3: send/contribute/request-pay flows all land here with
+        // type SEND; withdraw reuses the view (also type SEND) so exclude it.
+        if (type === 'SEND' && !isWithdrawFlow) {
+            captureBetaFlow('send')
+        }
+    }, [type, isWithdrawFlow])
 
     useEffect(() => {
         if (points) {

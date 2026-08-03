@@ -5,6 +5,7 @@ import { useZeroDev } from './useZeroDev'
 import { captureMessage } from '@sentry/nextjs'
 import { useEffect, useState } from 'react'
 import { getRedirectUrl, getValidRedirectUrl, clearRedirectUrl } from '@/utils/general.utils'
+import { captureBetaFlow } from '@/utils/betaFlow.utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 // how long we wait for the user object after a successful passkey ceremony
@@ -42,6 +43,8 @@ export const useLogin = () => {
     useEffect(() => {
         // run only if login button is clicked to prevent un-intentional redirects
         if (isloginClicked && user) {
+            // deliberate login only (not session resume) — the guard above scopes this
+            captureBetaFlow('returning_login')
             // redirect based on query params or saved redirect url
             const localStorageRedirect = getRedirectUrl()
             const redirect_uri = searchParams.get('redirect_uri')

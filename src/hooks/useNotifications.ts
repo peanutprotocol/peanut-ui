@@ -8,6 +8,7 @@ import { isDemoMode } from '@/utils/demo'
 import { useUserStore } from '@/redux/hooks'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
+import { captureBetaFlow } from '@/utils/betaFlow.utils'
 import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
 
 /*
@@ -210,6 +211,7 @@ async function ensureInitialized() {
                 if (typeof additionalData.utmContent === 'string') props.utm_content = additionalData.utmContent
             }
             posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_CLICKED, props)
+            captureBetaFlow('push_tap')
         })
 
         setState({ oneSignalInitialized: true, sdkReady: true })

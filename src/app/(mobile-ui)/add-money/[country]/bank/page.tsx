@@ -42,6 +42,7 @@ import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
 import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { captureBetaFlow } from '@/utils/betaFlow.utils'
 import { addMoneyCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -332,6 +333,9 @@ function BridgeBankOnrampPage() {
                     method_type: 'bank',
                     country: selectedCountryPath,
                 })
+                // beta checklist F7: fiat has no client-side settlement — wire
+                // details shown = the in-app flow finished
+                captureBetaFlow('deposit')
                 setUrlState({ step: 'showDetails' })
             } else {
                 setError({

@@ -10,6 +10,7 @@ import { type UserCapabilities } from '@/types/capabilities'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { captureBetaFlow } from '@/utils/betaFlow.utils'
 
 const PREPARING_TIMEOUT_MS = 30000
 
@@ -258,6 +259,8 @@ export const useMultiPhaseKycFlow = ({
     // wrap handleSdkComplete to track real-time flow
     const handleSdkComplete = useCallback(() => {
         posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: lastIntentRef.current ?? regionIntent })
+        // beta checklist F5: docs submitted = camera capture worked; approval is async
+        captureBetaFlow('kyc')
         isRealtimeFlowRef.current = true
         originalHandleSdkComplete()
         // for action flows (manteca, self-heal), the base status is already APPROVED

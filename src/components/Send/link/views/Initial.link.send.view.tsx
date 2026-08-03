@@ -22,6 +22,7 @@ import AmountInput from '../../../Global/AmountInput'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { captureBetaFlow } from '@/utils/betaFlow.utils'
 
 const LinkSendInitialView = () => {
     const t = useTranslations('send')
@@ -86,6 +87,7 @@ const LinkSendInitialView = () => {
                 token_address: tokenAddress,
                 has_attachment: !!attachmentOptions?.rawFile,
             })
+            captureBetaFlow('send')
 
             setLink(link)
             setView('SUCCESS')

@@ -23,6 +23,7 @@ import { sendLinksApi } from '@/services/sendLinks'
 import { useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { captureBetaFlow } from '@/utils/betaFlow.utils'
 import underMaintenanceConfig, { CROSS_CHAIN_DISABLED_MESSAGE } from '@/config/underMaintenance.config'
 import { useTranslations } from 'next-intl'
 
@@ -149,6 +150,7 @@ export const ConfirmClaimLinkView = ({
                 chain_id: claimLinkData.chainId,
                 is_xchain: !!selectedRoute,
             })
+            captureBetaFlow('receive_claim')
             onNext()
             // Note: Balance/transaction refresh handled by mutation or SUCCESS view
         } catch (error) {

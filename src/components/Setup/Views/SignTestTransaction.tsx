@@ -13,6 +13,7 @@ import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { captureBetaFlow } from '@/utils/betaFlow.utils'
 import { getFromCookie } from '@/utils/general.utils'
 import { twMerge } from 'tailwind-merge'
 import { useTranslations } from 'next-intl'
@@ -139,6 +140,7 @@ const SignTestTransaction = () => {
                     acquisition_source: inviteCode ? 'referred' : 'organic',
                     invite_code: inviteCode || undefined,
                 })
+                captureBetaFlow('fresh_signup')
 
                 // keep loading state active until redirect completes
             } else {

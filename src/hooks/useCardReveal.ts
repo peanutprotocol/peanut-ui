@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { captureBetaFlow } from '@/utils/betaFlow.utils'
 import { rainApi, RainCardRateLimitError, type RainCardDetailsResponse } from '@/services/rain'
 
 interface UseCardRevealArgs {
@@ -55,6 +56,8 @@ export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: Use
             const data = await rainApi.getCardDetails(cardId)
             setRevealed(data)
             posthog.capture(ANALYTICS_EVENTS.CARD_PAN_REVEALED)
+            // beta checklist F6: details revealed ⇒ card was issued AND viewed
+            captureBetaFlow('card_issue_view')
             if (autoMaskMs > 0) {
                 if (timeoutRef.current) clearTimeout(timeoutRef.current)
                 timeoutRef.current = setTimeout(() => {
