@@ -1052,6 +1052,31 @@ describe('GROUP 4: Success States', () => {
         expect(screen.getByText('Split this bill')).toBeInTheDocument()
     })
 
+    test('See receipt opens the drawer keyed by the Manteca synthetic id, not externalId', async () => {
+        // getReceiptUrl builds /receipt/<id>?kind=QR_PAY, and the backend resolves
+        // that id only via the Manteca synthetic id. Stamping externalId here 404s
+        // every shared receipt.
+        const openTransactionDetails = jest.fn()
+        mockUseTransactionDetailsDrawer.mockReturnValue({
+            openTransactionDetails,
+            selectedTransaction: null,
+            isDrawerOpen: false,
+            closeTransactionDetails: jest.fn(),
+        })
+
+        await completeMantecaPayment()
+
+        await waitFor(() => {
+            expect(screen.getByText('See receipt')).toBeInTheDocument()
+        })
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('See receipt'))
+        })
+
+        expect(openTransactionDetails).toHaveBeenCalledWith(expect.objectContaining({ id: 'qp1' }))
+    })
+
     test('Manteca success, perk eligible shows hold-to-claim button', async () => {
         await completeMantecaPayment({
             perk: {

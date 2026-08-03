@@ -1440,7 +1440,12 @@ export default function QRPayPage() {
                                     onClick={() => {
                                         const now = new Date()
                                         openTransactionDetails({
-                                            id: qrPayment!.externalId,
+                                            // Manteca synthetic id — the only key the receipt
+                                            // lookup resolves (`metadata.mantecaSyntheticId` /
+                                            // `manteca-transfer:<id>`), and what Activity rows
+                                            // already carry. `externalId` is UUID-shaped, so it
+                                            // slips past the id-shape gate and 404s silently.
+                                            id: qrPayment!.id,
                                             direction: 'qr_payment',
                                             userName: qrPayment!.details.merchant.name,
                                             fullName: qrPayment!.details.merchant.name,
