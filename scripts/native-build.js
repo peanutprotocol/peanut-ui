@@ -569,12 +569,23 @@ async function main() {
 // Web-only dead weight in the bundled export (~8 MB): /dev test pages and the
 // iOS-PWA install videos are unreachable from native flows. KEEP_DEV_PAGES=true
 // retains /dev for profiling/test builds (e.g. the confetti repro page).
+//
+// Exception: dev/deferred stays. It IS reachable from native flows — it's the
+// landing target for the deferred-deep-link e2e (dest=/dev/deferred) and the
+// AASA paths:["*"] routes it into the app on iOS. Pruning it turns those
+// navigations into a chunk-error reload loop that bounces users to setup
+// (seen on 1.0.46). It's a few KB and walled off web-prod inside the page.
 function pruneExportedAssets() {
     const outDir = path.join(__dirname, '..', 'out')
 
     const targets = []
     if (process.env.KEEP_DEV_PAGES !== 'true') {
-        targets.push(path.join(outDir, 'dev'))
+        const devDir = path.join(outDir, 'dev')
+        if (fs.existsSync(devDir)) {
+            for (const entry of fs.readdirSync(devDir)) {
+                if (entry !== 'deferred') targets.push(path.join(devDir, entry))
+            }
+        }
     }
     for (const entry of fs.readdirSync(outDir)) {
         if (entry.endsWith('.mov')) targets.push(path.join(outDir, entry))
