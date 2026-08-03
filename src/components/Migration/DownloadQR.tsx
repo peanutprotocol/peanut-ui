@@ -17,9 +17,14 @@ export default function DownloadQR({ surface }: { surface: MigrationSurface }) {
         posthog.capture(ANALYTICS_EVENTS.MIGRATION_QR_SHOWN, { surface })
     }, [surface])
 
+    // the serving origin, not SELF_URL: a preview's QR must point at the
+    // preview (SELF_URL would send scanners to prod) and a LAN-served dev
+    // build must encode the LAN address so a real phone can scan it
+    const origin = typeof window !== 'undefined' ? window.location.origin : SELF_URL
+
     return (
         <div className="flex flex-col items-center gap-3 py-2">
-            <QRCodeWrapper url={`${SELF_URL}/app`} />
+            <QRCodeWrapper url={`${origin}/app`} />
             <span className="text-xs text-grey-1">{t('qr.scanHint')}</span>
             {/* desktop can install directly too (e.g. Google Play from the browser) */}
             <div className="flex items-center gap-4">
