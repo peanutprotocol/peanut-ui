@@ -134,13 +134,15 @@ async function fetchFromCurrencyPrice(from: string, to: string): Promise<number 
             }
             return sell
         } else if ((MANTECA_CURRENCIES.has(from) || ['EUR', 'MXN', 'GBP'].includes(from)) && to === 'USD') {
-            // Other currency → USD: use buy rate (buying USD with other currency)
-            const { buy } = await getCachedCurrencyPrice(from)
-            if (!isFinite(buy) || buy <= 0) {
-                console.error(`Invalid buy rate from getCachedCurrencyPrice for ${from}: ${buy}`)
+            // Other currency → USD: also quoted off sell — both display orientations must
+            // imply the same price, and withdrawals (what this quote leads to) settle on
+            // sell. Quoting this side off buy implied a ~1% better rate than execution.
+            const { sell } = await getCachedCurrencyPrice(from)
+            if (!isFinite(sell) || sell <= 0) {
+                console.error(`Invalid sell rate from getCachedCurrencyPrice for ${from}: ${sell}`)
                 return null
             }
-            return 1 / buy
+            return 1 / sell
         } else if (
             (MANTECA_CURRENCIES.has(from) || ['EUR', 'MXN', 'GBP'].includes(from)) &&
             (MANTECA_CURRENCIES.has(to) || ['EUR', 'MXN', 'GBP'].includes(to))
@@ -149,13 +151,15 @@ async function fetchFromCurrencyPrice(from: string, to: string): Promise<number 
             const fromPrices = await getCachedCurrencyPrice(from)
             const toPrices = await getCachedCurrencyPrice(to)
 
-            if (!isFinite(fromPrices.buy) || fromPrices.buy <= 0 || !isFinite(toPrices.sell) || toPrices.sell <= 0) {
-                console.error(`Invalid prices for ${from}-${to}: buy=${fromPrices.buy}, sell=${toPrices.sell}`)
+            if (!isFinite(fromPrices.sell) || fromPrices.sell <= 0 || !isFinite(toPrices.sell) || toPrices.sell <= 0) {
+                console.error(
+                    `Invalid prices for ${from}-${to}: from.sell=${fromPrices.sell}, to.sell=${toPrices.sell}`
+                )
                 return null
             }
 
-            // from → USD → to
-            const fromToUsd = 1 / fromPrices.buy
+            // from → USD → to (both legs off sell — same display policy as above)
+            const fromToUsd = 1 / fromPrices.sell
             const usdToTo = toPrices.sell
             return fromToUsd * usdToTo
         } else {

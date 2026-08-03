@@ -96,14 +96,14 @@ export function useExchangeRate({
                     let rate: number
                     if (from === 'USD' || to === 'USD') {
                         const price = await getCachedCurrencyPrice(from === 'USD' ? to : from)
-                        rate = from === 'USD' ? price.sell : 1 / price.buy
+                        rate = from === 'USD' ? price.sell : 1 / price.sell
                     } else {
                         // Neither side is USD — cross via USD: (USD per `from`) × (`to` per USD).
                         const [fromPrice, toPrice] = await Promise.all([
                             getCachedCurrencyPrice(from),
                             getCachedCurrencyPrice(to),
                         ])
-                        rate = (1 / fromPrice.buy) * toPrice.sell
+                        rate = (1 / fromPrice.sell) * toPrice.sell
                     }
                     if (isFinite(rate) && rate > 0) return { rate }
                 } catch {}
