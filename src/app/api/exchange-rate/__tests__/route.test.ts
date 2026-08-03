@@ -20,6 +20,9 @@ describe('GET /api/exchange-rate — display quotes derive from the sell rate in
     const BRL = { buy: 5.61, sell: 5.43 }
 
     beforeEach(() => {
+        // Keep the Frankfurter fallback from making live network calls if a
+        // regression routes flow past the mocked provider
+        global.fetch = jest.fn().mockRejectedValue(new Error('network disabled in tests')) as typeof fetch
         mockGetCachedCurrencyPrice.mockReset()
         mockGetCachedCurrencyPrice.mockImplementation(async (code: string) => {
             if (code === 'EUR') return EUR

@@ -28,7 +28,7 @@ import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps } from '@/features/limits/utils'
-import { useExchangeRate } from '@/hooks/useExchangeRate'
+import { useCurrency } from '@/hooks/useCurrency'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
@@ -180,13 +180,10 @@ export default function OnrampBankPage() {
         return getCurrencyConfig(selectedCountry.id, 'onramp').currency.toUpperCase()
     }, [selectedCountry?.id])
 
-    // get exchange rate: local currency → USD (for limits validation)
-    // skip for USD since it's 1:1
-    const { exchangeRate, isLoading: isRateLoading } = useExchangeRate({
-        sourceCurrency: localCurrency,
-        destinationCurrency: 'USD',
-        enabled: localCurrency !== 'USD',
-    })
+    // deposit-side price (localCurrency per USD) for limits validation — deposits
+    // execute at buy, so the USD equivalent must derive from buy, not the sell-side
+    // display quote served by /api/exchange-rate (useCurrency handles USD as 1:1)
+    const { price: localPrice, isLoading: isRateLoading } = useCurrency(localCurrency)
 
     // convert input amount to USD for limits validation
     // bridge limits are always in USD, but user inputs in local currency
@@ -198,9 +195,9 @@ export default function OnrampBankPage() {
         // for USD, no conversion needed
         if (localCurrency === 'USD') return numericAmount
 
-        // convert local currency to USD
-        return exchangeRate > 0 ? numericAmount * exchangeRate : 0
-    }, [rawTokenAmount, localCurrency, exchangeRate])
+        // convert local currency to USD at the deposit-executed (buy) side
+        return localPrice && localPrice.buy > 0 ? numericAmount / localPrice.buy : 0
+    }, [rawTokenAmount, localCurrency, localPrice])
 
     // validate against user's bridge limits
     // uses USD equivalent to correctly compare against USD-denominated limits

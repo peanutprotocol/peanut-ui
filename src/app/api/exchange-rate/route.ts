@@ -134,9 +134,9 @@ async function fetchFromCurrencyPrice(from: string, to: string): Promise<number 
             }
             return sell
         } else if ((MANTECA_CURRENCIES.has(from) || ['EUR', 'MXN', 'GBP'].includes(from)) && to === 'USD') {
-            // Other currency → USD: also quoted off sell — both display orientations must
-            // imply the same price, and withdrawals (what this quote leads to) settle on
-            // sell. Quoting this side off buy implied a ~1% better rate than execution.
+            // Other currency → USD: also quoted off sell — display policy: both orientations
+            // of a pair must imply the same price, pinned to the withdrawal-execution side.
+            // Deposit surfaces (add-money, onramp) quote their own buy-side rate instead.
             const { sell } = await getCachedCurrencyPrice(from)
             if (!isFinite(sell) || sell <= 0) {
                 console.error(`Invalid sell rate from getCachedCurrencyPrice for ${from}: ${sell}`)
