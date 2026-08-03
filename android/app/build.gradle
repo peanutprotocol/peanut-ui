@@ -54,7 +54,11 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         // sentry dsn for native crash reporting (TASK-20964). injected by ci
         // (android-release.yml); empty locally, which disables the sdk.
-        manifestPlaceholders = [sentryDsn: System.getenv('SENTRY_DSN_ANDROID') ?: '']
+        def sentryDsnEnv = System.getenv('SENTRY_DSN_ANDROID') ?: ''
+        if (sentryDsnEnv.isEmpty()) {
+            logger.error('SENTRY_DSN_ANDROID not set — native crash reporting will be DISABLED in this build. Fine locally; a release build without it ships blind.')
+        }
+        manifestPlaceholders = [sentryDsn: sentryDsnEnv]
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
@@ -103,8 +107,11 @@ dependencies {
     implementation "com.android.installreferrer:installreferrer:2.2"
 
     // sentry native crash reporting (TASK-20964) — configured via AndroidManifest
-    // meta-data, auto-inits before Application. 8.49.0 = newest version past the
-    // 14-day supply-chain floor when added (2026-08-03).
+    // meta-data, auto-inits before Application. deliberately the aggregate
+    // artifact (core + ndk): the webview renderer and capacitor plugins crash at
+    // the c/c++ level, and ndk capture is exactly the visibility the beta needs.
+    // 8.49.0 = newest version past the 14-day supply-chain floor when added
+    // (2026-08-03).
     implementation "io.sentry:sentry-android:8.49.0"
 
     testImplementation "junit:junit:$junitVersion"
