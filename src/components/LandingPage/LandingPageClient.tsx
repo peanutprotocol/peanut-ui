@@ -70,6 +70,8 @@ export function LandingPageClient({
             href: STORE_URL[store],
             isExternal: true,
             icon: store === 'ios' ? 'apple-logo' : 'google-play',
+            // keep the content-system subtext (e.g. "Join +10,000 cool people")
+            subtext: heroConfig.primaryCta.subtext,
             // the anchor navigates; only track here
             onClick: () => trackStoreClick(store, MIGRATION_SURFACES.LANDING_HERO),
         }
@@ -226,7 +228,14 @@ export function LandingPageClient({
                 buttonScale={buttonScale}
                 customCta={
                     migrationOn && isDesktop ? (
-                        <StoreBadges surface={MIGRATION_SURFACES.LANDING_HERO} appearance="hero" />
+                        <div className="flex flex-col items-center">
+                            <StoreBadges surface={MIGRATION_SURFACES.LANDING_HERO} appearance="hero" />
+                            {heroConfig.primaryCta.subtext && (
+                                <span className="mt-2 block text-center text-sm italic text-n-1 md:text-base">
+                                    {heroConfig.primaryCta.subtext}
+                                </span>
+                            )}
+                        </div>
                     ) : undefined
                 }
             />
