@@ -2710,35 +2710,33 @@
     },
     "migration": {
         "downloadPrompt": {
-            "earlyTitle": "La app de Peanut ya está aquí",
-            "earlyDescription": "Peanut ya vive en el App Store y Google Play — más rápida, más fluida y te avisa al instante cuando llega tu dinero. Tu cuenta va contigo, sin configurar nada.",
-            "maybeLater": "Quizás después",
+            "earlyTitle": "¡La app de Peanut ya está aquí!",
+            "earlyDescription": "Peanut ya vive en el App Store y Google Play. Más rápida, más fluida y te avisa al instante cuando llega tu dinero. Tu cuenta va contigo, sin configurar nada.",
+            "maybeLater": "La descargo más tarde",
             "title": "Peanut será solo app",
-            "description": "En {days, plural, one {# día} other {# días}} Peanut se muda por completo a la app. Descárgala ahora y continúa justo donde quedaste — tu cuenta y tu dinero se mudan contigo automáticamente.",
+            "description": "En {days, plural, one {# día} other {# días}} Peanut se muda por completo a la app. Descárgala ahora y continúa justo donde quedaste. Tu cuenta y tu dinero se mudan contigo automáticamente.",
             "remindLater": "Recordarme más tarde"
         },
         "sunset": {
             "heading": "Peanut ahora es solo app",
-            "sub": "Descarga la app y continúa justo donde quedaste — tu cuenta y tu dinero ya te están esperando ahí.",
-            "supportLink": "¿No puedes usar la app? Te ayudamos — contacta a soporte"
+            "sub": "Descarga la app y continúa justo donde quedaste. Tu cuenta y tu dinero ya te están esperando ahí.",
+            "supportLink": "¿Problemas para descargar la app? Habla con nuestro soporte"
         },
         "qr": {
             "title": "Descarga la app de Peanut",
             "scanHint": "Escanea con la cámara de tu celular para descargar.",
-            "openIos": "Abrir App Store ↗",
-            "openAndroid": "Abrir Google Play ↗",
             "done": "Listo"
         },
         "banner": {
-            "title": "Descarga la app de Peanut",
-            "description": "Peanut se muda a la app — descárgala para una experiencia más fluida"
+            "title": "¡La app de Peanut ya está aquí!",
+            "description": "Más rápida, más fluida y te avisa cuando llega tu dinero."
         },
         "review": {
             "title": "¿Te está gustando Peanut?",
             "description": "Una calificación rápida ayuda a que otros nos encuentren.",
             "loveIt": "Me encanta",
             "meh": "Podría mejorar",
-            "supportPrefill": "Tengo comentarios sobre la app — esto es lo que podría mejorar: "
+            "supportPrefill": "Tengo comentarios sobre la app, esto es lo que podría mejorar: "
         },
         "downloadNow": "Descargar ahora"
     }
