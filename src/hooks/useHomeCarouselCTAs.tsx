@@ -150,7 +150,6 @@ export const useHomeCarouselCTAs = () => {
                 id: 'app-install',
                 title: tMigration('banner.title'),
                 description: tMigration('banner.description'),
-                iconContainerClassName: 'bg-secondary-1',
                 icon: 'mobile-install',
                 logo: PEANUTMAN_MOBILE,
                 iconSize: 16,
