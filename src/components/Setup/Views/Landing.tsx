@@ -12,24 +12,23 @@ import { useEffect } from 'react'
 import { disableDemoMode } from '@/utils/demo'
 import DocsLink from '@/components/Global/DocsLink'
 import { useTranslations } from 'next-intl'
-import DownloadQR from '@/components/Migration/DownloadQR'
 import StoreButtons from '@/components/Migration/StoreButtons'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
-import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
+import { isCapacitor } from '@/utils/capacitor'
 
 const LandingStep = () => {
     const t = useTranslations('setup')
     const tMigration = useTranslations('migration')
     const migrationOn = useMigrationFlag()
-    const { deviceType } = useDeviceType()
     const hasKeepWebBypass = useKeepWebBypass()
 
-    // migration window, desktop, no support bypass: the app is the product —
-    // web signup/login is closed, download is the only path. the keep-web
-    // link support hands out restores the normal auth screen.
-    const downloadOnly = migrationOn && deviceType === DeviceType.WEB && !hasKeepWebBypass
+    // migration notice window on web (any device): NEW signups are closed —
+    // don't onboard users into a product that shuts in weeks; the app is the
+    // path. Existing users keep Log In until the cutover. Native app and
+    // keep-web bypass users see the normal card.
+    const blockSignup = migrationOn && !isCapacitor() && !hasKeepWebBypass
     const { handleNext } = useSetupFlow()
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
@@ -56,30 +55,26 @@ const LandingStep = () => {
         }
     }
 
-    if (downloadOnly) {
-        return (
-            <Card className="border-0">
-                <Card.Content className="space-y-4 p-0 pt-4">
-                    <p className="text-center text-sm font-semibold text-n-1">{tMigration('banner.title')}</p>
-                    <DownloadQR surface={MIGRATION_SURFACES.SETUP} />
-                </Card.Content>
-            </Card>
-        )
-    }
-
     return (
         <Card className="border-0">
             <Card.Content className="space-y-4 p-0 pt-4">
-                <Button
-                    shadowSize="4"
-                    className="h-11"
-                    onClick={() => {
-                        posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED)
-                        handleNext()
-                    }}
-                >
-                    {t('landing.signUp')}
-                </Button>
+                {blockSignup ? (
+                    <div className="space-y-2 pb-2">
+                        <p className="text-center text-sm font-semibold text-n-1">{tMigration('banner.title')}</p>
+                        <StoreButtons surface={MIGRATION_SURFACES.SETUP} />
+                    </div>
+                ) : (
+                    <Button
+                        shadowSize="4"
+                        className="h-11"
+                        onClick={() => {
+                            posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED)
+                            handleNext()
+                        }}
+                    >
+                        {t('landing.signUp')}
+                    </Button>
+                )}
                 <Button
                     loading={isLoggingIn}
                     shadowSize="4"
@@ -98,15 +93,6 @@ const LandingStep = () => {
                         {t('landing.recoverWallet')}
                     </DocsLink>
                 </div>
-                {/* pwa-sunset notice window on mobile: signup stays open, but the
-                    store is offered up front (TASK-20600). bypass users came to
-                    keep using the web — don't push the app at them. */}
-                {migrationOn && deviceType !== DeviceType.WEB && !hasKeepWebBypass && (
-                    <div className="space-y-2 border-t border-n-1/15 pt-4">
-                        <p className="text-center text-sm font-semibold text-n-1">{tMigration('banner.title')}</p>
-                        <StoreButtons surface={MIGRATION_SURFACES.SETUP} />
-                    </div>
-                )}
             </Card.Content>
         </Card>
     )

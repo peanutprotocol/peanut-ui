@@ -2,30 +2,35 @@
 
 // smart store link: peanut.me/app — every download QR points here so a single
 // code serves both stores; the scanning device decides. phones bounce straight
-// to their store, desktop gets both store buttons. client redirect (not a
-// route handler) so the capacitor static export builds unchanged. same visual
-// language as the sunset screen (MigrationHero + 50/50 split).
+// to their store (their store button shows the loading state while the
+// redirect happens; if it doesn't take, the buttons settle clickable),
+// desktop just gets both buttons. client redirect (not a route handler) so
+// the capacitor static export builds unchanged. same visual language as the
+// sunset screen (MigrationHero + 50/50 split).
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
-import Loading from '@/components/Global/Loading'
 import MigrationHero from '@/components/Migration/MigrationHero'
-import { STORE_NAME, STORE_URL } from '@/constants/migration.consts'
+import { STORE_NAME, STORE_URL, type StoreKind } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 
 export default function SmartStoreRedirect() {
     const { deviceType } = useDeviceType()
-    const [redirecting, setRedirecting] = useState(true)
+    const targetStore: StoreKind | null =
+        deviceType === DeviceType.IOS ? 'ios' : deviceType === DeviceType.ANDROID ? 'android' : null
+    const [redirecting, setRedirecting] = useState(targetStore !== null)
 
     useEffect(() => {
-        if (deviceType === DeviceType.IOS) {
-            window.location.replace(STORE_URL.ios)
-        } else if (deviceType === DeviceType.ANDROID) {
-            window.location.replace(STORE_URL.android)
-        } else {
-            setRedirecting(false)
-        }
-    }, [deviceType])
+        if (!targetStore) return
+        window.location.replace(STORE_URL[targetStore])
+        // if the store didn't take over (blocked, offline), settle to buttons
+        const fallback = setTimeout(() => setRedirecting(false), 4000)
+        return () => clearTimeout(fallback)
+    }, [targetStore])
+
+    const stores: StoreKind[] = targetStore
+        ? [targetStore, targetStore === 'ios' ? 'android' : 'ios']
+        : ['ios', 'android']
 
     return (
         <div className="flex min-h-[100dvh] w-full flex-col bg-white md:flex-row">
@@ -40,24 +45,20 @@ export default function SmartStoreRedirect() {
                     </p>
                 </div>
                 <div className="mx-auto flex w-full max-w-md flex-col gap-4">
-                    {redirecting ? (
-                        <div className="flex justify-center py-2">
-                            <Loading />
-                        </div>
-                    ) : (
-                        <>
-                            <a href={STORE_URL.ios} className="block">
-                                <Button variant="purple" shadowSize="4" icon="mobile-install" className="w-full">
-                                    {STORE_NAME.ios}
-                                </Button>
-                            </a>
-                            <a href={STORE_URL.android} className="block">
-                                <Button variant="stroke" shadowSize="4" icon="mobile-install" className="w-full">
-                                    {STORE_NAME.android}
-                                </Button>
-                            </a>
-                        </>
-                    )}
+                    {stores.map((s, i) => (
+                        <a key={s} href={STORE_URL[s]} className={redirecting && i > 0 ? 'hidden' : 'block'}>
+                            <Button
+                                variant={i === 0 ? 'purple' : 'stroke'}
+                                shadowSize="4"
+                                icon={redirecting ? undefined : 'mobile-install'}
+                                className="w-full"
+                                loading={redirecting && i === 0}
+                                disabled={redirecting && i === 0}
+                            >
+                                {STORE_NAME[s]}
+                            </Button>
+                        </a>
+                    ))}
                 </div>
             </section>
         </div>
