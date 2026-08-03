@@ -3,9 +3,17 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { STORE_NAME, STORE_URL, type MigrationSurface } from '@/constants/migration.consts'
 import { trackStoreClick } from '@/utils/migration.utils'
 
-// compact store-button pair under download CTAs and QRs — same design
-// language as /app: purple primary for the App Store, stroke for Google Play.
-export default function StoreBadges({ surface }: { surface: MigrationSurface }) {
+// store-button pair. compact: under download CTAs and QRs, same design
+// language as /app (purple App Store, stroke Google Play). hero: the landing
+// hero's desktop CTA row — two equal white buttons on the pink hero.
+export default function StoreBadges({
+    surface,
+    appearance = 'compact',
+}: {
+    surface: MigrationSurface
+    appearance?: 'compact' | 'hero'
+}) {
+    const isHero = appearance === 'hero'
     return (
         <div className="flex items-center justify-center gap-3">
             {(['ios', 'android'] as const).map((s) => (
@@ -17,11 +25,15 @@ export default function StoreBadges({ surface }: { surface: MigrationSurface }) 
                     onClick={() => trackStoreClick(s, surface)}
                 >
                     <Button
-                        variant={s === 'ios' ? 'purple' : 'stroke'}
+                        variant={isHero ? undefined : s === 'ios' ? 'purple' : 'stroke'}
                         shadowSize="4"
-                        size="small"
+                        size={isHero ? undefined : 'small'}
                         icon={s === 'ios' ? 'apple-logo' : 'google-play'}
-                        className="w-auto px-4"
+                        className={
+                            isHero
+                                ? 'w-52 bg-white px-6 py-3 text-base font-extrabold hover:bg-white/90 md:py-7 md:text-lg'
+                                : 'w-auto px-4'
+                        }
                     >
                         {STORE_NAME[s]}
                     </Button>

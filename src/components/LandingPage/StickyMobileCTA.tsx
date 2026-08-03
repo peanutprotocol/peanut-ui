@@ -60,7 +60,12 @@ export function StickyMobileCTA() {
                             className="pointer-events-auto block"
                             onClick={() => trackStoreClick(store, MIGRATION_SURFACES.LANDING_HERO)}
                         >
-                            <Button variant="purple" shadowSize="4" className="w-full py-3 text-base font-extrabold">
+                            <Button
+                                variant="purple"
+                                shadowSize="4"
+                                icon={store === 'ios' ? 'apple-logo' : 'google-play'}
+                                className="w-full py-3 text-base font-extrabold"
+                            >
                                 DOWNLOAD NOW
                             </Button>
                         </a>

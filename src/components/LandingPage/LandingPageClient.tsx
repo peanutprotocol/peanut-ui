@@ -8,7 +8,6 @@ import { SUPPORTED_RAILS_FAQ_ID } from '@/constants/faq.consts'
 import TweetCarousel from '@/components/LandingPage/TweetCarousel'
 import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
-import ScanToDownloadModal from '@/components/Migration/ScanToDownloadModal'
 import StoreBadges from '@/components/Migration/StoreBadges'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
 import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
@@ -55,33 +54,26 @@ export function LandingPageClient({
     const { isFooterVisible } = useFooterVisibility()
     const migrationOn = useMigrationFlag()
     const { deviceType } = useDeviceType()
-    const [qrModalOpen, setQrModalOpen] = useState(false)
+    const isDesktop = deviceType === DeviceType.WEB
 
-    // pwa-sunset: the hero CTA becomes "Download now" — the visitor's store on
-    // mobile, the scan-to-download QR on desktop. English-only like the rest of
-    // this surface; the permanent label change goes through the content system
-    // post-cutover, at which point this override is deleted (TASK-20600).
-    const primaryCta = useMemo((): CTAButton => {
+    // pwa-sunset hero CTAs are device-based: phones get one "Download now"
+    // with their store's mark deep-linking to it; desktop drops the primary
+    // and shows the equal store-button pair instead (customCta below).
+    // English-only like the rest of this surface; the permanent CTA change
+    // goes through the content system post-cutover (TASK-20600).
+    const primaryCta = useMemo((): CTAButton | undefined => {
         if (!migrationOn) return heroConfig.primaryCta
-        if (deviceType === DeviceType.WEB) {
-            return {
-                label: 'Download now',
-                href: '#',
-                onClick: (e) => {
-                    e.preventDefault()
-                    setQrModalOpen(true)
-                },
-            }
-        }
+        if (isDesktop) return undefined
         const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
         return {
             label: 'Download now',
             href: STORE_URL[store],
             isExternal: true,
+            icon: store === 'ios' ? 'apple-logo' : 'google-play',
             // the anchor navigates; only track here
             onClick: () => trackStoreClick(store, MIGRATION_SURFACES.LANDING_HERO),
         }
-    }, [migrationOn, deviceType, heroConfig.primaryCta])
+    }, [migrationOn, deviceType, isDesktop, heroConfig.primaryCta])
 
     // Memoized: this component re-renders per scroll frame during the button
     // animation — don't rebuild the FAQ array + rich answer element each time.
@@ -232,15 +224,12 @@ export function LandingPageClient({
                 primaryCta={primaryCta}
                 buttonVisible={buttonVisible}
                 buttonScale={buttonScale}
-                belowPrimaryCta={migrationOn ? <StoreBadges surface={MIGRATION_SURFACES.LANDING_HERO} /> : undefined}
+                customCta={
+                    migrationOn && isDesktop ? (
+                        <StoreBadges surface={MIGRATION_SURFACES.LANDING_HERO} appearance="hero" />
+                    ) : undefined
+                }
             />
-            {qrModalOpen && (
-                <ScanToDownloadModal
-                    visible={qrModalOpen}
-                    onClose={() => setQrModalOpen(false)}
-                    surface={MIGRATION_SURFACES.LANDING_HERO}
-                />
-            )}
             <Marquee {...marqueeProps} />
             {mantecaSlot}
             <Marquee {...marqueeProps} />

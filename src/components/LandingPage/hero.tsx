@@ -78,8 +78,8 @@ type HeroProps = {
     secondaryCta?: CTAButton
     buttonVisible?: boolean
     buttonScale?: number
-    /** rendered under the primary CTA (app-store badge pair during the migration window) */
-    belowPrimaryCta?: React.ReactNode
+    /** replaces the primary button entirely (store-button pair on desktop during the migration window) */
+    customCta?: React.ReactNode
 }
 
 const getInitialAnimation = (variant: 'primary' | 'secondary') => ({
@@ -109,7 +109,7 @@ const transitionConfig = { type: 'spring', damping: 15 } as const
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
     `relative z-20 mt-8 md:mt-12 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
 
-export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1, belowPrimaryCta }: HeroProps) {
+export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1, customCta }: HeroProps) {
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
         return (
             <motion.div
@@ -127,6 +127,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1,
                 >
                     <Button
                         shadowSize="4"
+                        icon={cta.icon}
                         className="bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl"
                     >
                         {cta.label}
@@ -135,10 +136,20 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1,
                 {cta.subtext && (
                     <span className="mt-2 block text-center text-sm italic text-n-1 md:text-base">{cta.subtext}</span>
                 )}
-                {variant === 'primary' && belowPrimaryCta && <div className="mt-3">{belowPrimaryCta}</div>}
             </motion.div>
         )
     }
+
+    const renderCustomCta = () => (
+        <motion.div
+            className={getButtonContainerClasses('primary')}
+            initial={getInitialAnimation('primary')}
+            animate={getAnimateAnimation('primary', buttonVisible, buttonScale)}
+            transition={transitionConfig}
+        >
+            {customCta}
+        </motion.div>
+    )
 
     return (
         <section
@@ -198,7 +209,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1,
                 <span className="mt-2 block text-center text-sm text-n-1/70 md:text-base" style={{ fontWeight: 400 }}>
                     No local ID or bank required.
                 </span>
-                {primaryCta && renderCTAButton(primaryCta, 'primary')}
+                {primaryCta ? renderCTAButton(primaryCta, 'primary') : customCta ? renderCustomCta() : null}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
                 <motion.img
                     initial={{ opacity: 0, translateY: 20, translateX: 5 }}
