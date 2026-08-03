@@ -30,9 +30,12 @@ export type BetaFlow =
  */
 export function captureBetaFlow(flow: BetaFlow, testerId?: string): void {
     const user = store.getState().user.user
+    // deep-link / push-tap fire on cold start before /users/me populates redux;
+    // an identified device's persisted distinct_id is the userId, so fall back
+    // to it rather than losing the tester from the gate-1 matrix
     posthog.capture(ANALYTICS_EVENTS.BETA_FLOW_COMPLETED, {
         flow,
         platform: getPlatform(),
-        tester_id: testerId ?? user?.user?.username ?? user?.user?.userId ?? 'anonymous',
+        tester_id: testerId ?? user?.user?.username ?? user?.user?.userId ?? posthog.get_distinct_id?.() ?? 'anonymous',
     })
 }

@@ -5,7 +5,7 @@ import { captureBetaFlow } from '@/utils/betaFlow.utils'
 
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { capture: jest.fn() },
+    default: { capture: jest.fn(), get_distinct_id: jest.fn() },
 }))
 jest.mock('@/redux/store', () => ({
     __esModule: true,
@@ -37,7 +37,7 @@ describe('captureBetaFlow', () => {
         })
     })
 
-    it('falls back to userId, then anonymous, when username is missing', () => {
+    it('falls back to userId, then the persisted distinct_id, then anonymous', () => {
         mockGetState.mockReturnValue(stateWithUser({ user: { userId: 'uuid-2' } }))
         captureBetaFlow('deposit')
         expect(mockCapture).toHaveBeenLastCalledWith(
@@ -45,7 +45,15 @@ describe('captureBetaFlow', () => {
             expect.objectContaining({ tester_id: 'uuid-2' })
         )
 
+        // cold start: redux empty but the device was identified in a past session
         mockGetState.mockReturnValue(stateWithUser(null))
+        ;(posthog.get_distinct_id as jest.Mock).mockReturnValue('persisted-user-id')
+        captureBetaFlow('deep_link')
+        expect(mockCapture).toHaveBeenLastCalledWith(
+            'beta_flow_completed',
+            expect.objectContaining({ tester_id: 'persisted-user-id' })
+        )
+        ;(posthog.get_distinct_id as jest.Mock).mockReturnValue(undefined)
         captureBetaFlow('deep_link')
         expect(mockCapture).toHaveBeenLastCalledWith(
             'beta_flow_completed',
