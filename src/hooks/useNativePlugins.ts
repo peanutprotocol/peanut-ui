@@ -64,11 +64,20 @@ export function useNativePlugins() {
                 // awaited: the iOS clipboard read can sit on the system paste
                 // prompt and the android referrer service can be slow — neither
                 // may hold up the rest of init (push listener, splash hide).
+                const restoreStartedAt = Date.now()
                 import('@/utils/deferred-link')
                     .then(({ restoreDeferredContext }) => restoreDeferredContext())
                     .then((restored) => {
+                        if (!restored?.dest) return
                         // a deep link that actually navigated wins the landing
-                        if (restored?.dest && !anyDeepLinkNavigated) router.push(restored.dest)
+                        if (anyDeepLinkNavigated) return
+                        // a restore that resolves late (paste prompt left up for
+                        // minutes, sluggish referrer service) must not teleport a
+                        // user who is already tapping through onboarding — only
+                        // navigate while this still reads as "the app just opened".
+                        // cookies + locale above are applied regardless.
+                        if (Date.now() - restoreStartedAt > 10_000) return
+                        router.push(restored.dest)
                     })
                     .catch((e) => console.warn('deferred link restore failed:', e))
             } catch (e) {

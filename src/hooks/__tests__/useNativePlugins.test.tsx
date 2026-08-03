@@ -82,6 +82,23 @@ describe('useNativePlugins deferred restore wiring', () => {
         await waitFor(() => expect(push).toHaveBeenCalledWith('/claim?x=1'))
     })
 
+    it('drops the dest when the restore resolves late (user already mid-flow), cookies still applied upstream', async () => {
+        let fakeNow = 1_000
+        const nowSpy = jest.spyOn(Date, 'now').mockImplementation(() => fakeNow)
+        mockRestore.mockImplementation(() => {
+            // e.g. the paste prompt sat unanswered for 20s before the user allowed it
+            fakeNow += 20_000
+            return Promise.resolve({ dest: '/claim?x=1', locale: null })
+        })
+
+        renderHook(() => useNativePlugins())
+
+        await waitFor(() => expect(mockRestore).toHaveBeenCalled())
+        await new Promise((r) => setTimeout(r, 0))
+        expect(push).not.toHaveBeenCalledWith('/claim?x=1')
+        nowSpy.mockRestore()
+    })
+
     it('a restore failure never breaks the rest of init', async () => {
         mockRestore.mockRejectedValue(new Error('boom'))
 
