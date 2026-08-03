@@ -1,15 +1,10 @@
 'use client'
-import { Icon } from '@/components/Global/Icons/Icon'
-import { STORE_NAME, STORE_URL, type MigrationSurface, type StoreKind } from '@/constants/migration.consts'
+import { Button } from '@/components/0_Bruddle/Button'
+import { STORE_NAME, STORE_URL, type MigrationSurface } from '@/constants/migration.consts'
 import { trackStoreClick } from '@/utils/migration.utils'
 
-// the classic app-store badge pair (black pills with brand marks) used under
-// download CTAs and QRs. english-only on purpose: real store badges are.
-const BADGE_SUB: Record<StoreKind, string> = {
-    ios: 'Download on the',
-    android: 'GET IT ON',
-}
-
+// compact store-button pair under download CTAs and QRs — same design
+// language as /app: purple primary for the App Store, stroke for Google Play.
 export default function StoreBadges({ surface }: { surface: MigrationSurface }) {
     return (
         <div className="flex items-center justify-center gap-3">
@@ -20,13 +15,16 @@ export default function StoreBadges({ surface }: { surface: MigrationSurface }) 
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => trackStoreClick(s, surface)}
-                    className="flex items-center gap-2 rounded-sm border border-n-1 bg-black px-3 py-1.5 text-white"
                 >
-                    <Icon name={s === 'ios' ? 'apple-logo' : 'google-play'} size={20} className="text-white" />
-                    <span className="flex flex-col text-left leading-tight">
-                        <span className="text-[9px] uppercase tracking-wide opacity-80">{BADGE_SUB[s]}</span>
-                        <span className="text-sm font-semibold">{STORE_NAME[s]}</span>
-                    </span>
+                    <Button
+                        variant={s === 'ios' ? 'purple' : 'stroke'}
+                        shadowSize="4"
+                        size="small"
+                        icon={s === 'ios' ? 'apple-logo' : 'google-play'}
+                        className="w-auto px-4"
+                    >
+                        {STORE_NAME[s]}
+                    </Button>
                 </a>
             ))}
         </div>
