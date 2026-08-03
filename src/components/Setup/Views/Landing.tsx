@@ -14,6 +14,7 @@ import DocsLink from '@/components/Global/DocsLink'
 import { useTranslations } from 'next-intl'
 import StoreButtons from '@/components/Migration/StoreButtons'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
@@ -23,6 +24,7 @@ const LandingStep = () => {
     const tMigration = useTranslations('migration')
     const migrationOn = useMigrationFlag()
     const hasKeepWebBypass = useKeepWebBypass()
+    const { deviceType } = useDeviceType()
 
     // migration notice window on web (any device): NEW signups are closed —
     // don't onboard users into a product that shuts in weeks; the app is the
@@ -60,7 +62,11 @@ const LandingStep = () => {
             <Card.Content className="space-y-4 p-0 pt-4">
                 {blockSignup ? (
                     <div className="space-y-2 pb-2">
-                        <p className="text-center text-sm font-semibold text-n-1">{tMigration('banner.title')}</p>
+                        {/* heading only above the desktop QR — a lone store button
+                            explains itself */}
+                        {deviceType === DeviceType.WEB && (
+                            <p className="text-center text-sm font-semibold text-n-1">{tMigration('banner.title')}</p>
+                        )}
                         <StoreButtons surface={MIGRATION_SURFACES.SETUP} />
                     </div>
                 ) : (
