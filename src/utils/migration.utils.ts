@@ -9,7 +9,7 @@ import {
     type StoreKind,
 } from '@/constants/migration.consts'
 import { isFeatureFlagEnabled } from '@/utils/featureFlag.utils'
-import { openExternalUrl } from '@/utils/capacitor'
+import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 
 /**
  * Flag read with a dev-only localStorage override. Local dev never inits
@@ -22,6 +22,26 @@ export function isPwaSunsetOn(): boolean {
         return true
     }
     return isFeatureFlagEnabled(PWA_SUNSET_FLAG)
+}
+
+/**
+ * The one sunset-block predicate, shared by every layout that can replace the
+ * app with the download screen ((mobile-ui) and (setup)). Public paths are the
+ * caller's concern: guest claim/request links must keep working, so the
+ * mobile-ui layout passes `isPublic`.
+ */
+export function shouldShowSunsetBlock({
+    migrationOn,
+    hasKeepWebBypass,
+    isPublic = false,
+    now = Date.now(),
+}: {
+    migrationOn: boolean
+    hasKeepWebBypass: boolean
+    isPublic?: boolean
+    now?: number
+}): boolean {
+    return migrationOn && !isPublic && !isCapacitor() && !hasKeepWebBypass && now >= getMigrationCutoverTime()
 }
 
 /**

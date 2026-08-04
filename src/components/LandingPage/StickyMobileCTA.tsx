@@ -7,6 +7,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
+import { useTranslations } from 'next-intl'
 import { trackStoreClick } from '@/utils/migration.utils'
 
 export function StickyMobileCTA() {
@@ -14,6 +15,7 @@ export function StickyMobileCTA() {
     const rafId = useRef(0)
     const lastVisible = useRef(false)
     const migrationOn = useMigrationFlag()
+    const tMigration = useTranslations('migration')
     const { deviceType } = useDeviceType()
     const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
 
@@ -64,9 +66,9 @@ export function StickyMobileCTA() {
                                 variant="purple"
                                 shadowSize="4"
                                 icon={store === 'ios' ? 'apple-logo' : 'google-play'}
-                                className="w-full py-3 text-base font-extrabold"
+                                className="w-full py-3 text-base font-extrabold uppercase"
                             >
-                                DOWNLOAD NOW
+                                {tMigration('downloadNow')}
                             </Button>
                         </a>
                     ) : (

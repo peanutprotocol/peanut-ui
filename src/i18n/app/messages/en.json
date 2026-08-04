@@ -2738,6 +2738,10 @@
             "meh": "Could be better",
             "supportPrefill": "I have some feedback about the app, here's what could be better: "
         },
-        "downloadNow": "Download now"
+        "downloadNow": "Download now",
+        "smartLink": {
+            "redirecting": "Taking you to the store…",
+            "pickStore": "Global cash, local feel. Pick your store to download."
+        }
     }
 }

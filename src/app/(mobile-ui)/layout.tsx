@@ -35,7 +35,7 @@ import { isDemoMode, enableDemoMode } from '@/utils/demo'
 import SunsetScreen from '@/components/Migration/SunsetScreen'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
-import { getMigrationCutoverTime } from '@/utils/migration.utils'
+import { shouldShowSunsetBlock } from '@/utils/migration.utils'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
@@ -162,13 +162,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // native app is the only way forward (keep-web cookie bypasses, public
     // guest links keep working). Must precede the PWA-install and waitlist
     // screens: the web is gone either way.
-    if (
-        migrationOn &&
-        !isPublicPath &&
-        !isCapacitor() &&
-        !hasKeepWebBypass &&
-        Date.now() >= getMigrationCutoverTime()
-    ) {
+    if (shouldShowSunsetBlock({ migrationOn, hasKeepWebBypass, isPublic: isPublicPath })) {
         return <SunsetScreen />
     }
 

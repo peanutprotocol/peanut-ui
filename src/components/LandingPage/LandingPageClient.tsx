@@ -13,6 +13,7 @@ import { type CTAButton } from '@/components/LandingPage/landing.types'
 import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
+import { useTranslations } from 'next-intl'
 import { trackStoreClick } from '@/utils/migration.utils'
 
 type FAQQuestion = {
@@ -53,20 +54,23 @@ export function LandingPageClient({
 }: LandingPageClientProps) {
     const { isFooterVisible } = useFooterVisibility()
     const migrationOn = useMigrationFlag()
+    // app-locale translation (LatAm-first funnel); the flag-off label still
+    // comes from the content system per landing locale
+    const tMigration = useTranslations('migration')
     const { deviceType } = useDeviceType()
     const isDesktop = deviceType === DeviceType.WEB
 
     // pwa-sunset hero CTAs are device-based: phones get one "Download now"
     // with their store's mark deep-linking to it; desktop drops the primary
     // and shows the equal store-button pair instead (customCta below).
-    // English-only like the rest of this surface; the permanent CTA change
-    // goes through the content system post-cutover (TASK-20600).
+    // the permanent flag-off CTA change goes through the content system
+    // post-cutover (TASK-20600).
     const primaryCta = useMemo((): CTAButton | undefined => {
         if (!migrationOn) return heroConfig.primaryCta
         if (isDesktop) return undefined
         const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
         return {
-            label: 'Download now',
+            label: tMigration('downloadNow'),
             href: STORE_URL[store],
             isExternal: true,
             icon: store === 'ios' ? 'apple-logo' : 'google-play',
@@ -75,7 +79,7 @@ export function LandingPageClient({
             // the anchor navigates; only track here
             onClick: () => trackStoreClick(store, MIGRATION_SURFACES.LANDING_HERO),
         }
-    }, [migrationOn, deviceType, isDesktop, heroConfig.primaryCta])
+    }, [migrationOn, deviceType, isDesktop, heroConfig.primaryCta, tMigration])
 
     // Memoized: this component re-renders per scroll frame during the button
     // animation — don't rebuild the FAQ array + rich answer element each time.

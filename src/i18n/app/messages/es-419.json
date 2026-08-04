@@ -2738,6 +2738,10 @@
             "meh": "Podría mejorar",
             "supportPrefill": "Tengo comentarios sobre la app, esto es lo que podría mejorar: "
         },
-        "downloadNow": "Descargar ahora"
+        "downloadNow": "Descargar ahora",
+        "smartLink": {
+            "redirecting": "Te llevamos a la tienda…",
+            "pickStore": "Elige tu tienda y descarga la app."
+        }
     }
 }
