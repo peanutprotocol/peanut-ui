@@ -15,9 +15,13 @@ const MantecaPixQrDeposit: FC<{
     currencyAmount?: string
     // Parent owns step navigation — usually setUrlState({ step: 'inputAmount' }).
     onBack: () => void
+    // Exits the deposit flow entirely (home). Distinct from onBack: once the
+    // deposit has settled there is nothing to go "back" to — reusing onBack here
+    // dropped the user on the amount input, i.e. straight into a NEW deposit.
+    onDone: () => void
     // Fired once when the deposit settles (parent refreshes balance/history).
     onComplete: () => void
-}> = ({ depositDetails, currencyAmount, onBack, onComplete }) => {
+}> = ({ depositDetails, currencyAmount, onBack, onDone, onComplete }) => {
     // The dynamic PIX QR (EMVCo copia-e-cola) rides in the ramp-on synthetic's
     // details.depositAddresses.PIX (confirmed against prod 2026-07-02).
     const qr = depositDetails.details.depositAddresses?.PIX?.code
@@ -48,14 +52,14 @@ const MantecaPixQrDeposit: FC<{
     if (status === 'completed') {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
-                <NavHeader title="Add Money" onPrev={onBack} />
+                <NavHeader title="Add Money" onPrev={onDone} />
                 <div className="my-auto flex flex-col items-center gap-4 text-center">
                     <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-1">
                         <Icon name="check" size={32} />
                     </div>
                     <h2 className="text-2xl font-bold text-n-1">Deposit received!</h2>
                     <p className="text-grey-1">Your balance has been updated.</p>
-                    <Button variant="purple" shadowSize="4" className="w-full" onClick={onBack}>
+                    <Button variant="purple" shadowSize="4" className="w-full" onClick={onDone}>
                         Done
                     </Button>
                 </div>
@@ -64,10 +68,14 @@ const MantecaPixQrDeposit: FC<{
     }
 
     // Payment detected, settling — show the branded processing screen (same as PIX payments).
+    // `processing` means stage >= 2, i.e. the fiat HAS left the user's bank, so this exits
+    // like `completed` does: going "back" here would offer the amount input, pre-filled with
+    // the amount they just paid, one tap from paying twice. The credit doesn't depend on this
+    // screen — the webhook/poller post it server-side.
     if (status === 'processing') {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
-                <NavHeader title="Add Money" onPrev={onBack} />
+                <NavHeader title="Add Money" onPrev={onDone} />
                 <div className="my-auto flex flex-col justify-center">
                     <CyclingLoading />
                 </div>
