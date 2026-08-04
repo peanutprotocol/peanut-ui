@@ -34,6 +34,10 @@ jest.mock('@/utils/general.utils', () => ({
 jest.mock('@/app/actions/sumsub', () => ({
     startBridgeHostedVerification: () => mockStartHosted(),
 }))
+const mockConfirmTos = jest.fn<Promise<void>, [unknown]>()
+jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
+    confirmBridgeTosAndAwaitRails: (fetchUser: () => Promise<unknown>) => mockConfirmTos(fetchUser),
+}))
 jest.mock('@/components/Kyc/BridgeTosStep', () => ({
     BridgeTosStep: (props: { visible: boolean; reasonCode?: string }) =>
         props.visible ? <div data-testid="tos-step">{props.reasonCode}</div> : null,
@@ -68,6 +72,8 @@ describe('PendingVerificationTasks', () => {
         mockNextActions = []
         mockFetchUser.mockReset()
         mockStartHosted.mockReset()
+        mockConfirmTos.mockReset()
+        mockConfirmTos.mockResolvedValue(undefined)
         mockStoredDismissal = undefined
         mockUpdatePreferences.mockReset()
         mockUserId = 'user-1'
@@ -160,7 +166,7 @@ describe('PendingVerificationTasks', () => {
         expect(mockFetchUser).toHaveBeenCalledTimes(1)
     })
 
-    it('an EMBEDDED ToS step inside the hosted flow does NOT close the iframe (mid-flow progress)', async () => {
+    it('an EMBEDDED ToS step inside the hosted flow CONFIRMS to the backend and does NOT close the iframe', async () => {
         mockNextActions = [hostedAction]
         mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
         render(<PendingVerificationTasks />)
@@ -170,19 +176,39 @@ describe('PendingVerificationTasks', () => {
 
         // Bridge's hosted kyc_link flow can open with a ToS-acceptance page;
         // its signedAgreementId postMessage maps to onClose('tos_accepted').
+        // A bare fetchUser would NOT record the acceptance (the resolver is
+        // pure) — the canonical confirm path must run, and it refetches.
         fireEvent.click(screen.getByText('accept-embedded-tos'))
         expect(screen.getByTestId('hosted-iframe')).toBeInTheDocument()
-        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(mockConfirmTos).toHaveBeenCalledTimes(1))
+        expect(mockConfirmTos).toHaveBeenCalledWith(mockFetchUser)
 
         // The user then finishes the identity steps — completion still closes.
         fireEvent.click(screen.getByText('finish'))
         expect(screen.queryByTestId('hosted-iframe')).not.toBeInTheDocument()
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+    })
+
+    it('a failed embedded-ToS confirm still resyncs the user and keeps the flow alive', async () => {
+        mockNextActions = [hostedAction]
+        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
+        mockConfirmTos.mockRejectedValue(new Error('confirm blew up'))
+        render(<PendingVerificationTasks />)
+
+        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
+        await screen.findByTestId('hosted-iframe')
+
+        fireEvent.click(screen.getByText('accept-embedded-tos'))
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+        expect(screen.getByTestId('hosted-iframe')).toBeInTheDocument()
     })
 
     it('advisory task renders its deadline and keep-access copy; blocking renders enable copy', () => {
         mockNextActions = [{ ...hostedAction, effectiveDate: '2099-09-01' }]
         const { rerender } = render(<PendingVerificationTasks />)
-        expect(screen.getByText(/complete before sep 1, 2099/i)).toBeInTheDocument()
+        // Long month — the SAME formatter AdvisoryPreemptModal uses
+        // (formatEffectiveDate), so one deadline never renders two ways.
+        expect(screen.getByText(/complete before september 1, 2099/i)).toBeInTheDocument()
         expect(screen.getByText(/keep bank transfers available/i)).toBeInTheDocument()
 
         mockNextActions = [hostedAction]
@@ -206,44 +232,71 @@ describe('PendingVerificationTasks', () => {
     })
 
     describe('dismissal (home mount)', () => {
-        const tosFingerprint = 'accept-tos||due-now'
-        const hostedFingerprint = 'bridge-hosted|kyc_approval|due-now'
+        // Only ADVISORY (future-dated) tasks are dismissible — a blocking
+        // fingerprint is constant over time, so honoring one would hide a NEW
+        // same-variant requirement while the user's rails are gated.
+        const advisoryTos: NextAction = {
+            ...sepaTosAction,
+            requirementKey: 'tos_v2_acceptance',
+            effectiveDate: '2099-09-01',
+        }
+        const advisoryHosted: NextAction = { ...hostedAction, effectiveDate: '2099-12-01' }
+        const advisoryTosFingerprint = 'accept-tos:sepa|tos_v2_acceptance|2099-09-01'
+        const advisoryHostedFingerprint = 'bridge-hosted|kyc_approval|2099-12-01'
+        // Pre-fix localStorage can still carry blocking fingerprints.
+        const legacyBlockingFingerprints = ['accept-tos||due-now', 'bridge-hosted|kyc_approval|due-now']
 
-        it("a slide's X dismisses ONLY that task — the other slide stays and the fingerprint persists", () => {
-            mockNextActions = [tosAction, hostedAction]
+        it("an advisory slide's X dismisses ONLY that task — the other slide stays and the fingerprint persists", () => {
+            mockNextActions = [advisoryTos, advisoryHosted]
             render(<PendingVerificationTasks dismissible />)
 
-            fireEvent.click(screen.getByRole('button', { name: /dismiss accept terms of service/i }))
-            expect(screen.queryByText('Accept Terms of Service')).not.toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: /dismiss accept sepa terms of service/i }))
+            expect(screen.queryByText('Accept SEPA Terms of Service')).not.toBeInTheDocument()
             expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
             expect(mockUpdatePreferences).toHaveBeenCalledWith('user-1', {
-                pendingVerificationTasksDismissed: [tosFingerprint],
+                pendingVerificationTasksDismissed: [advisoryTosFingerprint],
             })
         })
 
-        it('dismissing the last remaining task hides the card entirely', () => {
-            mockStoredDismissal = [tosFingerprint]
+        it('BLOCKING slides carry no X; advisory siblings on the same mount do', () => {
+            mockNextActions = [tosAction, advisoryHosted]
+            render(<PendingVerificationTasks dismissible />)
+
+            expect(screen.queryByRole('button', { name: /dismiss accept terms of service/i })).not.toBeInTheDocument()
+            expect(screen.getByRole('button', { name: /dismiss additional verification needed/i })).toBeInTheDocument()
+        })
+
+        it('a stored (pre-fix) blocking fingerprint never hides a blocking task', () => {
+            mockStoredDismissal = legacyBlockingFingerprints
             mockNextActions = [tosAction, hostedAction]
+            render(<PendingVerificationTasks dismissible />)
+            expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()
+            expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
+        })
+
+        it('dismissing the last remaining advisory hides the card entirely', () => {
+            mockStoredDismissal = [advisoryTosFingerprint]
+            mockNextActions = [advisoryTos, advisoryHosted]
             const { container } = render(<PendingVerificationTasks dismissible />)
 
             fireEvent.click(screen.getByRole('button', { name: /dismiss additional verification needed/i }))
             expect(container).toBeEmptyDOMElement()
             expect(mockUpdatePreferences).toHaveBeenCalledWith('user-1', {
-                pendingVerificationTasksDismissed: [tosFingerprint, hostedFingerprint],
+                pendingVerificationTasksDismissed: [advisoryTosFingerprint, advisoryHostedFingerprint],
             })
         })
 
-        it('stored dismissed fingerprints hide only their tasks; undismissed tasks still show', () => {
-            mockStoredDismissal = [tosFingerprint]
-            mockNextActions = [tosAction, hostedAction]
+        it('stored dismissed fingerprints hide only their advisories; undismissed tasks still show', () => {
+            mockStoredDismissal = [advisoryTosFingerprint]
+            mockNextActions = [advisoryTos, advisoryHosted]
             render(<PendingVerificationTasks dismissible />)
-            expect(screen.queryByText('Accept Terms of Service')).not.toBeInTheDocument()
+            expect(screen.queryByText('Accept SEPA Terms of Service')).not.toBeInTheDocument()
             expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
         })
 
         it('a dismissed ADVISORY task re-surfaces when it turns blocking (same key, date gone)', () => {
             // User dismissed the "complete before Sep 1" reminder in July…
-            mockStoredDismissal = ['accept-tos:sepa|tos_v2_acceptance|2099-09-01']
+            mockStoredDismissal = [advisoryTosFingerprint]
             // …and on Sep 1 Bridge reclassifies the same requirement as due now.
             mockNextActions = [{ ...sepaTosAction, requirementKey: 'tos_v2_acceptance' }]
             render(<PendingVerificationTasks dismissible />)
@@ -251,22 +304,22 @@ describe('PendingVerificationTasks', () => {
         })
 
         it('a NEW requirement under the shared bridge-hosted key re-surfaces despite a dismissal', () => {
-            mockStoredDismissal = [hostedFingerprint]
-            mockNextActions = [{ ...hostedAction, requirementKey: 'kyc_with_proof_of_address' }]
+            mockStoredDismissal = [advisoryHostedFingerprint]
+            mockNextActions = [{ ...advisoryHosted, requirementKey: 'kyc_with_proof_of_address' }]
             render(<PendingVerificationTasks dismissible />)
             expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
         })
 
-        it('all pending tasks stored as dismissed → card hidden', () => {
-            mockStoredDismissal = [tosFingerprint, hostedFingerprint]
-            mockNextActions = [tosAction, hostedAction]
+        it('all pending advisories stored as dismissed → card hidden', () => {
+            mockStoredDismissal = [advisoryTosFingerprint, advisoryHostedFingerprint]
+            mockNextActions = [advisoryTos, advisoryHosted]
             const { container } = render(<PendingVerificationTasks dismissible />)
             expect(container).toBeEmptyDOMElement()
         })
 
         it("a user switch does not inherit the previous user's dismissals", () => {
-            mockStoredDismissal = [tosFingerprint, hostedFingerprint]
-            mockNextActions = [tosAction, hostedAction]
+            mockStoredDismissal = [advisoryTosFingerprint, advisoryHostedFingerprint]
+            mockNextActions = [advisoryTos, advisoryHosted]
             const { container, rerender } = render(<PendingVerificationTasks dismissible />)
             expect(container).toBeEmptyDOMElement()
 
@@ -275,15 +328,15 @@ describe('PendingVerificationTasks', () => {
             mockUserId = 'user-2'
             mockStoredDismissal = undefined
             rerender(<PendingVerificationTasks dismissible />)
-            expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()
+            expect(screen.getByText('Accept SEPA Terms of Service')).toBeInTheDocument()
             expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
         })
 
         it('the non-dismissible (profile) mount ignores stored dismissals and has no X', () => {
-            mockStoredDismissal = [tosFingerprint, hostedFingerprint]
-            mockNextActions = [tosAction, hostedAction]
+            mockStoredDismissal = [advisoryTosFingerprint, advisoryHostedFingerprint]
+            mockNextActions = [advisoryTos, advisoryHosted]
             render(<PendingVerificationTasks />)
-            expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()
+            expect(screen.getByText('Accept SEPA Terms of Service')).toBeInTheDocument()
             expect(screen.queryByRole('button', { name: /dismiss/i })).not.toBeInTheDocument()
         })
     })

@@ -334,6 +334,7 @@ jest.mock('@/utils/currency', () => ({
 }))
 
 jest.mock('@/utils/format.utils', () => ({
+    ...jest.requireActual('@/utils/format.utils'),
     formatBankAccountDisplay: jest.fn((val: string) => val),
 }))
 

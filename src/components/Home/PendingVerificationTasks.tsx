@@ -8,9 +8,11 @@ import IframeWrapper from '@/components/Global/IframeWrapper'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useAuth } from '@/context/authContext'
+import { confirmBridgeTosAndAwaitRails } from '@/hooks/useMultiPhaseKycFlow'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import type { NextAction } from '@/types/capabilities'
 import { bridgeTaskDismissalKey, selectBridgeTasks } from '@/utils/bridge-tasks.utils'
+import { formatEffectiveDate } from '@/utils/format.utils'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import Card from '../Global/Card'
 
@@ -43,18 +45,6 @@ function taskCopy(task: NextAction): { title: string; description: string } {
     }
 }
 
-/** "2099-03-01" → "Mar 1, 2099" — UTC so the date never shifts across timezones. */
-function formatDeadline(isoDate: string): string | null {
-    const parsed = new Date(`${isoDate.slice(0, 10)}T00:00:00Z`)
-    if (Number.isNaN(parsed.getTime())) return null
-    return parsed.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        timeZone: 'UTC',
-    })
-}
-
 /**
  * Home card listing the user's pending Bridge verification tasks — the in-app
  * mirror of Bridge's "additional verification needed" dashboard state. Reads
@@ -70,12 +60,14 @@ function formatDeadline(isoDate: string): string | null {
  * modal/iframe must survive its task disappearing mid-flow — the card hides,
  * the flow keeps running.
  *
- * `dismissible` (the /home mount): each slide carries its own X that
- * dismisses ONLY that task — the other slides stay. Dismissals persist per
- * task FINGERPRINT (key + requirement + due state, see
- * bridgeTaskDismissalKey), so a task that turns blocking or changes substance
- * re-surfaces despite an old dismissal; the Profile → Unlocked regions mount
- * is non-dismissible, so dismissed tasks stay reachable there.
+ * `dismissible` (the /home mount): each ADVISORY (future-dated) slide carries
+ * its own X that dismisses ONLY that task — the other slides stay. Dismissals
+ * persist per task FINGERPRINT (key + requirement + due state, see
+ * bridgeTaskDismissalKey), so a task that changes substance re-surfaces
+ * despite an old dismissal. BLOCKING (due-now) tasks are never dismissible
+ * and ignore stored fingerprints — their fingerprint is constant over time,
+ * and their rails are gated NOW; the Profile → Unlocked regions mount is
+ * non-dismissible for everything.
  */
 export default function PendingVerificationTasks({ dismissible = false }: { dismissible?: boolean }) {
     const { nextActions } = useCapabilities()
@@ -128,11 +120,21 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
         [userId]
     )
 
+    // Only ADVISORY (future-dated) tasks honor dismissals. A blocking task's
+    // fingerprint is constant over time (`accept-tos||due-now`), so an old
+    // stored dismissal would silently hide a NEW same-variant requirement
+    // months later while the user's rails are gated — and for the orphan
+    // bridge-hosted task this card is the only actionable surface outside
+    // Profile (/code-review 08-04). Blocking tasks therefore always render;
+    // advisory ones hold the first paint until stored dismissals hydrate
+    // (an empty list would flash already-dismissed slides).
     const visibleTasks = !dismissible
         ? tasks
-        : dismissedKeys === null
-          ? [] // hold the first paint until stored dismissals hydrate
-          : tasks.filter((task) => !dismissedKeys.includes(bridgeTaskDismissalKey(task)))
+        : tasks.filter(
+              (task) =>
+                  !task.effectiveDate ||
+                  (dismissedKeys !== null && !dismissedKeys.includes(bridgeTaskDismissalKey(task)))
+          )
 
     const handleOpenTask = useCallback(
         async (task: NextAction) => {
@@ -162,10 +164,15 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
             // before the identity steps — exactly for this cohort, which owes
             // both. The wrapper maps that step's signedAgreementId postMessage
             // to 'tos_accepted'; treating it as a close would kill the
-            // verification mid-flow. Keep the iframe open and sync the
-            // acceptance; only 'completed' / 'manual' actually close.
+            // verification mid-flow. Keep the iframe open and CONFIRM the
+            // acceptance to the backend — fetchUser alone re-reads stored
+            // state (the resolver is pure, no Bridge calls), so without the
+            // confirm POST the accept-tos task stays visible until a Bridge
+            // webhook lands and tapping it 409s "already accepted". Same
+            // canonical path as BridgeTosStep / useMultiPhaseKycFlow; it
+            // refetches the user itself. Only 'completed' / 'manual' close.
             if (source === 'tos_accepted') {
-                void fetchUser()
+                void confirmBridgeTosAndAwaitRails(fetchUser).catch(() => void fetchUser())
                 return
             }
             setHostedUrl(null)
@@ -190,11 +197,11 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                         {visibleTasks.map((task) => {
                             const copy = taskCopy(task)
                             const isHosted = task.kind === 'bridge-hosted'
-                            const deadline = task.effectiveDate ? formatDeadline(task.effectiveDate) : null
+                            const deadline = formatEffectiveDate(task.effectiveDate)
                             return (
                                 <Card key={task.key} position="single" className="embla__slide relative p-0">
                                     <div className="flex flex-col items-center gap-2 px-4 py-5 text-center">
-                                        {dismissible && (
+                                        {dismissible && !!task.effectiveDate && (
                                             <button
                                                 type="button"
                                                 aria-label={`Dismiss ${copy.title}`}
