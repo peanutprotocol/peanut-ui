@@ -2272,7 +2272,9 @@
             }
         },
         "errorStartActionFailed": "No pudimos iniciar la verificación. Inténtalo de nuevo.",
-        "errorInvalidResponse": "Respuesta inválida del servidor"
+        "errorInvalidResponse": "Respuesta inválida del servidor",
+        "actionMessageActionRequired": "Necesitamos un poco más para verificar tu identidad. Vuelve a enviar tus documentos.",
+        "actionMessageFailed": "No pudimos verificar tu identidad. Contacta a soporte."
     },
     "identity": {
         "unlockTitle": "Desbloquea {region}",
