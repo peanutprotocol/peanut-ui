@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useDebounce } from './useDebounce'
 import { useQuery } from '@tanstack/react-query'
 import { isCapacitor } from '@/utils/capacitor'
-import { getCachedCurrencyPrice } from '@/app/actions/currency'
+import { fetchDisplayRate } from '@/utils/currency'
 
 type InputValue = number | ''
 
@@ -87,33 +87,9 @@ export function useExchangeRate({
         queryKey: ['exchangeRate', sourceCurrency, destinationCurrency],
         queryFn: async () => {
             if (isCapacitor()) {
-                // in capacitor, no /api/ route exists. use getCurrencyPrice (client-side)
-                // and frankfurter as fallback — same logic as the next.js api route
-                const from = sourceCurrency.toUpperCase()
-                const to = destinationCurrency.toUpperCase()
-                if (from === to) return { rate: 1 }
-                try {
-                    let rate: number
-                    if (from === 'USD' || to === 'USD') {
-                        const price = await getCachedCurrencyPrice(from === 'USD' ? to : from)
-                        rate = from === 'USD' ? price.sell : 1 / price.sell
-                    } else {
-                        // Neither side is USD — cross via USD: (USD per `from`) × (`to` per USD).
-                        const [fromPrice, toPrice] = await Promise.all([
-                            getCachedCurrencyPrice(from),
-                            getCachedCurrencyPrice(to),
-                        ])
-                        rate = (1 / fromPrice.sell) * toPrice.sell
-                    }
-                    if (isFinite(rate) && rate > 0) return { rate }
-                } catch {}
-                // fallback to frankfurter (public api)
-                const res = await fetch(`https://api.frankfurter.app/latest?from=${from}&to=${to}`)
-                if (res.ok) {
-                    const data = await res.json()
-                    return { rate: data.rates[to] * 0.995 }
-                }
-                throw new Error('Failed to fetch exchange rate')
+                // no /api/ routes exist in the static native build — run the shared
+                // implementation directly (the same code the route runs on the server)
+                return { rate: await fetchDisplayRate(sourceCurrency, destinationCurrency) }
             }
             const res = await fetch(`/api/exchange-rate?from=${sourceCurrency}&to=${destinationCurrency}`)
             if (!res.ok) throw new Error('Failed to fetch exchange rate')
