@@ -30,8 +30,11 @@ describe('toMarketingLocale', () => {
         expect(toMarketingLocale('es-419')).toBe('es-419')
     })
 
+    it('maps the app casing of es-AR onto its marketing twin', () => {
+        expect(toMarketingLocale('es-AR')).toBe('es-ar')
+    })
+
     it('falls back on the language subtag for browser tags', () => {
-        expect(toMarketingLocale('es-AR')).toBe('es-419')
         expect(toMarketingLocale('es-ES')).toBe('es-419')
         expect(toMarketingLocale('es')).toBe('es-419')
         expect(toMarketingLocale('pt-PT')).toBe('pt-br')

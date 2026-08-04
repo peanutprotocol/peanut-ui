@@ -7,6 +7,7 @@ import { SecurityBuiltIn } from './securityBuiltIn'
 import { SendInSeconds } from './sendInSeconds'
 import Footer from './Footer'
 import { faqSchema } from '@/lib/seo/schemas'
+import { singletonLocaleFor } from '@/lib/content'
 import { JsonLd } from '@/components/Marketing/JsonLd'
 import { getLandingContent } from '@/lib/landingContent'
 import { getTranslations } from '@/i18n'
@@ -18,7 +19,12 @@ import type { Locale } from '@/i18n/types'
 // a server component.
 export function LandingPageContent({ locale }: { locale: Locale }) {
     const { heroConfig, faqData, marqueeMessages } = getLandingContent(locale)
-    const faqJsonLd = faqSchema(faqData.questions.map((q) => ({ question: q.question, answer: q.answer })))
+    // inLanguage reflects the language the FAQ prose actually resolved to —
+    // until mono ships landing translations, that's English on every locale.
+    const faqJsonLd = faqSchema(
+        faqData.questions.map((q) => ({ question: q.question, answer: q.answer })),
+        singletonLocaleFor('landing', locale)
+    )
 
     // The root layout is above the locale segment and can't read route params,
     // so it ships <html lang="en">. Scope the real language here instead — same

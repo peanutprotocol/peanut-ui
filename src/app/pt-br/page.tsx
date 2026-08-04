@@ -5,6 +5,7 @@ import { type Metadata } from 'next'
 import { LandingPageShell } from '@/components/LandingPage/LandingPageShell'
 import { LandingPageCapacitorGate } from '@/components/LandingPage/LandingPageCapacitorGate'
 import { LandingPageContent } from '@/components/LandingPage/LandingPageContent'
+import { HtmlLang } from '@/components/Marketing/HtmlLang'
 import { LocaleSuggestion } from '@/components/Marketing/LocaleSuggestion'
 import { landingMetadata } from '@/lib/seo/landing'
 
@@ -15,6 +16,7 @@ export const metadata: Metadata = landingMetadata(LOCALE)
 export default function PtBrLandingPage() {
     return (
         <>
+            <HtmlLang locale={LOCALE} />
             <LocaleSuggestion locale={LOCALE} />
             <LandingPageCapacitorGate>
                 <LandingPageShell>

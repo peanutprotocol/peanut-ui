@@ -35,7 +35,13 @@ describe('localeHref', () => {
     it('does not treat a username as a locale', () => {
         // peanut.me/{username} is the recipient catch-all, not a marketing route.
         expect(localeHref('/kushagrasarathe', 'pt-br')).toBe('/pt-br')
-        expect(localeHref('/es-ar/help', 'es-419')).toBe('/es-419')
+        expect(localeHref('/es-es/help', 'es-419')).toBe('/es-419')
+    })
+
+    it('treats restored es-ar as a real locale segment', () => {
+        expect(localeHref('/es-ar/help', 'es-419')).toBe('/es-419/help')
+        expect(localeHref('/es-419/help', 'es-ar')).toBe('/es-ar/help')
+        expect(localeHref('/', 'es-ar')).toBe('/es-ar')
     })
 
     it('tolerates trailing slashes and double slashes', () => {

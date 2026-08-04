@@ -1,10 +1,10 @@
 import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
-import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
+import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readPageContentLocalized, listContentSlugs } from '@/lib/content'
+import { readPageContentLocalized, listContentSlugs, contentLocaleFor, availableContentLocales } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -34,16 +34,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const mdxContent = readPageContentLocalized<HelpFrontmatter>('help', slug, locale)
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
+    // A fallback-served page canonicalizes to the locale that owns the prose.
+    const contentLocale = contentLocaleFor('help', slug, locale)
+
     return {
         ...metadataHelper({
+            locale,
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
-            canonical: `/${locale}/help/${slug}`,
+            canonical: `/${contentLocale}/help/${slug}`,
             dynamicOg: true,
         }),
         alternates: {
-            canonical: `/${locale}/help/${slug}`,
-            languages: getAlternates('help', slug),
+            canonical: `/${contentLocale}/help/${slug}`,
+            languages: getAlternatesFor(availableContentLocales('help', slug), 'help', slug),
         },
     }
 }

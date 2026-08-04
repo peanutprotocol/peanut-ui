@@ -3,6 +3,11 @@ import { LandingPageCapacitorGate } from '@/components/LandingPage/LandingPageCa
 import { LandingPageContent } from '@/components/LandingPage/LandingPageContent'
 import { LocaleSuggestion } from '@/components/Marketing/LocaleSuggestion'
 import { DEFAULT_LOCALE } from '@/i18n/types'
+import { landingMetadata } from '@/lib/seo/landing'
+
+// Without this the page inherits the root layout's bare `canonical: '/'` and
+// emits no hreflang, leaving the localized landings' alternates non-reciprocal.
+export const metadata = landingMetadata(DEFAULT_LOCALE)
 
 export default function RootPage() {
     return (

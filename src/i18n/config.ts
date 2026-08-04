@@ -31,10 +31,22 @@ export const ROUTE_SLUGS = [
 export type RouteSlug = (typeof ROUTE_SLUGS)[number]
 
 /** Map locale codes to hreflang values */
-const HREFLANG_MAP: Record<Locale, string> = {
+export const HREFLANG_MAP: Record<Locale, string> = {
     en: 'en',
     'es-419': 'es-419',
+    'es-ar': 'es-AR',
     'pt-br': 'pt-BR',
+}
+
+/**
+ * Open Graph locale values (Facebook's territory format). es-419 has no OG
+ * twin — es_LA is Facebook's "Spanish (Latin America)".
+ */
+export const OG_LOCALE_MAP: Record<Locale, string> = {
+    en: 'en_US',
+    'es-419': 'es_LA',
+    'es-ar': 'es_AR',
+    'pt-br': 'pt_BR',
 }
 
 /** Build a localized path: all locales get /{locale}/ prefix */
@@ -49,27 +61,48 @@ export function localizedBarePath(locale: Locale, ...segments: string[]): string
     return `/${locale}${suffix}`
 }
 
+/**
+ * hreflang set restricted to `locales` (from a content-availability check) so a
+ * URL whose file would only fall back is never advertised. English is always
+ * included — a page with no en file doesn't render at all.
+ */
+export function getAlternatesFor(
+    locales: readonly Locale[],
+    route: RouteSlug,
+    ...segments: string[]
+): Record<string, string> {
+    const alternates: Record<string, string> = {
+        'x-default': `${BASE_URL}${localizedPath(route, 'en', ...segments)}`,
+        en: `${BASE_URL}${localizedPath(route, 'en', ...segments)}`,
+    }
+    for (const locale of locales) {
+        if (locale === DEFAULT_LOCALE) continue
+        alternates[HREFLANG_MAP[locale]] = `${BASE_URL}${localizedPath(route, locale, ...segments)}`
+    }
+    return alternates
+}
+
 /** Get all alternate URLs for hreflang tags */
 export function getAlternates(route: RouteSlug, ...segments: string[]): Record<string, string> {
-    const alternates: Record<string, string> = {}
-    for (const locale of SUPPORTED_LOCALES) {
-        const langCode = locale === 'en' ? 'x-default' : HREFLANG_MAP[locale]
-        alternates[langCode] = `${BASE_URL}${localizedPath(route, locale, ...segments)}`
+    return getAlternatesFor(SUPPORTED_LOCALES, route, ...segments)
+}
+
+/** getAlternatesFor for bare paths (hub pages at /{locale}/{country}) */
+export function getBareAlternatesFor(locales: readonly Locale[], ...segments: string[]): Record<string, string> {
+    const alternates: Record<string, string> = {
+        'x-default': `${BASE_URL}${localizedBarePath('en', ...segments)}`,
+        en: `${BASE_URL}${localizedBarePath('en', ...segments)}`,
     }
-    // Also add 'en' explicitly alongside x-default
-    alternates['en'] = `${BASE_URL}${localizedPath(route, 'en', ...segments)}`
+    for (const locale of locales) {
+        if (locale === DEFAULT_LOCALE) continue
+        alternates[HREFLANG_MAP[locale]] = `${BASE_URL}${localizedBarePath(locale, ...segments)}`
+    }
     return alternates
 }
 
 /** Get alternate URLs for bare paths (hub pages at /{locale}/{country}) */
 export function getBareAlternates(...segments: string[]): Record<string, string> {
-    const alternates: Record<string, string> = {}
-    for (const locale of SUPPORTED_LOCALES) {
-        const langCode = locale === 'en' ? 'x-default' : HREFLANG_MAP[locale]
-        alternates[langCode] = `${BASE_URL}${localizedBarePath(locale, ...segments)}`
-    }
-    alternates['en'] = `${BASE_URL}${localizedBarePath('en', ...segments)}`
-    return alternates
+    return getBareAlternatesFor(SUPPORTED_LOCALES, ...segments)
 }
 
 /**

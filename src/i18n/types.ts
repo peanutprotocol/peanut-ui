@@ -1,8 +1,9 @@
 // Matches the app UI's locale set (src/i18n/app/config.ts APP_LOCALES). Lowercase
-// pt-br is URL-facing and already indexed — HREFLANG_MAP emits the pt-BR tag.
-export type Locale = 'en' | 'es-419' | 'pt-br'
+// pt-br/es-ar are URL-facing and already indexed — HREFLANG_MAP emits the
+// pt-BR/es-AR tags.
+export type Locale = 'en' | 'es-419' | 'es-ar' | 'pt-br'
 
-export const SUPPORTED_LOCALES: Locale[] = ['en', 'es-419', 'pt-br']
+export const SUPPORTED_LOCALES: Locale[] = ['en', 'es-419', 'es-ar', 'pt-br']
 export const DEFAULT_LOCALE: Locale = 'en'
 
 export interface Translations {

@@ -2,10 +2,15 @@ import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { CORRIDORS, getCountryName } from '@/data/seo'
-import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
+import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readCorridorContentLocalized, type ContentFrontmatter } from '@/lib/content'
+import {
+    availableCorridorLocales,
+    corridorLocaleFor,
+    readCorridorContentLocalized,
+    type ContentFrontmatter,
+} from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -29,16 +34,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const { title, description } = mdxContent.frontmatter
     if (!title || !description) return {}
 
+    // A fallback-served page canonicalizes to the locale that owns the prose.
+    const contentLocale = corridorLocaleFor(to, from, locale)
+
     return {
         ...metadataHelper({
+            locale,
             title,
             description,
-            canonical: `/${locale}/send-money-from/${from}/to/${to}`,
+            canonical: `/${contentLocale}/send-money-from/${from}/to/${to}`,
             dynamicOg: true,
         }),
         alternates: {
-            canonical: `/${locale}/send-money-from/${from}/to/${to}`,
-            languages: getAlternates('send-money-from', `${from}/to/${to}`),
+            canonical: `/${contentLocale}/send-money-from/${from}/to/${to}`,
+            languages: getAlternatesFor(availableCorridorLocales(to, from), 'send-money-from', `${from}/to/${to}`),
         },
     }
 }

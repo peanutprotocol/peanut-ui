@@ -2,7 +2,7 @@
     {
         "source": "/en",
         "destination": "/",
-        "permanent": false
+        "permanent": true
     },
     {
         "source": "/es",
@@ -22,16 +22,6 @@
     {
         "source": "/pt/:path*",
         "destination": "/pt-br/:path*",
-        "permanent": true
-    },
-    {
-        "source": "/es-ar",
-        "destination": "/es-419",
-        "permanent": true
-    },
-    {
-        "source": "/es-ar/:path*",
-        "destination": "/es-419/:path*",
         "permanent": true
     },
     {

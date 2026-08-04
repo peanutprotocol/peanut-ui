@@ -4,8 +4,8 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import maintenanceConfig from '@/config/underMaintenance.config'
-import { LOCALE_COOKIE, toMarketingLocale } from '@/i18n/localeBridge'
-import { DEFAULT_LOCALE } from '@/i18n/types'
+import { LOCALE_COOKIE, toAppLocale, toMarketingLocale } from '@/i18n/localeBridge'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
 export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
@@ -47,39 +47,54 @@ export function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL('/home', request.url))
     }
 
-    // Send a returning visitor to the landing page in the language they picked.
-    // Deliberately keyed on the app-locale cookie and NOT Accept-Language:
-    // Google's localized-versions guidance warns against redirecting on
-    // *perceived* language, since crawlers arrive from US IPs sending `en` and
-    // would never reach the localized pages. A cookie is an explicit choice and
-    // bots don't send one, so crawlers always get the English `/` and hreflang
-    // keeps routing them. First-time humans get LocaleSuggestion's banner
-    // instead. Placed after the auth check so signed-in users still go to /home.
-    if (request.nextUrl.pathname === '/') {
-        const stored = request.cookies.get(LOCALE_COOKIE)?.value
-        const locale = stored ? toMarketingLocale(stored) : DEFAULT_LOCALE
-        if (locale !== DEFAULT_LOCALE) {
-            // 307, not 308: `/` stays the canonical English URL.
-            const localized = NextResponse.redirect(new URL(`/${locale}`, request.url), 307)
-            localized.headers.set('Vary', 'Cookie')
-            return localized
-        }
-    }
-
-    // Handle promo link redirection
+    // Handle promo link redirection. Must run before the locale redirect: the
+    // localized landing routes aren't in the matcher, so a promo link that gets
+    // locale-redirected first would never come back through this branch.
     if (isPromoLink(url)) {
         const fragment = url.searchParams.toString()
         const redirectUrl = `https://peanut.me/claim?&${promoList[fragment]}`
         return NextResponse.redirect(redirectUrl)
     }
 
+    // Send a visitor to the landing page in their language. The cookie (an
+    // explicit choice) wins; a first-time visitor falls back to
+    // Accept-Language, with crawlers exempt: Google's localized-versions
+    // guidance warns against language-sniffing redirects because crawlers
+    // arrive from US IPs sending `en` and would never reach the localized
+    // pages — so bots always get the English `/` and hreflang keeps routing
+    // them. Placed after the auth check so signed-in users still go to /home.
+    if (request.nextUrl.pathname === '/') {
+        const stored = request.cookies.get(LOCALE_COOKIE)?.value
+        const fromCookie = stored ? toMarketingLocale(stored) : null
+        const locale =
+            fromCookie ??
+            (isCrawler(request) ? DEFAULT_LOCALE : preferredLocale(request.headers.get('accept-language')))
+        if (locale !== DEFAULT_LOCALE) {
+            // 307, not 308: `/` stays the canonical English URL.
+            const target = new URL(`/${locale}`, request.url)
+            // Keep the query string: campaign/UTM params must survive the hop.
+            target.search = request.nextUrl.search
+            const localized = NextResponse.redirect(target, 307)
+            localized.headers.set('Vary', 'Cookie, Accept-Language')
+            // Pre-set the shared cookie so the app and later visits agree with
+            // the browser language without re-sniffing. Only when no explicit
+            // choice exists yet — the switcher's cookie is never overwritten.
+            if (!stored) {
+                localized.cookies.set(LOCALE_COOKIE, toAppLocale(locale), { path: '/', maxAge: 60 * 60 * 24 * 365 })
+            }
+            return localized
+        }
+    }
+
     // Set headers to disable caching for specified paths
     const response = NextResponse.next()
-    // `/` varies by the locale cookie above — without this a CDN could cache one
-    // visitor's landing page (or redirect) and serve it to everyone.
-    if (url.pathname === '/') {
-        response.headers.set('Vary', 'Cookie')
-    }
+    // No `Vary: Cookie` on this path: Next overwrites Vary with its own RSC list
+    // after the proxy runs, and neither next.config headers() nor vercel.json
+    // headers survive it (both were tried and verified ineffective on a preview
+    // deploy). It isn't load-bearing — the proxy runs ahead of the cache on
+    // every request to `/`, so a cached English `/` still gets redirected for a
+    // visitor whose cookie says otherwise. The redirect response above does
+    // carry Vary, since nothing rewrites it.
     if (url.pathname.startsWith('/api/')) {
         response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
         response.headers.set('Pragma', 'no-cache')
@@ -88,6 +103,39 @@ export function proxy(request: NextRequest) {
     }
 
     return response
+}
+
+const CRAWLER_UA =
+    /bot|crawler|spider|crawling|slurp|bingpreview|facebookexternalhit|whatsapp|telegram|linkedinbot|embedly|quora link preview|pinterest|vkshare|redditbot|applebot|semrush|ahrefs|screaming frog/i
+
+function isCrawler(request: NextRequest): boolean {
+    const ua = request.headers.get('user-agent')
+    // No UA at all is not a browser either — treat as a bot, never redirect.
+    return !ua || CRAWLER_UA.test(ua)
+}
+
+/**
+ * Highest-quality Accept-Language range that maps onto a supported locale.
+ * An explicit English range wins at its own position, so `en;q=1, es;q=0.5`
+ * stays English rather than being dragged to the first non-default match.
+ */
+function preferredLocale(header: string | null): Locale {
+    if (!header) return DEFAULT_LOCALE
+    const ranges = header
+        .split(',')
+        .map((part) => {
+            const [tag, ...params] = part.trim().split(';')
+            const q = params.map((p) => p.trim()).find((p) => p.startsWith('q='))
+            return { tag: tag.trim().toLowerCase(), quality: q ? Number.parseFloat(q.slice(2)) : 1 }
+        })
+        .filter((range) => range.tag && Number.isFinite(range.quality))
+        .sort((a, b) => b.quality - a.quality)
+    for (const { tag } of ranges) {
+        if (tag === 'en' || tag.startsWith('en-') || tag === '*') return DEFAULT_LOCALE
+        const locale = toMarketingLocale(tag)
+        if (locale !== DEFAULT_LOCALE) return locale
+    }
+    return DEFAULT_LOCALE
 }
 
 const isPromoLink = (url: URL) => {

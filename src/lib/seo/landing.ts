@@ -16,6 +16,7 @@ export function landingMetadata(locale: Locale): Metadata {
 
     return {
         ...metadataHelper({
+            locale,
             title: content?.frontmatter.title ?? 'Peanut',
             description: content?.frontmatter.description ?? '',
             canonical,

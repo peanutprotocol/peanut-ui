@@ -1,10 +1,16 @@
 import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
-import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
+import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readPageContentLocalized, listPublishedSlugs, type ContentFrontmatter } from '@/lib/content'
+import {
+    readPageContentLocalized,
+    listPublishedSlugs,
+    type ContentFrontmatter,
+    contentLocaleFor,
+    availableContentLocales,
+} from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -25,16 +31,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const mdxContent = readPageContentLocalized<ContentFrontmatter>('withdraw', slug, locale)
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
+    // A fallback-served page canonicalizes to the locale that owns the prose.
+    const contentLocale = contentLocaleFor('withdraw', slug, locale)
+
     return {
         ...metadataHelper({
+            locale,
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
-            canonical: `/${locale}/withdraw/${slug}`,
+            canonical: `/${contentLocale}/withdraw/${slug}`,
             dynamicOg: true,
         }),
         alternates: {
-            canonical: `/${locale}/withdraw/${slug}`,
-            languages: getAlternates('withdraw', slug),
+            canonical: `/${contentLocale}/withdraw/${slug}`,
+            languages: getAlternatesFor(availableContentLocales('withdraw', slug), 'withdraw', slug),
         },
     }
 }

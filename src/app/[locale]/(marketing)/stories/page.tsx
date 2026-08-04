@@ -23,6 +23,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     return {
         ...metadataHelper({
+            locale,
             title: `${getTranslations(locale).storiesTitle} | Peanut`,
             description: getTranslations(locale).storiesSubtitle,
             canonical: `/${locale}/stories`,
