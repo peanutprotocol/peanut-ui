@@ -180,6 +180,11 @@ const InstallPWA = ({
                         href="/setup"
                         target="_blank"
                         rel="noopener"
+                        // capture without preventDefault — repeat fires in one session
+                        // mean link capturing is still not engaging on that device
+                        onClick={() =>
+                            posthog.capture(ANALYTICS_EVENTS.PWA_OPEN_APP_CLICKED, { device_type: deviceType })
+                        }
                         className="btn btn-purple btn-shadow-primary-4 flex w-full items-center justify-center gap-2 no-underline transition-all duration-100 active:translate-x-[3px] active:translate-y-[4px] active:shadow-none"
                     >
                         Open Peanut app
