@@ -39,13 +39,22 @@ export async function fetchDisplayRate(fromCurrency: string, toCurrency: string)
         console.warn(`No provider price for ${from}→${to}, falling back to Frankfurter:`, error)
     }
 
+    // Fallback: synthesize a sell-side price per currency from Frankfurter
+    // mid-market — the ×0.995 spread is applied once, on each currency's
+    // USD-leg price, then converted through the same displayRateFromPrices
+    // policy as the provider path. Applying the spread per-request instead
+    // (the old behavior) made the two orientations of a pair multiply to
+    // 0.995² rather than 1, breaking the one-pair-one-price contract on
+    // every fallback-served pair.
     // `next.revalidate` is a 5-min data cache on the server, a no-op in the
     // browser (Capacitor static build).
     const options: RequestInit & { next?: { revalidate?: number } } = { next: { revalidate: 300 } }
-    const res = await fetch(`https://api.frankfurter.app/latest?from=${from}&to=${to}`, options)
+    const targets = [from, to].filter((code) => code !== 'USD').join(',')
+    const res = await fetch(`https://api.frankfurter.app/latest?from=USD&to=${targets}`, options)
     if (res.ok) {
         const data = await res.json()
-        const rate = data?.rates?.[to] * 0.995
+        const syntheticSellPrice = (code: string) => ({ sell: code === 'USD' ? 1 : data?.rates?.[code] * 0.995 })
+        const rate = displayRateFromPrices(syntheticSellPrice(from), syntheticSellPrice(to))
         if (isFinite(rate) && rate > 0) return rate
     }
     throw new Error(`Failed to fetch exchange rate for ${from}→${to}`)

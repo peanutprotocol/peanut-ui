@@ -58,13 +58,25 @@ describe('fetchDisplayRate — provider prices first, Frankfurter fallback', () 
         await expect(fetchDisplayRate('EUR', 'BRL')).resolves.toBeCloseTo((1 / EUR.sell) * BRL.sell, 10)
     })
 
-    it('falls back to a single Frankfurter call ×0.995 when no provider covers the pair', async () => {
+    it('falls back to a single Frankfurter call with the spread on the USD leg', async () => {
         global.fetch = jest.fn().mockResolvedValue({
             ok: true,
             json: async () => ({ rates: { JPY: 150 } }),
         }) as unknown as typeof fetch
         await expect(fetchDisplayRate('USD', 'JPY')).resolves.toBeCloseTo(150 * 0.995, 10)
         expect(global.fetch).toHaveBeenCalledTimes(1)
+        expect(String((global.fetch as jest.Mock).mock.calls[0][0])).toContain('from=USD&to=JPY')
+    })
+
+    it('keeps fallback orientations reciprocal — the spread is per currency, not per request', async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ rates: { JPY: 150 } }),
+        }) as unknown as typeof fetch
+        const usdToJpy = await fetchDisplayRate('USD', 'JPY')
+        const jpyToUsd = await fetchDisplayRate('JPY', 'USD')
+        expect(jpyToUsd).toBeCloseTo(1 / (150 * 0.995), 10)
+        expect(usdToJpy * jpyToUsd).toBeCloseTo(1, 10)
     })
 
     it('falls back when the provider returns an unusable price instead of throwing', async () => {
