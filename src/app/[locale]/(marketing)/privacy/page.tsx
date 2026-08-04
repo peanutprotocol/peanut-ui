@@ -58,7 +58,9 @@ export default async function PrivacyPage({ params }: PageProps) {
     const mdxSource = readPageContentLocalized<LegalFrontmatter>('legal', SLUG, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
-    const { content } = await renderContent(mdxSource.body, locale)
+    // The verbatim markdown opens with its own `# Privacy Policy`; the Hero
+    // below already renders that title, so strip the body's leading h1.
+    const { content } = await renderContent(mdxSource.body, locale, { stripLeadingH1: true })
     const i18n = getTranslations(locale)
 
     const displayTitle = mdxSource.frontmatter.title.replace(/\s*\|\s*Peanut$/, '')
