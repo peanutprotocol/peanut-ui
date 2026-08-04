@@ -8,7 +8,11 @@ import { isDemoMode } from '@/utils/demo'
 import { useUserStore } from '@/redux/hooks'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
+import { NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
+import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
+
+const NOTIF_PROMPT_SNOOZE_MS = NOTIF_PROMPT_SNOOZE_DAYS * 24 * 60 * 60 * 1000
 
 /*
  * Notification state lives in a module-level store shared by every
@@ -118,7 +122,18 @@ async function evaluateVisibility() {
     }
 
     const userPreferences = getUserPreferences(currentExternalId ?? undefined)
-    const modalClosed = userPreferences?.notifModalClosed ?? false
+    // migration window (TASK-20771): "Not now" snoozes instead of dismissing
+    // forever — the custom pre-prompt exists so we CAN re-ask later. Legacy
+    // `notifModalClosed: true` (no timestamp) converts to a snooze starting
+    // now, same trick as getDismissedCTAs. Flag off keeps the old
+    // closed-forever behavior.
+    let closedAt = userPreferences?.notifModalClosedAt
+    if (!closedAt && userPreferences?.notifModalClosed) {
+        closedAt = new Date().toISOString()
+        updateUserPreferences(currentExternalId ?? undefined, { notifModalClosedAt: closedAt })
+    }
+    const snoozeExpired = !!closedAt && Date.now() - new Date(closedAt).getTime() >= NOTIF_PROMPT_SNOOZE_MS
+    const modalClosed = !!closedAt && !(isPwaSunsetOn() && snoozeExpired)
 
     // don't show modal if permission is denied (carousel cta will handle it)
     if (state.permissionState === 'denied') {
@@ -266,14 +281,22 @@ async function requestPermission(): Promise<NotificationPermissionState> {
 // close modal when user dismisses it
 function closePermissionModal() {
     setState({ showPermissionModal: false })
-    updateUserPreferences(currentExternalId ?? undefined, { notifModalClosed: true })
+    // legacy boolean kept so bundles predating notifModalClosedAt stay closed
+    updateUserPreferences(currentExternalId ?? undefined, {
+        notifModalClosed: true,
+        notifModalClosedAt: new Date().toISOString(),
+    })
     posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, { modal_type: MODAL_TYPES.NOTIFICATIONS })
 }
 
 // update permission state after user interacts with permission prompt
 async function afterPermissionAttempt() {
-    // mark modal as closed to prevent it from showing again
-    updateUserPreferences(currentExternalId ?? undefined, { notifModalClosed: true })
+    // mark modal as closed (permanent flag-off; 14-day snooze while the
+    // pwa-sunset flag is on — see evaluateVisibility)
+    updateUserPreferences(currentExternalId ?? undefined, {
+        notifModalClosed: true,
+        notifModalClosedAt: new Date().toISOString(),
+    })
     await refreshPermissionState()
 }
 
