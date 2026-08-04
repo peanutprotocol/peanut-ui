@@ -1,4 +1,4 @@
-import { displayRateFromPrices, fetchDisplayRate } from '../currency'
+import { displayRateFromPrices, fetchDisplayRate } from '../fx.utils'
 import { getCachedCurrencyPrice } from '@/app/actions/currency'
 
 jest.mock('@/app/actions/currency', () => ({ getCachedCurrencyPrice: jest.fn() }))

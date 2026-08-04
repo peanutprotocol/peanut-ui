@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { fetchDisplayRate } from '@/utils/currency'
+import { fetchDisplayRate } from '@/utils/fx.utils'
 
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams

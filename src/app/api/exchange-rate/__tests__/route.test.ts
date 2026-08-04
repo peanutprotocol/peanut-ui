@@ -1,11 +1,11 @@
 /** @jest-environment node */
 import { GET } from '../route'
-import { fetchDisplayRate } from '@/utils/currency'
+import { fetchDisplayRate } from '@/utils/fx.utils'
 import type { NextRequest } from 'next/server'
 
 // Rate math (sell-side both orientations, cross pairs, same-currency) is pinned
-// in src/utils/__tests__/currency.test.ts — this file only covers route wiring.
-jest.mock('@/utils/currency', () => ({ fetchDisplayRate: jest.fn() }))
+// in src/utils/__tests__/fx.utils.test.ts — this file only covers route wiring.
+jest.mock('@/utils/fx.utils', () => ({ fetchDisplayRate: jest.fn() }))
 
 const mockFetchDisplayRate = fetchDisplayRate as jest.Mock
 

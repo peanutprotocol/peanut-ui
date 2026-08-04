@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useDebounce } from './useDebounce'
 import { useQuery } from '@tanstack/react-query'
 import { isCapacitor } from '@/utils/capacitor'
-import { fetchDisplayRate } from '@/utils/currency'
+import { fetchDisplayRate } from '@/utils/fx.utils'
 
 type InputValue = number | ''
 
