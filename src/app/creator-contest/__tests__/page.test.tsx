@@ -7,6 +7,7 @@ describe('CreatorContestPage', () => {
 
         const iframe = screen.getByTitle('Peanut Creator Contest')
         expect(iframe).toHaveAttribute('src', 'https://peanut-contest.vercel.app/')
+        expect(iframe).toHaveAttribute('allow', 'storage-access *')
         expect(iframe).toHaveAttribute(
             'sandbox',
             'allow-forms allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-storage-access-by-user-activation'

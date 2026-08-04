@@ -13,6 +13,7 @@ export default function CreatorContestPage() {
                 src="https://peanut-contest.vercel.app/"
                 title="Peanut Creator Contest"
                 className="h-full w-full border-0"
+                allow="storage-access *"
                 sandbox="allow-forms allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-storage-access-by-user-activation"
                 referrerPolicy="strict-origin-when-cross-origin"
             />
