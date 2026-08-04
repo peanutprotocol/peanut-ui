@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import type { Locale } from '@/i18n/types'
-import { LOCALE_META, LOCALE_ORDER } from '@/i18n/localeMeta'
+import { SUPPORTED_LOCALES, type Locale } from '@/i18n/types'
+import { LOCALE_META } from '@/i18n/localeMeta'
 
 interface Props {
     /** Display name of the parent hub (e.g. "Blog", "Stories"). */
@@ -69,7 +69,7 @@ export function ArticleBackNav({ parentLabel, parentHref, backToTemplate, curren
                         role="listbox"
                         className="absolute right-0 z-20 mt-1 flex flex-col overflow-hidden rounded-sm border border-n-1 bg-white shadow-[2px_2px_0_0_#000]"
                     >
-                        {LOCALE_ORDER.map((loc) => {
+                        {SUPPORTED_LOCALES.map((loc) => {
                             const meta = LOCALE_META[loc]
                             const isCurrent = loc === currentLocale
                             return (

@@ -1,6 +1,6 @@
 // App (product UI) locales — separate from the marketing site's i18n
 // (src/i18n/*.json), which keeps its own locale set for SEO routing.
-export const APP_LOCALES = ['en', 'es-419', 'pt-BR'] as const
+export const APP_LOCALES = ['en', 'es-419', 'es-AR', 'pt-BR'] as const
 
 export type AppLocale = (typeof APP_LOCALES)[number]
 
@@ -10,6 +10,7 @@ export const DEFAULT_APP_LOCALE: AppLocale = 'en'
 export const LOCALE_LABELS: Record<AppLocale, string> = {
     en: 'English',
     'es-419': 'Español',
+    'es-AR': 'Español (Argentina)',
     'pt-BR': 'Português (Brasil)',
 }
 

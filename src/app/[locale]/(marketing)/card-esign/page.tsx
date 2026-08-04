@@ -1,10 +1,10 @@
 import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
-import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
+import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readPageContentLocalized } from '@/lib/content'
+import { availableContentLocales, contentLocaleFor, readPageContentLocalized } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -33,15 +33,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const mdxContent = readPageContentLocalized<LegalFrontmatter>('legal', SLUG, locale)
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
+    // A fallback-served page canonicalizes to the locale that owns the prose.
+    const contentLocale = contentLocaleFor('legal', SLUG, locale)
+
     return {
         ...metadataHelper({
+            locale,
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
-            canonical: `/${locale}/${SLUG}`,
+            canonical: `/${contentLocale}/${SLUG}`,
         }),
         alternates: {
-            canonical: `/${locale}/${SLUG}`,
-            languages: getAlternates(SLUG),
+            canonical: `/${contentLocale}/${SLUG}`,
+            languages: getAlternatesFor(availableContentLocales('legal', SLUG), SLUG),
         },
     }
 }

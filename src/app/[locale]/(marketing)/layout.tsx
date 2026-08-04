@@ -4,6 +4,7 @@ import { SUPPORTED_LOCALES } from '@/i18n/types'
 import { isValidLocale } from '@/i18n/config'
 import { CRISP_WEBSITE_ID } from '@/constants/crisp'
 import Footer from '@/components/LandingPage/Footer'
+import { HtmlLang } from '@/components/Marketing/HtmlLang'
 import { LocaleSuggestion } from '@/components/Marketing/LocaleSuggestion'
 
 interface LayoutProps {
@@ -25,6 +26,7 @@ export default async function LocalizedMarketingLayout({ children, params }: Lay
 
     return (
         <main className="flex min-h-dvh flex-col bg-white" lang={locale}>
+            <HtmlLang locale={locale} />
             <LocaleSuggestion locale={locale} />
             <div className="flex-1">{children}</div>
             <Footer locale={locale} />

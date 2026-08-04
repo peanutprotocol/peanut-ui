@@ -3,11 +3,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
-import { isValidLocale } from '@/i18n/config'
-import { LOCALE_META, LOCALE_ORDER } from '@/i18n/localeMeta'
+import { HREFLANG_MAP, isValidLocale } from '@/i18n/config'
+import { LOCALE_META } from '@/i18n/localeMeta'
 import { toAppLocale } from '@/i18n/localeBridge'
 import { persistLocale } from '@/i18n/app/locale-store'
-import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from '@/i18n/types'
 
 /**
  * Same-page href for `target`.
@@ -73,13 +73,13 @@ export function LocaleSwitcher({ locale, label }: { locale: Locale; label: strin
                 <ul
                     className={`${TRIGGER_WIDTH} absolute right-0 top-full z-30 mt-1 flex flex-col overflow-hidden rounded-sm border border-n-1 bg-white shadow-[2px_2px_0_0_#000]`}
                 >
-                    {LOCALE_ORDER.map((loc) => {
+                    {SUPPORTED_LOCALES.map((loc) => {
                         const isCurrent = loc === locale
                         return (
                             <li key={loc}>
                                 <Link
                                     href={localeHref(pathname, loc)}
-                                    hrefLang={loc}
+                                    hrefLang={HREFLANG_MAP[loc]}
                                     // Same cookie the product UI reads, so a choice made
                                     // on marketing carries into the app and back.
                                     onClick={() => {

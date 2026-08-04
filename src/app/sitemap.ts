@@ -10,7 +10,13 @@ import {
     PAYMENT_METHOD_SLUGS,
 } from '@/data/seo'
 import { SUPPORTED_LOCALES } from '@/i18n/config'
-import { listContentSlugs, listPublishedSlugs } from '@/lib/content'
+import {
+    hasCorridorContent,
+    hasPageContent,
+    hasSingletonContent,
+    listContentSlugs,
+    listPublishedSlugs,
+} from '@/lib/content'
 
 // TODO (infra): Update GitHub org, Twitter bio, LinkedIn, npm package.json → peanut.me
 // TODO (GA4): Create data filter to exclude trafficheap.com referral traffic
@@ -37,9 +43,9 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         { path: '/careers', priority: 0.7, changeFrequency: 'monthly' },
         { path: '/exchange', priority: 0.7, changeFrequency: 'weekly' },
 
-        // Legal
-        { path: '/privacy', priority: 0.5, changeFrequency: 'yearly' },
-        { path: '/terms', priority: 0.5, changeFrequency: 'yearly' },
+        // Legal — the bare /privacy and /terms are redirects; list the real URLs.
+        { path: '/en/privacy', priority: 0.5, changeFrequency: 'yearly' },
+        { path: '/en/terms', priority: 0.5, changeFrequency: 'yearly' },
     ]
 
     // --- Programmatic SEO pages (all locales with /{locale}/ prefix) ---
@@ -54,11 +60,13 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
 
         // Country hub pages
         for (const country of Object.keys(COUNTRIES_SEO)) {
+            if (!hasPageContent('countries', country, locale)) continue
             pages.push({ path: `/${locale}/${country}`, priority: 0.9 * basePriority, changeFrequency: 'weekly' })
         }
 
         // Send-money-to country pages
         for (const country of Object.keys(COUNTRIES_SEO)) {
+            if (!hasPageContent('send-to', country, locale)) continue
             pages.push({
                 path: `/${locale}/send-money-to/${country}`,
                 priority: 0.8 * basePriority,
@@ -68,6 +76,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
 
         // From-to corridor pages
         for (const corridor of CORRIDORS) {
+            if (!hasCorridorContent(corridor.to, corridor.from, locale)) continue
             pages.push({
                 path: `/${locale}/send-money-from/${corridor.from}/to/${corridor.to}`,
                 priority: 0.85 * basePriority,
@@ -77,6 +86,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
 
         // Receive money pages — corridor origins that have a receive-from article
         for (const source of RECEIVE_SOURCES) {
+            if (!hasPageContent('receive-from', source, locale)) continue
             pages.push({
                 path: `/${locale}/receive-money-from/${source}`,
                 priority: 0.7 * basePriority,
@@ -86,6 +96,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
 
         // Comparison pages
         for (const slug of Object.keys(COMPETITORS)) {
+            if (!hasPageContent('compare', slug, locale)) continue
             pages.push({
                 path: `/${locale}/compare/peanut-vs-${slug}`,
                 priority: 0.7 * basePriority,
@@ -95,6 +106,10 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
 
         // Deposit pages (exchanges + rails)
         for (const exchange of Object.keys(EXCHANGES)) {
+            // With no MDX at all the page builds from i18n copy (localized for
+            // every locale); with an en file, a missing locale file serves the
+            // English MDX, so only locales with their own file are listed.
+            if (hasPageContent('deposit', exchange, 'en') && !hasPageContent('deposit', exchange, locale)) continue
             pages.push({
                 path: `/${locale}/deposit/from-${exchange}`,
                 priority: 0.7 * basePriority,
@@ -102,6 +117,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
             })
         }
         for (const rail of Object.keys(DEPOSIT_RAILS)) {
+            if (!hasPageContent('deposit', rail, locale)) continue
             pages.push({
                 path: `/${locale}/deposit/via-${rail}`,
                 priority: 0.7 * basePriority,
@@ -111,6 +127,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
 
         // Pay-with pages
         for (const method of PAYMENT_METHOD_SLUGS) {
+            if (!hasPageContent('pay-with', method, locale)) continue
             pages.push({
                 path: `/${locale}/pay-with/${method}`,
                 priority: 0.7 * basePriority,
@@ -125,6 +142,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
             changeFrequency: 'weekly',
         })
         for (const slug of listContentSlugs('help')) {
+            if (!hasPageContent('help', slug, locale)) continue
             pages.push({
                 path: `/${locale}/help/${slug}`,
                 priority: 0.6 * basePriority,
@@ -134,6 +152,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
 
         // Use cases
         for (const slug of listPublishedSlugs('use-cases')) {
+            if (!hasPageContent('use-cases', slug, locale)) continue
             pages.push({
                 path: `/${locale}/use-cases/${slug}`,
                 priority: 0.7 * basePriority,
@@ -144,6 +163,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         // User stories
         for (const slug of listPublishedSlugs('stories')) {
             if (slug === 'index') continue
+            if (!hasPageContent('stories', slug, locale)) continue
             pages.push({
                 path: `/${locale}/stories/${slug}`,
                 priority: 0.6 * basePriority,
@@ -159,6 +179,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
 
         // Withdraw pages
         for (const slug of listPublishedSlugs('withdraw')) {
+            if (!hasPageContent('withdraw', slug, locale)) continue
             pages.push({
                 path: `/${locale}/withdraw/${slug}`,
                 priority: 0.6 * basePriority,
@@ -167,18 +188,22 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         }
 
         // Supported networks
-        pages.push({
-            path: `/${locale}/supported-networks`,
-            priority: 0.6 * basePriority,
-            changeFrequency: 'monthly',
-        })
+        if (hasSingletonContent('supported-networks', locale)) {
+            pages.push({
+                path: `/${locale}/supported-networks`,
+                priority: 0.6 * basePriority,
+                changeFrequency: 'monthly',
+            })
+        }
 
         // Pricing
-        pages.push({
-            path: `/${locale}/pricing`,
-            priority: 0.7 * basePriority,
-            changeFrequency: 'monthly',
-        })
+        if (hasSingletonContent('pricing', locale)) {
+            pages.push({
+                path: `/${locale}/pricing`,
+                priority: 0.7 * basePriority,
+                changeFrequency: 'monthly',
+            })
+        }
 
         // Content hub + blog
         pages.push({
@@ -193,6 +218,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         })
         for (const slug of listContentSlugs('blog')) {
             if (slug === 'index') continue
+            if (!hasPageContent('blog', slug, locale)) continue
             pages.push({
                 path: `/${locale}/blog/${slug}`,
                 priority: 0.6 * basePriority,

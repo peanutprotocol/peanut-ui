@@ -12,6 +12,11 @@ import { localeHref } from './LocaleSwitcher'
 
 const DISMISS_KEY = 'locale-suggestion-dismissed'
 
+// Banner is switched off: first-visit language now comes from the proxy's
+// Accept-Language redirect (crawlers exempt), and the footer switcher covers
+// explicit choice. Mounts stay wired so flipping this re-enables it everywhere.
+const BANNER_ENABLED = false
+
 /**
  * Offers a first-time visitor the page in their browser's language instead of
  * redirecting them into it — the behaviour Google's localized-versions guidance
@@ -27,6 +32,7 @@ export function LocaleSuggestion({ locale }: { locale: Locale }) {
     // Browser-only signals, so this can't run until after mount — which also
     // keeps it out of the SSR markup and away from hydration mismatches.
     useEffect(() => {
+        if (!BANNER_ENABLED) return
         if (Cookies.get(LOCALE_COOKIE)) return
         try {
             if (localStorage.getItem(DISMISS_KEY)) return

@@ -28,6 +28,7 @@ export function ContentPage({ children, breadcrumbs, article, locale = DEFAULT_L
     const breadcrumbSchema = {
         '@context': 'https://schema.org',
         '@type': 'BreadcrumbList',
+        inLanguage: locale,
         itemListElement: breadcrumbs.map((crumb, i) => ({
             '@type': 'ListItem',
             position: i + 1,
@@ -39,7 +40,7 @@ export function ContentPage({ children, breadcrumbs, article, locale = DEFAULT_L
     return (
         <>
             <JsonLd data={breadcrumbSchema} />
-            {article && <JsonLd data={articleSchema(article)} />}
+            {article && <JsonLd data={articleSchema({ inLanguage: locale, ...article })} />}
             <MarketingErrorBoundary strings={{ title: i18n.errorContentUnavailable, body: i18n.errorTryRefreshing }}>
                 <article className="content-page select-text bg-background">
                     {children}

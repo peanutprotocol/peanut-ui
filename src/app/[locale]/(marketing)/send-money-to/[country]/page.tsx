@@ -2,10 +2,15 @@ import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { COUNTRIES_SEO, getCountryName } from '@/data/seo'
-import { SUPPORTED_LOCALES, getAlternates, isValidLocale, localizedPath } from '@/i18n/config'
+import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale, localizedPath } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readPageContentLocalized, type ContentFrontmatter } from '@/lib/content'
+import {
+    readPageContentLocalized,
+    type ContentFrontmatter,
+    contentLocaleFor,
+    availableContentLocales,
+} from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -28,16 +33,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const mdxContent = readPageContentLocalized<ContentFrontmatter>('send-to', country, locale)
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
+    // A fallback-served page canonicalizes to the locale that owns the prose.
+    const contentLocale = contentLocaleFor('send-to', country, locale)
+
     return {
         ...metadataHelper({
+            locale,
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
-            canonical: `/${locale}/send-money-to/${country}`,
+            canonical: `/${contentLocale}/send-money-to/${country}`,
             dynamicOg: true,
         }),
         alternates: {
-            canonical: `/${locale}/send-money-to/${country}`,
-            languages: getAlternates('send-money-to', country),
+            canonical: `/${contentLocale}/send-money-to/${country}`,
+            languages: getAlternatesFor(availableContentLocales('send-to', country), 'send-money-to', country),
         },
     }
 }

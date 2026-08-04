@@ -72,11 +72,11 @@ export const DEDICATED_ROUTES = [
     // Locale prefixes (current SUPPORTED_LOCALES)
     'en',
     'es-419',
+    'es-ar',
     'pt-br',
 
     // Retired locales — still 301'd in redirects.json, kept reserved so a stale
     // URL can never be read as a recipient username by the catch-all route.
-    'es-ar',
     'es-es',
 ] as const
 

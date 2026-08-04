@@ -1,11 +1,17 @@
 import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
-import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
+import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import { ArticleBackNav } from '@/components/Marketing/ArticleBackNav'
-import { readPageContentLocalized, listPublishedSlugs, type ContentFrontmatter } from '@/lib/content'
+import {
+    readPageContentLocalized,
+    listPublishedSlugs,
+    type ContentFrontmatter,
+    contentLocaleFor,
+    availableContentLocales,
+} from '@/lib/content'
 import type { Locale } from '@/i18n/types'
 import { renderContent } from '@/lib/mdx'
 
@@ -27,16 +33,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const mdxContent = readPageContentLocalized<ContentFrontmatter>('stories', slug, locale)
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
+    // A fallback-served page canonicalizes to the locale that owns the prose.
+    const contentLocale = contentLocaleFor('stories', slug, locale)
+
     return {
         ...metadataHelper({
+            locale,
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
-            canonical: `/${locale}/stories/${slug}`,
+            canonical: `/${contentLocale}/stories/${slug}`,
             dynamicOg: true,
         }),
         alternates: {
-            canonical: `/${locale}/stories/${slug}`,
-            languages: getAlternates('stories', slug),
+            canonical: `/${contentLocale}/stories/${slug}`,
+            languages: getAlternatesFor(availableContentLocales('stories', slug), 'stories', slug),
         },
     }
 }

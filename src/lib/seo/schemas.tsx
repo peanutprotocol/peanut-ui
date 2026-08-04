@@ -2,12 +2,13 @@ import { BASE_URL } from '@/constants/general.consts'
 
 const baseUrl = BASE_URL || 'https://peanut.me'
 
-export function faqSchema(faqs: { question: string; answer: string }[]) {
+export function faqSchema(faqs: { question: string; answer: string }[], inLanguage?: string) {
     if (faqs.length === 0) return null
 
     return {
         '@context': 'https://schema.org',
         '@type': 'FAQPage',
+        ...(inLanguage ? { inLanguage } : {}),
         mainEntity: faqs.map((faq) => ({
             '@type': 'Question',
             name: faq.question,
@@ -25,15 +26,17 @@ export interface ArticleMeta {
     url: string
     datePublished: string
     dateModified?: string
+    inLanguage?: string
 }
 
-export function articleSchema({ title, description, url, datePublished, dateModified }: ArticleMeta) {
+export function articleSchema({ title, description, url, datePublished, dateModified, inLanguage }: ArticleMeta) {
     return {
         '@context': 'https://schema.org',
         '@type': 'Article',
         headline: title,
         description,
         url: `${baseUrl}${url}`,
+        ...(inLanguage ? { inLanguage } : {}),
         datePublished,
         dateModified: dateModified ?? datePublished,
         author: {

@@ -9,11 +9,11 @@ import { HtmlLang } from '@/components/Marketing/HtmlLang'
 import { LocaleSuggestion } from '@/components/Marketing/LocaleSuggestion'
 import { landingMetadata } from '@/lib/seo/landing'
 
-const LOCALE = 'es-419' as const
+const LOCALE = 'es-ar' as const
 
 export const metadata: Metadata = landingMetadata(LOCALE)
 
-export default function EsLatamLandingPage() {
+export default function EsArgentinaLandingPage() {
     return (
         <>
             <HtmlLang locale={LOCALE} />
