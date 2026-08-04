@@ -1434,7 +1434,9 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             fireEvent.click(screen.getByTestId('confirm-onramp'))
         })
 
-        expect(mockCreateOnramp).toHaveBeenCalled()
+        // commit-path pin: the amount submitted to createOnramp must be the same
+        // string the confirmation modal displayed (both derive from urlState.amount)
+        expect(mockCreateOnramp).toHaveBeenCalledWith(expect.objectContaining({ amount: '100' }))
         expect(mockSetQueryState).toHaveBeenCalledWith(expect.objectContaining({ step: 'showDetails' }))
     })
 
