@@ -2724,8 +2724,7 @@
         },
         "qr": {
             "title": "Get the Peanut app",
-            "scanHint": "Scan with your phone camera to download.",
-            "done": "Done"
+            "scanHint": "Scan with your phone camera to download."
         },
         "banner": {
             "title": "The Peanut app is here!",

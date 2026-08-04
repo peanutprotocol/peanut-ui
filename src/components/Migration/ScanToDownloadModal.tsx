@@ -23,7 +23,6 @@ export default function ScanToDownloadModal({
             icon="qr-code"
             title={t('qr.title')}
             content={<DownloadQR surface={surface} />}
-            ctas={[{ text: t('qr.done'), variant: 'purple', shadowSize: '4', onClick: onClose }]}
         />
     )
 }

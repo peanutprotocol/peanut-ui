@@ -2724,8 +2724,7 @@
         },
         "qr": {
             "title": "Baixe o app do Peanut",
-            "scanHint": "Escaneie com a câmera do seu celular para baixar.",
-            "done": "Pronto"
+            "scanHint": "Escaneie com a câmera do seu celular para baixar."
         },
         "banner": {
             "title": "O app do Peanut chegou!",

@@ -2724,8 +2724,7 @@
         },
         "qr": {
             "title": "Descarga la app de Peanut",
-            "scanHint": "Escanea con la cámara de tu celular para descargar.",
-            "done": "Listo"
+            "scanHint": "Escanea con la cámara de tu celular para descargar."
         },
         "banner": {
             "title": "¡La app de Peanut ya está aquí!",
