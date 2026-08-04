@@ -27,7 +27,9 @@ import { useQueryState, parseAsString } from 'nuqs'
  * This file (and ExchangeRate component, MantecaDepositShareDetails, etc.) each
  * re-derive "amount user will receive" by multiplying raw exchange rate by amount.
  * This caused a production bug where UI promised more than Bridge actually delivered
- * because the 0.5% developer fee was not baked into the displayed rate.
+ * because the then-active 0.5% developer fee was not baked into the displayed rate.
+ * (The fee has since been zeroed — BRIDGE_DEVELOPER_FEE_RATE = 0 — but the
+ * client-side-derivation hazard this note describes remains.)
  *
  * PROPER FIX: Add backend /bridge/onramp/quote and /bridge/offramp/quote endpoints
  * that return { gross, fee, net, exchangeRate }. UI displays `net`. This makes fee
@@ -91,10 +93,10 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
     // derive onramp currency once and reuse consistently
     const onrampCurrency = getCurrencyConfig(currentCountryDetails?.id || 'US', 'onramp').currency
 
-    // Onramp quote returns the net rate (after Peanut's 50bps developer
-    // fee), so `sourceAmount * exchangeRate` projects the real USDC the
-    // user will receive — matching the "Recipient Gets" figure on bridge
-    // offramp + ExchangeRateWidget.
+    // Onramp quote returns the net deposit-side rate (Peanut's developer fee
+    // is currently 0, so net === gross), so `sourceAmount * exchangeRate`
+    // projects the real USDC the user will receive — matching the "Recipient
+    // Gets" figure on bridge offramp + ExchangeRateWidget.
     const { netRate: exchangeRate, isLoading: isLoadingExchangeRate } = useOnrampQuote({
         accountType: currencyToAccountType(onrampCurrency),
         enabled: true,
@@ -136,8 +138,8 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
             if (baseAmount === null) return amount
             if (isNonUsdCurrency) {
                 // for non-usd deposits, show the approximate amount in usd
-                // bake in the 0.5% Bridge developer fee so displayed amount matches
-                // what Bridge actually delivers (applyBridgeCrossCurrencyFee is a no-op for USD)
+                // pass through the cross-currency fee helper (currently identity —
+                // fee is 0; kept so a re-enabled FX margin propagates here)
                 const grossUsd = baseAmount * exchangeRate
                 // NOTE: pass 'USDC' (the real Bridge destination) not 'USD' — the helper
                 // mirrors backend `getBridgeDeveloperFeeParams` which treats 'usd' as the

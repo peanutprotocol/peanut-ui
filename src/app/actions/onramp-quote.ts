@@ -8,9 +8,9 @@ export interface OnrampQuoteResponse {
     to: string
     /** Raw Bridge rate (source → destination) before Peanut fee. */
     grossRate: string
-    /** Rate the user actually receives, net of Peanut's developer fee. */
+    /** Rate net of Peanut's developer fee — the fee is currently 0, so identical to grossRate. */
     netRate: string
-    /** Peanut developer fee as a fraction string (e.g. "0.005"). */
+    /** Peanut developer fee as a fraction string — currently "0.0000". */
     peanutFee: string
     updatedAt: string
     /** Net-amount projection when `sourceAmount` was supplied. */
@@ -19,9 +19,11 @@ export interface OnrampQuoteResponse {
 
 /**
  * Onramp quote — returns the rate + amount a user actually receives for a
- * fiat-in → USDC-out flow, with Peanut's 50bps developer fee applied on top
- * of Bridge's published FX rate. Use instead of `getExchangeRate` anywhere
- * the UI needs the true "Recipient Gets" number.
+ * fiat-in → USDC-out flow. Use instead of `getExchangeRate` anywhere the UI
+ * needs the true "Recipient Gets" number: this quotes the deposit-execution
+ * side, while the exchange-rate display surfaces quote the withdrawal side.
+ * The net/gross split exists for the planned FX-margin re-enable; the fee is
+ * currently 0.
  */
 export async function getOnrampQuote(
     accountType: AccountType,
