@@ -168,24 +168,27 @@ const InstallPWA = ({
                 return null
             }
 
-            // for other browsers, try to open the pwa in a new tab
+            // for other browsers, try to open the pwa in a new tab.
+            // Must be a REAL anchor: a synthesized link.click() fires an untrusted
+            // event, which Chrome excludes from WebAPK link capturing — the tap
+            // opened a plain browser tab on this same screen instead of the
+            // installed app (the TASK-21050 "Open Peanut app" boomerang). Only a
+            // trusted tap on an in-scope target="_blank" anchor hands off.
             return (
                 <div className="flex flex-col gap-4">
-                    <Button
-                        onClick={() => {
-                            const link = document.createElement('a')
-                            link.href = '/setup'
-                            link.target = '_blank'
-                            document.body.appendChild(link)
-                            link.click()
-                            document.body.removeChild(link)
-                        }}
-                        className="w-full"
-                        shadowSize="4"
-                        loading={isSetupFlowLoading}
+                    <a
+                        href="/setup"
+                        target="_blank"
+                        rel="noopener"
+                        // capture without preventDefault — repeat fires in one session
+                        // mean link capturing is still not engaging on that device
+                        onClick={() =>
+                            posthog.capture(ANALYTICS_EVENTS.PWA_OPEN_APP_CLICKED, { device_type: deviceType })
+                        }
+                        className="btn btn-purple btn-shadow-primary-4 flex w-full items-center justify-center gap-2 no-underline transition-all duration-100 active:translate-x-[3px] active:translate-y-[4px] active:shadow-none"
                     >
                         Open Peanut app
-                    </Button>
+                    </a>
                 </div>
             )
         }
