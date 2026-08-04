@@ -96,7 +96,7 @@ export default function SendLinkActionList({
     const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
     const [showInviteModal, setShowInviteModal] = useState(false)
     const { user } = useAuth()
-    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff()
+    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({ trackImpressionWhenGuest: !isLoggedIn })
     const {
         setSelectedTokenAddress,
         setSelectedChainID,

@@ -57,7 +57,9 @@ export default function SendWithPeanutCta({
     const isLoggedIn = !!user?.user?.userId
     // assume logged in while fetching to prevent "Join Peanut" flash
     const showAsLoggedIn = isFetchingUser || isLoggedIn
-    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff()
+    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({
+        trackImpressionWhenGuest: requiresAuth && !isFetchingUser && !isLoggedIn,
+    })
 
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
         // don't act while auth is still resolving

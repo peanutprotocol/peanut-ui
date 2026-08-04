@@ -1,6 +1,8 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import posthog from 'posthog-js'
 import ScanToDownloadModal from '@/components/Migration/ScanToDownloadModal'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
@@ -17,10 +19,23 @@ import { openStore } from '@/utils/migration.utils'
  * click was handled here) and `storeHandoffModal` (render it next to the CTA).
  * Native app guests keep the normal in-app flow.
  */
-export function useGuestStoreHandoff() {
+export function useGuestStoreHandoff({
+    trackImpressionWhenGuest = false,
+}: { trackImpressionWhenGuest?: boolean } = {}) {
     const migrationOn = useMigrationFlag()
     const { deviceType } = useDeviceType()
     const [qrOpen, setQrOpen] = useState(false)
+
+    // guest-funnel impression (TASK-20939): fires once per mount when the CTA
+    // is actually shown to a logged-out web visitor during the window. The
+    // caller passes its settled guest state so we don't count the pre-auth
+    // flash where every visitor briefly looks logged-out.
+    const impressionFired = useRef(false)
+    useEffect(() => {
+        if (!trackImpressionWhenGuest || !migrationOn || isCapacitor() || impressionFired.current) return
+        impressionFired.current = true
+        posthog.capture(ANALYTICS_EVENTS.MIGRATION_GUEST_CTA_SHOWN, { surface: MIGRATION_SURFACES.GUEST_FLOW })
+    }, [trackImpressionWhenGuest, migrationOn])
 
     const interceptGuestCta = (): boolean => {
         if (!migrationOn || isCapacitor()) return false
