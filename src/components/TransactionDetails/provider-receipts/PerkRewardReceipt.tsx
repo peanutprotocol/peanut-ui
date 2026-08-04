@@ -9,6 +9,7 @@ import { PerkIcon } from '@/components/TransactionDetails/PerkIcon'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { type HistoryEntryPerkReward } from '@/services/services.types'
 import { useModalsContext } from '@/context/ModalsContext'
+import { STATUS_LABEL_KEYS } from '@/components/Global/Badges/StatusBadge'
 import { useTranslations } from 'next-intl'
 import { useReceiptDateFormatter } from '@/components/TransactionDetails/useReceiptDateFormatter'
 
@@ -34,6 +35,7 @@ export function PerkRewardReceipt({
 }) {
     const { setIsSupportModalOpen } = useModalsContext()
     const t = useTranslations('transaction')
+    const tCommon = useTranslations('common')
     const formatDate = useReceiptDateFormatter()
 
     return (
@@ -59,7 +61,9 @@ export function PerkRewardReceipt({
                             </span>
                         ) : (
                             <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                                {transaction.status}
+                                {tCommon(
+                                    (transaction.status && STATUS_LABEL_KEYS[transaction.status]) ?? 'status.unknown'
+                                )}
                             </span>
                         )}
                     </div>

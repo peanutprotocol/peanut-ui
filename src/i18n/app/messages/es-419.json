@@ -25,7 +25,19 @@
         "next": "Siguiente",
         "notFound": "No encontrado",
         "countryNotFound": "País no encontrado",
-        "tryDifferentCountry": "Prueba con otro país."
+        "tryDifferentCountry": "Prueba con otro país.",
+        "status": {
+            "completed": "Completado",
+            "pending": "Pendiente",
+            "processing": "Procesando",
+            "failed": "Fallido",
+            "cancelled": "Cancelado",
+            "refunded": "Reembolsado",
+            "soon": "¡Pronto!",
+            "closed": "Cerrado",
+            "custom": "Personalizado",
+            "unknown": "Desconocido"
+        }
     },
     "navigation": {
         "home": "Inicio",
@@ -88,6 +100,12 @@
             "spendWithPeanut": {
                 "title": "Paga con Peanut",
                 "description": "Paga con tu tarjeta o escanea códigos QR de Pix y MercadoPago"
+            },
+            "spendChooser": {
+                "title": "¿Cómo quieres gastar?",
+                "description": "Ambas cuentan como tu primer pago.",
+                "payWithCard": "Paga con tu tarjeta",
+                "scanQr": "Escanea un código QR"
             }
         },
         "autoBalance": {
@@ -1415,7 +1433,8 @@
             "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Inténtalo de nuevo en un momento.",
             "bankAccountFailed": "No se pudo procesar la cuenta bancaria. Inténtalo de nuevo o contacta a soporte.",
             "bankAccountSettingUp": "Tu cuenta bancaria aún se está configurando. Inténtalo de nuevo en un momento."
-        }
+        },
+        "pixMaintenanceBadge": "Mantenimiento"
     },
     "withdraw": {
         "amountToWithdraw": "Monto a retirar",
@@ -1616,6 +1635,38 @@
             "paidTo": "Pagado a {name}",
             "payingTo": "Pagando a {name}"
         },
+        "name": {
+            "merchant": "Comercio",
+            "cardPayment": "Pago con tarjeta",
+            "cardRefund": "Reembolso de tarjeta",
+            "refundFrom": "Reembolso de {name}",
+            "refund": "Reembolso",
+            "depositSource": "Origen del depósito",
+            "externalWallet": "Billetera externa",
+            "externalAccount": "Cuenta externa",
+            "claimedToBank": "Reclamado al banco",
+            "bankAccount": "Cuenta bancaria",
+            "recipient": "Destinatario",
+            "sender": "Remitente",
+            "request": "Solicitud",
+            "peanutReward": "Recompensa Peanut",
+            "receivedViaLink": "Recibido por enlace",
+            "sentViaLink": "Enviado por enlace",
+            "transaction": "Transacción",
+            "failedQrPayment": "Intento de pago QR fallido"
+        },
+        "failReason": {
+            "p2pSendTimeout": "El envío no se completó",
+            "p2pRequestFulfillTimeout": "El pago no se completó",
+            "sendLinkTimeout": "El enlace no se completó",
+            "sendLinkClaimTimeout": "El reclamo no se completó",
+            "cryptoWithdrawTimeout": "El retiro no se completó",
+            "qrPayTimeout": "El pago QR no se completó",
+            "onrampTimeout": "El depósito bancario no llegó",
+            "offrampTimeout": "La transferencia bancaria no se completó",
+            "refundTimeout": "El reembolso no se completó",
+            "generic": "La transacción no se completó"
+        },
         "rows": {
             "created": "Creado",
             "cancelled": "Cancelado",
@@ -1698,7 +1749,8 @@
             "dispute": "Disputa",
             "evidenceRequested": "Evidencia solicitada",
             "flagAlt": "Bandera de {country}",
-            "initialHold": "Retención inicial"
+            "initialHold": "Retención inicial",
+            "adjustment": "Ajuste"
         },
         "dispute": {
             "pending": "En disputa — Esperando revisión",
@@ -1740,6 +1792,7 @@
             "depositAddress": "Dirección de depósito"
         },
         "enjoyPeanut": "¡Disfruta Peanut!",
+        "memoTestDeposit": "¡Tu billetera peanut está lista para usar!",
         "adjustedSuffix": "· Ajustado"
     },
     "history": {
@@ -2217,7 +2270,9 @@
                 "title": "Problema con la verificación",
                 "description": "Hubo un problema con tu verificación. Inténtalo de nuevo o contacta a soporte."
             }
-        }
+        },
+        "errorStartActionFailed": "No pudimos iniciar la verificación. Inténtalo de nuevo.",
+        "errorInvalidResponse": "Respuesta inválida del servidor"
     },
     "identity": {
         "unlockTitle": "Desbloquea {region}",
@@ -2232,7 +2287,37 @@
         "usAchWire": "Transferencias ACH y Wire en <b>Estados Unidos</b>",
         "mxSpei": "Transferencias SPEI en <b>México</b>",
         "latamBankTransfers": "Transferencias bancarias a tus propias cuentas en <b>LATAM</b>",
-        "defaultUnlockItem": "Transferencias bancarias y métodos de pago locales"
+        "defaultUnlockItem": "Transferencias bancarias y métodos de pago locales",
+        "reasons": {
+            "tax_identification_number": "Necesitamos tu número de identificación fiscal para continuar.",
+            "address_of_residence": "Necesitamos tu dirección de residencia para continuar.",
+            "proof_of_address": "Necesitamos un comprobante de domicilio válido.",
+            "source_of_funds": "Necesitamos información sobre el origen de tus fondos.",
+            "proof_of_source_of_funds": "Necesitamos un documento que compruebe el origen de tus fondos.",
+            "birth_details": "Necesitamos confirmar tu fecha de nacimiento.",
+            "eea_uplift": "Necesitamos información adicional para cumplir con las regulaciones del EEE.",
+            "eea_uplift_with_tin": "Necesitamos información adicional para cumplir con las regulaciones del EEE.",
+            "eea_tin_reupload": "Vuelve a subir tu número de identificación fiscal.",
+            "pep_documentation": "Necesitamos un documento que muestre el origen de los fondos que usarás en Peanut.",
+            "fep_documentation": "Debido a tu actividad profesional, necesitamos un comprobante de tu situación de reporte ante la UIF.",
+            "email_required": "Necesitamos un correo electrónico para terminar de configurar esta cuenta. Agrega uno a tu perfil y lo reintentaremos automáticamente.",
+            "submission_failed": "Tuvimos un problema al finalizar tu verificación de nuestro lado. Lo vamos a resolver: toca abajo para escribirle a soporte.",
+            "proof_of_address_review": "Recibimos tu comprobante de domicilio; está en revisión.",
+            "bridge_tos_required": "Acepta los términos de servicio de Bridge para continuar.",
+            "bridge_tos_v2_required": "Acepta los términos de servicio de SEPA para habilitar transferencias en EUR / GBP.",
+            "bridge_processing": "Estamos finalizando tu verificación con Bridge; esto suele tomar unos minutos.",
+            "document_rejected": "No pudimos verificar tus documentos de identidad.",
+            "verification_blocked": "Problema de verificación: contacta a soporte para recibir ayuda.",
+            "terminal_rejection": "Problema de verificación: contacta a soporte para recibir ayuda.",
+            "bridge_terminal_rejection": "No pudimos verificar tu cuenta para transferencias bancarias. Escríbele a soporte si crees que es un error.",
+            "duplicate_customer_detected": "Bridge marcó tu cuenta como posible duplicado. Escríbele a soporte para verificarla y desbloquearla.",
+            "region_block": "Las tarjetas Peanut todavía no están disponibles en tu región.",
+            "compliance_block": "No pudimos aprobar tu solicitud de tarjeta después de una revisión de cumplimiento.",
+            "card_rejected": "No se pudo aprobar tu solicitud de tarjeta. Escríbele a soporte si crees que es un error.",
+            "manteca_us_nationality": "Los pagos desde este país no están disponibles para ciudadanos de EE. UU. por el momento.",
+            "country_not_supported": "Este método necesita un documento de un país compatible. Puedes verificarte con otro documento.",
+            "uk_resident_blocked": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento."
+        }
     },
     "recoverFunds": {
         "title": "Recuperar fondos",

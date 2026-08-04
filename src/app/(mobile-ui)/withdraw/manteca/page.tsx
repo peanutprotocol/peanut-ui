@@ -675,6 +675,7 @@ function MantecaBankWithdrawFlow() {
                               : 'default'
                 }
                 providerMessage={mantecaRejection.userMessage ?? undefined}
+                reasonCode={mantecaRejection.reasonCode ?? undefined}
                 regionName={selectedCountry?.title}
             />
             <SumsubKycModals flow={sumsubFlow} />

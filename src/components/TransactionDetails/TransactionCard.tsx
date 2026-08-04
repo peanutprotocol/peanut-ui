@@ -5,6 +5,7 @@ import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionA
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { translateTransactionName } from '@/components/TransactionDetails/transaction-name-keys'
 import {
     hasUserProfile,
     isCardPaymentEntry,
@@ -106,9 +107,15 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // check if this is a test transaction (setup confirmation)
     const isTest = isTestTransaction(name)
 
+    // FE-generated labels carry a catalog key — localize; real counterparty
+    // names (usernames, merchants, addresses) pass through as data.
+    const localizedName = transaction.nameKey
+        ? translateTransactionName(t, transaction.nameKey, transaction.nameParams)
+        : name
+
     // ENS reverse-lookup for raw addresses; hook is a no-op when name is a username.
     const { primaryName } = usePrimaryNameServer(isAddress(name) ? name : undefined)
-    let displayName = normalizeEnsName(primaryName) ?? name
+    let displayName = normalizeEnsName(primaryName) ?? localizedName
     // Shortens crypto addresses AND raw UUIDs (usernameless Peanut users whose
     // `identifier` arrives as a userId) so the feed row never renders a 36-char
     // string.

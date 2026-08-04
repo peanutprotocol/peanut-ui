@@ -4,6 +4,7 @@
 
 import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
+import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
 
 export const p2pSendOrRequestFulfill: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
     const kind = entry.extraData?.kind as string | undefined
@@ -19,6 +20,10 @@ export const p2pSendOrRequestFulfill: TransactionStrategy = (entry: HistoryEntry
             direction: 'bank_request_fulfillment',
             transactionCardType: 'bank_request_fulfillment',
             nameForDetails: entry.recipientAccount?.username ?? entry.recipientAccount?.identifier ?? 'Recipient',
+            nameKey:
+                (entry.recipientAccount?.username ?? entry.recipientAccount?.identifier) != null
+                    ? undefined
+                    : TRANSACTION_NAME_KEYS.recipient,
             fullName: entry.recipientAccount?.fullName ?? '',
             showFullName: entry.recipientAccount?.showFullName,
             isPeerActuallyUser: !!entry.recipientAccount?.isUser || !!entry.senderAccount?.isUser,
@@ -33,6 +38,10 @@ export const p2pSendOrRequestFulfill: TransactionStrategy = (entry: HistoryEntry
                 direction: 'receive',
                 transactionCardType: 'receive',
                 nameForDetails: entry.senderAccount?.username || entry.senderAccount?.identifier || 'Sender',
+                nameKey:
+                    entry.senderAccount?.username || entry.senderAccount?.identifier
+                        ? undefined
+                        : TRANSACTION_NAME_KEYS.sender,
                 fullName: entry.senderAccount?.fullName ?? '',
                 showFullName: entry.senderAccount?.showFullName,
                 isPeerActuallyUser: !!entry.senderAccount?.isUser,
@@ -44,6 +53,7 @@ export const p2pSendOrRequestFulfill: TransactionStrategy = (entry: HistoryEntry
             direction: 'request_received',
             transactionCardType: 'request',
             nameForDetails: 'Request',
+            nameKey: TRANSACTION_NAME_KEYS.request,
             isPeerActuallyUser: false,
             isLinkTx: false,
         }
@@ -53,6 +63,10 @@ export const p2pSendOrRequestFulfill: TransactionStrategy = (entry: HistoryEntry
         direction: 'send',
         transactionCardType: 'send',
         nameForDetails: entry.recipientAccount?.username || entry.recipientAccount?.identifier || 'Recipient',
+        nameKey:
+            entry.recipientAccount?.username || entry.recipientAccount?.identifier
+                ? undefined
+                : TRANSACTION_NAME_KEYS.recipient,
         fullName: entry.recipientAccount?.fullName ?? '',
         showFullName: entry.recipientAccount?.showFullName,
         isPeerActuallyUser: !!entry.recipientAccount?.isUser,

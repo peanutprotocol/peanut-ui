@@ -1,6 +1,7 @@
 'use client'
 
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import { type ActivationStep } from '@/hooks/useActivationStatus'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
@@ -47,6 +48,7 @@ interface StepConfig {
 export default function ActivationCTAs({ activationStep, onDismissCard }: ActivationCTAsProps) {
     const t = useTranslations('home.activation')
     const tCommon = useTranslations('common')
+    const tIdentity = useTranslations('identity')
     const router = useRouter()
     const { setIsQRScannerOpen, openSupportWithMessage } = useModalsContext()
     const { rails, channelOf, nextActions } = useCapabilities()
@@ -71,6 +73,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         fixableProvider,
         hasBlockedRejection,
         primaryRejectionMessage,
+        primaryRejectionCode,
         blockedRail,
         isEmailBlocked,
     } = useMemo(() => {
@@ -103,10 +106,21 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 const surfaced = emailBlocked ?? fixableRail ?? blocked
                 return surfaced ? railUserMessage(surfaced) : null
             })(),
+            primaryRejectionCode: (() => {
+                const surfaced = emailBlocked ?? fixableRail ?? blocked
+                return surfaced ? (surfaced.reason?.code ?? surfaced.resolved?.blocking?.code ?? null) : null
+            })(),
             blockedRail: blocked,
             isEmailBlocked: !!emailBlocked,
         }
     }, [rails, channelOf, nextActions])
+
+    // Known reason codes render localized identity.reasons.* copy; unknown
+    // codes keep the backend's display-ready prose as fallback.
+    const primaryRejectionReasonKey = reasonCodeKey(primaryRejectionCode)
+    const localizedRejectionMessage = primaryRejectionReasonKey
+        ? tIdentity(primaryRejectionReasonKey)
+        : primaryRejectionMessage
 
     const [showProvideEmail, setShowProvideEmail] = useState(false)
     const [showSpendChooser, setShowSpendChooser] = useState(false)
@@ -213,7 +227,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     icon: 'globe-lock',
                     iconBg: 'bg-primary-1',
                     title: t('addEmail.title'),
-                    description: primaryRejectionMessage || t('addEmail.description'),
+                    description: localizedRejectionMessage || t('addEmail.description'),
                     ctaLabel: t('addEmail.cta'),
                     href: '', // handled in onClick
                 }
@@ -223,7 +237,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     icon: 'globe-lock',
                     iconBg: 'bg-primary-1',
                     title: t('completeSetup.title'),
-                    description: primaryRejectionMessage || t('completeSetup.description'),
+                    description: localizedRejectionMessage || t('completeSetup.description'),
                     ctaLabel: t('completeSetup.cta'),
                     href: '/profile/identity-verification',
                 }
@@ -259,7 +273,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         hasProviderRejection,
         hasFixableRejection,
         isEmailBlocked,
-        primaryRejectionMessage,
+        localizedRejectionMessage,
         isIdentityProcessing,
         isIdentityActionRequired,
         hasCardAccess,
@@ -344,11 +358,11 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 visible={showSpendChooser && hasCardAccess === true}
                 onClose={() => setShowSpendChooser(false)}
                 icon="credit-card"
-                title="How do you want to spend?"
-                description="Both count as your first payment."
+                title={t('spendChooser.title')}
+                description={t('spendChooser.description')}
                 ctas={[
                     {
-                        text: 'Pay with your card',
+                        text: t('spendChooser.payWithCard'),
                         shadowSize: '4',
                         onClick: () => {
                             posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, { choice: 'card' })
@@ -357,7 +371,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                         },
                     },
                     {
-                        text: 'Scan a QR code',
+                        text: t('spendChooser.scanQr'),
                         variant: 'stroke',
                         onClick: () => {
                             posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, { choice: 'qr' })

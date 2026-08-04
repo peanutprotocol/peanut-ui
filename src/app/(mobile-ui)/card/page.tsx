@@ -655,13 +655,14 @@ const CardPage: FC = () => {
                         </div>
                     )
                 }
-                const cardRailReason = poaSubmitted
-                    ? 'We received your proof of address — it’s being reviewed.'
-                    : railsForProvider('rain')[0]?.reason?.userMessage
+                const cardRail = railsForProvider('rain')[0]
+                const cardRailReasonCode = poaSubmitted ? 'proof_of_address_review' : cardRail?.reason?.code
+                const cardRailReason = poaSubmitted ? undefined : cardRail?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
                         variant="requires-info"
                         reasonMessage={cardRailReason}
+                        reasonCode={cardRailReasonCode}
                         onContactSupport={() => setIsSupportModalOpen(true)}
                         onUploadProofOfAddress={onUploadProofOfAddress}
                         uploadError={poaError ?? undefined}
@@ -693,15 +694,14 @@ const CardPage: FC = () => {
                 // (meaningless without its reason), the rejected screen is useful
                 // on its own (reassurance + support CTA), so show it now and let
                 // the reason fill in once capabilities resolve.
-                const cardRailReason = poaSubmitted
-                    ? 'We received your proof of address — it’s being reviewed.'
-                    : capabilitiesLoading
-                      ? undefined
-                      : railsForProvider('rain')[0]?.reason?.userMessage
+                const cardRail = capabilitiesLoading ? undefined : railsForProvider('rain')[0]
+                const cardRailReasonCode = poaSubmitted ? 'proof_of_address_review' : cardRail?.reason?.code
+                const cardRailReason = poaSubmitted ? undefined : cardRail?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
                         variant="rejected"
                         reasonMessage={cardRailReason}
+                        reasonCode={cardRailReasonCode}
                         onContactSupport={() => setIsSupportModalOpen(true)}
                         onUploadProofOfAddress={onUploadProofOfAddress}
                         uploadError={poaError ?? undefined}
