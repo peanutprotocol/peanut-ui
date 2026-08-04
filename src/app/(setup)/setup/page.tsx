@@ -62,6 +62,11 @@ function SetupPageContent() {
 
     const handleContinueSession = () => {
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED)
+        // Mounting the (setup) layout armed the post-setup iOS install wall
+        // (setShowIosPwaInstallScreen in (setup)/layout.tsx). This visit was not a
+        // setup session and the soft nav keeps the store alive, so disarm it —
+        // otherwise /home renders the no-escape ForceIOSPWAInstall screen.
+        dispatch(setupActions.setShowIosPwaInstallScreen(false))
         router.push('/home')
     }
 

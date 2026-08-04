@@ -41,9 +41,11 @@ export function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL('/home', request.url))
     }
 
-    if (isAuthenticated && request.nextUrl.pathname === '/setup') {
-        return NextResponse.redirect(new URL('/home', request.url))
-    }
+    // NOTE: deliberately NO cookie-based /setup → /home bounce here. Cookie presence
+    // says nothing about session validity; bouncing on it looped forever against the
+    // logged-out `/home → /setup` redirect in (mobile-ui)/layout.tsx (TASK-21050,
+    // logged-out PWA lockout). The authenticated-at-/setup case is handled client-side
+    // by the existing-session prompt in (setup)/setup/page.tsx, which trusts /users/me.
 
     // Handle promo link redirection
     if (isPromoLink(url)) {
