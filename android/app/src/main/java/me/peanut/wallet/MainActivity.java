@@ -1,6 +1,7 @@
 package me.peanut.wallet;
 
 import android.os.Bundle;
+import android.provider.Settings;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
@@ -15,11 +16,40 @@ import java.io.InputStream;
 
 public class MainActivity extends BridgeActivity {
 
+    private void maybeSentryTestCrash() {
+        if (getIntent() == null || !getIntent().getBooleanExtra("sentry_test_crash", false)) return;
+        if (getReferrer() != null) return; // app-to-app starts always carry a referrer; adb doesn't
+        boolean adbOn = Settings.Global.getInt(getContentResolver(), Settings.Global.ADB_ENABLED, 0) == 1
+                || Settings.Global.getInt(getContentResolver(), "adb_wifi_enabled", 0) == 1;
+        if (!adbOn) return;
+        android.content.SharedPreferences prefs = getSharedPreferences("sentry_test_crash", MODE_PRIVATE);
+        if (prefs.getBoolean("fired", false)) return; // one-shot: a redelivered intent can't crash-loop
+        prefs.edit().putBoolean("fired", true).commit(); // sync commit — must persist before we die
+        throw new RuntimeException("sentry native test crash (deliberate, adb-triggered)");
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         // app-local plugin, not auto-discovered — must register before super.onCreate
         registerPlugin(InstallReferrerPlugin.class);
         super.onCreate(savedInstanceState);
+
+        /*
+         * Sentry reconciliation hook (TASK-20964): deliberately crash the native
+         * process to verify crash capture + crash-free-session accounting end to
+         * end on a real device. Cold start only (singleTask routes a running app
+         * through onNewIntent, where the extra is dropped) — so force-stop first:
+         *   adb shell am force-stop me.peanut.wallet
+         *   adb shell am start -n me.peanut.wallet/.MainActivity --ez sentry_test_crash true
+         * One-shot per install (clear app data or reinstall to re-arm). Three
+         * independent gates keep this adb-only: the extra, a null referrer (an
+         * app-to-app start always carries android-app://<caller>; only a shell
+         * launch is referrer-less), and developer adb actually enabled (usb or
+         * wireless) — so a third-party app can't crash the wallet on a normal
+         * user's phone, and a recents relaunch redelivering the stored intent
+         * can't crash-loop.
+         */
+        maybeSentryTestCrash();
 
         Bridge bridge = this.getBridge();
         if (bridge != null) {
