@@ -1429,12 +1429,19 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             fireEvent.click(screen.getByText('Continue'))
         })
 
+        // displayed side of the commit-path pin: the modal must be showing the
+        // amount the user is about to confirm
+        expect(screen.getByTestId('onramp-confirmation-modal')).toHaveTextContent('100')
+
         // Click Confirm in modal
         await act(async () => {
             fireEvent.click(screen.getByTestId('confirm-onramp'))
         })
 
-        expect(mockCreateOnramp).toHaveBeenCalled()
+        // submitted side of the pin: createOnramp must receive the same string
+        // the modal displayed — a conversion slipped between display and submit
+        // fails here
+        expect(mockCreateOnramp).toHaveBeenCalledWith(expect.objectContaining({ amount: '100' }))
         expect(mockSetQueryState).toHaveBeenCalledWith(expect.objectContaining({ step: 'showDetails' }))
     })
 
