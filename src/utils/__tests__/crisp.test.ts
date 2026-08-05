@@ -14,32 +14,16 @@
  * So this file mocks the plugin the way Capacitor actually builds it.
  */
 
+import { createPluginProxy, expectToSettle } from '@/utils/__mocks__/capacitor-plugin-proxy'
+
 const configure = jest.fn().mockResolvedValue(undefined)
 const openMessenger = jest.fn().mockResolvedValue(undefined)
 const reset = jest.fn().mockResolvedValue(undefined)
 
-const realMethods: Record<string, jest.Mock> = { configure, openMessenger, reset }
-
-/** Mirrors @capacitor/core registerPlugin(): unknown props become method wrappers
- *  that reject with Unimplemented rather than returning undefined. */
-const pluginProxy = new Proxy({} as Record<string, unknown>, {
-    get(_target, prop: string) {
-        if (prop === '$$typeof') return undefined
-        if (prop in realMethods) return realMethods[prop]
-        return () => Promise.reject(new Error(`"CapacitorCrisp.${prop}()" is not implemented on ios`))
-    },
-})
+const pluginProxy = createPluginProxy({ configure, openMessenger, reset }, 'CapacitorCrisp')
 
 jest.mock('@capgo/capacitor-crisp', () => ({ CapacitorCrisp: pluginProxy }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => true }))
-
-const withTimeout = <T>(promise: Promise<T>, ms = 200): Promise<T> =>
-    Promise.race([
-        promise,
-        new Promise<never>((_, rejectTimeout) =>
-            setTimeout(() => rejectTimeout(new Error('promise never settled')), ms)
-        ),
-    ])
 
 describe('ensureNativeCrispConfigured', () => {
     beforeEach(() => {
@@ -50,7 +34,7 @@ describe('ensureNativeCrispConfigured', () => {
     it('settles, and hands back a usable plugin, against a real-shaped plugin proxy', async () => {
         const { ensureNativeCrispConfigured } = await import('@/utils/crisp')
 
-        const { CapacitorCrisp } = await withTimeout(ensureNativeCrispConfigured())
+        const { CapacitorCrisp } = await expectToSettle(ensureNativeCrispConfigured())
 
         expect(configure).toHaveBeenCalledWith({ websiteID: expect.any(String) })
         await CapacitorCrisp.openMessenger()
@@ -60,8 +44,8 @@ describe('ensureNativeCrispConfigured', () => {
     it('configures once across repeated support opens', async () => {
         const { ensureNativeCrispConfigured } = await import('@/utils/crisp')
 
-        await withTimeout(ensureNativeCrispConfigured())
-        await withTimeout(ensureNativeCrispConfigured())
+        await expectToSettle(ensureNativeCrispConfigured())
+        await expectToSettle(ensureNativeCrispConfigured())
 
         expect(configure).toHaveBeenCalledTimes(1)
     })
@@ -70,8 +54,8 @@ describe('ensureNativeCrispConfigured', () => {
         configure.mockRejectedValueOnce(new Error('sdk boom'))
         const { ensureNativeCrispConfigured } = await import('@/utils/crisp')
 
-        await expect(withTimeout(ensureNativeCrispConfigured())).rejects.toThrow('sdk boom')
-        await expect(withTimeout(ensureNativeCrispConfigured())).resolves.toBeDefined()
+        await expect(expectToSettle(ensureNativeCrispConfigured())).rejects.toThrow('sdk boom')
+        await expect(expectToSettle(ensureNativeCrispConfigured())).resolves.toBeDefined()
 
         expect(configure).toHaveBeenCalledTimes(2)
     })
@@ -79,9 +63,9 @@ describe('ensureNativeCrispConfigured', () => {
     it('resets the native session on logout once support has been opened', async () => {
         const { ensureNativeCrispConfigured, resetCrispProxySessions } = await import('@/utils/crisp')
 
-        await withTimeout(ensureNativeCrispConfigured())
+        await expectToSettle(ensureNativeCrispConfigured())
         resetCrispProxySessions()
-        await withTimeout(Promise.resolve())
+        await expectToSettle(Promise.resolve())
 
         expect(reset).toHaveBeenCalled()
     })
