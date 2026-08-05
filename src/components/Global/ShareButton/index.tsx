@@ -90,6 +90,13 @@ const ShareButton = ({
                 await navigator.share(shareData)
             }
 
+            if (!navigator.share && !copied) {
+                const error = new Error('Clipboard copy failed and the Web Share API is unavailable')
+                toast.error(t('shareButton.sharingFailed'))
+                onError?.(error)
+                return
+            }
+
             onSuccess?.()
         } catch (error) {
             const err = error instanceof Error ? error : new Error(String(error))
