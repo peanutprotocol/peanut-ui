@@ -35,6 +35,7 @@ import { useHaptic } from 'use-haptic'
 import { useTranslations } from 'next-intl'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
+import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -254,6 +255,12 @@ export default function Home() {
                         dismiss/click hides it forever. Rendered above the carousel/activation
                         CTAs so it leads the home stack on launch day. */}
                     <CardLaunchCTA />
+                    {/* Pending Bridge verification tasks (ToS / hosted re-verification).
+                        Sibling of ActivationCTAs on purpose: it must show for users
+                        who can already transact (the advisory cohort), whom the
+                        activation card deliberately stands down for. Self-hiding;
+                        dismissible here — resurfaces under Profile → Unlocked regions. */}
+                    <PendingVerificationTasks dismissible />
                     {isActivated ? (
                         <HomeCarouselCTA />
                     ) : (

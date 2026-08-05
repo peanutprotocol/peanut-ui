@@ -64,3 +64,19 @@ export function shortDepositReference(reference: string | undefined): string | u
 export function shortDepositReference(reference: string | undefined): string | undefined {
     return reference?.slice(0, 10)
 }
+
+/**
+ * "2099-03-01" → "March 1, 2099". Capability advisory deadlines
+ * (`NextAction.effectiveDate`) are date-only YYYY-MM-DD strings, which
+ * `new Date()` parses at UTC midnight — format in UTC too, or Americas
+ * timezones render the day before the deadline. One formatter for every
+ * surface that shows the same deadline (AdvisoryPreemptModal, the pending
+ * verification tasks card), so the same date never renders two ways.
+ */
+export function formatEffectiveDate(iso?: string): string | null {
+    if (!iso) return null
+    const date = new Date(iso)
+    return Number.isNaN(date.getTime())
+        ? null
+        : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
+}

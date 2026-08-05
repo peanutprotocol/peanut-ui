@@ -501,6 +501,12 @@ export type UserPreferences = {
     notifModalClosedAt?: string
     /** ISO timestamp the app-review prompt was shown (asked once, ever). */
     reviewPromptShownAt?: string
+    /** Dismissal fingerprints (`bridgeTaskDismissalKey`: key|requirement|due)
+     *  of the pending Bridge verification tasks the user individually
+     *  dismissed on /home. A task that turns blocking or changes substance
+     *  gets a new fingerprint and re-surfaces; the tasks always stay
+     *  reachable under Profile → Unlocked regions. */
+    pendingVerificationTasksDismissed?: string[]
 }
 
 export const updateUserPreferences = (

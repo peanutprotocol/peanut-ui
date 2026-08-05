@@ -44,7 +44,7 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
         {
             key: 'exchangeRate',
             label: t('manteca.exchangeRate'),
-            value: `1 USD = ${price?.buy} ${currency}`,
+            value: price?.sell ? `1 USD = ${price.sell} ${currency}` : 'Unavailable',
         },
         {
             key: 'fee',

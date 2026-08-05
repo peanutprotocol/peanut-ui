@@ -27,6 +27,7 @@ export const ANALYTICS_EVENTS = {
     PWA_INSTALL_CLICKED: 'pwa_install_clicked',
     PWA_INSTALL_DISMISSED: 'pwa_install_dismissed',
     PWA_INSTALL_COMPLETED: 'pwa_install_completed',
+    PWA_OPEN_APP_CLICKED: 'pwa_open_app_clicked',
 
     // ── KYC (Bridge) ──
     KYC_INITIATED: 'kyc_initiated',
@@ -299,6 +300,7 @@ export const MODAL_TYPES = {
     INVITE: 'invite',
     MIGRATION_DOWNLOAD: 'migration_download',
     APP_REVIEW: 'app_review',
+    RE_CONSENT: 're_consent',
 } as const
 
 /**
