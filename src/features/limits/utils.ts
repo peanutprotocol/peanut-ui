@@ -185,11 +185,16 @@ export function getLimitsWarningCardProps({
     // use limitCurrency from validation (correct currency for the limit) or fallback to transaction currency
     const limitCurrency = validation.limitCurrency ?? currency ?? 'USD'
     const currencySymbol = getCurrencySymbol(limitCurrency)
-    const formattedLimit = formatExtendedNumber(validation.remainingLimit ?? 0)
+    // `?? 0` here would state "you can add up to $0" when the remaining limit is
+    // merely UNKNOWN — the same unknown-rendered-as-zero shape as the $0 balance
+    // bug. Omit the sentence instead of inventing a figure.
+    const formattedLimit = validation.remainingLimit == null ? null : formatExtendedNumber(validation.remainingLimit)
 
     // build the limit message based on flow type
     let limitMessage = ''
-    if (flowType === 'onramp') {
+    if (formattedLimit === null) {
+        limitMessage = ''
+    } else if (flowType === 'onramp') {
         limitMessage = `You can add up to ${currencySymbol === '$' ? '' : currencySymbol + ' '}${currencySymbol === '$' ? '$' : ''}${formattedLimit}${validation.daysUntilReset ? '' : ' per transaction'}`
     } else if (flowType === 'offramp') {
         limitMessage = `You can withdraw up to ${currencySymbol === '$' ? '' : currencySymbol + ' '}${currencySymbol === '$' ? '$' : ''}${formattedLimit}${validation.daysUntilReset ? '' : ' per transaction'}`
@@ -198,7 +203,7 @@ export function getLimitsWarningCardProps({
         limitMessage = `You can pay up to ${currencySymbol === '$' ? '' : currencySymbol + ' '}${currencySymbol === '$' ? '$' : ''}${formattedLimit} per transaction`
     }
 
-    items.push({ text: limitMessage })
+    if (limitMessage) items.push({ text: limitMessage })
 
     // add days until reset if applicable
     if (validation.daysUntilReset) {

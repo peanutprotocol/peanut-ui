@@ -16,7 +16,7 @@ import { rainApi, type RainCollateralKind } from '@/services/rain'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey } from './useGrantSessionKey'
-import { usdcUnitsToRainCents } from '@/utils/balance.utils'
+import { usdcUnitsToRainCents, isRainBalanceKnown } from '@/utils/balance.utils'
 import { useModalsContextOptional } from '@/context/ModalsContext'
 import { smartUsdcBalanceQueryOptions } from './useBalance'
 import { isDemoMode } from '@/utils/demo'
@@ -158,6 +158,7 @@ export const useSpendBundle = () => {
                 requiredUsdcAmount,
                 rainSpendingPower,
                 collateralOnlyAllowed,
+                rainBalanceKnown: isRainBalanceKnown(overview),
             })
 
             onStrategyDecided?.(strategy)
