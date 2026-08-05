@@ -90,7 +90,12 @@ export function resolveCampaign(
 //  - Vanity: a commemorative badge with NO card-waitlist skip. Claimable from a
 //    bare link, but `/invite` shows generic badge-claim copy (not "skip").
 export const SKIP_CAMPAIGN = 'skip'
-export const WAITLIST_SKIP_CAMPAIGNS: ReadonlySet<string> = new Set([SKIP_CAMPAIGN, 'event_alumni'])
+// naija and terere are the country-launch cohorts. Both are distributed as BARE
+// campaign links with no inviter, and both are in peanut-api-ts
+// POSTLAUNCH_SKIP_BADGE_CODES — so they belong here, not in BARE_VANITY_CAMPAIGNS
+// (that set is for badges with no card-waitlist skip, and would show the wrong
+// copy while the backend granted a skip anyway).
+export const WAITLIST_SKIP_CAMPAIGNS: ReadonlySet<string> = new Set([SKIP_CAMPAIGN, 'event_alumni', 'naija', 'terere'])
 export const BARE_VANITY_CAMPAIGNS: ReadonlySet<string> = new Set([
     'touched_grass',
     'card_alpha',
