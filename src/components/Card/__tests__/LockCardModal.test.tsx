@@ -19,6 +19,7 @@
 import React, { type ReactNode } from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { IntlWrapper } from '@/test-utils/intl'
 import LockCardModal from '@/components/Card/LockCardModal'
 import CancelCardModal from '@/components/Card/CancelCardModal'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -77,9 +78,11 @@ const FORCED_SIGN_ARGS = {
 }
 
 const Wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        {children}
-    </QueryClientProvider>
+    <IntlWrapper>
+        <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+            {children}
+        </QueryClientProvider>
+    </IntlWrapper>
 )
 
 const setup = (overview?: { balance: { spendingPower: number } }) => {

@@ -22,6 +22,7 @@ const mockParams: Record<string, string> = {}
 jest.mock('next/navigation', () => ({
     useParams: () => mockParams,
     useSearchParams: () => ({ get: () => null }),
+    useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
 }))
 
 const mockQueryState: Record<string, unknown> = {}
