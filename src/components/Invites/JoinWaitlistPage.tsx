@@ -23,8 +23,11 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { INVITER_NOT_FOUND_ERROR } from '@/constants/invites.consts'
 import { getFromCookie, removeFromCookie, toInviteCode } from '@/utils/general.utils'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
+import { settleAcceptedInviteAcquisition } from '@/services/invite-acquisition'
+import { isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 
 type WaitlistStep = 'email' | 'notifications' | 'jail'
+type InviteAcceptanceOutcome = 'onboarding_resolved' | 'campaign_only' | 'failed'
 
 const nextStepAfterEmail = (isPermissionGranted: boolean): WaitlistStep =>
     isPermissionGranted ? 'jail' : 'notifications'
@@ -160,8 +163,12 @@ const JoinWaitlistPage = () => {
         setIsValidating(true)
         try {
             const res = await invitesApi.validateInviteCode(code)
-            posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, { valid: res.success, source: 'waitlist_page' })
-            return res.success
+            const onboardingResolved = res.success && res.onboardingResolved
+            posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, {
+                valid: onboardingResolved,
+                source: 'waitlist_page',
+            })
+            return onboardingResolved
         } catch (e) {
             posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, { valid: false, source: 'waitlist_page' })
             throw e
@@ -171,8 +178,11 @@ const JoinWaitlistPage = () => {
     }
 
     // Shared by the manual Next button and the automatic attempt below.
-    // Returns true on success (access flipped, user refetched).
-    const acceptInviteWithCode = async (code: string, source: 'waitlist_page' | 'waitlist_auto'): Promise<boolean> => {
+    // Campaign-only compatibility can settle without granting onboarding.
+    const acceptInviteWithCode = async (
+        code: string,
+        source: 'waitlist_page' | 'waitlist_auto'
+    ): Promise<InviteAcceptanceOutcome> => {
         const res = await invitesApi.acceptInvite(code, inviteType)
         if (!res.success) {
             posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
@@ -180,20 +190,40 @@ const JoinWaitlistPage = () => {
                 error_message: 'API returned unsuccessful',
                 source,
             })
-            return false
+            return 'failed'
+        }
+        if (!res.onboardingResolved) {
+            if (!res.legacyAcquisition) {
+                posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
+                    invite_code: code,
+                    error_message: 'Campaign-only response omitted acquisition descriptor',
+                    source,
+                })
+                return 'failed'
+            }
+
+            // The adapter has done all it can. Settle terminal claims and keep
+            // only retryable campaign state; never retry the non-invite code.
+            settleAcceptedInviteAcquisition(res.legacyAcquisition, res.claims)
+            removeFromCookie('inviteCode')
+            // Provenance is audit-only. Refresh every confirmed permanent award
+            // so any badge-owned access/reward projection is visible immediately;
+            // unavailable outcomes must not masquerade as a capability change.
+            if (res.claims.some(isConfirmedBadgeCampaignClaim)) await fetchUser()
+            return 'campaign_only'
         }
         posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, { invite_code: code, source })
         sessionStorage.setItem('showNoMoreJailModal', 'true')
         removeFromCookie('inviteCode')
         await fetchUser()
-        return true
+        return 'onboarding_resolved'
     }
 
     const handleAcceptInvite = async () => {
         setIsAccepting(true)
         try {
-            const success = await acceptInviteWithCode(inviteCode, 'waitlist_page')
-            if (!success) {
+            const outcome = await acceptInviteWithCode(inviteCode, 'waitlist_page')
+            if (outcome === 'failed') {
                 setError('Something went wrong. Please try again or contact support.')
             }
         } catch {

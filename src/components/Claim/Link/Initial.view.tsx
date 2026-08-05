@@ -53,11 +53,13 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
-    // get campaign tag from claim link url
-    const params = useSearchParams()
-    const campaignTag = params.get('campaignTag')
+    const searchParams = useSearchParams()
+    // `/claim` remains a published singular campaignTag wire. Resolve its URL
+    // through the canonical badge namespace before forwarding that legacy field.
+    const campaignTag = badgeCampaignForLegacyWire(searchParams)
 
     const senderDisplay = useRecipientDisplay({
         user: props.claimLinkData.sender,
@@ -128,7 +130,6 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     const router = useRouter()
     const { user, fetchUser } = useAuth()
     const queryClient = useQueryClient()
-    const searchParams = useSearchParams()
     const prevRecipientType = useRef<string | null>(null)
     const prevUser = useRef(user)
     // Bank-claim routing checks "is there an enabled bank rail the claim could
@@ -147,7 +148,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     useEffect(() => {
         // Validate devconnect token and chain are supported
         if (
-            campaignTag === 'devconnect_ba_2025' &&
+            campaignTag?.toLowerCase() === 'devconnect_ba_2025' &&
             paramsDevconnectTokenAddress &&
             paramsDevconnectRecipientAddress &&
             paramsDevconnectChainId &&
@@ -275,7 +276,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         EInviteType.PAYMENT_LINK,
                         campaignTag ?? undefined
                     )
-                    if (!result.success) {
+                    if (!result.success || !result.onboardingResolved) {
                         console.error('Failed to accept invite')
                         setErrorState({
                             showError: true,
@@ -353,6 +354,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         link: claimLinkData.link,
                         destinationChainId: selectedTokenData.chainId,
                         destinationToken: selectedTokenData.address,
+                        campaignTag: campaignTag ?? undefined,
                     })
                     setClaimType('claimxchain')
                 } else {
@@ -362,7 +364,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         link: claimLinkData.link,
                         depositDetails, // performance: skip RPC call
                         optimisticReturn: true, // UX: return immediately, poll for txHash
-                        campaignTag: campaignTag ?? undefined, // badge assignment: pass campaign tag
+                        campaignTag: campaignTag ?? undefined,
                     })
                     setClaimType('claim')
                 }

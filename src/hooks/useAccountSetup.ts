@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import * as Sentry from '@sentry/nextjs'
 import { useAuth } from '@/context/authContext'
-import { WalletProviderType } from '@/interfaces'
-import { getRedirectUrl, getValidRedirectUrl, clearRedirectUrl } from '@/utils/general.utils'
+import { WalletProviderType } from '@/interfaces/wallet.interfaces'
 import { clearAuthState } from '@/utils/auth.utils'
 import { POST_SIGNUP_ACTIONS } from '@/components/Global/PostSignupActionManager/post-signup-action.consts'
 import { useSetupStore } from '@/redux/hooks'
+import { consumePostAuthRedirect } from '@/services/post-auth-redirect'
 
 /**
  * shared hook for finalizing account setup after test transaction succeeds
@@ -22,31 +22,14 @@ export const useAccountSetup = () => {
     const [isProcessing, setIsProcessing] = useState(false)
 
     const handleRedirect = (): boolean => {
-        const redirect_uri = searchParams.get('redirect_uri')
-        if (redirect_uri) {
-            const validRedirectUrl = getValidRedirectUrl(redirect_uri, '/home')
-            console.log('[useAccountSetup] Redirecting to redirect_uri:', validRedirectUrl)
-            router.push(validRedirectUrl)
-            return true
-        }
+        const redirect = consumePostAuthRedirect(searchParams.get('redirect_uri'), {
+            deferStoredRedirect: (destination) =>
+                POST_SIGNUP_ACTIONS.some((action) => action.pathPattern.test(destination)),
+        })
 
-        const localStorageRedirect = getRedirectUrl()
-        if (localStorageRedirect) {
-            const matchedAction = POST_SIGNUP_ACTIONS.find((action) => action.pathPattern.test(localStorageRedirect))
-            if (matchedAction) {
-                console.log('[useAccountSetup] Matched post-signup action, redirecting to /home')
-                router.push('/home')
-            } else {
-                clearRedirectUrl()
-                const validRedirectUrl = getValidRedirectUrl(localStorageRedirect, '/home')
-                console.log('[useAccountSetup] Redirecting to localStorage redirect:', validRedirectUrl)
-                router.push(validRedirectUrl)
-            }
-        } else {
-            console.log('[useAccountSetup] No redirect found, going to /home')
-            router.push('/home')
-        }
-        return false
+        console.log('[useAccountSetup] Resolved post-auth redirect:', redirect)
+        router.push(redirect.destination)
+        return redirect.source === 'explicit'
     }
 
     /**

@@ -16,7 +16,7 @@ import { useGeoLocation } from './useGeoLocation'
 import { useCardInfo } from './useCardInfo'
 import { useActivationStatus } from './useActivationStatus'
 import { useTransactionHistory } from './useTransactionHistory'
-import { STAR_STRAIGHT_ICON } from '@/assets'
+import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useToast } from '@/components/0_Bruddle/Toast'
 
@@ -96,11 +96,7 @@ export const useHomeCarouselCTAs = () => {
 
     const { setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
-    const {
-        isEligible: isCardPioneerEligible,
-        hasCardAccess: hasCardAccessGranted,
-        isLoading: isCardPioneerLoading,
-    } = useCardInfo()
+    const { hasCardAccess: hasCardAccessGranted } = useCardInfo()
     const { isActivated } = useActivationStatus()
 
     // Completion signals — used to hide educational CTAs from users who've already
@@ -326,7 +322,6 @@ export const useHomeCarouselCTAs = () => {
 
         setCarouselCTAs(_carouselCTAs.filter((cta) => !dismissedRef.current.has(cta.id)))
     }, [
-        user?.user?.userId,
         isPermissionGranted,
         isPermissionDenied,
         isPushOptedIn,
@@ -340,9 +335,7 @@ export const useHomeCarouselCTAs = () => {
         deviceType,
         isPwa,
         userCountryCode,
-        isCardPioneerEligible,
         hasCardAccessGranted,
-        isCardPioneerLoading,
         isActivated,
         hasMadeQrPayment,
         hasSentInvites,

@@ -20,6 +20,7 @@ import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import { PeanutCheering } from '@/assets/mascot'
 import Image from 'next/image'
 import { useHaptic } from 'use-haptic'
+import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 
 export const SuccessClaimLinkView = ({
     transactionHash,
@@ -35,7 +36,7 @@ export const SuccessClaimLinkView = ({
     const { offrampDetails, claimType, bankDetails } = useClaimBankFlow()
     const { triggerHaptic } = useHaptic()
     const params = useSearchParams()
-    const campaignTag = params.get('campaignTag')
+    const campaignTag = badgeCampaignForLegacyWire(params)
     const senderDisplay = useRecipientDisplay({
         user: claimLinkData.sender,
         address: claimLinkData.senderAddress,
@@ -196,7 +197,7 @@ export const SuccessClaimLinkView = ({
                 />
                 <PeanutActionDetailsCard {...cardProps} />
                 {renderButtons()}
-                {campaignTag === 'devconnect_ba_2025' && (
+                {campaignTag?.toLowerCase() === 'devconnect_ba_2025' && (
                     <p className="text-center text-xs text-grey-1">
                         Tap the X button at the top left to return to the Devconnect app
                     </p>

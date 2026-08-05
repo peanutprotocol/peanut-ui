@@ -34,7 +34,7 @@ import type { TierLevel } from '@/components/Card/share-asset/shareAsset.types'
 interface Props {
     badgeCode?: string
     username?: string
-    badges: Array<{ code: string; earnedAt?: string }>
+    badges: Array<{ code: string; iconUrl?: string | null; earnedAt?: string }>
     stats?: {
         joinedAt?: string | null
         totalMovedUsd?: number

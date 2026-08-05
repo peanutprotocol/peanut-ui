@@ -55,7 +55,7 @@ const JoinWaitlist = () => {
             setError('')
             setisLoading(true)
             const res = await invitesApi.validateInviteCode(inviteCode)
-            const isValid = res.success
+            const isValid = res.success && res.onboardingResolved
             posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, {
                 valid: isValid,
                 source: 'setup',

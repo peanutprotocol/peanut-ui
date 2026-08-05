@@ -1,6 +1,6 @@
-import Image from 'next/image'
 import type { StaticImageData } from 'next/image'
 import ActionModal from '../Global/ActionModal'
+import { BadgeImage } from './BadgeImage'
 
 type BadgeDetailModalProps = {
     isOpen: boolean
@@ -15,7 +15,9 @@ type BadgeDetailModalProps = {
 // surfaces show the exact same modal.
 export const BadgeDetailModal = ({ isOpen, onClose, title, description, logo }: BadgeDetailModalProps) => (
     <ActionModal
-        icon={<Image height={240} width={240} src={logo} alt={title} className="w-60 object-contain" unoptimized />}
+        icon={
+            <BadgeImage height={240} width={240} src={logo} alt={title} className="w-60 object-contain" unoptimized />
+        }
         iconContainerClassName="bg-transparent min-w-60 h-auto"
         modalPanelClassName="m-0"
         visible={isOpen}

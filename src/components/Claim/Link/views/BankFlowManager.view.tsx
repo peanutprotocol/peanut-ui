@@ -40,6 +40,7 @@ import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useModalsContext } from '@/context/ModalsContext'
+import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 
 type BankAccountWithId = IBankAccountDetails &
     (
@@ -58,10 +59,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     // props and basic setup
     const { onCustom, claimLinkData, setTransactionHash } = props
     const { user, fetchUser } = useAuth()
-
-    // get campaign tag from claim link url for badge assignment
-    const params = useSearchParams()
-    const campaignTag = params.get('campaignTag')
+    const campaignTag = badgeCampaignForLegacyWire(useSearchParams())
 
     // state from the centralized context
     const {
@@ -129,7 +127,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 const claimTx = await claimLink({
                     address: details.depositInstructions.toAddress,
                     link: claimLinkData.link,
-                    campaignTag: campaignTag ?? undefined, // badge assignment: pass campaign tag
+                    campaignTag: campaignTag ?? undefined,
                 })
 
                 if (!claimTx) {
@@ -177,7 +175,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 throw e
             }
         },
-        [claimLink, claimLinkData.link, setTransactionHash, setClaimType, onCustom, user, campaignTag]
+        [campaignTag, claimLink, claimLinkData.link, setTransactionHash, setClaimType, onCustom, user]
     )
 
     /**

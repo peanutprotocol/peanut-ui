@@ -27,7 +27,7 @@ interface Props {
     /** Full user-badges payload (with `earnedAt`) so the share asset can
      *  stamp every badge the user holds, not just the skip-the-line
      *  subset. Empty array → asset renders without stamps. */
-    badges?: Array<{ code: string; earnedAt?: string | Date | null }>
+    badges?: Array<{ code: string; iconUrl?: string | null; earnedAt?: string | Date | null }>
 }
 
 export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, badges }) => {
@@ -46,7 +46,7 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
     // `string | Date | undefined` — drop nulls.
     const assetBadges = (badges ?? [])
         .filter((b) => !!b.code)
-        .map((b) => ({ code: b.code, earnedAt: b.earnedAt ?? undefined }))
+        .map((b) => ({ code: b.code, iconUrl: b.iconUrl, earnedAt: b.earnedAt ?? undefined }))
 
     return (
         <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>

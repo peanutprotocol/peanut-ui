@@ -626,6 +626,7 @@ const CardPage: FC = () => {
                 const allBadges =
                     user?.user?.badges?.map((b) => ({
                         code: b.code,
+                        iconUrl: b.iconUrl,
                         earnedAt: b.earnedAt,
                     })) ?? cardInfo!.skipBadges.map((code) => ({ code }))
                 return (

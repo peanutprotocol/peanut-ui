@@ -90,16 +90,15 @@ function SetupPageContent() {
 
             // Skip the invite-code gate straight to signup when either:
             //  - an invite code is present (cookie survives the PWA-install hop), or
-            //  - the URL asks for it via ?step=signup — the signal every campaign /
-            //    skip flow already sends (ShhhhhLandingPage, InvitesPage.handleClaim)
-            //    when it pushes to /setup. useZeroDev still reads the campaignTag
-            //    cookie post-signup to award the badge; the step decision no longer
-            //    trusts that cookie.
+            //  - the URL asks for it via ?step=signup — the signal every campaign
+            //    entrypoint sends when it pushes to /setup. After authentication,
+            //    useZeroDev submits the queued opaque campaign list to the canonical
+            //    claim service; the step decision never interprets that cookie.
             //
-            // Why not the campaignTag cookie: it's a session cookie cleared only on a
-            // successful signup, so a returning user who claimed a campaign earlier in
-            // the same session was routed past Landing (the only screen with Log In)
-            // onto Signup, unable to log back in (regression from PR #2346).
+            // Why not the campaignTag cookie: retryable campaign acquisition can
+            // intentionally persist for 30 days. Using it as onboarding state would
+            // route a returning user past Landing (the only screen with Log In) onto
+            // Signup, unable to log back in (regression from PR #2346).
             const inviteCodeFromCookie = getFromCookie('inviteCode')
             const userInviteCode = inviteCode || inviteCodeFromCookie
             const skipInviteGate = !!userInviteCode || searchParams.get('step') === 'signup'

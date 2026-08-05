@@ -31,6 +31,7 @@ import {
 } from './shareAssetLayout'
 import type { ShareAssetD3Props, HeroMessage } from './shareAsset.types'
 import { PixelatedCardFace } from './PixelatedCardFace'
+import { getBadgeIcon } from '@/components/Badges/badge.utils'
 
 // Peanut blue — the brand section colour reused from the prod landing page
 // (LP `businessBgColor` in dropLink.tsx + the global `--background-color`).
@@ -328,6 +329,11 @@ const StickerEl: FC<StickerElProps> = ({ sticker, animate, delay }) => {
             src={sticker.badge.iconUrl}
             alt=""
             aria-hidden
+            onError={(event) => {
+                if (event.currentTarget.dataset.badgeFallbackApplied) return
+                event.currentTarget.dataset.badgeFallbackApplied = 'true'
+                event.currentTarget.src = getBadgeIcon()
+            }}
             className="pointer-events-none absolute select-none"
             style={{
                 width: sticker.width,

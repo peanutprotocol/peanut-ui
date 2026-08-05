@@ -38,6 +38,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             code: string
             name: string
             description: string | null
+            publicDescription?: string | null
             iconUrl: string | null
             earnedAt?: string | Date
         }>

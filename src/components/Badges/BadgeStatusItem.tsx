@@ -2,10 +2,10 @@ import { useState, useMemo } from 'react'
 import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { BadgeStatusDrawer } from './BadgeStatusDrawer'
-import Image from 'next/image'
 import InvitesIcon from '../Home/InvitesIcon'
 import { getBadgeDisplayName, getBadgeIcon } from './badge.utils'
 import { type BadgeHistoryEntry } from './badge.types'
+import { BadgeImage } from './BadgeImage'
 
 export const BadgeStatusItem = ({
     position = 'first',
@@ -37,8 +37,8 @@ export const BadgeStatusItem = ({
             >
                 {/* badge icon */}
                 <div className={'relative flex h-8 w-8 items-center justify-center rounded-full'}>
-                    <Image
-                        src={getBadgeIcon(entry.code)}
+                    <BadgeImage
+                        src={getBadgeIcon(entry.code, entry.iconUrl)}
                         alt={`${displayName} icon`}
                         className="size-10 object-contain"
                         width={32}

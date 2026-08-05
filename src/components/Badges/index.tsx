@@ -1,10 +1,9 @@
 'use client'
 
-import Image from 'next/image'
 import type { StaticImageData } from 'next/image'
 import NavHeader from '../Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { getBadgeDisplayName, getBadgeIcon } from './badge.utils'
+import { getBadgeDescription, getBadgeDisplayName, getBadgeIcon } from './badge.utils'
 import { getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { Icon } from '../Global/Icons/Icon'
@@ -13,6 +12,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { useUserStore } from '@/redux/hooks'
 import { ActionListCard } from '../ActionListCard'
 import { useAuth } from '@/context/authContext'
+import { BadgeImage } from './BadgeImage'
 
 type BadgeView = { title: string; description: string; logo: string | StaticImageData }
 
@@ -34,8 +34,8 @@ export const Badges = () => {
         const raw = authUser?.user?.badges || []
         return raw.map((b) => ({
             title: getBadgeDisplayName(b.code, b.name),
-            description: b.description || '',
-            logo: getBadgeIcon(b.code),
+            description: getBadgeDescription(b.description) || '',
+            logo: getBadgeIcon(b.code, b.iconUrl),
         }))
     }, [authUser?.user?.badges])
 
@@ -72,7 +72,7 @@ export const Badges = () => {
                             }}
                             position={getCardPosition(idx, badges.length)}
                             leftIcon={
-                                <Image
+                                <BadgeImage
                                     src={badge.logo}
                                     alt={badge.title}
                                     // object-contain so non-square badge SVGs
