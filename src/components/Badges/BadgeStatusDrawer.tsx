@@ -92,7 +92,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                             <ShareButton
                                 title=""
                                 generateText={() =>
-                                    Promise.resolve(getBadgeShareText(badge.code, displayName, profileLink))
+                                    Promise.resolve(getBadgeShareText(t, badge.code, displayName, profileLink))
                                 }
                             >
                                 {t('shareAchievement')}

@@ -2,10 +2,11 @@
 
 import Image from 'next/image'
 import type { StaticImageData } from 'next/image'
+import { useTranslations } from 'next-intl'
 import ActionModal from '../Global/ActionModal'
 import ShareButton from '../Global/ShareButton'
 import { getBadgeShareText } from './badge.utils'
-import { useUserStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
 import { BASE_URL } from '@/constants/general.consts'
 
 type BadgeDetailModalProps = {
@@ -23,8 +24,9 @@ type BadgeDetailModalProps = {
 // badge-unlock drawer so both surfaces show the exact same modal. The modal's
 // top-right ✕ is the dismiss affordance now that "Got it" became "Share badge".
 export const BadgeDetailModal = ({ isOpen, onClose, code, title, description, logo }: BadgeDetailModalProps) => {
-    const { user: authUser } = useUserStore()
-    const username = authUser?.user?.username
+    const t = useTranslations('badges')
+    const { user: authUser } = useAuth()
+    const username = authUser?.user.username
     // the sharer's own public profile — showcases their badges + carries the join CTA
     const profileUrl = username ? `${BASE_URL}/${username}` : BASE_URL
 
@@ -42,9 +44,9 @@ export const BadgeDetailModal = ({ isOpen, onClose, code, title, description, lo
                     title=""
                     className="w-full"
                     onSuccess={onClose}
-                    generateText={() => Promise.resolve(getBadgeShareText(code, title, profileUrl))}
+                    generateText={() => Promise.resolve(getBadgeShareText(t, code, title, profileUrl))}
                 >
-                    Share badge
+                    {t('share.cta')}
                 </ShareButton>
             }
         />

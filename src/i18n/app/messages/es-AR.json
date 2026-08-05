@@ -44,7 +44,15 @@
         "setupDescription": "Activá las notificaciones y recibí alertas de toda la actividad de tu billetera."
     },
     "badges": {
-        "toastTapToView": "— tocá para ver"
+        "toastTapToView": "— tocá para ver",
+        "share": {
+            "join": "Sumate a Peanut conmigo 👉 {link}",
+            "lines": {
+                "WAITLIST_SKIP": "Me salté la fila. No importa lo que sabés, sino quién te invita 🔑",
+                "BIGGEST_REQUEST_POT": "¿Timbero o pedigüeño profesional? Como sea, armé la vaquita más grande de Peanut 🫗",
+                "THIRD_INVITE": "Tres amigos en Peanut, cero fallos. Sacate el sombrero 🎩"
+            }
+        }
     },
     "global": {
         "earlyUserModal": {
