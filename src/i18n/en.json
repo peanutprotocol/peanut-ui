@@ -141,5 +141,7 @@
     "exchangePeanutFee": "Peanut fee",
     "exchangeFree": "Free!",
     "exchangeArrivesHours": "Should arrive in hours.",
-    "exchangeArrivesMinutes": "Should arrive in minutes."
+    "exchangeArrivesMinutes": "Should arrive in minutes.",
+    "legalHeroSubtitlePrivacy": "How we handle your data",
+    "legalHeroSubtitleTerms": "The agreement between you and Peanut"
 }
