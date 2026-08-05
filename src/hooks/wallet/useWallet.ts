@@ -9,7 +9,7 @@ import { useIsFetching } from '@tanstack/react-query'
 import { formatUnits, type Hex, type Address } from 'viem'
 import { useZeroDev } from '../useZeroDev'
 import { useAuth } from '@/context/authContext'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import { useBalance } from './useBalance'
 import { useSendMoney as useSendMoneyMutation } from './useSendMoney'
 import { formatCurrency } from '@/utils/general.utils'
@@ -20,8 +20,11 @@ import {
     rainCentsToUsdcUnits,
     isAmountWithinBalance,
 } from '@/utils/balance.utils'
-import { useSpendBundle, type SpendStrategy } from './useSpendBundle'
+import { useSpendBundle } from './useSpendBundle'
+import type { SpendStrategy } from './spendPreflight'
 import type { RainCollateralKind } from '@/services/rain'
+import { isDemoMode } from '@/utils/demo'
+import { useDemoBalanceUnits } from '@/utils/demo-balance'
 
 type SendTransactionsOptions = {
     chainId?: string
@@ -117,9 +120,12 @@ export const useWallet = () => {
             })
             // `strategy` lets same-chain callers distinguish "funds left the smart
             // account" (smart-only) from "funds left Rain collateral" (collateral-
-            // only/mixed). The latter is reconciled server-side via Rain's webhook
-            // → TransactionIntent, so callers can skip legacy recordPayment paths
-            // that would otherwise leave an unmatched Charge in history.
+            // only/mixed). Charge-backed callers should still recordPayment on
+            // every strategy: collateral-only re-enters the backend's idempotent
+            // trusted-completion path, and the others rely on it to complete the
+            // charge — skipping it leaves the charge PENDING and the spend
+            // invisible in Activity. (Mixed callers: only record a MINED tx
+            // hash, never the bare userOp hash — see the withdraw page.)
             // `intentId` is the receipt handle for collateral/mixed spends —
             // `/receipt/<intentId>?kind=<IntentKind>`.
             return {
@@ -194,16 +200,23 @@ export const useWallet = () => {
         await refetchBalance()
     }, [isAddressReady, refetchBalance])
 
+    // demo mode: mutable, persisted balance overlay (utils/demo-balance.ts) —
+    // debited on each simulated send so the displayed balance updates and
+    // survives relaunch.
+    const demoMode = isDemoMode()
+    const demoBalanceUnits = useDemoBalanceUnits()
+
     // Use balance from query if available, otherwise fall back to Redux
-    const balance =
-        balanceFromQuery !== undefined
-            ? balanceFromQuery
-            : reduxBalance !== undefined
-              ? BigInt(reduxBalance)
-              : undefined
+    const balance = demoMode
+        ? demoBalanceUnits
+        : balanceFromQuery !== undefined
+          ? balanceFromQuery
+          : reduxBalance !== undefined
+            ? BigInt(reduxBalance)
+            : undefined
 
     // consider balance as fetching until: address is validated and query has resolved
-    const isBalanceLoading = !isAddressReady || isFetchingBalance
+    const isBalanceLoading = demoMode ? false : !isAddressReady || isFetchingBalance
 
     // Total spendable balance: smart-account balance + Rain collateral (landed +
     // in-transit). Display AND the affordability gate both run on THIS number.
@@ -252,7 +265,7 @@ export const useWallet = () => {
     const spendableBalance = stableSpendable ?? rawSpendableBalance
     // Block on both smart-account and rain queries to avoid a flicker from
     // the balance jumping when the rain number arrives.
-    const isSpendableBalanceLoading = isBalanceLoading || isRainOverviewLoading
+    const isSpendableBalanceLoading = demoMode ? false : isBalanceLoading || isRainOverviewLoading
 
     // formatted balance for display (e.g. "1,234.56"). Smart-account only —
     // use `formattedSpendableBalance` below for user-facing widgets that

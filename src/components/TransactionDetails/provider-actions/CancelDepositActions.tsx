@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
+import ActionModal from '@/components/Global/ActionModal'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
@@ -13,6 +14,7 @@ import { chargesApi } from '@/services/charges'
 import { mantecaApi } from '@/services/manteca'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 
 /**
  * Cancel-deposit buttons for pending bank-deposit-shaped flows.
@@ -38,8 +40,21 @@ export function CancelDepositActions({
     setIsLoading: ((loading: boolean) => void) | undefined
     onClose: (() => void) | undefined
 }) {
+    const t = useTranslations('transaction')
     const queryClient = useQueryClient()
     const [error, setError] = useState<string | null>(null)
+    // Cancels are irreversible and the button sits next to the support link —
+    // a real user cancelled a funded deposit while trying to report a problem
+    // (no way to match the wire once cancelled). Every cancel confirms first.
+    const [pendingCancel, setPendingCancel] = useState<{ noun: string; run: () => Promise<void> } | null>(null)
+    // Visibility is separate from pendingCancel so the noun stays rendered
+    // during the modal's fade-out (nulling it mid-fade flashed 'deposit'
+    // over 'request' titles).
+    const [confirmOpen, setConfirmOpen] = useState(false)
+    // Ref, not state: a double-tap on the confirm CTA during the modal's
+    // fade-out lands both clicks before a re-render, so a state guard would
+    // let the cancel fire twice. Refs are synchronous.
+    const isCancelRunning = useRef(false)
     if (!setIsLoading || !onClose) return null
 
     const refetchAndClose = () =>
@@ -58,16 +73,58 @@ export function CancelDepositActions({
             captureException(err)
             // A cancel that fails silently makes the user believe the deposit is
             // cancelled when it isn't — surface it instead of only logging.
-            setError("We couldn't cancel this deposit. Please try again or contact support.")
+            setError(t('actions.cancelDepositFailed'))
             setIsLoading(false)
         }
     }
 
-    // Render the active cancel button (if any) alongside any failure message.
+    const armCancel = (noun: string, run: () => Promise<void>) => {
+        setPendingCancel({ noun, run })
+        setConfirmOpen(true)
+    }
+
+    const confirmThenRun = async () => {
+        if (!pendingCancel || isCancelRunning.current) return
+        isCancelRunning.current = true
+        setConfirmOpen(false)
+        try {
+            await wrapAction(pendingCancel.run)
+        } finally {
+            isCancelRunning.current = false
+        }
+    }
+
+    // Render the active cancel button (if any) alongside the shared
+    // confirmation modal and any failure message.
     const withError = (button: ReactNode) => (
         <div className="flex w-full flex-col gap-2">
             {button}
             {error && <ErrorAlert description={error} />}
+            <ActionModal
+                visible={confirmOpen}
+                onClose={() => setConfirmOpen(false)}
+                icon="ban"
+                title={t('actions.cancelConfirm.title', { kind: pendingCancel?.noun ?? 'deposit' })}
+                modalClassName="!z-[9999] pointer-events-auto"
+                description={
+                    <>
+                        {t.rich('actions.cancelConfirm.description', {
+                            strong: (chunks) => <strong>{chunks}</strong>,
+                        })}
+                    </>
+                }
+                modalPanelClassName="max-w-sm mx-8 !z-[9999] pointer-events-auto"
+                contentContainerClassName="relative pointer-events-auto"
+                classOverlay="!bg-black/40 !z-[9998]"
+                ctas={[
+                    {
+                        text: t('actions.cancelConfirm.confirm', { kind: pendingCancel?.noun ?? 'deposit' }),
+                        shadowSize: '4',
+                        className: 'md:py-2',
+                        onClick: confirmThenRun,
+                    },
+                ]}
+            />
         </div>
     )
 
@@ -84,7 +141,7 @@ export function CancelDepositActions({
             <CancelButton
                 disabled={!!isLoading}
                 onClick={() =>
-                    wrapAction(async () => {
+                    armCancel('deposit', async () => {
                         const result = await cancelOnramp(transaction.id)
                         if (result.error) throw new Error(result.error)
                     })
@@ -101,7 +158,7 @@ export function CancelDepositActions({
             <CancelButton
                 disabled={!!isLoading}
                 onClick={() =>
-                    wrapAction(async () => {
+                    armCancel('deposit', async () => {
                         const result = await mantecaApi.cancelDeposit(transaction.id)
                         if (result.error) throw new Error(result.error)
                     })
@@ -120,10 +177,10 @@ export function CancelDepositActions({
         return withError(
             <div className="pr-1">
                 <CancelButton
-                    label="Cancel Request"
+                    label={t('actions.cancelDepositRequest')}
                     disabled={!!isLoading}
                     onClick={() =>
-                        wrapAction(async () => {
+                        armCancel('request', async () => {
                             const bridgeTransferId = transaction.extraDataForDrawer?.bridgeTransferId
                             if (!bridgeTransferId) {
                                 throw new Error('Cannot cancel REQUEST: missing bridgeTransferId on transaction')
@@ -144,15 +201,8 @@ export function CancelDepositActions({
     return null
 }
 
-function CancelButton({
-    label = 'Cancel deposit',
-    disabled,
-    onClick,
-}: {
-    label?: string
-    disabled: boolean
-    onClick: () => void
-}) {
+function CancelButton({ label, disabled, onClick }: { label?: string; disabled: boolean; onClick: () => void }) {
+    const t = useTranslations('transaction')
     return (
         <Button
             disabled={disabled}
@@ -164,7 +214,7 @@ function CancelButton({
             <div className="flex items-center">
                 <Icon name="ban" size={18} />
             </div>
-            <span>{label}</span>
+            <span>{label ?? t('actions.cancelDeposit')}</span>
         </Button>
     )
 }

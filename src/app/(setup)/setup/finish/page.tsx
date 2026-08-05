@@ -6,12 +6,14 @@ import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import SignTestTransaction from '@/components/Setup/Views/SignTestTransaction'
 import { PeanutWhistling } from '@/assets/mascot'
 import { useAuth } from '@/context/authContext'
+import { useTranslations } from 'next-intl'
 
 /**
  * finish setup page for users who logged in but haven't completed account setup
  * shows test transaction step to verify passkey works before finalizing
  */
 function FinishSetupPageContent() {
+    const t = useTranslations('setup')
     const { logoutUser, isLoggingOut } = useAuth()
 
     return (
@@ -22,8 +24,8 @@ function FinishSetupPageContent() {
             showLogoutButton={true}
             onLogout={logoutUser}
             isLoggingOut={isLoggingOut}
-            title="Sign a test transaction"
-            description="Let's make sure your passkey is working and you have everything set up correctly."
+            title={t('finish.title')}
+            description={t('finish.description')}
             showBackButton={false}
             showSkipButton={false}
             contentClassName="flex flex-col items-center justify-center gap-5"

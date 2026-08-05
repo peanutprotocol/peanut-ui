@@ -106,7 +106,6 @@
         ],
         "mainnet": true
     },
-
     "10": {
         "name": "Optimism",
         "chain": "ETH",
@@ -835,7 +834,6 @@
             "format": "png"
         }
     },
-
     "167009": {
         "name": "Taiko Hekla L2",
         "chain": "ETH",
@@ -1073,5 +1071,173 @@
             "url": "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/eth.svg",
             "format": "svg"
         }
+    },
+    "999": {
+        "name": "HyperEVM",
+        "chain": "HYPE",
+        "icon": {
+            "url": "https://coin-images.coingecko.com/asset_platforms/images/22208/small/hyperliquid.jpg?1740125774",
+            "format": "jpg"
+        },
+        "rpc": ["https://rpc.hyperliquid.xyz/evm"],
+        "features": [],
+        "faucets": [],
+        "nativeCurrency": {
+            "name": "Hype",
+            "symbol": "HYPE",
+            "decimals": 18
+        },
+        "infoURL": "https://hyperliquid.xyz",
+        "shortName": "hyperevm",
+        "chainId": "999",
+        "networkId": 999,
+        "explorers": [
+            {
+                "name": "HyperEVMScan",
+                "url": "https://hyperevmscan.io",
+                "standard": "EIP3091"
+            }
+        ],
+        "mainnet": true
+    },
+    "57073": {
+        "name": "Ink",
+        "chain": "ETH",
+        "icon": {
+            "url": "https://coin-images.coingecko.com/asset_platforms/images/22194/small/ink.jpg?1737600222",
+            "format": "jpg"
+        },
+        "rpc": ["https://rpc-gel.inkonchain.com"],
+        "features": [],
+        "faucets": [],
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "infoURL": "https://inkonchain.com",
+        "shortName": "ink",
+        "chainId": "57073",
+        "networkId": 57073,
+        "explorers": [
+            {
+                "name": "Ink Explorer",
+                "url": "https://explorer.inkonchain.com",
+                "standard": "EIP3091"
+            }
+        ],
+        "mainnet": true
+    },
+    "747474": {
+        "name": "Katana",
+        "chain": "ETH",
+        "icon": {
+            "url": "https://coin-images.coingecko.com/asset_platforms/images/32239/small/katana.jpg?1751496126",
+            "format": "jpg"
+        },
+        "rpc": ["https://rpc.katana.network"],
+        "features": [],
+        "faucets": [],
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "infoURL": "https://katana.network",
+        "shortName": "katana",
+        "chainId": "747474",
+        "networkId": 747474,
+        "explorers": [
+            {
+                "name": "Katanascan",
+                "url": "https://katanascan.com",
+                "standard": "EIP3091"
+            }
+        ],
+        "mainnet": true
+    },
+    "9745": {
+        "name": "Plasma",
+        "chain": "Plasma",
+        "icon": {
+            "url": "https://coin-images.coingecko.com/asset_platforms/images/32256/small/plasma.jpg?1758000963",
+            "format": "jpg"
+        },
+        "rpc": ["https://rpc.plasma.to"],
+        "features": [],
+        "faucets": [],
+        "nativeCurrency": {
+            "name": "Plasma",
+            "symbol": "XPL",
+            "decimals": 18
+        },
+        "infoURL": "https://plasma.to",
+        "shortName": "plasma",
+        "chainId": "9745",
+        "networkId": 9745,
+        "explorers": [
+            {
+                "name": "Routescan",
+                "url": "https://plasmascan.to",
+                "standard": "EIP3091"
+            }
+        ],
+        "mainnet": true
+    },
+    "988": {
+        "name": "Stable",
+        "chain": "Stable",
+        "icon": {
+            "url": "https://coin-images.coingecko.com/asset_platforms/images/32271/small/stable.png?1765196531",
+            "format": "png"
+        },
+        "rpc": ["https://rpc.stable.xyz"],
+        "features": [],
+        "faucets": [],
+        "nativeCurrency": {
+            "name": "USDT0",
+            "symbol": "USDT0",
+            "decimals": 18
+        },
+        "infoURL": "https://stable.xyz",
+        "shortName": "stable",
+        "chainId": "988",
+        "networkId": 988,
+        "explorers": [
+            {
+                "name": "Stablescan",
+                "url": "https://stablescan.xyz",
+                "standard": "EIP3091"
+            }
+        ],
+        "mainnet": true
+    },
+    "4217": {
+        "name": "Tempo",
+        "chain": "Tempo",
+        "icon": {
+            "url": "https://icons.llamao.fi/icons/chains/rsz_tempo.jpg",
+            "format": "jpg"
+        },
+        "rpc": ["https://rpc.mainnet.tempo.xyz"],
+        "features": [],
+        "faucets": [],
+        "nativeCurrency": {
+            "name": "USD",
+            "symbol": "USD",
+            "decimals": 18
+        },
+        "infoURL": "https://tempo.xyz",
+        "shortName": "tempo",
+        "chainId": "4217",
+        "networkId": 4217,
+        "explorers": [
+            {
+                "name": "Tempo Explorer",
+                "url": "https://explore.tempo.xyz",
+                "standard": "EIP3091"
+            }
+        ],
+        "mainnet": true
     }
 }

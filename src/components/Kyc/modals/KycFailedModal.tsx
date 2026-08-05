@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import { KycFailedContent } from '../KycFailedContent'
 import { isTerminalRejection } from '@/constants/sumsub-reject-labels.consts'
@@ -24,6 +25,8 @@ export const KycFailedModal = ({
     rejectType,
     failureCount,
 }: KycFailedModalProps) => {
+    const t = useTranslations('kyc')
+    const tCommon = useTranslations('common')
     const { setIsSupportModalOpen } = useModalsContext()
 
     const isTerminal = useMemo(
@@ -37,8 +40,8 @@ export const KycFailedModal = ({
             onClose={onClose}
             icon={'alert'}
             iconContainerClassName="bg-yellow-1"
-            title={isTerminal ? 'We couldn’t verify your ID' : 'Let’s try that again'}
-            description={!isTerminal && 'We weren’t able to confirm your ID. You can have another go.'}
+            title={isTerminal ? t('failedTitleTerminal') : t('failedTitleRetry')}
+            description={!isTerminal && t('failedDescriptionRetry')}
             content={
                 <div className="w-full">
                     <KycFailedContent rejectLabels={rejectLabels} isTerminal={isTerminal} />
@@ -47,7 +50,7 @@ export const KycFailedModal = ({
             ctas={[
                 isTerminal
                     ? {
-                          text: 'Contact support',
+                          text: tCommon('contactSupport'),
                           onClick: () => {
                               onClose()
                               setIsSupportModalOpen(true)
@@ -55,7 +58,7 @@ export const KycFailedModal = ({
                           shadowSize: '4',
                       }
                     : {
-                          text: isLoading ? 'Loading...' : 'Try again',
+                          text: tCommon(isLoading ? 'loading' : 'tryAgain'),
                           icon: 'retry',
                           onClick: onRetry,
                           disabled: isLoading,

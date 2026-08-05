@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
 import {
@@ -7,10 +8,11 @@ import {
     initiateSelfHealResubmission,
     restartIdentityVerification,
     startKycAction,
+    type SumsubActionErrorCode,
 } from '@/app/actions/sumsub'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
-import { isCapacitor } from '@/utils/capacitor'
+import { isDemoMode } from '@/utils/demo'
 
 interface UseSumsubKycFlowOptions {
     onKycSuccess?: () => void
@@ -41,6 +43,17 @@ const KYC_POLL_SCHEDULE: ReadonlyArray<{ untilMs: number; delayMs: number }> = [
 // schedule replaced.
 const KYC_POLL_MAX_DELAY_MS = 60_000
 
+/** `code` from a sumsub action's canned English fallback → kyc.* catalog key.
+ *  Backend prose arrives without a code and renders as-is (#2554). */
+const ACTION_ERROR_KEYS = {
+    initiate_failed: 'errorInitiateFailed',
+    restart_failed: 'errorRestartFailed',
+    resubmit_failed: 'errorResubmitFailed',
+    start_action_failed: 'errorStartActionFailed',
+    invalid_response: 'errorInvalidResponse',
+    unexpected: 'unexpectedError',
+} as const satisfies Record<SumsubActionErrorCode, string>
+
 const getKycPollDelayMs = (elapsedMs: number): number => {
     for (const { untilMs, delayMs } of KYC_POLL_SCHEDULE) {
         if (elapsedMs < untilMs) return delayMs
@@ -51,6 +64,15 @@ const getKycPollDelayMs = (elapsedMs: number): number => {
 export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: UseSumsubKycFlowOptions = {}) => {
     const { user } = useUserStore()
     const router = useRouter()
+    const t = useTranslations('kyc')
+
+    // Localize a failed action result: known codes map onto catalog copy,
+    // codeless results keep the backend's display-ready prose.
+    const actionErrorMessage = useCallback(
+        (result: { error?: string; code?: SumsubActionErrorCode }): string | null =>
+            result.code ? t(ACTION_ERROR_KEYS[result.code]) : (result.error ?? null),
+        [t]
+    )
 
     const [accessToken, setAccessToken] = useState<string | null>(null)
     const [showWrapper, setShowWrapper] = useState(false)
@@ -209,6 +231,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             // (MX, CL, …), but Manteca only serves AR/BR — an unsupported stamp
             // poisons the verification metadata (first-write-wins) and bails
             // every later geo resolution, so drop it at this choke point.
+            // demo mode: skip Sumsub, treat KYC as complete.
+            if (isDemoMode()) {
+                onKycSuccess?.()
+                return
+            }
+
             const normalizedTargetCountry = rawTargetCountry?.toUpperCase()
             const targetCountry =
                 normalizedTargetCountry && isMantecaSupportedCountryCode(normalizedTargetCountry)
@@ -243,7 +271,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     // every terminal-error exit must clear the user-initiated guard.
                     userInitiatedRef.current = false
                     if (crossRegion) prevStatusRef.current = savedPrevStatus
-                    setError(response.error)
+                    setError(actionErrorMessage(response))
                     return
                 }
 
@@ -259,9 +287,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 // terminal error (the user is approved but has no rail — NOT a success).
                 if (response.data?.actionType === 'unsupported-region') {
                     userInitiatedRef.current = false
-                    setError(
-                        "Bank deposits aren't available in your region yet. We'll let you know as soon as they go live."
-                    )
+                    setError(t('unsupportedRegionError'))
                     return
                 }
 
@@ -301,70 +327,27 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 }
 
                 if (response.data?.token) {
-                    // in capacitor, launch native sumsub sdk instead of web wrapper
-                    if (isCapacitor()) {
-                        try {
-                            const SNSMobileSDK = (window as any).SNSMobileSDK
-                            if (!SNSMobileSDK) {
-                                userInitiatedRef.current = false
-                                setError('KYC SDK not available. Please update the app.')
-                                return
-                            }
-                            const effectiveRegionIntent = overrideIntent ?? regionIntent
-                            const sdk = SNSMobileSDK.init(response.data.token, async () => {
-                                // keep parity with the web refreshToken below — dropping
-                                // targetCountry here would mint a token for a different
-                                // (suffix-less) applicant action than the one the user is in.
-                                const r = await initiateSumsubKyc({
-                                    regionIntent: effectiveRegionIntent,
-                                    levelName: levelNameRef.current,
-                                    targetCountry: targetCountryRef.current,
-                                })
-                                return r.data?.token || ''
-                            })
-                                .withHandlers({
-                                    onStatusChanged: (event: any) => {
-                                        console.log('[useSumsubKycFlow] native onStatusChanged:', JSON.stringify(event))
-                                        if (event?.newStatus === 'Approved') {
-                                            onKycSuccess?.()
-                                        }
-                                    },
-                                })
-                                .withLocale('en')
-                                .withDebug(process.env.NODE_ENV === 'development')
-                                .build()
-
-                            const result = await sdk.launch()
-                            console.log('[useSumsubKycFlow] native SDK result:', JSON.stringify(result))
-                            if (result?.status === 'Approved') {
-                                onKycSuccess?.()
-                            }
-                        } catch (nativeErr) {
-                            console.error('[useSumsubKycFlow] native SDK error:', nativeErr)
-                            userInitiatedRef.current = false
-                            setError('Verification failed. Please try again.')
-                        }
-                        return
-                    }
-
+                    // Native included: SumsubKycWrapper picks the Cordova SDK over
+                    // the WebSDK by platform, so every flow that mints a token —
+                    // not just this one — reaches the right SDK.
                     setAccessToken(response.data.token)
                     setIsActionFlow(!!response.data.actionType)
                     setShowWrapper(true)
                 } else {
                     userInitiatedRef.current = false
-                    setError('Could not initiate verification. Please try again.')
+                    setError(t('errorInitiateFailed'))
                 }
             } catch (e: unknown) {
                 userInitiatedRef.current = false
                 if (crossRegion) prevStatusRef.current = savedPrevStatus
-                const message = e instanceof Error ? e.message : 'An unexpected error occurred'
+                const message = e instanceof Error ? e.message : t('unexpectedError')
                 setError(message)
             } finally {
                 setIsLoading(false)
                 initiatingRef.current = false
             }
         },
-        [regionIntent, onKycSuccess]
+        [regionIntent, onKycSuccess, t, actionErrorMessage]
     )
 
     // called when sdk signals applicant submitted
@@ -440,7 +423,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             const response = await restartIdentityVerification()
             if (response.error) {
                 userInitiatedRef.current = false
-                setError(response.error)
+                setError(actionErrorMessage(response))
                 return
             }
             if (response.data?.token) {
@@ -448,85 +431,91 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setShowWrapper(true)
             } else {
                 userInitiatedRef.current = false
-                setError('Could not restart identity verification. Please try again.')
+                setError(t('errorRestartFailed'))
             }
         } catch (e: unknown) {
             userInitiatedRef.current = false
-            const message = e instanceof Error ? e.message : 'An unexpected error occurred'
+            const message = e instanceof Error ? e.message : t('unexpectedError')
             setError(message)
         } finally {
             setIsLoading(false)
         }
-    }, [])
+    }, [t, actionErrorMessage])
 
     // initiate self-heal document resubmission: calls the resubmit API
     // and opens the sumsub SDK with the action token. `requirementKey` targets a
     // specific (e.g. future-dated advisory) Bridge requirement; omitted for the
     // legacy blocking flow.
-    const handleSelfHealResubmit = useCallback(async (provider: 'BRIDGE' | 'MANTECA', requirementKey?: string) => {
-        setIsLoading(true)
-        setError(null)
-        userInitiatedRef.current = true
-        selfHealProviderRef.current = provider
+    const handleSelfHealResubmit = useCallback(
+        async (provider: 'BRIDGE' | 'MANTECA', requirementKey?: string) => {
+            setIsLoading(true)
+            setError(null)
+            userInitiatedRef.current = true
+            selfHealProviderRef.current = provider
 
-        try {
-            const response = await initiateSelfHealResubmission(provider, requirementKey)
+            try {
+                const response = await initiateSelfHealResubmission(provider, requirementKey)
 
-            if (response.error) {
+                if (response.error) {
+                    userInitiatedRef.current = false
+                    selfHealProviderRef.current = null
+                    setError(actionErrorMessage(response))
+                    return
+                }
+
+                if (response.data?.token) {
+                    setAccessToken(response.data.token)
+                    setShowWrapper(true)
+                } else {
+                    userInitiatedRef.current = false
+                    selfHealProviderRef.current = null
+                    setError(t('errorResubmitFailed'))
+                }
+            } catch (e: unknown) {
                 userInitiatedRef.current = false
                 selfHealProviderRef.current = null
-                setError(response.error)
-                return
+                const message = e instanceof Error ? e.message : t('unexpectedError')
+                setError(message)
+            } finally {
+                setIsLoading(false)
             }
-
-            if (response.data?.token) {
-                setAccessToken(response.data.token)
-                setShowWrapper(true)
-            } else {
-                userInitiatedRef.current = false
-                selfHealProviderRef.current = null
-                setError('Could not initiate document resubmission. Please try again.')
-            }
-        } catch (e: unknown) {
-            userInitiatedRef.current = false
-            selfHealProviderRef.current = null
-            const message = e instanceof Error ? e.message : 'An unexpected error occurred'
-            setError(message)
-        } finally {
-            setIsLoading(false)
-        }
-    }, [])
+        },
+        [t, actionErrorMessage]
+    )
 
     // Start a capability nextAction by key (POST /users/kyc/start-action) and
     // open the WebSDK with the returned token. Unlike handleInitiateKyc (which
     // resolves the level from region and no-ops for an already-approved user),
     // this mints a token for the specific RFI level the key maps to — the path
     // the advisory pre-empt needs to start a future-dated requirement early.
-    const handleStartAction = useCallback(async (key: string) => {
-        setIsLoading(true)
-        setError(null)
-        userInitiatedRef.current = true
-        selfHealProviderRef.current = null
+    const handleStartAction = useCallback(
+        async (key: string) => {
+            setIsLoading(true)
+            setError(null)
+            userInitiatedRef.current = true
+            selfHealProviderRef.current = null
 
-        try {
-            const response = await startKycAction(key)
-            if (response.error || !response.data?.token) {
+            try {
+                const response = await startKycAction(key)
+                if (response.error || !response.data?.token) {
+                    userInitiatedRef.current = false
+                    setError(response.error ? actionErrorMessage(response) : t('errorStartActionFailed'))
+                    return
+                }
+                levelNameRef.current = response.data.levelName
+                setAccessToken(response.data.token)
+                setIsActionFlow(true)
+                setShowWrapper(true)
+            } catch (e: unknown) {
                 userInitiatedRef.current = false
-                setError(response.error || 'Could not start verification. Please try again.')
-                return
+                const message = e instanceof Error ? e.message : t('unexpectedError')
+                setError(message)
+            } finally {
+                setIsLoading(false)
             }
-            levelNameRef.current = response.data.levelName
-            setAccessToken(response.data.token)
-            setIsActionFlow(true)
-            setShowWrapper(true)
-        } catch (e: unknown) {
-            userInitiatedRef.current = false
-            const message = e instanceof Error ? e.message : 'An unexpected error occurred'
-            setError(message)
-        } finally {
-            setIsLoading(false)
-        }
-    }, [])
+        },
+        [t, actionErrorMessage]
+    )
 
     return {
         isLoading,

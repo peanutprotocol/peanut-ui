@@ -107,7 +107,7 @@ export interface ShareAssetD3Props {
     animate?: boolean
 
     /**
-     * Fires once the card face's async hand <canvas> has mounted (forwarded
+     * Fires once the card face's hand <img> has loaded (forwarded
      * straight to <PixelatedCardFace onReady />). Capture surfaces gate the
      * Share/Save buttons on this so a snapshot can never fire before the card
      * face paints — the deterministic fix for the blank-card capture bug.

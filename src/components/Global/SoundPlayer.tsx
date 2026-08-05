@@ -53,11 +53,12 @@ export const SoundPlayer = ({ sound }: SoundPlayerProps) => {
                 .then(() => {
                     // success, nothing else to do
                 })
-                .catch((error: any) => {
+                .catch((error: unknown) => {
                     // detect common autoplay restriction errors
-                    const message = String(error?.message || '')
+                    const err = error instanceof Error ? error : undefined
+                    const message = String(err?.message || '')
                     const isAutoplayBlocked =
-                        error?.name === 'NotAllowedError' || /gesture|autoplay|play\(\) failed/i.test(message)
+                        err?.name === 'NotAllowedError' || /gesture|autoplay|play\(\) failed/i.test(message)
 
                     if (isAutoplayBlocked) {
                         // defer playback until next user interaction (mobile/pwa autoplay policies)

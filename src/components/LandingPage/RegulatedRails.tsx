@@ -1,19 +1,19 @@
 import Image from 'next/image'
 import { MarqueeWrapper } from '../Global/MarqueeWrapper'
-import {
-    BBVA_ICON,
-    BRUBANK_ICON,
-    N26_ICON,
-    SANTANDER_ICON,
-    REVOLUT_ICON,
-    STRIPE_ICON,
-    MERCADO_PAGO_ICON,
-    PIX_ICON,
-    WISE_ICON,
-    Star,
-} from '@/assets'
+import BBVA_ICON from '@/assets/icons/bbva-logo.svg'
+import BRUBANK_ICON from '@/assets/icons/brubank-logo.svg'
+import N26_ICON from '@/assets/icons/n26-logo.svg'
+import SANTANDER_ICON from '@/assets/icons/santander-logo.svg'
+import REVOLUT_ICON from '@/assets/icons/revolut-logo.svg'
+import STRIPE_ICON from '@/assets/icons/stripe-logo.svg'
+import MERCADO_PAGO_ICON from '@/assets/icons/mercado-pago-logo.svg'
+import PIX_ICON from '@/assets/icons/pix-logo.svg'
+import WISE_ICON from '@/assets/icons/wise-logo.svg'
+import Star from '@/assets/illustrations/star.svg'
 import { CloudsCss } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
+import { getTranslations } from '@/i18n'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
 const bgColor = '#F9F4F0'
 
@@ -34,7 +34,9 @@ const regulatedRailsClouds = [
     { top: '60%', width: 220, speed: '34s', direction: 'rtl' as const },
 ]
 
-export function RegulatedRails() {
+export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
+    const i18n = getTranslations(locale)
+
     return (
         <section
             id="regulated-rails"
@@ -45,35 +47,32 @@ export function RegulatedRails() {
 
             <div className="relative max-w-5xl px-10 py-8 md:px-24 md:py-16">
                 <AnimateOnView className="absolute -right-72 -top-12" delay="0.2s" x="5px" rotate="22deg">
-                    <img src={Star.src} alt="" width={50} height={50} />
+                    <Image src={Star} alt="" width={50} height={50} />
                 </AnimateOnView>
                 <AnimateOnView className="absolute -right-0 -top-16 md:top-58" delay="0.6s" x="5px" rotate="22deg">
-                    <img src={Star.src} alt="" width={50} height={50} />
+                    <Image src={Star} alt="" width={50} height={50} />
                 </AnimateOnView>
 
                 <h1 className="font-roboto-flex-extrabold text-left text-[3.25rem] font-extraBlack !leading-[5rem] md:text-6xl lg:text-headingMedium">
-                    YOUR MONEY. YOUR RULES.
+                    {i18n.landingRailsHeading}
                 </h1>
-                <p className="font-roboto-flex mt-6 text-left text-xl md:text-4xl">
-                    Connect your wallet to your bank and local payment networks like PIX and MercadoPago through
-                    licensed partners — so you can pay like a local without giving up control of your funds.
-                </p>
+                <p className="font-roboto-flex mt-6 text-left text-xl md:text-4xl">{i18n.landingRailsBody}</p>
 
                 <h6 className="font-roboto-flex mt-3 text-xs md:text-lg">
                     <a
-                        href="/en/help/supported-geographies"
+                        href={`/${locale}/help/supported-geographies`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-n-1 underline"
                     >
-                        Learn more
+                        {i18n.landingLearnMore}
                     </a>
                 </h6>
             </div>
 
             <div className="w-full">
                 <p className="mb-4 text-center text-sm font-medium uppercase tracking-widest text-n-1 opacity-60">
-                    Works with
+                    {i18n.landingWorksWith}
                 </p>
                 <MarqueeWrapper backgroundColor="#FFFFFF" direction="right" className="border-none">
                     {logos.map((logo) => (

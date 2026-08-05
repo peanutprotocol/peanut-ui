@@ -1,13 +1,20 @@
 'use client'
 import { type FC, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import PinInput from '@/components/Card/PinInput'
-import { validatePin } from '@/components/Card/pin.utils'
+import { type PinRejectionReason, validatePin } from '@/components/Card/pin.utils'
 import { rainApi, RainCardRateLimitError } from '@/services/rain'
 
 type Step = 'choose' | 'confirm' | 'saving' | 'success'
+
+const REJECTION_KEYS = {
+    length: 'pin.validationLength',
+    repeating: 'pin.validationRepeating',
+    sequential: 'pin.validationSequential',
+} as const satisfies Record<PinRejectionReason, string>
 
 interface Props {
     cardId: string
@@ -15,6 +22,8 @@ interface Props {
 }
 
 const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
+    const t = useTranslations('card')
+    const tCommon = useTranslations('common')
     const [step, setStep] = useState<Step>('choose')
     const [first, setFirst] = useState('')
     const [second, setSecond] = useState('')
@@ -23,7 +32,7 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
     const onContinueFromChoose = () => {
         const v = validatePin(first)
         if (!v.valid) {
-            setError(v.reason ?? 'Invalid PIN')
+            setError(v.reason ? t(REJECTION_KEYS[v.reason]) : t('pin.invalid'))
             posthog.capture(ANALYTICS_EVENTS.CARD_PIN_SET_REJECTED, {
                 reason: v.reason ?? 'invalid',
                 stage: 'choose',
@@ -36,7 +45,7 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
 
     const onConfirm = async () => {
         if (second !== first) {
-            setError('PINs do not match')
+            setError(t('pin.mismatch'))
             posthog.capture(ANALYTICS_EVENTS.CARD_PIN_SET_REJECTED, { reason: 'mismatch', stage: 'confirm' })
             return
         }
@@ -48,7 +57,7 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
             posthog.capture(ANALYTICS_EVENTS.CARD_PIN_SET_SUCCEEDED)
             setStep('success')
         } catch (e) {
-            const message = e instanceof Error ? e.message : 'Failed to save PIN'
+            const message = e instanceof Error ? e.message : t('pin.saveFailed')
             setError(message)
             if (e instanceof RainCardRateLimitError) {
                 posthog.capture(ANALYTICS_EVENTS.CARD_PIN_RATE_LIMITED, { action: 'set' })
@@ -62,10 +71,10 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
     if (step === 'success') {
         return (
             <div className="flex flex-col items-center gap-4 text-center">
-                <div className="text-xl font-extrabold">PIN successfully set</div>
-                <p className="text-sm text-grey-1">You can now use your card for in-store purchases.</p>
+                <div className="text-xl font-extrabold">{t('pin.successTitle')}</div>
+                <p className="text-sm text-grey-1">{t('pin.successBody')}</p>
                 <Button variant="purple" shadowSize="4" className="w-full" onClick={onDone}>
-                    Close
+                    {tCommon('close')}
                 </Button>
             </div>
         )
@@ -75,8 +84,8 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
         return (
             <div className="flex flex-col items-center gap-6 text-center">
                 <div className="flex flex-col gap-2">
-                    <h1 className="text-xl font-extrabold">Confirm PIN</h1>
-                    <p className="text-sm text-grey-1">Re-enter your PIN to verify.</p>
+                    <h1 className="text-xl font-extrabold">{t('pin.confirmTitle')}</h1>
+                    <p className="text-sm text-grey-1">{t('pin.confirmBody')}</p>
                 </div>
                 <PinInput value={second} onChange={setSecond} disabled={step === 'saving'} />
                 {error && <p className="text-sm text-red">{error}</p>}
@@ -88,7 +97,7 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
                     loading={step === 'saving'}
                     disabled={second.length < 4 || step === 'saving'}
                 >
-                    Save
+                    {tCommon('save')}
                 </Button>
             </div>
         )
@@ -103,17 +112,17 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
     return (
         <div className="flex flex-col items-center gap-6 text-center">
             <div className="flex flex-col gap-2">
-                <h1 className="text-xl font-extrabold">Choose a 4 digit PIN</h1>
-                <p className="text-sm text-grey-1">Needed for in store purchases.</p>
+                <h1 className="text-xl font-extrabold">{t('pin.chooseTitle')}</h1>
+                <p className="text-sm text-grey-1">{t('pin.chooseBody')}</p>
             </div>
             <PinInput value={first} onChange={setFirst} />
             <ul className="w-full list-inside list-disc text-left text-sm text-grey-1">
-                <li>Numbers can&apos;t be sequential (1234)</li>
-                <li>No repeating digits (1111)</li>
-                <li>You can change your PIN later</li>
+                <li>{t('pin.ruleSequential')}</li>
+                <li>{t('pin.ruleRepeating')}</li>
+                <li>{t('pin.ruleChangeLater')}</li>
             </ul>
-            {choosePinValidation && !choosePinValidation.valid && (
-                <p className="text-sm text-red">{choosePinValidation.reason}</p>
+            {choosePinValidation && !choosePinValidation.valid && choosePinValidation.reason && (
+                <p className="text-sm text-red">{t(REJECTION_KEYS[choosePinValidation.reason])}</p>
             )}
             {error && <p className="text-sm text-red">{error}</p>}
             <Button
@@ -123,7 +132,7 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
                 onClick={onContinueFromChoose}
                 disabled={!choosePinValidation || !choosePinValidation.valid}
             >
-                Continue
+                {tCommon('continue')}
             </Button>
         </div>
     )

@@ -30,18 +30,42 @@ export interface PasskeyPreflightResult {
  * @returns preflight result with support status, warnings, and diagnostic data
  */
 export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
-    // in capacitor, passkeys are handled natively — skip browser-level preflight checks
+    // in capacitor, passkeys are handled natively. browser-level checks don't
+    // apply, but we MUST verify the native credential manager is actually
+    // available — otherwise (no signed-in Google account / outdated Google Play
+    // Services) registration fails silently and the button appears to "do
+    // nothing". Ask the plugin directly so this reflects live device state.
     if (isCapacitor()) {
-        return {
-            isSupported: true,
-            warning: null,
-            diagnostics: {
-                hasPublicKeyCredential: true,
-                isHttps: true,
-                isAndroid: /android/i.test(navigator.userAgent),
-                rpId: getNativeRpId(),
-            },
+        const diagnostics: PasskeyPreflightResult['diagnostics'] = {
+            hasPublicKeyCredential: true,
+            isHttps: true,
+            isAndroid: /android/i.test(navigator.userAgent),
+            rpId: getNativeRpId(),
         }
+        try {
+            const { CapacitorPasskey } = await import('@capgo/capacitor-passkey')
+            const support = await CapacitorPasskey.isSupported()
+            diagnostics.uvpaAvailable = support.available
+            diagnostics.conditionalMediationAvailable = support.conditionalMediation
+            if (!support.available) {
+                return {
+                    isSupported: false,
+                    warning: diagnostics.isAndroid
+                        ? 'Passkeys aren’t available yet. Sign in to a Google account and update Google Play Services, then try again.'
+                        : 'Passkeys aren’t available on this device yet. Check your device settings and try again.',
+                    diagnostics,
+                }
+            }
+        } catch (e) {
+            console.warn('[PasskeyPreflight] native isSupported() check failed:', e)
+            return {
+                isSupported: false,
+                warning:
+                    'We couldn’t verify passkey support. Make sure you’re signed in to a Google account with up-to-date Google Play Services, then try again.',
+                diagnostics,
+            }
+        }
+        return { isSupported: true, warning: null, diagnostics }
     }
 
     // capture rpId for debugging - this is what will be used for passkey registration

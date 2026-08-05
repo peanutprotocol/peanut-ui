@@ -22,8 +22,12 @@ const ITEMS_TO_DISABLE = [
     { path: 'robots.ts', type: 'file' },
     { path: 'manifest.ts', type: 'file' },
     { path: 'jobs/route.ts', type: 'file' },
+    { path: 'm/[slug]', type: 'dir' },
     // web-only routes that conflict with static export
     { path: '[locale]', type: 'dir' }, // marketing/blog/seo pages
+    { path: 'es-419', type: 'dir' }, // localized landing (web-only)
+    { path: 'es-ar', type: 'dir' }, // localized landing (web-only)
+    { path: 'pt-br', type: 'dir' }, // localized landing (web-only)
     { path: 'quests/[questId]', type: 'dir' }, // quest detail page (dynamicParams issues)
     { path: 'quests/explore', type: 'dir' }, // quest explore page
     { path: 'quests/page.tsx', type: 'file' }, // quest list page
@@ -66,12 +70,16 @@ const P0_TRANSFORMS = [
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAuthToken } from '@/utils/auth-token'
+import { isDemoMode } from '@/utils/demo'
 
 export default function RootRedirect() {
     const router = useRouter()
     useEffect(() => {
         const token = getAuthToken()
-        router.replace(token ? '/home' : '/setup')
+        // Demo has no JWT — without the isDemoMode() check a demo user who hits
+        // the root (e.g. bounced from a web-only route) lands on /setup, whose
+        // landing screen disables demo and dumps them at Log In.
+        router.replace(token || isDemoMode() ? '/home' : '/setup')
     }, [router])
     return null
 }
@@ -80,7 +88,7 @@ export default function RootRedirect() {
     {
         path: '(mobile-ui)/claim/page.tsx',
         // strip generateMetadata + force-dynamic, keep component render (SEO irrelevant in native)
-        replacement: `import { Claim } from '@/components'
+        replacement: `import { Claim } from '@/components/Claim/Claim'
 
 export default function ClaimPage() {
     return <Claim />
@@ -223,6 +231,74 @@ function copyComponentsBeforeDisable() {
             console.log(`  ↳ Copied: ${copy.src} → ${copy.dest}`)
         }
     }
+}
+
+// Anti-rot guard. The static export (output: 'export') cannot build server-only
+// routes — route handlers and `force-dynamic` pages. Those are renamed out of the
+// way via ITEMS_TO_DISABLE, but that list is hand-maintained: when web work adds a
+// NEW server route not in the list, `next build` used to fail deep in the build
+// with a cryptic error (the "build rot" symptom). This scans the app tree up front
+// and fails LOUDLY with the exact offending paths so the fix is obvious: add them
+// to ITEMS_TO_DISABLE (or give the page a generateStaticParams).
+function isCoveredByDisableList(relPath) {
+    return ITEMS_TO_DISABLE.some((item) => {
+        if (item.type === 'dir') {
+            return (
+                relPath === item.path || relPath.startsWith(item.path + path.sep) || relPath.startsWith(item.path + '/')
+            )
+        }
+        return relPath === item.path
+    })
+}
+
+// P0_TRANSFORMS files are replaced with static-export-safe stubs before `next
+// build`, so their server-only exports (generateMetadata, force-dynamic) never
+// reach the export — the scan must not flag them.
+function isHandledByTransform(relPath) {
+    const normalized = relPath.split(path.sep).join('/')
+    return P0_TRANSFORMS.some((t) => t.path === normalized)
+}
+
+function detectUncoveredServerRoutes(dir = APP_DIR, found = []) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (entry.name.includes('.disabled') || entry.name.startsWith('_')) continue
+        const full = path.join(dir, entry.name)
+        const rel = path.relative(APP_DIR, full)
+        if (entry.isDirectory()) {
+            if (isCoveredByDisableList(rel)) continue
+            detectUncoveredServerRoutes(full, found)
+            continue
+        }
+        if (isCoveredByDisableList(rel) || isHandledByTransform(rel)) continue
+        if (entry.name === 'route.ts' || entry.name === 'route.js') {
+            found.push({ rel, reason: 'route handler (cannot be statically exported)' })
+            continue
+        }
+        if (entry.name.endsWith('.tsx') || entry.name.endsWith('.ts')) {
+            const content = fs.readFileSync(full, 'utf-8')
+            if (/export\s+const\s+dynamic\s*=\s*['"]force-dynamic['"]/.test(content)) {
+                found.push({ rel, reason: "export const dynamic = 'force-dynamic'" })
+            }
+        }
+    }
+    return found
+}
+
+function assertNoUncoveredServerRoutes() {
+    console.log('🔎 Scanning for server-only routes not covered by the disable list...')
+    const offenders = detectUncoveredServerRoutes()
+    if (offenders.length === 0) {
+        console.log('  ✓ none — every server-only route is handled')
+        return
+    }
+    const lines = offenders.map((o) => `    • src/app/${o.rel}  (${o.reason})`).join('\n')
+    throw new Error(
+        `Native build would break: ${offenders.length} server-only route(s) are not handled for static export:\n` +
+            `${lines}\n\n` +
+            `Fix: add each path to ITEMS_TO_DISABLE in scripts/native-build.js (web-only routes),\n` +
+            `or give dynamic pages a generateStaticParams. This guard prevents the silent "build rot"\n` +
+            `where an unrelated web change breaks the native build.`
+    )
 }
 
 function getDisabledPath(itemPath) {
@@ -384,6 +460,9 @@ async function main() {
     let buildSucceeded = false
 
     try {
+        // fail fast & loud if a new server-only route slipped in (anti-rot guard)
+        assertNoUncoveredServerRoutes()
+
         // clean cache FIRST to prevent stale route trees
         console.log('🧹 Cleaning build cache...')
         if (fs.existsSync(path.join(__dirname, '..', '.next'))) {
@@ -399,6 +478,15 @@ async function main() {
                 throw new Error('NEXT_PUBLIC_NATIVE_RP_ID is not set in .env.production.local — passkeys will fail')
             }
             console.log(`✅ NEXT_PUBLIC_NATIVE_RP_ID=${rpIdMatch[1].trim()}`)
+
+            // app id is inlined into the bundle at build time; without it the native
+            // OneSignal SDK can't initialize and push notifications silently no-op.
+            const appIdMatch = envContent.match(/NEXT_PUBLIC_ONESIGNAL_APP_ID=(.+)/)
+            if (!appIdMatch || !appIdMatch[1].trim()) {
+                console.warn('⚠️  NEXT_PUBLIC_ONESIGNAL_APP_ID is not set — native push notifications will be disabled')
+            } else {
+                console.log('✅ NEXT_PUBLIC_ONESIGNAL_APP_ID is set')
+            }
         } else {
             console.warn('⚠️  .env.production.local not found — using default rpId (peanut.me)')
         }
@@ -444,7 +532,7 @@ async function main() {
 
         console.log('\n🏗️  Building static export...\n')
         try {
-            execSync('NATIVE_BUILD=true npx next build --webpack', {
+            execSync('NATIVE_BUILD=true pnpm exec next build --webpack', {
                 stdio: 'inherit',
                 cwd: configDir,
                 env: { ...process.env, NATIVE_BUILD: 'true' },

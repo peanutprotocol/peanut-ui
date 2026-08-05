@@ -4,7 +4,8 @@ import { Suspense, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { parseAsString, useQueryStates } from 'nuqs'
 import ExchangeRateWidget from '@/components/Global/ExchangeRateWidget'
-import { Star } from '@/assets'
+import Star from '@/assets/illustrations/star.svg'
+import Image from 'next/image'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 
 const widgetClouds = [
@@ -37,15 +38,15 @@ function ExchangeWidgetInner({ destinationCurrency, sourceCurrency = 'USD' }: Ex
         <section className="relative my-8 w-full pb-14 pt-10 md:pb-18 md:pt-14" style={{ backgroundColor: '#90A8ED' }}>
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
                 <CloudsCss clouds={widgetClouds} />
-                <img
-                    src={Star.src}
+                <Image
+                    src={Star}
                     alt=""
                     width={36}
                     height={36}
                     className="absolute left-[8%] top-6 md:left-[12%] md:top-8"
                 />
-                <img
-                    src={Star.src}
+                <Image
+                    src={Star}
                     alt=""
                     width={28}
                     height={28}

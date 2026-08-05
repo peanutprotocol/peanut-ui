@@ -18,6 +18,7 @@ import {
     MANTECA_COUNTRIES_CONFIG,
 } from '@/constants/manteca.consts'
 import { shortenStringLong, formatCurrency } from '@/utils/general.utils'
+import { useTranslations } from 'next-intl'
 
 const MantecaDepositShareDetails = ({
     depositDetails,
@@ -30,6 +31,7 @@ const MantecaDepositShareDetails = ({
     onBack: () => void
 }) => {
     const params = useParams()
+    const t = useTranslations('addMoney')
     const currentCountryName = params.country as string
 
     const currentCountryDetails = useMemo(() => {
@@ -49,9 +51,10 @@ const MantecaDepositShareDetails = ({
     }, [currentCountryDetails])
 
     const depositAddressLabel = useMemo(() => {
-        if (!currentCountryDetails) return 'Deposit Address'
-        return MANTECA_COUNTRIES_CONFIG[currentCountryDetails.id]?.depositAddressLabel ?? 'Deposit Address'
-    }, [currentCountryDetails])
+        const fallback = t('manteca.depositAddress')
+        if (!currentCountryDetails) return fallback
+        return MANTECA_COUNTRIES_CONFIG[currentCountryDetails.id]?.depositAddressLabel ?? fallback
+    }, [currentCountryDetails, t])
 
     // BRL synthetics no longer carry these (QR-only) — but BRL routes to the QR
     // screen, never here; the fallback just keeps the ARS/static path total.
@@ -74,13 +77,13 @@ const MantecaDepositShareDetails = ({
         const textParts = []
         const currencySymbol = currentCountryDetails?.currency || 'ARS'
 
-        textParts.push(`Amount: ${currencySymbol} ${depositAmount}`)
+        textParts.push(t('manteca.shareAmount', { currency: currencySymbol, amount: depositAmount }))
 
         if (depositAddress) {
-            textParts.push(`${depositAddressLabel}: ${depositAddress}`)
+            textParts.push(t('manteca.shareLine', { label: depositAddressLabel, value: depositAddress }))
         }
         if (depositAlias) {
-            textParts.push(`Alias: ${depositAlias}`)
+            textParts.push(t('manteca.shareAlias', { alias: depositAlias }))
         }
 
         return textParts.join('\n')
@@ -88,7 +91,7 @@ const MantecaDepositShareDetails = ({
 
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
-            <NavHeader title={'Add Money'} onPrev={onBack} />
+            <NavHeader title={t('title')} onPrev={onBack} />
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
                 {/* Amount Display Card */}
                 <Card className="p-4">
@@ -96,7 +99,7 @@ const MantecaDepositShareDetails = ({
                         <div className="relative h-12 w-12">
                             <Image
                                 src={getFlagUrl(countryCodeForFlag)}
-                                alt={`flag`}
+                                alt={t('manteca.flagAlt')}
                                 width={48}
                                 height={48}
                                 className="h-12 w-12 rounded-full object-cover"
@@ -107,7 +110,7 @@ const MantecaDepositShareDetails = ({
                         </div>
                         <div>
                             <p className="flex items-center gap-1 text-center text-sm text-gray-600">
-                                <Icon name="arrow-down" size={10} /> You're adding
+                                <Icon name="arrow-down" size={10} /> {t('manteca.youreAdding')}
                             </p>
                             <p className="text-2xl font-bold">
                                 {currencySymbol} {formatCurrency(depositAmount)}
@@ -119,10 +122,10 @@ const MantecaDepositShareDetails = ({
                 <InfoCard
                     variant="warning"
                     icon="alert"
-                    title="Send only from your own account"
-                    description="Deposits from third-party accounts are not supported and funds may be lost."
+                    title={t('manteca.sendOnlyOwnAccountTitle')}
+                    description={t('manteca.sendOnlyOwnAccountDescription')}
                 />
-                <h2 className="font-bold">Account details</h2>
+                <h2 className="font-bold">{t('manteca.accountDetails')}</h2>
                 <Card className="space-y-0 rounded-sm px-4">
                     {depositAddress && (
                         <PaymentInfoRow
@@ -132,30 +135,37 @@ const MantecaDepositShareDetails = ({
                             allowCopy
                         />
                     )}
-                    {depositAlias && <PaymentInfoRow label="Alias" value={depositAlias} allowCopy />}
+                    {depositAlias && <PaymentInfoRow label={t('manteca.alias')} value={depositAlias} allowCopy />}
                     {currentCountryDetails?.id === 'AR' && (
                         <>
-                            <PaymentInfoRow label="Razón Social" value={MANTECA_ARG_DEPOSIT_NAME} />
-                            <PaymentInfoRow label="CUIT" value={MANTECA_ARG_DEPOSIT_CUIT} />
+                            <PaymentInfoRow label={t('manteca.razonSocial')} value={MANTECA_ARG_DEPOSIT_NAME} />
+                            <PaymentInfoRow label={t('manteca.cuit')} value={MANTECA_ARG_DEPOSIT_CUIT} />
                         </>
                     )}
-                    <PaymentInfoRow label="Exchange Rate" value={`1 USD = ${exchangeRate} ${currencySymbol}`} />
                     <PaymentInfoRow
-                        label="Provider fees"
-                        value={networkFees}
-                        moreInfoText="Our providers and the blockchain charge a small fee for every transaction. This fee is already accounted for in the amount you see."
+                        label={t('manteca.exchangeRate')}
+                        value={`1 USD = ${exchangeRate} ${currencySymbol}`}
                     />
-                    <PaymentInfoRow label="Peanut fee" value="Sponsored by Peanut!" hideBottomBorder />
+                    <PaymentInfoRow
+                        label={t('manteca.providerFees')}
+                        value={networkFees}
+                        moreInfoText={t('manteca.providerFeesInfo')}
+                    />
+                    <PaymentInfoRow
+                        label={t('manteca.peanutFee')}
+                        value={t('manteca.sponsoredByPeanut')}
+                        hideBottomBorder
+                    />
                 </Card>
             </div>
 
             <ShareButton
                 generateText={async () => generateShareText()}
-                title="Bank Transfer Details"
+                title={t('manteca.shareTitle')}
                 variant="purple"
                 className="w-full"
             >
-                Share Details
+                {t('manteca.shareDetails')}
             </ShareButton>
         </div>
     )

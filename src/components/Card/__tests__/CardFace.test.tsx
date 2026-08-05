@@ -7,8 +7,11 @@
  * degraded the Rain lookup).
  */
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import CardFace, { type RevealedCardDetails } from '@/components/Card/CardFace'
+
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const revealed: RevealedCardDetails = {
     pan: '4111111111111234',

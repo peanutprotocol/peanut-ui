@@ -5,11 +5,12 @@ import { Button } from '@/components/0_Bruddle/Button'
 import iphoneDropALink from '@/assets/iphone-ss/iphone-drop-a-link.webp'
 import iphoneDropALinkMobile from '@/assets/iphone-ss/iphone-drop-a-link-mobile.webp'
 import { WHATSAPP_ICON, IMESSAGE_ICON, FBMessenger_ICON, TELEGRAM_ICON } from '@/assets/icons'
+import type { LandingStrings } from './landingStrings'
 
 // Define the background color as a constant
 const businessBgColor = '#90A8ED'
 
-export function DropLink() {
+export function DropLink({ strings }: { strings: LandingStrings }) {
     return (
         <section
             id="drop-link"
@@ -19,7 +20,7 @@ export function DropLink() {
             <div className="flex w-[80rem] flex-col items-center justify-center p-6 md:flex-row">
                 <div className="w-full space-y-8 md:w-2/3">
                     <h1 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack md:text-left lg:text-headingMedium">
-                        PAYING AS EASY AS A TEXT.
+                        {strings.dropLinkHeading}
                     </h1>
 
                     <div className="relative mx-auto mt-8 block md:mt-0 md:hidden">
@@ -106,17 +107,14 @@ export function DropLink() {
                         />
                     </div>
 
-                    <p className="font-roboto-flex text-left text-xl md:pr-24 md:text-2xl">
-                        Chat or IRL. Works on WhatsApp, SMS, QR codes. No bank details, they don&apos;t even need to
-                        sign up or install Peanut.
-                    </p>
+                    <p className="font-roboto-flex text-left text-xl md:pr-24 md:text-2xl">{strings.dropLinkBody}</p>
 
                     <a href="/setup" target="_blank" rel="noopener noreferrer">
                         <Button
                             shadowSize="4"
                             className="mt-8 hidden w-58 bg-white px-7 pb-11 pt-4 text-base font-extrabold hover:bg-white/90 md:inline-block md:w-72 md:px-10 md:text-lg"
                         >
-                            SIGN UP
+                            {strings.signUp}
                         </Button>
                     </a>
                 </div>

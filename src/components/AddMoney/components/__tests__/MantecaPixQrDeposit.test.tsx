@@ -7,7 +7,10 @@
  * primitives are stubbed so only this component's own logic is under test.
  */
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
+
+const render = (ui: React.ReactElement) => rtlRender(<IntlWrapper>{ui}</IntlWrapper>)
 
 const mockUseMantecaDepositPolling = jest.fn()
 jest.mock('@/components/AddMoney/hooks/useMantecaDepositPolling', () => ({
@@ -32,7 +35,7 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
     ),
 }))
 
-// eslint-disable-next-line import/first -- must come after jest.mock
+// must come after the jest.mock calls above
 import MantecaPixQrDeposit from '../MantecaPixQrDeposit'
 
 const PIX_CODE = '00020126-COPIA-E-COLA'

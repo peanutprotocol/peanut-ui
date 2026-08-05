@@ -1,5 +1,6 @@
 'use client'
 import { type FC, type ReactNode, useEffect, useMemo, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
@@ -37,59 +38,46 @@ const ExternalLink: FC<{ href: string; children: ReactNode }> = ({ href, childre
     </a>
 )
 
-const esignTerm: Term = {
-    id: 'esign',
-    label: (
-        <>
-            I accept the <ExternalLink href={LINKS.eSign}>E-Sign Consent</ExternalLink>
-        </>
-    ),
-}
-
-const cardTermsIssuerTerm = (cardTermsHref: string): Term => ({
-    id: 'cardTermsIssuer',
-    label: (
-        <>
-            I accept the <ExternalLink href={cardTermsHref}>{CARD_PARTNER_NAME} Card Terms</ExternalLink>
-            {', and the '}
-            <ExternalLink href={LINKS.issuerPrivacy}>Issuer Privacy Policy</ExternalLink>
-        </>
-    ),
-})
-
-const accuracyTerm: Term = {
-    id: 'accuracy',
-    label: `I certify that the information I have provided is accurate and that I will abide by all the rules and requirements related to my ${CARD_PARTNER_NAME} Spend Card.`,
-}
-
-const solicitationTerm: Term = {
-    id: 'solicitation',
-    label: `I acknowledge that applying for the ${CARD_PARTNER_NAME} Spend Card does not constitute unauthorized solicitation.`,
-}
-
-const accountOpeningPrivacyTerm: Term = {
-    id: 'accountOpeningPrivacy',
-    label: (
-        <>
-            I accept the <ExternalLink href={LINKS.accountOpeningPrivacy}>Account Opening Privacy Notice</ExternalLink>
-        </>
-    ),
-}
-
-const INT_TERMS: Term[] = [esignTerm, cardTermsIssuerTerm(LINKS.cardTermsInternational), accuracyTerm, solicitationTerm]
-
-const US_TERMS: Term[] = [
-    esignTerm,
-    accountOpeningPrivacyTerm,
-    cardTermsIssuerTerm(LINKS.cardTermsUs),
-    accuracyTerm,
-    solicitationTerm,
-]
-
 const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitError }) => {
-    const terms = isUsResident ? US_TERMS : INT_TERMS
+    const t = useTranslations('card.terms')
+    const tCard = useTranslations('card')
+    const tCommon = useTranslations('common')
     const [checked, setChecked] = useState<Record<string, boolean>>({})
     const [submitting, setSubmitting] = useState(false)
+
+    const terms = useMemo<Term[]>(() => {
+        const esignTerm: Term = {
+            id: 'esign',
+            label: t.rich('esign', {
+                link: (chunks) => <ExternalLink href={LINKS.eSign}>{chunks}</ExternalLink>,
+            }),
+        }
+        const cardTermsIssuerTerm: Term = {
+            id: 'cardTermsIssuer',
+            label: t.rich('cardTermsIssuer', {
+                partner: CARD_PARTNER_NAME,
+                terms: (chunks) => (
+                    <ExternalLink href={isUsResident ? LINKS.cardTermsUs : LINKS.cardTermsInternational}>
+                        {chunks}
+                    </ExternalLink>
+                ),
+                privacy: (chunks) => <ExternalLink href={LINKS.issuerPrivacy}>{chunks}</ExternalLink>,
+            }),
+        }
+        const accuracyTerm: Term = { id: 'accuracy', label: t('accuracy', { partner: CARD_PARTNER_NAME }) }
+        const solicitationTerm: Term = {
+            id: 'solicitation',
+            label: t('solicitation', { partner: CARD_PARTNER_NAME }),
+        }
+        if (!isUsResident) return [esignTerm, cardTermsIssuerTerm, accuracyTerm, solicitationTerm]
+        const accountOpeningPrivacyTerm: Term = {
+            id: 'accountOpeningPrivacy',
+            label: t.rich('accountOpeningPrivacy', {
+                link: (chunks) => <ExternalLink href={LINKS.accountOpeningPrivacy}>{chunks}</ExternalLink>,
+            }),
+        }
+        return [esignTerm, accountOpeningPrivacyTerm, cardTermsIssuerTerm, accuracyTerm, solicitationTerm]
+    }, [isUsResident, t])
 
     useEffect(() => {
         posthog.capture(ANALYTICS_EVENTS.CARD_TERMS_VIEWED, {
@@ -112,11 +100,11 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-6">
-            <NavHeader title="Add card" onPrev={onPrev} />
+            <NavHeader title={tCard('navAddCard')} onPrev={onPrev} />
 
             <div className="flex flex-col gap-2">
-                <h1 className="text-2xl font-extrabold text-n-1">Card Terms</h1>
-                <p className="text-grey-1">Please review and accept</p>
+                <h1 className="text-2xl font-extrabold text-n-1">{t('title')}</h1>
+                <p className="text-grey-1">{t('description')}</p>
             </div>
 
             <ul className="flex flex-col gap-3">
@@ -142,7 +130,7 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
                 disabled={!allAccepted || submitting}
                 loading={submitting}
             >
-                Continue
+                {tCommon('continue')}
             </Button>
         </div>
     )

@@ -1,8 +1,13 @@
 import mantecaIphone from '@/assets/iphone-ss/manteca_ss.webp'
 import Image from 'next/image'
-import { MEPA_ARGENTINA_LOGO, PIX_BRZ_LOGO, Star } from '@/assets'
+import Link from 'next/link'
+import MEPA_ARGENTINA_LOGO from '@/assets/logos/mepa-arg.svg'
+import PIX_BRZ_LOGO from '@/assets/logos/pix-brz.svg'
+import Star from '@/assets/illustrations/star.svg'
 import { CloudsCss } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
+import { getTranslations } from '@/i18n'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
 const starConfigs = [
     { className: 'absolute left-12 top-10', delay: '0.2s', rotate: '22deg' },
@@ -12,7 +17,9 @@ const starConfigs = [
     { className: 'absolute bottom-20 right-44', delay: '0.6s', rotate: '22deg' },
 ]
 
-const Manteca = () => {
+const Manteca = ({ locale = DEFAULT_LOCALE }: { locale?: Locale }) => {
+    const i18n = getTranslations(locale)
+
     return (
         <section
             id="qr-pay"
@@ -32,23 +39,21 @@ const Manteca = () => {
                         x="5px"
                         rotate={config.rotate}
                     >
-                        <img src={Star.src} alt="" width={50} height={50} />
+                        <Image src={Star} alt="" width={50} height={50} />
                     </AnimateOnView>
                 ))}
             </div>
 
             <div className="relative flex flex-col items-center justify-center px-4">
                 <h1 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack md:text-left lg:text-headingMedium">
-                    PAY LIKE A LOCAL.
+                    {i18n.landingPayLocalHeading}
                 </h1>
 
                 <h2 className="font-roboto-flex mt-6 text-center text-xl md:text-5xl">
-                    RECEIVE FROM ANYWHERE. NO LOCAL ID NEEDED.
+                    {i18n.landingPayLocalSubheading}
                 </h2>
 
-                <h3 className="font-roboto-flex mt-6 text-center text-xl md:text-2xl">
-                    Pay MercadoPago QR in Argentina. Send PIX in Brazil. Just your passport.
-                </h3>
+                <h3 className="font-roboto-flex mt-6 text-center text-xl md:text-2xl">{i18n.landingPayLocalBody}</h3>
             </div>
 
             {/* Mobile layout */}
@@ -56,34 +61,32 @@ const Manteca = () => {
                 <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
 
                 <div className="flex gap-8">
-                    <a href="/en/pay-with/mercadopago" aria-label="How MercadoPago QR works">
+                    <Link href={`/${locale}/pay-with/mercadopago`} aria-label={i18n.landingMercadoPagoAria}>
                         <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={100} height={100} />
-                    </a>
-                    <a href="/en/pay-with/pix" aria-label="How PIX works without a CPF">
+                    </Link>
+                    <Link href={`/${locale}/pay-with/pix`} aria-label={i18n.landingPixAria}>
                         <Image src={PIX_BRZ_LOGO} alt="Pix Brz" width={100} height={100} />
-                    </a>
+                    </Link>
                 </div>
             </div>
 
             {/* Desktop layout */}
             <div className="mx-auto mt-12 hidden flex-col items-center justify-center gap-8 md:flex">
                 <div className="flex items-center justify-center gap-20 lg:gap-36">
-                    <a href="/en/pay-with/mercadopago" aria-label="How MercadoPago QR works">
+                    <Link href={`/${locale}/pay-with/mercadopago`} aria-label={i18n.landingMercadoPagoAria}>
                         <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={170} height={170} />
-                    </a>
+                    </Link>
                     <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
-                    <a href="/en/pay-with/pix" aria-label="How PIX works without a CPF">
+                    <Link href={`/${locale}/pay-with/pix`} aria-label={i18n.landingPixAria}>
                         <Image src={PIX_BRZ_LOGO} alt="Pix Brazil" width={170} height={170} />
-                    </a>
+                    </Link>
                 </div>
 
-                <p className="font-roboto-flex text-center text-sm opacity-70">
-                    Settles in digital dollars at the real exchange rate.
-                </p>
+                <p className="font-roboto-flex text-center text-sm opacity-70">{i18n.landingPayLocalSettles}</p>
             </div>
 
             <p className="font-roboto-flex relative mt-12 text-center text-sm opacity-70 md:hidden">
-                Settles in digital dollars at the real exchange rate.
+                {i18n.landingPayLocalSettles}
             </p>
         </section>
     )

@@ -15,9 +15,12 @@
  * gate is NOT ready — so the fix didn't just delete the guard wholesale.
  */
 import React from 'react'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, within } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import AddWithdrawCountriesList from '../AddWithdrawCountriesList'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
+
+const render = (ui: React.ReactElement) => rtlRender(<IntlWrapper>{ui}</IntlWrapper>)
 
 // ---- routing ----
 const mockPush = jest.fn()
@@ -254,6 +257,50 @@ describe('AddWithdrawCountriesList — bank gate', () => {
         expect(screen.getByTestId('provide-email-sheet')).toBeInTheDocument()
         expect(screen.queryByTestId('initiate-kyc-modal')).toBeNull()
         expect(mockPush).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * When the BRL-via-PIX onramp degrades, the Pix option gets flagged "under
+ * maintenance" (config: pixBrazilOnrampMaintenance) — warn-only: it stays
+ * visible and clickable.
+ */
+describe('AddWithdrawCountriesList — PIX onramp maintenance tag', () => {
+    // snapshot/restore the shipped flag so each test can flip it without leaking
+    // state — and without coupling the restore to the committed default
+    let originalPixMaintenance: boolean
+
+    beforeEach(() => {
+        mockPush.mockClear()
+        // a ready gate so a click can navigate — proving the option is not blocked
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+        originalPixMaintenance = underMaintenanceConfig.pixBrazilOnrampMaintenance
+    })
+
+    afterEach(() => {
+        underMaintenanceConfig.pixBrazilOnrampMaintenance = originalPixMaintenance
+    })
+
+    it('tags the Pix option "Maintenance" but keeps it clickable (warn-only)', () => {
+        underMaintenanceConfig.pixBrazilOnrampMaintenance = true
+
+        render(<AddWithdrawCountriesList flow="add" />)
+
+        const pixCard = screen.getByTestId('method-pix')
+        expect(within(pixCard).getByText('Maintenance')).toBeInTheDocument()
+
+        // warn-only: still navigates into the deposit flow
+        fireEvent.click(pixCard)
+        expect(mockPush).toHaveBeenCalledWith('/add-money/brazil/manteca')
+    })
+
+    it('shows no maintenance tag when the flag is off, and never tags non-Pix methods', () => {
+        underMaintenanceConfig.pixBrazilOnrampMaintenance = false
+
+        render(<AddWithdrawCountriesList flow="add" />)
+
+        expect(within(screen.getByTestId('method-pix')).queryByText('Maintenance')).toBeNull()
+        expect(within(screen.getByTestId('method-bank')).queryByText('Maintenance')).toBeNull()
     })
 })
 

@@ -2,34 +2,17 @@
  * /lp route - Landing page that is ALWAYS accessible regardless of auth state.
  * This allows logged-in users to view the marketing landing page.
  * Uses Layout (client) instead of LandingPageShell since SSR doesn't matter here.
+ * English-only alias of `/` — canonical points at `/` (see ./layout.tsx).
  */
 
 import Layout from '@/components/Global/Layout'
-import { LandingPageClient } from '@/components/LandingPage/LandingPageClient'
-import Manteca from '@/components/LandingPage/Manteca'
-import { RegulatedRails } from '@/components/LandingPage/RegulatedRails'
-import { YourMoney } from '@/components/LandingPage/yourMoney'
-import { SecurityBuiltIn } from '@/components/LandingPage/securityBuiltIn'
-import { SendInSeconds } from '@/components/LandingPage/sendInSeconds'
-import Footer from '@/components/LandingPage/Footer'
-import { getLandingContent } from '@/lib/landingContent'
+import { LandingPageContent } from '@/components/LandingPage/LandingPageContent'
+import { DEFAULT_LOCALE } from '@/i18n/types'
 
 export default function LPPage() {
-    const { heroConfig, faqData, marqueeMessages } = getLandingContent('en')
-
     return (
         <Layout className="enable-select !m-0 w-full !p-0">
-            <LandingPageClient
-                heroConfig={heroConfig}
-                faqData={faqData}
-                marqueeMessages={marqueeMessages}
-                mantecaSlot={<Manteca />}
-                regulatedRailsSlot={<RegulatedRails />}
-                yourMoneySlot={<YourMoney />}
-                securitySlot={<SecurityBuiltIn />}
-                sendInSecondsSlot={<SendInSeconds />}
-                footerSlot={<Footer />}
-            />
+            <LandingPageContent locale={DEFAULT_LOCALE} />
         </Layout>
     )
 }

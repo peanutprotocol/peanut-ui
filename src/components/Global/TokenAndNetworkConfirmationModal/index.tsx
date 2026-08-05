@@ -1,4 +1,5 @@
 import ActionModal from '@/components/Global/ActionModal'
+import { useTranslations } from 'next-intl'
 import { Slider } from '@/components/Slider'
 import ChainChip from '@/components/AddMoney/components/ChainChip'
 import {
@@ -19,6 +20,7 @@ export default function TokenAndNetworkConfirmationModal({
     onAccept: () => void
     isVisible?: boolean
 }) {
+    const t = useTranslations('global')
     return (
         <ActionModal
             visible={isVisible}
@@ -26,15 +28,15 @@ export default function TokenAndNetworkConfirmationModal({
             icon={'alert'}
             iconContainerClassName="bg-yellow-1"
             modalClassName="z-[9999]"
-            title={`Send only supported tokens on supported networks`}
+            title={t('tokenAndNetworkConfirmationModal.title')}
             description={
                 <div className="flex flex-col items-center gap-2">
-                    <span className="text-sm">
-                        Sending the wrong token or using the wrong network will result in permanent loss.
-                    </span>
+                    <span className="text-sm">{t('tokenAndNetworkConfirmationModal.warning')}</span>
 
                     <div className="mt-2 flex w-full flex-col items-start gap-2">
-                        <h2 className="font-bold text-black">Supported Networks</h2>
+                        <h2 className="font-bold text-black">
+                            {t('tokenAndNetworkConfirmationModal.supportedNetworks')}
+                        </h2>
 
                         <div className="flex flex-wrap gap-2">
                             {RHINO_SUPPORTED_OTHER_CHAINS.map((chain) => (
@@ -54,7 +56,9 @@ export default function TokenAndNetworkConfirmationModal({
                     </div>
 
                     <div className="mt-2 flex w-full flex-col items-start gap-2">
-                        <h2 className="font-bold text-black">Supported Tokens</h2>
+                        <h2 className="font-bold text-black">
+                            {t('tokenAndNetworkConfirmationModal.supportedTokens')}
+                        </h2>
 
                         <div className="flex flex-wrap gap-2">
                             {RHINO_SUPPORTED_TOKENS.map((token) => (
@@ -66,7 +70,10 @@ export default function TokenAndNetworkConfirmationModal({
             }
             footer={
                 <div className="w-full">
-                    <Slider onValueChange={(v) => v && onAccept()} />
+                    <Slider
+                        onValueChange={(v) => v && onAccept()}
+                        title={t('tokenAndNetworkConfirmationModal.slideToProceed')}
+                    />
                 </div>
             }
             ctas={[]}

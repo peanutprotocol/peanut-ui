@@ -3,6 +3,7 @@
 import { Icon } from '@/components/Global/Icons/Icon'
 import Modal from '@/components/Global/Modal'
 import { useEffect, useMemo, useRef } from 'react'
+import { useTranslations } from 'next-intl'
 import { Slider } from '@/components/Slider'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
@@ -33,7 +34,8 @@ const PLATFORM_INFO = {
         url: 'https://support.microsoft.com/en-us/windows/passkeys-in-windows-301c8944-5ea2-452b-9886-97e4d2ef4422',
     },
     [Platform.UNKNOWN]: {
-        name: 'your device',
+        // no brand name to show — the label is translated at the render site
+        name: null,
         url: 'https://www.passkeys.com/what-are-passkeys',
     },
 } as const
@@ -72,10 +74,12 @@ function detectPlatform(): Platform {
 }
 
 export default function BalanceWarningModal({ visible, onCloseAction }: BalanceWarningModalProps) {
+    const t = useTranslations('global')
     const platformInfo = useMemo(() => {
         const platform = detectPlatform()
         return PLATFORM_INFO[platform]
     }, [])
+    const platformName = platformInfo.name ?? t('balanceWarningModal.yourDevice')
 
     const hasTrackedShow = useRef(false)
     useEffect(() => {
@@ -99,32 +103,25 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
                 </div>
 
                 <div className="space-y-4">
-                    <h2 className="text-xl font-bold">High Balance</h2>
+                    <h2 className="text-xl font-bold">{t('balanceWarningModal.title')}</h2>
                     <div className="space-y-3 text-sm text-gray-600">
-                        <p>You're rich! Congrats on having a high balance.</p>
-                        <p>
-                            With Peanut, you're the only one who can access your funds. No bank, no company, no agency —
-                            not even our support team — can ever access them.
-                        </p>
-                        <p>
-                            Your biometric passkey is your key to full control and security. If it's lost, it can't be
-                            recovered because only you ever have access.
-                        </p>
+                        <p>{t('balanceWarningModal.congrats')}</p>
+                        <p>{t('balanceWarningModal.selfCustody')}</p>
+                        <p>{t('balanceWarningModal.passkey')}</p>
 
-                        {platformInfo && (
-                            <>
-                                Learn how to keep your passkey secure on{' '}
+                        {t.rich('balanceWarningModal.learnMore', {
+                            platform: platformName,
+                            link: (chunks) => (
                                 <a
                                     href={platformInfo.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-blue-600 underline"
                                 >
-                                    {platformInfo.name}
+                                    {chunks}
                                 </a>
-                                .
-                            </>
-                        )}
+                            ),
+                        })}
                     </div>
                 </div>
 
@@ -136,7 +133,7 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
                         })
                         onCloseAction()
                     }}
-                    title="Slide to Continue"
+                    title={t('balanceWarningModal.slideToContinue')}
                 />
             </div>
         </Modal>

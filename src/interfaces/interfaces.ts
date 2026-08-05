@@ -85,27 +85,6 @@ export type ITokenPriceData = {
     price: number
 } & IToken
 
-export interface ILinkDetails {
-    link: string
-    chainId: string
-    depositIndex: number
-    contractVersion: string
-    password: string
-    senderAddress: any
-    tokenType: any
-    tokenAddress: any
-    tokenDecimals: any
-    tokenSymbol: any
-    tokenName: any
-    tokenAmount: string
-    tokenId: number
-    claimed: boolean
-    depositDate: Date
-    tokenURI: any
-    metadata: any
-    rawOnchainDepositInfo: {}
-}
-
 export interface IToken {
     chainId: string
     address: string
@@ -188,11 +167,12 @@ export interface User {
     email: string
     profile_picture: string | null
     username: string | null
-    tosStatus?: string
-    tosAcceptedAt?: string
     bridgeCustomerId: string | null
     fullName: string
     telegram: string | null
+    /** Self-reported offramp.xyz username/email — collected once on the
+     *  migration deposit screen (offramp payout reconciliation). */
+    offrampHandle?: string | null
     hasAppAccess: boolean
     isActivated?: boolean
     activatedAt?: string | null

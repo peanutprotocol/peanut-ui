@@ -60,6 +60,14 @@ export const getEntryPoint = jest.fn((version: string) => ({
     version: version as '0.6' | '0.7',
 }))
 
+export const getPluginsEnableTypedData = jest.fn()
+
+export const accountMetadata = jest.fn(() =>
+    Promise.resolve({ name: 'Kernel', version: '0.3.1', chainId: BigInt(42161) })
+)
+
+export const KernelV3AccountAbi = []
+
 export const constants = {
     KERNEL_V3_1: '0x0DA6a956B9488eD4dd761E59f52FDc6c8068E6B5',
     getEntryPoint,

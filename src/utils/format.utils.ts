@@ -53,3 +53,14 @@ export const formatBankAccountDisplay = (value: string | undefined, type?: 'iban
 }
 
 export const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+
+// Some banks (e.g. Wise) cap the transfer-reference field at 10 characters, and
+// Bridge matches incoming deposits on this partial reference. Every surface that
+// shows or copies a Bridge deposit reference must use this same shortened form —
+// different lengths on different screens made a user believe he wired with the
+// wrong code (two-different-codes confusion, peanut-ui#2416).
+export function shortDepositReference(reference: string): string
+export function shortDepositReference(reference: string | undefined): string | undefined
+export function shortDepositReference(reference: string | undefined): string | undefined {
+    return reference?.slice(0, 10)
+}

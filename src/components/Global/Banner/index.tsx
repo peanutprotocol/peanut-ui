@@ -1,19 +1,30 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
+import { ConnectivityBanner } from './ConnectivityBanner'
+import { useConnectivity } from '@/hooks/useConnectivity'
 import { MaintenanceBanner } from './MaintenanceBanner'
 import { MarqueeWrapper } from '../MarqueeWrapper'
 import maintenanceConfig from '@/config/underMaintenance.config'
-import { HandThumbsUp } from '@/assets'
+import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import Image from 'next/image'
 import { useModalsContext } from '@/context/ModalsContext'
 import { GIT_COMMIT_HASH, IS_PRODUCTION } from '@/constants/general.consts'
 import { getRunMode, isRealMoneyMode, logRunMode } from '@/utils/mode'
+import { isDemoMode } from '@/utils/demo'
 
 export function Banner() {
     const pathname = usePathname()
+    const connectivity = useConnectivity()
     if (!pathname) return null
+
+    // Connectivity wins over the beta/maintenance banners: if the app can't reach
+    // the backend, that's the most actionable thing to tell the user right now.
+    if (connectivity.show) {
+        return <ConnectivityBanner isOffline={connectivity.isOffline} />
+    }
 
     // check if maintenance banner OR full maintenance is enabled - show on all pages
     if (maintenanceConfig.enableMaintenanceBanner || maintenanceConfig.enableFullMaintenance) {
@@ -21,7 +32,13 @@ export function Banner() {
     }
 
     // don't show beta feedback banner on landing pages, setup page, or quests pages
-    if (pathname === '/' || pathname === '/setup' || pathname.startsWith('/quests') || pathname.startsWith('/lp'))
+    if (
+        pathname === '/' ||
+        pathname === '/setup' ||
+        pathname === '/setup/' ||
+        pathname.startsWith('/quests') ||
+        pathname.startsWith('/lp')
+    )
         return null
 
     // show beta feedback banner when not in maintenance
@@ -29,6 +46,7 @@ export function Banner() {
 }
 
 function FeedbackBanner() {
+    const t = useTranslations('global')
     const { setIsSupportModalOpen } = useModalsContext()
 
     // Log run-mode once on mount (dev only). Big yellow banner in the
@@ -43,6 +61,18 @@ function FeedbackBanner() {
         setIsSupportModalOpen(true)
     }
 
+    // Demo mode: this isn't a real account, so swap the feedback ask for a clear
+    // "you're in a demo" notice (non-interactive — no support modal).
+    if (isDemoMode()) {
+        return (
+            <div className="w-full">
+                <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
+                    <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">{t('demoBanner')}</span>
+                </MarqueeWrapper>
+            </div>
+        )
+    }
+
     const mode = !IS_PRODUCTION ? getRunMode() : null
     const realMoney = !IS_PRODUCTION && isRealMoneyMode()
 
@@ -50,8 +80,8 @@ function FeedbackBanner() {
         <button onClick={handleClick} className="w-full cursor-pointer">
             <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
                 <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">
-                    Peanut is in beta! Thank you for being an early user, share your feedback here
-                    <Image src={HandThumbsUp} alt="Thumbs up" className="h-4 w-4" />
+                    {t('betaBanner')}
+                    <Image src={HandThumbsUp} alt={t('betaBannerThumbsUpAlt')} className="h-4 w-4" />
                     {!IS_PRODUCTION && <span className="ml-2 text-sm font-semibold">version: {GIT_COMMIT_HASH}</span>}
                     {mode && (
                         // High-contrast yellow-on-black pill. Visually impossible

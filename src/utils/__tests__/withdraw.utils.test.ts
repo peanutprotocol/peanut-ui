@@ -3,10 +3,12 @@ import {
     isPixPhoneNumber,
     normalizePixPhoneNumber,
     isPixEmvcoQr,
+    isPixRecurringCode,
     normalizePixInput,
     validatePixKey,
     getCountryCodeForWithdraw,
     getCountryFromIban,
+    isBelowRhinoMinDeposit,
 } from '@/utils/withdraw.utils'
 
 jest.mock('@/assets', () => ({}))
@@ -149,6 +151,50 @@ describe('Withdraw Utilities', () => {
             ['', false],
         ])('should return %s for %s', (input, expected) => {
             expect(isPixEmvcoQr(input)).toBe(expected)
+        })
+    })
+
+    describe('isPixRecurringCode (PIX Automático)', () => {
+        it.each([
+            // Composite Automático payload — payment fields + /rec/ URL
+            [
+                '00020126850014br.gov.bcb.pix2563pix.example.com/rec/2a4d05638b1c4b2e9f3a67890ab5204000053039865802BR5909Test Merc6009SAO PAULO62070503***6304ABCD',
+                true,
+            ],
+            // Recurrence-only payload — no currency (5303986) / country (5802BR) fields
+            ['00020126720014br.gov.bcb.pix2550pix.example.com/rec/abc1236304ABCD', true],
+            // Uppercase payload (real-world QRs mix case)
+            ['00020126720014BR.GOV.BCB.PIX2550PIX.EXAMPLE.COM/REC/ABC1236304ABCD', true],
+            // Protocol-prefixed payload (some QRs embed the EMV string behind http://)
+            ['http://00020126720014br.gov.bcb.pix2550pix.example.com/rec/abc1236304ABCD', true],
+            // Regular PIX payment QR — no /rec/
+            [
+                '00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-4266554400005204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D',
+                false,
+            ],
+            // /rec/ present but not a PIX EMV payload
+            ['https://example.com/rec/123', false],
+            // /rec/ present but wrong EMV prefix
+            ['999999260014br.gov.bcb.pix2550pix.example.com/rec/abc123', false],
+            // Raw PIX key
+            ['user@example.com', false],
+            ['', false],
+        ])('should return %s for %s', (input, expected) => {
+            expect(isPixRecurringCode(input)).toBe(expected)
+        })
+
+        it('validatePixKey rejects a recurring EMV payload as a destination (withdraw path)', () => {
+            const result = validatePixKey(
+                '00020126850014br.gov.bcb.pix2563pix.example.com/rec/2a4d05638b1c4b2e9f3a67890ab5204000053039865802BR5909Test Merc6009SAO PAULO62070503***6304ABCD'
+            )
+            expect(result.valid).toBe(false)
+            expect(result.message).toMatch(/recurring/i)
+        })
+
+        it('validatePixKey gives the specific recurring message even for uppercase payloads (which skip the case-sensitive EMVCo branch)', () => {
+            const result = validatePixKey('00020126720014BR.GOV.BCB.PIX2550PIX.EXAMPLE.COM/REC/ABC1236304ABCD')
+            expect(result.valid).toBe(false)
+            expect(result.message).toMatch(/recurring/i)
         })
     })
 
@@ -345,6 +391,28 @@ describe('Withdraw Utilities', () => {
                 const result = validatePixKey(cleaned)
                 expect(result.valid).toBe(true)
             })
+        })
+    })
+
+    // Guards the confirm CTA on cross-chain withdrawals: a sub-minimum SDA
+    // deposit is accepted on-chain but never bridged (funds strand, uncredited),
+    // reachable since the amount step dropped its blanket $1 crypto minimum.
+    describe('isBelowRhinoMinDeposit', () => {
+        test('blocks when the deposit is below the route minimum', () => {
+            expect(isBelowRhinoMinDeposit('0.50', 5)).toBe(true)
+        })
+
+        test('allows at or above the minimum', () => {
+            expect(isBelowRhinoMinDeposit('5.00', 5)).toBe(false)
+            expect(isBelowRhinoMinDeposit('12.34', 5)).toBe(false)
+        })
+
+        test('stays permissive while values are unknown (CTA already gated by isCalculating)', () => {
+            expect(isBelowRhinoMinDeposit(null, 5)).toBe(false)
+            expect(isBelowRhinoMinDeposit(undefined, 5)).toBe(false)
+            expect(isBelowRhinoMinDeposit('0.50', null)).toBe(false)
+            expect(isBelowRhinoMinDeposit('0.50', undefined)).toBe(false)
+            expect(isBelowRhinoMinDeposit('not-a-number', 5)).toBe(false)
         })
     })
 })

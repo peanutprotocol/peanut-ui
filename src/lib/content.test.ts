@@ -22,13 +22,13 @@ describe('listAllContent', () => {
         const enItems = listAllContent('en')
         expect(enItems.every((i) => i.lang === 'en')).toBe(true)
 
-        // Spanish-AR will mix lang values via fallback chain (es-ar → es-419 → en)
-        const esItems = listAllContent('es-ar')
+        // es-419 mixes lang values via the fallback chain (es-419 → en)
+        const esItems = listAllContent('es-419')
         const langs = new Set(esItems.map((i) => i.lang))
         // At minimum, en is in the chain so it should appear; more locales may too.
         expect(langs.size).toBeGreaterThan(0)
         for (const lang of langs) {
-            expect(['en', 'es-419', 'es-ar']).toContain(lang)
+            expect(['en', 'es-419']).toContain(lang)
         }
     })
 

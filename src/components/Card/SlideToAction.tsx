@@ -1,6 +1,7 @@
 'use client'
 import { type FC, useEffect, useRef, useState } from 'react'
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
+import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '@/components/Global/Icons/Icon'
 
@@ -16,6 +17,7 @@ interface Props {
 const HANDLE_WIDTH = 56
 
 const SlideToAction: FC<Props> = ({ label, onComplete, disabled = false, threshold = 0.9, className }) => {
+    const t = useTranslations('card')
     const trackRef = useRef<HTMLDivElement>(null)
     const [trackWidth, setTrackWidth] = useState(0)
     const x = useMotionValue(0)
@@ -73,7 +75,7 @@ const SlideToAction: FC<Props> = ({ label, onComplete, disabled = false, thresho
                 dragMomentum={false}
                 onDragEnd={handleDragEnd}
                 className="z-10 flex h-full cursor-grab items-center justify-center bg-white active:cursor-grabbing"
-                aria-label="Slide handle"
+                aria-label={t('slideHandleAria')}
             >
                 <Icon name="chevron-up" size={24} className="rotate-90" />
             </motion.button>

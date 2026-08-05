@@ -22,8 +22,6 @@ jobs:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
             - uses: pnpm/action-setup@v4
-              with:
-                  version: 9
             - name: Install Vercel CLI
               run: pnpm add --global vercel@latest
             - name: Link to Project

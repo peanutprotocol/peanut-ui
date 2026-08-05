@@ -15,7 +15,7 @@ export function isCapacitor(): boolean {
     // check isNativePlatform() — not just window.Capacitor existence.
     // @capacitor/core sets window.Capacitor on ALL platforms (including web) when bundled.
     // only return true if the native bridge is actually active.
-    const cap = (window as any).Capacitor
+    const cap = window.Capacitor
     if (cap?.isNativePlatform?.()) return true
     if (IS_CAPACITOR_BUILD) return true
     return false
@@ -27,7 +27,7 @@ export function isCapacitor(): boolean {
 export function getPlatform(): 'web' | 'ios-native' | 'android-native' | 'ios-pwa' | 'android-pwa' {
     if (typeof window === 'undefined') return 'web'
 
-    const capacitor = (window as any).Capacitor
+    const capacitor = window.Capacitor
     if (capacitor) {
         const platform = capacitor.getPlatform?.()
         if (platform === 'ios') return 'ios-native'
@@ -44,7 +44,7 @@ export function getPlatform(): 'web' | 'ios-native' | 'android-native' | 'ios-pw
 
     const ua = navigator.userAgent.toLowerCase()
     const isStandalone =
-        window.matchMedia?.('(display-mode: standalone)')?.matches || (window.navigator as any).standalone === true
+        window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone === true
 
     if (isStandalone) {
         if (/iphone|ipad|ipod/.test(ua)) return 'ios-pwa'

@@ -2,6 +2,7 @@
 import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
+import { useTranslations } from 'next-intl'
 import { useCallback, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
@@ -16,6 +17,7 @@ interface CopyFieldProps {
 const timeoutDuration = 3000
 
 const CopyField = ({ text, variant, shadowSize, disabled, onDisabledClick }: CopyFieldProps) => {
+    const t = useTranslations('global')
     const [isCopied, setIsCopied] = useState(false)
 
     const handleClick = useCallback(() => {
@@ -43,7 +45,7 @@ const CopyField = ({ text, variant, shadowSize, disabled, onDisabledClick }: Cop
                 onClick={handleClick}
                 shadowSize={shadowSize}
             >
-                {isCopied ? 'Copied' : 'Copy'}
+                {isCopied ? t('copyField.copied') : t('copyField.copy')}
             </Button>
         </div>
     )

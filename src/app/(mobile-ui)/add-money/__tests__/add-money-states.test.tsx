@@ -13,10 +13,12 @@
  * Strategy: mock every hook and service at the module level, then configure
  * per-test via mockReturnValue / mockImplementation.
  */
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, @typescript-eslint/no-require-imports, react/display-name, @next/next/no-img-element */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react/display-name */
 import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import en from '@/i18n/app/messages/en.json'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
 
@@ -281,6 +283,7 @@ jest.mock('@/constants/zerodev.consts', () => ({
 jest.mock('@/constants/payment.consts', () => ({
     MIN_MANTECA_DEPOSIT_AMOUNT: 1,
     BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME: 'Bridge Financial',
+    resolveBridgeAccountHolderName: (name?: string | null) => name || 'Bridge Financial',
 }))
 
 jest.mock('@/constants/manteca.consts', () => ({
@@ -584,6 +587,14 @@ jest.mock('@/components/AddMoney/hooks/useCryptoDepositPolling', () => ({
     useCryptoDepositPolling: (...args: any[]) => mockUseCryptoDepositPolling(...args),
 }))
 
+// updateUserById — the offramp handle gate persists the migrant's offramp.xyz
+// username/email through this server action
+const mockUpdateUserById = jest.fn()
+jest.mock('@/app/actions/users', () => ({
+    ...jest.requireActual('@/app/actions/users'),
+    updateUserById: (...args: any[]) => mockUpdateUserById(...args),
+}))
+
 // Country list
 jest.mock('@/components/Common/CountryList', () => ({
     CountryList: (props: any) => (
@@ -597,6 +608,9 @@ jest.mock('@/components/Common/CountryList', () => ({
             </button>
             <button data-testid="country-germany" onClick={() => props.onCountryClick({ path: 'germany', id: 'DE' })}>
                 Germany
+            </button>
+            <button data-testid="country-chad" onClick={() => props.onCountryClick({ path: 'chad', id: 'TD' })}>
+                Chad
             </button>
         </div>
     ),
@@ -746,7 +760,14 @@ function setParams(params: Record<string, string>) {
 // then push it onto the useCapabilities mock. The page reads `gateFor(...)`,
 // so the mock returns a stub gateFor closing over the desired state; it also
 // exposes `bankRails()` for the few sites that read it directly.
-type Gate = 'ready' | 'accept-tos' | 'fixable-rejection' | 'blocked-rejection' | 'needs-identity' | 'needs-enrollment'
+type Gate =
+    | 'ready'
+    | 'accept-tos'
+    | 'fixable-rejection'
+    | 'blocked-rejection'
+    | 'needs-identity'
+    | 'needs-enrollment'
+    | 'waiting-on-provider'
 
 function setGate(kind: Gate) {
     let rails: any[] = []
@@ -833,6 +854,22 @@ function setGate(kind: Gate) {
             rails = []
             gateState = { kind: 'needs-identity' }
             break
+        case 'waiting-on-provider':
+            // provider reviewing submitted info (e.g. eea-uplift docs) — user
+            // has nothing to do but wait
+            rails = [
+                {
+                    id: 'bridge.ach_us',
+                    provider: 'bridge',
+                    method: 'ACH_US',
+                    country: 'US',
+                    currency: 'USD',
+                    status: 'requires-info',
+                    blockingActions: ['wait:bridge'],
+                },
+            ]
+            gateState = { kind: 'waiting-on-provider', reason: { code: 'bridge_processing' } }
+            break
     }
 
     mockUseCapabilities.mockReturnValue({
@@ -859,7 +896,11 @@ function createQueryClient() {
 
 function renderWithProviders(component: React.ReactElement) {
     const queryClient = createQueryClient()
-    return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>)
+    return render(
+        <IntlWrapper>
+            <QueryClientProvider client={queryClient}>{component}</QueryClientProvider>
+        </IntlWrapper>
+    )
 }
 
 // ---------- default mock values ----------
@@ -898,7 +939,6 @@ function applyDefaults() {
     mockUseCreateOnramp.mockReturnValue({
         createOnramp: jest.fn(),
         isLoading: false,
-        error: null,
     })
 
     mockUseLimitsValidation.mockReturnValue({
@@ -998,12 +1038,31 @@ describe('GROUP 1: Landing / Method Selection', () => {
         expect(screen.getByText('Select your country')).toBeInTheDocument()
     })
 
-    test('selecting a country from list navigates to country page', () => {
+    // TASK-20033: picking a bank-supported country skips the redundant per-country
+    // method list and goes straight to the deposit screen (Manteca for AR/BR,
+    // Bridge bank otherwise). Coming-soon countries keep the per-country screen.
+    test('selecting a Manteca country (AR/BR) goes straight to the manteca deposit', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('country-argentina'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/argentina')
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/argentina/manteca')
+    })
+
+    test('selecting a Bridge-supported country goes straight to the bank deposit', () => {
+        resetQueryState({ method: 'bank' })
+        renderWithProviders(<AddMoneyPage />)
+
+        fireEvent.click(screen.getByTestId('country-germany'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/germany/bank')
+    })
+
+    test('selecting a coming-soon country keeps the per-country method screen', () => {
+        resetQueryState({ method: 'bank' })
+        renderWithProviders(<AddMoneyPage />)
+
+        fireEvent.click(screen.getByTestId('country-chad'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/chad')
     })
 
     test('back from method selection navigates to /home', () => {
@@ -1124,10 +1183,10 @@ describe('GROUP 3: Crypto Deposit', () => {
             />
         )
 
-        expect(screen.getByText('Oops! Market moved')).toBeInTheDocument()
-        expect(screen.getByText('Try Again')).toBeInTheDocument()
+        expect(screen.getByText(en.addMoney.crypto.marketMovedTitle)).toBeInTheDocument()
+        expect(screen.getByText(en.common.tryAgain)).toBeInTheDocument()
 
-        fireEvent.click(screen.getByText('Try Again'))
+        fireEvent.click(screen.getByText(en.common.tryAgain))
         expect(mockResetStatus).toHaveBeenCalled()
     })
 
@@ -1206,6 +1265,86 @@ describe('GROUP 4: Crypto Page (with success)', () => {
 })
 
 // ============================================================
+// GROUP 4b: Offramp migration — required handle gate
+// ============================================================
+describe('GROUP 4b: Offramp migration handle gate', () => {
+    const authWithHandle = (offrampHandle: string | null) => {
+        mockUseAuth.mockReturnValue({
+            user: { user: { username: 'test-user', userId: 'user-123', offrampHandle } },
+            isFetchingUser: false,
+            fetchUser: jest.fn().mockResolvedValue(null),
+        })
+    }
+
+    beforeEach(() => {
+        resetQueryState({ network: 'EVM', source: 'offramp' })
+        mockUseCryptoDepositPolling.mockReturnValue({
+            status: 'not_started',
+            resetStatus: jest.fn(),
+            isResetting: false,
+        })
+        mockRhinoApi.createDepositAddress.mockResolvedValue({
+            depositAddress: '0xDepositAddress123',
+            minDepositLimitUsd: 5,
+            maxDepositLimitUsd: 10000,
+        })
+    })
+
+    test('migrant without a stored handle must enter it before seeing the deposit address', () => {
+        authWithHandle(null)
+        renderWithProviders(<AddMoneyCryptoPage />)
+
+        expect(screen.getByPlaceholderText('Offramp username or email')).toBeInTheDocument()
+        expect(screen.queryByTestId('qr-code')).not.toBeInTheDocument()
+    })
+
+    test('submitting the handle saves it trimmed and reveals the deposit screen', async () => {
+        authWithHandle(null)
+        mockUpdateUserById.mockResolvedValue({ data: {} })
+        renderWithProviders(<AddMoneyCryptoPage />)
+
+        fireEvent.change(screen.getByPlaceholderText('Offramp username or email'), {
+            target: { value: '  alice@offramp.xyz  ' },
+        })
+        fireEvent.click(screen.getByText('Continue'))
+
+        await waitFor(() => {
+            expect(mockUpdateUserById).toHaveBeenCalledWith({
+                userId: 'user-123',
+                offrampHandle: 'alice@offramp.xyz',
+            })
+        })
+        await waitFor(() => {
+            expect(screen.queryByPlaceholderText('Offramp username or email')).not.toBeInTheDocument()
+        })
+    })
+
+    test('save failure keeps the gate up and shows an error', async () => {
+        authWithHandle(null)
+        mockUpdateUserById.mockResolvedValue({ error: 'boom' })
+        renderWithProviders(<AddMoneyCryptoPage />)
+
+        fireEvent.change(screen.getByPlaceholderText('Offramp username or email'), {
+            target: { value: 'alice@offramp.xyz' },
+        })
+        fireEvent.click(screen.getByText('Continue'))
+
+        await waitFor(() => {
+            expect(screen.getByText(/Could not save your Offramp account/)).toBeInTheDocument()
+        })
+        expect(screen.getByPlaceholderText('Offramp username or email')).toBeInTheDocument()
+    })
+
+    test('migrant with a stored handle goes straight to the deposit screen', () => {
+        authWithHandle('alice@offramp.xyz')
+        renderWithProviders(<AddMoneyCryptoPage />)
+
+        expect(screen.queryByPlaceholderText('Offramp username or email')).not.toBeInTheDocument()
+        expect(screen.getAllByText('Migrate from Offramp').length).toBeGreaterThan(0)
+    })
+})
+
+// ============================================================
 // GROUP 5: Bridge Bank Onramp (SEPA / US / UK / MX)
 // ============================================================
 describe('GROUP 5: Bridge Bank Onramp', () => {
@@ -1236,6 +1375,30 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 
         expect(screen.getByTestId('empty-state')).toBeInTheDocument()
         expect(screen.getByText('Country not found')).toBeInTheDocument()
+    })
+
+    // Manteca countries (BR/AR) must never render this Bridge SEPA page — it has no
+    // BR/AR currency and would show EUR (TASK-20225). Bounce them to /manteca instead.
+    test.each(['brazil', 'argentina'])(
+        'Manteca country (%s) redirects to the manteca route, never shows EUR bank UI',
+        (country) => {
+            setParams({ country })
+            renderWithProviders(<OnrampBankPage />)
+
+            expect(mockRouterReplace).toHaveBeenCalledWith(`/add-money/${country}/manteca`)
+            expect(screen.queryByText('How much do you want to add?')).not.toBeInTheDocument()
+            expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
+        }
+    )
+
+    // Control: a non-Manteca bank country (Mexico) must NOT be bounced — it stays on
+    // the Bridge amount UI. Guards against the redirect over-firing.
+    test('non-Manteca country (mexico) stays on the Bridge bank UI, no redirect', () => {
+        setParams({ country: 'mexico' })
+        renderWithProviders(<OnrampBankPage />)
+
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        expect(screen.getByText('How much do you want to add?')).toBeInTheDocument()
     })
 
     test('fresh user needs KYC before Bridge deposit confirmation', async () => {
@@ -1286,7 +1449,6 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         mockUseCreateOnramp.mockReturnValue({
             createOnramp: mockCreateOnramp,
             isLoading: false,
-            error: null,
         })
         resetQueryState({ step: 'inputAmount', amount: '100' })
 
@@ -1308,10 +1470,11 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 
     test('onramp error displays ErrorAlert', async () => {
         const mockCreateOnramp = jest.fn().mockRejectedValue(new Error('Service unavailable'))
+        // the page must surface the caught error's message directly — the hook
+        // exposes no error state to read (that channel was the stale-closure trap).
         mockUseCreateOnramp.mockReturnValue({
             createOnramp: mockCreateOnramp,
             isLoading: false,
-            error: 'Service unavailable',
         })
         resetQueryState({ step: 'inputAmount', amount: '100' })
 
@@ -1327,8 +1490,31 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             fireEvent.click(screen.getByTestId('confirm-onramp'))
         })
 
-        // After error, the setError should have been called
-        expect(mockOnrampFlow.setError).toHaveBeenCalled()
+        // the caught message must be shown to the user
+        expect(mockOnrampFlow.setError).toHaveBeenCalledWith({
+            showError: true,
+            errorMessage: 'Service unavailable',
+        })
+    })
+
+    test('waiting-on-provider gate shows the reverification pending modal instead of a dead button', async () => {
+        setGate('waiting-on-provider')
+        const mockCreateOnramp = jest.fn()
+        mockUseCreateOnramp.mockReturnValue({
+            createOnramp: mockCreateOnramp,
+            isLoading: false,
+        })
+        resetQueryState({ step: 'inputAmount', amount: '100' })
+
+        renderWithProviders(<OnrampBankPage />)
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Continue'))
+        })
+
+        // no doomed transfer attempt; the user sees the bridge-review pending modal
+        expect(mockCreateOnramp).not.toHaveBeenCalled()
+        expect(await screen.findByText(/reviewing your details/i)).toBeInTheDocument()
     })
 
     test('limits blocking disables Continue and shows LimitsWarningCard', () => {

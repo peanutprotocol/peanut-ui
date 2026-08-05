@@ -1,6 +1,8 @@
 import { type CrispUserData } from '@/hooks/useCrispUserData'
 import { isCapacitor } from '@/utils/capacitor'
 
+type CrispInstance = Window['$crisp']
+
 /**
  * Sets Crisp user identification and session metadata on a $crisp instance
  *
@@ -12,7 +14,11 @@ import { isCapacitor } from '@/utils/capacitor'
  * @param userData - User data to set
  * @param prefilledMessage - Optional message to prefill in chat
  */
-export function setCrispUserData(crispInstance: any, userData: CrispUserData, prefilledMessage?: string): void {
+export function setCrispUserData(
+    crispInstance: CrispInstance,
+    userData: CrispUserData,
+    prefilledMessage?: string
+): void {
     if (!crispInstance) return
 
     const {
@@ -21,7 +27,6 @@ export function setCrispUserData(crispInstance: any, userData: CrispUserData, pr
         email,
         fullName,
         avatar,
-        grafanaLink,
         walletAddressLink,
         bridgeCustomerLink,
         mantecaUserId,
@@ -50,7 +55,6 @@ export function setCrispUserData(crispInstance: any, userData: CrispUserData, pr
                 ['username', username || ''],
                 ['user_id', userId || ''],
                 ['full_name', fullName || ''],
-                ['grafana_dashboard', grafanaLink || ''],
                 ['wallet_address', walletAddressLink || ''],
                 ['bridge_user_id', bridgeCustomerLink || ''],
                 ['manteca_user_id', mantecaUserId || ''],
@@ -69,7 +73,7 @@ export function setCrispUserData(crispInstance: any, userData: CrispUserData, pr
  *
  * @param crispInstance - The $crisp object
  */
-export function resetCrispSession(crispInstance: any): void {
+export function resetCrispSession(crispInstance: CrispInstance): void {
     if (!crispInstance || typeof window === 'undefined') return
 
     try {

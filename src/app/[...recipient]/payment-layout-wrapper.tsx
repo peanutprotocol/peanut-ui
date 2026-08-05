@@ -47,8 +47,8 @@ export default function PaymentLayoutWrapper({ children }: { children: React.Rea
                     >
                         <div
                             className={twMerge(
-                                'flex w-full items-center justify-center md:ml-auto md:min-h-full md:w-[calc(100%-160px)]',
-                                isUserLoggedIn ? 'min-h-[calc(100dvh-160px)]' : 'min-h-[calc(100dvh-64px)]'
+                                'flex w-full items-center justify-center md:ml-auto md:min-h-full md:w-[calc(100%_-_160px)]',
+                                isUserLoggedIn ? 'min-h-[calc(100dvh_-_160px)]' : 'min-h-[calc(100dvh_-_64px)]'
                             )}
                         >
                             {children}

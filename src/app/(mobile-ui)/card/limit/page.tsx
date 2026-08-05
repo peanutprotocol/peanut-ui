@@ -1,5 +1,6 @@
 'use client'
 import { type FC } from 'react'
+import { useTranslations } from 'next-intl'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -9,6 +10,7 @@ import CardLimitsScreen from '@/components/Card/CardLimitsScreen'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
 const CardLimitPage: FC = () => {
+    const t = useTranslations('card')
     const { overview, isLoading } = useRainCardOverview()
     const card = findActiveCard(overview)
     const onBack = useSafeBack('/card')
@@ -27,9 +29,9 @@ const CardLimitPage: FC = () => {
         return (
             <PageContainer>
                 <div className="flex min-h-[inherit] w-full flex-col items-center justify-center gap-4 p-4 text-center">
-                    <p className="text-n-1">No active card to manage limits for.</p>
+                    <p className="text-n-1">{t('limits.noActiveCard')}</p>
                     <Button variant="purple" shadowSize="4" onClick={onBack}>
-                        Back to Card
+                        {t('backToCard')}
                     </Button>
                 </div>
             </PageContainer>

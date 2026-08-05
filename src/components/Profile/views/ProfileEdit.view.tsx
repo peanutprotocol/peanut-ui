@@ -5,6 +5,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import { useAuth } from '@/context/authContext'
 import * as Sentry from '@sentry/nextjs'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import ProfileEditField from '../components/ProfileEditField'
@@ -13,6 +14,7 @@ import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
 export const ProfileEditView = () => {
+    const t = useTranslations('profile.edit')
     const router = useRouter()
     const onBack = useSafeBack('/profile')
     const { user, fetchUser } = useAuth()
@@ -47,6 +49,10 @@ export const ProfileEditView = () => {
     // check if email is already set
     const isEmailSet = !!user?.user.email
 
+    // once identity-verified the name is provider-owned, so the name/surname
+    // fields are locked and never sent. one source of truth for that invariant.
+    const canEditName = !isKycApproved
+
     // populate name and surname from fullName
     useEffect(() => {
         if (user?.user.fullName) {
@@ -74,19 +80,23 @@ export const ProfileEditView = () => {
             setIsLoading(true)
             setErrorMessage('')
 
-            // validate form data
-            if (!formData.name?.trim()) {
-                setErrorMessage('Please provide your name.')
+            // only require the name when the field is editable — requiring it
+            // while it's locked (verified user, provider owns the name) would
+            // trap users whose fullName is empty at load (can't type, can't
+            // save) when all they want is to set their email.
+            if (canEditName && !formData.name?.trim()) {
+                setErrorMessage(t('errors.nameRequired'))
                 return
             }
 
-            // combine name and surname for fullName
-            const fullName = `${formData.name} ${formData.surname}`.trim()
-
             // prepare request payload
-            const payload: Record<string, any> = {
+            const payload: { userId?: string; fullName?: string; email?: string } = {
                 userId: user?.user.userId,
-                fullName: fullName,
+            }
+
+            // only include name when the field is editable (not provider-locked)
+            if (canEditName) {
+                payload.fullName = `${formData.name} ${formData.surname}`.trim()
             }
 
             // only include email if it's not already set and has a value
@@ -98,8 +108,21 @@ export const ProfileEditView = () => {
                 throw new Error('User ID is undefined.')
             }
 
-            // update user profile
-            await updateUserById(payload)
+            // nothing substantive to update (e.g. a verified user with email
+            // already set clicking Save unchanged) — skip the no-op round-trip.
+            if (payload.fullName === undefined && payload.email === undefined) {
+                router.replace('/profile')
+                return
+            }
+
+            // updateUserById resolves with { error } on a non-2xx response
+            // instead of throwing (e.g. 400 invalid email, 409 email already in
+            // use). Surface it instead of navigating away as a false success.
+            const result = await updateUserById(payload)
+            if (result?.error) {
+                setErrorMessage(result.error)
+                return
+            }
 
             // refresh user data
             await fetchUser()
@@ -107,74 +130,74 @@ export const ProfileEditView = () => {
             router.replace('/profile')
         } catch (error) {
             console.error('Error updating profile:', error)
-            setErrorMessage('Something went wrong. Please try again or contact support.')
+            setErrorMessage(t('errors.generic'))
             Sentry.captureException(error)
         } finally {
             setIsLoading(false)
         }
-    }, [formData, user, fetchUser, router, isEmailSet])
+    }, [formData, user, fetchUser, router, isEmailSet, canEditName, t])
 
     const fullName = user?.user.fullName || user?.user?.username || ''
     const username = user?.user.username || ''
 
     return (
         <div className="space-y-8">
-            <NavHeader title="Edit Profile" onPrev={onBack} />
+            <NavHeader title={t('title')} onPrev={onBack} />
 
             <ProfileHeader name={fullName} username={username} isVerified={isKycApproved} />
 
             <div className="space-y-4">
                 <ProfileEditField
-                    label="Name"
+                    label={t('fields.name')}
                     value={formData.name}
                     onChange={(value) => handleChange('name', value)}
-                    placeholder="Add your name"
-                    disabled={isKycApproved}
+                    placeholder={t('placeholders.name')}
+                    disabled={!canEditName}
                 />
 
                 <ProfileEditField
-                    label="Surname"
+                    label={t('fields.surname')}
                     value={formData.surname}
                     onChange={(value) => handleChange('surname', value)}
-                    placeholder="Add your surname"
-                    disabled={isKycApproved}
+                    placeholder={t('placeholders.surname')}
+                    disabled={!canEditName}
                 />
 
                 <ProfileEditField
-                    label="Bio"
+                    label={t('fields.bio')}
                     value={formData.bio}
                     onChange={(value) => handleChange('bio', value)}
-                    placeholder="Add a bio"
-                    badge="Soon!"
+                    placeholder={t('placeholders.bio')}
+                    badge={t('soonBadge')}
                     disabled
                 />
 
                 <ProfileEditField
-                    label="Email"
+                    label={t('fields.email')}
                     value={formData.email}
                     onChange={(value) => handleChange('email', value)}
-                    placeholder="Add your email"
+                    placeholder={t('placeholders.email')}
                     type="email"
                     disabled={isEmailSet}
                 />
 
                 <ProfileEditField
-                    label="Phone number"
+                    label={t('fields.phoneNumber')}
                     value={formData.phone}
                     onChange={(value) => handleChange('phone', value)}
-                    placeholder="Add your number"
+                    placeholder={t('placeholders.phone')}
                     type="tel"
-                    badge="Soon!"
+                    badge={t('soonBadge')}
                     disabled
                 />
 
                 <ProfileEditField
-                    label="Website"
+                    label={t('fields.website')}
                     value={formData.website}
                     onChange={(value) => handleChange('website', value)}
-                    placeholder="Add your website"
+                    placeholder={t('placeholders.website')}
                     type="url"
-                    badge="Soon!"
+                    badge={t('soonBadge')}
                     disabled
                 />
 
@@ -186,7 +209,7 @@ export const ProfileEditView = () => {
                         shadowSize="4"
                         loading={isLoading}
                     >
-                        Save Changes
+                        {t('saveChanges')}
                     </Button>
 
                     {errorMessage && <ErrorAlert description={errorMessage} />}

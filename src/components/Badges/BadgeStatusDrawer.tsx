@@ -1,7 +1,7 @@
-import { Drawer, DrawerContent } from '@/components/Global/Drawer'
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import Image from 'next/image'
 import { useState } from 'react'
-import { formatDate } from '@/utils/general.utils'
+import { useFormatter, useLocale, useTranslations } from 'next-intl'
 import Card from '../Global/Card'
 import { PaymentInfoRow } from '../Payment/PaymentInfoRow'
 import ShareButton from '../Global/ShareButton'
@@ -24,11 +24,24 @@ export type BadgeStatusDrawerProps = {
 
 // shows a drawer for a newly unlocked badge
 export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerProps) => {
+    const t = useTranslations('badges')
+    const locale = useLocale()
+    const format = useFormatter()
     const { user: authUser } = useAuth()
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const username = authUser?.user.username
     const earnedAt = badge.earnedAt ? new Date(badge.earnedAt) : undefined
-    const dateStr = earnedAt ? formatDate(earnedAt) : undefined
+    const dateStr =
+        earnedAt && !isNaN(earnedAt.getTime())
+            ? format.dateTime(earnedAt, {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false,
+              })
+            : undefined
     const displayName = getBadgeDisplayName(badge.code, badge.name)
 
     // generate profile link for sharing
@@ -53,7 +66,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                                 <div className="flex h-12 w-12 items-center justify-center rounded-full">
                                     <Image
                                         src={getBadgeIcon(badge.code)}
-                                        alt="Icon"
+                                        alt={t('iconAlt', { name: displayName })}
                                         className="size-full object-contain"
                                         width={160}
                                         height={160}
@@ -62,26 +75,36 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
 
                                 <div className="space-y-1">
                                     <h2 className="flex items-center gap-2 text-xs font-medium text-grey-1">
-                                        Badge unlocked!
+                                        {t('unlocked')}
                                     </h2>
-                                    <h1 className={`text-lg font-extrabold md:text-4xl`}>{displayName}</h1>
+                                    <DrawerTitle className="text-lg font-extrabold md:text-4xl">
+                                        {displayName}
+                                    </DrawerTitle>
                                 </div>
                             </div>
                         </Card>
 
                         <Card position="single">
-                            <PaymentInfoRow label="Unlocked" value={dateStr} />
-                            <PaymentInfoRow label="Reason" value={badge.description} hideBottomBorder />
+                            <PaymentInfoRow label={t('unlockedAtLabel')} value={dateStr} />
+                            <PaymentInfoRow label={t('reasonLabel')} value={badge.description} hideBottomBorder />
                         </Card>
 
                         <div className="pb-4">
                             <ShareButton
                                 title=""
                                 generateText={() =>
-                                    Promise.resolve(getBadgeShareText(badge.code, displayName, profileLink))
+                                    Promise.resolve(
+                                        getBadgeShareText(badge.code, displayName, profileLink, {
+                                            locale,
+                                            localizedFallback: t('shareText', {
+                                                badge: displayName,
+                                                link: profileLink,
+                                            }),
+                                        })
+                                    )
                                 }
                             >
-                                Share Achievement
+                                {t('shareAchievement')}
                             </ShareButton>
                         </div>
                     </div>

@@ -3,6 +3,7 @@
 import ActionModal from '@/components/Global/ActionModal'
 import InfoCard from '@/components/Global/InfoCard'
 import { Slider } from '@/components/Slider'
+import { useTranslations } from 'next-intl'
 
 interface OnrampConfirmationModalProps {
     visible: boolean
@@ -19,6 +20,7 @@ export const OnrampConfirmationModal = ({
     amount,
     currency,
 }: OnrampConfirmationModalProps) => {
+    const t = useTranslations('addMoney.confirmationModal')
     return (
         <ActionModal
             visible={visible}
@@ -26,7 +28,7 @@ export const OnrampConfirmationModal = ({
             icon="alert"
             iconContainerClassName="bg-yellow-400"
             iconProps={{ className: 'text-black' }}
-            title="IMPORTANT!"
+            title={t('title')}
             footer={
                 <div className="w-full">
                     <Slider onValueChange={(v) => v && onConfirm()} />
@@ -34,24 +36,21 @@ export const OnrampConfirmationModal = ({
             }
             content={
                 <div className="flex w-full flex-col gap-4">
-                    <h2 className="mr-auto font-bold">In the next step you'll see:</h2>
-                    <InfoCard variant="default" items={['Bank details to send money to', 'A deposit reference code']} />
-                    <h2 className="mr-auto font-bold">You MUST:</h2>
+                    <h2 className="mr-auto font-bold">{t('nextStep')}</h2>
+                    <InfoCard variant="default" items={[t('bankDetailsItem'), t('referenceCodeItem')]} />
+                    <h2 className="mr-auto font-bold">{t('youMust')}</h2>
                     <InfoCard
                         variant="info"
                         itemIcon="check"
                         itemIconClassName="text-secondary-7"
                         items={[
-                            <>
-                                Send exactly{' '}
-                                <b>
-                                    {currency}
-                                    {amount}
-                                </b>{' '}
-                                (the exact amount shown)
-                            </>,
-                            'Copy the one-time reference code exactly',
-                            'Paste it in the description/reference field',
+                            t.rich('sendExactly', {
+                                currency,
+                                amount,
+                                b: (chunks) => <b>{chunks}</b>,
+                            }),
+                            t('copyReferenceCode'),
+                            t('pasteReference'),
                         ]}
                     />
 
@@ -59,8 +58,8 @@ export const OnrampConfirmationModal = ({
                         variant="error"
                         icon="alert"
                         iconClassName="text-error-5"
-                        title="If the amount or reference don't match:"
-                        description="Your deposit will fail and it will take 2 to 10 days to return to your bank and might incur fees. The reference code is single use."
+                        title={t('mismatchTitle')}
+                        description={t('mismatchDescription')}
                     />
                 </div>
             }

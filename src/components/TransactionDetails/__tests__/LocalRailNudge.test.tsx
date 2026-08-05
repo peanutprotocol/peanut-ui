@@ -12,9 +12,12 @@
  * any third-party FX outage.
  */
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import { LocalRailNudge } from '../provider-rows/LocalRailNudge'
 import { type TransactionDetails } from '../transactionTransformer'
+
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 
 jest.mock('@/hooks/useCardMarkupRate', () => ({
     useCardMarkupRate: jest.fn(() => ({ data: undefined })),

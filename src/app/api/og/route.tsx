@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 import { PaymentCardOG } from '@/components/og/PaymentCardOG'
 import { NextResponse, type NextRequest } from 'next/server'
-import { type PaymentLink } from '@/interfaces'
+import { type PaymentLink } from '@/interfaces/interfaces'
 import { promises as fs } from 'fs'
 import path from 'path'
 import getOrigin from '@/lib/hosting/get-origin'
