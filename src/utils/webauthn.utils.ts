@@ -44,7 +44,9 @@ const PASSKEY_LOGIN_MESSAGES: Record<string, string> = {
 
 function isNetworkError(error: Error): boolean {
     if (error.name === 'TypeError' && /fetch|network/i.test(error.message)) return true
-    return /failed to fetch|network ?error|timeout|connection|offline/i.test(error.message)
+    // "Load failed" is WebKit's message for a failed fetch (common when the
+    // request fires right as the app foregrounds from the passkey sheet)
+    return /failed to fetch|load failed|network ?error|timeout|connection|offline/i.test(error.message)
 }
 
 /**

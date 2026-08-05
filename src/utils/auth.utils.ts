@@ -1,4 +1,5 @@
 import { removeFromCookie, updateUserPreferences } from './general.utils'
+import { clearAuthToken } from './auth-token'
 import * as Sentry from '@sentry/nextjs'
 
 /**
@@ -10,7 +11,7 @@ import * as Sentry from '@sentry/nextjs'
  *
  * @param userId - Optional user ID for clearing user-scoped preferences
  */
-export const clearAuthState = (userId?: string) => {
+export const clearAuthState = async (userId?: string) => {
     try {
         // Clear user preferences if userId available
         if (userId) {
@@ -20,10 +21,9 @@ export const clearAuthState = (userId?: string) => {
         // Clear cookies (always do this, even if no userId)
         removeFromCookie('web-authn-key')
 
-        // Clear JWT cookie
-        if (typeof document !== 'undefined') {
-            document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
-        }
+        // Clear the JWT everywhere it can live — on native that includes the
+        // plugin-managed stores, not just the cookie this used to expire by hand.
+        await clearAuthToken()
 
         console.log('Cleared auth state', { userId: userId || 'none' })
     } catch (error) {
