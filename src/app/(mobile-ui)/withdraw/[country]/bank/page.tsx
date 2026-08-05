@@ -37,7 +37,7 @@ import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
 import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
 import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { resolveKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
+import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
 import ExchangeRate from '@/components/ExchangeRate'
 import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
@@ -609,6 +609,7 @@ export default function WithdrawBankPage() {
                 error={sumsubFlow.error}
                 variant={resolveKycModalVariant(gate)}
                 providerMessage={getGateUserMessage(gate)}
+                reasonCode={getGateReasonCode(gate)}
                 regionName={getCountryFromPath(country)?.title}
             />
             <AdvisoryPreemptModal {...advisoryModalProps} />

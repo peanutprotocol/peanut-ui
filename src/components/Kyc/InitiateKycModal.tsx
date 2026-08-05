@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import ActionModal from '@/components/Global/ActionModal'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 
@@ -17,6 +18,9 @@ interface InitiateKycModalProps {
     /** when set, shows context-specific messaging instead of the generic "unlock" copy */
     variant?: 'default' | 'provider_rejection' | 'blocked' | 'restart_identity' | 'cross_region' | 'region-unavailable'
     providerMessage?: string
+    /** Stable `CapabilityReason.code` behind `providerMessage` — known codes
+     *  render localized identity.reasons.* copy; unknown fall back to prose. */
+    reasonCode?: string
     /** country name shown in cross_region variant (e.g. "Brazil", "Argentina") */
     regionName?: string
 }
@@ -36,10 +40,14 @@ export const InitiateKycModal = ({
     error,
     variant = 'default',
     providerMessage,
+    reasonCode,
     regionName,
 }: InitiateKycModalProps) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
+    const tIdentity = useTranslations('identity')
+    const reasonKey = reasonCodeKey(reasonCode)
+    const resolvedProviderMessage = reasonKey ? tIdentity(reasonKey) : providerMessage
     const isProviderRejection = variant === 'provider_rejection'
     const isBlocked = variant === 'blocked'
     const isRestartIdentity = variant === 'restart_identity'
@@ -63,9 +71,9 @@ export const InitiateKycModal = ({
     const getDescription = () => {
         if (error) return t('initiate.descriptionError', { error })
         if (isRegionUnavailable) return t('initiate.descriptionRegionUnavailable')
-        if (isBlocked) return providerMessage || t('initiate.descriptionBlocked')
-        if (isRestartIdentity) return providerMessage || t('initiate.descriptionRestartIdentity')
-        if (isProviderRejection) return providerMessage || t('initiate.descriptionProviderRejection')
+        if (isBlocked) return resolvedProviderMessage || t('initiate.descriptionBlocked')
+        if (isRestartIdentity) return resolvedProviderMessage || t('initiate.descriptionRestartIdentity')
+        if (isProviderRejection) return resolvedProviderMessage || t('initiate.descriptionProviderRejection')
         if (isCrossRegion) {
             return regionName
                 ? t('initiate.descriptionCrossRegion', { region: regionName })

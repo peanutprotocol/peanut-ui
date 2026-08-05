@@ -11,7 +11,7 @@ import { formatAmount } from '@/utils/general.utils'
 import { countryData } from '@/components/AddMoney/consts'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { resolveKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
+import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCreateOnramp, GENERIC_ONRAMP_ERROR } from '@/hooks/useCreateOnramp'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
@@ -511,6 +511,7 @@ function BridgeBankOnrampPage() {
                     error={sumsubFlow.error}
                     variant={resolveKycModalVariant(gate)}
                     providerMessage={getGateUserMessage(gate)}
+                    reasonCode={getGateReasonCode(gate)}
                     regionName={selectedCountry?.title}
                 />
 

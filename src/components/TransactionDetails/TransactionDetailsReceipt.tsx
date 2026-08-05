@@ -327,6 +327,8 @@ export const TransactionDetailsReceipt = ({
             <TransactionDetailsHeaderCard
                 direction={transaction.direction}
                 userName={transaction.userName}
+                nameKey={transaction.nameKey}
+                nameParams={transaction.nameParams}
                 amountDisplay={amountDisplay}
                 initials={transaction.initials}
                 status={transaction.status}
@@ -629,7 +631,7 @@ export const TransactionDetailsReceipt = ({
                     {rowVisibilityConfig.comment && (
                         <PaymentInfoRow
                             label={tCommon('comment')}
-                            value={transaction.memo}
+                            value={transaction.memoKey ? t(transaction.memoKey) : transaction.memo}
                             hideBottomBorder={shouldHideBorder('comment')}
                         />
                     )}

@@ -8,6 +8,7 @@ import {
     initiateSelfHealResubmission,
     restartIdentityVerification,
     startKycAction,
+    type SumsubActionErrorCode,
 } from '@/app/actions/sumsub'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
@@ -42,6 +43,17 @@ const KYC_POLL_SCHEDULE: ReadonlyArray<{ untilMs: number; delayMs: number }> = [
 // schedule replaced.
 const KYC_POLL_MAX_DELAY_MS = 60_000
 
+/** `code` from a sumsub action's canned English fallback → kyc.* catalog key.
+ *  Backend prose arrives without a code and renders as-is (#2554). */
+const ACTION_ERROR_KEYS = {
+    initiate_failed: 'errorInitiateFailed',
+    restart_failed: 'errorRestartFailed',
+    resubmit_failed: 'errorResubmitFailed',
+    start_action_failed: 'errorStartActionFailed',
+    invalid_response: 'errorInvalidResponse',
+    unexpected: 'unexpectedError',
+} as const satisfies Record<SumsubActionErrorCode, string>
+
 const getKycPollDelayMs = (elapsedMs: number): number => {
     for (const { untilMs, delayMs } of KYC_POLL_SCHEDULE) {
         if (elapsedMs < untilMs) return delayMs
@@ -53,6 +65,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const { user } = useUserStore()
     const router = useRouter()
     const t = useTranslations('kyc')
+
+    // Localize a failed action result: known codes map onto catalog copy,
+    // codeless results keep the backend's display-ready prose.
+    const actionErrorMessage = useCallback(
+        (result: { error?: string; code?: SumsubActionErrorCode }): string | null =>
+            result.code ? t(ACTION_ERROR_KEYS[result.code]) : (result.error ?? null),
+        [t]
+    )
 
     const [accessToken, setAccessToken] = useState<string | null>(null)
     const [showWrapper, setShowWrapper] = useState(false)
@@ -251,7 +271,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     // every terminal-error exit must clear the user-initiated guard.
                     userInitiatedRef.current = false
                     if (crossRegion) prevStatusRef.current = savedPrevStatus
-                    setError(response.error)
+                    setError(actionErrorMessage(response))
                     return
                 }
 
@@ -327,7 +347,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 initiatingRef.current = false
             }
         },
-        [regionIntent, onKycSuccess, t]
+        [regionIntent, onKycSuccess, t, actionErrorMessage]
     )
 
     // called when sdk signals applicant submitted
@@ -403,7 +423,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             const response = await restartIdentityVerification()
             if (response.error) {
                 userInitiatedRef.current = false
-                setError(response.error)
+                setError(actionErrorMessage(response))
                 return
             }
             if (response.data?.token) {
@@ -420,7 +440,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         } finally {
             setIsLoading(false)
         }
-    }, [t])
+    }, [t, actionErrorMessage])
 
     // initiate self-heal document resubmission: calls the resubmit API
     // and opens the sumsub SDK with the action token. `requirementKey` targets a
@@ -439,7 +459,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (response.error) {
                     userInitiatedRef.current = false
                     selfHealProviderRef.current = null
-                    setError(response.error)
+                    setError(actionErrorMessage(response))
                     return
                 }
 
@@ -460,7 +480,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setIsLoading(false)
             }
         },
-        [t]
+        [t, actionErrorMessage]
     )
 
     // Start a capability nextAction by key (POST /users/kyc/start-action) and
@@ -479,7 +499,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 const response = await startKycAction(key)
                 if (response.error || !response.data?.token) {
                     userInitiatedRef.current = false
-                    setError(response.error || 'Could not start verification. Please try again.')
+                    setError(response.error ? actionErrorMessage(response) : t('errorStartActionFailed'))
                     return
                 }
                 levelNameRef.current = response.data.levelName
@@ -494,7 +514,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setIsLoading(false)
             }
         },
-        [t]
+        [t, actionErrorMessage]
     )
 
     return {

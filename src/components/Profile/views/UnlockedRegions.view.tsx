@@ -15,6 +15,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { deriveRegionAccess, getRegionIntent, providerForRegionIntent, type Region } from '@/utils/regions.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type RailCapability } from '@/types/capabilities'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useTranslations } from 'next-intl'
@@ -65,6 +66,7 @@ function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: bool
 const UnlockedRegions = () => {
     const t = useTranslations('profile.regions')
     const tCommon = useTranslations('common')
+    const tIdentity = useTranslations('identity')
     const onBack = useSafeBack('/profile', { replace: true })
     const router = useRouter()
     // Card-priority guard: an eligible user (skip badge / admin grant →
@@ -135,6 +137,13 @@ const UnlockedRegions = () => {
     // override modal variant when sumsub is approved but a provider rejected the user.
     // ROW has no provider (clickedRegionProvider null) → no provider rejection can apply.
     const providerRejectionForRegion = clickedRegionProvider === 'bridge' ? bridgeRejection : mantecaRejection
+    // Known reason codes render localized identity.reasons.* copy; unknown
+    // codes keep the backend's display-ready prose (#2554: key off codes,
+    // never match English text).
+    const providerRejectionReasonKey = reasonCodeKey(providerRejectionForRegion.reasonCode)
+    const providerRejectionMessage = providerRejectionReasonKey
+        ? tIdentity(providerRejectionReasonKey)
+        : providerRejectionForRegion.userMessage
     const hasProviderRejectionForRegion =
         !!selectedRegion &&
         clickedRegionProvider !== null &&
@@ -267,9 +276,9 @@ const UnlockedRegions = () => {
                 }
                 description={
                     providerRejectionForRegion.state === 'fixable'
-                        ? providerRejectionForRegion.userMessage || t('providerRejection.fixableDescription')
+                        ? providerRejectionMessage || t('providerRejection.fixableDescription')
                         : providerRejectionForRegion.state === 'restart-identity'
-                          ? providerRejectionForRegion.userMessage || t('providerRejection.restartDescription')
+                          ? providerRejectionMessage || t('providerRejection.restartDescription')
                           : t('providerRejection.unavailableDescription')
                 }
                 icon="alert"

@@ -35,7 +35,7 @@ import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { getRegionIntent } from '@/utils/regions.utils'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { getKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
+import { getKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -636,6 +636,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                             error={sumsubFlow.error}
                             variant={getKycModalVariant(gate.kind)}
                             providerMessage={getGateUserMessage(gate)}
+                            reasonCode={getGateReasonCode(gate)}
                         />
                     </>
                 )

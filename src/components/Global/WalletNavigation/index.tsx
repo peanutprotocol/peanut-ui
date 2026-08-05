@@ -7,7 +7,8 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useUserStore } from '@/redux/hooks'
 import classNames from 'classnames'
 import Image from 'next/image'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
+import { localizeDocsHref } from '@/components/Global/DocsLink'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useHaptic } from 'use-haptic'
@@ -37,13 +38,14 @@ type NavSectionProps = {
 
 const NavSection: React.FC<NavSectionProps> = ({ paths, pathName }) => {
     const t = useTranslations('navigation')
+    const locale = useLocale()
     const router = useRouter()
     return (
         <>
             {paths.map(({ labelKey, href, icon, size }, index) => (
                 <div key={`${labelKey}-${index}`}>
                     <Link
-                        href={href}
+                        href={localizeDocsHref(href, locale)}
                         className={classNames(
                             'flex items-center gap-3 text-white hover:cursor-pointer hover:text-white/80',
                             {

@@ -29,7 +29,7 @@ import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { resolveKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
+import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { railJurisdictionForBank } from '@/utils/bridge.utils'
 import { getRegionIntent } from '@/utils/regions.utils'
 import { useTosGuard } from '@/hooks/useTosGuard'
@@ -384,6 +384,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 error={sumsubFlow.error}
                 variant={resolveKycModalVariant(gate)}
                 providerMessage={getGateUserMessage(gate)}
+                reasonCode={getGateReasonCode(gate)}
                 regionName={currentCountry?.title}
             />
             <BridgeTosStep
@@ -507,7 +508,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                     ) : isPixOnrampUnderMaintenance ? (
                                         <StatusBadge
                                             status="pending"
-                                            customText={PIX_BRAZIL_ONRAMP_MAINTENANCE.badge}
+                                            customText={tAddMoney(PIX_BRAZIL_ONRAMP_MAINTENANCE.badgeKey)}
                                             size="small"
                                         />
                                     ) : null

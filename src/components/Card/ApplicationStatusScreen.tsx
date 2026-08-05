@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { PeanutCrying } from '@/assets/mascot'
 import NavHeader from '@/components/Global/NavHeader'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 
@@ -13,8 +14,12 @@ interface Props {
     variant: Variant
     /** Display-ready reason from the capabilities read-model
      *  (`rail.reason.userMessage`) — rendered above the generic body so the
-     *  user sees what specifically is missing. Provider-neutral by contract. */
+     *  user sees what specifically is missing. Provider-neutral by contract.
+     *  Fallback only: when `reasonCode` maps to catalog copy, that wins. */
     reasonMessage?: string
+    /** Stable `rail.reason.code` — mapped onto localized identity.reasons.*
+     *  copy; unknown codes fall back to `reasonMessage` prose. */
+    reasonCode?: string
     onContactSupport?: () => void
     /** When the rail carries a self-serve proof-of-address action, this opens
      *  the Sumsub upload flow — rendered as the primary CTA so users fix it
@@ -43,6 +48,7 @@ const SUPPORT_VARIANTS: ReadonlySet<Variant> = new Set(['requires-info', 'requir
 const ApplicationStatusScreen: FC<Props> = ({
     variant,
     reasonMessage,
+    reasonCode,
     onContactSupport,
     onUploadProofOfAddress,
     uploadError,
@@ -50,7 +56,10 @@ const ApplicationStatusScreen: FC<Props> = ({
 }) => {
     const t = useTranslations('card')
     const tCommon = useTranslations('common')
+    const tIdentity = useTranslations('identity')
     const copyKeys = COPY_KEYS[variant]
+    const reasonKey = reasonCodeKey(reasonCode)
+    const reasonText = reasonKey ? tIdentity(reasonKey) : reasonMessage
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />
@@ -69,7 +78,7 @@ const ApplicationStatusScreen: FC<Props> = ({
                 )}
                 <div className="flex flex-col gap-3">
                     <h1 className="text-2xl font-extrabold text-n-1">{t(copyKeys.title)}</h1>
-                    {reasonMessage && <p className="text-grey-1">{reasonMessage}</p>}
+                    {reasonText && <p className="text-grey-1">{reasonText}</p>}
                     <p className="text-grey-1">{t(copyKeys.body)}</p>
                 </div>
                 {SUPPORT_VARIANTS.has(variant) && onUploadProofOfAddress && (

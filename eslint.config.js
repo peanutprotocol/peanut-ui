@@ -235,7 +235,7 @@ module.exports = [
             // fallback reached through the shared 0_Bruddle/Button.
             'src/components/Global/{Layout,AnimateOnView,MarqueeWrapper,FAQs,FooterVisibilityObserver,ExchangeRateWidget,Modal,Loading}/**',
             'src/components/Global/{Layout,AnimateOnView,MarqueeWrapper,FAQs,FooterVisibilityObserver,ExchangeRateWidget,Modal,Loading}.tsx',
-            'src/components/Global/{PeanutLoading,Icons,Badges}/**',
+            'src/components/Global/{PeanutLoading,Icons}/**',
             // InvitesGraph is a /dev-only debug visualization, not user-facing UI.
             'src/components/Global/InvitesGraph/**',
             // Hidden support tool — never linked in-app; support DMs the URL to

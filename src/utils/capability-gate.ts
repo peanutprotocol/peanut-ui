@@ -414,3 +414,12 @@ export function getGateUserMessage(gate: GateState): string | undefined {
 export function getGateAdvisory(gate: GateState): GateAdvisory | undefined {
     return gate.kind === 'ready' ? gate.advisory : undefined
 }
+
+/**
+ * The stable `CapabilityReason.code` behind a gate's message. Companion to
+ * {@link getGateUserMessage}: render sites map the code onto localized copy
+ * (identity.reasons.* via `reasonCodeKey`) and keep the prose as fallback.
+ */
+export function getGateReasonCode(gate: GateState): string | undefined {
+    return 'reason' in gate ? gate.reason?.code : undefined
+}

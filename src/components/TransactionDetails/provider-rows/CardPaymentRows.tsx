@@ -164,7 +164,7 @@ export function CardPaymentRows({
                 const deltaCents = settledCents - authCents
                 subRows.push({
                     key: 'settlementAdjustment',
-                    label: 'Adjustment',
+                    label: t('cardRows.adjustment'),
                     value: `${deltaCents > 0 ? '+' : '-'}$${(Math.abs(deltaCents) / 100).toFixed(2)}`,
                 })
             }

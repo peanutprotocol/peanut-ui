@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import type { GateState } from '@/utils/capability-gate'
 
 // Re-arm cadence: comfortably under SUBMISSION_WINDOW_MS (30s) so the singleton
@@ -21,12 +23,20 @@ const REARM_INTERVAL_MS = 20_000
  * so a later transient re-flip to `waiting-on-provider` can't reopen it on its own.
  */
 export function useWaitingOnProviderModal(gate: GateState) {
+    const tIdentity = useTranslations('identity')
     const [requested, setRequested] = useState(false)
     const isWaiting = gate.kind === 'waiting-on-provider'
     const isOpen = requested && isWaiting
     // narrow on the discriminated union rather than casting, so a rename of
     // `userMessage` fails the build instead of silently returning undefined.
-    const message = isOpen && gate.kind === 'waiting-on-provider' ? (gate.userMessage ?? undefined) : undefined
+    // Known reason codes render localized copy; unknown keep the BE prose.
+    const reasonKey = isOpen && gate.kind === 'waiting-on-provider' ? reasonCodeKey(gate.reason?.code) : undefined
+    const message =
+        isOpen && gate.kind === 'waiting-on-provider'
+            ? reasonKey
+                ? tIdentity(reasonKey)
+                : (gate.userMessage ?? undefined)
+            : undefined
 
     const open = useCallback(() => {
         markSubmitted() // arm the poller immediately

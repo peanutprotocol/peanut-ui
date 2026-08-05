@@ -1,10 +1,12 @@
 import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
+import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
 
 const BANK_CLAIM: TransactionStrategyOutput = {
     direction: 'bank_claim',
     transactionCardType: 'bank_claim',
     nameForDetails: 'Claimed to Bank',
+    nameKey: TRANSACTION_NAME_KEYS.claimedToBank,
     isPeerActuallyUser: false,
     isLinkTx: false,
 }
@@ -26,6 +28,12 @@ export const fiatOfframp: TransactionStrategy = (entry: HistoryEntry): Transacti
                     entry.recipientAccount?.fullName ??
                     entry.recipientAccount?.identifier ??
                     'Recipient',
+                nameKey:
+                    (entry.recipientAccount?.username ??
+                        entry.recipientAccount?.fullName ??
+                        entry.recipientAccount?.identifier) != null
+                        ? undefined
+                        : TRANSACTION_NAME_KEYS.recipient,
                 fullName: entry.recipientAccount?.fullName ?? '',
                 isPeerActuallyUser: true,
                 isLinkTx: false,
@@ -42,6 +50,10 @@ export const fiatOfframp: TransactionStrategy = (entry: HistoryEntry): Transacti
             direction: 'receive',
             transactionCardType: 'receive',
             nameForDetails: entry.senderAccount?.username || entry.senderAccount?.identifier || 'Bank Account',
+            nameKey:
+                entry.senderAccount?.username || entry.senderAccount?.identifier
+                    ? undefined
+                    : TRANSACTION_NAME_KEYS.bankAccount,
             isPeerActuallyUser: !!entry.senderAccount?.isUser,
             isLinkTx: false,
         }
@@ -50,6 +62,7 @@ export const fiatOfframp: TransactionStrategy = (entry: HistoryEntry): Transacti
         direction: 'bank_withdraw',
         transactionCardType: 'bank_withdraw',
         nameForDetails: 'Bank Account',
+        nameKey: TRANSACTION_NAME_KEYS.bankAccount,
         isPeerActuallyUser: false,
         isLinkTx: false,
     }

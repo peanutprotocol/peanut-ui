@@ -25,7 +25,19 @@
         "next": "Next",
         "notFound": "Not Found",
         "countryNotFound": "Country not found",
-        "tryDifferentCountry": "Please try a different country."
+        "tryDifferentCountry": "Please try a different country.",
+        "status": {
+            "completed": "Completed",
+            "pending": "Pending",
+            "processing": "Processing",
+            "failed": "Failed",
+            "cancelled": "Cancelled",
+            "refunded": "Refunded",
+            "soon": "Soon!",
+            "closed": "Closed",
+            "custom": "Custom",
+            "unknown": "Unknown"
+        }
     },
     "navigation": {
         "home": "Home",
@@ -88,6 +100,12 @@
             "spendWithPeanut": {
                 "title": "Spend with Peanut",
                 "description": "Pay with your card or scan Pix and MercadoPago QR codes"
+            },
+            "spendChooser": {
+                "title": "How do you want to spend?",
+                "description": "Both count as your first payment.",
+                "payWithCard": "Pay with your card",
+                "scanQr": "Scan a QR code"
             }
         },
         "autoBalance": {
@@ -1415,7 +1433,8 @@
             "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment.",
             "bankAccountFailed": "Failed to process bank account. Please try again or contact support.",
             "bankAccountSettingUp": "Your bank account is still being set up. Please try again in a moment."
-        }
+        },
+        "pixMaintenanceBadge": "Maintenance"
     },
     "withdraw": {
         "amountToWithdraw": "Amount to withdraw",
@@ -1616,6 +1635,38 @@
             "paidTo": "Paid to {name}",
             "payingTo": "Paying to {name}"
         },
+        "name": {
+            "merchant": "Merchant",
+            "cardPayment": "Card payment",
+            "cardRefund": "Card refund",
+            "refundFrom": "Refund from {name}",
+            "refund": "Refund",
+            "depositSource": "Deposit Source",
+            "externalWallet": "External Wallet",
+            "externalAccount": "External Account",
+            "claimedToBank": "Claimed to Bank",
+            "bankAccount": "Bank Account",
+            "recipient": "Recipient",
+            "sender": "Sender",
+            "request": "Request",
+            "peanutReward": "Peanut Reward",
+            "receivedViaLink": "Received via Link",
+            "sentViaLink": "Sent via Link",
+            "transaction": "Transaction",
+            "failedQrPayment": "Failed QR payment attempt"
+        },
+        "failReason": {
+            "p2pSendTimeout": "Send didn't complete",
+            "p2pRequestFulfillTimeout": "Payment didn't complete",
+            "sendLinkTimeout": "Link didn't complete",
+            "sendLinkClaimTimeout": "Claim didn't complete",
+            "cryptoWithdrawTimeout": "Withdrawal didn't complete",
+            "qrPayTimeout": "QR payment didn't complete",
+            "onrampTimeout": "Bank deposit didn't arrive",
+            "offrampTimeout": "Bank transfer didn't complete",
+            "refundTimeout": "Refund didn't complete",
+            "generic": "Transaction did not complete"
+        },
         "rows": {
             "created": "Created",
             "cancelled": "Cancelled",
@@ -1698,7 +1749,8 @@
             "dispute": "Dispute",
             "evidenceRequested": "Evidence requested",
             "flagAlt": "{country} flag",
-            "initialHold": "Initial hold"
+            "initialHold": "Initial hold",
+            "adjustment": "Adjustment"
         },
         "dispute": {
             "pending": "Disputed — Awaiting review",
@@ -1740,6 +1792,7 @@
             "depositAddress": "Deposit Address"
         },
         "enjoyPeanut": "Enjoy Peanut!",
+        "memoTestDeposit": "Your peanut wallet is ready to use!",
         "adjustedSuffix": "· Adjusted"
     },
     "history": {
@@ -2219,7 +2272,11 @@
                 "title": "Verification issue",
                 "description": "There was an issue with your verification. Please try again or contact support."
             }
-        }
+        },
+        "errorStartActionFailed": "Could not start verification. Please try again.",
+        "errorInvalidResponse": "Invalid response from server",
+        "actionMessageActionRequired": "We need a bit more to verify your identity. Please resubmit your documents.",
+        "actionMessageFailed": "We couldn't verify your identity. Please contact support."
     },
     "identity": {
         "unlockTitle": "Unlock {region}",
@@ -2234,7 +2291,36 @@
         "usAchWire": "<b>United States</b> ACH and Wire transfers",
         "mxSpei": "<b>Mexico</b> SPEI transfers",
         "latamBankTransfers": "Bank transfers to your own accounts in <b>LATAM</b>",
-        "defaultUnlockItem": "Bank transfers and local payment methods"
+        "defaultUnlockItem": "Bank transfers and local payment methods",
+        "reasons": {
+            "tax_identification_number": "We need your tax identification number to continue.",
+            "address_of_residence": "We need your residential address to continue.",
+            "proof_of_address": "We need a valid proof of address document.",
+            "source_of_funds": "We need information about your source of funds.",
+            "proof_of_source_of_funds": "We need a document proving your source of funds.",
+            "birth_details": "We need to confirm your date of birth.",
+            "eea_uplift": "We need some additional information to comply with EEA regulations.",
+            "eea_uplift_with_tin": "We need some additional information to comply with EEA regulations.",
+            "eea_tin_reupload": "Please re-upload your tax identification number.",
+            "pep_documentation": "We need a document showing the source of the funds you'll be using on Peanut.",
+            "fep_documentation": "Because of your professional activity, we need proof of your UIF reporting status.",
+            "email_required": "We need an email address to finish setting up this account. Add one to your profile and we'll retry automatically.",
+            "submission_failed": "We hit a snag finishing your verification on our side. We'll get you sorted — tap below to message support.",
+            "proof_of_address_review": "We received your proof of address — it's being reviewed.",
+            "bridge_tos_required": "Accept the Bridge terms of service to continue.",
+            "bridge_tos_v2_required": "Accept the SEPA terms of service to enable EUR / GBP rails.",
+            "bridge_processing": "We're finalizing your verification with Bridge — this usually takes a few minutes.",
+            "verification_blocked": "Verification issue — contact support for help.",
+            "terminal_rejection": "Verification issue — contact support for help.",
+            "bridge_terminal_rejection": "We couldn't verify your account for bank transfers. Message support if you think this is a mistake.",
+            "duplicate_customer_detected": "Bridge flagged your account as a possible duplicate — message support to verify and unlock.",
+            "region_block": "Peanut cards aren't available in your region yet.",
+            "compliance_block": "We couldn't approve your card application after a compliance review.",
+            "card_rejected": "Your card application couldn't be approved. Message support if you think this is a mistake.",
+            "manteca_us_nationality": "Payments from this country are not available for US citizens at this time.",
+            "country_not_supported": "This rail needs a document from a supported country. You can verify with a different ID.",
+            "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime."
+        }
     },
     "recoverFunds": {
         "title": "Recover Funds",
