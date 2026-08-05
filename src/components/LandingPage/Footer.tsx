@@ -5,10 +5,27 @@ import X_ICON from '@/assets/icons/x-logo.svg'
 import Image from 'next/image'
 import Link from 'next/link'
 import { SEOFooter } from './SEOFooter'
+import { LocaleSwitcher } from '@/components/Marketing/LocaleSwitcher'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
 const NAV_LINK = 'text-xl font-bold text-white'
+
+const SOCIALS = [
+    { href: 'https://t.me/clubpeanut', label: 'Join us on Telegram', icon: TELEGRAM_ICON, alt: 'Telegram' },
+    { href: 'https://x.com/joinpeanut', label: 'Follow us on X', icon: X_ICON, alt: 'X' },
+    { href: 'https://github.com/peanutprotocol', label: 'View our GitHub', icon: GITHUB_WHITE_ICON, alt: 'GitHub' },
+]
+
+const SocialLinks = () => (
+    <div className="flex items-center gap-4">
+        {SOCIALS.map((social) => (
+            <a key={social.href} href={social.href} target="_blank" rel="noopener noreferrer" aria-label={social.label}>
+                <Image src={social.icon} alt={social.alt} width={20} height={20} />
+            </a>
+        ))}
+    </div>
+)
 
 const Footer = ({
     showSiteDirectory = true,
@@ -43,32 +60,17 @@ const Footer = ({
                         <p className="text-xs text-white/70">{i18n.footerLegalEntity}</p>
                     </section>
 
-                    <div className="flex items-center gap-4">
-                        <a
-                            href="https://t.me/clubpeanut"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label="Join us on Telegram"
-                        >
-                            <Image src={TELEGRAM_ICON} alt="Telegram" width={20} height={20} />
-                        </a>
-                        <a
-                            href="https://x.com/joinpeanut"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label="Follow us on X"
-                        >
-                            <Image src={X_ICON} alt="X" width={20} height={20} />
-                        </a>
-                        <a
-                            href="https://github.com/peanutprotocol"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label="View our GitHub"
-                        >
-                            <Image src={GITHUB_WHITE_ICON} alt="GitHub" width={20} height={20} />
-                        </a>
+                    <div className="hidden md:block">
+                        <SocialLinks />
                     </div>
+                </div>
+
+                {/* Mobile only: socials and the language switcher share one row.
+                    On md+ the socials live in the brand row and the switcher in
+                    the nav row. */}
+                <div className="mt-6 flex items-center justify-between md:hidden">
+                    <SocialLinks />
+                    <LocaleSwitcher locale={locale} label={i18n.footerLanguage} />
                 </div>
 
                 <nav className="mt-8 flex flex-wrap items-center justify-between gap-6">
@@ -99,6 +101,9 @@ const Footer = ({
                         >
                             {i18n.footerJobs}
                         </a>
+                    </div>
+                    <div className="hidden md:block">
+                        <LocaleSwitcher locale={locale} label={i18n.footerLanguage} />
                     </div>
                 </nav>
             </footer>

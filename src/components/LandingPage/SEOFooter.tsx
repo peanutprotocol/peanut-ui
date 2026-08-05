@@ -64,7 +64,7 @@ export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {})
     const link = (entry: ManifestEntry) => (entry.external ? entry.href : localizeHref(entry.href, locale))
 
     return (
-        <nav aria-label={i18n.footerSiteDirectory} className="bg-black px-8 py-8 md:px-20">
+        <nav aria-label={i18n.footerSiteDirectory} className="bg-black px-8 py-8 pb-24 md:px-20 md:pb-8">
             <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
                 {hasSendMoney && (
                     <FooterSection title={i18n.sendMoney}>
