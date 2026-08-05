@@ -15,7 +15,7 @@ import { useUserStore } from '@/redux/hooks'
 import { ActionListCard } from '../ActionListCard'
 import { useAuth } from '@/context/authContext'
 
-type BadgeView = { title: string; description: string; logo: string | StaticImageData }
+type BadgeView = { code: string; title: string; description: string; logo: string | StaticImageData }
 
 export const Badges = () => {
     const t = useTranslations('badges')
@@ -35,6 +35,7 @@ export const Badges = () => {
         // get badges from user object and map to card fields
         const raw = authUser?.user?.badges || []
         return raw.map((b) => ({
+            code: b.code,
             title: getBadgeDisplayName(b.code, b.name),
             description: b.description || '',
             logo: getBadgeIcon(b.code),
@@ -99,6 +100,7 @@ export const Badges = () => {
                         setIsBadgeModalOpen(false)
                         setSelectedBadge(null)
                     }}
+                    code={selectedBadge.code}
                     title={selectedBadge.title}
                     description={selectedBadge.description}
                     logo={selectedBadge.logo}

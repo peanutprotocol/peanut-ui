@@ -1,12 +1,12 @@
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import Image from 'next/image'
 import { useState } from 'react'
-import { useFormatter, useTranslations } from 'next-intl'
+import { useFormatter, useLocale, useTranslations } from 'next-intl'
 import Card from '../Global/Card'
 import { PaymentInfoRow } from '../Payment/PaymentInfoRow'
 import ShareButton from '../Global/ShareButton'
 import { BadgeDetailModal } from './BadgeDetailModal'
-import { getBadgeDisplayName, getBadgeIcon } from './badge.utils'
+import { getBadgeDisplayName, getBadgeIcon, getBadgeShareText } from './badge.utils'
 import { BASE_URL } from '@/constants/general.consts'
 import { useAuth } from '@/context/authContext'
 
@@ -25,6 +25,7 @@ export type BadgeStatusDrawerProps = {
 // shows a drawer for a newly unlocked badge
 export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerProps) => {
     const t = useTranslations('badges')
+    const locale = useLocale()
     const format = useFormatter()
     const { user: authUser } = useAuth()
     const [isDetailOpen, setIsDetailOpen] = useState(false)
@@ -92,7 +93,15 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                             <ShareButton
                                 title=""
                                 generateText={() =>
-                                    Promise.resolve(t('shareText', { badge: displayName, link: profileLink }))
+                                    Promise.resolve(
+                                        getBadgeShareText(badge.code, displayName, profileLink, {
+                                            locale,
+                                            localizedFallback: t('shareText', {
+                                                badge: displayName,
+                                                link: profileLink,
+                                            }),
+                                        })
+                                    )
                                 }
                             >
                                 {t('shareAchievement')}
@@ -104,6 +113,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
             <BadgeDetailModal
                 isOpen={isDetailOpen}
                 onClose={() => setIsDetailOpen(false)}
+                code={badge.code}
                 title={displayName}
                 description={badge.description || ''}
                 logo={getBadgeIcon(badge.code)}
