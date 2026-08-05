@@ -78,9 +78,10 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
 
     const debouncedSourceAmount = useDebounce(sourceAmount, 500)
 
-    // Bridge charges a 0.5% developer fee on cross-currency transfers (non-USD ↔ non-USD).
-    // The hook returns gross `source × rate`; we display net so "Recipient Gets" matches
-    // what Bridge actually delivers. USD pairs pass through unchanged.
+    // Cross-currency (non-USD ↔ non-USD) transfers carry the Peanut developer fee —
+    // currently 0, so this is an identity pass kept for the planned FX-margin
+    // re-enable. The hook returns gross `source × rate`; we display net so
+    // "Recipient Gets" tracks what a transfer actually delivers if the fee returns.
     const netDestinationAmount = useMemo<number | ''>(() => {
         if (typeof destinationAmount !== 'number') return destinationAmount
         return applyBridgeCrossCurrencyFee(destinationAmount, sourceCurrency, destinationCurrency)

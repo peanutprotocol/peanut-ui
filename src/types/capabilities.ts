@@ -134,8 +134,19 @@ export interface ResolvedRail {
  *                           WebSDK so the user can verify with a different
  *                           document (used for the country-not-supported CTA
  *                           on Manteca-only rails; user has a self-fix path).
+ *   - `bridge-hosted`     — open Bridge's hosted verification flow (the
+ *                           catch-all for requirements with no native Sumsub
+ *                           mapping); exchange the key for a URL via
+ *                           startBridgeHostedVerification().
  */
-export type NextActionKind = 'sumsub' | 'accept-tos' | 'wait' | 'contact-support' | 'restart-identity' | 'provide-email'
+export type NextActionKind =
+    | 'sumsub'
+    | 'accept-tos'
+    | 'wait'
+    | 'contact-support'
+    | 'restart-identity'
+    | 'provide-email'
+    | 'bridge-hosted'
 
 export interface NextAction {
     key: string // stable id, referenced by RailCapability.blockingActions

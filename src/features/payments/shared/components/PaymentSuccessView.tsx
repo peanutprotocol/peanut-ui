@@ -172,7 +172,13 @@ const PaymentSuccessView = ({
                 kind: 'DIRECT_TRANSFER',
                 link: receiptLink,
             },
-            userName: user?.username || parsedPaymentData?.recipient?.identifier,
+            // external-wallet withdrawals have no username/identifier — fall back to
+            // the recipient address so the receipt never renders "Sent to undefined"
+            userName:
+                user?.username ||
+                parsedPaymentData?.recipient?.identifier ||
+                chargeDetails.requestLink?.recipientAddress ||
+                recipientName,
             sourceView: 'status',
             memo: chargeDetails.requestLink?.reference || undefined,
             attachmentUrl: chargeDetails.requestLink?.attachmentUrl || undefined,

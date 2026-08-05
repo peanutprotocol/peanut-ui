@@ -16,6 +16,7 @@ import { getAuthToken } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
 import type { SignedRainWithdrawal } from '@/hooks/wallet/useSignSpendBundle'
 import { API_ERROR_CODES, ApiError } from './api-error'
+import type { AcceptedLegalDocument } from '@/services/consent'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -562,7 +563,15 @@ export const rainApi = {
      *    machine route.
      */
     applyForCard: async (
-        opts: { termsAccepted?: boolean; serializedApproval?: string; confirmedResidenceCountry?: string } = {}
+        opts: {
+            termsAccepted?: boolean
+            serializedApproval?: string
+            confirmedResidenceCountry?: string
+            /** Consent-ledger echo: the legal documents the agreement screen
+             *  actually displayed (slug + version + hash), so the backend
+             *  records what the user was shown. Only sent with acceptance. */
+            acceptedDocuments?: AcceptedLegalDocument[]
+        } = {}
     ): Promise<ApplyForCardResponse> => {
         // `serializedApproval` is consumed only by the re-issue branch on the
         // backend (where a RainCard row is created synchronously). First-time
@@ -571,6 +580,9 @@ export const rainApi = {
         const body: Record<string, unknown> = { termsAccepted: opts.termsAccepted === true }
         if (opts.serializedApproval) body.serializedApproval = opts.serializedApproval
         if (opts.confirmedResidenceCountry) body.confirmedResidenceCountry = opts.confirmedResidenceCountry
+        if (opts.termsAccepted === true && opts.acceptedDocuments?.length) {
+            body.acceptedDocuments = opts.acceptedDocuments
+        }
         return rainRequest<ApplyForCardResponse>({
             method: 'POST',
             path: '/rain/cards',

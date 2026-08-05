@@ -7,6 +7,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import UnlockRegionModal from '@/components/IdentityVerification/UnlockRegionModal'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
 import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
 import { KycActionRequiredModal } from '@/components/Kyc/modals/KycActionRequiredModal'
 import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
@@ -214,6 +215,13 @@ const UnlockedRegions = () => {
             <div className="my-auto">
                 <h1 className="font-bold">{t('title')}</h1>
                 <p className="mt-2 text-sm">{t('description')}</p>
+
+                {/* Pending Bridge verification tasks (ToS / hosted re-verification).
+                    Non-dismissible here — this is where the /home card's X sends
+                    people to find their tasks again. Self-hiding when none. */}
+                <div className="mt-4">
+                    <PendingVerificationTasks />
+                </div>
 
                 {unlockedRegions.length === 0 && (
                     <EmptyState

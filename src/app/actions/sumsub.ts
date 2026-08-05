@@ -140,6 +140,31 @@ export const initiateSelfHealResubmission = async (
     }
 }
 
+/**
+ * Exchange the `bridge-hosted` capability action for Bridge's hosted
+ * verification URL (same POST /users/kyc/start-action endpoint as
+ * {@link startKycAction}, different response shape: that path mints Sumsub
+ * tokens, this one returns a URL — hence its own guard).
+ */
+export const startBridgeHostedVerification = async (): Promise<{ url?: string; error?: string }> => {
+    try {
+        const response = await serverFetch('/users/kyc/start-action', {
+            method: 'POST',
+            body: JSON.stringify({ key: 'bridge-hosted' }),
+        })
+        const responseJson = await response.json()
+        if (!response.ok) {
+            return { error: responseJson.userMessage || responseJson.error || 'Failed to start verification' }
+        }
+        if (!responseJson.verificationUrl) {
+            return { error: 'Invalid response from server' }
+        }
+        return { url: responseJson.verificationUrl }
+    } catch (e: unknown) {
+        return { error: e instanceof Error ? e.message : 'An unexpected error occurred' }
+    }
+}
+
 export interface StartKycActionResponse {
     token: string
     levelName: string

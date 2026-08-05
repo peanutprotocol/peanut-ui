@@ -578,6 +578,14 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             tokenSymbol: PEANUT_WALLET_TOKEN_SYMBOL,
         }),
     },
+    // useRainCardOverview polls this for every logged-in user; the fallback {}
+    // has no `status`/`cards` and crashes consumers that deref them
+    // (PEANUT-UI-RM6). hasApplication:false also stops polling in demo.
+    {
+        method: 'GET',
+        pattern: '/rain/cards',
+        handler: () => ({ status: { hasApplication: false }, balance: null, cards: [] }),
+    },
 
     // rhino (crypto deposit / cross-chain) — return a believable deposit address
     // (the demo wallet) so the "add money → crypto → choose network" screen renders

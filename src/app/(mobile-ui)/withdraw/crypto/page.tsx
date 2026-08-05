@@ -623,6 +623,9 @@ export default function WithdrawCryptoPage() {
                 description={
                     <div className="space-y-2">
                         <p>{t('compatibilityModal.description')}</p>
+                        {/* Show the concrete destination so the user confirms a real
+                            address, not an abstract warning — for ENS recipients this
+                            is the first time the resolved address is visible. */}
                         {!!withdrawData?.address && (
                             <p>
                                 {t('compatibilityModal.sendingTo')}{' '}
