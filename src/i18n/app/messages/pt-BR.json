@@ -2308,7 +2308,6 @@
             "bridge_tos_required": "Aceite os termos de serviço da Bridge para continuar.",
             "bridge_tos_v2_required": "Aceite os termos de serviço do SEPA para habilitar transferências em EUR / GBP.",
             "bridge_processing": "Estamos finalizando sua verificação com a Bridge; isso costuma levar alguns minutos.",
-            "document_rejected": "Não conseguimos verificar seus documentos de identidade.",
             "verification_blocked": "Problema na verificação: fale com o suporte para receber ajuda.",
             "terminal_rejection": "Problema na verificação: fale com o suporte para receber ajuda.",
             "bridge_terminal_rejection": "Não conseguimos verificar sua conta para transferências bancárias. Fale com o suporte se achar que isso é um engano.",

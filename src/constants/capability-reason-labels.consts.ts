@@ -32,7 +32,12 @@ export const REASON_CODE_KEYS = {
     bridge_tos_v2_required: 'reasons.bridge_tos_v2_required',
     bridge_processing: 'reasons.bridge_processing',
     // rejections
-    document_rejected: 'reasons.document_rejected',
+    // document_rejected is deliberately NOT mapped: the backend only emits it
+    // with the self-heal classifier's fixable-specific prose ("Your ID photo
+    // was blurry. Please upload a clearer photo.") — a generic catalog line
+    // would mask the instruction. It renders the BE prose until the
+    // classifier's stable `action` code (REUPLOAD_ID, …) reaches the wire
+    // (api-ts follow-up, #1249 pattern).
     verification_blocked: 'reasons.verification_blocked',
     terminal_rejection: 'reasons.terminal_rejection',
     bridge_terminal_rejection: 'reasons.bridge_terminal_rejection',

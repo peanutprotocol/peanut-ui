@@ -2308,7 +2308,6 @@
             "bridge_tos_required": "Accept the Bridge terms of service to continue.",
             "bridge_tos_v2_required": "Accept the SEPA terms of service to enable EUR / GBP rails.",
             "bridge_processing": "We're finalizing your verification with Bridge — this usually takes a few minutes.",
-            "document_rejected": "We couldn't verify your identity documents.",
             "verification_blocked": "Verification issue — contact support for help.",
             "terminal_rejection": "Verification issue — contact support for help.",
             "bridge_terminal_rejection": "We couldn't verify your account for bank transfers. Message support if you think this is a mistake.",
