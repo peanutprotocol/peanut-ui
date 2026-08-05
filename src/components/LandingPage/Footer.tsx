@@ -4,12 +4,7 @@ import TELEGRAM_ICON from '@/assets/icons/telegram-white.svg'
 import X_ICON from '@/assets/icons/x-logo.svg'
 import Image from 'next/image'
 import Link from 'next/link'
-import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
-import handWaving from '@/assets/illustrations/hand-waving.svg'
-import handPeace from '@/assets/illustrations/hand-peace.svg'
-import handMiddleFinger from '@/assets/illustrations/hand-middle-finger.svg'
 import { SEOFooter } from './SEOFooter'
-import { LocaleSwitcher } from '@/components/Marketing/LocaleSwitcher'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
@@ -48,28 +43,31 @@ const Footer = ({
                         <p className="text-xs text-white/70">{i18n.footerLegalEntity}</p>
                     </section>
 
-                    <div className="flex items-center gap-6">
-                        <LocaleSwitcher locale={locale} label={i18n.footerLanguage} />
-                        <section className="flex gap-3">
-                            <a
-                                href="https://youtube.com/shorts/qd2FbzLS380?si=T5xk7xrTGYiIiWFu"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                aria-label="Watch Peanut teaser on YouTube (opens in a new tab)"
-                            >
-                                <Image src={handPeace} alt="" width={20} height={20} />
-                            </a>
-                            <Image src={handThumbsUp.src} alt="Hand thumbs up" width={20} height={20} />
-                            <a
-                                href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                aria-label="Never gonna give you up (opens in a new tab)"
-                            >
-                                <Image src={handMiddleFinger.src} alt="Hand Middle finger" width={20} height={20} />
-                            </a>
-                            <Image src={handWaving.src} alt="Hand waving" width={25} height={25} />
-                        </section>
+                    <div className="flex items-center gap-4">
+                        <a
+                            href="https://t.me/clubpeanut"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Join us on Telegram"
+                        >
+                            <Image src={TELEGRAM_ICON} alt="Telegram" width={20} height={20} />
+                        </a>
+                        <a
+                            href="https://x.com/joinpeanut"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Follow us on X"
+                        >
+                            <Image src={X_ICON} alt="X" width={20} height={20} />
+                        </a>
+                        <a
+                            href="https://github.com/peanutprotocol"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="View our GitHub"
+                        >
+                            <Image src={GITHUB_WHITE_ICON} alt="GitHub" width={20} height={20} />
+                        </a>
                     </div>
                 </div>
 
@@ -100,32 +98,6 @@ const Footer = ({
                             target="_blank"
                         >
                             {i18n.footerJobs}
-                        </a>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <a
-                            href="https://t.me/clubpeanut"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label="Join us on Telegram"
-                        >
-                            <Image src={TELEGRAM_ICON} alt="Telegram" width={20} height={20} />
-                        </a>
-                        <a
-                            href="https://x.com/joinpeanut"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label="Follow us on X"
-                        >
-                            <Image src={X_ICON} alt="X" width={20} height={20} />
-                        </a>
-                        <a
-                            href="https://github.com/peanutprotocol"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label="View our GitHub"
-                        >
-                            <Image src={GITHUB_WHITE_ICON} alt="GitHub" width={20} height={20} />
                         </a>
                     </div>
                 </nav>
