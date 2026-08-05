@@ -31,7 +31,7 @@ import EnableAutoBalanceBanner from '@/components/Home/EnableAutoBalanceBanner'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { updateUserById } from '@/app/actions/users'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useTranslations } from 'next-intl'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
@@ -68,7 +68,7 @@ export default function Home() {
     })
     const { isConnected: isWagmiConnected } = useAccount()
     const { disconnect: disconnectWagmi } = useDisconnect()
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
 
     const { isFetchingUser, fetchUser } = useAuth()
     const { isKycApproved } = useCapabilities()

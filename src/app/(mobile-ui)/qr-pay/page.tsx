@@ -52,6 +52,7 @@ import ActionModal from '@/components/Global/ActionModal'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { cancelHaptic, notifyHaptic, vibrateHaptic } from '@/utils/haptics'
 import { PeanutThinking } from '@/assets/mascot'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import { useAuth } from '@/context/authContext'
@@ -829,9 +830,7 @@ export default function QRPayPage() {
         setHoldProgress(0)
 
         // 3. Final success haptic feedback - POWERFUL celebratory double pulse!
-        if ('vibrate' in navigator) {
-            navigator.vibrate([300, 100, 300])
-        }
+        notifyHaptic('success')
 
         // 4. Trigger confetti immediately
         shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })
@@ -880,9 +879,7 @@ export default function QRPayPage() {
                 setShakeIntensity('none')
                 holdStartTimeRef.current = null
 
-                if ('vibrate' in navigator) {
-                    navigator.vibrate(0)
-                }
+                cancelHaptic()
             }, remainingPreviewTime)
 
             holdTimerRef.current = resetTimer
@@ -895,9 +892,7 @@ export default function QRPayPage() {
             setShakeIntensity('none')
             holdStartTimeRef.current = null
 
-            if ('vibrate' in navigator) {
-                navigator.vibrate(0)
-            }
+            cancelHaptic()
         }
     }, [])
 
@@ -928,20 +923,20 @@ export default function QRPayPage() {
             }
 
             // Trigger haptic feedback when intensity changes
-            if (newIntensity !== lastIntensity && 'vibrate' in navigator) {
+            if (newIntensity !== lastIntensity) {
                 // Progressive vibration patterns that match shake intensity - MAX STRENGTH!
                 switch (newIntensity) {
                     case 'weak':
-                        navigator.vibrate(50) // Short but noticeable pulse
+                        vibrateHaptic(50) // Short but noticeable pulse
                         break
                     case 'medium':
-                        navigator.vibrate([100, 40, 100]) // Medium pulse pattern
+                        vibrateHaptic([100, 40, 100]) // Medium pulse pattern
                         break
                     case 'strong':
-                        navigator.vibrate([150, 40, 150, 40, 150]) // Strong pulse pattern
+                        vibrateHaptic([150, 40, 150, 40, 150]) // Strong pulse pattern
                         break
                     case 'intense':
-                        navigator.vibrate([200, 40, 200, 40, 200, 40, 200]) // INTENSE pulse pattern
+                        vibrateHaptic([200, 40, 200, 40, 200, 40, 200]) // INTENSE pulse pattern
                         break
                 }
                 lastIntensity = newIntensity

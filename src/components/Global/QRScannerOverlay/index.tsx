@@ -22,7 +22,7 @@ import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
 import { useState, type ChangeEvent } from 'react'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 
 enum EModalType {
     QR_NOT_SUPPORTED = 'QR_NOT_SUPPORTED',
@@ -215,7 +215,7 @@ export default function QRScannerOverlay() {
     const toast = useToast()
     const { user } = useAuth()
     const payUserUrl = user?.user.username ? `${BASE_URL}/pay/${user.user.username}` : ''
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
     const { isQRScannerOpen, setIsQRScannerOpen } = useModalsContext()
 
     const showModal = (type: EModalType) => {

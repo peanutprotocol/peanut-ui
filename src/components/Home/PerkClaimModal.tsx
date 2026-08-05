@@ -9,8 +9,9 @@ import { useHoldToClaim } from '@/hooks/useHoldToClaim'
 import { getShakeClass } from '@/utils/perk.utils'
 import { extractInviteeName } from '@/utils/general.utils'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { notifyHaptic } from '@/utils/haptics'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import ActionModal from '@/components/Global/ActionModal'
 import { Button } from '@/components/0_Bruddle/Button'
 import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
@@ -102,9 +103,7 @@ function PerkClaimModal({ perk, visible, onClose, onClaimed }: PerkClaimModalPro
         // Phase 2: After 600ms of autonomous shaking, burst into confetti
         revealTimerRef.current = setTimeout(() => {
             // Haptic burst feedback
-            if ('vibrate' in navigator) {
-                navigator.vibrate([100, 50, 100, 50, 200])
-            }
+            notifyHaptic('success')
 
             // Confetti explosion!
             shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.4 } })
@@ -179,7 +178,7 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
     const t = useTranslations('home.perk')
     const tCommon = useTranslations('common')
     const inviteeName = perk.inviteeName ?? extractInviteeName(perk.reason)
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
     const router = useRouter()
     const { user } = useAuth()
     const [canDismiss, setCanDismiss] = useState(false)

@@ -7,7 +7,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import GlobalCard from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { extractInviteeName } from '@/utils/general.utils'
 
@@ -57,7 +57,7 @@ export default function PerkSuccessTestPage() {
     const [canDismiss, setCanDismiss] = useState(false)
     const [isExiting, setIsExiting] = useState(false)
     const [playSound, setPlaySound] = useState(false)
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
 
     const currentPerk = MOCK_PERKS[currentPerkIndex]
 

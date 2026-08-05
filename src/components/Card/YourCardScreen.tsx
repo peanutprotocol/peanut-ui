@@ -3,7 +3,7 @@ import { type FC, useCallback, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { parseAsStringEnum, useQueryState } from 'nuqs'
 import posthog from 'posthog-js'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import ProfileMenuItem from '@/components/Profile/components/ProfileMenuItem'
@@ -35,7 +35,7 @@ const YourCardScreen: FC<Props> = ({ card, onPrev }) => {
     const walletPlatform = useWalletPlatform()
     const walletLabel =
         walletPlatform === 'android' ? t('addToGoogleWallet') : walletPlatform === 'ios' ? t('addToAppleWallet') : null
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
     const toast = useToast()
 
     const isLocked = card.status === 'LOCKED'
