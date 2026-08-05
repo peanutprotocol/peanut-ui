@@ -66,7 +66,7 @@ const SupportDrawer = () => {
         if (!isSupportModalOpen || !isCapacitor() || isAwaitingToken) return
 
         ensureNativeCrispConfigured()
-            .then((CapacitorCrisp) => {
+            .then(({ CapacitorCrisp }) => {
                 // set user data before opening
                 if (userData.email || userData.fullName) {
                     CapacitorCrisp.setUser({
