@@ -39,7 +39,22 @@ function getConfetti(): Promise<CreateTypes> {
             canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100'
             canvas.setAttribute('aria-hidden', 'true')
             document.body.appendChild(canvas)
-            return confetti.create(canvas, { resize: true, useWorker: true })
+            /*
+             * useWorker transfers the canvas to a worker via
+             * transferControlToOffscreen(), which detaches it from the main
+             * thread permanently — and canvas-confetti only guards worker
+             * *construction*, not a worker that dies later. On native that is
+             * unrecoverable: the document never reloads, so one failure means no
+             * celebration ever again. Keep the worker on web, where a page load
+             * heals it, and render on the main thread in the WebView (already
+             * down to one half-sized burst there).
+             */
+            return confetti.create(canvas, { resize: true, useWorker: !isCapacitor() })
+        })
+        // A memoized promise that rejects stays rejected for the life of the
+        // document — forever on native. Let the next celebration rebuild it.
+        instancePromise.catch(() => {
+            instancePromise = null
         })
     }
     return instancePromise
@@ -66,17 +81,23 @@ const fireStars = (options: ConfettiOptions) => {
         ...otherOptions
     } = options
 
-    void getConfetti().then((fire) =>
-        fire({
-            ...defaultConfettiConfig,
-            ...otherOptions,
-            colors,
-            particleCount,
-            scalar,
-            shapes: ['star' as Shape],
-            origin,
+    getConfetti()
+        .then((fire) =>
+            fire({
+                ...defaultConfettiConfig,
+                ...otherOptions,
+                colors,
+                particleCount,
+                scalar,
+                shapes: ['star' as Shape],
+                origin,
+            })
+        )
+        .catch((error: unknown) => {
+            // A silently swallowed failure here is why a broken celebration went
+            // unnoticed for three releases.
+            console.warn('[confetti] burst failed:', error)
         })
-    )
 }
 
 export const shootStarConfetti = (options: ConfettiOptions = {}) => {
