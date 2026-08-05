@@ -27,6 +27,7 @@ jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
 const originalShare = Object.getOwnPropertyDescriptor(navigator, 'share')
 const originalSecureContext = Object.getOwnPropertyDescriptor(window, 'isSecureContext')
+const originalExecCommand = Object.getOwnPropertyDescriptor(document, 'execCommand')
 let consoleErrorSpy: jest.SpyInstance
 
 function restoreProperty(target: object, key: string, descriptor?: PropertyDescriptor) {
@@ -49,6 +50,7 @@ afterAll(() => {
     restoreProperty(navigator, 'clipboard', originalClipboard)
     restoreProperty(navigator, 'share', originalShare)
     restoreProperty(window, 'isSecureContext', originalSecureContext)
+    restoreProperty(document, 'execCommand', originalExecCommand)
 })
 
 describe('ShareButton', () => {
@@ -74,6 +76,32 @@ describe('ShareButton', () => {
         await waitFor(() => expect(onError).toHaveBeenCalledTimes(1))
         expect(onSuccess).not.toHaveBeenCalled()
         expect(mockToastError).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not report success when the legacy copy fallback returns false', async () => {
+        Object.defineProperty(window, 'isSecureContext', { configurable: true, value: false })
+        Object.defineProperty(document, 'execCommand', {
+            configurable: true,
+            value: jest.fn().mockReturnValue(false),
+        })
+        const onSuccess = jest.fn()
+        const onError = jest.fn()
+
+        renderWithIntl(
+            <ShareButton
+                generateText={() => Promise.resolve('Badge share text')}
+                onSuccess={onSuccess}
+                onError={onError}
+            >
+                Share badge
+            </ShareButton>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Share badge' }))
+
+        await waitFor(() => expect(onError).toHaveBeenCalledTimes(1))
+        expect(onSuccess).not.toHaveBeenCalled()
+        expect(mockToastError).toHaveBeenCalledTimes(1)
+        expect(document.querySelector('textarea')).toBeNull()
     })
 
     it('reports success after desktop clipboard copying succeeds', async () => {
