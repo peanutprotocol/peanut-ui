@@ -498,6 +498,12 @@ export type UserPreferences = {
      *  Read by useHomeCarouselCTAs to apply a per-CTA cooldown before re-showing.
      *  Legacy shape was `string[]` (permanent dismissal); both are accepted on read. */
     dismissedCarouselCTAs?: string[] | Record<string, string>
+    /** Dismissal fingerprints (`bridgeTaskDismissalKey`: key|requirement|due)
+     *  of the pending Bridge verification tasks the user individually
+     *  dismissed on /home. A task that turns blocking or changes substance
+     *  gets a new fingerprint and re-surfaces; the tasks always stay
+     *  reachable under Profile → Unlocked regions. */
+    pendingVerificationTasksDismissed?: string[]
 }
 
 export const updateUserPreferences = (
