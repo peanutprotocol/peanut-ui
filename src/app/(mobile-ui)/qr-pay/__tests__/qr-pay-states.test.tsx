@@ -289,7 +289,6 @@ jest.mock('@/utils/qr-payment.utils', () => ({
     calculateSavingsInCents: jest.fn(() => 0),
     hasCardMarkupComparison: jest.fn(() => false),
     isArgentinaMantecaQrPayment: jest.fn(() => false),
-    getSavingsMessage: jest.fn(() => ''),
 }))
 
 jest.mock('@/config/underMaintenance.config', () => ({
@@ -1244,15 +1243,10 @@ describe('GROUP 4: Success States', () => {
     })
 
     test('Argentina QR3 success shows savings message', async () => {
-        const {
-            hasCardMarkupComparison,
-            calculateSavingsInCents,
-            getSavingsMessage,
-        } = require('@/utils/qr-payment.utils')
+        const { hasCardMarkupComparison, calculateSavingsInCents } = require('@/utils/qr-payment.utils')
 
         hasCardMarkupComparison.mockReturnValue(true)
         calculateSavingsInCents.mockReturnValue(150)
-        getSavingsMessage.mockReturnValue('You saved $1.50 vs card!')
 
         await completeMantecaPayment()
 
@@ -1260,8 +1254,8 @@ describe('GROUP 4: Success States', () => {
             expect(screen.getByText(/You paid/)).toBeInTheDocument()
         })
 
-        // Savings message should appear for Argentina QR3 payments
-        expect(screen.getByText('You saved $1.50 vs card!')).toBeInTheDocument()
+        // Savings message should appear for Argentina QR3 payments, via the localized catalog
+        expect(screen.getByText('saved ~$1.5 compared to card!')).toBeInTheDocument()
     })
 })
 
