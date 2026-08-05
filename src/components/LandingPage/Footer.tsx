@@ -4,6 +4,10 @@ import TELEGRAM_ICON from '@/assets/icons/telegram-white.svg'
 import X_ICON from '@/assets/icons/x-logo.svg'
 import Image from 'next/image'
 import Link from 'next/link'
+import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
+import handWaving from '@/assets/illustrations/hand-waving.svg'
+import handPeace from '@/assets/illustrations/hand-peace.svg'
+import handMiddleFinger from '@/assets/illustrations/hand-middle-finger.svg'
 import { SEOFooter } from './SEOFooter'
 import { LocaleSwitcher } from '@/components/Marketing/LocaleSwitcher'
 import { getTranslations } from '@/i18n'
@@ -16,6 +20,29 @@ const SOCIALS = [
     { href: 'https://x.com/joinpeanut', label: 'Follow us on X', icon: X_ICON, alt: 'X' },
     { href: 'https://github.com/peanutprotocol', label: 'View our GitHub', icon: GITHUB_WHITE_ICON, alt: 'GitHub' },
 ]
+
+const HandSigns = () => (
+    <section className="flex items-center gap-3">
+        <a
+            href="https://youtube.com/shorts/qd2FbzLS380?si=T5xk7xrTGYiIiWFu"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Watch Peanut teaser on YouTube (opens in a new tab)"
+        >
+            <Image src={handPeace} alt="" width={20} height={20} />
+        </a>
+        <Image src={handThumbsUp.src} alt="Hand thumbs up" width={20} height={20} />
+        <a
+            href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Never gonna give you up (opens in a new tab)"
+        >
+            <Image src={handMiddleFinger.src} alt="Hand Middle finger" width={20} height={20} />
+        </a>
+        <Image src={handWaving.src} alt="Hand waving" width={25} height={25} />
+    </section>
+)
 
 const SocialLinks = () => (
     <div className="flex items-center gap-4">
@@ -42,6 +69,9 @@ const Footer = ({
                 change width per locale, so a single row overflowed once the
                 copy was translated. */}
             <footer className="bg-black px-8 py-8 md:px-20">
+                <div className="mb-6 flex justify-center md:hidden">
+                    <HandSigns />
+                </div>
                 <div className="flex flex-wrap items-center justify-between gap-6">
                     <section className="flex flex-col gap-1">
                         {/* /lp, not /: the proxy bounces authenticated users from / into the
@@ -102,8 +132,9 @@ const Footer = ({
                             {i18n.footerJobs}
                         </a>
                     </div>
-                    <div className="hidden md:block">
+                    <div className="hidden items-center gap-6 md:flex">
                         <LocaleSwitcher locale={locale} label={i18n.footerLanguage} />
+                        <HandSigns />
                     </div>
                 </nav>
             </footer>
