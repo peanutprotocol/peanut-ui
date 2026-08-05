@@ -8,6 +8,7 @@
  */
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 
 // ---------- module-level mocks (before importing the component) ----------
 
@@ -93,7 +94,7 @@ jest.mock('@/redux/hooks', () => ({
     useAppDispatch: () => jest.fn(),
 }))
 
-jest.mock('@/context', () => ({
+jest.mock('@/context/tokenSelector.context', () => ({
     tokenSelectorContext: React.createContext({
         setSelectedTokenAddress: jest.fn(),
         setSelectedChainID: jest.fn(),
@@ -126,7 +127,11 @@ const claimLinkData = {
 } as any
 
 function renderList() {
-    return render(<SendLinkActionList claimLinkData={claimLinkData} isLoggedIn isInviteLink={false} />)
+    return render(
+        <IntlWrapper>
+            <SendLinkActionList claimLinkData={claimLinkData} isLoggedIn isInviteLink={false} />
+        </IntlWrapper>
+    )
 }
 
 beforeEach(() => {

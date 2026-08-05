@@ -3,6 +3,7 @@
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import type { StaticImageData } from 'next/image'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
 import { CAROUSEL_CLOSE_BUTTON_POSITION, CAROUSEL_CLOSE_ICON_SIZE } from '@/constants/carousel.consts'
@@ -37,6 +38,7 @@ const CarouselCTA = ({
     logoSize = 36,
     isPerkClaim,
 }: CarouselCTAProps) => {
+    const t = useTranslations('home.carousel')
     const { triggerHaptic } = useHaptic()
 
     const handleClose = (e: React.MouseEvent) => {
@@ -58,16 +60,16 @@ const CarouselCTA = ({
     // Get descriptive title for accessibility
     const getAriaLabel = () => {
         if (typeof title === 'string') {
-            return `Close ${title}`
+            return t('closeTitled', { title })
         }
         // For React nodes (e.g., "Unlock QR code payments"), use icon as hint
         if (icon === 'shield') {
-            return 'Close verification prompt'
+            return t('closeVerificationPrompt')
         }
         if (icon === 'bell') {
-            return 'Close notification prompt'
+            return t('closeNotificationPrompt')
         }
-        return 'Close prompt'
+        return t('closePrompt')
     }
 
     return (
@@ -77,7 +79,7 @@ const CarouselCTA = ({
         >
             {/* Close button or pink dot indicator for perk claims */}
             {isPerkClaim ? (
-                <div className={twMerge(CAROUSEL_CLOSE_BUTTON_POSITION, 'z-10')} aria-label="Claimable perk">
+                <div className={twMerge(CAROUSEL_CLOSE_BUTTON_POSITION, 'z-10')} aria-label={t('claimablePerk')}>
                     <div className="h-2.5 w-2.5 rounded-full bg-primary-1" />
                 </div>
             ) : (

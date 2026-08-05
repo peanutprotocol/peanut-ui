@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nextjs'
 
 import { type JSONValue } from '../interfaces/interfaces'
+import { reportNetworkError, reportNetworkOk } from './connectivity'
 
 /**
  * Endpoint + status combinations to skip reporting.
@@ -12,6 +13,9 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = 
     { pattern: /\/get-user(?:\b|$)/, statuses: [400, 401, 403, 404] },
     { pattern: /users/, statuses: [400, 401, 403, 404] },
     { pattern: /perks/, statuses: [400, 401, 403, 404] },
+    // /invites/validate 400 = "Invalid Invite": the user mistyped an invite code.
+    // Expected input validation, surfaced inline to the user — not a server bug.
+    { pattern: /\/invites\/validate/, statuses: [400] },
     // qr-payment/init: 400 = open QR awaiting merchant amount; 422 = a QR the
     // provider can't decode (bad/expired/unsupported) — both are user-input
     // outcomes shown to the user, not server bugs. (BE peanut-api-ts #1041.)
@@ -289,15 +293,58 @@ function shouldSkipReporting(url: string, status: number): boolean {
     return false
 }
 
-/** Use configured fetch timeout or default to 10s
- * We use 10s because vercel function timout is 15s and this function
- * can be called in that context, and we preffer to have control over
- * the error message and handling
+/**
+ * Server-side budget — deliberately UNCHANGED at the historical 10s.
+ *
+ * A server fetch runs inside a Vercel function, so it must abort before the
+ * platform kills the function, otherwise we leak an opaque 504 instead of
+ * owning the error. The old comment here put that ceiling at 15s; today
+ * `vercel.json` says `maxDuration: 300` — but that entry declares the glob
+ * `app/api/**` while this project keeps its routes under `src/app/api/`, and
+ * Vercel requires the `src/` prefix for src-directory projects, so the entry
+ * currently matches nothing. The real ceiling is therefore the project default
+ * (300s with Fluid compute, far lower without), which cannot be read from the
+ * repo.
+ *
+ * Raising this buys little — a Vercel→api.peanut.me call is a datacenter hop,
+ * not a mobile network — and risks sitting ABOVE an unverified ceiling, which
+ * would reintroduce exactly the 504s the original 10s existed to prevent. So it
+ * stays put until the ceiling is confirmed. See the PR for the follow-up.
  */
-const DEFAULT_TIMEOUT_MS =
-    process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS && !isNaN(parseInt(process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS, 10))
-        ? parseInt(process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS, 10)
-        : 10000
+export const SERVER_FETCH_TIMEOUT_MS = 10_000
+
+/**
+ * Client-side budget — the actual fix. No platform ceiling applies in a
+ * browser, only real mobile networks, and 10s sat below the page load itself in
+ * high-latency markets (Nigeria p90 LCP 11.3s vs 6.1s globally), aborting
+ * healthy requests and reporting them as failures. Bounded above by React Query
+ * retries, which multiply it; the worst-case total for the default retry
+ * strategy is pinned in `sentry.utils.test.ts`.
+ */
+export const CLIENT_FETCH_TIMEOUT_MS = 20_000
+
+/**
+ * `NEXT_PUBLIC_FETCH_TIMEOUT_MS` is an explicit override of both budgets. It
+ * must be a positive integer of milliseconds within the 32-bit timer range:
+ * `parseInt` would have accepted `"30s"` as 30 and `"0"` as 0, and anything
+ * above 2^31-1 overflows setTimeout and clamps to ~1ms — every one of which
+ * aborts requests instantly. Malformed values fall back to the default rather
+ * than bricking fetches. Both inputs are parameters so the function stays pure:
+ * jsdom always defines `window`, so the server branch is otherwise unreachable
+ * from tests.
+ */
+const MAX_TIMER_MS = 2_147_483_647
+
+export const resolveDefaultTimeoutMs = (
+    isServer: boolean,
+    override: string | undefined = process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS
+): number => {
+    const parsed = Number(override)
+    if (override && Number.isInteger(parsed) && parsed > 0 && parsed <= MAX_TIMER_MS) return parsed
+    return isServer ? SERVER_FETCH_TIMEOUT_MS : CLIENT_FETCH_TIMEOUT_MS
+}
+
+const DEFAULT_TIMEOUT_MS = resolveDefaultTimeoutMs(typeof window === 'undefined')
 
 const getErrorLevelFromStatus = (status: number): Sentry.SeverityLevel => {
     if (status >= 500) return 'error'
@@ -305,10 +352,10 @@ const getErrorLevelFromStatus = (status: number): Sentry.SeverityLevel => {
     return 'info'
 }
 
-const sanitizeHeaders = (headers: any): any => {
-    if (!headers) return headers
+const sanitizeHeaders = (headers: RequestInit['headers']): Record<string, unknown> | undefined => {
+    if (!headers) return undefined
 
-    const sanitized = { ...headers }
+    const sanitized: Record<string, unknown> = { ...headers }
     const sensitiveHeaders = [
         'authorization',
         'cookie',
@@ -350,16 +397,39 @@ export const fetchWithSentry = async (
         )
     }
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+    // Idempotent requests get one silent retry on timeout: stalled-transport
+    // failures (Android webview, flaky mobile networks) usually clear on a
+    // fresh attempt (PEANUT-UI-R44).
+    const method = (options.method || 'GET').toUpperCase()
+    const maxAttempts = method === 'GET' || method === 'HEAD' ? 2 : 1
+
+    const attemptFetch = async (): Promise<Response> => {
+        for (let attempt = 1; ; attempt++) {
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+            try {
+                return await fetch(url, {
+                    ...options,
+                    signal: controller.signal,
+                })
+            } catch (error) {
+                if (attempt < maxAttempts && error instanceof Error && error.name === 'AbortError') {
+                    console.warn(`Request to ${String(url).replace(/[\r\n]/g, '')} timed out — retrying`)
+                    await new Promise((resolve) => setTimeout(resolve, 300))
+                    continue
+                }
+                throw error
+            } finally {
+                clearTimeout(timeoutId)
+            }
+        }
+    }
 
     try {
-        const response = await fetch(url, {
-            ...options,
-            signal: controller.signal,
-        })
+        const response = await attemptFetch()
 
-        clearTimeout(timeoutId)
+        // A response came back — the backend is reachable, clear any failure streak.
+        reportNetworkOk()
 
         if (!response.ok) {
             // Skip both the console warn AND Sentry submission for expected
@@ -399,8 +469,13 @@ export const fetchWithSentry = async (
 
         return response
     } catch (error: unknown) {
-        clearTimeout(timeoutId)
-        console.error(error)
+        // fetch rejected (timeout / DNS / connection refused) — the request never
+        // reached the backend, so flag a connectivity failure.
+        reportNetworkError()
+        // console.info, not error: captureConsoleIntegration would turn an
+        // error-level log into a second Sentry event on top of the explicit
+        // captures below.
+        console.info(error)
 
         if (error instanceof Error && error.name === 'AbortError') {
             const timeoutError = new Error(`Request to ${url} timed out after ${timeoutMs}ms`)
@@ -437,7 +512,7 @@ export const fetchWithSentry = async (
             errorName = error.name
             errorStack = error.stack
         } else {
-            errorMessage = (error as any).toString()
+            errorMessage = String(error)
             errorName = 'Unknown Error'
         }
 

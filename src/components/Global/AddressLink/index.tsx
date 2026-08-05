@@ -1,6 +1,6 @@
 import { printableAddress, isCryptoAddress } from '@/utils/general.utils'
 import { normalizeEnsName } from '@/utils/ens.utils'
-import { usePrimaryName } from '@justaname.id/react'
+import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -20,11 +20,7 @@ const AddressLink = ({ address, className = '', isLink = true }: AddressLinkProp
     const [urlAddress, setUrlAddress] = useState<string>(address)
 
     // Look up ENS name only for Ethereum addresses (ENS doesn't apply to Solana/Tron)
-    const { primaryName: ensName } = usePrimaryName({
-        address: isAddress(address) ? (address as `0x${string}`) : undefined,
-        chainId: 1, // Mainnet for ENS lookups
-        priority: 'onChain',
-    })
+    const { primaryName: ensName } = usePrimaryNameServer(isAddress(address) ? address : undefined)
 
     useEffect(() => {
         const normalizedEnsName = isAddress(address) ? normalizeEnsName(ensName) : null

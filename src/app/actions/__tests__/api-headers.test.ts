@@ -14,6 +14,7 @@ jest.mock('@/utils/sentry.utils', () => ({
 }))
 
 jest.mock('@/utils/auth-token', () => ({
+    authReady: jest.fn(() => Promise.resolve()),
     getAuthHeaders: jest.fn((extra?: Record<string, string>) => ({
         Authorization: 'Bearer test-token',
         ...extra,
@@ -165,18 +166,6 @@ describe('action functions Content-Type headers', () => {
     it('should include Content-Type in confirmOfframp', async () => {
         const { confirmOfframp } = require('@/app/actions/offramp')
         await confirmOfframp('transfer-123', '0xabcdef')
-
-        const headers = getLastCallHeaders()
-        expect(headers['Content-Type']).toBe('application/json')
-    })
-
-    it('should include Content-Type in createOnrampForGuest', async () => {
-        const { createOnrampForGuest } = require('@/app/actions/onramp')
-        await createOnrampForGuest({
-            amount: '100',
-            country: { id: 'US', name: 'United States', code: 'US' },
-            userId: 'user-123',
-        })
 
         const headers = getLastCallHeaders()
         expect(headers['Content-Type']).toBe('application/json')

@@ -15,9 +15,11 @@ import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuc
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { PointsAction } from '@/services/services.types'
+import { useTranslations } from 'next-intl'
 
 export function SemanticRequestSuccessView() {
     const router = useRouter()
+    const t = useTranslations('payment')
     const searchParams = useSearchParams()
     const context = searchParams.get('context')
 
@@ -60,7 +62,7 @@ export function SemanticRequestSuccessView() {
     return (
         <PaymentSuccessView
             type="SEND"
-            headerTitle="Pay"
+            headerTitle={t('headers.pay')}
             recipientType={recipientType}
             usdAmount={usdAmount}
             message={attachment.message}

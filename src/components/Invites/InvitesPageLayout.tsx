@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import CloudsBackground from '../0_Bruddle/CloudsBackground'
 import starImage from '@/assets/icons/star.png'
@@ -18,6 +19,8 @@ interface InvitesPageLayoutProps {
 }
 
 const InvitesPageLayout = ({ image, children }: InvitesPageLayoutProps) => {
+    const t = useTranslations('invites')
+
     return (
         <div className="flex min-h-[100dvh] flex-col">
             <div className="mx-auto flex w-full flex-grow flex-col md:flex-row">
@@ -46,7 +49,7 @@ const InvitesPageLayout = ({ image, children }: InvitesPageLayoutProps) => {
                     {/* main illustration image */}
                     <Image
                         src={image}
-                        alt="Section illustration"
+                        alt={t('illustrationAlt')}
                         width={500}
                         height={500}
                         className={'relative w-full max-w-[80%] object-contain md:max-w-[75%] lg:max-w-xl'}

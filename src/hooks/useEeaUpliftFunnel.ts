@@ -1,54 +1,65 @@
 import { useCallback, useRef } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import type { GateAdvisory } from '@/utils/capability-gate'
+import type { UpliftStartTrigger } from '@/utils/eea-uplift.utils'
 
 type UpliftChannel = 'deposit' | 'withdraw'
 
+function upliftEventProps(channel: UpliftChannel, trigger: UpliftStartTrigger) {
+    return {
+        channel,
+        requirement_key: trigger.requirementKey,
+        action_key: trigger.actionKey,
+        effective_date: trigger.effectiveDate,
+        source: trigger.source,
+        // blocking = the cliff date has passed → already gating → urgent.
+        urgent: trigger.source === 'blocking',
+    }
+}
+
+function sameTrigger(a: UpliftStartTrigger | null, b: UpliftStartTrigger): boolean {
+    return !!a && a.requirementKey === b.requirementKey && a.source === b.source
+}
+
 /**
  * Fires the EEA-uplift funnel events for PostHog so the flow can be filtered
- * directly: `eea_uplift_started` when the user launches the verification, and
- * `eea_uplift_completed` on KYC success.
+ * directly (and session recordings tagged): `eea_uplift_started` when the uplift
+ * modal OPENS, and `eea_uplift_completed` on KYC success.
  *
- * `trackCompleted` only emits if a start was recorded in this session — the KYC
+ * Firing on modal-open (not on the modal's CTA) means abandoners are captured
+ * too — the whole point is to watch who attempts the uplift and whether they
+ * finish. `trackStarted` is idempotent per armed attempt: re-clicking Continue
+ * while the same requirement is already latched does not re-emit `started`
+ * (until `reset`/`trackCompleted` clears the latch, at which point a genuine new
+ * attempt fires again).
+ *
+ * `trackCompleted` only emits if a start was recorded in this session: the KYC
  * success callback on the bank pages is shared with non-uplift KYC, so the
- * `startedRef` guard stops a generic success from mis-firing the completed
- * event. The advisory snapshot is captured at start time because the gate's
- * `advisory` clears once the requirement resolves, so it's gone by completion.
+ * latch stops a generic success from mis-firing `completed`. The trigger
+ * snapshot is captured at start because the gate's advisory/reason clears once
+ * the requirement resolves, so it's gone by completion.
  *
- * `reset` clears the pending start on abandonment (KYC modal closed without
- * success). Without it the latch would survive an abandoned attempt, and a later
- * unrelated KYC success on the same mounted page could mis-fire `completed`.
+ * `reset` clears the pending start on abandonment (uplift modal dismissed
+ * without success), so a later unrelated KYC success can't mis-fire.
  */
 export function useEeaUpliftFunnel(channel: UpliftChannel) {
-    const startedRef = useRef<GateAdvisory | null>(null)
+    const startedRef = useRef<UpliftStartTrigger | null>(null)
 
     const trackStarted = useCallback(
-        // `advisory` is required: callers gate on it before launching, and the
-        // funnel contract needs requirement_key / action_key / effective_date
-        // always present on the event.
-        (advisory: GateAdvisory) => {
-            startedRef.current = advisory
-            posthog.capture(ANALYTICS_EVENTS.EEA_UPLIFT_STARTED, {
-                channel,
-                requirement_key: advisory.requirementKey,
-                action_key: advisory.actionKey,
-                effective_date: advisory.effectiveDate,
-            })
+        (trigger: UpliftStartTrigger) => {
+            // idempotent per armed attempt — don't re-emit on repeat clicks.
+            if (sameTrigger(startedRef.current, trigger)) return
+            startedRef.current = trigger
+            posthog.capture(ANALYTICS_EVENTS.EEA_UPLIFT_STARTED, upliftEventProps(channel, trigger))
         },
         [channel]
     )
 
     const trackCompleted = useCallback(() => {
-        const advisory = startedRef.current
-        if (!advisory) return
+        const trigger = startedRef.current
+        if (!trigger) return
         startedRef.current = null
-        posthog.capture(ANALYTICS_EVENTS.EEA_UPLIFT_COMPLETED, {
-            channel,
-            requirement_key: advisory.requirementKey,
-            action_key: advisory.actionKey,
-            effective_date: advisory.effectiveDate,
-        })
+        posthog.capture(ANALYTICS_EVENTS.EEA_UPLIFT_COMPLETED, upliftEventProps(channel, trigger))
     }, [channel])
 
     const reset = useCallback(() => {

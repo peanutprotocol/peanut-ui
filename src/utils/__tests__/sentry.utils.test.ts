@@ -1,4 +1,86 @@
-import { sanitizeRequestBody, sanitizeResponseBody, scrubObject } from '../sentry.utils'
+import * as Sentry from '@sentry/nextjs'
+import { RETRY_STRATEGIES } from '../retry.utils'
+import {
+    CLIENT_FETCH_TIMEOUT_MS,
+    SERVER_FETCH_TIMEOUT_MS,
+    fetchWithSentry,
+    resolveDefaultTimeoutMs,
+    sanitizeRequestBody,
+    sanitizeResponseBody,
+    scrubObject,
+} from '../sentry.utils'
+
+jest.mock('@sentry/nextjs', () => ({
+    withScope: jest.fn((cb: (scope: unknown) => void) => cb({ setFingerprint: jest.fn(), setTag: jest.fn() })),
+    captureMessage: jest.fn(),
+    captureException: jest.fn(),
+}))
+
+jest.mock('../connectivity', () => ({
+    reportNetworkError: jest.fn(),
+    reportNetworkOk: jest.fn(),
+}))
+
+describe('fetchWithSentry — expected-response suppression', () => {
+    const mockResponse = (status: number, body: unknown): Response =>
+        ({
+            ok: status >= 200 && status < 300,
+            status,
+            clone: () => ({
+                json: () => Promise.resolve(body),
+                text: () => Promise.resolve(JSON.stringify(body)),
+            }),
+        }) as unknown as Response
+
+    let warnSpy: jest.SpyInstance
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    })
+
+    afterEach(() => {
+        warnSpy.mockRestore()
+    })
+
+    // Pins the fix for PEANUT-UI-QDR: a 400 from /invites/validate means the
+    // user typed an invalid invite code during onboarding — expected input
+    // validation surfaced inline, not a bug. Must never reach Sentry.
+    it('does NOT report /invites/validate 400 (invalid invite code is expected user input)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(400, { error: 'Invalid Invite' }))
+
+        const res = await fetchWithSentry('https://api.peanut.me/invites/validate', {
+            method: 'POST',
+            body: JSON.stringify({ inviteCode: 'nosuchuser' }),
+        })
+
+        expect(res.status).toBe(400)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+        expect(warnSpy).not.toHaveBeenCalled()
+    })
+
+    it('still reports /invites/validate 500 (real server failure)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(500, { error: 'boom' }))
+
+        await fetchWithSentry('https://api.peanut.me/invites/validate', { method: 'POST', body: '{}' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalledWith(
+            'POST to https://api.peanut.me/invites/validate failed with status 500',
+            expect.objectContaining({ level: 'error' })
+        )
+    })
+
+    it('still reports 400s from endpoints without a skip rule', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(400, { error: 'bad request' }))
+
+        await fetchWithSentry('https://api.peanut.me/some/endpoint', { method: 'POST', body: '{}' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalledWith(
+            'POST to https://api.peanut.me/some/endpoint failed with status 400',
+            expect.objectContaining({ level: 'warning' })
+        )
+    })
+})
 
 describe('sanitizeRequestBody', () => {
     it('redacts the PIN-set endpoint body wholesale (sensitive URL)', () => {
@@ -198,5 +280,114 @@ describe('scrubObject — exact-match contract', () => {
         expect(out.clean).toBe('z')
         // Global Object.prototype must NOT have been mutated
         expect(({} as Record<string, unknown>).polluted).toBeUndefined()
+    })
+})
+
+describe('fetch timeout budgets', () => {
+    // `resolveDefaultTimeoutMs`'s default parameter reads the real process.env,
+    // so a shell or CI runner that exports NEXT_PUBLIC_FETCH_TIMEOUT_MS would
+    // otherwise fail this suite for reasons unrelated to the code under test.
+    const realOverride = process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS
+    beforeAll(() => {
+        delete process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS
+    })
+    afterAll(() => {
+        if (realOverride !== undefined) process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS = realOverride
+    })
+
+    describe('resolveDefaultTimeoutMs', () => {
+        // Both branches, explicitly. An inverted check is the failure mode that
+        // actually bites: hand the server the long budget and a Vercel function
+        // hangs past its ceiling, producing exactly the opaque 504s the original
+        // 10s existed to prevent.
+        it('uses the client budget in a browser, the server budget in a function', () => {
+            expect(resolveDefaultTimeoutMs(false, undefined)).toBe(CLIENT_FETCH_TIMEOUT_MS)
+            expect(resolveDefaultTimeoutMs(true, undefined)).toBe(SERVER_FETCH_TIMEOUT_MS)
+        })
+
+        // Regression pin: 10s was smaller than a page load in high-latency
+        // markets, aborting healthy browser requests. Don't go back there.
+        // (The server budget deliberately stays at 10s — see sentry.utils.ts.)
+        it('keeps the client budget clear of the 10s that caused false timeouts', () => {
+            expect(CLIENT_FETCH_TIMEOUT_MS).toBeGreaterThan(10_000)
+        })
+
+        it('lets NEXT_PUBLIC_FETCH_TIMEOUT_MS override both contexts', () => {
+            expect(resolveDefaultTimeoutMs(false, '45000')).toBe(45_000)
+            expect(resolveDefaultTimeoutMs(true, '45000')).toBe(45_000)
+            // Boundary: the largest value setTimeout can honour is still accepted.
+            expect(resolveDefaultTimeoutMs(false, '2147483647')).toBe(2_147_483_647)
+        })
+
+        // parseInt would have read "30s" as 30ms and "0" as 0, and anything past
+        // 2^31-1 overflows setTimeout and clamps to ~1ms — all of which abort every
+        // request instantly. A malformed override must fall back, not brick fetches.
+        it.each([undefined, '', 'not-a-number', '30s', '0.5', '0', '-1', 'Infinity', '2147483648'])(
+            'falls back to the context default for a malformed override: %p',
+            (override) => {
+                expect(resolveDefaultTimeoutMs(false, override)).toBe(CLIENT_FETCH_TIMEOUT_MS)
+                expect(resolveDefaultTimeoutMs(true, override)).toBe(SERVER_FETCH_TIMEOUT_MS)
+            }
+        )
+    })
+
+    // The client budget is per ATTEMPT, and React Query retries on top, so the
+    // real wait is timeout x attempts + backoff. Pinned here because the
+    // multiplier lives in another file: bump RETRY_STRATEGIES.FAST or the budget
+    // far enough and this fails instead of silently shipping a long spinner.
+    // Bounds the DEFAULT strategy only — queries that set their own `retry`
+    // (e.g. Claim.tsx) are not covered by this.
+    it('keeps the worst case under 70s for the default retry strategy', () => {
+        const { retry, retryDelay } = RETRY_STRATEGIES.FAST
+        const attempts = retry + 1
+        const backoff = Array.from({ length: retry }, (_, i) => retryDelay(i)).reduce((a, b) => a + b, 0)
+
+        const worstCaseMs = attempts * CLIENT_FETCH_TIMEOUT_MS + backoff
+
+        expect(worstCaseMs).toBe(63_000)
+        expect(worstCaseMs).toBeLessThan(70_000)
+    })
+
+    describe('fetchWithSentry timeout resolution', () => {
+        const abort = () => {
+            const error = new Error('aborted')
+            error.name = 'AbortError'
+            return error
+        }
+        let infoSpy: jest.SpyInstance
+
+        beforeEach(() => {
+            jest.clearAllMocks()
+            infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {})
+        })
+
+        afterEach(() => infoSpy.mockRestore())
+
+        const reportedTimeoutMs = () =>
+            (Sentry.captureException as jest.Mock).mock.calls[0][1].extra.timeoutMs as number
+
+        // Re-imported with the env cleared: the module captures its default at
+        // LOAD time, so the surrounding beforeAll can't reach it and an ambient
+        // NEXT_PUBLIC_FETCH_TIMEOUT_MS would otherwise fail this for the wrong reason.
+        it('defaults to the client budget under a browser global', async () => {
+            let freshFetchWithSentry!: typeof fetchWithSentry
+            jest.isolateModules(() => {
+                freshFetchWithSentry = require('../sentry.utils').fetchWithSentry
+            })
+
+            global.fetch = jest.fn().mockRejectedValue(abort())
+            await expect(freshFetchWithSentry('https://api.peanut.me/users/me')).rejects.toThrow(
+                'Service temporarily unavailable. Please try again.'
+            )
+            expect(reportedTimeoutMs()).toBe(CLIENT_FETCH_TIMEOUT_MS)
+        })
+
+        it('still lets a per-call timeoutMs win over the default', async () => {
+            global.fetch = jest.fn().mockRejectedValue(abort())
+            await expect(fetchWithSentry('https://api.peanut.me/users/me', {}, 1234)).rejects.toThrow(
+                'Service temporarily unavailable. Please try again.'
+            )
+            expect(reportedTimeoutMs()).toBe(1234)
+        })
     })
 })

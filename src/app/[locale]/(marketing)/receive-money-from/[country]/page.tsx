@@ -2,11 +2,11 @@ import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { RECEIVE_SOURCES, getCountryName } from '@/data/seo'
-import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
+import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import type { Locale } from '@/i18n/types'
 import { getTranslations, t } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readPageContentLocalized } from '@/lib/content'
+import { readPageContentLocalized, contentLocaleFor, availableContentLocales } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -26,18 +26,26 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const mdxContent = readPageContentLocalized('receive-from', country, locale)
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
+    // A fallback-served page canonicalizes to the locale that owns the prose.
+    const contentLocale = contentLocaleFor('receive-from', country, locale)
+
     const i18n = getTranslations(locale as Locale)
     const countryName = getCountryName(country, locale as Locale)
 
     return {
         ...metadataHelper({
+            locale,
             title: `${t(i18n.receiveMoneyFrom, { country: countryName })} | Peanut`,
             description: t(i18n.receiveMoneyFromDesc, { country: countryName }),
-            canonical: `/${locale}/receive-money-from/${country}`,
+            canonical: `/${contentLocale}/receive-money-from/${country}`,
         }),
         alternates: {
-            canonical: `/${locale}/receive-money-from/${country}`,
-            languages: getAlternates('receive-money-from', country),
+            canonical: `/${contentLocale}/receive-money-from/${country}`,
+            languages: getAlternatesFor(
+                availableContentLocales('receive-from', country),
+                'receive-money-from',
+                country
+            ),
         },
     }
 }
@@ -50,7 +58,7 @@ export default async function ReceiveMoneyPage({ params }: PageProps) {
     const mdxSource = readPageContentLocalized('receive-from', country, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
-    const { content } = await renderContent(mdxSource.body)
+    const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
     const countryName = getCountryName(country, locale)
 

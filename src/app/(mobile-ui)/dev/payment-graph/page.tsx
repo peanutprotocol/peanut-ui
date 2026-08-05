@@ -107,7 +107,7 @@ export default function PaymentGraphPage() {
                 }) => (
                     <>
                         {/* Controls Panel - Top Right */}
-                        <div className="absolute right-4 top-4 max-h-[calc(100vh-140px)] w-[200px] overflow-y-auto rounded-xl bg-white/95 p-3 shadow-lg backdrop-blur-sm">
+                        <div className="absolute right-4 top-4 max-h-[calc(100vh_-_140px)] w-[200px] overflow-y-auto rounded-xl bg-white/95 p-3 shadow-lg backdrop-blur-sm">
                             <h3 className="mb-2 text-xs font-bold text-gray-900">Display & Forces</h3>
 
                             <div className="space-y-2 text-[11px]">
@@ -576,7 +576,7 @@ export default function PaymentGraphPage() {
                                             <span className="inline-block h-0.5 w-3 bg-cyan-500/50"></span>P2P
                                         </span>
                                     </div>
-                                    <p className="text-gray-400">Click → Grafana | Right-click → Focus</p>
+                                    <p className="text-gray-400">Click → Select | Right-click → Focus</p>
                                     <p className="text-gray-400">
                                         {performanceMode ? 'Limited to 1000 nodes' : 'Limited to 5000 nodes'}
                                     </p>

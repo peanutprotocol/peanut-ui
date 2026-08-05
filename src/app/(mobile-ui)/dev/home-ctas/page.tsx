@@ -2,14 +2,15 @@
 
 import { type ReactNode } from 'react'
 import type { StaticImageData } from 'next/image'
-import NavHeader from '@/components/Global/NavHeader'
-import { Card } from '@/components/0_Bruddle/Card'
-import { Icon, type IconName } from '@/components/Global/Icons/Icon'
+import { type IconName } from '@/components/Global/Icons/Icon'
 import CardLaunchCTABanner from '@/components/Home/CardLaunchCTA/CardLaunchCTABanner'
 import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import { type ActivationStep } from '@/hooks/useActivationStatus'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
+import DevNoteCard from '../_components/DevNoteCard'
+import DevPageShell from '../_components/DevPageShell'
+import DevSectionLabel from '../_components/DevSectionLabel'
 
 /**
  * /dev/home-ctas — force-renders every home-screen CTA in isolation so they can
@@ -158,32 +159,23 @@ const ACTIVATION_STEPS: { step: Exclude<ActivationStep, 'completed'>; label: str
     { step: 'outbound', label: "STEPS.outbound — 'Make your first payment'" },
 ]
 
-function SectionLabel({ children }: { children: ReactNode }) {
-    return <p className="text-xs font-bold uppercase tracking-wide text-grey-1">{children}</p>
-}
-
 export default function HomeCTAsPreviewPage() {
     return (
-        <div className="flex min-h-[inherit] flex-col gap-6 pb-8">
-            <div className="px-4 pt-4">
-                <NavHeader title="Home CTAs" />
-            </div>
-
-            <div className="flex flex-col gap-8 px-4">
-                <p className="text-sm text-grey-1">
-                    Every home-screen CTA, force-rendered in isolation — no auth, state, or launch gating. Handlers are
-                    no-op console.logs.
-                </p>
-
+        <DevPageShell
+            title="Home CTAs"
+            description="Every home-screen CTA, force-rendered in isolation — no auth, state, or launch gating. Handlers are no-op console.logs."
+            width="prose"
+        >
+            <div className="flex flex-col gap-8">
                 {/* Card launch banner */}
                 <section className="flex flex-col gap-3">
-                    <SectionLabel>Card launch banner (CardLaunchCTABanner)</SectionLabel>
+                    <DevSectionLabel>Card launch banner (CardLaunchCTABanner)</DevSectionLabel>
                     <CardLaunchCTABanner onTryDoor={noop('onTryDoor')} onDismiss={noop('onDismiss')} />
                 </section>
 
                 {/* Carousel CTAs */}
                 <section className="flex flex-col gap-4">
-                    <SectionLabel>Carousel CTAs (CarouselCTA)</SectionLabel>
+                    <DevSectionLabel>Carousel CTAs (CarouselCTA)</DevSectionLabel>
                     {CAROUSEL_PREVIEWS.map((cta) => (
                         <div key={cta.id} className="flex flex-col gap-1.5">
                             <p className="text-[11px] text-grey-1">{cta.label}</p>
@@ -205,7 +197,7 @@ export default function HomeCTAsPreviewPage() {
 
                 {/* Activation funnel steps */}
                 <section className="flex flex-col gap-4">
-                    <SectionLabel>Activation funnel steps (ActivationCTAs)</SectionLabel>
+                    <DevSectionLabel>Activation funnel steps (ActivationCTAs)</DevSectionLabel>
                     {ACTIVATION_STEPS.map(({ step, label }) => (
                         <div key={step} className="flex flex-col gap-1.5">
                             <p className="text-[11px] text-grey-1">{label}</p>
@@ -217,17 +209,11 @@ export default function HomeCTAsPreviewPage() {
                     ))}
                 </section>
 
-                <Card className="bg-primary-3/20 p-3">
-                    <div className="mb-1 flex items-center gap-2">
-                        <Icon name="info" size={14} />
-                        <span className="text-xs font-bold">Note</span>
-                    </div>
-                    <p className="text-xs text-grey-1">
-                        Activation steps read defensive hooks (useCapabilities / useIdentityVerification) that return
-                        empty defaults when logged out, so every step renders here regardless of real KYC state.
-                    </p>
-                </Card>
+                <DevNoteCard>
+                    Activation steps read defensive hooks (useCapabilities / useIdentityVerification) that return empty
+                    defaults when logged out, so every step renders here regardless of real KYC state.
+                </DevNoteCard>
             </div>
-        </div>
+        </DevPageShell>
     )
 }

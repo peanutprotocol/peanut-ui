@@ -1,11 +1,12 @@
 import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
-import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
+import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readPageContentLocalized } from '@/lib/content'
+import { availableContentLocales, contentLocaleFor, readPageContentLocalized } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
+import { Hero } from '@/components/Marketing/mdx/Hero'
 
 interface PageProps {
     params: Promise<{ locale: string }>
@@ -33,15 +34,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const mdxContent = readPageContentLocalized<LegalFrontmatter>('legal', SLUG, locale)
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
+    // A fallback-served page canonicalizes to the locale that owns the prose.
+    const contentLocale = contentLocaleFor('legal', SLUG, locale)
+
     return {
         ...metadataHelper({
+            locale,
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
-            canonical: `/${locale}/${SLUG}`,
+            canonical: `/${contentLocale}/${SLUG}`,
         }),
         alternates: {
-            canonical: `/${locale}/${SLUG}`,
-            languages: getAlternates(SLUG),
+            canonical: `/${contentLocale}/${SLUG}`,
+            languages: getAlternatesFor(availableContentLocales('legal', SLUG), SLUG),
         },
     }
 }
@@ -53,7 +58,9 @@ export default async function TermsPage({ params }: PageProps) {
     const mdxSource = readPageContentLocalized<LegalFrontmatter>('legal', SLUG, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
-    const { content } = await renderContent(mdxSource.body)
+    // The verbatim markdown opens with its own `# Terms of Service`; the Hero
+    // below already renders that title, so strip the body's leading h1.
+    const { content } = await renderContent(mdxSource.body, locale, { stripLeadingH1: true })
     const i18n = getTranslations(locale)
 
     const displayTitle = mdxSource.frontmatter.title.replace(/\s*\|\s*Peanut$/, '')
@@ -77,6 +84,7 @@ export default async function TermsPage({ params }: PageProps) {
                     : undefined
             }
         >
+            <Hero title={displayTitle} subtitle={i18n.legalHeroSubtitleTerms} />
             {content}
         </ContentPage>
     )

@@ -1,10 +1,11 @@
+import DocsLink from '@/components/Global/DocsLink'
 import { Button } from '@/components/0_Bruddle/Button'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useAppDispatch } from '@/redux/hooks'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useAccountSetup } from '@/hooks/useAccountSetup'
 import { useAuth } from '@/context/authContext'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import { useState, useEffect } from 'react'
 import { encodeFunctionData, erc20Abi, type Address, type Hex } from 'viem'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
@@ -14,8 +15,11 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getFromCookie } from '@/utils/general.utils'
 import { twMerge } from 'tailwind-merge'
+import { useTranslations } from 'next-intl'
 
 const SignTestTransaction = () => {
+    const t = useTranslations('setup')
+    const tCommon = useTranslations('common')
     const dispatch = useAppDispatch()
     const { address, handleSendUserOpEncoded } = useZeroDev()
     const { finalizeAccountSetup, isProcessing, error: setupError, handleRedirect } = useAccountSetup()
@@ -40,7 +44,7 @@ const SignTestTransaction = () => {
                     tags: { feature: 'signup-test-transaction' },
                     extra: { context: 'user-fetch-on-mount' },
                 })
-                setError('Failed to load user data. Please refresh the page.')
+                setError(t('testTransaction.errors.loadUserFailed'))
             })
         } else if (user) {
             console.log('[SignTestTransaction] User loaded successfully:', {
@@ -64,13 +68,13 @@ const SignTestTransaction = () => {
 
     const handleTestTransaction = async () => {
         if (!address) {
-            setError('No wallet address found. Please try refreshing the page.')
+            setError(t('testTransaction.errors.noWalletAddress'))
             return
         }
 
         if (!user) {
             console.error('[SignTestTransaction] Cannot proceed without user data')
-            setError('User data not loaded. Please refresh the page.')
+            setError(t('testTransaction.errors.userNotLoaded'))
             return
         }
 
@@ -122,9 +126,7 @@ const SignTestTransaction = () => {
                 const success = await finalizeAccountSetup(address)
                 if (!success) {
                     console.error('[SignTestTransaction] Failed to finalize account setup')
-                    setError(
-                        setupError || 'Failed to complete account setup. Please try again by clicking the button below.'
-                    )
+                    setError(setupError || t('testTransaction.errors.setupFailed'))
                     setIsSigning(false)
                     dispatch(setupActions.setLoading(false))
                     return
@@ -162,9 +164,7 @@ const SignTestTransaction = () => {
             })
 
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED, { error_name: (e as Error).name })
-            setError(
-                "We're having trouble setting up your account. Our team has been notified. Please contact support for help."
-            )
+            setError(t('testTransaction.errors.supportNeeded'))
             setIsSigning(false)
             dispatch(setupActions.setLoading(false))
         }
@@ -176,9 +176,9 @@ const SignTestTransaction = () => {
 
     // determine button text based on state
     const getButtonText = () => {
-        if (isFetchingUser || !user) return 'Loading...'
-        if (testTransactionCompleted && displayError) return 'Retry account setup'
-        return 'Confirm & finish'
+        if (isFetchingUser || !user) return tCommon('loading')
+        if (testTransactionCompleted && displayError) return t('testTransaction.retryAccountSetup')
+        return t('testTransaction.confirmAndFinish')
     }
 
     return (
@@ -198,14 +198,9 @@ const SignTestTransaction = () => {
                 </div>
                 <div>
                     <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
-                        <a
-                            className="underline underline-offset-2"
-                            href="/en/help/passkeys"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            Learn more about what Passkeys are
-                        </a>{' '}
+                        <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
+                            {t('passkey.learnMore')}
+                        </DocsLink>{' '}
                     </p>
                 </div>
             </div>
@@ -214,16 +209,12 @@ const SignTestTransaction = () => {
 }
 
 export const PasskeyDocsLink = ({ className }: { className?: string }) => {
+    const t = useTranslations('setup')
     return (
         <p className={twMerge('border-t border-grey-1 pt-2 text-center text-xs text-grey-1', className)}>
-            <a
-                className="underline underline-offset-2"
-                href="/en/help/passkeys"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                Learn more about what Passkeys are
-            </a>{' '}
+            <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
+                {t('passkey.learnMore')}
+            </DocsLink>{' '}
         </p>
     )
 }

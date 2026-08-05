@@ -29,22 +29,19 @@ export const printableUsdc = (balance: bigint): string => {
 }
 
 /**
- * Shared balance copy for the send-link, qr-pay and withdraw flows. (The
- * features/payments flows — direct-send/semantic-request/contribute-pot — keep
- * their own in-context wording.)
+ * Shared balance error copy lives in the `errors` next-intl namespace:
+ *  - `notEnoughBalanceAddFunds` — input-time gate, when the entered amount
+ *    exceeds the full displayed balance (a real shortfall). Gates run on the
+ *    DISPLAYED balance so we never block funds the live spend could route.
+ *  - `balanceSettling` — failure-time, when a spend that passed the gate can't
+ *    be routed yet (the smart→collateral rebalance hasn't landed). Deliberately
+ *    generic — it must NOT expose the card-collateral mechanic — and it nudges a
+ *    retry, since the FE balance is refetched on this failure.
  *
- * Two distinct moments:
- *  - INSUFFICIENT — input-time gate, when the entered amount exceeds the full
- *    displayed balance (a real shortfall). Gates run on the DISPLAYED balance so
- *    we never block funds the live spend could actually route — see `useWallet`.
- *  - SETTLING — failure-time, when a spend that passed the gate can't be routed
- *    yet (the smart→collateral rebalance hasn't landed, or the ~30s-polled FE
- *    balance was momentarily ahead of chain). Deliberately generic — it must NOT
- *    expose the card-collateral mechanic — and it nudges a retry, since the FE
- *    balance is refetched on this failure and the spend usually succeeds shortly.
+ * Components render these via `useTranslations('errors')`. When a rendered
+ * balance message is compared to drive logic (retryable vs blocking), compare a
+ * stable code, never the localized string.
  */
-export const INSUFFICIENT_BALANCE_MESSAGE = 'Not enough balance. Add funds to continue.'
-export const BALANCE_SETTLING_MESSAGE = "Your balance isn't fully available yet. Please try again in a few seconds."
 
 /**
  * Pure affordability check: does `balanceUnits` cover `amountUsd`? Parses the
@@ -85,6 +82,22 @@ export const rainCentsToUsdcUnits = (spendingPowerCents: number | null | undefin
 }
 
 /**
+ * Debt owed to the card, in whole cents (> 0), or 0 when there is none.
+ *
+ * Rain reports negative `spendingPower` when a settlement captured more than
+ * its auth hold (tip / FX true-up) on an already-drained collateral account.
+ * The clamp in `rainCentsToUsdcUnits` hides that debt from balance sums — the
+ * card screen surfaces it via this helper instead, because the next
+ * auto-balance sweep silently repays it from the user's deposit.
+ */
+export const cardBalanceDueCents = (spendingPowerCents: number | null | undefined): number => {
+    if (spendingPowerCents == null || !Number.isFinite(spendingPowerCents) || spendingPowerCents >= 0) {
+        return 0
+    }
+    return Math.round(-spendingPowerCents)
+}
+
+/**
  * Available-now spendable balance, as a USDC base-unit bigint (6dp) — the
  * smart-account balance plus landed Rain collateral `spendingPower`. This is
  * what `useSpendBundle` can actually route through right now. It is the base of
@@ -119,6 +132,33 @@ export const computeDisplaySpendable = (
     inTransitToCollateralCents: number | null | undefined
 ): bigint =>
     computeAvailableSpendable(smartBalance, spendingPowerCents) + rainCentsToUsdcUnits(inTransitToCollateralCents)
+
+/**
+ * Minimum excess worth returning after a card-limit decrease, in Rain cents.
+ * Mirrors the auto-balancer's $1 REBALANCE_THRESHOLD (peanut-api-ts
+ * rebalance-decision.ts) so a cent-sized delta never costs the user a passkey
+ * tap — or Rain's per-user withdrawal-signature cooldown.
+ */
+export const EXCESS_COLLATERAL_MIN_CENTS = 100
+
+/**
+ * Collateral held above the card limit after a limit change, in whole Rain
+ * cents. This is the amount to return to the user's smart wallet so the
+ * card's backing matches the new limit. Returns 0 (nothing to return) for
+ * missing/invalid spending power, a limit increase, or a delta under
+ * EXCESS_COLLATERAL_MIN_CENTS — callers can branch on `> 0` alone.
+ */
+export const computeExcessCollateralCents = (
+    spendingPowerCents: number | null | undefined,
+    newLimitCents: number
+): number => {
+    if (spendingPowerCents == null || !Number.isFinite(spendingPowerCents) || spendingPowerCents <= 0) return 0
+    if (!Number.isFinite(newLimitCents) || newLimitCents < 0) return 0
+    // Floor the (possibly fractional) spending power so we never sign for more
+    // than the collateral can cover — sub-cent dust stays put.
+    const excess = Math.floor(spendingPowerCents) - Math.ceil(newLimitCents)
+    return excess >= EXCESS_COLLATERAL_MIN_CENTS ? excess : 0
+}
 
 /**
  * Convert a USDC base-unit amount (PEANUT_WALLET_TOKEN_DECIMALS, typically 6dp)

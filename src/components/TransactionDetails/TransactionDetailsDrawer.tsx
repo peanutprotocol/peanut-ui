@@ -1,4 +1,5 @@
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { useTranslations } from 'next-intl'
 import React, { useCallback, useRef, useState } from 'react'
 import { Drawer, DrawerContent, DrawerTitle } from '../Global/Drawer'
 import { TransactionDetailsReceipt } from './TransactionDetailsReceipt'
@@ -23,6 +24,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
     transactionAmount,
     avatarUrl,
 }) => {
+    const t = useTranslations('transaction')
     // ref for the main content area to calculate dynamic height
     const contentRef = useRef<HTMLDivElement>(null)
     const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -46,7 +48,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
             }}
         >
             <DrawerContent className={`py-5 ${isModalOpen ? '!z-[10]' : ''}`}>
-                <DrawerTitle className="sr-only">Transaction Details</DrawerTitle>
+                <DrawerTitle className="sr-only">{t('drawerTitle')}</DrawerTitle>
                 <TransactionDetailsReceipt
                     isLoading={isLoading}
                     transaction={transaction}

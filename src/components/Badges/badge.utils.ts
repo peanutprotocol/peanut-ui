@@ -63,7 +63,7 @@ export const BADGES: Record<string, BadgeMeta> = {
         description: 'They found the Arbiverse booth. We found them. Mutual onboarding achieved.',
     },
     // Rebranded from "Card Pioneer" to "Founding Pioneer". Backend still emits the
-    // CARD_PIONEER code (it also gates grandfathered card access + cashback), so we
+    // CARD_PIONEER code (it also gates grandfathered card access + rewards), so we
     // keep the code and only repoint the FE asset/copy/name. Existing holders now
     // render the Founding Pioneer badge. (Same pattern as SUPPORT_SURVIVOR below.)
     CARD_PIONEER: {
@@ -92,12 +92,10 @@ export const BADGES: Record<string, BadgeMeta> = {
         description: 'They found a real bug, reported it, and stayed. We owe them a beer.',
         displayName: 'Bug Whisperer',
     },
-    // Card-launch badges — assets only. No backend trigger yet; entries are here
-    // so the icons render the moment the API starts awarding the codes.
+    // ── card-launch badges (awarded server-side: waitlist signup + card-spend milestones) ──
     SHHHHH: {
         path: '/badges/shhhhh.svg',
         description: 'They know the secret.',
-        // TODO(card-launch): award on shhhhh-waitlist signup
     },
     NOT_SO_SHHHH: {
         path: '/badges/not_so_shhhh.svg',
@@ -106,12 +104,10 @@ export const BADGES: Record<string, BadgeMeta> = {
     CARD_FIRST_SWIPE: {
         path: '/badges/happy_card.svg',
         description: 'First swipe. They put their card to work.',
-        // TODO(card-launch): award on first settled Rain card payment
     },
     CARD_SPENT_1K: {
         path: '/badges/money_stack.svg',
         description: '$1K swiped. They put their money where their card is.',
-        // TODO(card-launch): award on cumulative card spend ≥ $1K
     },
     // ── growth · invite ladder (awarded by invites_accepted count) ──────────
     FIRST_INVITE: {
@@ -202,6 +198,12 @@ export const BADGES: Record<string, BadgeMeta> = {
         path: '/badges/festa_junina_2026.svg',
         description: 'You danced the quadrilha with us. Arraiá unlocked.',
         displayName: 'Arraiá Approved',
+    },
+    // Argentine superfan in-joke badge — look closer. IYKYK.
+    MANICERO: {
+        path: '/badges/manicero.svg',
+        description: 'Small maní. Big energy. Manicero.',
+        displayName: 'Manicero',
     },
     TOUCHED_GRASS: {
         path: '/badges/touched_grass.svg',

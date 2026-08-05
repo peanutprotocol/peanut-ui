@@ -25,11 +25,13 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 import { printableAddress, areEvmAddressesEqual } from '@/utils/general.utils'
-import { tokenSelectorContext } from '@/context'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { useTranslations } from 'next-intl'
 
 export function SemanticRequestInputView() {
     const onBack = useSafeBack('/')
+    const t = useTranslations('payment')
     const {
         amount,
         recipient,
@@ -57,7 +59,6 @@ export function SemanticRequestInputView() {
         selectedChainID,
         selectedTokenAddress,
         supportedChainsAndTokens,
-        selectedTokenData,
     } = useContext(tokenSelectorContext)
 
     // initialize token/chain from parsed url
@@ -148,7 +149,7 @@ export function SemanticRequestInputView() {
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader onPrev={onBack} title="Pay" />
+            <NavHeader onPrev={onBack} title={t('headers.pay')} />
 
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {/* recipient card */}
@@ -183,7 +184,7 @@ export function SemanticRequestInputView() {
                 {/* hint for free transactions */}
                 {showTokenSelector && selectedTokenAddress && selectedChainID && !isUsingPeanutDefault && (
                     <div className="pt-1 text-center text-xs text-grey-1">
-                        <span>Use USDC on Arbitrum for free transactions!</span>
+                        <span>{t('input.freeTransactionsHint')}</span>
                     </div>
                 )}
 
@@ -195,9 +196,7 @@ export function SemanticRequestInputView() {
                         loading={isLoading}
                         insufficientBalance={isInsufficientBalance}
                     />
-                    {isInsufficientBalance && (
-                        <ErrorAlert description="Not enough balance to fulfill this payment with Peanut" />
-                    )}
+                    {isInsufficientBalance && <ErrorAlert description={t('errors.insufficientPayment')} />}
                     {error.showError && <ErrorAlert description={error.errorMessage} />}
                 </div>
 

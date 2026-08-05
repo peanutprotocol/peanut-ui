@@ -1,0 +1,42 @@
+diff --git a/_cjs/toWebAuthnKey.js b/_cjs/toWebAuthnKey.js
+index 69e1ad488631b4b23d260f4d4beaa0a41200aeb1..c21decd7c2338f04401ec38025988f7e36da4c12 100644
+--- a/_cjs/toWebAuthnKey.js
++++ b/_cjs/toWebAuthnKey.js
+@@ -83,7 +83,8 @@ const toWebAuthnKey = async ({ webAuthnKey, rpID, passkeyName, passkeyServerUrl,
+         if (!registerVerifyResult.verified) {
+             throw new Error("Registration not verified");
+         }
+-        pubKey = registerCred.response.publicKey;
++        // iOS native (ASAuthorization via Capacitor shim) cannot expose the credential public key; fall back to the server-provided one.
++        pubKey = registerCred.response.publicKey ?? registerVerifyResult.pubkey;
+     }
+     if (!pubKey) {
+         throw new Error("No public key returned from registration credential");
+diff --git a/_esm/toWebAuthnKey.js b/_esm/toWebAuthnKey.js
+index 98cf2cde07636c040865d7c351b34340e14d8310..8b49b9046aced1959489d766b6e0f6574fe4a27d 100644
+--- a/_esm/toWebAuthnKey.js
++++ b/_esm/toWebAuthnKey.js
+@@ -87,7 +87,8 @@ export const toWebAuthnKey = async ({ webAuthnKey, rpID, passkeyName, passkeySer
+             throw new Error("Registration not verified");
+         }
+         // Import the key
+-        pubKey = registerCred.response.publicKey;
++        // iOS native (ASAuthorization via Capacitor shim) cannot expose the credential public key; fall back to the server-provided one.
++        pubKey = registerCred.response.publicKey ?? registerVerifyResult.pubkey;
+     }
+     if (!pubKey) {
+         throw new Error("No public key returned from registration credential");
+diff --git a/toWebAuthnKey.ts b/toWebAuthnKey.ts
+index b6d3cb24e74b913e5c19da817255d789219a8c00..1d1a3346fd47d8036b13a9d2a4c632a2c769e891 100644
+--- a/toWebAuthnKey.ts
++++ b/toWebAuthnKey.ts
+@@ -163,7 +163,8 @@ export const toWebAuthnKey = async ({
+         }
+ 
+         // Import the key
+-        pubKey = registerCred.response.publicKey
++        // iOS native (ASAuthorization via Capacitor shim) cannot expose the credential public key; fall back to the server-provided one.
++        pubKey = registerCred.response.publicKey ?? registerVerifyResult.pubkey
+     }
+ 
+     if (!pubKey) {

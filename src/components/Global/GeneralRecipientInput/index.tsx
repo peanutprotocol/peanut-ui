@@ -4,9 +4,11 @@ import type { RecipientType } from '@/interfaces/interfaces'
 import { validateBankAccount } from '@/utils/bridge-accounts.utils'
 import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import * as Senty from '@sentry/nextjs'
+import { useTranslations } from 'next-intl'
 import { useCallback, useRef } from 'react'
 import { isIBAN } from 'validator'
 import { validateAndResolveRecipient } from '@/lib/validation/recipient'
+import { isValidAddressForFamily, type WithdrawAddressFamily } from '@/lib/validation/addressFamily'
 import { BASE_URL } from '@/constants/general.consts'
 
 type GeneralRecipientInputProps = {
@@ -17,6 +19,13 @@ type GeneralRecipientInputProps = {
     infoText?: string
     showInfoText?: boolean
     isWithdrawal?: boolean
+    /** Address family of the selected withdraw destination ('evm' default).
+     *  Solana/Tron short-circuit the IBAN/US-routing/ENS branches — a base58
+     *  address is the only valid input for them. */
+    addressFamily?: WithdrawAddressFamily
+    /** Destination chain id — ENS names resolve to their ENSIP-11 per-chain
+     *  address record for this chain (mainnet record when omitted). */
+    chainId?: string
 }
 
 export type GeneralRecipientUpdate = {
@@ -35,7 +44,10 @@ const GeneralRecipientInput = ({
     infoText,
     showInfoText = true,
     isWithdrawal = false,
+    addressFamily = 'evm',
+    chainId,
 }: GeneralRecipientInputProps) => {
+    const t = useTranslations('global')
     const recipientType = useRef<RecipientType>('address')
     const errorMessage = useRef('')
     const resolvedAddress = useRef('')
@@ -50,16 +62,36 @@ const GeneralRecipientInput = ({
                 const trimmedInput = recipient.trim().replace(`${BASE_URL}/`, '')
                 const sanitizedInput = sanitizeBankAccount(trimmedInput)
 
+                // Non-EVM destination: base58 address or nothing — never IBAN,
+                // US-routing, ENS, or username.
+                if (addressFamily !== 'evm') {
+                    const familyValid = isValidAddressForFamily(trimmedInput, addressFamily)
+                    if (familyValid) {
+                        resolvedAddress.current = trimmedInput
+                    } else {
+                        errorMessage.current = t('generalRecipientInput.invalidChainAddress', {
+                            chain: addressFamily === 'solana' ? 'Solana' : 'Tron',
+                        })
+                    }
+                    recipientType.current = 'address'
+                    return familyValid
+                }
+
                 if (isIBAN(sanitizedInput)) {
                     type = 'iban'
                     isValid = await validateBankAccount(sanitizedInput)
-                    if (!isValid) errorMessage.current = 'Invalid IBAN, country not supported'
+                    if (!isValid) errorMessage.current = t('generalRecipientInput.invalidIban')
                 } else if (/^[0-9]{1,17}$/.test(sanitizedInput)) {
                     type = 'us'
                     isValid = true
                 } else {
                     try {
-                        const validation = await validateAndResolveRecipient(trimmedInput, isWithdrawal)
+                        const validation = await validateAndResolveRecipient(
+                            trimmedInput,
+                            isWithdrawal,
+                            addressFamily,
+                            chainId
+                        )
 
                         isValid = true
                         resolvedAddress.current = validation.resolvedAddress
@@ -82,7 +114,7 @@ const GeneralRecipientInput = ({
                 return false
             }
         },
-        [isWithdrawal]
+        [isWithdrawal, addressFamily, chainId, t]
     )
 
     const onInputUpdate = useCallback(
@@ -129,7 +161,7 @@ const GeneralRecipientInput = ({
 
     return (
         <div className="w-full">
-            <label className="mb-2 block text-left text-sm font-bold">Wallet address</label>
+            <label className="mb-2 block text-left text-sm font-bold">{t('generalRecipientInput.walletAddress')}</label>
             <ValidatedInput
                 value={recipient.name ?? recipient.address}
                 placeholder={placeholder}
@@ -140,6 +172,7 @@ const GeneralRecipientInput = ({
                 name="bank-account"
                 infoText={showInfoText ? infoText : undefined}
                 formatDisplayValue={formatDisplayValue}
+                smartPasteKind="recipient"
             />
         </div>
     )

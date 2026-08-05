@@ -9,6 +9,7 @@
  */
 import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
@@ -248,7 +249,7 @@ const mockSetLoadingState = jest.fn()
 const mockSetSelectedChainID = jest.fn()
 const mockSetSelectedTokenAddress = jest.fn()
 
-jest.mock('@/context', () => {
+jest.mock('@/context/tokenSelector.context', () => {
     const React = require('react')
     return {
         tokenSelectorContext: React.createContext({
@@ -264,22 +265,18 @@ jest.mock('@/context', () => {
                 price: 1,
             },
         }),
+    }
+})
+
+jest.mock('@/context/loadingStates.context', () => {
+    const React = require('react')
+    return {
         loadingStateContext: React.createContext({
             loadingState: 'Idle' as string,
             setLoadingState: (...args: any[]) => mockSetLoadingState(...args),
             isLoading: false,
         }),
     }
-})
-
-jest.mock('@/context/tokenSelector.context', () => {
-    const { tokenSelectorContext } = jest.requireMock('@/context')
-    return { tokenSelectorContext }
-})
-
-jest.mock('@/context/loadingStates.context', () => {
-    const { loadingStateContext } = jest.requireMock('@/context')
-    return { loadingStateContext }
 })
 
 // DirectRequestInitialView deps — only this view uses them (PayRequestLink does
@@ -339,9 +336,11 @@ function renderCreateRequest(params: Record<string, string> = {}) {
     const queryClient = createQueryClient()
 
     return render(
-        <QueryClientProvider client={queryClient}>
-            <CreateRequestLinkView />
-        </QueryClientProvider>
+        <IntlWrapper>
+            <QueryClientProvider client={queryClient}>
+                <CreateRequestLinkView />
+            </QueryClientProvider>
+        </IntlWrapper>
     )
 }
 
@@ -350,9 +349,11 @@ function renderPayRequest(params: Record<string, string> = {}) {
     const queryClient = createQueryClient()
 
     return render(
-        <QueryClientProvider client={queryClient}>
-            <PayRequestLink />
-        </QueryClientProvider>
+        <IntlWrapper>
+            <QueryClientProvider client={queryClient}>
+                <PayRequestLink />
+            </QueryClientProvider>
+        </IntlWrapper>
     )
 }
 
@@ -360,9 +361,11 @@ function renderDirectRequest() {
     const queryClient = createQueryClient()
 
     return render(
-        <QueryClientProvider client={queryClient}>
-            <DirectRequestInitialView username="test-user" />
-        </QueryClientProvider>
+        <IntlWrapper>
+            <QueryClientProvider client={queryClient}>
+                <DirectRequestInitialView username="test-user" />
+            </QueryClientProvider>
+        </IntlWrapper>
     )
 }
 

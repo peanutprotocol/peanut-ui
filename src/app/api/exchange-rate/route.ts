@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCachedCurrencyPrice } from '@/app/actions/currency'
 
-interface ExchangeRateResponse {
-    rate: number
-}
-
 // LATAM currencies that should use Manteca API
 const MANTECA_CURRENCIES = new Set(['ARS', 'BRL', 'COP', 'CRC', 'PUSD', 'GTQ', 'PHP', 'BOB'])
 

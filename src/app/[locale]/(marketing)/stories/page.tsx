@@ -23,8 +23,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     return {
         ...metadataHelper({
-            title: 'User Stories | Peanut',
-            description: 'Real stories from Peanut users around the world.',
+            locale,
+            title: `${getTranslations(locale).storiesTitle} | Peanut`,
+            description: getTranslations(locale).storiesSubtitle,
             canonical: `/${locale}/stories`,
         }),
         alternates: {
@@ -58,13 +59,13 @@ export default async function StoriesIndexPage({ params }: PageProps) {
             locale={locale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
-                { name: 'Stories', href: `/${locale}/stories` },
+                { name: i18n.stories, href: `/${locale}/stories` },
             ]}
         >
-            <Hero title="User Stories" subtitle="Real stories from Peanut users around the world." />
+            <Hero title={i18n.storiesTitle} subtitle={i18n.storiesSubtitle} />
             <div className="mx-auto mb-8 mt-10 max-w-[640px] px-6 md:mt-12 md:px-4">
                 {stories.length === 0 ? (
-                    <p className="text-center text-grey-1">No stories published yet.</p>
+                    <p className="text-center text-grey-1">{i18n.noStoriesPublished}</p>
                 ) : (
                     <div className="flex flex-col gap-px overflow-hidden rounded-sm border border-n-1">
                         {stories.map((story) => (

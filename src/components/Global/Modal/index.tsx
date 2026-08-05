@@ -11,7 +11,7 @@ type ModalProps = {
     title?: string
     visible: boolean
     onClose: () => void
-    initialFocus?: any
+    initialFocus?: React.MutableRefObject<HTMLElement | null>
     children: React.ReactNode
     video?: boolean
     hideOverlay?: boolean

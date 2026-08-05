@@ -1,6 +1,6 @@
 import { ENS_NAME_REGEX } from '@/constants/general.consts'
 import { getTokenSymbol, getTokenDecimals } from '@/utils/general.utils'
-import { validatePixKey, isPixEmvcoQr } from '@/utils/withdraw.utils'
+import { validatePixKey, isPixEmvcoQr, isPixRecurringCode } from '@/utils/withdraw.utils'
 import { isAddress, formatUnits } from 'viem'
 
 export enum EQrType {
@@ -15,6 +15,7 @@ export enum EQrType {
     BITCOIN_INVOICE = 'BITCOIN_INVOICE',
     PIX = 'PIX',
     PIX_KEY = 'PIX_KEY',
+    PIX_RECURRING = 'PIX_RECURRING',
     TRON_ADDRESS = 'TRON_ADDRESS',
     SOLANA_ADDRESS = 'SOLANA_ADDRESS',
     XRP_ADDRESS = 'XRP_ADDRESS',
@@ -101,6 +102,13 @@ export function recognizeQr(data: string): QrType | null {
 
     if (isAddress(data)) {
         return EQrType.EVM_ADDRESS
+    }
+
+    // PIX Automático (recurring) must be caught before the regex table: composite
+    // recurrence codes also match PIX_REGEX, and recurrence-only payloads may lack
+    // the currency/country fields PIX_REGEX requires.
+    if (isPixRecurringCode(data)) {
+        return EQrType.PIX_RECURRING
     }
 
     for (const [type, regex] of Object.entries(REGEXES_BY_TYPE)) {

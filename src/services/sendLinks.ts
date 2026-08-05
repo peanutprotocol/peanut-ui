@@ -2,9 +2,10 @@ import { jsonParse, jsonStringify, getFromLocalStorage, saveToLocalStorage } fro
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import type { SendLink } from '@/services/services.types'
 import { serverFetch } from '@/utils/api-fetch'
-import { getAuthHeaders } from '@/utils/auth-token'
+import { getAuthHeaders, authReady } from '@/utils/auth-token'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { isDemoMode } from '@/utils/demo'
 
 export { ESendLinkStatus } from '@/services/services.types'
 export type { SendLinkStatus, SendLink } from '@/services/services.types'
@@ -53,7 +54,7 @@ export const resolveClaimLink = (currentLink: string): string => {
 type CreateLinkBody = {
     pubKey: string
     reference?: string
-    attachment?: any
+    attachment?: File | Blob
     mimetype?: string
     filename?: string
     txHash?: string
@@ -80,6 +81,14 @@ type UpdateLinkBody = {
 
 export const sendLinksApi = {
     create: async (sendLink: CreateLinkBody): Promise<SendLink> => {
+        // This call bypasses callApi (multipart upload), so the demo interceptor
+        // is invoked explicitly here. Lazy import keeps the demo module out of
+        // this service's module graph on web/tests.
+        if (isDemoMode()) {
+            const { demoRespond } = await import('@/utils/demo-api')
+            return jsonParse(await (await demoRespond('/send-links', { method: 'POST' })).text())
+        }
+
         let requestBody: FormData | string
         const headers: Record<string, string> = {}
 
@@ -114,6 +123,7 @@ export const sendLinksApi = {
             headers['Content-Type'] = 'application/json'
         }
 
+        await authReady()
         Object.assign(headers, getAuthHeaders())
         const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links`, {
             method: 'POST',
@@ -130,7 +140,7 @@ export const sendLinksApi = {
                 throw new Error(
                     `HTTP error! status: ${response.status}, message: ${errorJson.message || errorJson.error || errorText}`
                 )
-            } catch (e) {
+            } catch {
                 // fallback to plain text error
                 console.error('API Error Text:', errorText)
                 throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`)

@@ -230,6 +230,21 @@ export const isPixEmvcoQr = (pixKey: string): boolean => {
 }
 
 /**
+ * Detects a PIX Automático (recurring payment) QR code. Peanut can't process
+ * these — recurrence payloads embed a URL containing "/rec/" per the BCB spec.
+ * Recurrence-only codes may lack the currency/country fields PIX_REGEX needs,
+ * so this must not assume a full payment payload — only EMVCo shape + "/rec/".
+ * Normalizes internally (case, protocol prefix) because callers pass raw
+ * scanner data, decoded URL params, and pasted keys alike.
+ * @param code - raw scanned/pasted QR content
+ * @returns true if the code is a PIX Automático (recurring) EMV payload
+ */
+export const isPixRecurringCode = (code: string): boolean => {
+    const c = code.toLowerCase().replace(/^https?:\/\/(www\.)?/, '')
+    return isPixEmvcoQr(c) && c.includes('/rec/')
+}
+
+/**
  * Normalizes a raw PIX key as the user types: keep an EMVCo QR verbatim,
  * otherwise strip whitespace and canonicalize a phone number to its +55 form.
  * Shared by every PIX-key input so they can't drift.
@@ -297,6 +312,12 @@ export const validatePixKey = (pixKey: string): { valid: boolean; message?: stri
     }
 
     // 6. EMVCo QR Code: Full QR code string
+    // Checked before the EMVCo branch: isPixRecurringCode normalizes case and
+    // protocol prefixes that the stricter isPixEmvcoQr would fall through, so
+    // every recurring shape gets the specific message instead of the generic one.
+    if (isPixRecurringCode(trimmed)) {
+        return { valid: false, message: 'PIX Automático (recurring) codes are not supported' }
+    }
     if (isPixEmvcoQr(trimmed)) {
         if (trimmed.length < 50 || trimmed.length > 500) {
             return { valid: false, message: 'Invalid QR code length' }
@@ -308,4 +329,21 @@ export const validatePixKey = (pixKey: string): { valid: boolean; message?: stri
         valid: false,
         message: 'Invalid PIX key format. Must be phone, CPF, CNPJ, email, random key, or QR code',
     }
+}
+
+/**
+ * True when a cross-chain (Rhino SDA) withdrawal's on-chain deposit would fall
+ * below the route's minimum. Rhino accepts sub-minimum SDA deposits on-chain
+ * but never bridges them — the funds strand at the SDA and the user is never
+ * credited — so the confirm CTA must block. `payAmount` is the actual SDA
+ * deposit (principal + fee, USD-stable). Unknown values (quote still loading,
+ * no limit reported) return false — the CTA is already gated by isCalculating.
+ */
+export const isBelowRhinoMinDeposit = (
+    payAmount: string | null | undefined,
+    minDepositLimitUsd: number | null | undefined
+): boolean => {
+    if (payAmount == null || minDepositLimitUsd == null) return false
+    const pay = parseFloat(payAmount)
+    return Number.isFinite(pay) && pay < minDepositLimitUsd
 }

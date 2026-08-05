@@ -23,9 +23,12 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { useAuth } from '@/context/authContext'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
+import { useTranslations } from 'next-intl'
 
 export function SendInputView() {
     const onBack = useSafeBack('/')
+    const t = useTranslations('payment')
+    const tCommon = useTranslations('common')
     const { isFetchingUser } = useAuth()
     const {
         amount,
@@ -56,7 +59,7 @@ export function SendInputView() {
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader onPrev={onBack} title="Pay" />
+            <NavHeader onPrev={onBack} title={t('headers.pay')} />
 
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {/* recipient card */}
@@ -82,7 +85,7 @@ export function SendInputView() {
 
                 {/* message input */}
                 <FileUploadInput
-                    placeholder="Comment"
+                    placeholder={tCommon('comment')}
                     attachmentOptions={{
                         fileUrl: attachment.fileUrl,
                         rawFile: attachment.file,
@@ -106,9 +109,7 @@ export function SendInputView() {
                         loading={isLoading}
                         insufficientBalance={isInsufficientBalance}
                     />
-                    {isInsufficientBalance && (
-                        <ErrorAlert description="Not enough balance to fulfill this payment with Peanut" />
-                    )}
+                    {isInsufficientBalance && <ErrorAlert description={t('errors.insufficientPayment')} />}
                     {error.showError && <ErrorAlert description={error.errorMessage} />}
                 </div>
 

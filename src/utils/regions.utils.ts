@@ -33,6 +33,11 @@ const MANTECA_SUPPORTED_REGIONS = ['LATAM']
 // Bridge handles North America and Europe
 const BRIDGE_SUPPORTED_REGIONS = ['North America', 'Europe']
 
+/** Internal region identifier, NOT display copy — `deriveRegionAccess` branches
+ *  on it. If region names ever become localized, this comparison must move to a
+ *  stable key (e.g. `path`), or the branch silently dies outside English. */
+const REST_OF_THE_WORLD_REGION = 'Rest of the world'
+
 const SUPPORTED_REGIONS: Region[] = [
     {
         path: 'europe',
@@ -51,7 +56,7 @@ const SUPPORTED_REGIONS: Region[] = [
     },
     {
         path: 'rest-of-the-world',
-        name: 'Rest of the world',
+        name: REST_OF_THE_WORLD_REGION,
         icon: REST_OF_WORLD_GLOBE_ICON,
     },
 ]
@@ -176,7 +181,7 @@ export function deriveRegionAccess(rails: RailCapability[]): { unlockedRegions: 
     const isBridgeEnabled = rails.some((rail) => rail.provider === 'bridge' && rail.status === 'enabled')
 
     const isRegionUnlocked = (regionName: string): boolean => {
-        if (regionName === 'Rest of the world') return isKycApproved
+        if (regionName === REST_OF_THE_WORLD_REGION) return isKycApproved
         if (BRIDGE_SUPPORTED_REGIONS.includes(regionName)) return hasBridge
         if (MANTECA_SUPPORTED_REGIONS.includes(regionName)) return hasManteca
         return false

@@ -12,7 +12,7 @@ import { invitesApi } from '@/services/invites'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { STAR_STRAIGHT_ICON } from '@/assets'
+import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { getInitialsFromName } from '@/utils/general.utils'
@@ -21,10 +21,12 @@ import { formatPoints } from '@/utils/format.utils'
 import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
 import { useRef } from 'react'
+import { useTranslations } from 'next-intl'
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 import { profileUrl } from '@/utils/native-routes'
 
 const InvitesPage = () => {
+    const t = useTranslations('rewards')
     const router = useRouter()
     const onBack = useSafeBack('/rewards')
     const { user } = useAuth()
@@ -61,43 +63,43 @@ const InvitesPage = () => {
         console.error('Error loading invites:', error)
         return (
             <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
-                <EmptyState icon="alert" title="Error loading invites!" description="Please contact Support." />
+                <EmptyState icon="alert" title={t('loadInvitesFailed')} description={t('contactSupport')} />
             </div>
         )
     }
 
     return (
         <PageContainer className="flex flex-col">
-            <NavHeader title="Rewards" onPrev={onBack} />
+            <NavHeader title={t('title')} onPrev={onBack} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
                 <Card className="flex flex-col items-center justify-center gap-2 p-4">
                     {invites?.summary?.totalLifetimeEarnedUsd !== undefined &&
                     invites.summary.totalLifetimeEarnedUsd > 0 ? (
                         <>
-                            <h2 className="text-center font-medium text-black">Your friends earned you</h2>
+                            <h2 className="text-center font-medium text-black">{t('friendsEarnedYou')}</h2>
                             <span className="text-3xl font-extrabold text-black">
                                 ${invites.summary.totalLifetimeEarnedUsd.toFixed(2)}
                             </span>
                             <span className="flex items-center gap-1 text-sm text-grey-1">
-                                <Image src={STAR_STRAIGHT_ICON} alt="star" width={14} height={14} />
-                                {formatPoints(totalPointsEarned)} {totalPointsEarned === 1 ? 'point' : 'points'}
+                                <Image src={STAR_STRAIGHT_ICON} alt={t('starAlt')} width={14} height={14} />
+                                {formatPoints(totalPointsEarned)} {t('pointsLabel', { count: totalPointsEarned })}
                             </span>
                         </>
                     ) : (
                         <>
-                            <h2 className="text-center font-medium text-black">Your friends earned you</h2>
+                            <h2 className="text-center font-medium text-black">{t('friendsEarnedYou')}</h2>
                             <span className="flex items-center gap-2">
-                                <Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />
+                                <Image src={STAR_STRAIGHT_ICON} alt={t('starAlt')} width={20} height={20} />
                                 <span className="text-3xl font-extrabold text-black">
-                                    {formatPoints(animatedTotal)} {totalPointsEarned === 1 ? 'point' : 'points'}
+                                    {formatPoints(animatedTotal)} {t('pointsLabel', { count: totalPointsEarned })}
                                 </span>
                             </span>
                         </>
                     )}
                 </Card>
 
-                <h2 className="font-bold">People you invited</h2>
+                <h2 className="font-bold">{t('peopleYouInvited')}</h2>
 
                 {/* Full list */}
                 <div ref={listRef}>

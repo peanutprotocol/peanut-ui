@@ -9,9 +9,12 @@
  * non-card-spend transaction.
  */
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import { CardUsdAbroadNotice } from '../provider-rows/CardUsdAbroadNotice'
 import { type TransactionDetails } from '../transactionTransformer'
+
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 
 /** Minimal TransactionDetails shaped for the notice's inputs only. */
 function tx(

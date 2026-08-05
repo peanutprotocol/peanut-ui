@@ -8,13 +8,15 @@ import { SUPPORTED_RAILS_FAQ_ID } from '@/constants/faq.consts'
 import TweetCarousel from '@/components/LandingPage/TweetCarousel'
 import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
-
-type CTAButton = {
-    label: string
-    href: string
-    isExternal?: boolean
-    subtext?: string
-}
+import type { LandingStrings } from './landingStrings'
+import type { Locale } from '@/i18n/types'
+import StoreBadges from '@/components/Migration/StoreBadges'
+import { type CTAButton } from '@/components/LandingPage/landing.types'
+import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
+import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { useMigrationFlag } from '@/hooks/useMigrationFlag'
+import { useTranslations } from 'next-intl'
+import { trackStoreClick } from '@/utils/migration.utils'
 
 type FAQQuestion = {
     id: string
@@ -32,6 +34,8 @@ type LandingPageClientProps = {
         marquee: { visible: boolean; message: string }
     }
     marqueeMessages: string[]
+    locale: Locale
+    strings: LandingStrings
     // Server-rendered slots
     mantecaSlot: ReactNode
     regulatedRailsSlot: ReactNode
@@ -45,6 +49,8 @@ export function LandingPageClient({
     heroConfig,
     faqData,
     marqueeMessages,
+    locale,
+    strings,
     mantecaSlot,
     regulatedRailsSlot,
     yourMoneySlot,
@@ -53,6 +59,33 @@ export function LandingPageClient({
     footerSlot,
 }: LandingPageClientProps) {
     const { isFooterVisible } = useFooterVisibility()
+    const migrationOn = useMigrationFlag()
+    // app-locale translation (LatAm-first funnel); the flag-off label still
+    // comes from the content system per landing locale
+    const tMigration = useTranslations('migration')
+    const { deviceType } = useDeviceType()
+    const isDesktop = deviceType === DeviceType.WEB
+
+    // pwa-sunset hero CTAs are device-based: phones get one "Download now"
+    // with their store's mark deep-linking to it; desktop drops the primary
+    // and shows the equal store-button pair instead (customCta below).
+    // the permanent flag-off CTA change goes through the content system
+    // post-cutover (TASK-20600).
+    const primaryCta = useMemo((): CTAButton | undefined => {
+        if (!migrationOn) return heroConfig.primaryCta
+        if (isDesktop) return undefined
+        const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
+        return {
+            label: tMigration('downloadNow'),
+            href: STORE_URL[store],
+            isExternal: true,
+            icon: store === 'ios' ? 'apple-logo' : 'google-play',
+            // keep the content-system subtext (e.g. "Join +10,000 cool people")
+            subtext: heroConfig.primaryCta.subtext,
+            // the anchor navigates; only track here
+            onClick: () => trackStoreClick(store, MIGRATION_SURFACES.LANDING_HERO),
+        }
+    }, [migrationOn, deviceType, isDesktop, heroConfig.primaryCta, tMigration])
 
     // Memoized: this component re-renders per scroll frame during the button
     // animation — don't rebuild the FAQ array + rich answer element each time.
@@ -199,7 +232,25 @@ export function LandingPageClient({
 
     return (
         <>
-            <Hero primaryCta={heroConfig.primaryCta} buttonVisible={buttonVisible} buttonScale={buttonScale} />
+            <Hero
+                primaryCta={primaryCta}
+                buttonVisible={buttonVisible}
+                buttonScale={buttonScale}
+                strings={strings}
+                locale={locale}
+                customCta={
+                    migrationOn && isDesktop ? (
+                        <div className="flex flex-col items-center">
+                            <StoreBadges surface={MIGRATION_SURFACES.LANDING_HERO} appearance="hero" />
+                            {heroConfig.primaryCta.subtext && (
+                                <span className="mt-2 block text-center text-sm italic text-n-1 md:text-base">
+                                    {heroConfig.primaryCta.subtext}
+                                </span>
+                            )}
+                        </div>
+                    ) : undefined
+                }
+            />
             <Marquee {...marqueeProps} />
             {mantecaSlot}
             <Marquee {...marqueeProps} />
@@ -207,15 +258,15 @@ export function LandingPageClient({
             <Marquee {...marqueeProps} />
             {!underMaintenanceConfig.disableCardPioneers && (
                 <>
-                    <CardPioneers />
+                    <CardPioneers strings={strings} />
                     <Marquee {...marqueeProps} />
                 </>
             )}
-            <TweetCarousel />
+            <TweetCarousel strings={strings} />
             <Marquee {...marqueeProps} />
             {regulatedRailsSlot}
             <Marquee {...marqueeProps} />
-            <DropLink />
+            <DropLink strings={strings} />
             <Marquee {...marqueeProps} />
             {securitySlot}
             <Marquee {...marqueeProps} />
@@ -225,13 +276,13 @@ export function LandingPageClient({
                Without this boundary, the entire LandingPageClient suspends during SSR,
                sending an empty HTML shell to crawlers and killing SEO. */}
             <Suspense>
-                <NoFees />
+                <NoFees locale={locale} strings={strings} />
             </Suspense>
             <Marquee {...marqueeProps} />
             <FAQs heading={faqData.heading} questions={faqQuestions} marquee={faqData.marquee} />
             <Marquee {...marqueeProps} />
             {footerSlot}
-            <StickyMobileCTA />
+            <StickyMobileCTA strings={strings} />
         </>
     )
 }

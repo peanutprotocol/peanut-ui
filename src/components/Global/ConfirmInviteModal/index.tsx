@@ -1,7 +1,9 @@
 'use client'
 import { type FC } from 'react'
+import { useTranslations } from 'next-intl'
 import Image from 'next/image'
-import { PEANUT_LOGO_BLACK, PEANUTMAN } from '@/assets'
+import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
+import { PEANUTMAN } from '@/assets/mascot'
 import Modal from '../Modal'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PeanutWavingHello } from '@/assets/mascot'
@@ -21,6 +23,7 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
     handleLoseInvite,
     handleContinueWithPeanut,
 }) => {
+    const t = useTranslations('global')
     return (
         <div className="relative">
             <Modal
@@ -36,21 +39,17 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
                         <div className="space-y-3 text-center">
                             <div className="w-full space-y-2">
                                 <h3 className={'text-xl font-extrabold text-black dark:text-white'}>
-                                    Don’t lose your invite!
+                                    {t('confirmInviteModal.title')}
                                 </h3>
 
                                 <div className="text-base text-grey-1 dark:text-white">
-                                    <p>
-                                        {' '}
-                                        This link lets you skip the Peanut waitlist. Using {method} will skip your
-                                        invite.
-                                    </p>
+                                    <p>{t('confirmInviteModal.description', { method })}</p>
                                 </div>
                             </div>
                         </div>
 
                         <Button className="w-full" shadowSize="4" variant="purple" onClick={handleContinueWithPeanut}>
-                            <div>Join</div>
+                            <div>{t('confirmInviteModal.joinCta')}</div>
                             <div className="flex items-center gap-1">
                                 <Image src={PEANUTMAN} alt="Peanut Logo" className="size-5" />
                                 <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
@@ -61,7 +60,7 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
                             variant="transparent"
                             onClick={handleLoseInvite}
                         >
-                            Continue with {method}
+                            {t('confirmInviteModal.continueWithMethod', { method })}
                         </Button>
                     </div>
                 </div>

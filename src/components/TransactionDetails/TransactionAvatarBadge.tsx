@@ -94,9 +94,11 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
             // textColor = context === 'card' ? AVATAR_TEXT_LIGHT : AVATAR_TEXT_DARK
             break
         case 'card_pay':
-            // Rain card spend without a Rain-enriched merchant logo
-            // (TransactionDetailsHeaderCard prefers `avatarUrl` when set,
-            // so a real merchant brand mark wins over this fallback).
+        case 'refund':
+            // Rain card spend / card refund without a Rain-enriched merchant
+            // logo (TransactionDetailsHeaderCard prefers `avatarUrl` when set,
+            // so a real merchant brand mark wins over this fallback). A refund
+            // shares the card-spend treatment — same merchant, same card.
             displayIconName = 'credit-card'
             displayInitials = undefined
             break

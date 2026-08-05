@@ -19,6 +19,7 @@
 
 import { type FC, type RefObject, useState } from 'react'
 import * as Sentry from '@sentry/nextjs'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { captureShareAsset, canShareImageFiles, downloadBlob, ShareAssetCaptureError } from './captureShareAsset'
@@ -69,14 +70,15 @@ interface Props {
     source: string
     /** Optional filename for the downloaded PNG. */
     filename?: string
-    /** Whether the share asset has finished painting its card face (the async
-     *  hand <canvas> has mounted — see PixelatedCardFace.onReady). Until then,
+    /** Whether the share asset has finished painting its card face (the hand
+     *  <img> has loaded — see PixelatedCardFace.onReady). Until then,
      *  capturing would snapshot a blank card, so both buttons stay disabled.
      *  Defaults to true so callers that don't wire the signal aren't blocked. */
     ready?: boolean
 }
 
 export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'peanut-card.png', ready = true }) => {
+    const t = useTranslations('card.share')
     const [isSharing, setIsSharing] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -122,7 +124,7 @@ export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'p
                 tags: { feature: 'share-asset', action: 'share', source },
                 extra: detail,
             })
-            setError(detail.message || 'Share failed')
+            setError(detail.message || t('shareFailed'))
             posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_FAILED, {
                 source,
                 action: 'share',
@@ -149,7 +151,7 @@ export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'p
                 tags: { feature: 'share-asset', action: 'save', source },
                 extra: detail,
             })
-            setError(detail.message || 'Save failed')
+            setError(detail.message || t('saveFailed'))
             posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_FAILED, {
                 source,
                 action: 'save',
@@ -171,7 +173,7 @@ export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'p
                 disabled={isSharing || isSaving || !ready}
                 icon={<Icon name="share" size={18} />}
             >
-                Share
+                {t('share')}
             </Button>
             <Button
                 onClick={handleSave}
@@ -181,7 +183,7 @@ export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'p
                 disabled={isSharing || isSaving || !ready}
                 icon={<Icon name="download" size={18} />}
             >
-                Save image
+                {t('saveImage')}
             </Button>
             {error && (
                 <p className="text-center text-xs text-red" role="alert">
