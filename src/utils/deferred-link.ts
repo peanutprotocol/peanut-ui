@@ -4,6 +4,8 @@
 // hand-off written on the store-bounce tap and read once on first launch.
 // TASK-20772 — the download modal (TASK-20769) is the eventual web consumer.
 import { registerPlugin } from '@capacitor/core'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS, DEFERRED_LINK_OUTCOMES, type DeferredLinkOutcome } from '@/constants/analytics.consts'
 import { PLAY_STORE_URL } from '@/constants/general.consts'
 import { isValidLocale } from '@/i18n/config'
 import { isAndroidNative, isIOSNative } from './capacitor'
@@ -53,6 +55,38 @@ export interface DeferredPayload {
     invite?: string
     campaign?: string
     dest?: string
+}
+
+/**
+ * Records the outcome of the one-shot restore. Only booleans and the channel
+ * leave the device — never the invite code, campaign tag or destination, which
+ * would put a user's inviter and intended screen into analytics.
+ *
+ * Swallows everything: this runs on the first-launch path, where a telemetry
+ * failure must not cost the user their restored context.
+ */
+function captureRestore(
+    channel: 'referrer' | 'clipboard' | 'none',
+    outcome: DeferredLinkOutcome,
+    fields?: Record<string, boolean>
+): void {
+    try {
+        posthog.capture(ANALYTICS_EVENTS.DEFERRED_LINK_RESTORED, { channel, outcome, ...fields })
+    } catch {}
+}
+
+/**
+ * Call from the store-bounce tap handler once the hand-off has been written, to
+ * give DEFERRED_LINK_RESTORED a denominator — restores alone can't distinguish
+ * "the hand-off is broken" from "nobody used it". Intentionally not fired inside
+ * `playStoreUrlWithReferrer`/`copyIOSHandoff`: the first is a pure URL builder
+ * invoked on render, so it would count impressions as taps.
+ * Consumer: the download modal (TASK-20769).
+ */
+export function trackDeferredHandoffCreated(platform: 'ios' | 'android'): void {
+    try {
+        posthog.capture(ANALYTICS_EVENTS.DEFERRED_LINK_HANDOFF_CREATED, { platform })
+    } catch {}
 }
 
 // app-local android plugin (InstallReferrerPlugin.java); throws "not
@@ -192,13 +226,21 @@ async function doRestore(): Promise<RestoredContext | null> {
         return null
     }
 
+    const channel = isAndroidNative() ? 'referrer' : isIOSNative() ? 'clipboard' : 'none'
+
+    let consumed = false
     const markConsumed = () => {
+        consumed = true
         try {
             localStorage.setItem(CONSUMED_KEY, '1')
         } catch {}
     }
 
     let raw: string | null = null
+    // Tracked separately from `raw === null`: a declined paste prompt is a
+    // broken hand-off, an empty clipboard is an organic install, and reporting
+    // both as "nothing found" is what makes a 0% match rate look like success.
+    let clipboardUnavailable = false
     if (isAndroidNative()) {
         raw = await readInstallReferrer()
         // the android read is prompt-free and the referrer stays readable for
@@ -227,15 +269,39 @@ async function doRestore(): Promise<RestoredContext | null> {
         } catch {
             // user declined the paste prompt, or clipboard unavailable
             markConsumed()
+            clipboardUnavailable = true
         }
     } else {
         markConsumed()
     }
 
     const payload = raw ? parseDeferredPayload(raw) : null
-    if (!payload) return null
+    if (!payload) {
+        // an unconsumed one-shot is a transient android referrer failure that
+        // the next launch retries — counting it would both duplicate the
+        // install and file a broken read as an organic one. `raw` present but
+        // unparsed means the marker was absent: an organic Play referrer, or
+        // unrelated clipboard text that passed the url gate.
+        if (consumed) {
+            captureRestore(
+                channel,
+                raw
+                    ? DEFERRED_LINK_OUTCOMES.MARKER_MISSING
+                    : clipboardUnavailable
+                      ? DEFERRED_LINK_OUTCOMES.CLIPBOARD_UNAVAILABLE
+                      : DEFERRED_LINK_OUTCOMES.NO_HANDOFF
+            )
+        }
+        return null
+    }
 
     const restored = applyDeferredPayload(payload)
+    captureRestore(channel, DEFERRED_LINK_OUTCOMES.RESTORED, {
+        has_dest: !!restored.dest,
+        has_locale: !!restored.locale,
+        has_invite: !!payload.invite,
+        has_campaign: !!payload.campaign,
+    })
 
     // privacy: clear the consumed hand-off off the clipboard. after the flag —
     // an interrupted clear can't cause a re-read. single space: some platforms
