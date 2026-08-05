@@ -13,6 +13,9 @@ import { isCapacitor } from '@/utils/capacitor'
 
 const DISMISS_THRESHOLD = 100
 
+/** Backdrop left showing above the panel when the keyboard squeezes it. */
+const TOP_RESERVE = 24
+
 const SupportDrawer = () => {
     const { isSupportModalOpen, setIsSupportModalOpen, supportPrefilledMessage: prefilledMessage } = useModalsContext()
     const userData = useCrispUserData()
@@ -181,8 +184,13 @@ const SupportDrawer = () => {
                     // bottom of the *layout* viewport, which iOS leaves under the keyboard.
                     bottom: keyboardInset,
                     // …and never be taller than what's actually on screen, so lifting the
-                    // panel pushes the conversation down instead of off the top edge.
-                    height: visibleHeight ? `min(85dvh, ${visibleHeight}px)` : '85dvh',
+                    // panel pushes the conversation down instead of off the top edge. The
+                    // reserved strip keeps the drag handle out from under the notch and
+                    // leaves a backdrop target to tap-to-close; with no keyboard up it is
+                    // slack and 85dvh wins, so the resting look is unchanged.
+                    height: visibleHeight
+                        ? `min(85dvh, calc(${visibleHeight}px - env(safe-area-inset-top) - ${TOP_RESERVE}px))`
+                        : '85dvh',
                     // The keyboard already covers the home indicator; padding for it too
                     // would just wedge a dead strip between the composer and the keys.
                     paddingBottom: keyboardInset ? 0 : 'env(safe-area-inset-bottom)',

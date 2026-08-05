@@ -183,18 +183,27 @@ describe('SupportDrawer — iOS keyboard', () => {
     class FakeVisualViewport extends EventTarget {
         height = LAYOUT_HEIGHT
         offsetTop = 0
+        scale = 1
     }
 
     let viewport: FakeVisualViewport
+    let realInnerHeight: PropertyDescriptor | undefined
 
     beforeEach(() => {
         mockUseCrispUserData.mockReset().mockReturnValue({ userId: undefined, email: undefined })
         mockUseCrispTokenId.mockReset().mockReturnValue(undefined)
         mockIsCapacitor.mockReset().mockReturnValue(false)
 
+        realInnerHeight = Object.getOwnPropertyDescriptor(window, 'innerHeight')
         viewport = new FakeVisualViewport()
         Object.defineProperty(window, 'visualViewport', { value: viewport, configurable: true })
         Object.defineProperty(window, 'innerHeight', { value: LAYOUT_HEIGHT, configurable: true })
+    })
+
+    // Hand the window back untouched — later describes in this file share it.
+    afterEach(() => {
+        delete (window as { visualViewport?: unknown }).visualViewport
+        if (realInnerHeight) Object.defineProperty(window, 'innerHeight', realInnerHeight)
     })
 
     const openKeyboard = (visibleHeight: number) => {

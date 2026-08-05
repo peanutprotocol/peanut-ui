@@ -15,6 +15,7 @@ const LAYOUT_HEIGHT = 800
 class FakeVisualViewport extends EventTarget {
     height = LAYOUT_HEIGHT
     offsetTop = 0
+    scale = 1
 }
 
 let viewport: FakeVisualViewport
@@ -64,6 +65,38 @@ describe('useVisualViewport', () => {
         setViewport(799.4)
 
         expect(result.current.keyboardInset).toBe(0)
+    })
+
+    it('catches the shallow accessory bar iOS shows for a hardware keyboard', () => {
+        // ~45px of shortcuts bar hides a composer just as well as a full keyboard.
+        const { result } = renderHook(() => useVisualViewport(true))
+
+        setViewport(755)
+
+        expect(result.current.keyboardInset).toBe(45)
+    })
+
+    it('stands down while the user is pinch-zoomed rather than typing', () => {
+        const { result } = renderHook(() => useVisualViewport(true))
+
+        viewport.scale = 2
+        setViewport(400)
+
+        expect(result.current).toEqual({ height: 0, keyboardInset: 0 })
+    })
+
+    it('drops the measurement when disabled, so a consumer cannot stay lifted', () => {
+        // A drawer closing while the keyboard is still up unsubscribes before it sees
+        // the keyboard leave. Freezing the last inset would strand it mid-screen.
+        const { result, rerender } = renderHook(({ on }) => useVisualViewport(on), {
+            initialProps: { on: true },
+        })
+        setViewport(460)
+        expect(result.current.keyboardInset).toBe(340)
+
+        rerender({ on: false })
+
+        expect(result.current).toEqual({ height: 0, keyboardInset: 0 })
     })
 
     it('does not measure or subscribe while disabled', () => {
