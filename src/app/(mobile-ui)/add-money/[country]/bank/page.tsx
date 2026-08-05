@@ -182,7 +182,7 @@ export default function OnrampBankPage() {
 
     // deposit-side price (localCurrency per USD) for limits validation — deposits
     // execute at buy, so the USD equivalent must derive from buy, not the sell-side
-    // display quote served by /api/exchange-rate (useCurrency handles USD as 1:1)
+    // display quote served by /fx/rate (useCurrency handles USD as 1:1)
     const { price: localPrice, isLoading: isRateLoading, isError: isRateError } = useCurrency(localCurrency)
 
     // convert input amount to USD for limits validation

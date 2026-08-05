@@ -155,10 +155,39 @@
 				"parameters": [
 					{
 						"schema": {
+							"type": "integer",
+							"minimum": 1
+						},
+						"in": "query",
+						"name": "chainId",
+						"required": false
+					},
+					{
+						"schema": {
 							"type": "string"
 						},
 						"in": "path",
 						"name": "ensName",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/ens/reverse/{address}": {
+			"get": {
+				"parameters": [
+					{
+						"schema": {
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"type": "string"
+						},
+						"in": "path",
+						"name": "address",
 						"required": true
 					}
 				],
@@ -1819,6 +1848,175 @@
 				}
 			}
 		},
+		"/users/consent/status": {
+			"get": {
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"documents": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"slug": {
+														"type": "string"
+													},
+													"currentVersion": {
+														"type": "string"
+													},
+													"acceptedVersion": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"acceptedAt": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"needsAcceptance": {
+														"type": "boolean"
+													}
+												},
+												"required": [
+													"slug",
+													"currentVersion",
+													"acceptedVersion",
+													"acceptedAt",
+													"needsAcceptance"
+												]
+											}
+										},
+										"needsReConsent": {
+											"type": "boolean"
+										}
+									},
+									"required": ["documents", "needsReConsent"]
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/users/consent/accept": {
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"documents": {
+										"minItems": 1,
+										"maxItems": 8,
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"slug": {
+													"type": "string"
+												},
+												"version": {
+													"type": "string"
+												},
+												"hash": {
+													"type": "string"
+												}
+											},
+											"required": ["slug", "version"]
+										}
+									}
+								},
+								"required": ["documents"]
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"recorded": {
+											"type": "number"
+										}
+									},
+									"required": ["recorded"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/validate-bank-account-number": {
 			"post": {
 				"requestBody": {
@@ -1967,6 +2165,25 @@
 									"cred": {},
 									"rpID": {
 										"type": "string"
+									},
+									"acceptedLegal": {
+										"maxItems": 4,
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"slug": {
+													"type": "string"
+												},
+												"version": {
+													"type": "string"
+												},
+												"hash": {
+													"type": "string"
+												}
+											},
+											"required": ["slug", "version"]
+										}
 									}
 								},
 								"required": ["userId", "username", "cred"]
@@ -8190,6 +8407,25 @@
 										"minLength": 2,
 										"maxLength": 2,
 										"type": "string"
+									},
+									"acceptedDocuments": {
+										"maxItems": 8,
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"slug": {
+													"type": "string"
+												},
+												"version": {
+													"type": "string"
+												},
+												"hash": {
+													"type": "string"
+												}
+											},
+											"required": ["slug", "version"]
+										}
 									}
 								}
 							}
@@ -11874,6 +12110,10 @@
 											{
 												"type": "string",
 												"enum": ["MANICERO"]
+											},
+											{
+												"type": "string",
+												"enum": ["NITA"]
 											}
 										]
 									},
@@ -14151,6 +14391,321 @@
 				"responses": {
 					"200": {
 						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/fx/rates": {
+			"get": {
+				"description": "Public, indicative display-sell FX snapshot. unitsPerBase is quote-currency units per one base unit.",
+				"parameters": [
+					{
+						"schema": {
+							"pattern": "^[A-Za-z]{3,4}$",
+							"type": "string"
+						},
+						"in": "query",
+						"name": "base",
+						"required": false,
+						"description": "ISO-style currency code or supported four-letter internal ticker"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"base": {
+											"type": "string",
+											"enum": ["USD"]
+										},
+										"basis": {
+											"type": "string",
+											"enum": ["display_sell"]
+										},
+										"indicative": {
+											"type": "boolean",
+											"enum": [true]
+										},
+										"generatedAt": {
+											"format": "date-time",
+											"type": "string"
+										},
+										"rates": {
+											"minItems": 1,
+											"maxItems": 512,
+											"type": "array",
+											"items": {
+												"additionalProperties": false,
+												"type": "object",
+												"properties": {
+													"code": {
+														"pattern": "^[A-Z]{3,4}$",
+														"type": "string"
+													},
+													"unitsPerBase": {
+														"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+														"type": "string"
+													},
+													"source": {
+														"anyOf": [
+															{
+																"type": "string",
+																"enum": ["identity"]
+															},
+															{
+																"type": "string",
+																"enum": ["bridge"]
+															},
+															{
+																"type": "string",
+																"enum": ["manteca"]
+															},
+															{
+																"type": "string",
+																"enum": ["reference"]
+															}
+														]
+													},
+													"effectiveAt": {
+														"anyOf": [
+															{
+																"format": "date-time",
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													}
+												},
+												"required": ["code", "unitsPerBase", "source", "effectiveAt"]
+											}
+										}
+									},
+									"required": ["base", "basis", "indicative", "generatedAt", "rates"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["error", "message"]
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["error", "message"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/fx/rate": {
+			"get": {
+				"description": "Public indicative display-sell rate for one currency pair.",
+				"parameters": [
+					{
+						"schema": {
+							"pattern": "^[A-Za-z]{3,4}$",
+							"type": "string"
+						},
+						"in": "query",
+						"name": "from",
+						"required": true,
+						"description": "ISO-style currency code or supported four-letter internal ticker"
+					},
+					{
+						"schema": {
+							"pattern": "^[A-Za-z]{3,4}$",
+							"type": "string"
+						},
+						"in": "query",
+						"name": "to",
+						"required": true,
+						"description": "ISO-style currency code or supported four-letter internal ticker"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"from": {
+											"pattern": "^[A-Z]{3,4}$",
+											"type": "string"
+										},
+										"to": {
+											"pattern": "^[A-Z]{3,4}$",
+											"type": "string"
+										},
+										"rate": {
+											"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+											"type": "string"
+										},
+										"basis": {
+											"type": "string",
+											"enum": ["display_sell"]
+										},
+										"indicative": {
+											"type": "boolean",
+											"enum": [true]
+										},
+										"source": {
+											"anyOf": [
+												{
+													"anyOf": [
+														{
+															"type": "string",
+															"enum": ["identity"]
+														},
+														{
+															"type": "string",
+															"enum": ["bridge"]
+														},
+														{
+															"type": "string",
+															"enum": ["manteca"]
+														},
+														{
+															"type": "string",
+															"enum": ["reference"]
+														}
+													]
+												},
+												{
+													"type": "string",
+													"enum": ["mixed"]
+												}
+											]
+										},
+										"effectiveAt": {
+											"anyOf": [
+												{
+													"format": "date-time",
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"generatedAt": {
+											"format": "date-time",
+											"type": "string"
+										}
+									},
+									"required": [
+										"from",
+										"to",
+										"rate",
+										"basis",
+										"indicative",
+										"source",
+										"effectiveAt",
+										"generatedAt"
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["error", "message"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["error", "message"]
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["error", "message"]
+								}
+							}
+						}
 					}
 				}
 			}

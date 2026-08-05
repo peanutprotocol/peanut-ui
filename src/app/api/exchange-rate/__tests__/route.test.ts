@@ -1,11 +1,18 @@
 /** @jest-environment node */
 import { GET } from '../route'
-import { fetchDisplayRate } from '@/utils/fx.utils'
+import { fetchDisplayRate, FxApiError } from '@/utils/fx.utils'
 import type { NextRequest } from 'next/server'
 
-// Rate math (sell-side both orientations, cross pairs, same-currency) is pinned
-// in src/utils/__tests__/fx.utils.test.ts — this file only covers route wiring.
-jest.mock('@/utils/fx.utils', () => ({ fetchDisplayRate: jest.fn() }))
+// The shared backend contract is pinned in src/utils/__tests__/fx.utils.test.ts.
+// This file only covers compatibility-route validation and response wiring.
+jest.mock('@/utils/fx.utils', () => {
+    class MockFxApiError extends Error {
+        constructor(readonly status: number) {
+            super(`FX API returned ${status}`)
+        }
+    }
+    return { fetchDisplayRate: jest.fn(), FxApiError: MockFxApiError }
+})
 
 const mockFetchDisplayRate = fetchDisplayRate as jest.Mock
 
@@ -38,8 +45,23 @@ describe('GET /api/exchange-rate — thin wrapper over fetchDisplayRate', () => 
 
     it('returns 500 when every rate source fails', async () => {
         mockFetchDisplayRate.mockRejectedValue(new Error('all sources down'))
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
         const response = await get('from=USD&to=EUR')
         expect(response.status).toBe(500)
         expect(await response.json()).toEqual({ error: 'Failed to fetch exchange rates' })
+        expect(errorSpy).toHaveBeenCalledTimes(1)
+        errorSpy.mockRestore()
+    })
+
+    it('preserves expected backend pair misses without logging them as server failures', async () => {
+        mockFetchDisplayRate.mockRejectedValue(new FxApiError(404, 'ZZZ', 'EUR'))
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+        const response = await get('from=ZZZ&to=EUR')
+
+        expect(response.status).toBe(404)
+        expect(await response.json()).toEqual({ error: 'Exchange rate unavailable' })
+        expect(errorSpy).not.toHaveBeenCalled()
+        errorSpy.mockRestore()
     })
 })

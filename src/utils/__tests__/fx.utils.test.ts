@@ -1,106 +1,119 @@
-import { displayRateFromPrices, fetchDisplayRate } from '../fx.utils'
-import { getCachedCurrencyPrice } from '@/app/actions/currency'
+import { fetchDisplayRate } from '../fx.utils'
+import { apiFetch } from '@/utils/api-fetch'
 
-jest.mock('@/app/actions/currency', () => ({ getCachedCurrencyPrice: jest.fn() }))
+jest.mock('@/utils/api-fetch', () => ({ apiFetch: jest.fn() }))
 
-const mockGetCachedCurrencyPrice = getCachedCurrencyPrice as jest.Mock
+const mockApiFetch = apiFetch as jest.Mock
 
-// Provider prices are "currency units per USD": buy = deposit side, sell = withdrawal side
-const USD = { buy: 1, sell: 1 }
-const EUR = { buy: 0.8699, sell: 0.8614 }
-const BRL = { buy: 5.61, sell: 5.43 }
+const validResponse = {
+    from: 'PLN',
+    to: 'EUR',
+    rate: '0.2322191619648635',
+    basis: 'display_sell',
+    indicative: true,
+    source: 'reference',
+    effectiveAt: '2026-08-04T00:00:00.000Z',
+    generatedAt: '2026-08-05T08:00:00.000Z',
+}
 
-describe('displayRateFromPrices — every display orientation derives from the sell rate', () => {
-    it('quotes USD→EUR at the sell rate (what a withdrawal delivers)', () => {
-        expect(displayRateFromPrices(USD, EUR)).toBeCloseTo(EUR.sell, 10)
-    })
-
-    it('quotes EUR→USD off sell too, so both orientations imply the same price', () => {
-        expect(displayRateFromPrices(EUR, USD)).toBeCloseTo(1 / EUR.sell, 10)
-        expect(displayRateFromPrices(EUR, USD) * displayRateFromPrices(USD, EUR)).toBeCloseTo(1, 10)
-    })
-
-    it('quotes cross pairs off sell on both legs', () => {
-        expect(displayRateFromPrices(EUR, BRL)).toBeCloseTo((1 / EUR.sell) * BRL.sell, 10)
-    })
-
-    it('never reads the buy side', () => {
-        expect(displayRateFromPrices({ sell: EUR.sell }, { sell: BRL.sell })).toBe(displayRateFromPrices(EUR, BRL))
-    })
-})
-
-describe('fetchDisplayRate — provider prices first, Frankfurter fallback', () => {
+describe('fetchDisplayRate — shared backend contract', () => {
     beforeEach(() => {
-        mockGetCachedCurrencyPrice.mockReset()
-        mockGetCachedCurrencyPrice.mockImplementation(async (code: string) => {
-            if (code === 'USD') return USD
-            if (code === 'EUR') return EUR
-            if (code === 'BRL') return BRL
-            throw new Error('Invalid currency code')
+        mockApiFetch.mockReset()
+        jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-05T08:00:00.000Z'))
+    })
+
+    afterEach(() => jest.restoreAllMocks())
+
+    it('normalizes the pair and converts a valid decimal-string rate to a number', async () => {
+        mockApiFetch.mockResolvedValue({ ok: true, status: 200, json: async () => validResponse })
+
+        await expect(fetchDisplayRate('pln', 'eur')).resolves.toBeCloseTo(0.2322191619648635, 15)
+        expect(mockApiFetch).toHaveBeenCalledWith('/fx/rate?from=PLN&to=EUR', { method: 'GET' })
+    })
+
+    it('asks the backend to validate same-currency identity pairs', async () => {
+        mockApiFetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                ...validResponse,
+                from: 'EUR',
+                to: 'EUR',
+                rate: '1',
+                source: 'identity',
+                effectiveAt: null,
+            }),
         })
-        global.fetch = jest.fn().mockRejectedValue(new Error('network disabled in tests')) as typeof fetch
+
+        await expect(fetchDisplayRate('eur', 'EUR')).resolves.toBe(1)
+        expect(mockApiFetch).toHaveBeenCalledWith('/fx/rate?from=EUR&to=EUR', { method: 'GET' })
     })
 
-    it('returns 1 for same-currency pairs without hitting providers or the network', async () => {
-        await expect(fetchDisplayRate('EUR', 'eur')).resolves.toBe(1)
-        expect(mockGetCachedCurrencyPrice).not.toHaveBeenCalled()
-        expect(global.fetch).not.toHaveBeenCalled()
+    it.each([
+        ['numeric rate', { ...validResponse, rate: 0.23 }],
+        ['zero rate', { ...validResponse, rate: '0' }],
+        ['scientific rate', { ...validResponse, rate: '2.3e-1' }],
+        ['leading-zero rate', { ...validResponse, rate: '00.23' }],
+        ['over-precise rate', { ...validResponse, rate: '0.1234567890123456789' }],
+        ['mismatched pair', { ...validResponse, from: 'USD' }],
+        ['wrong basis', { ...validResponse, basis: 'midmarket' }],
+        ['non-canonical timestamp', { ...validResponse, generatedAt: '2026-08-05' }],
+        ['missing generation time', { ...validResponse, generatedAt: undefined }],
+        ['stale generation time', { ...validResponse, generatedAt: '2026-08-04T05:59:59.999Z' }],
+        ['future generation time', { ...validResponse, generatedAt: '2026-08-05T08:05:00.001Z' }],
+        ['future effective time', { ...validResponse, effectiveAt: '2026-08-05T08:05:00.001Z' }],
+        ['stale effective time', { ...validResponse, effectiveAt: '2026-07-06T07:59:59.999Z' }],
+        ['implausibly small rate', { ...validResponse, rate: '0.0000000000000000001' }],
+        ['implausibly large rate', { ...validResponse, rate: '10000000000000000000' }],
+        ['identity source on a cross pair', { ...validResponse, source: 'identity', effectiveAt: null }],
+        ['missing effective time on a cross pair', { ...validResponse, effectiveAt: null }],
+    ])('rejects an unusable backend contract: %s', async (_label, body) => {
+        mockApiFetch.mockResolvedValue({ ok: true, status: 200, json: async () => body })
+
+        await expect(fetchDisplayRate('PLN', 'EUR')).rejects.toThrow('invalid rate contract')
     })
 
-    it('uppercases inputs and returns the sell-side rate for provider-covered pairs', async () => {
-        await expect(fetchDisplayRate('usd', 'eur')).resolves.toBeCloseTo(EUR.sell, 10)
-        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('USD')
-        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
-        expect(global.fetch).not.toHaveBeenCalled()
-    })
-
-    it('computes cross pairs from both sell sides', async () => {
-        await expect(fetchDisplayRate('EUR', 'BRL')).resolves.toBeCloseTo((1 / EUR.sell) * BRL.sell, 10)
-    })
-
-    it('falls back to a single Frankfurter call with the spread on the USD leg', async () => {
-        global.fetch = jest.fn().mockResolvedValue({
+    it.each([
+        ['non-one rate', { rate: '2' }],
+        ['non-identity source', { source: 'reference' }],
+        ['non-null effective time', { effectiveAt: '2026-08-04T00:00:00.000Z' }],
+    ])('rejects invalid identity cross-fields: %s', async (_label, overrides) => {
+        mockApiFetch.mockResolvedValue({
             ok: true,
-            json: async () => ({ rates: { JPY: 150 } }),
-        }) as unknown as typeof fetch
-        await expect(fetchDisplayRate('USD', 'JPY')).resolves.toBeCloseTo(150 * 0.995, 10)
-        expect(global.fetch).toHaveBeenCalledTimes(1)
-        expect(String((global.fetch as jest.Mock).mock.calls[0][0])).toContain('from=USD&to=JPY')
+            status: 200,
+            json: async () => ({
+                ...validResponse,
+                from: 'EUR',
+                to: 'EUR',
+                rate: '1',
+                source: 'identity',
+                effectiveAt: null,
+                ...overrides,
+            }),
+        })
+
+        await expect(fetchDisplayRate('EUR', 'EUR')).rejects.toThrow('invalid rate contract')
     })
 
-    it('keeps fallback orientations reciprocal — the spread is per currency, not per request', async () => {
-        global.fetch = jest.fn().mockResolvedValue({
+    it('rejects malformed JSON from the backend', async () => {
+        mockApiFetch.mockResolvedValue({
             ok: true,
-            json: async () => ({ rates: { JPY: 150 } }),
-        }) as unknown as typeof fetch
-        const usdToJpy = await fetchDisplayRate('USD', 'JPY')
-        const jpyToUsd = await fetchDisplayRate('JPY', 'USD')
-        expect(jpyToUsd).toBeCloseTo(1 / (150 * 0.995), 10)
-        expect(usdToJpy * jpyToUsd).toBeCloseTo(1, 10)
+            status: 200,
+            json: async () => Promise.reject(new SyntaxError('bad JSON')),
+        })
+
+        await expect(fetchDisplayRate('PLN', 'EUR')).rejects.toThrow('invalid JSON')
     })
 
-    it('falls back when the provider returns an unusable price instead of throwing', async () => {
-        mockGetCachedCurrencyPrice.mockResolvedValue({ buy: 0, sell: 0 })
-        global.fetch = jest.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({ rates: { EUR: 0.87 } }),
-        }) as unknown as typeof fetch
-        await expect(fetchDisplayRate('USD', 'EUR')).resolves.toBeCloseTo(0.87 * 0.995, 10)
+    it('rejects backend error responses', async () => {
+        mockApiFetch.mockResolvedValue({ ok: false, status: 503 })
+
+        await expect(fetchDisplayRate('PLN', 'EUR')).rejects.toThrow('FX API returned 503')
     })
 
-    it('rejects when both the providers and Frankfurter fail', async () => {
-        mockGetCachedCurrencyPrice.mockRejectedValue(new Error('provider down'))
-        global.fetch = jest.fn().mockResolvedValue({ ok: false }) as unknown as typeof fetch
-        await expect(fetchDisplayRate('USD', 'EUR')).rejects.toThrow('Failed to fetch exchange rate')
-    })
+    it('propagates backend transport errors', async () => {
+        mockApiFetch.mockRejectedValue(new Error('backend unavailable'))
 
-    it('rejects when Frankfurter does not know the requested currency', async () => {
-        // e.g. ARS is not ECB-covered: rates object lacks the key → NaN → guard trips
-        mockGetCachedCurrencyPrice.mockRejectedValue(new Error('provider down'))
-        global.fetch = jest.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({ rates: {} }),
-        }) as unknown as typeof fetch
-        await expect(fetchDisplayRate('USD', 'ARS')).rejects.toThrow('Failed to fetch exchange rate')
+        await expect(fetchDisplayRate('PLN', 'EUR')).rejects.toThrow('backend unavailable')
     })
 })

@@ -54,9 +54,10 @@ export function proxy(request: NextRequest) {
         return NextResponse.redirect(redirectUrl)
     }
 
-    // Set headers to disable caching for specified paths
+    // Set headers to disable caching for API paths. The exchange-rate route is
+    // intentionally cacheable and owns its narrower CDN policy.
     const response = NextResponse.next()
-    if (url.pathname.startsWith('/api/')) {
+    if (url.pathname.startsWith('/api/') && url.pathname !== '/api/exchange-rate') {
         response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
         response.headers.set('Pragma', 'no-cache')
         response.headers.set('Expires', '0')

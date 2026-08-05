@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useDebounce } from './useDebounce'
 import { useQuery } from '@tanstack/react-query'
-import { isCapacitor } from '@/utils/capacitor'
-import { fetchDisplayRate } from '@/utils/fx.utils'
+import { fetchDisplayRate, FxApiError } from '@/utils/fx.utils'
 
 type InputValue = number | ''
 
@@ -85,20 +84,19 @@ export function useExchangeRate({
         isError,
     } = useQuery<{ rate: number }>({
         queryKey: ['exchangeRate', sourceCurrency, destinationCurrency],
-        queryFn: async () => {
-            if (isCapacitor()) {
-                // no /api/ routes exist in the static native build — run the shared
-                // implementation directly (the same code the route runs on the server)
-                return { rate: await fetchDisplayRate(sourceCurrency, destinationCurrency) }
-            }
-            const res = await fetch(`/api/exchange-rate?from=${sourceCurrency}&to=${destinationCurrency}`)
-            if (!res.ok) throw new Error('Failed to fetch exchange rate')
-            return res.json()
-        },
+        // First-party browsers and native clients both call api.peanut.me
+        // directly. This preserves the real client IP at the API rate limiter;
+        // proxying normal web traffic through Vercel collapses every user onto
+        // one egress address and lets one noisy client throttle everyone.
+        queryFn: async () => ({ rate: await fetchDisplayRate(sourceCurrency, destinationCurrency) }),
         staleTime: 5 * 60 * 1000, // 5 minutes
         gcTime: 10 * 60 * 1000, // garbage collect after 10 minutes
         refetchOnWindowFocus: true, // Refresh rates when user returns to tab
         refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
+        // Invalid or unsupported pairs are deterministic client outcomes. Do
+        // not turn one selection into four identical rate-limited requests.
+        retry: (failureCount, error) =>
+            !(error instanceof FxApiError && (error.status === 400 || error.status === 404)) && failureCount < 3,
         enabled: enabled && !!sourceCurrency && !!destinationCurrency,
     })
 

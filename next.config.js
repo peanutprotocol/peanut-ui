@@ -108,7 +108,6 @@ function contentSecurityPolicyReportOnly() {
             // Token metadata lookup in TransactionDetailsReceipt — a different
             // CoinGecko host from the two image CDNs above.
             'https://api.coingecko.com',
-            'https://api.frankfurter.app',
             'https://dolarapi.com',
             'https://ipapi.co',
             'https://api.justaname.id',

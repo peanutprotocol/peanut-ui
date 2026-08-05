@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { fetchDisplayRate } from '@/utils/fx.utils'
+import { fetchDisplayRate, FxApiError } from '@/utils/fx.utils'
 
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
@@ -25,6 +25,9 @@ export async function GET(request: NextRequest) {
             }
         )
     } catch (error) {
+        if (error instanceof FxApiError && (error.status === 400 || error.status === 404)) {
+            return NextResponse.json({ error: 'Exchange rate unavailable' }, { status: error.status })
+        }
         console.error(`Exchange rate API error for ${from}-${to}:`, error)
         return NextResponse.json({ error: 'Failed to fetch exchange rates' }, { status: 500 })
     }

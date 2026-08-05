@@ -14,10 +14,11 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
+const PASSTHROUGH_TIMEOUT_MS = 10_000
 
 // Public read-only rate endpoints proxied to the real backend so demo shows live
 // FX rates. Best-effort: any failure falls through to the canned handler below.
-const PASSTHROUGH_GET = new Set(['/bridge/exchange-rate', '/manteca/prices'])
+const PASSTHROUGH_GET = new Set(['/bridge/exchange-rate', '/manteca/prices', '/fx/rate'])
 
 const EMPTY_GRAPH = {
     nodes: [] as unknown[],
@@ -628,11 +629,18 @@ export async function demoRespond(path: string, options?: RequestInit): Promise<
 
     // Live-rate passthrough to the real backend (best-effort).
     if (method === 'GET' && PASSTHROUGH_GET.has(pathname)) {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), PASSTHROUGH_TIMEOUT_MS)
         try {
-            const res = await fetch(`${PEANUT_API_URL}${path}`, { headers: { accept: 'application/json' } })
+            const res = await fetch(`${PEANUT_API_URL}${path}`, {
+                headers: { accept: 'application/json' },
+                signal: controller.signal,
+            })
             if (res.ok) return res
         } catch {
             // fall through to the canned handler below
+        } finally {
+            clearTimeout(timeout)
         }
     }
 
