@@ -63,7 +63,7 @@ export const BADGES: Record<string, BadgeMeta> = {
         description: 'They found the Arbiverse booth. We found them. Mutual onboarding achieved.',
     },
     // Rebranded from "Card Pioneer" to "Founding Pioneer". Backend still emits the
-    // CARD_PIONEER code (it also gates grandfathered card access + cashback), so we
+    // CARD_PIONEER code (it also gates grandfathered card access + rewards), so we
     // keep the code and only repoint the FE asset/copy/name. Existing holders now
     // render the Founding Pioneer badge. (Same pattern as SUPPORT_SURVIVOR below.)
     CARD_PIONEER: {
