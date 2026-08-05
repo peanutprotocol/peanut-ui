@@ -4,7 +4,7 @@ import {
     PEANUT_WALLET_TOKEN_DECIMALS,
     PEANUT_WALLET_TOKEN_SYMBOL,
 } from '@/constants/zerodev.consts'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { serverFetch } from '@/utils/api-fetch'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
@@ -90,5 +90,15 @@ export const usersApi = {
             mimeType: attachment?.rawFile?.type,
             filename: attachment?.rawFile?.name,
         })
+    },
+
+    // Self-service account deletion (V1). Disables the account server-side and
+    // starts the 30-day data-deletion clock. The user is taken from the JWT, so
+    // there is no body — a user can only delete their own account.
+    requestDeletion: async (): Promise<void> => {
+        const response = await serverFetch('/users/me/delete', { method: 'POST' })
+        if (!response.ok) {
+            throw new Error('Failed to request account deletion')
+        }
     },
 }

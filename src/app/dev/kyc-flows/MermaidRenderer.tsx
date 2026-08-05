@@ -37,7 +37,13 @@ export function MermaidRenderer({ diagrams, source }: Props) {
                     const { svg } = await mermaid.render(`mermaid-${i}`, code)
                     node.innerHTML = svg
                 } catch (e) {
-                    node.innerHTML = `<pre style="color:red">${e}</pre>`
+                    // Render the error as text, not HTML — `e` can contain the
+                    // (untrusted) diagram source, so interpolating it into
+                    // innerHTML would be a reflected-XSS sink.
+                    const pre = document.createElement('pre')
+                    pre.style.color = 'red'
+                    pre.textContent = String(e)
+                    node.replaceChildren(pre)
                 }
             }
         }

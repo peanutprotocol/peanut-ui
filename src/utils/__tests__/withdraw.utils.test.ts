@@ -8,6 +8,7 @@ import {
     validatePixKey,
     getCountryCodeForWithdraw,
     getCountryFromIban,
+    isBelowRhinoMinDeposit,
 } from '@/utils/withdraw.utils'
 
 jest.mock('@/assets', () => ({}))
@@ -390,6 +391,28 @@ describe('Withdraw Utilities', () => {
                 const result = validatePixKey(cleaned)
                 expect(result.valid).toBe(true)
             })
+        })
+    })
+
+    // Guards the confirm CTA on cross-chain withdrawals: a sub-minimum SDA
+    // deposit is accepted on-chain but never bridged (funds strand, uncredited),
+    // reachable since the amount step dropped its blanket $1 crypto minimum.
+    describe('isBelowRhinoMinDeposit', () => {
+        test('blocks when the deposit is below the route minimum', () => {
+            expect(isBelowRhinoMinDeposit('0.50', 5)).toBe(true)
+        })
+
+        test('allows at or above the minimum', () => {
+            expect(isBelowRhinoMinDeposit('5.00', 5)).toBe(false)
+            expect(isBelowRhinoMinDeposit('12.34', 5)).toBe(false)
+        })
+
+        test('stays permissive while values are unknown (CTA already gated by isCalculating)', () => {
+            expect(isBelowRhinoMinDeposit(null, 5)).toBe(false)
+            expect(isBelowRhinoMinDeposit(undefined, 5)).toBe(false)
+            expect(isBelowRhinoMinDeposit('0.50', null)).toBe(false)
+            expect(isBelowRhinoMinDeposit('0.50', undefined)).toBe(false)
+            expect(isBelowRhinoMinDeposit('not-a-number', 5)).toBe(false)
         })
     })
 })

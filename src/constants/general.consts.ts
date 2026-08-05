@@ -230,17 +230,6 @@ export const nativeCurrencyAddresses: string[] = [
     '0x0000000000000000000000000000000000000000',
 ]
 
-export const pathTitles: { [key: string]: string } = {
-    '/home': 'Dashboard',
-    '/send': 'Send',
-    '/request/create': 'Request',
-    '/request/pay': 'Pay',
-    '/cashout': 'Cashout',
-    '/history': 'History',
-    '/support': 'Support',
-    '/claim': 'Claim',
-}
-
 export const STABLE_COINS = ['USDC', 'USDT', 'DAI', 'BUSD']
 
 export const ROUTE_NOT_FOUND_ERROR =
@@ -250,3 +239,8 @@ export const ROUTE_NOT_FOUND_ERROR =
 export const PERK_HOLD_DURATION_MS = 1500 // 1.5 seconds hold duration for claiming perks
 
 export const ENS_NAME_REGEX = /^(?:[-a-zA-Z0-9]+\.)+[-a-zA-Z0-9]+$/
+
+// Mirrors the backend username minimum (USERNAME_REGEX = /^[a-z][a-z0-9]{3,11}$/).
+export const USERNAME_MIN_LENGTH = 4
+
+export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=me.peanut.wallet'

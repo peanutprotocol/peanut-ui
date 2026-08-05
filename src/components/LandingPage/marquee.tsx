@@ -1,4 +1,4 @@
-import { HandThumbsUp } from '@/assets'
+import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import { MarqueeComp } from '../Global/MarqueeWrapper'
 
 type MarqueeProps = {

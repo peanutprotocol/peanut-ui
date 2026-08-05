@@ -1,6 +1,7 @@
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
-import { normalizeMerchantName } from '@/components/TransactionDetails/transaction-details.utils'
+import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
+import { isNegativeWireAmount, normalizeMerchantName } from '@/components/TransactionDetails/transaction-details.utils'
 
 export const qrPay: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
     const raw = entry.recipientAccount?.identifier
@@ -8,12 +9,21 @@ export const qrPay: TransactionStrategy = (entry: HistoryEntry): TransactionStra
         direction: 'qr_payment',
         transactionCardType: 'pay',
         nameForDetails: raw ? normalizeMerchantName(raw) : 'Merchant',
+        nameKey: raw ? undefined : TRANSACTION_NAME_KEYS.merchant,
         isPeerActuallyUser: false,
         isLinkTx: false,
     }
 }
 
 export const cardSpend: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
+    // Rain card refunds arrive as negative-amount spend auths (a credit
+    // authorization booked under the same CARD_SPEND_* kinds, all of which
+    // route here). BE flags them via extraData.isRefund; until that ships we
+    // also detect the negative wire amount directly, so PR 1 works against
+    // today's payload. Either way, render them as a refund credit.
+    if (entry.extraData?.isRefund === true || isNegativeWireAmount(entry.amount)) {
+        return cardRefund(entry)
+    }
     const merchantName = (entry.extraData?.merchantName as string | null | undefined) ?? null
     return {
         direction: 'qr_payment',
@@ -22,6 +32,7 @@ export const cardSpend: TransactionStrategy = (entry: HistoryEntry): Transaction
         // render the Mercado Pago / PIX brand mark instead.
         transactionCardType: 'card_pay',
         nameForDetails: merchantName ? normalizeMerchantName(merchantName) : 'Card payment',
+        nameKey: merchantName ? undefined : TRANSACTION_NAME_KEYS.cardPayment,
         isPeerActuallyUser: false,
         isLinkTx: false,
     }
@@ -32,8 +43,10 @@ export const cardRefund: TransactionStrategy = (entry: HistoryEntry): Transactio
     const cleaned = merchantName ? normalizeMerchantName(merchantName) : null
     return {
         direction: 'receive',
-        transactionCardType: 'receive',
+        transactionCardType: 'refund',
         nameForDetails: cleaned ? `Refund from ${cleaned}` : 'Card refund',
+        nameKey: cleaned ? TRANSACTION_NAME_KEYS.refundFrom : TRANSACTION_NAME_KEYS.cardRefund,
+        nameParams: cleaned ? { name: cleaned } : undefined,
         isPeerActuallyUser: false,
         isLinkTx: false,
     }

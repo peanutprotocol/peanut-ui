@@ -117,6 +117,28 @@ Firefox input[type='number'] {
     animation: spin 2s linear infinite;
 }
 
+.cloud-drift {
+    transform: translateX(var(--cloud-from)) scale(var(--cloud-scale));
+    animation-name: cloud-drift;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+
+@keyframes cloud-drift {
+    from {
+        transform: translateX(var(--cloud-from)) scale(var(--cloud-scale));
+    }
+    to {
+        transform: translateX(var(--cloud-to)) scale(var(--cloud-scale));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cloud-drift {
+        animation: none;
+    }
+}
+
 .animate-gradient {
     background-size: 300%;
     -webkit-animation: animatedgradient 6s ease infinite alternate;

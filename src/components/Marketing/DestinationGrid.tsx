@@ -1,10 +1,12 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { Card } from '@/components/0_Bruddle/Card'
 import { COUNTRIES_SEO, getCountryName } from '@/data/seo'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { localizedPath } from '@/i18n/config'
 import { CARD_HOVER } from '@/components/Marketing/mdx/constants'
-import type { Locale } from '@/i18n/types'
+import { getTranslations } from '@/i18n'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
 interface DestinationGridProps {
     /** If provided, only show these country slugs */
@@ -15,13 +17,14 @@ interface DestinationGridProps {
     locale?: Locale
 }
 
-export function DestinationGrid({ countries, exclude, title = 'Send money to', locale = 'en' }: DestinationGridProps) {
+export function DestinationGrid({ countries, exclude, title, locale = DEFAULT_LOCALE }: DestinationGridProps) {
+    const heading = title ?? getTranslations(locale).sendMoney
     let slugs = countries ?? Object.keys(COUNTRIES_SEO)
     if (exclude) slugs = slugs.filter((s) => s !== exclude)
 
     return (
         <section className="py-10 md:py-14">
-            {title && <h2 className="mb-6 text-h2 font-bold md:text-h1">{title}</h2>}
+            {heading && <h2 className="mb-6 text-h2 font-bold md:text-h1">{heading}</h2>}
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
                 {slugs.map((slug) => {
                     const seo = COUNTRIES_SEO[slug]
@@ -34,7 +37,7 @@ export function DestinationGrid({ countries, exclude, title = 'Send money to', l
                         <Link key={slug} href={localizedPath('send-money-to', locale, slug)}>
                             <Card shadowSize="4" className={`flex-row items-center gap-3 p-4 ${CARD_HOVER}`}>
                                 {flagCode && (
-                                    <img
+                                    <Image
                                         src={getFlagUrl(flagCode)}
                                         alt={`${countryName} flag`}
                                         width={32}

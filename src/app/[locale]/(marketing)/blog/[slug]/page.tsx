@@ -6,7 +6,8 @@ import { getAllPosts, getPostBySlug } from '@/lib/blog'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import { JsonLd } from '@/components/Marketing/JsonLd'
 import { ArticleBackNav } from '@/components/Marketing/ArticleBackNav'
-import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
+import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
+import { availableContentLocales, contentLocaleFor } from '@/lib/content'
 import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
 
@@ -29,19 +30,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const { locale, slug } = await params
     if (!isValidLocale(locale)) return {}
 
-    // Try locale-specific post first, fall back to English
-    const post = (await getPostBySlug(slug, locale as Locale)) ?? (await getPostBySlug(slug, 'en'))
+    // A fallback-served page canonicalizes to the locale that owns the prose.
+    const contentLocale = contentLocaleFor('blog', slug, locale) as Locale
+    const post = await getPostBySlug(slug, contentLocale)
     if (!post) return {}
 
     return {
         ...metadataHelper({
+            locale,
             title: `${post.frontmatter.title} | Peanut`,
             description: post.frontmatter.description,
-            canonical: `/${locale}/blog/${slug}`,
+            canonical: `/${contentLocale}/blog/${slug}`,
         }),
         alternates: {
-            canonical: `/${locale}/blog/${slug}`,
-            languages: getAlternates('blog', slug),
+            canonical: `/${contentLocale}/blog/${slug}`,
+            languages: getAlternatesFor(availableContentLocales('blog', slug), 'blog', slug),
         },
     }
 }
@@ -50,10 +53,11 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
     const { locale, slug } = await params
     if (!isValidLocale(locale)) notFound()
 
-    const localizedPost = await getPostBySlug(slug, locale as Locale)
-    const post = localizedPost ?? (await getPostBySlug(slug, 'en'))
+    // Resolve through the full fallback chain (es-ar → es-419 → en), not
+    // straight to English.
+    const contentLocale = contentLocaleFor('blog', slug, locale) as Locale
+    const post = await getPostBySlug(slug, contentLocale)
     if (!post) notFound()
-    const contentLocale: Locale = localizedPost ? (locale as Locale) : 'en'
 
     const i18n = getTranslations(locale)
 

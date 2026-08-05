@@ -49,7 +49,10 @@ export const PEANUT_WALLET_CHAIN =
         ? arbitrum
         : USE_SEPOLIA
           ? arbitrumSepolia
-          : extractChain({ chains: Object.values(chains), id: walletChainId as any })
+          : extractChain({
+                chains: Object.values(chains),
+                id: walletChainId as (typeof chains)[keyof typeof chains]['id'],
+            })
 export const PEANUT_WALLET_TOKEN =
     process.env.NEXT_PUBLIC_PEANUT_WALLET_TOKEN ??
     (USE_SEPOLIA

@@ -49,8 +49,13 @@ export const PaymentInfoRow = ({
                 <Loading />
             ) : (
                 <div className="flex items-center justify-between">
-                    <div className={twMerge('flex w-fit justify-end text-sm font-bold')}>
-                        <span>{value}</span>
+                    {/* min-w-0 + break-words: a single unbreakable token (wallet
+                        address, tx hash) must wrap inside the card, not stretch
+                        the row to the token's full width and escape the layout.
+                        break-word only activates when a word can't fit, so
+                        normal values render unchanged. */}
+                    <div className={twMerge('flex w-fit min-w-0 justify-end break-words text-sm font-bold')}>
+                        <span className="min-w-0">{value}</span>
                     </div>
                     {allowCopy && typeof value === 'string' && (
                         <CopyToClipboard textToCopy={copyValue ?? value} fill="black" iconSize="4" />

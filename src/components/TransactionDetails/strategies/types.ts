@@ -11,6 +11,7 @@ import {
     type TransactionDirection,
     type TransactionType as TransactionCardType,
 } from '@/components/TransactionDetails/transaction-types'
+import { type TransactionNameKey } from '@/components/TransactionDetails/transaction-name-keys'
 import { type StatusPillType } from '@/components/Global/StatusPill'
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 
@@ -18,6 +19,14 @@ export interface TransactionStrategyOutput {
     direction: TransactionDirection
     transactionCardType: TransactionCardType
     nameForDetails: string
+    /**
+     * Set when `nameForDetails` is an FE-generated label ('Card payment',
+     * 'Bank Account', …) rather than counterparty data. Render sites localize
+     * via `t(nameKey, nameParams)` and keep `nameForDetails` as the fallback.
+     * Dynamic parts (merchant/user names) travel in `nameParams`, not copy.
+     */
+    nameKey?: TransactionNameKey
+    nameParams?: Record<string, string>
     isPeerActuallyUser: boolean
     isLinkTx: boolean
     fullName?: string

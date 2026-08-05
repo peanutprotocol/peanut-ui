@@ -7,6 +7,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import React, { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '../../Icons/Icon'
@@ -26,6 +27,7 @@ const NetworkButton: React.FC<NetworkButtonProps> = ({
     isSearch = false,
     isSelected = false,
 }) => {
+    const t = useTranslations('global')
     const [chainImageError, setChainImageError] = useState(false)
 
     return (
@@ -58,7 +60,7 @@ const NetworkButton: React.FC<NetworkButtonProps> = ({
                     <AvatarWithBadge size="extra-small" name={chainName} />
                 )}
             </div>
-            <span className="text-sm font-medium">{isSearch ? 'more' : chainName}</span>
+            <span className="text-sm font-medium">{isSearch ? t('tokenSelector.moreNetworksButton') : chainName}</span>
         </Button>
     )
 }

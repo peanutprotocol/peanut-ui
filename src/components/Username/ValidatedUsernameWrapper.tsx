@@ -40,7 +40,7 @@ export function ValidatedUsernameWrapper({
     username,
     children,
     errorProps,
-    loadingClassName = 'flex min-h-[calc(100dvh-180px)] w-full items-center justify-center',
+    loadingClassName = 'flex min-h-[calc(100dvh_-_180px)] w-full items-center justify-center',
 }: ValidatedUsernameWrapperProps) {
     const [error, setError] = useState<ValidationErrorViewProps | null>(null)
     const [isValidating, setIsValidating] = useState(false)

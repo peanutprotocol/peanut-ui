@@ -7,6 +7,7 @@ import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { type BeforeInstallPromptEvent, type ScreenId } from '@/components/Setup/Setup.types'
 import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { captureException } from '@sentry/nextjs'
@@ -30,6 +31,8 @@ const InstallPWA = ({
     screenId?: ScreenId
     setShowBraveSuccessMessage?: (show: boolean) => void
 }) => {
+    const t = useTranslations('setup.installPwa')
+    const tCommon = useTranslations('common')
     const toast = useToast()
     const { handleNext, isLoading: isSetupFlowLoading } = useSetupFlow()
     const [showModal, setShowModal] = useState(false)
@@ -156,7 +159,7 @@ const InstallPWA = ({
                             shadowSize="4"
                             loading={isSetupFlowLoading}
                         >
-                            Continue
+                            {tCommon('continue')}
                         </Button>
                     </div>
                 )
@@ -168,24 +171,27 @@ const InstallPWA = ({
                 return null
             }
 
-            // for other browsers, try to open the pwa in a new tab
+            // for other browsers, try to open the pwa in a new tab.
+            // Must be a REAL anchor: a synthesized link.click() fires an untrusted
+            // event, which Chrome excludes from WebAPK link capturing — the tap
+            // opened a plain browser tab on this same screen instead of the
+            // installed app (the TASK-21050 "Open Peanut app" boomerang). Only a
+            // trusted tap on an in-scope target="_blank" anchor hands off.
             return (
                 <div className="flex flex-col gap-4">
-                    <Button
-                        onClick={() => {
-                            const link = document.createElement('a')
-                            link.href = '/setup'
-                            link.target = '_blank'
-                            document.body.appendChild(link)
-                            link.click()
-                            document.body.removeChild(link)
-                        }}
-                        className="w-full"
-                        shadowSize="4"
-                        loading={isSetupFlowLoading}
+                    <a
+                        href="/setup"
+                        target="_blank"
+                        rel="noopener"
+                        // capture without preventDefault — repeat fires in one session
+                        // mean link capturing is still not engaging on that device
+                        onClick={() =>
+                            posthog.capture(ANALYTICS_EVENTS.PWA_OPEN_APP_CLICKED, { device_type: deviceType })
+                        }
+                        className="btn btn-purple btn-shadow-primary-4 flex w-full items-center justify-center gap-2 no-underline transition-all duration-100 active:translate-x-[3px] active:translate-y-[4px] active:shadow-none"
                     >
-                        Open Peanut app
-                    </Button>
+                        {t('openPeanutApp')}
+                    </a>
                 </div>
             )
         }
@@ -195,7 +201,7 @@ const InstallPWA = ({
             return (
                 <div className="flex flex-col items-center gap-4">
                     <Button disabled={true} className="w-full" shadowSize="4" loading={true}>
-                        Installing
+                        {t('installing')}
                     </Button>
                 </div>
             )
@@ -206,11 +212,9 @@ const InstallPWA = ({
             return (
                 <div className="flex flex-col items-center gap-4">
                     <Button onClick={handleInstall} disabled={isSetupFlowLoading} className="w-full" shadowSize="4">
-                        Add Peanut to Home Screen
+                        {t('addToHomeScreen')}
                     </Button>
-                    {installCancelled && (
-                        <ErrorAlert description="Installation cancelled. You can try adding to Home Screen again." />
-                    )}
+                    {installCancelled && <ErrorAlert description={t('installCancelled')} />}
                 </div>
             )
         }
@@ -218,11 +222,9 @@ const InstallPWA = ({
         // Scenario 4: Fallback (manual install instructions)
         return (
             <div className="space-y-4 text-center">
-                <p className="text-sm text-grey-1">
-                    To install the app, please add it to your Home Screen from your browser menu.
-                </p>
+                <p className="text-sm text-grey-1">{t('manualInstallHint')}</p>
                 <Button onClick={() => handleNext()} className="w-full" shadowSize="4" variant="purple">
-                    Continue
+                    {tCommon('continue')}
                 </Button>
             </div>
         )
@@ -234,10 +236,8 @@ const InstallPWA = ({
                 <Icon name="mobile-install" size={24} />
             </div>
             <div className="space-y-3 text-center">
-                <StepTitle text="Peanut is mobile first!" />
-                <p className="max-w-[220px] text-lg font-normal text-grey-1">
-                    For a better experience, use Peanut on your phone.
-                </p>
+                <StepTitle text={t('mobileFirstTitle')} />
+                <p className="max-w-[220px] text-lg font-normal text-grey-1">{t('mobileFirstDescription')}</p>
             </div>
             <div className="mx-auto rounded-lg">
                 <QRCodeWrapper url={process.env.NEXT_PUBLIC_BASE_URL + '/setup' || window.location.origin} />
@@ -262,7 +262,7 @@ const InstallPWA = ({
                                 shadowSize="4"
                                 variant="purple"
                             >
-                                {installComplete ? 'Open in the App' : 'Install App'}
+                                {installComplete ? t('openInApp') : t('installApp')}
                             </Button>
                         </div>
                         {showModal && (
@@ -280,7 +280,7 @@ const InstallPWA = ({
                                         shadowSize="4"
                                         variant="purple"
                                     >
-                                        Got it!
+                                        {t('gotIt')}
                                     </Button>
                                 </div>
                             </Modal>

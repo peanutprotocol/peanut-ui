@@ -1,14 +1,15 @@
 import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
+import Image from 'next/image'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { MarketingHero } from '@/components/Marketing/MarketingHero'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import { JsonLd } from '@/components/Marketing/JsonLd'
 import { Card } from '@/components/0_Bruddle/Card'
-import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
+import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
-import { readSingletonContentLocalized } from '@/lib/content'
+import { availableSingletonLocales, readSingletonContentLocalized, singletonLocaleFor } from '@/lib/content'
 
 // Team data lives in mono at content/team/{lang}.md frontmatter — singleton
 // content authored by marketing/leadership, shipped via the mirror.
@@ -56,15 +57,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     const i18n = getTranslations(locale as Locale)
 
+    // Member bios come from the en-only content singleton, so a non-en URL
+    // canonicalizes to the locale that owns the prose.
+    const contentLocale = singletonLocaleFor('team', locale)
+
     return {
         ...metadataHelper({
+            locale,
             title: `${i18n.teamTitle} | Peanut`,
             description: i18n.teamSubtitle,
-            canonical: `/${locale}/team`,
+            canonical: `/${contentLocale}/team`,
         }),
         alternates: {
-            canonical: `/${locale}/team`,
-            languages: getAlternates('team'),
+            canonical: `/${contentLocale}/team`,
+            languages: getAlternatesFor(availableSingletonLocales('team'), 'team'),
         },
     }
 }
@@ -108,7 +114,7 @@ export default async function TeamPage({ params }: PageProps) {
                         return (
                             <Card key={member.slug} className="gap-3 p-6">
                                 {member.image ? (
-                                    <img
+                                    <Image
                                         src={member.image}
                                         alt={member.name}
                                         width={80}

@@ -22,15 +22,17 @@
 import fs from 'fs'
 import path from 'path'
 import matter from 'gray-matter'
-import type { Locale } from '@/i18n/types'
+import { SUPPORTED_LOCALES, type Locale } from '@/i18n/types'
 
 const CONTENT_ROOT = path.join(process.cwd(), 'src/content')
 
 // --- Locale fallback chains ---
-// es-ar → es-419 → en
-// es-es → en
-// pt-br → en
 // es-419 → en
+// es-ar → es-419 → en (only ~34/240 slugs have real AR prose)
+// pt-br → en
+//
+// Retired es-es keeps its chain so content files that still carry that suffix
+// resolve during the mirror lag; the route itself 301s to es-419.
 
 const FALLBACK_CHAINS: Record<string, string[]> = {
     en: [],
@@ -43,6 +45,61 @@ const FALLBACK_CHAINS: Record<string, string[]> = {
 /** Get ordered list of locales to try (requested locale first, then fallbacks) */
 export function getLocaleFallbacks(locale: string): string[] {
     return [locale, ...(FALLBACK_CHAINS[locale] ?? ['en'])]
+}
+
+// --- Content availability (drives hreflang, canonicals and the sitemap) ---
+// A locale URL is only advertised when that locale's own file exists; a page
+// served through the fallback chain canonicalizes to the locale that actually
+// provides the prose, so fallback URLs never compete with the real one.
+
+/** Does content/{intent}/{slug}/{locale}.md exist for this exact locale? */
+export function hasPageContent(intent: string, slug: string, locale: string): boolean {
+    return readPageContent(intent, slug, locale) !== null
+}
+
+/** Does content/send-to/{destination}/from/{origin}/{locale}.md exist? */
+export function hasCorridorContent(destination: string, origin: string, locale: string): boolean {
+    return readCorridorContent(destination, origin, locale) !== null
+}
+
+/** Does content/{intent}/{locale}.md exist for this exact locale? */
+export function hasSingletonContent(intent: string, locale: string): boolean {
+    return readSingletonContent(intent, locale) !== null
+}
+
+/** Locale whose file actually serves this page — first hit in the fallback chain. */
+export function contentLocaleFor(intent: string, slug: string, lang: string): string {
+    for (const locale of getLocaleFallbacks(lang)) {
+        if (hasPageContent(intent, slug, locale)) return locale
+    }
+    return 'en'
+}
+
+export function corridorLocaleFor(destination: string, origin: string, lang: string): string {
+    for (const locale of getLocaleFallbacks(lang)) {
+        if (hasCorridorContent(destination, origin, locale)) return locale
+    }
+    return 'en'
+}
+
+export function singletonLocaleFor(intent: string, lang: string): string {
+    for (const locale of getLocaleFallbacks(lang)) {
+        if (hasSingletonContent(intent, locale)) return locale
+    }
+    return 'en'
+}
+
+/** Supported locales whose own file exists for this page. */
+export function availableContentLocales(intent: string, slug: string): Locale[] {
+    return SUPPORTED_LOCALES.filter((locale) => hasPageContent(intent, slug, locale))
+}
+
+export function availableCorridorLocales(destination: string, origin: string): Locale[] {
+    return SUPPORTED_LOCALES.filter((locale) => hasCorridorContent(destination, origin, locale))
+}
+
+export function availableSingletonLocales(intent: string): Locale[] {
+    return SUPPORTED_LOCALES.filter((locale) => hasSingletonContent(intent, locale))
 }
 
 // --- Caches ---

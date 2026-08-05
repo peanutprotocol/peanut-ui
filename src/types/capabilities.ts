@@ -87,6 +87,41 @@ export interface RailCapability {
     hintActions?: string[]
     /** present for requires-info / blocked — normalized reason for uniform FE rendering. */
     reason?: CapabilityReason
+    /**
+     * THE verdict (BE refactor step 3). Derived server-side from the same
+     * emission as the legacy status/reason/actions triple, so the two shapes
+     * can never disagree. The gate renders this instead of re-deriving
+     * fixable/terminal from status + reason codes + action kinds; the legacy
+     * fields remain until the BE's step-5 cleanup.
+     */
+    resolved?: ResolvedRail
+}
+
+/**
+ * The one verdict per rail. `status` collapses the legacy triple:
+ *   - `fixable` — the user can self-serve (document resubmit / accept-tos /
+ *     provide-email); `blocking.selfHealKind` names the flow
+ *   - `blocked` — no self-serve path (contact support / restriction / terminal)
+ *   - `pending` — nothing to do but wait; `nextAction.kind === 'wait'` marks a
+ *     provider-review wait (FE renders waiting-on-provider) vs provisioning
+ */
+export interface ResolvedRail {
+    status: 'enabled' | 'pending' | 'fixable' | 'blocked'
+    /** present when status is fixable/blocked */
+    blocking?: {
+        code: string
+        userMessage: string
+        selfHealable: boolean
+        selfHealKind?: 'document-resubmit' | 'restart-identity' | 'provide-email' | 'contact-support'
+        /** support pre-fill only, never user-facing copy */
+        details?: string
+    }
+    /**
+     * The full action object (not just a key): the first blocking action, or —
+     * on an enabled rail — the advisory hint (its `effectiveDate` rides on the
+     * action itself).
+     */
+    nextAction?: NextAction
 }
 
 /**
@@ -99,8 +134,19 @@ export interface RailCapability {
  *                           WebSDK so the user can verify with a different
  *                           document (used for the country-not-supported CTA
  *                           on Manteca-only rails; user has a self-fix path).
+ *   - `bridge-hosted`     — open Bridge's hosted verification flow (the
+ *                           catch-all for requirements with no native Sumsub
+ *                           mapping); exchange the key for a URL via
+ *                           startBridgeHostedVerification().
  */
-export type NextActionKind = 'sumsub' | 'accept-tos' | 'wait' | 'contact-support' | 'restart-identity' | 'provide-email'
+export type NextActionKind =
+    | 'sumsub'
+    | 'accept-tos'
+    | 'wait'
+    | 'contact-support'
+    | 'restart-identity'
+    | 'provide-email'
+    | 'bridge-hosted'
 
 export interface NextAction {
     key: string // stable id, referenced by RailCapability.blockingActions

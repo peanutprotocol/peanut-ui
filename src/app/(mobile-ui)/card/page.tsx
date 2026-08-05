@@ -2,6 +2,7 @@
 import { type FC, useCallback, useEffect, useRef, useState } from 'react'
 import { notFound } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { cardApi, type CardInfoResponse } from '@/services/card'
@@ -21,7 +22,9 @@ import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
+import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { rainApi, type ApplyForCardResponse } from '@/services/rain'
+import { cardConsentDocuments } from '@/services/consent'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -51,6 +54,8 @@ function markSkipCelebrationSeen(): void {
 // they don't re-see the gate after celebration / add-card transitions.
 
 const CardPage: FC = () => {
+    const t = useTranslations('card')
+    const tCommon = useTranslations('common')
     const queryClient = useQueryClient()
     const { user, fetchUser } = useAuth()
     const userId = user?.user?.userId
@@ -69,7 +74,7 @@ const CardPage: FC = () => {
 
     const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
     const { serializeGrant } = useGrantSessionKey()
-    const { railsForProvider, isLoading: capabilitiesLoading } = useCapabilities()
+    const { railsForProvider, nextActionsForRail, isLoading: capabilitiesLoading } = useCapabilities()
     const { setIsSupportModalOpen } = useModalsContext()
     const onBack = useSafeBack('/home')
 
@@ -217,6 +222,62 @@ const CardPage: FC = () => {
         void queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
     }, [queryClient])
 
+    // Proof-of-address self-heal — a dedicated, deliberately tiny flow. The
+    // multi-phase KYC machinery (useMultiPhaseKycFlow) is bank-onboarding
+    // shaped: its post-approval phase machine polls a mutating endpoint, can
+    // fan out to Bridge ToS modals, and completes on rail semantics that never
+    // match the Rain PoA lifecycle. Here we only need: mint an action token →
+    // open the SDK → on submit, thank the user and refetch. Separate surface
+    // from the card-application SumsubKycWrapper below — that one is driven by
+    // applyForCard tokens with its own refresh/poll semantics.
+    const [poaToken, setPoaToken] = useState<string | null>(null)
+    const [poaError, setPoaError] = useState<string | null>(null)
+    // Optimistic "we got your document" until the backend webhook flips the
+    // rail reason to its own review-wait state (may lag the SDK by seconds).
+    const [poaSubmitted, setPoaSubmitted] = useState(false)
+
+    // The rain rail's self-serve proof-of-address action, when the backend
+    // classified the application as PoA-fixable (kind 'sumsub' + levelKey
+    // 'proof_of_address' — emitted for WRONG_ADDRESS-class denials). Absent →
+    // the status screens keep their contact-support-only shape.
+    const cardRail = railsForProvider('rain')[0]
+    const poaAction = cardRail
+        ? nextActionsForRail(cardRail.id).find(
+              (action) => action.kind === 'sumsub' && action.levelKey === 'proof_of_address'
+          )
+        : undefined
+    // Double-click guard: two concurrent initiations race the backend's
+    // create-action idempotency into minting two Sumsub actions (the id
+    // collision path deliberately mints a suffixed fresh action).
+    const poaStartingRef = useRef(false)
+    const startPoaUpload = useCallback(async () => {
+        if (poaStartingRef.current) return
+        poaStartingRef.current = true
+        posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { source: 'poa-self-heal' })
+        setPoaError(null)
+        try {
+            const response = await initiateSelfHealResubmission('RAIN')
+            if (response.error || !response.data?.token) {
+                // Surfaced inline on the status screen — a silent primary CTA on
+                // a stuck-application screen is worse than no CTA.
+                setPoaError(response.error ?? 'Could not start the upload. Please try again.')
+                return
+            }
+            setPoaToken(response.data.token)
+        } finally {
+            poaStartingRef.current = false
+        }
+    }, [])
+    const onUploadProofOfAddress = poaAction && !poaSubmitted ? () => void startPoaUpload() : undefined
+
+    // Once the backend's own state takes over (the rail's sumsub action gives
+    // way to the review-wait state, an approval, or a different ask), drop the
+    // optimistic banner so a later re-offered upload isn't suppressed until
+    // remount.
+    useEffect(() => {
+        if (poaSubmitted && !poaAction) setPoaSubmitted(false)
+    }, [poaSubmitted, poaAction])
+
     // Routes a non-incomplete apply response to the right next screen. Shared
     // by the user-initiated apply path and the post-Sumsub poll, since both
     // need the same main-kyc-required / terms-required / default fan-out.
@@ -291,13 +352,13 @@ const CardPage: FC = () => {
                 }
                 advanceFromApplyResponse(res)
             } catch (e) {
-                const message = e instanceof Error ? e.message : 'Failed to confirm country'
+                const message = e instanceof Error ? e.message : t('page.confirmCountryFailed')
                 console.error('[card apply] country confirm error:', e)
                 setApplyError(message)
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [advanceFromApplyResponse]
+        [advanceFromApplyResponse, t]
     )
 
     const handleApply = useCallback(
@@ -308,7 +369,12 @@ const CardPage: FC = () => {
                 with_session_key: !!serializedApproval,
             })
             try {
-                const res = await rainApi.applyForCard({ termsAccepted, serializedApproval })
+                // Consent-ledger echo: on acceptance, send the exact documents
+                // CardTermsScreen displayed for this region (version + hash).
+                const acceptedDocuments = termsAccepted
+                    ? cardConsentDocuments(pendingTerms?.isUsResident ?? false)
+                    : undefined
+                const res = await rainApi.applyForCard({ termsAccepted, serializedApproval, acceptedDocuments })
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
                 if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
                     setSumsubToken(res.sumsubAccessToken)
@@ -317,13 +383,13 @@ const CardPage: FC = () => {
                 }
                 advanceFromApplyResponse(res)
             } catch (e) {
-                const message = e instanceof Error ? e.message : 'Failed to apply for card'
+                const message = e instanceof Error ? e.message : t('page.applyFailed')
                 console.error('[card apply] error:', e)
                 setApplyError(message)
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [advanceFromApplyResponse]
+        [advanceFromApplyResponse, pendingTerms, t]
     )
 
     const handleAcceptTerms = useCallback(async () => {
@@ -359,18 +425,14 @@ const CardPage: FC = () => {
                 // the backend — no card should be created without consent.
                 setIsIssuing(false)
                 setPendingTerms({ isUsResident: isUsResidentSnapshot })
-                setApplyError(
-                    tap.error.kind === 'user-cancelled'
-                        ? 'Setup cancelled — please try again.'
-                        : 'Could not complete setup — please try again.'
-                )
+                setApplyError(tap.error.kind === 'user-cancelled' ? t('page.setupCancelled') : t('page.setupFailed'))
                 return
             }
             await handleApply(true, tap.serialized)
         } finally {
             setIsIssuing(false)
         }
-    }, [handleApply, overview, pendingTerms, serializeGrant])
+    }, [handleApply, overview, pendingTerms, serializeGrant, t])
 
     // Distinguishes "user finished the applicant action" from "user closed the
     // modal without finishing" — without this both paths would fire
@@ -413,7 +475,7 @@ const CardPage: FC = () => {
             })
             if (controller.signal.aborted) return
             if (readyResult === false) {
-                setApplyError('Verification is taking longer than expected. Please try again.')
+                setApplyError(t('page.verificationSlow'))
                 return
             }
 
@@ -429,21 +491,21 @@ const CardPage: FC = () => {
             })
             if (controller.signal.aborted) return
             if (!res) {
-                setApplyError('Verification is taking longer than expected. Please try again.')
+                setApplyError(t('page.verificationSlow'))
                 return
             }
             posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
             advanceFromApplyResponse(res)
         } catch (e) {
             if (controller.signal.aborted) return
-            const message = e instanceof Error ? e.message : 'Failed to apply for card'
+            const message = e instanceof Error ? e.message : t('page.applyFailed')
             console.error('[card apply] post-sumsub poll error:', e)
             setApplyError(message)
             posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
         } finally {
             if (!controller.signal.aborted) setIsIssuing(false)
         }
-    }, [advanceFromApplyResponse])
+    }, [advanceFromApplyResponse, t])
 
     const handleSumsubClose = useCallback(() => {
         if (!sumsubCompletedRef.current) {
@@ -495,9 +557,9 @@ const CardPage: FC = () => {
         return (
             <PageContainer>
                 <div className="flex min-h-[inherit] w-full flex-col items-center justify-center gap-4 p-4">
-                    <p className="text-center text-n-1">Failed to load card info. Please try again.</p>
+                    <p className="text-center text-n-1">{t('page.loadFailed')}</p>
                     <Button onClick={() => refetchCardInfo()} variant="purple" shadowSize="4">
-                        Retry
+                        {tCommon('retry')}
                     </Button>
                 </div>
             </PageContainer>
@@ -627,12 +689,17 @@ const CardPage: FC = () => {
                         </div>
                     )
                 }
-                const cardRailReason = railsForProvider('rain')[0]?.reason?.userMessage
+                const cardRail = railsForProvider('rain')[0]
+                const cardRailReasonCode = poaSubmitted ? 'proof_of_address_review' : cardRail?.reason?.code
+                const cardRailReason = poaSubmitted ? undefined : cardRail?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
                         variant="requires-info"
                         reasonMessage={cardRailReason}
+                        reasonCode={cardRailReasonCode}
                         onContactSupport={() => setIsSupportModalOpen(true)}
+                        onUploadProofOfAddress={onUploadProofOfAddress}
+                        uploadError={poaError ?? undefined}
                         onPrev={onBack}
                     />
                 )
@@ -665,14 +732,17 @@ const CardPage: FC = () => {
                 // (meaningless without its reason), the rejected screen is useful
                 // on its own (reassurance + support CTA), so show it now and let
                 // the reason fill in once capabilities resolve.
-                const cardRailReason = capabilitiesLoading
-                    ? undefined
-                    : railsForProvider('rain')[0]?.reason?.userMessage
+                const cardRail = capabilitiesLoading ? undefined : railsForProvider('rain')[0]
+                const cardRailReasonCode = poaSubmitted ? 'proof_of_address_review' : cardRail?.reason?.code
+                const cardRailReason = poaSubmitted ? undefined : cardRail?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
                         variant="rejected"
                         reasonMessage={cardRailReason}
+                        reasonCode={cardRailReasonCode}
                         onContactSupport={() => setIsSupportModalOpen(true)}
+                        onUploadProofOfAddress={onUploadProofOfAddress}
+                        uploadError={poaError ?? undefined}
                         onPrev={onBack}
                     />
                 )
@@ -689,6 +759,25 @@ const CardPage: FC = () => {
     return (
         <PageContainer>
             {renderState()}
+            <SumsubKycWrapper
+                visible={poaToken !== null}
+                accessToken={poaToken}
+                onClose={() => setPoaToken(null)}
+                onComplete={() => {
+                    // Document submitted to Sumsub. Review + the backend webhook
+                    // stamp happen async — flip the optimistic banner and refetch
+                    // so the screen picks up the backend's wait state when ready.
+                    setPoaToken(null)
+                    setPoaSubmitted(true)
+                    invalidateOverview()
+                    void fetchUser()
+                }}
+                onRefreshToken={async () => {
+                    const response = await initiateSelfHealResubmission('RAIN')
+                    if (!response.data?.token) throw new Error(response.error ?? 'Failed to refresh token')
+                    return response.data.token
+                }}
+            />
             <SumsubKycWrapper
                 visible={sumsubToken !== null}
                 accessToken={sumsubToken}

@@ -19,20 +19,18 @@ import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { serializePermissionAccount } from '@zerodev/permissions'
 import { peanutPublicClient } from '@/app/actions/clients'
 import { rainApi } from '@/services/rain'
+import { useZeroDev } from '@/hooks/useZeroDev'
+import { ensureRootValidatorMigrated, isMigrationWrapperAccount } from '@/utils/kernelMigration.utils'
+import { repairEnableNonce, type NoncePublicClient } from '@/utils/kernelNonceRepair.utils'
 
 /** Minimal structural view of the bits of the kernel account's plugin manager
  *  this flow touches. The SDK doesn't surface these on its public account type,
- *  so we model just what we use rather than reaching through `any`. `sudoValidator`
- *  is typed from `createKernelAccount`'s own `plugins.sudo` so it stays assignable
- *  back into that call; `getAction`/`hook` from `getPluginsEnableTypedData`'s own
+ *  so we model just what we use rather than reaching through `any`.
+ *  `getAction`/`hook` are typed from `getPluginsEnableTypedData`'s own
  *  parameter so the enable-typed-data call stays fully checked. */
 type EnableTypedDataParams = Parameters<typeof getPluginsEnableTypedData>[0]
-type SudoValidator = NonNullable<
-    Extract<NonNullable<Parameters<typeof createKernelAccount>[1]['plugins']>, { sudo?: unknown }>['sudo']
->
 type KernelAccountInternals = {
     kernelPluginManager: {
-        sudoValidator: SudoValidator
         getAction: () => EnableTypedDataParams['action']
         hook: EnableTypedDataParams['hook']
     }
@@ -70,9 +68,9 @@ function remoteSignerByAddress(address: Address): LocalAccount {
         type: 'local',
         source: 'remote-session-key',
         publicKey: '0x' as Hex,
-        signMessage: throwSign as any,
-        signTransaction: throwSign as any,
-        signTypedData: throwSign as any,
+        signMessage: throwSign,
+        signTransaction: throwSign,
+        signTypedData: throwSign,
     } as unknown as LocalAccount
 }
 
@@ -101,7 +99,8 @@ export interface GrantSessionKeyResult {
 
 export const useGrantSessionKey = (): GrantSessionKeyResult => {
     const { overview, refetch } = useRainCardOverview()
-    const { getClientForChain } = useKernelClient()
+    const { getClientForChain, getPatchedSudoValidator, rebuildClientForChain } = useKernelClient()
+    const { handleSendUserOpEncoded } = useZeroDev()
     const queryClient = useQueryClient()
     const [isGranting, setIsGranting] = useState(false)
     const [lastError, setLastError] = useState<GrantSessionKeyError | null>(null)
@@ -154,7 +153,7 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
                 },
                 {
                     target: coordinatorAddress,
-                    selector: toFunctionSelector(rainCoordinatorAbi[0] as any),
+                    selector: toFunctionSelector(rainCoordinatorAbi[0]),
                 },
             ],
         })
@@ -175,25 +174,33 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
         // 'no-contracts' / 'session-key-unavailable' early returns that never
         // produce a passkey prompt.
         posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_PROMPTED)
+        // The serialized approval's sudo plugin MUST bind to the v0.0.3 PATCHED
+        // validator. Do NOT read `kernelClient.account.kernelPluginManager
+        // .sudoValidator`: for a pre-2025-09-18 (migrated) user that resolves to
+        // the STALE v0.0.2 validator the migration client was constructed with
+        // (`sudo: fromValidator`), so the backend's replayed sweep/withdraw
+        // userOp gets wapk-403'd by ZeroDev's paymaster. `getPatchedSudoValidator`
+        // is the single source of truth — the same v0.0.3 validator the migration
+        // client migrates *to* — so the approval binds correctly for every user.
+        const patchedSudoValidator = await getPatchedSudoValidator(peanutPublicClient)
+
         // Triggers the passkey prompt — this is the one-time install.
         // `address` is forced to the user's actual wallet so the approval
         // binds to the deployed kernel. Pre-2025-09-18 users sit at a
         // legacy V0_0_2-derived address (migrated in place to V0_0_3); the
-        // natural counterfactual of `createKernelAccount({sudo: newValidator})`
+        // natural counterfactual of `createKernelAccount({sudo: patchedSudoValidator})`
         // is a different, never-funded address. Forcing the address here makes
         // the grant work for both legacy and post-migration users.
-        const sudoValidator = (kernelClient.account as unknown as KernelAccountInternals).kernelPluginManager
-            .sudoValidator
         const accountAddress = kernelClient.account!.address
-        // The three on-chain reads only need the (already-known) account address,
+        // The four on-chain reads only need the (already-known) account address,
         // so they run alongside the account construction.
-        const [sessionKernelAccount, bytecode, metadata, nonceRead] = await Promise.all([
+        const [sessionKernelAccount, bytecode, metadata, nonceRead, floorRead] = await Promise.all([
             createKernelAccount(peanutPublicClient, {
                 address: accountAddress,
                 entryPoint: getEntryPoint('0.7'),
                 kernelVersion: KERNEL_V3_1,
                 plugins: {
-                    sudo: sudoValidator,
+                    sudo: patchedSudoValidator,
                     regular: permissionPlugin,
                 },
             }),
@@ -207,6 +214,12 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
                 .readContract({ address: accountAddress, abi: KernelV3AccountAbi, functionName: 'currentNonce' })
                 .then(
                     (nonce) => ({ read: true as const, nonce: Number(nonce) }),
+                    (error: unknown) => ({ read: false as const, error })
+                ),
+            peanutPublicClient
+                .readContract({ address: accountAddress, abi: KernelV3AccountAbi, functionName: 'validNonceFrom' })
+                .then(
+                    (floor) => ({ read: true as const, floor: Number(floor) }),
                     (error: unknown) => ({ read: false as const, error })
                 ),
         ])
@@ -223,11 +236,61 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
         // `currentNonce` to 1 at deployment (the read itself reverts pre-deploy).
         let validatorNonce: number
         if (!bytecode) {
-            validatorNonce = 1
+            if (isMigrationWrapperAccount(kernelClient.account)) {
+                // Undeployed PRE-cutoff account: the serialized approval would bake
+                // a v0.0.3 initCode that derives a different CREATE2 address than
+                // this wallet, so every backend replay reverts AA14. Deploy first
+                // via the hardened migration gate — it verifies the root-validator
+                // swap against ON-CHAIN ground truth (a reverted migration inside a
+                // successful bundle would otherwise deploy the account on v0.0.2
+                // and the approval signed below would be silently dead) and hands
+                // back a rebuilt client. One extra passkey tap.
+                await ensureRootValidatorMigrated({
+                    client: kernelClient,
+                    sendNoopUserOp: (call) => handleSendUserOpEncoded([call], chainId),
+                    rebuildClient: () => rebuildClientForChain(chainId),
+                })
+                // Freshly deployed: read the live nonce; fail loud if unreadable.
+                const freshNonce = await peanutPublicClient.readContract({
+                    address: accountAddress,
+                    abi: KernelV3AccountAbi,
+                    functionName: 'currentNonce',
+                })
+                validatorNonce = Math.max(Number(freshNonce), 1)
+                posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_PREFLIGHT_REPAIR, { mode: 'deploy' })
+            } else {
+                // Post-cutoff counterfactual: the kernel initializes currentNonce
+                // to 1 at deployment, so 1 is provably exact.
+                validatorNonce = 1
+            }
         } else if (!nonceRead.read) {
             // Deployed but unreadable: fail LOUDLY rather than sign a guess.
             throw nonceRead.error
+        } else if (floorRead.read && floorRead.floor > Math.max(nonceRead.nonce, 1)) {
+            // validNonceFrom AHEAD of currentNonce — the 2025-09-18 migration-wave
+            // state. Every enable-mode install lands below the floor and reverts
+            // InvalidNonce forever, so an approval signed now would be dead on
+            // arrival. Repair inline (one extra passkey tap: invalidateNonce
+            // syncs the counter up to the floor), then bind the fresh nonce.
+            validatorNonce = (
+                await repairEnableNonce({
+                    // viem's generic readContract collapses structural
+                    // assignability to the minimal client interface.
+                    publicClient: peanutPublicClient as unknown as NoncePublicClient,
+                    accountAddress,
+                    validNonceFrom: floorRead.floor,
+                    sendUserOp: (call) => handleSendUserOpEncoded([call], chainId),
+                })
+            ).validatorNonce
+            posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_PREFLIGHT_REPAIR, { mode: 'invalidate' })
         } else {
+            if (!floorRead.read) {
+                // Don't regress every healthy grant on one flaky read: proceed on
+                // the old (pre-floor-check) behavior and flag it — a floored
+                // account slipping through here still gets caught by the sweep's
+                // permanent-failure path and /fix-card-signature.
+                posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_PREFLIGHT_REPAIR, { mode: 'floor-read-failed' })
+            }
             // A deployed-but-uninitialized proxy reports 0; enables validate
             // against ≥1 post-init, so normalize the way the SDK does.
             validatorNonce = nonceRead.nonce === 0 ? 1 : nonceRead.nonce
@@ -245,11 +308,11 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
         })
         // Same sudo validator + signing path the SDK uses internally, so for
         // healthy nonce=1 accounts this yields an identical approval.
-        const enableSignature = await sudoValidator.signTypedData(enableTypedData)
+        const enableSignature = await patchedSudoValidator.signTypedData(enableTypedData)
 
         const serialized = await serializePermissionAccount(sessionKernelAccount, undefined, enableSignature)
         return { ok: true, serialized }
-    }, [overview, getClientForChain])
+    }, [overview, getClientForChain, getPatchedSudoValidator, handleSendUserOpEncoded, rebuildClientForChain])
 
     const wrap = useCallback(
         async <T>(

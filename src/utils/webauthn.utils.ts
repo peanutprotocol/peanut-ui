@@ -27,6 +27,64 @@ export enum WebAuthnErrorName {
     NotSupported = 'NotSupportedError',
 }
 
+export type PasskeyErrorClassification = { code: string; message: string }
+
+// Curated copy keyed by code. Never surface raw error.message / server bodies to
+// the user (those go to Sentry only); these strings are the only thing shown.
+const PASSKEY_LOGIN_MESSAGES: Record<string, string> = {
+    LOGIN_CANCELED: 'Login was cancelled, or no passkey was found on this device. Try again, or create a wallet.',
+    PASSKEY_INTERRUPTED: 'Something interrupted the passkey prompt. Please try again.',
+    PASSKEY_UNSUPPORTED:
+        'Passkeys aren’t available on this device yet. Sign in to a Google account and update Google Play Services, then try again.',
+    PASSKEY_STATE: 'There was a problem with the passkey on this device. Restart the app and try again.',
+    PASSKEY_ORIGIN: 'This app isn’t authorized for passkeys on peanut.me. Please update to the latest version.',
+    NETWORK: 'Couldn’t reach Peanut’s servers. Check your connection and try again.',
+    LOGIN_ERROR: 'We couldn’t verify your passkey. Please try again, or contact support if it keeps happening.',
+}
+
+function isNetworkError(error: Error): boolean {
+    if (error.name === 'TypeError' && /fetch|network/i.test(error.message)) return true
+    // "Load failed" is WebKit's message for a failed fetch (common when the
+    // request fires right as the app foregrounds from the passkey sheet)
+    return /failed to fetch|load failed|network ?error|timeout|connection|offline/i.test(error.message)
+}
+
+/**
+ * Maps a passkey/WebAuthn failure to a curated { code, message } pair.
+ * Classification order: known DOMException name → network heuristic → fallback.
+ */
+export function classifyPasskeyError(error: unknown): PasskeyErrorClassification {
+    const err = error instanceof Error ? error : new Error(String(error))
+    let code = 'LOGIN_ERROR'
+    // iOS surfaces ceremony failures as a bare Error whose message carries the
+    // ASAuthorizationError code, not a DOMException name: 1001 = user canceled,
+    // 1004 = failed (typically no usable passkey on this device). Both mean
+    // "no login happened" — route to the copy that offers creating a wallet.
+    if (/AuthenticationServices\.AuthorizationError error 100[14]/.test(err.message)) {
+        return { code: 'LOGIN_CANCELED', message: PASSKEY_LOGIN_MESSAGES['LOGIN_CANCELED'] }
+    }
+    switch (err.name) {
+        case WebAuthnErrorName.NotAllowed:
+            code = 'LOGIN_CANCELED'
+            break
+        case WebAuthnErrorName.NotReadable:
+            code = 'PASSKEY_INTERRUPTED'
+            break
+        case WebAuthnErrorName.NotSupported:
+            code = 'PASSKEY_UNSUPPORTED'
+            break
+        case WebAuthnErrorName.InvalidState:
+            code = 'PASSKEY_STATE'
+            break
+        case 'SecurityError':
+            code = 'PASSKEY_ORIGIN'
+            break
+        default:
+            if (isNetworkError(err)) code = 'NETWORK'
+    }
+    return { code, message: PASSKEY_LOGIN_MESSAGES[code] }
+}
+
 /**
  * Delays execution for specified milliseconds
  */
@@ -120,51 +178,41 @@ export async function withWebAuthnRetry<T>(
  *
  * RISK: If Android/iOS change their credential manager behavior, these may become outdated
  */
+// Step ids, not copy — PasskeySetupHelpModal resolves them against
+// setup.passkey.help.steps.* so the guidance is translatable.
 export const PASSKEY_TROUBLESHOOTING_STEPS = {
     android: {
-        NotReadableError: [
-            'Restart your device',
-            'Update Google Play Services',
-            'Enable screen lock in Settings > Security',
-        ],
-        NotAllowedError: [
-            'Exit Incognito/Private mode - use regular Chrome',
-            "Make sure you're signed into Google account in Chrome",
-            'Enable screen lock (Settings > Security)',
-            'Turn off VPN or privacy apps temporarily',
-            'Update Google Play Services and Chrome',
-        ],
+        // Native default — unknown/unclassified errors in the app shell.
+        default: ['signInGoogle', 'updatePlayServices', 'enableScreenLock', 'restartApp'],
+        NotReadableError: ['restartDevice', 'updatePlayServices', 'enableScreenLockSettings'],
+        NotAllowedError: ['ensureSignedInGoogle', 'enableScreenLock', 'updatePlayServices', 'turnOffVpnPrivacy'],
     },
     ios: {
+        default: ['enableIcloudKeychain', 'enableBiometrics', 'restartApp'],
         NotAllowedError: [
             // First because it's the dominant field case: a wedged third-party
             // credential provider refuses every assertion until unlocked or the
             // device restarts (TASK-20000).
-            'If you use a password manager like 1Password, open it and unlock it first',
-            'Exit Private Browsing - use regular Safari',
-            'Enable Face ID/Touch ID in Settings',
-            'Enable iCloud Keychain in Settings',
-            'Turn off VPN temporarily',
-            'Restart your device',
+            'unlockPasswordManager',
+            'enableBiometrics',
+            'enableIcloudKeychain',
+            'turnOffVpn',
+            'restartDevice',
         ],
     },
     web: {
         // generic fallback for desktop/unsupported platforms
-        default: [
-            'Exit Incognito/Private mode',
-            'Check your device security settings',
-            'Restart your device',
-            'Update your browser and OS',
-        ],
+        default: ['exitIncognito', 'checkSecuritySettings', 'restartDevice', 'updateBrowserOs'],
     },
 } as const
 
 /**
- * Platform-specific warnings for common issues
+ * Platform-specific warnings for common issues — warning ids resolved against
+ * setup.passkey.help.warnings.* by PasskeySetupHelpModal.
  */
 export const PASSKEY_WARNINGS = {
     android: {
-        NotAllowedError: 'Lower end Android devices may require recent security updates for passkeys to work properly.',
+        NotAllowedError: 'lowEndAndroid',
     },
 } as const
 

@@ -20,6 +20,7 @@ import {
     withdrawCountryUrl,
     withdrawBankUrl,
     rewriteMethodPath,
+    deepLinkToNativePath,
 } from '../native-routes'
 
 describe('native-routes', () => {
@@ -287,6 +288,124 @@ describe('native-routes', () => {
         describe('requestPotUrl', () => {
             it('should return /pay-request with id query param', () => {
                 expect(requestPotUrl('pot-789')).toBe('/pay-request?id=pot-789')
+            })
+        })
+    })
+
+    describe('deepLinkToNativePath', () => {
+        describe('capacitor mode', () => {
+            beforeEach(() => {
+                mockIsCapacitor.mockReturnValue(true)
+            })
+
+            it('accepts a bare path — push payloads carry the deep link without a host', () => {
+                expect(deepLinkToNativePath('/receipt/intent-1?kind=ONRAMP')).toBe('/receipt?id=intent-1&kind=ONRAMP')
+            })
+
+            it('accepts a full App-Links url', () => {
+                expect(deepLinkToNativePath('https://peanut.me/receipt/intent-1?kind=ONRAMP')).toBe(
+                    '/receipt?id=intent-1&kind=ONRAMP'
+                )
+            })
+
+            it('maps a charge deep link onto the pay-request stand-in for the disabled catch-all route', () => {
+                expect(deepLinkToNativePath('/alice?chargeId=charge-123')).toBe('/pay-request?chargeId=charge-123')
+            })
+
+            it('leaves a static in-app route untouched', () => {
+                expect(deepLinkToNativePath('https://peanut.me/history')).toBe('/history')
+            })
+
+            it('still rewrites dynamic routes to their query-param form', () => {
+                expect(deepLinkToNativePath('https://peanut.me/send/bob')).toBe('/send?recipient=bob')
+                expect(deepLinkToNativePath('https://peanut.me/qr/abc123')).toBe('/qr?code=abc123')
+                expect(deepLinkToNativePath('https://peanut.me/withdraw/be/bank')).toBe(
+                    '/withdraw?country=be&view=bank'
+                )
+            })
+
+            // The claim-link password lives in the fragment and is never sent to
+            // the server (see peanut-link.utils.ts), so dropping it here yields a
+            // link that resolves to a claim page with no way to claim.
+            it('preserves the claim-link password fragment', () => {
+                expect(deepLinkToNativePath('https://peanut.me/claim?c=42161&v=v4.2&i=99#p=s3cr3t')).toBe(
+                    '/claim?c=42161&v=v4.2&i=99#p=s3cr3t'
+                )
+            })
+
+            it('preserves a fragment on a bare path from a push payload', () => {
+                expect(deepLinkToNativePath('/claim?i=99#p=s3cr3t')).toBe('/claim?i=99#p=s3cr3t')
+            })
+
+            it('carries the fragment through a dynamic-route rewrite', () => {
+                expect(deepLinkToNativePath('https://peanut.me/send/bob#p=s3cr3t')).toBe('/send?recipient=bob#p=s3cr3t')
+                expect(deepLinkToNativePath('https://peanut.me/withdraw/be/bank#top')).toBe(
+                    '/withdraw?country=be&view=bank#top'
+                )
+            })
+
+            it('adds no stray # when the link has no fragment', () => {
+                expect(deepLinkToNativePath('https://peanut.me/claim?i=99')).toBe('/claim?i=99')
+                expect(deepLinkToNativePath('https://peanut.me/history')).toBe('/history')
+            })
+
+            it('still rejects an off-host link that carries a fragment', () => {
+                expect(deepLinkToNativePath('https://evil.com/claim?i=99#p=s3cr3t')).toBeNull()
+            })
+
+            it('rejects an off-domain url rather than rewriting it into an in-app path', () => {
+                expect(deepLinkToNativePath('https://evil.com/receipt/intent-1')).toBeNull()
+            })
+
+            it('returns null for an unparseable link', () => {
+                expect(deepLinkToNativePath('http://')).toBeNull()
+            })
+
+            // This runs during render in the notifications list, so a throw here
+            // would blank the whole page rather than drop one bad row.
+            it.each([
+                ['receipt id', '/receipt/%E0%A4%A'],
+                ['send recipient', '/send/%E0%A4%A'],
+                ['qr code', '/qr/%'],
+                ['bare username', '/%'],
+            ])('never throws on malformed percent-encoding in the %s', (_label, link) => {
+                expect(() => deepLinkToNativePath(link)).not.toThrow()
+            })
+
+            it.each(['/receipt/%E0%A4%A', '/send/%E0%A4%A', '/qr/%'])(
+                'degrades %s to null when the decode fails mid-mapping',
+                (link) => {
+                    expect(deepLinkToNativePath(link)).toBeNull()
+                }
+            )
+
+            it.each(['/rewards', '/history', '/badges', '/profile'])(
+                'leaves the reserved route %s alone even with a chargeId param',
+                (route) => {
+                    expect(deepLinkToNativePath(`${route}?chargeId=charge-123`)).toBe(`${route}?chargeId=charge-123`)
+                }
+            )
+        })
+
+        describe('web mode', () => {
+            beforeEach(() => {
+                mockIsCapacitor.mockReturnValue(false)
+            })
+
+            it('keeps the path-based receipt url', () => {
+                expect(deepLinkToNativePath('https://peanut.me/receipt/intent-1?kind=ONRAMP')).toBe(
+                    '/receipt/intent-1?kind=ONRAMP'
+                )
+            })
+
+            it('keeps a profile charge link on the profile route', () => {
+                expect(deepLinkToNativePath('/alice?chargeId=charge-123')).toBe('/alice?chargeId=charge-123')
+            })
+
+            it('preserves the claim-link password fragment', () => {
+                expect(deepLinkToNativePath('https://peanut.me/claim?c=42161&v=v4.2&i=99#p=s3cr3t')).toBe(
+                    '/claim?c=42161&v=v4.2&i=99#p=s3cr3t'
+                )
             })
         })
     })

@@ -17,6 +17,8 @@ import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
 import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/registry'
+import { TRANSACTION_NAME_KEYS, reaperFailKey, type TransactionNameKey } from './transaction-name-keys'
+import { parseWireAmount } from './transaction-details.utils'
 
 /** Rain dispute lifecycle status values. Source: Rain dispute.* webhooks. */
 export type DisputeStatus = 'pending' | 'inReview' | 'accepted' | 'rejected' | 'canceled' | 'resolvedByMerchant'
@@ -247,8 +249,17 @@ function computeDerivedFields(entry: HistoryEntry): {
 } {
     // For crypto deposits, force the explorer URL to Peanut's wallet chain
     // (Arbitrum) — the underlying chainId field is the deposit-source chain.
+    // CRYPTO_DEPOSIT and CRYPTO_WITHDRAW both record the tx hash on Peanut's
+    // wallet chain (Arbitrum) — for withdrawals entry.chainId is the
+    // DESTINATION, so linking it with the recorded hash mislinked receipts on
+    // destinations that have an explorer (e.g. Avalanche) and left them
+    // linkless on ones that don't (Tempo, Solana, Tron). Always link the
+    // chain the recorded hash actually lives on. (Known residual: a withdraw
+    // completed via the BRIDGE_EXECUTED webhook carries the destination-side
+    // hash — rare; linking source keeps the dominant case correct.)
+    const kind = intentKindOf(entry)
     const explorerUrlChainID =
-        intentKindOf(entry) === 'CRYPTO_DEPOSIT' ? PEANUT_WALLET_CHAIN.id.toString() : entry.chainId
+        kind === 'CRYPTO_DEPOSIT' || kind === 'CRYPTO_WITHDRAW' ? PEANUT_WALLET_CHAIN.id.toString() : entry.chainId
     const baseUrl = getExplorerUrl(explorerUrlChainID)
 
     let explorerUrlWithTx: string | undefined
@@ -290,6 +301,17 @@ export interface TransactionDetails {
     id: string
     direction: TransactionDirection
     userName: string
+    /** Catalog key (under `transaction`) when `userName` is an FE-generated
+     *  label rather than counterparty data. Render sites localize via
+     *  `t(nameKey, nameParams)` and fall back to `userName`. */
+    nameKey?: TransactionNameKey
+    nameParams?: Record<string, string>
+    /** The counterparty is an actual Peanut user (not a raw address, bank
+     *  account, or a system copy string like 'Request'/'Recipient'/reaper text).
+     *  Authoritative gate for whether the name/avatar can deep-link to a
+     *  profile — see hasUserProfile. Optional so hand-built fixtures fail safe
+     *  to non-clickable; the transformer always sets it. */
+    isPeerActuallyUser?: boolean
     fullName: string
     showFullName?: boolean
     amount: number | bigint
@@ -310,6 +332,9 @@ export interface TransactionDetails {
     date: string | Date
     fee?: number | string
     memo?: string
+    /** Catalog key (under `transaction`) for FE-generated memos (the test
+     *  deposit). Render sites prefer `t(memoKey)` over the raw `memo`. */
+    memoKey?: 'memoTestDeposit'
     attachmentUrl?: string
     cancelledDate?: string | Date
     txHash?: string
@@ -455,7 +480,15 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     const out = dispatchStrategy(entry)(entry)
     const direction: TransactionDirection = out.direction
     const transactionCardType: TransactionCardType = out.transactionCardType
+    // Role for display strings (the +/- sign, the receipt's "Sent/Received"
+    // label). A pre-#1144 BE reports SENDER on negative-amount card auths,
+    // but the strategy has already classified the row as a refund credit —
+    // trust the strategy verdict so the receipt can't contradict the header.
+    const displayUserRole =
+        transactionCardType === 'refund' ? EHistoryUserRole.RECIPIENT : (entry.userRole as EHistoryUserRole)
     let nameForDetails = out.nameForDetails
+    let nameKey = out.nameKey
+    let nameParams = out.nameParams
     let isPeerActuallyUser = out.isPeerActuallyUser
     const isLinkTx = out.isLinkTx
     let fullName = out.fullName ?? ''
@@ -479,6 +512,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     const reaperFailReason = entry.extraData?.failReason as string | undefined
     if (entry.status === 'FAILED' && reaperFailReason && reaperFailReason.endsWith('_timeout')) {
         nameForDetails = REAPER_FAIL_COPY[reaperFailReason] ?? 'Transaction did not complete'
+        nameKey = reaperFailKey(reaperFailReason)
+        nameParams = undefined
         isPeerActuallyUser = false
     } else if (entry.status === 'FAILED' && intentKindOf(entry) === 'QR_PAY') {
         // A collateral QR-pay that failed at submit (e.g. the stale-approval 403)
@@ -489,6 +524,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // settles then fails is refunded elsewhere — so "didn't complete" is honest
         // whether or not funds moved; the ledger stays the source of truth for that.
         nameForDetails = 'Failed QR payment attempt'
+        nameKey = TRANSACTION_NAME_KEYS.failedQrPayment
+        nameParams = undefined
         isPeerActuallyUser = false
     }
 
@@ -510,9 +547,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     }
 
     // parse the amount from the usdamount string in extradata
-    const baseAmount = entry.extraData?.usdAmount
-        ? parseFloat(String(entry.extraData.usdAmount).replace(/[^\d.-]/g, ''))
-        : 0
+    const baseAmount = entry.extraData?.usdAmount ? parseWireAmount(entry.extraData.usdAmount) : 0
     // Bake the cross-chain network fee into the displayed amount (product
     // convention: fees are part of the amount, never a separate line — see the
     // `fee: undefined` note below). The BE only sets `networkFeeUsd` for a
@@ -541,16 +576,19 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         id: entry.uuid,
         direction: direction,
         userName: nameForDetails,
+        nameKey,
+        nameParams,
         amount,
         tokenAmount: entry.amount,
         fullName,
         showFullName,
         currency: rewardData ? undefined : entry.currency,
-        currencySymbol: `${entry.userRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
+        currencySymbol: `${displayUserRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
         tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,
         initials: getInitialsFromName(nameForInitials),
         status: uiStatus,
         isVerified: entry.isVerified && isPeerActuallyUser,
+        isPeerActuallyUser,
         // only show verification badge if the other person is a peanut user
         date: new Date(entry.timestamp),
         // Peanut product convention: fees are baked into the displayed exchange
@@ -565,6 +603,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // merchant name and any decline reason render inside CardPaymentRows
         // in the drawer, so a duplicate "Comment" row is just noise. Backend
         // already sets memo=undefined for card entries, but defend in depth.
+        memoKey: isTestDeposit ? 'memoTestDeposit' : undefined,
         memo: (() => {
             if (isTestDeposit) return 'Your peanut wallet is ready to use!'
             const kind = intentKindOf(entry)
@@ -583,7 +622,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         extraDataForDrawer: {
             addressExplorerUrl,
             originalType: 'TRANSACTION_INTENT',
-            originalUserRole: entry.userRole as EHistoryUserRole,
+            originalUserRole: displayUserRole,
             kind: intentKindOf(entry),
             provider: entry.extraData?.provider as Provider | undefined,
             bridgeFlow: entry.extraData?.bridgeFlow,
@@ -632,7 +671,11 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                           cancellationReason: entry.extraData?.cancellationReason as string | null,
                           parentRainTxId: entry.extraData?.parentRainTxId as string | null,
                           rainTransactionId: entry.extraData?.rainTransactionId as string | null,
-                          isRefund: !!entry.extraData?.parentRainTxId,
+                          // Reuse the strategy verdict instead of re-deriving the
+                          // parentRainTxId/isRefund/negative-amount heuristic here —
+                          // a local copy would silently diverge from the strategy
+                          // layer as its rules evolve (CodeRabbit #2373).
+                          isRefund: transactionCardType === 'refund',
                           // Dispute lifecycle — null when Rain hasn't fired
                           // any dispute.* webhook for this spend.
                           dispute: (() => {

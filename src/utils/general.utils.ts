@@ -1,9 +1,4 @@
-import {
-    nativeCurrencyAddresses,
-    supportedPeanutChains,
-    peanutTokenDetails,
-    pathTitles,
-} from '@/constants/general.consts'
+import { nativeCurrencyAddresses, supportedPeanutChains, peanutTokenDetails } from '@/constants/general.consts'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { shareableUrl } from '@/utils/url.utils'
 import * as Sentry from '@sentry/nextjs'
@@ -105,7 +100,7 @@ export const validateEnsName = (ensName: string = ''): boolean => {
     return ENS_NAME_REGEX.test(ensName)
 }
 
-export function jsonStringify(data: any): string {
+export function jsonStringify(data: unknown): string {
     return JSON.stringify(data, (_key, value) => {
         if ('bigint' === typeof value) {
             return {
@@ -117,7 +112,8 @@ export function jsonStringify(data: any): string {
     })
 }
 
-export function jsonParse<T = any>(data: string): T {
+// Default matches JSON.parse's own return type so legacy untyped call sites keep compiling.
+export function jsonParse<T = ReturnType<typeof JSON.parse>>(data: string): T {
     return JSON.parse(data, (_key, value) => {
         if (value && typeof value === 'object' && value['@type'] === 'BigInt') {
             return BigInt(value.value)
@@ -126,7 +122,7 @@ export function jsonParse<T = any>(data: string): T {
     })
 }
 
-export const saveToLocalStorage = (key: string, data: any, expirySeconds?: number) => {
+export const saveToLocalStorage = (key: string, data: unknown, expirySeconds?: number) => {
     if (typeof localStorage === 'undefined') return
     try {
         // Convert the data to a string before storing it in localStorage
@@ -168,7 +164,7 @@ export const getFromLocalStorage = (key: string) => {
     }
 }
 
-export const saveToCookie = (key: string, data: any, expiryDays?: number) => {
+export const saveToCookie = (key: string, data: unknown, expiryDays?: number) => {
     if (typeof document === 'undefined') return
     try {
         // Convert the data to a string before storing it in cookies
@@ -439,8 +435,7 @@ export async function copyTextToClipboardWithFallback(text: string) {
         textarea.style.left = '-9999px'
         document.body.appendChild(textarea)
         textarea.select()
-        const successful = document.execCommand('copy')
-        const msg = successful ? 'successful' : 'unsuccessful'
+        document.execCommand('copy')
         document.body.removeChild(textarea)
     } catch (err) {
         Sentry.captureException(err)
@@ -498,6 +493,20 @@ export type UserPreferences = {
      *  Read by useHomeCarouselCTAs to apply a per-CTA cooldown before re-showing.
      *  Legacy shape was `string[]` (permanent dismissal); both are accepted on read. */
     dismissedCarouselCTAs?: string[] | Record<string, string>
+    /** ISO timestamp of the last "Remind me later" on the app-migration download prompt. */
+    migrationPromptSnoozedAt?: string
+    /** ISO timestamp the notifications pre-prompt was dismissed — replaces the
+     *  legacy permanent `notifModalClosed` so we can re-ask after a cooldown
+     *  during the migration window. */
+    notifModalClosedAt?: string
+    /** ISO timestamp the app-review prompt was shown (asked once, ever). */
+    reviewPromptShownAt?: string
+    /** Dismissal fingerprints (`bridgeTaskDismissalKey`: key|requirement|due)
+     *  of the pending Bridge verification tasks the user individually
+     *  dismissed on /home. A task that turns blocking or changes substance
+     *  gets a new fingerprint and re-surfaces; the tasks always stay
+     *  reachable under Profile → Unlocked regions. */
+    pendingVerificationTasksDismissed?: string[]
 }
 
 export const updateUserPreferences = (
@@ -552,13 +561,6 @@ export const getExplorerUrl = (chainId: string) => {
     } else {
         return explorers?.[0].url
     }
-}
-
-interface TransferDetails {
-    id: string
-    timestamp: string
-    chain: string
-    details: any
 }
 
 export function formatDate(date: Date | null | undefined): string {
@@ -665,10 +667,6 @@ export function getChainName(chainId: string): string | undefined {
     }
     const chain = Object.entries(wagmiChains).find(([, chain]) => chain.id === Number(chainId))?.[1]
     return chain?.name ?? undefined
-}
-
-export const getHeaderTitle = (pathname: string) => {
-    return pathTitles[pathname] || 'Peanut' // default title if path not found
 }
 
 /**
@@ -930,30 +928,37 @@ export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) 
 }
 
 export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
-    return charges.map((charge) => {
-        const successfulPayment = charge.payments.at(-1)
-        // Prefer the Peanut handle whenever the payer has a linked user,
-        // regardless of account.type. Falls back to the raw on-chain
-        // identifier for anonymous on-chain contributors.
-        const payerAccount = successfulPayment?.payerAccount
-        const username = payerAccount?.user?.username || payerAccount?.identifier
-        const isPeanutUser = !!payerAccount?.user?.username
+    return charges
+        .map((charge) => {
+            // Only a SUCCESSFUL payment makes someone a contributor. Taking the
+            // last payment regardless of status surfaced failed payers and
+            // inflated the "Contributors (N)" count — the BE collected total
+            // counts successful payments only, so this must match.
+            const successfulPayment = charge.payments.filter((p) => p.status === 'SUCCESSFUL').at(-1)
+            if (!successfulPayment) return null
+            // Prefer the Peanut handle whenever the payer has a linked user,
+            // regardless of account.type. Falls back to the raw on-chain
+            // identifier for anonymous on-chain contributors.
+            const payerAccount = successfulPayment.payerAccount
+            const username = payerAccount?.user?.username || payerAccount?.identifier
+            const isPeanutUser = !!payerAccount?.user?.username
 
-        return {
-            uuid: charge.uuid,
-            payments: charge.payments,
-            amount: charge.tokenAmount,
-            username,
-            fulfillmentPayment: charge.fulfillmentPayment,
-            // FOLLOW-UP (tracked, not in this PR pair): the charges/payments BE flow
-            // still returns raw `bridgeKycStatus` on Payment.payerAccount.user. The
-            // user endpoints (/users/:userId, /users/username/:username,
-            // /users/contacts) all migrated to a BE-computed `isVerified` boolean;
-            // bringing the charges flow along requires a focused refactor (project at
-            // intentToCharge + fetchPayerAccounts; change mutation patterns in
-            // charge/service.ts to immutable response building). Scoped separately.
-            isUserVerified: payerAccount?.user?.bridgeKycStatus === 'approved',
-            isPeanutUser,
-        }
-    })
+            return {
+                uuid: charge.uuid,
+                payments: charge.payments,
+                amount: charge.tokenAmount,
+                username,
+                fulfillmentPayment: charge.fulfillmentPayment,
+                // FOLLOW-UP (tracked, not in this PR pair): the charges/payments BE flow
+                // still returns raw `bridgeKycStatus` on Payment.payerAccount.user. The
+                // user endpoints (/users/:userId, /users/username/:username,
+                // /users/contacts) all migrated to a BE-computed `isVerified` boolean;
+                // bringing the charges flow along requires a focused refactor (project at
+                // intentToCharge + fetchPayerAccounts; change mutation patterns in
+                // charge/service.ts to immutable response building). Scoped separately.
+                isUserVerified: payerAccount?.user?.bridgeKycStatus === 'approved',
+                isPeanutUser,
+            }
+        })
+        .filter((c): c is NonNullable<typeof c> => c !== null)
 }

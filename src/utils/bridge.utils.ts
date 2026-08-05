@@ -1,6 +1,6 @@
 import { countryData as ALL_METHODS_DATA, type CountryData } from '@/components/AddMoney/consts'
 import { BRIDGE_DEVELOPER_FEE_RATE } from '@/constants/payment.consts'
-import { type Account, AccountType } from '@/interfaces'
+import { type Account, AccountType } from '@/interfaces/interfaces'
 
 export interface CurrencyConfig {
     currency: string
@@ -138,11 +138,13 @@ export const getCurrencySymbol = (currency: string): string => {
 }
 
 /**
- * Apply the Bridge developer fee to a cross-currency quote.
+ * Apply the Peanut developer fee to a cross-currency quote.
  *
- * Bridge charges a 0.5% developer fee on any transfer that crosses a
- * currency boundary (i.e. neither side is USD). USD↔USDC is fee-free.
- * Mirrors backend `getBridgeDeveloperFeeParams` in peanut-api-ts.
+ * The fee applies only to transfers that cross a currency boundary (i.e.
+ * neither side is USD); USD↔USDC is always fee-free. BRIDGE_DEVELOPER_FEE_RATE
+ * is currently 0, making this an identity function — it and its call sites are
+ * kept for the planned FX-margin re-enable. Mirrors backend
+ * `getBridgeDeveloperFeeParams` in peanut-api-ts.
  *
  * @param amount - Gross amount computed from the raw exchange rate
  * @param srcCurrency - Source currency code (case-insensitive)

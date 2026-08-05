@@ -8,10 +8,14 @@ import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
+import { LOCALE_LABELS } from '@/i18n/app/config'
+import { useAppLocale } from '@/i18n/app/AppIntlProvider'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import Card from '../Global/Card'
+import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
 import ShowNameToggle from './components/ShowNameToggle'
 import InviteFriendsModal from '../Global/InviteFriendsModal'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
@@ -28,6 +32,8 @@ export const Profile = () => {
     // applicant state. Bridge/Manteca rail approval does NOT flip this badge.
     const { isVerified: isUserSumsubKycApproved } = useIdentityVerification()
     const { hasCardAccess } = useCardInfo()
+    const t = useTranslations('profile')
+    const { locale } = useAppLocale()
 
     const logout = async () => {
         await logoutUser()
@@ -45,7 +51,7 @@ export const Profile = () => {
                 <div className="space-y-4">
                     <ProfileMenuItem
                         icon="smile"
-                        label="Invite friends to Peanut"
+                        label={t('menu.inviteFriends')}
                         onClick={() => setIsInviteFriendsModalOpen(true)}
                         href="/dummy" // Dummy link, wont be called
                         position="single"
@@ -61,37 +67,60 @@ export const Profile = () => {
                             the safe default (never 404s; the gated /card route would). */}
                         <ProfileMenuItem
                             icon="credit-card"
-                            label={hasCardAccess ? 'Your Card' : 'Peanut Card'}
+                            label={hasCardAccess ? t('menu.yourCard') : t('menu.peanutCard')}
                             href={hasCardAccess ? '/card' : '/shhhhh'}
-                            badge={hasCardAccess ? undefined : 'New!'}
+                            badge={hasCardAccess ? undefined : t('menu.newBadge')}
                             position="first"
                         />
-                        <ProfileMenuItem icon="achievements" label="Your Badges" href="/badges" position="middle" />
                         <ProfileMenuItem
-                            icon={<Image src={STAR_STRAIGHT_ICON} alt="star" width={20} height={20} />}
-                            label="Points"
+                            icon="achievements"
+                            label={t('menu.yourBadges')}
+                            href="/badges"
+                            position="middle"
+                        />
+                        <ProfileMenuItem
+                            icon={<Image src={STAR_STRAIGHT_ICON} alt={t('menu.starAlt')} width={20} height={20} />}
+                            label={t('menu.points')}
                             href="/rewards"
                             position="last"
                         />
                     </div>
                     <div>
-                        <ProfileMenuItem icon="user" label="Personal details" href="/profile/edit" position="first" />
+                        <ProfileMenuItem
+                            icon="user"
+                            label={t('menu.personalDetails')}
+                            href="/profile/edit"
+                            position="first"
+                        />
 
                         <ProfileMenuItem
                             icon="globe-lock"
-                            label="Unlocked regions"
+                            label={t('menu.unlockedRegions')}
                             href="/profile/identity-verification"
                             position="middle"
                             highlight={!isUserSumsubKycApproved}
                         />
 
-                        <ProfileMenuItem icon="meter" label="Payment limits" href="/limits" position="middle" />
+                        <ProfileMenuItem
+                            icon="meter"
+                            label={t('menu.paymentLimits')}
+                            href="/limits"
+                            position="middle"
+                        />
+
+                        <ProfileMenuItem
+                            icon="globe"
+                            label={t('language')}
+                            endText={LOCALE_LABELS[locale]}
+                            href="/settings/language"
+                            position="middle"
+                        />
 
                         <Card className="p-4" position="middle">
                             <div className="flex items-center justify-between py-1">
                                 <div className="flex items-center gap-2">
                                     <Icon name={'eye'} size={20} fill="black" />
-                                    <span className="text-base font-medium">Show my full name</span>
+                                    <span className="text-base font-medium">{t('menu.showMyFullName')}</span>
                                 </div>
 
                                 <div className="flex items-center">
@@ -101,7 +130,7 @@ export const Profile = () => {
                         </Card>
                         <ProfileMenuItem
                             icon="upload-cloud"
-                            label="Backup"
+                            label={t('menu.backup')}
                             href="/profile/backup"
                             onClick={() => router.push('/profile/backup')}
                             position="last"
@@ -118,13 +147,13 @@ export const Profile = () => {
                     {/* Menu Items - Second Group */}
                     <ProfileMenuItem
                         icon="exchange"
-                        label="Exchange rates and fees"
+                        label={t('menu.exchangeRatesAndFees')}
                         href="/profile/exchange-rate"
                         position="single"
                         iconClassName="size-4"
                     />
-                    {/* Logout Button */}
-                    <div className="w-full pb-10">
+                    {/* Logout + Delete account */}
+                    <div className="w-full space-y-6 pb-10">
                         <Button
                             loading={isLoggingOut}
                             disabled={isLoggingOut}
@@ -134,8 +163,9 @@ export const Profile = () => {
                             onClick={logout}
                         >
                             <Icon name="logout" size={20} fill="black" />
-                            <span className="font-bold">Log out</span>
+                            <span className="font-bold">{t('logOut')}</span>
                         </Button>
+                        <DeleteAccountButton />
                     </div>
                 </div>
             </div>

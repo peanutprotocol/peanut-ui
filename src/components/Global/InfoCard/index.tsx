@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslations } from 'next-intl'
 import Card from '../Card'
 import { twMerge } from 'tailwind-merge'
 import { Icon, type IconProps } from '../Icons/Icon'
@@ -50,6 +51,7 @@ const InfoCard = ({
     containerClassName,
     customContent,
 }: InfoCardProps) => {
+    const t = useTranslations('global')
     const variantClasses = VARIANT_CLASSES[variant]
     const hasContent = title || description || items || customContent
 
@@ -100,7 +102,7 @@ const InfoCard = ({
                             )}
                         </>
                     )}
-                    {!hasContent && <span className={BASE_TEXT_CLASSES}>No content provided</span>}
+                    {!hasContent && <span className={BASE_TEXT_CLASSES}>{t('infoCard.noContent')}</span>}
 
                     {customContent && customContent}
                 </div>

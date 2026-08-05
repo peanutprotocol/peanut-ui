@@ -17,7 +17,7 @@ interface UserHeaderProps {
     isVerified?: boolean
 }
 
-export const UserHeader = ({ username, fullName, isVerified }: UserHeaderProps) => {
+export const UserHeader = ({ username, fullName }: UserHeaderProps) => {
     const { user } = useAuth()
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const nameForAvatar = user?.user.showFullName && fullName ? fullName : username
@@ -103,7 +103,14 @@ export const VerifiedUserLabel = ({
                         className,
                         onNameClick && 'cursor-pointer'
                     )}
-                    onClick={onNameClick}
+                    onClick={
+                        onNameClick &&
+                        ((e) => {
+                            // a name with its own action must not also fire the container's onClick
+                            e.stopPropagation()
+                            onNameClick()
+                        })
+                    }
                 >
                     {name}
                 </div>

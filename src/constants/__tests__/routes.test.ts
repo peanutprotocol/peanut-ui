@@ -62,6 +62,12 @@ describe('couldBeRecipient — catch-all guard', () => {
         expect(couldBeRecipient('hugo0@optimism')).toBe(true)
     })
 
+    test('accepts address@chainId deep links (EIP-681 scanner path)', () => {
+        expect(couldBeRecipient('0x1234567890123456789012345678901234567890@42161')).toBe(true)
+        expect(couldBeRecipient('0x1234567890123456789012345678901234567890%4042161')).toBe(true)
+        expect(couldBeRecipient('vitalik.eth@arbitrum')).toBe(true)
+    })
+
     test('rejects bare 2-letter locale codes (the /es/argentina regression)', () => {
         expect(couldBeRecipient('es')).toBe(false)
         expect(couldBeRecipient('pt')).toBe(false)

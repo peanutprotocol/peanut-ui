@@ -44,6 +44,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     return {
         ...metadataHelper({
+            locale,
             title: `${i18n.helpCenter} | Peanut`,
             description: i18n.helpCenterDescription,
             canonical: `/${locale}/help`,

@@ -1,0 +1,24 @@
+'use client'
+
+import { useEffect } from 'react'
+import type { Locale } from '@/i18n/types'
+
+/**
+ * Stamps the page locale onto <html lang>. The root layout sits above the
+ * locale segment and can't read route params — and reading headers() there
+ * would opt the whole app out of static rendering, which the native builds'
+ * static export depends on — so the SSR markup ships lang="en" and this
+ * corrects it after hydration. Crawlers rely on hreflang, not lang; this is
+ * for assistive tech and in-browser tooling.
+ */
+export function HtmlLang({ locale }: { locale: Locale }) {
+    useEffect(() => {
+        const previous = document.documentElement.lang
+        document.documentElement.lang = locale
+        return () => {
+            document.documentElement.lang = previous
+        }
+    }, [locale])
+
+    return null
+}

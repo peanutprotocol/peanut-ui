@@ -11,15 +11,24 @@ import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { isCapacitor } from '@/utils/capacitor'
+import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { getFromCookie } from '@/utils/general.utils'
 import { useSearchParams } from 'next/navigation'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAuth } from '@/context/authContext'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/0_Bruddle/Button'
+import { PeanutWavingHello } from '@/assets/mascot'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useTranslations } from 'next-intl'
 
 function SetupPageContent() {
+    const t = useTranslations('setup')
     const { steps, inviteCode } = useSetupStore()
     const { step, handleNext, handleBack } = useSetupFlow()
-    const { logoutUser, isLoggingOut } = useAuth()
+    const { logoutUser, isLoggingOut, user, isFetchingUser } = useAuth()
+    const router = useRouter()
     const [direction, setDirection] = useState(0)
     const [currentStepIndex, setCurrentStepIndex] = useState(0)
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
@@ -31,6 +40,44 @@ function SetupPageContent() {
     const [showBrowserNotSupportedModal, setShowBrowserNotSupportedModal] = useState(false)
     const { deviceType: detectedDeviceType } = useDeviceType()
     const searchParams = useSearchParams()
+    const [sessionChecked, setSessionChecked] = useState(false)
+    const [existingSessionUsername, setExistingSessionUsername] = useState<string | null>(null)
+
+    /*
+     * A device can arrive at /setup already authenticated: a half-completed
+     * earlier signup leaves durable credentials (jwt cookie in the native jar,
+     * web-authn-key cookie), and running signup on top of them silently no-ops
+     * — the passkey step would skip and the freshly chosen username would be
+     * discarded. Check once, at entry only: `sessionChecked` stays true for the
+     * rest of the flow, so the user becoming authenticated mid-signup (after
+     * registration) never re-triggers the prompt.
+     */
+    useEffect(() => {
+        if (sessionChecked || isFetchingUser) return
+        setSessionChecked(true)
+        if (user?.user?.username) {
+            setExistingSessionUsername(user.user.username)
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_PROMPTED, {
+                has_app_access: !!user.user.hasAppAccess,
+            })
+        }
+    }, [sessionChecked, isFetchingUser, user])
+
+    const handleContinueSession = () => {
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED)
+        // Mounting the (setup) layout armed the post-setup iOS install wall
+        // (setShowIosPwaInstallScreen in (setup)/layout.tsx). This visit was not a
+        // setup session and the soft nav keeps the store alive, so disarm it —
+        // otherwise /home renders the no-escape ForceIOSPWAInstall screen.
+        dispatch(setupActions.setShowIosPwaInstallScreen(false))
+        router.push('/home')
+    }
+
+    const handleStartFresh = async () => {
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_LOGGED_OUT)
+        await logoutUser()
+        setExistingSessionUsername(null)
+    }
 
     useEffect(() => {
         const determineInitialStep = async () => {
@@ -52,13 +99,19 @@ function SetupPageContent() {
             //    cookie post-signup to award the badge; the step decision no longer
             //    trusts that cookie.
             //
-            // Why not the campaignTag cookie: it's a session cookie cleared only on a
-            // successful signup, so a returning user who claimed a campaign earlier in
+            // Why not the campaignTag cookie: it's a session cookie cleared on signup
+            // (only once every stacked award succeeds — a failed /badge/award keeps
+            // it for retry), so a returning user who claimed a campaign earlier in
             // the same session was routed past Landing (the only screen with Log In)
             // onto Signup, unable to log back in (regression from PR #2346).
             const inviteCodeFromCookie = getFromCookie('inviteCode')
             const userInviteCode = inviteCode || inviteCodeFromCookie
-            const skipInviteGate = !!userInviteCode || searchParams.get('step') === 'signup'
+            // pwa-sunset notice window: web signups are closed (Landing hides
+            // Sign up), so the ?step=signup / invite-code jump must not skip
+            // past the landing gate — otherwise claim/invite links deep-link
+            // straight into the signup form. Native app keeps the fast path.
+            const webSignupClosed = isPwaSunsetOn() && !isCapacitor()
+            const skipInviteGate = (!!userInviteCode || searchParams.get('step') === 'signup') && !webSignupClosed
 
             const localDeviceType = detectedDeviceType
 
@@ -200,12 +253,34 @@ function SetupPageContent() {
         }
     }, [step, currentStepIndex, steps])
 
-    if (isLoading)
+    if (isLoading || !sessionChecked)
         return (
             <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
                 <PeanutLoading />
             </div>
         )
+
+    if (existingSessionUsername) {
+        return (
+            <SetupWrapper
+                layoutType="signup"
+                screenId="welcome"
+                image={PeanutWavingHello.src}
+                title={t('existingSession.title')}
+                description={t('existingSession.description', { username: existingSessionUsername })}
+                contentClassName="flex flex-col items-center justify-center gap-5"
+            >
+                <div className="flex w-full flex-col gap-3">
+                    <Button shadowSize="4" onClick={handleContinueSession} disabled={isLoggingOut}>
+                        {t('existingSession.continueAs', { username: existingSessionUsername })}
+                    </Button>
+                    <Button variant="stroke" onClick={handleStartFresh} loading={isLoggingOut} disabled={isLoggingOut}>
+                        {t('existingSession.logoutAndStartFresh')}
+                    </Button>
+                </div>
+            </SetupWrapper>
+        )
+    }
 
     // if no step is determined and no blocking modal is shown, it's an issue
     if (!step && !showDeviceNotSupportedModal && !showBrowserNotSupportedModal) {
@@ -231,13 +306,16 @@ function SetupPageContent() {
         )
     }
 
+    const titleKey = `steps.${step.screenId}.title` as Parameters<typeof t>[0]
+    const descriptionKey = `steps.${step.screenId}.description` as Parameters<typeof t>[0]
+
     return (
         <SetupWrapper
             layoutType={step.layoutType}
             screenId={step.screenId}
             image={step.image}
-            title={step.title}
-            description={step.description}
+            title={t(titleKey)}
+            description={t.has(descriptionKey) ? t(descriptionKey) : undefined}
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}
             showLogoutButton={step.screenId === 'sign-test-transaction'}

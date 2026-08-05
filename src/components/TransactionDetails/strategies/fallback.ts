@@ -1,17 +1,16 @@
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from './types'
+import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
 import { cardRefund } from './intent/card'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
 
 export const intentFallback: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
     const kind = (entry.extraData?.kind as string | undefined) ?? 'OTHER'
 
-    // Rain card refunds arrive with parentRainTxId set (provider === RAIN).
-    // CARD_AUTH_REVERSAL is the canonical reversal kind (wired in the
-    // registry); OTHER / REFUND catch any historical rows whose kind hasn't
-    // been backfilled. Both lanes route to cardRefund — anything else is
-    // logged as an unknown kind.
-    if ((kind === 'OTHER' || kind === 'REFUND') && entry.extraData?.parentRainTxId) {
+    // Kindless/OTHER historical Rain refund rows carry parentRainTxId —
+    // route them to cardRefund. (kind === 'REFUND' never reaches here:
+    // the registry dispatches it to the refund strategy.)
+    if (kind === 'OTHER' && entry.extraData?.parentRainTxId) {
         return cardRefund(entry)
     }
 
@@ -26,6 +25,7 @@ export const intentFallback: TransactionStrategy = (entry: HistoryEntry): Transa
         direction: 'send',
         transactionCardType: 'send',
         nameForDetails: entry.recipientAccount?.identifier || 'Transaction',
+        nameKey: entry.recipientAccount?.identifier ? undefined : TRANSACTION_NAME_KEYS.transaction,
         isPeerActuallyUser: false,
         isLinkTx: false,
     }

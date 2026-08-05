@@ -9,15 +9,22 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useMantecaDepositPolling } from '@/components/AddMoney/hooks/useMantecaDepositPolling'
 import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
+import { useTranslations } from 'next-intl'
 
 const MantecaPixQrDeposit: FC<{
     depositDetails: MantecaDepositResponseData
     currencyAmount?: string
     // Parent owns step navigation — usually setUrlState({ step: 'inputAmount' }).
     onBack: () => void
+    // Exits the deposit flow entirely (home). Distinct from onBack: once the
+    // deposit has settled there is nothing to go "back" to — reusing onBack here
+    // dropped the user on the amount input, i.e. straight into a NEW deposit.
+    onDone: () => void
     // Fired once when the deposit settles (parent refreshes balance/history).
     onComplete: () => void
-}> = ({ depositDetails, currencyAmount, onBack, onComplete }) => {
+}> = ({ depositDetails, currencyAmount, onBack, onDone, onComplete }) => {
+    const t = useTranslations('addMoney')
+    const tCommon = useTranslations('common')
     // The dynamic PIX QR (EMVCo copia-e-cola) rides in the ramp-on synthetic's
     // details.depositAddresses.PIX (confirmed against prod 2026-07-02).
     const qr = depositDetails.details.depositAddresses?.PIX?.code
@@ -48,15 +55,15 @@ const MantecaPixQrDeposit: FC<{
     if (status === 'completed') {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
-                <NavHeader title="Add Money" onPrev={onBack} />
+                <NavHeader title={t('title')} onPrev={onDone} />
                 <div className="my-auto flex flex-col items-center gap-4 text-center">
                     <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-1">
                         <Icon name="check" size={32} />
                     </div>
-                    <h2 className="text-2xl font-bold text-n-1">Deposit received!</h2>
-                    <p className="text-grey-1">Your balance has been updated.</p>
-                    <Button variant="purple" shadowSize="4" className="w-full" onClick={onBack}>
-                        Done
+                    <h2 className="text-2xl font-bold text-n-1">{t('pix.depositReceived')}</h2>
+                    <p className="text-grey-1">{t('pix.balanceUpdated')}</p>
+                    <Button variant="purple" shadowSize="4" className="w-full" onClick={onDone}>
+                        {tCommon('done')}
                     </Button>
                 </div>
             </div>
@@ -64,10 +71,14 @@ const MantecaPixQrDeposit: FC<{
     }
 
     // Payment detected, settling — show the branded processing screen (same as PIX payments).
+    // `processing` means stage >= 2, i.e. the fiat HAS left the user's bank, so this exits
+    // like `completed` does: going "back" here would offer the amount input, pre-filled with
+    // the amount they just paid, one tap from paying twice. The credit doesn't depend on this
+    // screen — the webhook/poller post it server-side.
     if (status === 'processing') {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
-                <NavHeader title="Add Money" onPrev={onBack} />
+                <NavHeader title={t('title')} onPrev={onDone} />
                 <div className="my-auto flex flex-col justify-center">
                     <CyclingLoading />
                 </div>
@@ -77,10 +88,10 @@ const MantecaPixQrDeposit: FC<{
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">
-            <NavHeader title="Add Money" onPrev={onBack} />
+            <NavHeader title={t('title')} onPrev={onBack} />
             <div className="my-auto flex flex-col gap-6">
                 <div className="text-center">
-                    <p className="text-sm text-grey-1">Pay with PIX</p>
+                    <p className="text-sm text-grey-1">{t('pix.payWithPix')}</p>
                     {currencyAmount && <p className="text-2xl font-bold text-n-1">R$ {currencyAmount}</p>}
                 </div>
 
@@ -91,21 +102,21 @@ const MantecaPixQrDeposit: FC<{
                         <QRCodeWrapper url={qr} isBlurred={isExpired} disabled={isExpired} className="max-w-[280px]" />
 
                         {countdownLabel && (
-                            <p className="text-center text-sm text-grey-1">Expires in {countdownLabel}</p>
+                            <p className="text-center text-sm text-grey-1">
+                                {t('pix.expiresIn', { time: countdownLabel })}
+                            </p>
                         )}
 
                         {isExpired ? (
                             <div className="flex flex-col gap-3 text-center">
-                                <p className="text-sm text-grey-1">This QR code has expired.</p>
+                                <p className="text-sm text-grey-1">{t('pix.qrExpired')}</p>
                                 <Button variant="stroke" className="w-full" onClick={onBack}>
-                                    Go back
+                                    {t('pix.goBack')}
                                 </Button>
                             </div>
                         ) : (
                             <div className="flex flex-col gap-3">
-                                <p className="text-center text-sm text-grey-1">
-                                    Scan with your bank app, or copy the PIX code.
-                                </p>
+                                <p className="text-center text-sm text-grey-1">{t('pix.scanWithBankApp')}</p>
                                 <CopyToClipboard textToCopy={qr} type="button" className="w-full" />
                             </div>
                         )}

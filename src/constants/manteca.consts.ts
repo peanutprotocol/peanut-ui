@@ -1,5 +1,12 @@
 export const MANTECA_DEPOSIT_ADDRESS = '0x959e088a09f61aB01cb83b0eBCc74b2CF6d62053'
 
+// QR-payment funding wallets, split by rail country (Manteca request, 2026-07-21):
+// Argentine QRs (MercadoPago / QR3) fund the AR wallet; Pix — and eventually any
+// non-Argentina QR — funds the non-AR wallet. Bank withdrawals and claims still
+// fund MANTECA_DEPOSIT_ADDRESS. Mirrors peanut-api-ts/src/manteca/consts.ts.
+export const MANTECA_QR_DEPOSIT_ADDRESS_AR = '0x6E945f8EC93061f5f11Edc5e6Fb4A70BeB514e97'
+export const MANTECA_QR_DEPOSIT_ADDRESS_NON_AR = '0x49200bF84dC26349C86ce040019063FeCE88CB1c'
+
 export const MANTECA_ARG_DEPOSIT_NAME = 'Sixalime Sas'
 export const MANTECA_ARG_DEPOSIT_CUIT = '30-71678845-3'
 

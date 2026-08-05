@@ -13,10 +13,12 @@
  * Strategy: mock every hook and service at the module level, then configure
  * per-test via mockReturnValue / mockImplementation.
  */
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, @typescript-eslint/no-require-imports, react/display-name, @next/next/no-img-element */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react/display-name */
 import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import en from '@/i18n/app/messages/en.json'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
 
@@ -281,6 +283,7 @@ jest.mock('@/constants/zerodev.consts', () => ({
 jest.mock('@/constants/payment.consts', () => ({
     MIN_MANTECA_DEPOSIT_AMOUNT: 1,
     BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME: 'Bridge Financial',
+    resolveBridgeAccountHolderName: (name?: string | null) => name || 'Bridge Financial',
 }))
 
 jest.mock('@/constants/manteca.consts', () => ({
@@ -333,6 +336,7 @@ jest.mock('@/utils/currency', () => ({
 }))
 
 jest.mock('@/utils/format.utils', () => ({
+    ...jest.requireActual('@/utils/format.utils'),
     formatBankAccountDisplay: jest.fn((val: string) => val),
 }))
 
@@ -605,6 +609,9 @@ jest.mock('@/components/Common/CountryList', () => ({
             </button>
             <button data-testid="country-germany" onClick={() => props.onCountryClick({ path: 'germany', id: 'DE' })}>
                 Germany
+            </button>
+            <button data-testid="country-chad" onClick={() => props.onCountryClick({ path: 'chad', id: 'TD' })}>
+                Chad
             </button>
         </div>
     ),
@@ -890,7 +897,11 @@ function createQueryClient() {
 
 function renderWithProviders(component: React.ReactElement) {
     const queryClient = createQueryClient()
-    return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>)
+    return render(
+        <IntlWrapper>
+            <QueryClientProvider client={queryClient}>{component}</QueryClientProvider>
+        </IntlWrapper>
+    )
 }
 
 // ---------- default mock values ----------
@@ -1028,12 +1039,31 @@ describe('GROUP 1: Landing / Method Selection', () => {
         expect(screen.getByText('Select your country')).toBeInTheDocument()
     })
 
-    test('selecting a country from list navigates to country page', () => {
+    // TASK-20033: picking a bank-supported country skips the redundant per-country
+    // method list and goes straight to the deposit screen (Manteca for AR/BR,
+    // Bridge bank otherwise). Coming-soon countries keep the per-country screen.
+    test('selecting a Manteca country (AR/BR) goes straight to the manteca deposit', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('country-argentina'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/argentina')
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/argentina/manteca')
+    })
+
+    test('selecting a Bridge-supported country goes straight to the bank deposit', () => {
+        resetQueryState({ method: 'bank' })
+        renderWithProviders(<AddMoneyPage />)
+
+        fireEvent.click(screen.getByTestId('country-germany'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/germany/bank')
+    })
+
+    test('selecting a coming-soon country keeps the per-country method screen', () => {
+        resetQueryState({ method: 'bank' })
+        renderWithProviders(<AddMoneyPage />)
+
+        fireEvent.click(screen.getByTestId('country-chad'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/chad')
     })
 
     test('back from method selection navigates to /home', () => {
@@ -1154,10 +1184,10 @@ describe('GROUP 3: Crypto Deposit', () => {
             />
         )
 
-        expect(screen.getByText('Oops! Market moved')).toBeInTheDocument()
-        expect(screen.getByText('Try Again')).toBeInTheDocument()
+        expect(screen.getByText(en.addMoney.crypto.marketMovedTitle)).toBeInTheDocument()
+        expect(screen.getByText(en.common.tryAgain)).toBeInTheDocument()
 
-        fireEvent.click(screen.getByText('Try Again'))
+        fireEvent.click(screen.getByText(en.common.tryAgain))
         expect(mockResetStatus).toHaveBeenCalled()
     })
 
@@ -1348,6 +1378,30 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         expect(screen.getByText('Country not found')).toBeInTheDocument()
     })
 
+    // Manteca countries (BR/AR) must never render this Bridge SEPA page — it has no
+    // BR/AR currency and would show EUR (TASK-20225). Bounce them to /manteca instead.
+    test.each(['brazil', 'argentina'])(
+        'Manteca country (%s) redirects to the manteca route, never shows EUR bank UI',
+        (country) => {
+            setParams({ country })
+            renderWithProviders(<OnrampBankPage />)
+
+            expect(mockRouterReplace).toHaveBeenCalledWith(`/add-money/${country}/manteca`)
+            expect(screen.queryByText('How much do you want to add?')).not.toBeInTheDocument()
+            expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
+        }
+    )
+
+    // Control: a non-Manteca bank country (Mexico) must NOT be bounced — it stays on
+    // the Bridge amount UI. Guards against the redirect over-firing.
+    test('non-Manteca country (mexico) stays on the Bridge bank UI, no redirect', () => {
+        setParams({ country: 'mexico' })
+        renderWithProviders(<OnrampBankPage />)
+
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        expect(screen.getByText('How much do you want to add?')).toBeInTheDocument()
+    })
+
     test('fresh user needs KYC before Bridge deposit confirmation', async () => {
         mockUseKycStatus.mockReturnValue({
             isUserKycApproved: false,
@@ -1406,12 +1460,19 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             fireEvent.click(screen.getByText('Continue'))
         })
 
+        // displayed side of the commit-path pin: the modal must be showing the
+        // amount the user is about to confirm
+        expect(screen.getByTestId('onramp-confirmation-modal')).toHaveTextContent('100')
+
         // Click Confirm in modal
         await act(async () => {
             fireEvent.click(screen.getByTestId('confirm-onramp'))
         })
 
-        expect(mockCreateOnramp).toHaveBeenCalled()
+        // submitted side of the pin: createOnramp must receive the same string
+        // the modal displayed — a conversion slipped between display and submit
+        // fails here
+        expect(mockCreateOnramp).toHaveBeenCalledWith(expect.objectContaining({ amount: '100' }))
         expect(mockSetQueryState).toHaveBeenCalledWith(expect.objectContaining({ step: 'showDetails' }))
     })
 

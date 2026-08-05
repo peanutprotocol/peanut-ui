@@ -1,12 +1,14 @@
 'use client'
 
 import Card from '@/components/Global/Card'
-import NavHeader from '@/components/Global/NavHeader'
 import Link from 'next/link'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
+import DevNoteCard from './_components/DevNoteCard'
+import DevPageShell from './_components/DevPageShell'
 
 export default function DevToolsPage() {
-    const tools: { name: string; description: string; path: string; icon: IconName }[] = [
+    // static: true → plain <a> (file in public/, not an app route — Next Link can't client-navigate to it)
+    const tools: { name: string; description: string; path: string; icon: IconName; static?: boolean }[] = [
         {
             name: 'Points Leaderboard',
             description: 'Real-time leaderboard with customizable time filters for event competitions',
@@ -40,58 +42,114 @@ export default function DevToolsPage() {
             icon: 'dollar',
         },
         {
+            name: 'Activation Journey',
+            description:
+                'Per funnel state: every in-app surface (verbatim copy + source file) and every lifecycle email/push, fetched live from the sandbox API journey-spec.',
+            path: '/dev/journey',
+            icon: 'split',
+        },
+        {
+            name: 'Peanut Welcome Club',
+            description:
+                'Onboarding quiz: the Welcome-@anon handbook pitfalls (comms, tasks, security, invoicing) as an ironically kawaii quiz. Single static HTML in public/ — zero build impact.',
+            path: '/onboarding-quiz/index.html',
+            icon: 'trophy',
+            static: true,
+        },
+        {
             name: 'Home CTAs',
             description:
                 'Force-renders every home-screen CTA in isolation (card launch banner, carousel CTAs, activation steps) ignoring auth/state/launch gating.',
             path: '/dev/home-ctas',
             icon: 'credit-card',
         },
+        {
+            name: 'Components',
+            description: 'The component showcase — every Bruddle primitive and Global component with all variants.',
+            path: '/dev/components',
+            icon: 'docs',
+        },
+        {
+            name: 'Rejection screen builder',
+            description:
+                'Iterate the full mobile CardRejectionScreen — bouncer mascot, door tally, waitlist state — inside a phone frame.',
+            path: '/dev/rejection-builder',
+            icon: 'credit-card',
+        },
+        {
+            name: 'Share asset builder',
+            description:
+                'Iterate the card share asset (sticker collage): badge set, username length, hero variant, seed reroll, PNG capture.',
+            path: '/dev/share-builder',
+            icon: 'docs',
+        },
+        {
+            name: 'Profile card row',
+            description: 'The profile "first group" in both card states, rendered with the real ProfileMenuItem.',
+            path: '/dev/profile-card-row',
+            icon: 'credit-card',
+        },
+        {
+            name: 'Perk success test',
+            description: 'Fires the perk-claim success screens without needing a real perk to claim.',
+            path: '/dev/perk-success-test',
+            icon: 'dollar',
+        },
+        {
+            name: 'Shake test',
+            description: 'Tunes the shake-and-hold gesture — intensity, duration, thresholds.',
+            path: '/dev/shake-test',
+            icon: 'info',
+        },
+        {
+            name: 'Card session approve',
+            description:
+                'Grants the combined Rain session-key permission (auto-balancer + withdraw policies) in one passkey tap.',
+            path: '/dev/card-session-approve',
+            icon: 'credit-card',
+        },
     ]
 
     return (
-        <div className="flex w-full flex-col gap-6">
-            <div className="px-4 pt-4">
-                <NavHeader title="Dev Tools" />
-            </div>
-
-            <div className="flex h-full flex-col space-y-4 px-4 pb-8">
-                <p className="text-sm text-grey-1">
-                    Internal testing tools and components. Publicly accessible for multi-device testing.
-                </p>
-
+        <DevPageShell
+            title="Dev Tools"
+            description="Internal testing tools and components. Publicly accessible for multi-device testing."
+            backHref="/home"
+            width="prose"
+        >
+            <div className="flex flex-col gap-4">
                 <div className="space-y-2">
-                    {tools.map((tool) => (
-                        <Link key={tool.path} href={tool.path}>
-                            <Card className="cursor-pointer p-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex size-10 items-center justify-center rounded-sm border border-n-1 bg-primary-3">
-                                            <Icon name={tool.icon} size={20} />
+                    {tools.map((tool) => {
+                        const LinkComponent = tool.static ? 'a' : Link
+                        return (
+                            <LinkComponent key={tool.path} href={tool.path}>
+                                <Card className="cursor-pointer p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex size-10 items-center justify-center rounded-sm border border-n-1 bg-primary-3">
+                                                <Icon name={tool.icon} size={20} />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-sm font-bold">{tool.name}</h3>
+                                                <p className="text-xs text-grey-1">{tool.description}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="text-sm font-bold">{tool.name}</h3>
-                                            <p className="text-xs text-grey-1">{tool.description}</p>
-                                        </div>
+                                        <Icon name="arrow-up-right" size={16} className="text-grey-1" />
                                     </div>
-                                    <Icon name="arrow-up-right" size={16} className="text-grey-1" />
-                                </div>
-                            </Card>
-                        </Link>
-                    ))}
+                                </Card>
+                            </LinkComponent>
+                        )
+                    })}
                 </div>
 
-                <div className="rounded-sm border border-n-1 bg-primary-3/20 p-3">
-                    <div className="mb-1 flex items-center gap-2">
-                        <Icon name="info" size={14} />
-                        <span className="text-xs font-bold">Info</span>
-                    </div>
-                    <ul className="space-y-0.5 text-xs text-grey-1">
+                <DevNoteCard title="Info">
+                    <ul className="space-y-0.5">
                         <li>These tools are only available in development mode</li>
                         <li>Perfect for testing on multiple devices</li>
                         <li>Share the URL with team members for testing</li>
                     </ul>
-                </div>
+                </DevNoteCard>
             </div>
-        </div>
+        </DevPageShell>
     )
 }

@@ -2,6 +2,7 @@
 
 import Modal from '@/components/Global/Modal'
 import InfoCard from '@/components/Global/InfoCard'
+import { useTranslations } from 'next-intl'
 
 interface HowToDepositModalProps {
     visible: boolean
@@ -12,23 +13,15 @@ interface HowToDepositModalProps {
     variant?: 'default' | 'offramp'
 }
 
-const STEPS = [
-    { step: 'Step 1', text: 'Copy your deposit address above' },
-    { step: 'Step 2', text: 'Open your wallet or exchange and start a withdrawal' },
-    { step: 'Step 3', text: 'Paste the address and select one of the supported networks' },
-    { step: 'Step 4', text: 'Confirm and send — funds arrive within a few minutes' },
-]
-
-const OFFRAMP_STEPS = [
-    { step: 'Step 1', text: 'Copy your migration deposit address above' },
-    { step: 'Step 2', text: 'Open your Offramp account and start a withdrawal or send' },
-    { step: 'Step 3', text: 'Choose USDC on the Arbitrum network and paste the address' },
-    { step: 'Step 4', text: 'Confirm and send — your balance arrives within a few minutes' },
-]
+const STEP_KEYS = ['step1', 'step2', 'step3', 'step4'] as const
 
 const HowToDepositModal = ({ visible, onClose, variant = 'default' }: HowToDepositModalProps) => {
+    const t = useTranslations('addMoney.howToDeposit')
     const isOfframp = variant === 'offramp'
-    const steps = isOfframp ? OFFRAMP_STEPS : STEPS
+    const steps = STEP_KEYS.map((key, index) => ({
+        step: t('step', { number: index + 1 }),
+        text: isOfframp ? t(`offramp.${key}`) : t(`default.${key}`),
+    }))
     return (
         <Modal
             visible={visible}
@@ -37,7 +30,7 @@ const HowToDepositModal = ({ visible, onClose, variant = 'default' }: HowToDepos
         >
             <div className="flex flex-col gap-5 p-5">
                 <h3 className={'text-start text-h6 font-bold text-black'}>
-                    {isOfframp ? 'How to Migrate' : 'How to Deposit'}
+                    {isOfframp ? t('titleOfframp') : t('title')}
                 </h3>
                 <div className="flex flex-col overflow-hidden rounded-sm border border-black bg-white">
                     {steps.map((item, index) => (
@@ -51,15 +44,7 @@ const HowToDepositModal = ({ visible, onClose, variant = 'default' }: HowToDepos
                     ))}
                 </div>
 
-                <InfoCard
-                    variant="warning"
-                    icon="alert"
-                    title={
-                        isOfframp
-                            ? 'Only send USDC on Arbitrum — other tokens or networks may be lost.'
-                            : 'Sending to the wrong network or token will result in permanent loss.'
-                    }
-                />
+                <InfoCard variant="warning" icon="alert" title={isOfframp ? t('warningOfframp') : t('warning')} />
             </div>
         </Modal>
     )

@@ -208,10 +208,6 @@
 											},
 											{
 												"type": "string",
-												"enum": ["simplefi-merchant"]
-											},
-											{
-												"type": "string",
 												"enum": ["clabe"]
 											},
 											{
@@ -464,6 +460,12 @@
 																	"type": "string"
 																}
 															},
+															"hintActions": {
+																"type": "array",
+																"items": {
+																	"type": "string"
+																}
+															},
 															"reason": {
 																"type": "object",
 																"properties": {
@@ -478,6 +480,122 @@
 																	}
 																},
 																"required": ["code", "userMessage"]
+															},
+															"resolved": {
+																"type": "object",
+																"properties": {
+																	"status": {
+																		"anyOf": [
+																			{
+																				"type": "string",
+																				"enum": ["enabled"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["pending"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["fixable"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["blocked"]
+																			}
+																		]
+																	},
+																	"blocking": {
+																		"type": "object",
+																		"properties": {
+																			"code": {
+																				"type": "string"
+																			},
+																			"userMessage": {
+																				"type": "string"
+																			},
+																			"selfHealable": {
+																				"type": "boolean"
+																			},
+																			"selfHealKind": {
+																				"anyOf": [
+																					{
+																						"type": "string",
+																						"enum": ["document-resubmit"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["restart-identity"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["provide-email"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["contact-support"]
+																					}
+																				]
+																			},
+																			"details": {
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"code",
+																			"userMessage",
+																			"selfHealable"
+																		]
+																	},
+																	"nextAction": {
+																		"type": "object",
+																		"properties": {
+																			"key": {
+																				"type": "string"
+																			},
+																			"kind": {
+																				"anyOf": [
+																					{
+																						"type": "string",
+																						"enum": ["sumsub"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["accept-tos"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["wait"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["contact-support"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["provide-email"]
+																					}
+																				]
+																			},
+																			"purpose": {
+																				"type": "string"
+																			},
+																			"levelKey": {
+																				"type": "string"
+																			},
+																			"tosUrl": {
+																				"type": "string"
+																			},
+																			"effectiveDate": {
+																				"type": "string"
+																			},
+																			"requirementKey": {
+																				"type": "string"
+																			}
+																		},
+																		"required": ["key", "kind", "purpose"]
+																	}
+																},
+																"required": ["status"]
 															}
 														},
 														"required": [
@@ -516,6 +634,10 @@
 																	{
 																		"type": "string",
 																		"enum": ["contact-support"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["provide-email"]
 																	}
 																]
 															},
@@ -526,6 +648,12 @@
 																"type": "string"
 															},
 															"tosUrl": {
+																"type": "string"
+															},
+															"effectiveDate": {
+																"type": "string"
+															},
+															"requirementKey": {
 																"type": "string"
 															}
 														},
@@ -645,41 +773,6 @@
 				}
 			}
 		},
-		"/get-user-salt": {
-			"post": {
-				"requestBody": {
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"email": {
-										"type": "string"
-									}
-								},
-								"required": ["email"]
-							}
-						}
-					},
-					"required": true
-				},
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "header",
-						"name": "api-key",
-						"required": false
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Default Response"
-					}
-				}
-			}
-		},
 		"/update-user": {
 			"post": {
 				"requestBody": {
@@ -704,6 +797,10 @@
 										"type": "string"
 									},
 									"telegramUsername": {
+										"type": "string"
+									},
+									"offrampHandle": {
+										"maxLength": 320,
 										"type": "string"
 									},
 									"pushSubscriptionId": {
@@ -765,6 +862,44 @@
 						"in": "header",
 						"name": "api-key",
 						"required": false
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/users/me/delete": {
+			"post": {
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "header",
+						"name": "Authorization",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/users/logout": {
+			"post": {
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "header",
+						"name": "Authorization",
+						"required": true
 					}
 				],
 				"responses": {
@@ -860,38 +995,6 @@
 				}
 			}
 		},
-		"/users/track-transaction": {
-			"post": {
-				"requestBody": {
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"payerAddress": {
-										"type": "string"
-									},
-									"txHash": {
-										"type": "string"
-									},
-									"sourceChainId": {
-										"type": "string"
-									},
-									"sourceTokenAddress": {
-										"type": "string"
-									}
-								}
-							}
-						}
-					}
-				},
-				"responses": {
-					"200": {
-						"description": "Default Response"
-					}
-				}
-			}
-		},
 		"/history/{entryId}": {
 			"get": {
 				"parameters": [
@@ -910,41 +1013,6 @@
 						"in": "path",
 						"name": "entryId",
 						"required": true
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Default Response"
-					}
-				}
-			}
-		},
-		"/api/users/{userId}/acknowledgments": {
-			"get": {
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "userId",
-						"required": true
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "header",
-						"name": "Authorization",
-						"required": true
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "header",
-						"name": "api-key",
-						"required": false
 					}
 				],
 				"responses": {
@@ -1147,19 +1215,6 @@
 												}
 											]
 										},
-										"email": {
-											"type": "string"
-										},
-										"bridgeCustomerId": {
-											"anyOf": [
-												{
-													"type": "string"
-												},
-												{
-													"type": "null"
-												}
-											]
-										},
 										"username": {
 											"anyOf": [
 												{
@@ -1183,8 +1238,6 @@
 									"required": [
 										"userId",
 										"fullName",
-										"email",
-										"bridgeCustomerId",
 										"username",
 										"showFullName",
 										"canReceiveBankOfframp",
@@ -1441,6 +1494,12 @@
 																	"type": "string"
 																}
 															},
+															"hintActions": {
+																"type": "array",
+																"items": {
+																	"type": "string"
+																}
+															},
 															"reason": {
 																"type": "object",
 																"properties": {
@@ -1455,6 +1514,122 @@
 																	}
 																},
 																"required": ["code", "userMessage"]
+															},
+															"resolved": {
+																"type": "object",
+																"properties": {
+																	"status": {
+																		"anyOf": [
+																			{
+																				"type": "string",
+																				"enum": ["enabled"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["pending"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["fixable"]
+																			},
+																			{
+																				"type": "string",
+																				"enum": ["blocked"]
+																			}
+																		]
+																	},
+																	"blocking": {
+																		"type": "object",
+																		"properties": {
+																			"code": {
+																				"type": "string"
+																			},
+																			"userMessage": {
+																				"type": "string"
+																			},
+																			"selfHealable": {
+																				"type": "boolean"
+																			},
+																			"selfHealKind": {
+																				"anyOf": [
+																					{
+																						"type": "string",
+																						"enum": ["document-resubmit"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["restart-identity"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["provide-email"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["contact-support"]
+																					}
+																				]
+																			},
+																			"details": {
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"code",
+																			"userMessage",
+																			"selfHealable"
+																		]
+																	},
+																	"nextAction": {
+																		"type": "object",
+																		"properties": {
+																			"key": {
+																				"type": "string"
+																			},
+																			"kind": {
+																				"anyOf": [
+																					{
+																						"type": "string",
+																						"enum": ["sumsub"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["accept-tos"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["wait"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["contact-support"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["provide-email"]
+																					}
+																				]
+																			},
+																			"purpose": {
+																				"type": "string"
+																			},
+																			"levelKey": {
+																				"type": "string"
+																			},
+																			"tosUrl": {
+																				"type": "string"
+																			},
+																			"effectiveDate": {
+																				"type": "string"
+																			},
+																			"requirementKey": {
+																				"type": "string"
+																			}
+																		},
+																		"required": ["key", "kind", "purpose"]
+																	}
+																},
+																"required": ["status"]
 															}
 														},
 														"required": [
@@ -1493,6 +1668,10 @@
 																	{
 																		"type": "string",
 																		"enum": ["contact-support"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["provide-email"]
 																	}
 																]
 															},
@@ -1503,6 +1682,12 @@
 																"type": "string"
 															},
 															"tosUrl": {
+																"type": "string"
+															},
+															"effectiveDate": {
+																"type": "string"
+															},
+															"requirementKey": {
 																"type": "string"
 															}
 														},
@@ -1876,6 +2061,119 @@
 				}
 			}
 		},
+		"/auth/step-up/options": {
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"rpID": {
+										"type": "string"
+									}
+								}
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/auth/step-up/verify": {
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"cred": {},
+									"rpID": {
+										"type": "string"
+									}
+								},
+								"required": ["cred"]
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"token": {
+											"type": "string"
+										},
+										"expiresIn": {
+											"type": "number"
+										}
+									},
+									"required": ["token", "expiresIn"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/requests": {
 			"post": {
 				"requestBody": {
@@ -1940,8 +2238,8 @@
 												"type": "string"
 											},
 											"tokenAddress": {
-												"type": "string",
-												"pattern": "^0x[a-fA-F0-9]{40}$"
+												"pattern": "^(0x[a-fA-F0-9]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})$",
+												"type": "string"
 											},
 											"tokenDecimals": {
 												"type": "string"
@@ -3114,89 +3412,6 @@
 				}
 			}
 		},
-		"/bridge/kyc-links/{uuid}": {
-			"get": {
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "uuid",
-						"required": true
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "header",
-						"name": "api-key",
-						"required": false
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Default Response"
-					}
-				}
-			}
-		},
-		"/bridge/kyc-links": {
-			"post": {
-				"requestBody": {
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"type": {
-										"anyOf": [
-											{
-												"type": "string",
-												"enum": ["business"]
-											},
-											{
-												"type": "string",
-												"enum": ["individual"]
-											}
-										]
-									},
-									"fullName": {
-										"type": "string"
-									},
-									"email": {
-										"type": "string"
-									},
-									"redirectUri": {
-										"type": "string"
-									},
-									"isEEA": {
-										"type": "boolean"
-									}
-								},
-								"required": ["type", "fullName", "email"]
-							}
-						}
-					},
-					"required": true
-				},
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "header",
-						"name": "api-key",
-						"required": false
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Default Response"
-					}
-				}
-			}
-		},
 		"/bridge/customers/{uuid}/kyc-links": {
 			"get": {
 				"parameters": [
@@ -3206,381 +3421,6 @@
 						},
 						"in": "path",
 						"name": "uuid",
-						"required": true
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "header",
-						"name": "api-key",
-						"required": false
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Default Response"
-					}
-				}
-			}
-		},
-		"/bridge/customers/{customerId}/liquidation-addresses": {
-			"post": {
-				"requestBody": {
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"chain": {
-										"anyOf": [
-											{
-												"type": "string",
-												"enum": ["arbitrum"]
-											},
-											{
-												"type": "string",
-												"enum": ["base"]
-											},
-											{
-												"type": "string",
-												"enum": ["avalance_c_chain"]
-											},
-											{
-												"type": "string",
-												"enum": ["ethereum"]
-											},
-											{
-												"type": "string",
-												"enum": ["optimism"]
-											},
-											{
-												"type": "string",
-												"enum": ["polygon"]
-											},
-											{
-												"type": "string",
-												"enum": ["solana"]
-											},
-											{
-												"type": "string",
-												"enum": ["stellar"]
-											}
-										]
-									},
-									"currency": {
-										"anyOf": [
-											{
-												"type": "string",
-												"enum": ["dai"]
-											},
-											{
-												"type": "string",
-												"enum": ["usdc"]
-											},
-											{
-												"type": "string",
-												"enum": ["eurc"]
-											},
-											{
-												"type": "string",
-												"enum": ["usdt"]
-											}
-										]
-									},
-									"externalAccountId": {
-										"type": "string"
-									},
-									"prefundedAccountId": {
-										"type": "string"
-									},
-									"destinationWireMessage": {
-										"type": "string"
-									},
-									"destinationSepaReference": {
-										"type": "string"
-									},
-									"destinationSwiftReference": {
-										"type": "string"
-									},
-									"destinationAchReference": {
-										"type": "string"
-									},
-									"destinationPaymentRail": {
-										"anyOf": [
-											{
-												"type": "string",
-												"enum": ["arbitrum"]
-											},
-											{
-												"type": "string",
-												"enum": ["base"]
-											},
-											{
-												"type": "string",
-												"enum": ["avalance_c_chain"]
-											},
-											{
-												"type": "string",
-												"enum": ["ethereum"]
-											},
-											{
-												"type": "string",
-												"enum": ["optimism"]
-											},
-											{
-												"type": "string",
-												"enum": ["polygon"]
-											},
-											{
-												"type": "string",
-												"enum": ["solana"]
-											},
-											{
-												"type": "string",
-												"enum": ["stellar"]
-											},
-											{
-												"type": "string",
-												"enum": ["ach"]
-											},
-											{
-												"type": "string",
-												"enum": ["ach_push"]
-											},
-											{
-												"type": "string",
-												"enum": ["ach_same_day"]
-											},
-											{
-												"type": "string",
-												"enum": ["sepa"]
-											},
-											{
-												"type": "string",
-												"enum": ["swift"]
-											},
-											{
-												"type": "string",
-												"enum": ["wire"]
-											}
-										]
-									},
-									"destinationCurrency": {
-										"anyOf": [
-											{
-												"type": "string",
-												"enum": ["eur"]
-											},
-											{
-												"type": "string",
-												"enum": ["usd"]
-											}
-										]
-									},
-									"destinationAddress": {
-										"type": "string"
-									},
-									"destinationBlockchainMemo": {
-										"type": "string"
-									},
-									"customDeveloperFeePercent": {
-										"type": "string"
-									}
-								},
-								"required": ["chain", "currency", "externalAccountId"]
-							}
-						}
-					},
-					"required": true
-				},
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "customerId",
-						"required": true
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "header",
-						"name": "api-key",
-						"required": false
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Default Response"
-					}
-				}
-			}
-		},
-		"/bridge/customers/{uuid}/liquidation-addresses": {
-			"get": {
-				"parameters": [
-					{
-						"schema": {
-							"type": "number"
-						},
-						"in": "query",
-						"name": "limit",
-						"required": false
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "query",
-						"name": "startingAfter",
-						"required": false
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "query",
-						"name": "endingBefore",
-						"required": false
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "uuid",
-						"required": true
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "header",
-						"name": "api-key",
-						"required": false
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Default Response"
-					}
-				}
-			}
-		},
-		"/bridge/customers/{customerId}/liquidation-addresses/{liquidationAddressId}/drains": {
-			"get": {
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "customerId",
-						"required": true
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "liquidationAddressId",
-						"required": true
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "header",
-						"name": "api-key",
-						"required": false
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Default Response"
-					}
-				}
-			}
-		},
-		"/bridge/customers/{uuid}/transfers": {
-			"get": {
-				"parameters": [
-					{
-						"schema": {
-							"type": "number"
-						},
-						"in": "query",
-						"name": "limit",
-						"required": false
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "query",
-						"name": "startingAfter",
-						"required": false
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "query",
-						"name": "endingBefore",
-						"required": false
-					},
-					{
-						"schema": {
-							"type": "number"
-						},
-						"in": "query",
-						"name": "updatedBeforeMs",
-						"required": false
-					},
-					{
-						"schema": {
-							"type": "number"
-						},
-						"in": "query",
-						"name": "updatedAfterMs",
-						"required": false
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "uuid",
-						"required": true
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "header",
-						"name": "api-key",
-						"required": false
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Default Response"
-					}
-				}
-			}
-		},
-		"/bridge/transfers/{transferId}": {
-			"get": {
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "transferId",
 						"required": true
 					},
 					{
@@ -4034,6 +3874,31 @@
 											}
 										},
 										"required": ["currency", "paymentRail", "externalAccountId"]
+									},
+									"beneficiaryName": {
+										"minLength": 1,
+										"type": "string"
+									},
+									"beneficiaryAddress": {
+										"type": "object",
+										"properties": {
+											"street": {
+												"type": "string"
+											},
+											"city": {
+												"type": "string"
+											},
+											"country": {
+												"type": "string"
+											},
+											"state": {
+												"type": "string"
+											},
+											"postalCode": {
+												"type": "string"
+											}
+										},
+										"required": ["street", "city", "country"]
 									}
 								},
 								"required": ["userId", "source", "destination"]
@@ -4142,6 +4007,22 @@
 						}
 					},
 					"404": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"503": {
 						"description": "Default Response",
 						"content": {
 							"application/json": {
@@ -4494,199 +4375,6 @@
 						}
 					},
 					"403": {
-						"description": "Default Response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "object",
-									"properties": {
-										"error": {
-											"type": "string"
-										}
-									},
-									"required": ["error"]
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Default Response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "object",
-									"properties": {
-										"error": {
-											"type": "string"
-										}
-									},
-									"required": ["error"]
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/bridge/onramp/create-for-guest": {
-			"post": {
-				"summary": "Initiate an on-ramp transfer for a guest",
-				"tags": ["onramp"],
-				"description": "This endpoint initiates a new on-ramp transfer (fiat to crypto) for a guest. It creates a transfer from fiat to USDC on Arbitrum to the guest's peanut wallet and returns bank deposit instructions.",
-				"requestBody": {
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"amount": {
-										"type": "string"
-									},
-									"source": {
-										"type": "object",
-										"properties": {
-											"currency": {
-												"anyOf": [
-													{
-														"type": "string",
-														"enum": ["usd"]
-													},
-													{
-														"type": "string",
-														"enum": ["eur"]
-													},
-													{
-														"type": "string",
-														"enum": ["mxn"]
-													},
-													{
-														"type": "string",
-														"enum": ["gbp"]
-													}
-												]
-											},
-											"paymentRail": {
-												"anyOf": [
-													{
-														"type": "string",
-														"enum": ["ach"]
-													},
-													{
-														"type": "string",
-														"enum": ["ach_push"]
-													},
-													{
-														"type": "string",
-														"enum": ["ach_same_day"]
-													},
-													{
-														"type": "string",
-														"enum": ["wire"]
-													},
-													{
-														"type": "string",
-														"enum": ["sepa"]
-													},
-													{
-														"type": "string",
-														"enum": ["swift"]
-													},
-													{
-														"type": "string",
-														"enum": ["spei"]
-													},
-													{
-														"type": "string",
-														"enum": ["faster_payments"]
-													}
-												]
-											}
-										},
-										"required": ["currency", "paymentRail"]
-									},
-									"userId": {
-										"type": "string"
-									},
-									"chargeId": {
-										"type": "string"
-									}
-								},
-								"required": ["amount", "source", "userId"]
-							}
-						}
-					},
-					"required": true
-				},
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "header",
-						"name": "api-key",
-						"required": false
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Default Response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "object",
-									"properties": {
-										"transferId": {
-											"type": "string"
-										},
-										"depositInstructions": {
-											"type": "object",
-											"properties": {
-												"amount": {
-													"type": "string"
-												},
-												"currency": {
-													"type": "string"
-												},
-												"depositMessage": {
-													"type": "string"
-												},
-												"bankName": {
-													"type": "string"
-												},
-												"bankAddress": {
-													"type": "string"
-												},
-												"bankRoutingNumber": {
-													"type": "string"
-												},
-												"bankAccountNumber": {
-													"type": "string"
-												},
-												"bankBeneficiaryName": {
-													"type": "string"
-												},
-												"bankBeneficiaryAddress": {
-													"type": "string"
-												},
-												"iban": {
-													"type": "string"
-												},
-												"bic": {
-													"type": "string"
-												},
-												"accountHolderName": {
-													"type": "string"
-												}
-											},
-											"required": ["amount", "currency", "depositMessage"]
-										}
-									},
-									"required": ["transferId", "depositInstructions"]
-								}
-							}
-						}
-					},
-					"401": {
 						"description": "Default Response",
 						"content": {
 							"application/json": {
@@ -5308,6 +4996,10 @@
 									"properties": {
 										"error": {
 											"type": "string"
+										},
+										"code": {
+											"type": "string",
+											"enum": ["STALE_CARD_APPROVAL"]
 										}
 									},
 									"required": ["error"]
@@ -5676,6 +5368,36 @@
 				"summary": "Cancel deposit order",
 				"tags": ["manteca"],
 				"description": "Cancel a deposit order created via Manteca.",
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "path",
+						"name": "depositId",
+						"required": true
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "header",
+						"name": "Authorization",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/manteca/deposit/{depositId}/status": {
+			"get": {
+				"summary": "Get deposit order status",
+				"tags": ["manteca"],
+				"description": "Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only — the webhook/poller remain the authoritative completion trigger.",
 				"parameters": [
 					{
 						"schema": {
@@ -6751,9 +6473,216 @@
 					},
 					"required": true
 				},
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "header",
+						"name": "x-admin-token",
+						"required": true
+					}
+				],
 				"responses": {
 					"200": {
 						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/notifications/admin/recent": {
+			"get": {
+				"summary": "Recent notification rows for a user (all channels + statuses)",
+				"tags": ["admin"],
+				"parameters": [
+					{
+						"schema": {
+							"minLength": 1,
+							"type": "string"
+						},
+						"in": "query",
+						"name": "userId",
+						"required": true
+					},
+					{
+						"schema": {
+							"minimum": 1,
+							"maximum": 100,
+							"default": 20,
+							"type": "integer"
+						},
+						"in": "query",
+						"name": "limit",
+						"required": true
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "header",
+						"name": "x-admin-token",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"items": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"id": {
+														"type": "string"
+													},
+													"eventType": {
+														"type": "string"
+													},
+													"channel": {
+														"type": "string"
+													},
+													"status": {
+														"anyOf": [
+															{
+																"type": "string",
+																"enum": ["PENDING"]
+															},
+															{
+																"type": "string",
+																"enum": ["SENT"]
+															},
+															{
+																"type": "string",
+																"enum": ["FAILED"]
+															},
+															{
+																"type": "string",
+																"enum": ["SKIPPED"]
+															}
+														]
+													},
+													"skipReason": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"providerId": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"error": {
+														"anyOf": [
+															{
+																"type": "object",
+																"properties": {
+																	"reason": {
+																		"anyOf": [
+																			{
+																				"type": "string"
+																			},
+																			{
+																				"type": "null"
+																			}
+																		]
+																	},
+																	"name": {
+																		"anyOf": [
+																			{
+																				"type": "string"
+																			},
+																			{
+																				"type": "null"
+																			}
+																		]
+																	}
+																},
+																"required": ["reason", "name"]
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"createdAt": {
+														"type": "string"
+													},
+													"sentAt": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													}
+												},
+												"required": [
+													"id",
+													"eventType",
+													"channel",
+													"status",
+													"skipReason",
+													"providerId",
+													"error",
+													"createdAt",
+													"sentAt"
+												]
+											}
+										}
+									},
+									"required": ["items"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
 					}
 				}
 			}
@@ -6778,6 +6707,44 @@
 		},
 		"/notifications/mark-read": {
 			"post": {
+				"responses": {
+					"200": {
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/unsubscribe": {
+			"get": {
+				"tags": ["notifications"],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "query",
+						"name": "token",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response"
+					}
+				}
+			},
+			"post": {
+				"tags": ["notifications"],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "query",
+						"name": "token",
+						"required": true
+					}
+				],
 				"responses": {
 					"200": {
 						"description": "Default Response"
@@ -7692,6 +7659,15 @@
 									},
 									"senderPeanutWalletAddress": {
 										"type": "string"
+									},
+									"feeUsd": {
+										"type": "number"
+									},
+									"payAmount": {
+										"type": "string"
+									},
+									"receiveAmount": {
+										"type": "string"
 									}
 								},
 								"required": [
@@ -7921,6 +7897,9 @@
 										"flowEarlyAccess": {
 											"type": "boolean"
 										},
+										"isPublicLaunched": {
+											"type": "boolean"
+										},
 										"waitlistJoinedAt": {
 											"anyOf": [
 												{
@@ -7956,6 +7935,12 @@
 											"items": {
 												"type": "string"
 											}
+										},
+										"waitlistTotal": {
+											"type": "number"
+										},
+										"admittedTotal": {
+											"type": "number"
 										}
 									},
 									"required": [
@@ -7963,10 +7948,13 @@
 										"isEligible",
 										"geoProhibited",
 										"flowEarlyAccess",
+										"isPublicLaunched",
 										"waitlistJoinedAt",
 										"waitlistPosition",
 										"waitlistReleasedAt",
-										"skipBadges"
+										"skipBadges",
+										"waitlistTotal",
+										"admittedTotal"
 									]
 								}
 							}
@@ -8445,6 +8433,9 @@
 												}
 											]
 										},
+										"balanceUnavailable": {
+											"type": "boolean"
+										},
 										"cards": {
 											"type": "array",
 											"items": {
@@ -8492,7 +8483,7 @@
 											}
 										}
 									},
-									"required": ["status", "balance", "cards"]
+									"required": ["status", "balance", "balanceUnavailable", "cards"]
 								}
 							}
 						}
@@ -9630,6 +9621,9 @@
 											"type": "string"
 										},
 										"network": {
+											"type": "string"
+										},
+										"cardholderName": {
 											"type": "string"
 										}
 									},
@@ -11844,6 +11838,10 @@
 											},
 											{
 												"type": "string",
+												"enum": ["NOT_SO_SHHHH"]
+											},
+											{
+												"type": "string",
 												"enum": ["CARD_FIRST_SWIPE"]
 											},
 											{
@@ -11864,7 +11862,35 @@
 											},
 											{
 												"type": "string",
+												"enum": ["IRL_NOMADS"]
+											},
+											{
+												"type": "string",
+												"enum": ["EVENT_ALUMNI"]
+											},
+											{
+												"type": "string",
+												"enum": ["TOUCHED_GRASS"]
+											},
+											{
+												"type": "string",
+												"enum": ["OFFRAMP_USER"]
+											},
+											{
+												"type": "string",
+												"enum": ["PSYOPS_DIVISION"]
+											},
+											{
+												"type": "string",
 												"enum": ["WAITLIST_SKIP"]
+											},
+											{
+												"type": "string",
+												"enum": ["FESTA_JUNINA_2026"]
+											},
+											{
+												"type": "string",
+												"enum": ["MANICERO"]
 											}
 										]
 									},

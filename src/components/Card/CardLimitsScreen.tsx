@@ -1,6 +1,7 @@
 'use client'
 import { type FC, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
@@ -16,12 +17,14 @@ interface Props {
 // additional frequencies (daily / monthly / all-time) but we don't currently
 // surface them. Add back to this list if/when product wants more.
 const FREQUENCY = 'perAuthorization' as const
-const LABEL = 'Per transaction'
 
 const formatDollars = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 0 })}`
 
 const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
+    const t = useTranslations('card.limits')
+    const tCommon = useTranslations('common')
     const [isEditing, setIsEditing] = useState(false)
+    const label = t('perTransaction')
 
     const {
         data: limits,
@@ -38,30 +41,30 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-6">
-            <NavHeader title="Card limit" onPrev={onPrev} />
+            <NavHeader title={t('navTitle')} onPrev={onPrev} />
             <div className="flex flex-col gap-3">
-                <h2 className="text-lg font-bold">Set your per-transaction spending limit.</h2>
+                <h2 className="text-lg font-bold">{t('subtitle')}</h2>
                 {isLoading ? (
                     <div className="flex justify-center py-8">
                         <Loading />
                     </div>
                 ) : error ? (
                     <div className="flex flex-col items-center gap-3 py-8 text-center">
-                        <p className="text-sm text-grey-1">Failed to load card limit.</p>
+                        <p className="text-sm text-grey-1">{t('loadFailed')}</p>
                         <Button variant="stroke" onClick={() => refetch()}>
-                            Retry
+                            {tCommon('retry')}
                         </Button>
                     </div>
                 ) : (
                     <div className="flex items-center justify-between rounded-sm border border-n-1 bg-white px-4 py-3">
                         <div>
-                            <div className="text-sm text-grey-1">{LABEL}</div>
+                            <div className="text-sm text-grey-1">{label}</div>
                             <div className="text-base font-bold">
-                                {amount != null ? formatDollars(amount) : 'No limit set'}
+                                {amount != null ? formatDollars(amount) : t('noLimitSet')}
                             </div>
                         </div>
                         <button type="button" onClick={() => setIsEditing(true)} className="text-black underline">
-                            Edit
+                            {t('edit')}
                         </button>
                     </div>
                 )}
@@ -70,7 +73,7 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
             <CardLimitEditModal
                 cardId={cardId}
                 frequency={FREQUENCY}
-                label={LABEL}
+                label={label}
                 initialAmountCents={amount}
                 isOpen={isEditing}
                 onClose={() => setIsEditing(false)}

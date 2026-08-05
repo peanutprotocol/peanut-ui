@@ -10,9 +10,10 @@
 import React from 'react'
 import posthog from 'posthog-js'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
-import type { RailCapability, CapabilityRestriction } from '@/types/capabilities'
+import type { RailCapability } from '@/types/capabilities'
 
 // Test-local subsets — only the fields the qr-pay page actually reads from each
 // fixture. Mirroring the full RailCapability/CapabilityRestriction types here
@@ -20,6 +21,7 @@ import type { RailCapability, CapabilityRestriction } from '@/types/capabilities
 // reason message even when the page never touches them.
 type TestRail = Pick<RailCapability, 'id' | 'provider' | 'status' | 'operations'> & {
     reason?: { userMessage: string | null }
+    resolved?: RailCapability['resolved']
 }
 type TestRestriction = { code: string; affectedRailIds: string[]; userMessage?: string | null }
 
@@ -231,7 +233,7 @@ jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
 
 jest.mock('@/features/limits/components/LimitsWarningCard', () => ({
     __esModule: true,
-    default: (props: any) => <div data-testid="limits-warning-card" />,
+    default: (_props: any) => <div data-testid="limits-warning-card" />,
 }))
 
 jest.mock('@/features/limits/utils', () => ({
@@ -287,7 +289,6 @@ jest.mock('@/utils/qr-payment.utils', () => ({
     calculateSavingsInCents: jest.fn(() => 0),
     hasCardMarkupComparison: jest.fn(() => false),
     isArgentinaMantecaQrPayment: jest.fn(() => false),
-    getSavingsMessage: jest.fn(() => ''),
 }))
 
 jest.mock('@/config/underMaintenance.config', () => ({
@@ -337,11 +338,13 @@ jest.mock('@/components/Global/NavHeader', () => ({
 
 jest.mock('@/components/Global/Card', () => ({
     __esModule: true,
-    default: React.forwardRef((props: any, ref: any) => (
-        <div data-testid="card" ref={ref} className={props.className}>
-            {props.children}
-        </div>
-    )),
+    default: React.forwardRef(function Card(props: any, ref: any) {
+        return (
+            <div data-testid="card" ref={ref} className={props.className}>
+                {props.children}
+            </div>
+        )
+    }),
 }))
 
 jest.mock('@/components/0_Bruddle/Button', () => ({
@@ -496,6 +499,7 @@ function capabilitiesForGate(state: GateState, opts: { userMessage?: string | nu
         canDo: (_op: string, o?: { provider?: string }) =>
             payEnabled && (o?.provider === undefined || o.provider === 'manteca'),
         railsForProvider: (provider: string) => rails.filter((r) => r.provider === provider),
+        nextActions: [],
         restrictionForRail: (railId: string) => restrictions.find((r) => r.affectedRailIds.includes(railId)),
     }
 }
@@ -504,24 +508,12 @@ function setCapabilitiesGate(state: GateState, opts: { userMessage?: string | nu
     mockUseCapabilities.mockReturnValue(capabilitiesForGate(state, opts))
 }
 
-// Loading state context provider
-const LoadingStateProvider = ({ children }: { children: React.ReactNode }) => {
-    const loadingStateContext = require('@/context').loadingStateContext
-    const [loadingState, setLoadingState] = React.useState('Idle')
-    const isLoading = loadingState !== 'Idle'
-    return (
-        <loadingStateContext.Provider value={{ loadingState, setLoadingState, isLoading }}>
-            {children}
-        </loadingStateContext.Provider>
-    )
-}
-
-// We need to mock the context module itself since it's imported via { loadingStateContext }
-const mockSetLoadingState = jest.fn()
-jest.mock('@/context', () => ({
+// We need to mock the context module itself (specific file, not the barrel — the page
+// imports from '@/context/loadingStates.context' per the no-barrel rule)
+jest.mock('@/context/loadingStates.context', () => ({
     loadingStateContext: React.createContext({
         loadingState: 'Idle' as string,
-        setLoadingState: (s: string) => {},
+        setLoadingState: (_s: string) => {},
         isLoading: false,
     }),
 }))
@@ -529,7 +521,7 @@ jest.mock('@/context', () => ({
 function renderQrPay(params: Record<string, string> = {}) {
     setSearchParams(params)
     const queryClient = createQueryClient()
-    const { loadingStateContext } = require('@/context')
+    const { loadingStateContext } = require('@/context/loadingStates.context')
 
     const LoadingProvider = ({ children }: { children: React.ReactNode }) => {
         const [loadingState, setLoadingState] = React.useState<string>('Idle')
@@ -542,11 +534,13 @@ function renderQrPay(params: Record<string, string> = {}) {
     }
 
     return render(
-        <QueryClientProvider client={queryClient}>
-            <LoadingProvider>
-                <QRPayPage />
-            </LoadingProvider>
-        </QueryClientProvider>
+        <IntlWrapper>
+            <QueryClientProvider client={queryClient}>
+                <LoadingProvider>
+                    <QRPayPage />
+                </LoadingProvider>
+            </QueryClientProvider>
+        </IntlWrapper>
     )
 }
 
@@ -696,6 +690,36 @@ describe('GROUP 1: Loading & KYC Gate', () => {
 
         expect(screen.getByText('QR payments are not available')).toBeInTheDocument()
         expect(screen.getByText('Contact support to continue.')).toBeInTheDocument()
+    })
+
+    test('provide-email verdict maps to the unavailable modal, never the document-upload flow', () => {
+        // a fixable verdict whose only fix is adding an email must not open
+        // the Sumsub upload flow (this surface has no email form) — same
+        // mapping rule as deriveProviderRejection
+        mockUseCapabilities.mockReturnValue({
+            ...capabilitiesForGate('provider_rejection_fixable', { userMessage: 'Add your email to continue.' }),
+            railsForProvider: () => [
+                {
+                    id: MANTECA_RAIL_ID,
+                    provider: 'manteca',
+                    status: 'blocked',
+                    resolved: {
+                        status: 'fixable',
+                        blocking: {
+                            code: 'email_required',
+                            userMessage: 'Add your email to continue.',
+                            selfHealable: true,
+                            selfHealKind: 'provide-email',
+                        },
+                    },
+                } as TestRail,
+            ],
+        })
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        expect(screen.getByText('QR payments are not available')).toBeInTheDocument()
+        expect(screen.queryByText('Upload document')).not.toBeInTheDocument()
     })
 
     test('Manteca fixable rejection shows updated-document modal', () => {
@@ -1019,6 +1043,31 @@ describe('GROUP 4: Success States', () => {
         expect(screen.getByText('Split this bill')).toBeInTheDocument()
     })
 
+    test('See receipt opens the drawer keyed by the Manteca synthetic id, not externalId', async () => {
+        // getReceiptUrl builds /receipt/<id>?kind=QR_PAY, and the backend resolves
+        // that id only via the Manteca synthetic id. Stamping externalId here 404s
+        // every shared receipt.
+        const openTransactionDetails = jest.fn()
+        mockUseTransactionDetailsDrawer.mockReturnValue({
+            openTransactionDetails,
+            selectedTransaction: null,
+            isDrawerOpen: false,
+            closeTransactionDetails: jest.fn(),
+        })
+
+        await completeMantecaPayment()
+
+        await waitFor(() => {
+            expect(screen.getByText('See receipt')).toBeInTheDocument()
+        })
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('See receipt'))
+        })
+
+        expect(openTransactionDetails).toHaveBeenCalledWith(expect.objectContaining({ id: 'qp1' }))
+    })
+
     test('Manteca success, perk eligible shows hold-to-claim button', async () => {
         await completeMantecaPayment({
             perk: {
@@ -1194,15 +1243,10 @@ describe('GROUP 4: Success States', () => {
     })
 
     test('Argentina QR3 success shows savings message', async () => {
-        const {
-            hasCardMarkupComparison,
-            calculateSavingsInCents,
-            getSavingsMessage,
-        } = require('@/utils/qr-payment.utils')
+        const { hasCardMarkupComparison, calculateSavingsInCents } = require('@/utils/qr-payment.utils')
 
         hasCardMarkupComparison.mockReturnValue(true)
         calculateSavingsInCents.mockReturnValue(150)
-        getSavingsMessage.mockReturnValue('You saved $1.50 vs card!')
 
         await completeMantecaPayment()
 
@@ -1210,8 +1254,26 @@ describe('GROUP 4: Success States', () => {
             expect(screen.getByText(/You paid/)).toBeInTheDocument()
         })
 
-        // Savings message should appear for Argentina QR3 payments
-        expect(screen.getByText('You saved $1.50 vs card!')).toBeInTheDocument()
+        // Savings message should appear for Argentina QR3 payments, via the localized catalog
+        expect(screen.getByText('saved ~$1.5 compared to card!')).toBeInTheDocument()
+    })
+
+    test.each([
+        [1, 'saved ~1 cent compared to card!'],
+        [42, 'saved ~42 cents compared to card!'],
+    ])('savings below $1 read in cents (%i)', async (cents, message) => {
+        const { hasCardMarkupComparison, calculateSavingsInCents } = require('@/utils/qr-payment.utils')
+
+        hasCardMarkupComparison.mockReturnValue(true)
+        calculateSavingsInCents.mockReturnValue(cents)
+
+        await completeMantecaPayment()
+
+        await waitFor(() => {
+            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+        })
+
+        expect(screen.getByText(message)).toBeInTheDocument()
     })
 })
 

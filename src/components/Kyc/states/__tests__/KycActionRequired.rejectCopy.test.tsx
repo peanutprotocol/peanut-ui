@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import { KycActionRequired } from '../KycActionRequired'
 
 // Integration-level companion to KycStates.test.tsx: that suite mocks
@@ -6,6 +7,8 @@ import { KycActionRequired } from '../KycActionRequired'
 // RejectLabelsList + reject-label copy map so a regression in the
 // DUPLICATE_EMAIL → "Email already in use" mapping (the whole point of the
 // precedence fix) actually fails a test instead of shipping silently.
+
+const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 jest.mock('use-haptic', () => ({
     useHaptic: () => ({ triggerHaptic: jest.fn() }),

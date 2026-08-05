@@ -1,8 +1,10 @@
 import { mapTransactionDataForDrawer } from '../transactionTransformer'
-import { EHistoryUserRole, EHistoryStatus, type HistoryEntry } from '@/utils/history.utils'
+import { EHistoryUserRole, EHistoryStatus, getTransactionSign, type HistoryEntry } from '@/utils/history.utils'
+import { pipelineAlert } from '@/utils/pipelineAlerts'
 
 jest.mock('@/assets', () => ({}))
-jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '', SIMPLEFI: '' }))
+jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
+jest.mock('@/utils/pipelineAlerts', () => ({ pipelineAlert: jest.fn() }))
 
 type Account = NonNullable<HistoryEntry['recipientAccount']>
 
@@ -24,6 +26,21 @@ const bobUser: Account = {
     fullName: 'Bob Builder',
     userId: 'user-bob',
     showFullName: false,
+}
+
+// A Peanut user who has a display name (showFullName) but no @username — only
+// their wallet address as identifier. The strategy must thread fullName +
+// showFullName so the avatar resolves to their initials, not the address (which
+// would trip isAddress() → wallet icon in TransactionAvatarBadge).
+const displayNameOnlyUser: Account = {
+    // real hex address so isAddress() would be true on the old code path —
+    // faithfully reproduces the "avatar name is an address → wallet icon" symptom.
+    identifier: '0x1234567890abcdef1234567890abcdef12345678',
+    type: 'WALLET_SMART',
+    isUser: true,
+    fullName: 'Nancy Drew',
+    userId: 'user-nancy',
+    showFullName: true,
 }
 
 const externalEoa: Account = {
@@ -348,7 +365,48 @@ const cases: TestCase[] = [
         }),
         expect: {
             direction: 'receive',
-            transactionCardType: 'receive',
+            transactionCardType: 'refund',
+            userName: 'Refund from Acme Coffee',
+            cardPaymentDefined: true,
+        },
+    },
+
+    // ───── REFUND (Rain + Manteca) ─────
+    {
+        name: 'REFUND × RAIN → card refund shape (Refund from merchant)',
+        entry: baseEntry({
+            userRole: EHistoryUserRole.RECIPIENT,
+            recipientAccount: aliceUser,
+            extraData: { kind: 'REFUND', provider: 'RAIN', parentRainTxId: 'rain-789', merchantName: 'Acme Coffee' },
+        }),
+        expect: {
+            direction: 'receive',
+            transactionCardType: 'refund',
+            userName: 'Refund from Acme Coffee',
+            cardPaymentDefined: true,
+        },
+    },
+    {
+        name: 'REFUND × MANTECA → generic Refund credit row',
+        entry: baseEntry({
+            userRole: EHistoryUserRole.RECIPIENT,
+            recipientAccount: aliceUser,
+            extraData: { kind: 'REFUND', provider: 'MANTECA' },
+        }),
+        expect: { direction: 'receive', transactionCardType: 'refund', userName: 'Refund' },
+    },
+    {
+        name: 'negative CARD_SPEND_AUTH (Rain refund credit) → refund, not card_pay',
+        entry: baseEntry({
+            userRole: EHistoryUserRole.SENDER,
+            amount: '-14.68',
+            status: EHistoryStatus.PENDING,
+            recipientAccount: aliceUser,
+            extraData: { kind: 'CARD_SPEND_AUTH', provider: 'RAIN', merchantName: 'Acme Coffee' },
+        }),
+        expect: {
+            direction: 'receive',
+            transactionCardType: 'refund',
             userName: 'Refund from Acme Coffee',
             cardPaymentDefined: true,
         },
@@ -436,6 +494,85 @@ describe('mapTransactionDataForDrawer', () => {
             const result = mapTransactionDataForDrawer(entry).transactionDetails
             expect(result.direction).toBeDefined()
             expect(result.extraDataForDrawer?.kind).toBeUndefined()
+        })
+    })
+
+    describe('refund credit rows (status + sign + flag)', () => {
+        const negativeAuth = baseEntry({
+            userRole: EHistoryUserRole.SENDER,
+            amount: '-14.68',
+            status: EHistoryStatus.PENDING,
+            recipientAccount: aliceUser,
+            extraData: { kind: 'CARD_SPEND_AUTH', provider: 'RAIN', merchantName: 'Acme Coffee', usdAmount: '-14.68' },
+        })
+
+        it('a negative auth stays pending (never "refunded") so the + sign shows', () => {
+            const result = mapTransactionDataForDrawer(negativeAuth).transactionDetails
+            expect(result.status).toBe('pending')
+            expect(result.direction).toBe('receive')
+            // 'refunded'/'failed'/'cancelled' would suppress the sign; a pending
+            // receive keeps the '+'. This is what makes the credit read as +$14.68.
+            expect(getTransactionSign(result)).toBe('+')
+        })
+
+        it('flags the drawer cardPayment as a refund', () => {
+            const result = mapTransactionDataForDrawer(negativeAuth).transactionDetails
+            expect(result.extraDataForDrawer?.cardPayment?.isRefund).toBe(true)
+        })
+
+        it('role-derived display strings follow the refund verdict, not the wire role', () => {
+            // Old BE reports userRole=SENDER on a negative auth. The receipt's
+            // "Sent/Received" label and the +/- currency symbol key off
+            // originalUserRole/currencySymbol — they must agree with the
+            // refund header, not assert the user sent the money.
+            const result = mapTransactionDataForDrawer(negativeAuth).transactionDetails
+            expect(result.extraDataForDrawer?.originalUserRole).toBe(EHistoryUserRole.RECIPIENT)
+            expect(result.currencySymbol).toBe('+$')
+        })
+
+        it('kind REFUND no longer trips the unknown-transformer-kind pipeline alert', () => {
+            jest.mocked(pipelineAlert).mockClear()
+            mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'REFUND', provider: 'MANTECA' },
+                })
+            )
+            expect(pipelineAlert).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('direct P2P avatar for display-name-only users (no @username)', () => {
+        // Regression guard: p2p-send used to drop fullName/showFullName, so a
+        // recipient/sender with only a display name fell back to their wallet
+        // address for the avatar name → isAddress() → wallet icon instead of
+        // initials. The strategy now threads both, matching every sibling.
+        it('outgoing send resolves the recipient display name → initials, not the address', () => {
+            const result = mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: displayNameOnlyUser,
+                    extraData: { kind: 'DIRECT_TRANSFER' },
+                })
+            ).transactionDetails
+            expect(result.fullName).toBe('Nancy Drew')
+            expect(result.showFullName).toBe(true)
+            expect(result.initials).toBe('ND')
+        })
+
+        it('incoming receive resolves the sender display name → initials, not the address', () => {
+            const result = mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    senderAccount: displayNameOnlyUser,
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'DIRECT_TRANSFER' },
+                })
+            ).transactionDetails
+            expect(result.fullName).toBe('Nancy Drew')
+            expect(result.showFullName).toBe(true)
+            expect(result.initials).toBe('ND')
         })
     })
 })

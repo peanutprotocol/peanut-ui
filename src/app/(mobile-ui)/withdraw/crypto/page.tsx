@@ -17,36 +17,40 @@ import type {
     TRequestResponse,
 } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
-import { isWithdrawFeeDisproportionate } from '@/utils/cross-chain-fee.utils'
+import { isWithdrawFeeDisproportionate, getMinWithdrawUsdForChain } from '@/utils/cross-chain-fee.utils'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
+import { isBelowRhinoMinDeposit } from '@/utils/withdraw.utils'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { useSafeBack } from '@/hooks/useSafeBack'
 import { captureMessage } from '@sentry/nextjs'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import type { Address, Hex, TransactionReceipt } from 'viem'
 import { parseUnits } from 'viem'
 import { Slider } from '@/components/Slider'
-import { tokenSelectorContext } from '@/context'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useHaptic } from 'use-haptic'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
-import { isTxReverted } from '@/utils/general.utils'
-import { ErrorHandler } from '@/utils/friendly-error.utils'
+import { isTxReverted, printableAddress } from '@/utils/general.utils'
+import { appBaseUrl } from '@/utils/url.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useTranslations } from 'next-intl'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
+    const t = useTranslations('withdraw')
+    const tNav = useTranslations('navigation')
+    const toFriendlyError = useFriendlyError()
     const onBack = useSafeBack('/withdraw')
-    const { isConnected: isPeanutWallet, address, sendTransactions, sendMoney, spendableBalance } = useWallet()
+    const { address, sendTransactions, sendMoney, spendableBalance } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
     const {
         amountToWithdraw,
         usdAmount,
-        setAmountToWithdraw,
         currentView,
         setCurrentView,
         withdrawData,
@@ -72,6 +76,7 @@ export default function WithdrawCryptoPage() {
         receiveAmount,
         payAmount,
         feeUsd,
+        minDepositLimitUsd,
         isCalculating,
         isXChain,
         isDiffToken,
@@ -164,8 +169,28 @@ export default function WithdrawCryptoPage() {
         async (data: Omit<WithdrawData, 'amount'>) => {
             if (!amountToWithdraw) {
                 console.error('Amount to withdraw is not set or not available from context')
-                setError('Withdrawal amount is missing.')
+                setError(t('errors.amountMissing'))
                 return
+            }
+
+            // Same-chain USDC is a direct transfer — no Rhino, no minimum
+            // (parity with send-via-link). Every other destination/token rides
+            // Rhino, which parks (doesn't auto-refund) deposits below the route
+            // minimum — block those before any request/charge is created.
+            // amountToWithdraw is USD.
+            const isSameChainUsdc =
+                data.chain.chainId.toString() === PEANUT_WALLET_CHAIN.id.toString() &&
+                data.token.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
+            if (!isSameChainUsdc) {
+                const usdToWithdraw = parseFloat(amountToWithdraw)
+                const minUsd = getMinWithdrawUsdForChain(data.chain.chainId)
+                if (!Number.isFinite(usdToWithdraw) || usdToWithdraw < minUsd) {
+                    const minDisplay = minUsd % 1 === 0 ? `$${minUsd}` : `$${minUsd.toFixed(2)}`
+                    setError(
+                        `Withdrawals to ${data.chain.networkName} need at least ${minDisplay}. Increase the amount or pick a different network.`
+                    )
+                    return
+                }
             }
 
             clearErrors()
@@ -201,13 +226,13 @@ export default function WithdrawCryptoPage() {
                 const newRequest: TRequestResponse = await requestsApi.create(apiRequestPayload)
 
                 if (!newRequest || !newRequest.uuid) {
-                    throw new Error('Failed to create request for withdrawal.')
+                    throw new Error(t('errors.requestFailed'))
                 }
 
                 const chargePayload: CreateChargeRequest = {
                     pricing_type: 'fixed_price',
                     local_price: { amount: usdValue.toString(), currency: 'USD' },
-                    baseUrl: window.location.origin,
+                    baseUrl: appBaseUrl(),
                     requestId: newRequest.uuid,
                     requestProps: {
                         chainId: completeWithdrawData.chain.chainId.toString(),
@@ -226,16 +251,16 @@ export default function WithdrawCryptoPage() {
                 const createdCharge: TCharge = await chargesApi.create(chargePayload)
 
                 if (!createdCharge || !createdCharge.data || !createdCharge.data.id) {
-                    throw new Error('Failed to create charge for withdrawal or charge ID missing.')
+                    throw new Error(t('errors.chargeFailed'))
                 }
 
                 const fullChargeDetails = await chargesApi.get(createdCharge.data.id)
 
                 setChargeDetails(fullChargeDetails)
                 setShowCompatibilityModal(true)
-            } catch (err: any) {
+            } catch (err) {
                 console.error('Error during setup review (request/charge creation):', err)
-                const errorMessage = err.message || 'Could not prepare withdrawal. Please try again.'
+                const errorMessage = err instanceof Error && err.message ? err.message : t('errors.prepareFailed')
                 setError(errorMessage)
             } finally {
                 setIsPreparingReview(false)
@@ -249,6 +274,7 @@ export default function WithdrawCryptoPage() {
             setWithdrawData,
             setShowCompatibilityModal,
             setError,
+            t,
         ]
     )
 
@@ -258,9 +284,9 @@ export default function WithdrawCryptoPage() {
             setCurrentView('CONFIRM')
         } else {
             console.error('Proceeding to confirm, but charge details or withdraw data are missing.')
-            setError('Failed to load withdrawal details for confirmation. Please go back and try again.')
+            setError(t('errors.confirmDetailsFailed'))
         }
-    }, [chargeDetails, withdrawData, setCurrentView, setShowCompatibilityModal, setError])
+    }, [chargeDetails, withdrawData, setCurrentView, setShowCompatibilityModal, setError, t])
 
     // True when the withdraw needs a Rhino path (SDA or bridge swap) rather
     // than a direct USDC transfer. Crosses a chain boundary OR a token
@@ -275,13 +301,13 @@ export default function WithdrawCryptoPage() {
     const handleConfirmWithdrawal = useCallback(async () => {
         if (!chargeDetails || !withdrawData || !amountToWithdraw || !address) {
             console.error('Withdraw data, active charge details, or amount missing for final confirmation')
-            setError('Essential withdrawal information is missing.')
+            setError(t('errors.essentialInfoMissing'))
             return
         }
 
         if (!transactions || transactions.length === 0) {
             console.error('No transactions prepared for withdrawal')
-            setError('Transaction not prepared. Please try again.')
+            setError(t('errors.txNotPrepared'))
             return
         }
 
@@ -303,13 +329,10 @@ export default function WithdrawCryptoPage() {
             // sendTransactions mixed path.
             let finalTxHash: Hex | undefined
             let receipt: TransactionReceipt | null = null
-            // 'collateral-only' | 'smart-only' | 'mixed' — drives whether we call
-            // recordPayment (smart-only) or rely on the Rain webhook →
-            // TransactionIntent reconciliation path (collateral-only / mixed).
+            // 'collateral-only' | 'smart-only' | 'mixed' — how the spend was
+            // funded; drives how strictly the recordPayment result is treated
+            // (see the recordPayment note below).
             let strategy: 'collateral-only' | 'smart-only' | 'mixed' | undefined
-            // Backend TransactionIntent id — used to navigate to the unified
-            // receipt page for collateral/mixed spends.
-            let intentId: string | undefined
 
             if (!isCrossChainWithdrawal) {
                 const {
@@ -317,11 +340,18 @@ export default function WithdrawCryptoPage() {
                     txHash,
                     receipt: r,
                     strategy: s,
-                    intentId: i,
-                } = await sendMoney(withdrawData.address as Address, amountToWithdraw, { kind: 'CRYPTO_WITHDRAW' })
+                } = await sendMoney(withdrawData.address as Address, amountToWithdraw, {
+                    kind: 'CRYPTO_WITHDRAW',
+                    // Lets the backend settle the charge directly when the spend
+                    // routes through Rain card collateral (collateral-only): the
+                    // charge intent becomes the withdrawal preparation and
+                    // /submit completes it server-side. Without this the charge
+                    // rots PENDING and the successful withdrawal never shows in
+                    // Activity (same contract as direct-send / request-pay).
+                    chargeId: chargeDetails.uuid,
+                })
                 receipt = r
                 strategy = s
-                intentId = i
                 if (receipt !== null && isTxReverted(receipt)) {
                     throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
                 }
@@ -341,7 +371,6 @@ export default function WithdrawCryptoPage() {
                 })
                 receipt = txResult.receipt
                 strategy = txResult.strategy
-                intentId = txResult.intentId
                 if (receipt !== null && isTxReverted(receipt)) {
                     throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
                 }
@@ -350,32 +379,64 @@ export default function WithdrawCryptoPage() {
 
             if (!finalTxHash) throw new Error('Withdrawal returned no transaction identifier')
 
-            // Skip recordPayment when funds moved via Rain collateral on a
-            // SAME-chain withdrawal — the charge indexer watches for
-            // smart-account-outgoing transfers, but a coordinator-driven
-            // withdraw moves USDC from the collateral proxy and would leave
-            // the Charge unmatched ("failed" in history). The Rain webhook +
-            // TransactionIntent reconciliation is the source of truth there.
-            //
-            // Cross-chain withdraws ALWAYS need recordPayment to fire — the
-            // BE validator's cross-chain branch transitions the charge intent
-            // to COMPLETED directly (trusts the source-chain submission since
-            // Rhino owns delivery downstream). Without this call the intent
-            // gets stuck at PENDING because nothing else triggers the
-            // transition for the bridge-path (depositWithId, mode='pay')
-            // flow we use for non-stable destinations.
+            // Record the payment against the charge on EVERY path — completing
+            // the user-facing charge is what makes the withdrawal appear in
+            // Activity:
+            //  - collateral-only: /prepare tagged the charge (chargeId above)
+            //    and /submit completed it server-side; recordPayment re-enters
+            //    the same trusted-completion path (idempotent) — the designed
+            //    recovery net when /submit's post-mining bookkeeping fails.
+            //  - mixed: the kernel sent a plain usdc.transfer(recipient) that
+            //    the on-chain validator matches — the normal recordPayment path.
+            //  - smart-only / cross-chain: unchanged — recordPayment has always
+            //    been their only charge-completion trigger.
+            // This used to be SKIPPED for collateral-routed same-chain
+            // withdraws, which left the charge PENDING forever: history hides
+            // never-paid charges as abandoned drafts and hides the rain-prepare
+            // intent as a phantom, so a successful withdrawal was completely
+            // invisible in Activity while the balance dropped.
             const routedThroughCollateral = strategy === 'collateral-only' || strategy === 'mixed'
-            const skipRecordPayment = routedThroughCollateral && !isCrossChainWithdrawal
+            const collateralRoutedSameChain = routedThroughCollateral && !isCrossChainWithdrawal
+
+            // An untagged mixed same-chain charge goes through the on-chain
+            // validator, which needs a MINED tx hash — a userOp hash can never
+            // match, and validator retry-exhaustion would flip the successful
+            // withdrawal to FAILED (worse than the pre-fix stuck-PENDING). If
+            // the receipt wait timed out, skip the record (pre-fix behavior)
+            // and leave a breadcrumb. collateral-only is safe regardless: its
+            // hash is a backend-broadcast EVM tx and the tagged charge settles
+            // via the trusted path.
+            const mixedWithoutMinedHash = strategy === 'mixed' && !isCrossChainWithdrawal && !receipt?.transactionHash
 
             let payment: Awaited<ReturnType<typeof recordPayment>> | null = null
-            if (!skipRecordPayment) {
-                payment = await recordPayment({
-                    chargeId: chargeDetails.uuid,
-                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                    txHash: finalTxHash,
-                    tokenAddress: PEANUT_WALLET_TOKEN as Address,
-                    payerAddress: address as Address,
+            if (mixedWithoutMinedHash) {
+                captureMessage('withdraw: skipping recordPayment — mixed spend without mined receipt', {
+                    level: 'warning',
+                    extra: { chargeId: chargeDetails.uuid, userOpOrTxHash: finalTxHash, strategy },
                 })
+            } else {
+                try {
+                    payment = await recordPayment({
+                        chargeId: chargeDetails.uuid,
+                        chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                        txHash: finalTxHash,
+                        tokenAddress: PEANUT_WALLET_TOKEN as Address,
+                        payerAddress: address as Address,
+                    })
+                } catch (err) {
+                    // Funds already moved on-chain. On collateral-routed same-chain
+                    // paths a recordPayment hiccup must not read as a failed
+                    // withdrawal (collateral-only is already settled server-side;
+                    // mixed then just stays PENDING, exactly like pre-fix) —
+                    // degrade to the success view without payment details. Other
+                    // paths keep throwing, as they always have.
+                    if (!collateralRoutedSameChain) throw err
+                    console.error('recordPayment failed after collateral-routed withdrawal (funds moved):', err)
+                    captureMessage('withdraw: recordPayment failed after collateral-routed spend', {
+                        level: 'warning',
+                        extra: { chargeId: chargeDetails.uuid, txHash: finalTxHash, strategy },
+                    })
+                }
             }
 
             setTransactionHash(finalTxHash)
@@ -388,7 +449,7 @@ export default function WithdrawCryptoPage() {
             })
         } catch (err) {
             console.error('Withdrawal execution failed:', err)
-            const errMsg = ErrorHandler(err)
+            const errMsg = toFriendlyError(err)
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
                 method_type: 'crypto',
                 error_message: errMsg,
@@ -415,6 +476,8 @@ export default function WithdrawCryptoPage() {
         clearErrors,
         setError,
         triggerHaptic,
+        t,
+        toFriendlyError,
     ])
 
     const handleBackFromConfirm = useCallback(() => {
@@ -423,14 +486,18 @@ export default function WithdrawCryptoPage() {
         setChargeDetails(null)
     }, [setCurrentView, clearErrors, setChargeDetails])
 
-    // reset withdraw flow when this component unmounts
+    // reset withdraw flow when this component unmounts. Resetting on unmount (rather
+    // than in the success view's onComplete) avoids a race: a synchronous reset clears
+    // amountToWithdraw and flips currentView off STATUS, which re-triggers the guard
+    // below and pushes '/withdraw' over the '/home' navigation from "Back to home".
     useEffect(() => {
         return () => {
             resetRouteCalculation()
             resetPaymentRecorder()
             resetTokenContextProvider() // reset token selector context to make sure previously selected token is not cached
+            resetWithdrawFlow()
         }
-    }, [resetRouteCalculation, resetPaymentRecorder, resetTokenContextProvider])
+    }, [resetRouteCalculation, resetPaymentRecorder, resetTokenContextProvider, resetWithdrawFlow])
 
     // Display payment errors first (user actions), then route errors (system limitations)
     const displayError = paymentError
@@ -465,11 +532,29 @@ export default function WithdrawCryptoPage() {
         [isCrossChainWithdrawal, payAmount, spendableBalance]
     )
 
-    if (!amountToWithdraw && currentView !== 'STATUS') {
-        // Redirect to main withdraw page for amount input
-        // Guard against STATUS view: resetWithdrawFlow() clears amountToWithdraw,
-        // which would override the router.push('/home') in handleDone
-        router.push('/withdraw')
+    // Rhino accepts SDA deposits below the route minimum on-chain but never
+    // bridges them — funds strand at the SDA, uncredited. Block the CTA before
+    // the user signs. Same-chain USDC transfers have no minimum.
+    const belowMinimumMessage = useMemo<string | null>(
+        () =>
+            isCrossChainWithdrawal && isBelowRhinoMinDeposit(payAmount, minDepositLimitUsd)
+                ? `The minimum withdrawal to this network is $${minDepositLimitUsd}. Enter a larger amount.`
+                : null,
+        [isCrossChainWithdrawal, payAmount, minDepositLimitUsd]
+    )
+
+    // Redirect to main withdraw page for amount input. The push must run in an
+    // effect — navigating during render is a React violation ("Cannot update
+    // Router while rendering WithdrawCryptoPage") that hard-errors the Next 16
+    // dev overlay on direct entry/refresh of this route.
+    // Guard against STATUS view: resetWithdrawFlow() clears amountToWithdraw,
+    // which would override the router.push('/home') in handleDone
+    const needsAmountRedirect = !amountToWithdraw && currentView !== 'STATUS'
+    useEffect(() => {
+        if (needsAmountRedirect) router.push('/withdraw')
+    }, [needsAmountRedirect, router])
+
+    if (needsAmountRedirect) {
         return <PeanutLoading />
     }
 
@@ -501,13 +586,14 @@ export default function WithdrawCryptoPage() {
                     payAmount={payAmount}
                     showHighFeeWarning={showHighFeeWarning}
                     insufficientBalance={insufficientForFee}
+                    belowMinimumMessage={belowMinimumMessage}
                 />
             )}
 
             {currentView === 'STATUS' && withdrawData && chargeDetails && (
                 <>
                     <PaymentSuccessView
-                        headerTitle="Withdraw"
+                        headerTitle={tNav('withdraw')}
                         recipientType="ADDRESS"
                         type="SEND"
                         amount={usdAmount}
@@ -522,9 +608,6 @@ export default function WithdrawCryptoPage() {
                                 address={withdrawData.address}
                             />
                         }
-                        onComplete={() => {
-                            resetWithdrawFlow()
-                        }}
                     />
                 </>
             )}
@@ -536,8 +619,23 @@ export default function WithdrawCryptoPage() {
                     setShowCompatibilityModal(false)
                 }}
                 preventClose={isPreparingReview}
-                title="Is this address compatible?"
-                description="Only send to address that support the selected network and token. Incorrect transfers may be lost."
+                title={t('compatibilityModal.title')}
+                description={
+                    <div className="space-y-2">
+                        <p>{t('compatibilityModal.description')}</p>
+                        {/* Show the concrete destination so the user confirms a real
+                            address, not an abstract warning — for ENS recipients this
+                            is the first time the resolved address is visible. */}
+                        {!!withdrawData?.address && (
+                            <p>
+                                {t('compatibilityModal.sendingTo')}{' '}
+                                <span className="font-mono font-medium text-n-1 dark:text-white">
+                                    {printableAddress(withdrawData.address)}
+                                </span>
+                            </p>
+                        )}
+                    </div>
+                }
                 icon="alert"
                 footer={
                     <div className="w-full">

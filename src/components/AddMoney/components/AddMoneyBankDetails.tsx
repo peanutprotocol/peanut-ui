@@ -9,17 +9,18 @@ import { useRouter, useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
 import { countryData } from '@/components/AddMoney/consts'
 import { formatCurrencyAmount } from '@/utils/currency'
-import { formatBankAccountDisplay } from '@/utils/format.utils'
+import { formatBankAccountDisplay, shortDepositReference } from '@/utils/format.utils'
 import { applyBridgeCrossCurrencyFee, getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { formatAmount } from '@/utils/general.utils'
 import InfoCard from '@/components/Global/InfoCard'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
-import { BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME } from '@/constants/payment.consts'
+import { resolveBridgeAccountHolderName } from '@/constants/payment.consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useOnrampQuote } from '@/hooks/useOnrampQuote'
 import { currencyToAccountType } from '@/utils/bridge.utils'
 import { useQueryState, parseAsString } from 'nuqs'
+import { useTranslations } from 'next-intl'
 
 /**
  * TODO(architecture): Quote math is computed client-side instead of trusting backend.
@@ -27,7 +28,9 @@ import { useQueryState, parseAsString } from 'nuqs'
  * This file (and ExchangeRate component, MantecaDepositShareDetails, etc.) each
  * re-derive "amount user will receive" by multiplying raw exchange rate by amount.
  * This caused a production bug where UI promised more than Bridge actually delivered
- * because the 0.5% developer fee was not baked into the displayed rate.
+ * because the then-active 0.5% developer fee was not baked into the displayed rate.
+ * (The fee has since been zeroed — BRIDGE_DEVELOPER_FEE_RATE = 0 — but the
+ * client-side-derivation hazard this note describes remains.)
  *
  * PROPER FIX: Add backend /bridge/onramp/quote and /bridge/offramp/quote endpoints
  * that return { gross, fee, net, exchangeRate }. UI displays `net`. This makes fee
@@ -50,6 +53,8 @@ type AddMoneyBankDetailsProps =
 export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
     const { flow = 'add-money' } = props
     const isAddMoneyFlow = flow === 'add-money'
+    const t = useTranslations('addMoney')
+    const tCommon = useTranslations('common')
 
     // URL state - read amount from URL query params
     const [amountFromUrl] = useQueryState('amount', parseAsString)
@@ -91,10 +96,10 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
     // derive onramp currency once and reuse consistently
     const onrampCurrency = getCurrencyConfig(currentCountryDetails?.id || 'US', 'onramp').currency
 
-    // Onramp quote returns the net rate (after Peanut's 50bps developer
-    // fee), so `sourceAmount * exchangeRate` projects the real USDC the
-    // user will receive — matching the "Recipient Gets" figure on bridge
-    // offramp + ExchangeRateWidget.
+    // Onramp quote returns the net deposit-side rate (Peanut's developer fee
+    // is currently 0, so net === gross), so `sourceAmount * exchangeRate`
+    // projects the real USDC the user will receive — matching the "Recipient
+    // Gets" figure on bridge offramp + ExchangeRateWidget.
     const { netRate: exchangeRate, isLoading: isLoadingExchangeRate } = useOnrampQuote({
         accountType: currencyToAccountType(onrampCurrency),
         enabled: true,
@@ -136,8 +141,8 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
             if (baseAmount === null) return amount
             if (isNonUsdCurrency) {
                 // for non-usd deposits, show the approximate amount in usd
-                // bake in the 0.5% Bridge developer fee so displayed amount matches
-                // what Bridge actually delivers (applyBridgeCrossCurrencyFee is a no-op for USD)
+                // pass through the cross-currency fee helper (currently identity —
+                // fee is 0; kept so a re-enabled FX margin propagates here)
                 const grossUsd = baseAmount * exchangeRate
                 // NOTE: pass 'USDC' (the real Bridge destination) not 'USD' — the helper
                 // mirrors backend `getBridgeDeveloperFeeParams` which treats 'usd' as the
@@ -180,67 +185,79 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
         const formattedAmount = formattedCurrencyAmount
         const isMexico = currentCountryDetails?.id === 'MX'
         const isUs = currentCountryDetails?.id === 'US'
+        const loading = tCommon('loading')
+        const line = (label: string, value: string) => t('bankDetails.shareLine', { label, value })
 
-        let bankDetails = `Bank Transfer Details:
-Amount: ${formattedAmount}
-Bank Name: ${onrampData?.depositInstructions?.bankName || 'Loading...'}`
+        const lines: string[] = [
+            t('bankDetails.shareIntro'),
+            line(t('bankDetails.amountLabel'), formattedAmount),
+            line(t('bankDetails.bankName'), onrampData?.depositInstructions?.bankName || loading),
+        ]
 
         if (isUs) {
-            bankDetails += `
-Beneficiary Name: ${onrampData?.depositInstructions?.bankBeneficiaryName}
-Beneficiary Address: ${onrampData?.depositInstructions?.bankBeneficiaryAddress}
-            `
+            lines.push(
+                line(t('bankDetails.beneficiaryName'), String(onrampData?.depositInstructions?.bankBeneficiaryName)),
+                line(
+                    t('bankDetails.beneficiaryAddress'),
+                    String(onrampData?.depositInstructions?.bankBeneficiaryAddress)
+                )
+            )
         }
 
         if (!isUs && !isMexico && !isUk) {
-            bankDetails += `
-Account Holder Name: ${onrampData?.depositInstructions?.accountHolderName}
-            `
+            lines.push(
+                line(t('bankDetails.accountHolderName'), String(onrampData?.depositInstructions?.accountHolderName))
+            )
         }
 
         // for mexico, include clabe
         if (isMexico) {
-            bankDetails += `
-Account Holder Name: ${onrampData?.depositInstructions?.accountHolderName}
-CLABE: ${onrampData?.depositInstructions?.clabe || 'Loading...'}`
+            lines.push(
+                line(t('bankDetails.accountHolderName'), String(onrampData?.depositInstructions?.accountHolderName)),
+                line(t('bankDetails.clabe'), onrampData?.depositInstructions?.clabe || loading)
+            )
         }
 
         // uk faster payments
         if (isUk) {
-            bankDetails += `
-Sort Code: ${onrampData?.depositInstructions?.sortCode || 'Loading...'}
-Account Number: ${onrampData?.depositInstructions?.accountNumber || 'Loading...'}`
+            lines.push(
+                line(t('bankDetails.sortCode'), onrampData?.depositInstructions?.sortCode || loading),
+                line(t('bankDetails.accountNumber'), onrampData?.depositInstructions?.accountNumber || loading)
+            )
         }
 
         // us and sepa countries
         if (!isMexico && !isUk) {
-            bankDetails += `
-Bank Address: ${onrampData?.depositInstructions?.bankAddress || 'Loading...'}`
+            lines.push(line(t('bankDetails.bankAddress'), onrampData?.depositInstructions?.bankAddress || loading))
 
-            const accountLabel = onrampData?.depositInstructions?.bankAccountNumber ? 'Account Number' : 'IBAN'
-            const routingLabel = onrampData?.depositInstructions?.bankRoutingNumber ? 'Routing Number' : 'BIC'
+            const accountLabel = onrampData?.depositInstructions?.bankAccountNumber
+                ? t('bankDetails.accountNumber')
+                : t('bankDetails.iban')
+            const routingLabel = onrampData?.depositInstructions?.bankRoutingNumber
+                ? t('bankDetails.routingNumber')
+                : t('bankDetails.bic')
             const accountValue =
                 onrampData?.depositInstructions?.bankAccountNumber ||
                 (onrampData?.depositInstructions?.iban
                     ? formatBankAccountDisplay(onrampData.depositInstructions.iban, 'iban')
                     : null) ||
-                'Loading...'
+                loading
             const routingValue =
-                onrampData?.depositInstructions?.bankRoutingNumber ||
-                onrampData?.depositInstructions?.bic ||
-                'Loading...'
+                onrampData?.depositInstructions?.bankRoutingNumber || onrampData?.depositInstructions?.bic || loading
 
-            bankDetails += `
-${accountLabel}: ${accountValue}
-${routingLabel}: ${routingValue}`
+            lines.push(line(accountLabel, accountValue), line(routingLabel, routingValue))
         }
 
-        bankDetails += `
-Deposit Reference: ${onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || 'Loading...'}
+        lines.push(
+            line(
+                t('bankDetails.depositReference'),
+                shortDepositReference(onrampData?.depositInstructions?.depositMessage) || loading
+            ),
+            '',
+            t('bankDetails.shareOutro')
+        )
 
-Please use these details to complete your bank transfer.`
-
-        return bankDetails
+        return lines.join('\n')
     }
 
     const handleBack = () => {
@@ -257,28 +274,34 @@ Please use these details to complete your bank transfer.`
 
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
-            <NavHeader title={'Transfer details'} onPrev={handleBack} />
+            <NavHeader title={t('transferDetails')} onPrev={handleBack} />
 
             <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">
                 <Card className="p-4">
-                    <p className="text-xs font-normal text-gray-1">Amount to send</p>
+                    <p className="text-xs font-normal text-gray-1">{t('bankDetails.amountToSend')}</p>
                     <div className="flex items-baseline gap-2">
                         <p className="text-2xl font-extrabold text-black md:text-4xl">{formattedCurrencyAmount}</p>
                         <CopyToClipboard textToCopy={formattedCurrencyAmount} fill="black" iconSize="4" />
                     </div>
 
-                    <InfoCard variant="warning" className="mt-4" icon="alert" description="Send exactly this amount!" />
+                    <InfoCard
+                        variant="warning"
+                        className="mt-4"
+                        icon="alert"
+                        description={t('bankDetails.sendExactAmount')}
+                    />
                 </Card>
 
                 <Card className="p-4">
-                    <p className="text-xs font-normal text-gray-1">Deposit reference</p>
+                    <p className="text-xs font-normal text-gray-1">{t('bankDetails.depositReference')}</p>
                     <div className="flex items-baseline gap-2">
                         <p className="text-xl font-extrabold text-black md:text-4xl">
-                            {onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || 'Loading...'}
+                            {shortDepositReference(onrampData?.depositInstructions?.depositMessage) ||
+                                tCommon('loading')}
                         </p>
                         {onrampData?.depositInstructions?.depositMessage && (
                             <CopyToClipboard
-                                textToCopy={onrampData.depositInstructions.depositMessage?.slice(0, 10)}
+                                textToCopy={shortDepositReference(onrampData.depositInstructions.depositMessage)}
                                 fill="black"
                                 iconSize="4"
                             />
@@ -289,31 +312,31 @@ Please use these details to complete your bank transfer.`
                         variant="warning"
                         className="mt-4"
                         icon="alert"
-                        description="Paste in your bank's reference field"
+                        description={t('bankDetails.pasteInReferenceField')}
                     />
                 </Card>
 
                 <Card className="gap-2 rounded-sm">
-                    <h1 className="text-xs">Bank Details</h1>
+                    <h1 className="text-xs">{t('bankDetails.title')}</h1>
 
-                    {/* note: fallback to bridge as account holder name, to cover faster_payments onramp requests as bridge currently doesnt retrun a account holder name in api response */}
+                    {/* resolveBridgeAccountHolderName maps Bridge's stale/absent legal entity name to the current one (Sp. Z.o.o. -> S.A.) */}
                     <PaymentInfoRow
-                        label={'Account Holder Name'}
-                        value={onrampData?.depositInstructions?.accountHolderName || BRIDGE_DEFAULT_ACCOUNT_HOLDER_NAME}
+                        label={t('bankDetails.accountHolderName')}
+                        value={resolveBridgeAccountHolderName(onrampData?.depositInstructions?.accountHolderName)}
                         allowCopy
                         hideBottomBorder
                     />
 
                     <PaymentInfoRow
-                        label={'Bank Name'}
-                        value={onrampData?.depositInstructions?.bankName || 'Loading...'}
+                        label={t('bankDetails.bankName')}
+                        value={onrampData?.depositInstructions?.bankName || tCommon('loading')}
                         allowCopy={!!onrampData?.depositInstructions?.bankName}
                         hideBottomBorder
                     />
                     {currentCountryDetails?.id !== 'MX' && (
                         <PaymentInfoRow
-                            label={'Bank Address'}
-                            value={onrampData?.depositInstructions?.bankAddress || 'Loading...'}
+                            label={t('bankDetails.bankAddress')}
+                            value={onrampData?.depositInstructions?.bankAddress || tCommon('loading')}
                             allowCopy={!!onrampData?.depositInstructions?.bankAddress}
                             hideBottomBorder
                         />
@@ -321,8 +344,8 @@ Please use these details to complete your bank transfer.`
 
                     {onrampData?.depositInstructions?.bankBeneficiaryName && (
                         <PaymentInfoRow
-                            label={'Beneficiary Name'}
-                            value={onrampData?.depositInstructions?.bankBeneficiaryName || 'Loading...'}
+                            label={t('bankDetails.beneficiaryName')}
+                            value={onrampData?.depositInstructions?.bankBeneficiaryName || tCommon('loading')}
                             allowCopy={!!onrampData?.depositInstructions?.bankBeneficiaryName}
                             hideBottomBorder
                         />
@@ -330,8 +353,8 @@ Please use these details to complete your bank transfer.`
 
                     {onrampData?.depositInstructions?.bankBeneficiaryAddress && (
                         <PaymentInfoRow
-                            label={'Beneficiary Address'}
-                            value={onrampData?.depositInstructions?.bankBeneficiaryAddress || 'Loading...'}
+                            label={t('bankDetails.beneficiaryAddress')}
+                            value={onrampData?.depositInstructions?.bankBeneficiaryAddress || tCommon('loading')}
                             allowCopy={!!onrampData?.depositInstructions?.bankBeneficiaryAddress}
                             hideBottomBorder
                         />
@@ -339,7 +362,7 @@ Please use these details to complete your bank transfer.`
 
                     {currentCountryDetails?.id === 'MX' ? (
                         <PaymentInfoRow
-                            label="CLABE"
+                            label={t('bankDetails.clabe')}
                             value={onrampData?.depositInstructions?.clabe || 'N/A'}
                             allowCopy={!!onrampData?.depositInstructions?.clabe}
                             hideBottomBorder
@@ -347,13 +370,13 @@ Please use these details to complete your bank transfer.`
                     ) : isUk ? (
                         <>
                             <PaymentInfoRow
-                                label="Sort Code"
+                                label={t('bankDetails.sortCode')}
                                 value={onrampData?.depositInstructions?.sortCode || 'N/A'}
                                 allowCopy={!!onrampData?.depositInstructions?.sortCode}
                                 hideBottomBorder
                             />
                             <PaymentInfoRow
-                                label="Account Number"
+                                label={t('bankDetails.accountNumber')}
                                 value={onrampData?.depositInstructions?.accountNumber || 'N/A'}
                                 allowCopy={!!onrampData?.depositInstructions?.accountNumber}
                                 hideBottomBorder
@@ -362,7 +385,11 @@ Please use these details to complete your bank transfer.`
                     ) : (
                         <>
                             <PaymentInfoRow
-                                label={onrampData?.depositInstructions?.bankAccountNumber ? 'Account Number' : 'IBAN'}
+                                label={
+                                    onrampData?.depositInstructions?.bankAccountNumber
+                                        ? t('bankDetails.accountNumber')
+                                        : t('bankDetails.iban')
+                                }
                                 value={
                                     onrampData?.depositInstructions?.bankAccountNumber ||
                                     (onrampData?.depositInstructions?.iban
@@ -383,7 +410,11 @@ Please use these details to complete your bank transfer.`
                                 hideBottomBorder
                             />
                             <PaymentInfoRow
-                                label={onrampData?.depositInstructions?.bankRoutingNumber ? 'Routing Number' : 'BIC'}
+                                label={
+                                    onrampData?.depositInstructions?.bankRoutingNumber
+                                        ? t('bankDetails.routingNumber')
+                                        : t('bankDetails.bic')
+                                }
                                 value={
                                     onrampData?.depositInstructions?.bankRoutingNumber ||
                                     onrampData?.depositInstructions?.bic ||
@@ -402,7 +433,7 @@ Please use these details to complete your bank transfer.`
                     {isNonUsdCurrency && (
                         <PaymentInfoRow
                             loading={isLoadingExchangeRate}
-                            label="You'll Receive"
+                            label={t('bankDetails.youllReceive')}
                             value={`${amountBasedOnCurrencyExchangeRate(amount)}`}
                             allowCopy={false}
                             hideBottomBorder={true}
@@ -413,24 +444,34 @@ Please use these details to complete your bank transfer.`
                 <InfoCard
                     variant="warning"
                     icon="alert"
-                    title="Double check in your bank before sending:"
+                    title={t('bankDetails.doubleCheckTitle')}
                     items={[
-                        `Amount: ${formattedCurrencyAmount} (exact)`,
-                        `Reference: ${onrampData?.depositInstructions?.depositMessage?.slice(0, 10) || 'Loading...'} (included)`,
+                        t('bankDetails.doubleCheckAmount', { amount: formattedCurrencyAmount }),
+                        t('bankDetails.doubleCheckReference', {
+                            reference:
+                                shortDepositReference(onrampData?.depositInstructions?.depositMessage) ||
+                                tCommon('loading'),
+                        }),
+                        // name mismatch is the top cause of returned deposits (Bridge BE01). the
+                        // own-name rule holds for ACH/SEPA/wire; MX SPEI supports paying from a
+                        // third-party/client account, so this item is omitted there.
+                        ...(currentCountryDetails?.id !== 'MX'
+                            ? [t('bankDetails.doubleCheckSenderName'), t('bankDetails.doubleCheckRecipientName')]
+                            : []),
                     ]}
                 />
 
                 <Button onClick={() => router.push('/home')} variant="purple" className="w-full" shadowSize="4">
-                    I've sent the transfer
+                    {t('bankDetails.sentTransfer')}
                 </Button>
 
                 <ShareButton
                     generateText={generateBankDetails}
-                    title="Bank Transfer Details"
+                    title={t('bankDetails.shareTitle')}
                     variant="primary-soft"
                     className="w-full"
                 >
-                    Share Details
+                    {t('bankDetails.shareDetails')}
                 </ShareButton>
             </div>
         </div>

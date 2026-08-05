@@ -1,4 +1,6 @@
 import { BASE_URL } from '@/constants/general.consts'
+import { OG_LOCALE_MAP } from '@/i18n/config'
+import { type Locale } from '@/i18n/types'
 import { type Metadata } from 'next'
 
 export function generateMetadata({
@@ -9,6 +11,7 @@ export function generateMetadata({
     ogSubtitle,
     keywords,
     canonical,
+    locale,
 }: {
     title: string
     description: string
@@ -20,6 +23,8 @@ export function generateMetadata({
     keywords?: string
     /** Canonical URL path (e.g. '/careers') or full URL. Resolved against metadataBase. */
     canonical?: string
+    /** Marketing locale of the page — emits og:locale + og:locale:alternate. */
+    locale?: Locale
 }): Metadata {
     const ogImage = dynamicOg
         ? `/api/og/marketing?title=${encodeURIComponent(title)}${ogSubtitle ? `&subtitle=${encodeURIComponent(ogSubtitle)}` : ''}`
@@ -38,6 +43,14 @@ export function generateMetadata({
             url: canonical ? `${BASE_URL}${canonical}` : BASE_URL,
             siteName: 'Peanut',
             images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+            ...(locale
+                ? {
+                      locale: OG_LOCALE_MAP[locale],
+                      alternateLocale: Object.entries(OG_LOCALE_MAP)
+                          .filter(([key]) => key !== locale)
+                          .map(([, value]) => value),
+                  }
+                : {}),
         },
         twitter: {
             card: 'summary_large_image',

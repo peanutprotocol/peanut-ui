@@ -12,8 +12,9 @@ import { useMemo } from 'react'
 import { type ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
 import ExchangeRate from '@/components/ExchangeRate'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
+import { useTranslations } from 'next-intl'
 
 interface ConfirmBankClaimViewProps {
     onConfirm: () => void
@@ -34,6 +35,8 @@ export function ConfirmBankClaimView({
     fullName,
     claimLinkData,
 }: ConfirmBankClaimViewProps) {
+    const t = useTranslations('claim')
+    const tCommon = useTranslations('common')
     const displayedFullName = useMemo(() => {
         if (fullName) return fullName
         if (typeof window !== 'undefined') {
@@ -66,7 +69,7 @@ export function ConfirmBankClaimView({
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
             <div>
-                <NavHeader title="Receive" onPrev={onBack} />
+                <NavHeader title={t('receive')} onPrev={onBack} />
             </div>
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 <PeanutActionDetailsCard
@@ -81,18 +84,24 @@ export function ConfirmBankClaimView({
 
                 <Card className="rounded-sm">
                     {/* todo: take full name from user, this name rn is of senders */}
-                    <PaymentInfoRow label="Full name" value={displayedFullName} />
+                    <PaymentInfoRow label={t('bank.fullName')} value={displayedFullName} />
                     {bankDetails.iban && <PaymentInfoRow label="IBAN" value={bankDetails.iban.toUpperCase()} />}
                     {bankDetails.bic && <PaymentInfoRow label="BIC" value={bankDetails.bic.toUpperCase()} />}
                     {bankDetails.clabe && <PaymentInfoRow label="CLABE" value={bankDetails.clabe.toUpperCase()} />}
                     {bankDetails.accountNumber && (
-                        <PaymentInfoRow label="Account Number" value={bankDetails.accountNumber.toUpperCase()} />
+                        <PaymentInfoRow
+                            label={t('bank.accountNumber')}
+                            value={bankDetails.accountNumber.toUpperCase()}
+                        />
                     )}
                     {bankDetails.routingNumber && (
-                        <PaymentInfoRow label="Routing Number" value={bankDetails.routingNumber.toUpperCase()} />
+                        <PaymentInfoRow
+                            label={t('bank.routingNumber')}
+                            value={bankDetails.routingNumber.toUpperCase()}
+                        />
                     )}
                     <ExchangeRate accountType={accountType} nonEuroCurrency={nonEuroCurrency} />
-                    <PaymentInfoRow hideBottomBorder label="Fee" value={`$ 0.00`} />
+                    <PaymentInfoRow hideBottomBorder label={t('fee')} value={`$ 0.00`} />
                 </Card>
 
                 <div className="space-y-4">
@@ -106,7 +115,7 @@ export function ConfirmBankClaimView({
                             className="w-full"
                             icon="retry"
                         >
-                            Retry
+                            {tCommon('retry')}
                         </Button>
                     ) : (
                         <Button
@@ -118,7 +127,7 @@ export function ConfirmBankClaimView({
                             className="w-full"
                             icon="arrow-down"
                         >
-                            Receive now
+                            {t('receiveNow')}
                         </Button>
                     )}
 

@@ -657,3 +657,247 @@ describe('deriveGate — provide-email self-serve for email-blocked rails', () =
         expect(gate.kind).toBe('blocked-rejection')
     })
 })
+
+describe('deriveGate — resolved verdict is authoritative (BE step 3)', () => {
+    // When the BE ships `rail.resolved`, the gate renders IT — even when the
+    // legacy status/actions would derive something else. These pin the verdict
+    // as the single source of truth; the legacy paths above only cover rails
+    // without `resolved` (older BE / cached responses).
+
+    test('resolved fixable wins over a legacy blocked status', () => {
+        const gate = deriveGate(
+            state([
+                bankRail({
+                    status: 'blocked',
+                    reason: { code: 'document_rejected', userMessage: 'legacy message' },
+                    resolved: {
+                        status: 'fixable',
+                        blocking: {
+                            code: 'document_rejected',
+                            userMessage: 'verdict message',
+                            selfHealable: true,
+                            selfHealKind: 'document-resubmit',
+                        },
+                    },
+                }),
+            ]),
+            'deposit'
+        )
+        expect(gate.kind).toBe('fixable-rejection')
+        expect(getGateUserMessage(gate)).toBe('verdict message')
+    })
+
+    test('resolved blocked wins over a legacy requires-info status', () => {
+        const gate = deriveGate(
+            state([
+                bankRail({
+                    status: 'requires-info',
+                    resolved: {
+                        status: 'blocked',
+                        blocking: { code: 'verification_blocked', userMessage: 'terminal', selfHealable: false },
+                    },
+                }),
+            ]),
+            'deposit'
+        )
+        expect(gate.kind).toBe('blocked-rejection')
+    })
+
+    test('resolved provide-email verdict → provide-email gate without action lookups', () => {
+        const gate = deriveGate(
+            state([
+                bankRail({
+                    status: 'blocked',
+                    resolved: {
+                        status: 'fixable',
+                        blocking: {
+                            code: 'email_required',
+                            userMessage: 'add an email',
+                            selfHealable: true,
+                            selfHealKind: 'provide-email',
+                        },
+                    },
+                }),
+            ]),
+            'deposit'
+        )
+        expect(gate.kind).toBe('provide-email')
+    })
+
+    test('resolved accept-tos rides the verdict nextAction (tosUrl included)', () => {
+        const gate = deriveGate(
+            state([
+                bankRail({
+                    status: 'requires-info',
+                    resolved: {
+                        status: 'fixable',
+                        blocking: { code: 'bridge_tos_required', userMessage: 'accept ToS', selfHealable: true },
+                        nextAction: {
+                            key: 'accept-tos:bridge',
+                            kind: 'accept-tos',
+                            purpose: 'bridge-tos',
+                            tosUrl: 'https://tos.example',
+                        },
+                    },
+                }),
+            ]),
+            'deposit'
+        )
+        expect(gate.kind).toBe('accept-tos')
+        expect(gate.kind === 'accept-tos' && gate.tosUrl).toBe('https://tos.example')
+    })
+
+    test('resolved pending with a wait nextAction → waiting-on-provider', () => {
+        const gate = deriveGate(
+            state([
+                bankRail({
+                    status: 'requires-info',
+                    reason: { code: 'bridge_processing', userMessage: 'we are checking' },
+                    resolved: {
+                        status: 'pending',
+                        nextAction: { key: 'wait:bridge', kind: 'wait', purpose: 'bridge-review' },
+                    },
+                }),
+            ]),
+            'deposit'
+        )
+        expect(gate.kind).toBe('waiting-on-provider')
+        expect(getGateUserMessage(gate)).toBe('we are checking')
+    })
+
+    test('resolved advisory nextAction on an enabled rail surfaces the ready advisory', () => {
+        const gate = deriveGate(
+            state([
+                bankRail({
+                    status: 'enabled',
+                    resolved: {
+                        status: 'enabled',
+                        nextAction: {
+                            key: 'sumsub:sof',
+                            kind: 'sumsub',
+                            purpose: 'pre-empt',
+                            effectiveDate: '2026-08-01',
+                            requirementKey: 'sof_individual_primary_purpose',
+                        },
+                    },
+                }),
+            ]),
+            'deposit'
+        )
+        expect(gate.kind).toBe('ready')
+        expect(getGateAdvisory(gate)).toEqual({
+            effectiveDate: '2026-08-01',
+            actionKey: 'sumsub:sof',
+            requirementKey: 'sof_individual_primary_purpose',
+        })
+    })
+
+    test('resolved restart-identity selfHealKind → restart-identity gate', () => {
+        const gate = deriveGate(
+            state([
+                bankRail({
+                    status: 'blocked',
+                    resolved: {
+                        status: 'blocked',
+                        blocking: {
+                            code: 'country_not_supported',
+                            userMessage: 'try another document',
+                            selfHealable: true,
+                            selfHealKind: 'restart-identity',
+                        },
+                    },
+                }),
+            ]),
+            'deposit'
+        )
+        expect(gate.kind).toBe('restart-identity')
+    })
+})
+
+describe('deriveGate — legacy fallback fidelity (code-review regression pins)', () => {
+    // Shapes the pre-verdict ladder handled that the 32 legacy tests above
+    // never mixed. Each of these was a CONFIRMED review finding: the fallback
+    // must key on STATUS first — action kinds only refine within a status.
+
+    const sumsubAction: NextAction = { key: 'sumsub:poa', kind: 'sumsub', purpose: 'rfi', levelKey: 'poa' }
+    const tosAction: NextAction = { key: 'accept-tos:bridge', kind: 'accept-tos', purpose: 'tos' }
+    const waitAction: NextAction = { key: 'wait:bridge', kind: 'wait', purpose: 'review' }
+    const restartAction: NextAction = { key: 'restart', kind: 'restart-identity', purpose: 'restart' }
+    const supportAction: NextAction = { key: 'support', kind: 'contact-support', purpose: 'support' }
+
+    test('blocked rail with a stale sumsub action stays blocked-rejection (no resurrected upload CTA)', () => {
+        const gate = deriveGate(
+            state([bankRail({ status: 'blocked', blockingActions: [sumsubAction.key] })], [sumsubAction]),
+            'deposit'
+        )
+        expect(gate.kind).toBe('blocked-rejection')
+    })
+
+    test('blocked rail with a stale accept-tos action stays blocked-rejection', () => {
+        const gate = deriveGate(
+            state([bankRail({ status: 'blocked', blockingActions: [tosAction.key] })], [tosAction]),
+            'deposit'
+        )
+        expect(gate.kind).toBe('blocked-rejection')
+    })
+
+    test('blocked rail with only a wait action stays blocked-rejection (not hidden behind "we are checking")', () => {
+        const gate = deriveGate(
+            state([bankRail({ status: 'blocked', blockingActions: [waitAction.key] })], [waitAction]),
+            'deposit'
+        )
+        expect(gate.kind).toBe('blocked-rejection')
+    })
+
+    test('terminal blocked rail first in scope beats a sibling restart-identity rail', () => {
+        const gate = deriveGate(
+            state(
+                [
+                    bankRail({ id: 'bridge.ach_us', status: 'blocked' }),
+                    bankRail({
+                        id: 'manteca.pix_br',
+                        provider: 'manteca',
+                        method: 'PIX_BR',
+                        country: 'BR',
+                        status: 'blocked',
+                        blockingActions: [restartAction.key],
+                    }),
+                ],
+                [restartAction]
+            ),
+            'deposit'
+        )
+        expect(gate.kind).toBe('blocked-rejection')
+    })
+
+    test('pending sibling beats an action-less requires-info rail (old 7b placement)', () => {
+        const gate = deriveGate(
+            state([
+                bankRail({ id: 'bridge.ach_us', status: 'pending' }),
+                bankRail({ id: 'bridge.sepa_eu', method: 'SEPA_EU', country: 'EU', status: 'requires-info' }),
+            ]),
+            'deposit'
+        )
+        expect(gate.kind).toBe('pending')
+    })
+
+    test('requires-info + contact-support-only rail does NOT outrank a fixable sumsub sibling', () => {
+        const gate = deriveGate(
+            state(
+                [
+                    bankRail({ id: 'bridge.ach_us', status: 'requires-info', blockingActions: [supportAction.key] }),
+                    bankRail({
+                        id: 'bridge.sepa_eu',
+                        method: 'SEPA_EU',
+                        country: 'EU',
+                        status: 'requires-info',
+                        blockingActions: [sumsubAction.key],
+                    }),
+                ],
+                [supportAction, sumsubAction]
+            ),
+            'deposit'
+        )
+        expect(gate.kind).toBe('fixable-rejection')
+    })
+})

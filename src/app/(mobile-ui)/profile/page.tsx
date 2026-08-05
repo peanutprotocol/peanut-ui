@@ -1,5 +1,5 @@
 import { generateMetadata } from '@/app/metadata'
-import { Profile } from '@/components'
+import { Profile } from '@/components/Profile'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 
 export const metadata = generateMetadata({

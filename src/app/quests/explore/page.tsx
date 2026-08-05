@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
-import { Star } from '@/assets'
+import Star from '@/assets/illustrations/star.svg'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { QuestLeaderboard } from '../components/QuestLeaderboard'
@@ -144,7 +144,13 @@ export default function QuestsExplorePage() {
                     <div className="mb-12 flex justify-center">
                         <div className="inline-block rounded-sm border-2 border-black bg-white px-8 py-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] md:px-12 md:py-8">
                             <div className="mb-4 flex items-center justify-center">
-                                <img src="/logos/dvcn.svg" alt="DevConnect" className="h-16 w-auto md:h-24" />
+                                <Image
+                                    src="/logos/dvcn.svg"
+                                    alt="DevConnect"
+                                    width={305}
+                                    height={107}
+                                    className="h-16 w-auto md:h-24"
+                                />
                             </div>
                             <p className="text-center text-base font-black text-black md:text-xl">QUESTS</p>
                             <p className="text-center text-sm font-bold text-gray-700 md:text-base">

@@ -4,10 +4,10 @@ import MantecaDepositShareDetails from '@/components/AddMoney/components/Manteca
 import MantecaPixQrDeposit from '@/components/AddMoney/components/MantecaPixQrDeposit'
 import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { type CountryData, countryData } from '@/components/AddMoney/consts'
+import { countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useCurrency } from '@/hooks/useCurrency'
 import { mantecaApi } from '@/services/manteca'
@@ -27,6 +27,7 @@ import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useTranslations } from 'next-intl'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails' | 'showQR'
@@ -38,6 +39,8 @@ const MantecaAddMoney: FC = () => {
     const params = useParams()
     const searchParams = useSearchParams()
     const queryClient = useQueryClient()
+    const t = useTranslations('addMoney')
+    const router = useRouter()
 
     // URL state - persisted in query params
     // Example: /add-money/argentina/manteca?step=inputAmount&amount=100&currency=ARS
@@ -72,10 +75,11 @@ const MantecaAddMoney: FC = () => {
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
-    // Default the input denomination to BRL for Brazil (PIX is in BRL); every other
-    // country keeps the USD default.
+    // Default the input denomination to the local currency (like withdraw) — the user
+    // pays the bank/QR in ARS/BRL, and a USD-first input causes wrong-amount deposits.
+    // USD stays one toggle away and sticks via the URL param.
     const currentDenomination: CurrencyDenomination =
-        urlState.currency ?? (selectedCountry?.currency === 'BRL' ? 'BRL' : 'USD')
+        urlState.currency ?? (selectedCountry?.currency as CurrencyDenomination) ?? 'USD'
     const onBack = useSafeBack(addMoneyCountryUrl(selectedCountryPath))
     // The pool→full upgrade gate asks "did the user clear ID verification?",
     // not "do they have an enabled rail elsewhere?" — read the identity
@@ -111,17 +115,17 @@ const MantecaAddMoney: FC = () => {
         // user has entered something - validate the USD equivalent
         // if USD amount is effectively zero or too small, show minimum error
         if (!usdAmount || usdAmount === '0.00') {
-            setError(`Deposit amount must be at least $${MIN_MANTECA_DEPOSIT_AMOUNT}`)
+            setError(t('manteca.minDepositAmount', { amount: MIN_MANTECA_DEPOSIT_AMOUNT }))
             return
         }
 
         const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
         if (paymentAmount < parseUnits(MIN_MANTECA_DEPOSIT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setError(`Deposit amount must be at least $${MIN_MANTECA_DEPOSIT_AMOUNT}`)
+            setError(t('manteca.minDepositAmount', { amount: MIN_MANTECA_DEPOSIT_AMOUNT }))
         } else {
             setError(null)
         }
-    }, [usdAmount, displayedAmount])
+    }, [usdAmount, displayedAmount, t])
 
     // Invalidate transactions query when entering deposit details step
     useEffect(() => {
@@ -149,12 +153,16 @@ const MantecaAddMoney: FC = () => {
         setUsdAmount(value)
     }, [])
 
-    // Handle currency denomination change - sync to URL state
+    // Handle currency denomination change - sync to URL state.
+    // AmountInput reports the DISPLAY symbol ('R$', 'ARS', 'USD'); the URL enum stores
+    // ISO codes, so map anything that isn't USD back to the country's currency code —
+    // otherwise Brazil writes ?currency=R$ which the enum parser silently rejects.
     const handleDenominationChange = useCallback(
         (value: string) => {
-            setUrlState({ currency: value as CurrencyDenomination })
+            const code = value === 'USD' ? 'USD' : (selectedCountry?.currency ?? value)
+            setUrlState({ currency: code as CurrencyDenomination })
         },
-        [setUrlState]
+        [setUrlState, selectedCountry?.currency]
     )
 
     const handleAmountSubmit = useCallback(async () => {
@@ -261,8 +269,8 @@ const MantecaAddMoney: FC = () => {
                     onVerify={async () => {
                         if (mantecaRejection.state === 'blocked') {
                             // blocked users cannot self-heal — route to support
-                            if (typeof window !== 'undefined' && (window as any).$crisp) {
-                                ;(window as any).$crisp.push(['do', 'chat:open'])
+                            if (typeof window !== 'undefined' && window.$crisp) {
+                                window.$crisp.push(['do', 'chat:open'])
                             }
                             setShowKycModal(false)
                             return
@@ -289,6 +297,7 @@ const MantecaAddMoney: FC = () => {
                                   : 'default'
                     }
                     providerMessage={mantecaRejection.userMessage ?? undefined}
+                    reasonCode={mantecaRejection.reasonCode ?? undefined}
                     regionName={selectedCountry?.title}
                 />
                 <SumsubKycModals flow={sumsubFlow} />
@@ -334,6 +343,9 @@ const MantecaAddMoney: FC = () => {
                 depositDetails={depositDetails}
                 currencyAmount={localCurrencyAmount}
                 onBack={() => setUrlState({ step: 'inputAmount' })}
+                // Terminal exit — `replace` so device/browser back can't pop into the
+                // finished deposit (whose step=showQR would redirect to a new one).
+                onDone={() => router.replace('/home')}
                 onComplete={() => queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })}
             />
         )

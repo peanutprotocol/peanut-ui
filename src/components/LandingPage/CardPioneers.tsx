@@ -1,14 +1,15 @@
 'use client'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Star } from '@/assets'
+import Star from '@/assets/illustrations/star.svg'
 
 import { useRouter } from 'next/navigation'
 import PioneerCard3D from './PioneerCard3D'
 import { useEffect, useState } from 'react'
 import { Icon } from '@/components/Global/Icons/Icon'
+import type { LandingStrings } from './landingStrings'
 
-const CardPioneers = () => {
+const CardPioneers = ({ strings }: { strings: LandingStrings }) => {
     const router = useRouter()
     const [screenWidth, setScreenWidth] = useState(1200)
 
@@ -37,29 +38,27 @@ const CardPioneers = () => {
                 {/* Copy on right */}
                 <div className="w-full text-center md:w-1/2 md:text-left">
                     <h1 className="font-roboto-flex-extrabold text-[2.25rem] font-extraBlack leading-tight md:text-5xl lg:text-6xl">
-                        PAY EVERYWHERE.
+                        {strings.cardHeading}
                     </h1>
 
-                    <p className="font-roboto-flex mt-4 text-lg md:text-xl">
-                        Get the Peanut Card and pay anywhere in the world.
-                    </p>
+                    <p className="font-roboto-flex mt-4 text-lg md:text-xl">{strings.cardBody}</p>
 
                     <ul className="font-roboto-flex mt-6 space-y-3 text-base md:text-lg">
                         <li className="flex items-center justify-center gap-3 md:justify-start">
                             <Icon name="check-circle" className="h-6 w-6 flex-shrink-0 text-n-1" />
-                            No monthly fees. No annual fees.
+                            {strings.cardBullet1}
                         </li>
                         <li className="flex items-center justify-center gap-3 md:justify-start">
                             <Icon name="check-circle" className="h-6 w-6 flex-shrink-0 text-n-1" />
-                            Earn forever for every invite
+                            {strings.cardBullet2}
                         </li>
                         <li className="flex items-center justify-center gap-3 md:justify-start">
                             <Icon name="check-circle" className="h-6 w-6 flex-shrink-0 text-n-1" />
-                            Non-custodial - your funds, your control
+                            {strings.cardBullet3}
                         </li>
                     </ul>
                     <p className="font-roboto-flex mt-3 text-xs leading-relaxed opacity-70 md:text-sm">
-                        Standard fees and limits apply per the cardholder terms.
+                        {strings.cardDisclaimer}
                     </p>
 
                     <div className="mt-8 flex flex-col items-center gap-4">
@@ -68,7 +67,7 @@ const CardPioneers = () => {
                             onClick={handleCTA}
                             className="w-full px-10 py-4 text-lg font-extrabold md:w-auto"
                         >
-                            GET MY CARD
+                            {strings.cardCta}
                         </Button>
                     </div>
                 </div>

@@ -7,13 +7,16 @@ import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import { type ITokenPriceData } from '@/interfaces'
+import { type ITokenPriceData } from '@/interfaces/interfaces'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
-import { formatAmount } from '@/utils/general.utils'
+import { formatAmount, printableAddress } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
-import { useContext, useEffect } from 'react'
+import { useContext, useEffect, useMemo, useRef } from 'react'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { addressFamilyForChainId } from '@/lib/validation/addressFamily'
+import { useTranslations } from 'next-intl'
+import { validateAndResolveRecipient } from '@/lib/validation/recipient'
 
 interface InitialWithdrawViewProps {
     amount: string
@@ -24,6 +27,8 @@ interface InitialWithdrawViewProps {
 
 export default function InitialWithdrawView({ amount, onReview, onBack, isProcessing }: InitialWithdrawViewProps) {
     const { usdAmount, withdrawData } = useWithdrawFlow()
+    const t = useTranslations('withdraw')
+    const tNav = useTranslations('navigation')
     const router = useRouter()
     const {
         selectedTokenData,
@@ -44,7 +49,70 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
         setError,
     } = useWithdrawFlow()
 
+    // Non-EVM destinations (Solana/Tron) drive the recipient input's address
+    // family; changing family invalidates whatever address was typed.
+    const addressFamily = useMemo(() => addressFamilyForChainId(selectedChainID), [selectedChainID])
+    const prevFamilyRef = useRef(addressFamily)
+    useEffect(() => {
+        if (prevFamilyRef.current !== addressFamily) {
+            prevFamilyRef.current = addressFamily
+            setRecipient({ name: undefined, address: '' })
+            setIsValidRecipient(false)
+        }
+    }, [addressFamily, setRecipient, setIsValidRecipient])
+
+    // Changing the destination chain invalidates chain-scoped errors (e.g. the
+    // per-network minimum block from review, which says "pick a different
+    // network") — without this the stale error keeps Review disabled after the
+    // user follows that instruction. Safe for address errors too: Review stays
+    // gated by isValidRecipient regardless of the error banner.
+    const prevChainRef = useRef(selectedChainID)
+    useEffect(() => {
+        if (prevChainRef.current !== selectedChainID) {
+            prevChainRef.current = selectedChainID
+            if (error.showError) setError({ showError: false, errorMessage: '' })
+        }
+    }, [selectedChainID, error.showError, setError])
+
+    // ENS names resolve per destination chain (ENSIP-11) — a validated name
+    // must re-resolve when the user switches chains after typing it, or the
+    // withdraw would go to the previous chain's address. Kept separate from the
+    // error-clearing effect above: its error.showError dep would abort an
+    // in-flight resolution via this cleanup.
+    const prevResolvedChainRef = useRef(selectedChainID)
+    useEffect(() => {
+        if (prevResolvedChainRef.current === selectedChainID) return
+        prevResolvedChainRef.current = selectedChainID
+        if (addressFamily !== 'evm' || !recipient.name) return
+
+        const name = recipient.name
+        // Gate Review while the previous chain's address is still in state —
+        // clicking it mid-resolution would send to that address.
+        setIsValidRecipient(false)
+        let stale = false
+        validateAndResolveRecipient(name, true, 'evm', selectedChainID)
+            .then((validation) => {
+                if (stale) return
+                setRecipient({ name, address: validation.resolvedAddress })
+                setIsValidRecipient(true)
+            })
+            .catch(() => {
+                if (stale) return
+                setRecipient({ name: undefined, address: '' })
+                setIsValidRecipient(false)
+                setError({
+                    showError: true,
+                    errorMessage: 'Could not resolve the ENS name for the selected network',
+                })
+            })
+        return () => {
+            stale = true
+        }
+    }, [selectedChainID, addressFamily, recipient.name, setRecipient, setIsValidRecipient, setError])
+
     const handleReview = () => {
+        // Context record already includes the synthetic non-EVM withdraw
+        // destinations (merged once in tokenSelector.context).
         const xchainChainData = supportedChainsAndTokens[selectedChainID]
         // supportedChainsAndTokens may not list the Peanut wallet chain on
         // testnets / env-configured chains. Synthesize a minimal entry so the
@@ -70,7 +138,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
         } else {
             setError({
                 showError: true,
-                errorMessage: 'Withdrawal details are missing',
+                errorMessage: t('initial.detailsMissing'),
             })
             console.error('Token, chain, or address not selected/entered', {
                 hasToken: !!selectedTokenData,
@@ -98,8 +166,10 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
     }, [])
 
     return (
-        <div className="space-y-8">
-            <NavHeader title="Withdraw" onPrev={onBack || defaultOnBack} />
+        // flex/gap shell per the page-layout rules — space-y on the outer div
+        // conflicts with centering and clipped the CTA on short viewports
+        <div className="flex min-h-[inherit] flex-col gap-8">
+            <NavHeader title={tNav('withdraw')} onPrev={onBack || defaultOnBack} />
 
             <div className="space-y-4">
                 <PeanutActionDetailsCard
@@ -114,7 +184,11 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                 <TokenSelector viewType="withdraw" />
 
                 <GeneralRecipientInput
-                    placeholder="Enter an address or ENS"
+                    placeholder={
+                        addressFamily === 'evm' ? t('initial.placeholderEns') : t('initial.placeholderAddress')
+                    }
+                    addressFamily={addressFamily}
+                    chainId={selectedChainID}
                     recipient={recipient}
                     onUpdate={(update: GeneralRecipientUpdate) => {
                         setRecipient(update.recipient)
@@ -128,6 +202,16 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     showInfoText={false}
                     isWithdrawal
                 />
+
+                {/* Surface the resolved address as soon as an ENS name validates —
+                    the user must see where funds will actually go before any
+                    review/warning step (external tester feedback). */}
+                {!!recipient.name && !!recipient.address && isValidRecipient && !inputChanging && (
+                    <p className="text-left text-xs text-grey-1">
+                        {recipient.name} {t('resolvesTo')}{' '}
+                        <span className="font-mono">{printableAddress(recipient.address)}</span>
+                    </p>
+                )}
 
                 <Button
                     variant="purple"
@@ -145,7 +229,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     loading={isProcessing}
                     className="w-full"
                 >
-                    Review
+                    {t('review')}
                 </Button>
 
                 {error.showError && !!error.errorMessage && <ErrorAlert description={error.errorMessage} />}

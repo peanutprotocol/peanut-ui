@@ -12,6 +12,9 @@ export const ANALYTICS_EVENTS = {
     SIGNUP_CREATE_WALLET_CLICKED: 'signup_create_wallet_clicked',
     SIGNUP_WAITLIST_VIEWED: 'signup_waitlist_viewed',
     SIGNUP_USERNAME_VALIDATED: 'signup_username_validated',
+    SIGNUP_EXISTING_SESSION_PROMPTED: 'signup_existing_session_prompted',
+    SIGNUP_EXISTING_SESSION_CONTINUED: 'signup_existing_session_continued',
+    SIGNUP_EXISTING_SESSION_LOGGED_OUT: 'signup_existing_session_logged_out',
     SIGNUP_PASSKEY_STARTED: 'signup_passkey_started',
     SIGNUP_PASSKEY_SUCCEEDED: 'signup_passkey_succeeded',
     SIGNUP_PASSKEY_FAILED: 'signup_passkey_failed',
@@ -24,6 +27,7 @@ export const ANALYTICS_EVENTS = {
     PWA_INSTALL_CLICKED: 'pwa_install_clicked',
     PWA_INSTALL_DISMISSED: 'pwa_install_dismissed',
     PWA_INSTALL_COMPLETED: 'pwa_install_completed',
+    PWA_OPEN_APP_CLICKED: 'pwa_open_app_clicked',
 
     // ── KYC (Bridge) ──
     KYC_INITIATED: 'kyc_initiated',
@@ -94,6 +98,8 @@ export const ANALYTICS_EVENTS = {
 
     // ── Activation Funnel ──
     ACTIVATION_STEP_VIEWED: 'activation_step_viewed',
+    ACTIVATION_SPEND_CHOOSER_SHOWN: 'activation_spend_chooser_shown',
+    ACTIVATION_SPEND_CHOOSER_SELECTED: 'activation_spend_chooser_selected',
 
     // ── Surprise Moment (funnel handoff) ──
     SURPRISE_MOMENT_SHOWN: 'surprise_moment_shown',
@@ -127,10 +133,18 @@ export const ANALYTICS_EVENTS = {
     // ── Home ──
     BALANCE_VISIBILITY_TOGGLED: 'balance_visibility_toggled',
 
-    // ── Error / Churn ──
+    // ── Error ──
     BACKEND_ERROR_SHOWN: 'backend_error_shown',
     BACKEND_ERROR_RETRY: 'backend_error_retry',
     BACKEND_ERROR_LOGOUT: 'backend_error_logout',
+
+    // ── KYC: Sumsub WebSDK health ──
+    // The Jul-16/17 outage was invisible because a never-launched SDK emits
+    // nothing: no exception, no request, no 500. These make the launch itself
+    // observable so "opened but never launched" is alertable, not archaeology.
+    KYC_SDK_LAUNCHED: 'kyc_sdk_launched',
+    KYC_SDK_LAUNCH_TIMEOUT: 'kyc_sdk_launch_timeout',
+    KYC_SDK_INIT_FAILED: 'kyc_sdk_init_failed',
 
     // ── Card: acquisition funnel (Rain virtual card) ──
     // State observed on /card mount or transition. `state` matches CardTopLevelState.
@@ -157,6 +171,14 @@ export const ANALYTICS_EVENTS = {
     CARD_SESSION_KEY_PROMPTED: 'card_session_key_prompted',
     CARD_SESSION_KEY_GRANTED: 'card_session_key_granted',
     CARD_SESSION_KEY_FAILED: 'card_session_key_failed',
+    // Grant preflight found a repair-needing kernel (nonce floor from the
+    // 2025-09-18 migration wave, or an undeployed pre-cutoff account) and
+    // completed the repair before signing (captured on success), or fell back
+    // on a flaky floor read. `mode`: invalidate | deploy | floor-read-failed.
+    CARD_SESSION_KEY_PREFLIGHT_REPAIR: 'card_session_key_preflight_repair',
+    // Withdraw refused with 409 STALE_CARD_APPROVAL — stored session-key
+    // approval is bound to a deprecated validator; user must re-enable the card.
+    CARD_STALE_APPROVAL_HIT: 'card_stale_approval_hit',
 
     // ── Card: waitlist + early-access funnel (M2 Card Waitlist Launch) ──
     // /shhhhh closed-beta landing page → /card.
@@ -164,9 +186,9 @@ export const ANALYTICS_EVENTS = {
     CARD_FLOW_EARLY_ACCESS_GRANTED: 'card_flow_early_access_granted',
     // Outer-gate fail: user landed on /card without /shhhhh early access pre-launch.
     CARD_FLOW_GATED: 'card_flow_gated',
-    // Home launch CTA (shown to everyone post-public-launch who has no active card).
-    // viewed = banner became visible; clicked = tapped through to /card;
-    // dismissed = tapped the X. Click and dismiss both hide it permanently.
+    // Home Carousel CTA for card launch (shown to everyone post-public-launch who
+    // has no active card). viewed = CTA became visible; clicked = tapped through
+    // to /card; dismissed = tapped the X. Click and dismiss both hide it permanently.
     CARD_LAUNCH_CTA_VIEWED: 'card_launch_cta_viewed',
     CARD_LAUNCH_CTA_CLICKED: 'card_launch_cta_clicked',
     CARD_LAUNCH_CTA_DISMISSED: 'card_launch_cta_dismissed',
@@ -212,6 +234,10 @@ export const ANALYTICS_EVENTS = {
     CARD_LIMIT_CHANGE_OPENED: 'card_limit_change_opened',
     CARD_LIMIT_CHANGED: 'card_limit_changed',
     CARD_LIMIT_CHANGE_FAILED: 'card_limit_change_failed',
+    // Excess collateral returned to the smart wallet after a limit decrease
+    // (useReturnExcessCollateral). FAILED is non-fatal — limit change stuck.
+    CARD_LIMIT_EXCESS_RETURNED: 'card_limit_excess_returned',
+    CARD_LIMIT_EXCESS_RETURN_FAILED: 'card_limit_excess_return_failed',
     CARD_LOCK_OPENED: 'card_lock_opened',
     CARD_LOCKED: 'card_locked',
     CARD_UNLOCKED: 'card_unlocked',
@@ -224,6 +250,10 @@ export const ANALYTICS_EVENTS = {
     CARD_PHYSICAL_WAITLIST_JOINED: 'card_physical_waitlist_joined',
     CARD_ADD_TO_WALLET_VIEWED: 'card_add_to_wallet_viewed',
     // Spend routing across collateral / smart / mixed buckets. `strategy` is SpendStrategy.
+    // Root-validator migration userOp fired ahead of a mixed spend (pre-2025-09-18
+    // accounts still on the unpatched validator) — see kernelMigration.utils.ts.
+    KERNEL_MIGRATION_ATTEMPTED: 'kernel_migration_attempted',
+    KERNEL_MIGRATION_SUCCEEDED: 'kernel_migration_succeeded',
     CARD_WITHDRAW_ATTEMPTED: 'card_withdraw_attempted',
     CARD_WITHDRAW_SUCCEEDED: 'card_withdraw_succeeded',
     CARD_WITHDRAW_FAILED: 'card_withdraw_failed',
@@ -236,6 +266,25 @@ export const ANALYTICS_EVENTS = {
     // Rain withdrawal-signature cooldown tripped during a spend. Handled
     // gracefully in-flow (no captureException), so this is the only telemetry.
     RAIN_COOLDOWN_HIT: 'rain_cooldown_hit',
+
+    // ── Account deletion (settings) ──
+    DELETE_ACCOUNT_INITIATED: 'delete_account_initiated',
+    DELETE_ACCOUNT_CONFIRMED: 'delete_account_confirmed',
+    DELETE_ACCOUNT_FAILED: 'delete_account_failed',
+
+    // ── PWA sunset / app migration ──
+    // Funnel: modal_shown(migration_download) → store_cta_clicked / qr_shown
+    // → install (first native-platform event per distinct id, PostHog-side).
+    // `surface` ∈ MIGRATION_SURFACES; store_cta_clicked also carries
+    // `store` ∈ 'ios' | 'android'. qr_shown fires once per QR display (the
+    // smart QR serves both stores, so it has no store dimension).
+    MIGRATION_SUNSET_VIEWED: 'migration_sunset_viewed',
+    // guest Join/Continue-with-Peanut CTA rendered to a logged-out web
+    // visitor during the window — the impression leg of the guest funnel
+    MIGRATION_GUEST_CTA_SHOWN: 'migration_guest_cta_shown',
+    MIGRATION_STORE_CTA_CLICKED: 'migration_store_cta_clicked',
+    MIGRATION_QR_SHOWN: 'migration_qr_shown',
+    MIGRATION_KEEP_WEB_USED: 'migration_keep_web_used',
 } as const
 
 /**
@@ -249,6 +298,9 @@ export const MODAL_TYPES = {
     CARD_PIONEER: 'card_pioneer',
     KYC_COMPLETED: 'kyc_completed',
     INVITE: 'invite',
+    MIGRATION_DOWNLOAD: 'migration_download',
+    APP_REVIEW: 'app_review',
+    RE_CONSENT: 're_consent',
 } as const
 
 /**

@@ -38,10 +38,23 @@ const IGNORED_ERRORS = {
     // Third-party scripts we don't control
     thirdParty: ['googletagmanager', 'gtag', 'analytics', 'hotjar', 'clarity', 'intercom', 'crisp'],
 
+    // fetchWithSentry wrapper errors: the underlying timeout/network/HTTP
+    // failure is already captured at the fetch site with full context, so the
+    // re-thrown ServiceUnavailableError bubbling to global handlers (or being
+    // console.error'd by a consumer) would only double-count it (PEANUT-UI-QDJ).
+    // Substring-matching this pattern is safe only because ServiceUnavailableError
+    // is our own internal fetchWithSentry wrapper name, not a generic string that
+    // could appear in an unrelated third-party error message.
+    alreadyReported: ['ServiceUnavailableError'],
+
     // Third-party SDK internal errors (not actionable)
     thirdPartySdkErrors: [
         'IndexedDB:Set:InternalError', // Vercel Analytics storage - fails in private browsing, not actionable
         'Analytics SDK:', // Vercel Analytics errors
+        // qr-scanner console.warns this whenever location.protocol !== 'https:',
+        // which is always true on capacitor://localhost — it then proceeds and the
+        // camera works. Pure noise on native (PEANUT-UI-R1M).
+        'The camera stream is only accessible if the page is transferred via https',
     ],
 }
 
@@ -54,12 +67,14 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     const exceptionType = event.exception?.values?.[0]?.type || ''
     const culprit = (event as any).culprit || ''
 
-    const searchText = `${message} ${exceptionValue} ${exceptionType} ${culprit}`.toLowerCase()
+    // Match each field independently — concatenating them would let a pattern
+    // match across unrelated fields and suppress a legitimate event.
+    const searchTexts = [message, exceptionValue, exceptionType, culprit]
 
     // Check all ignore patterns
     for (const patterns of Object.values(IGNORED_ERRORS)) {
         for (const pattern of patterns) {
-            if (searchText.includes(pattern.toLowerCase())) {
+            if (searchTexts.some((text) => text.toLowerCase().includes(pattern.toLowerCase()))) {
                 return true
             }
         }
@@ -249,7 +264,7 @@ function isSensitiveKey(key: string): boolean {
 }
 
 function scrubObject(value: unknown, depth = 0): unknown {
-    if (depth > 10) return '[REDACTED: max depth]'
+    if (depth > 15) return '[REDACTED: max depth]'
     if (value === null || value === undefined) return value
     if (typeof value !== 'object') return value
     if (Array.isArray(value)) return value.map((item) => scrubObject(item, depth + 1))

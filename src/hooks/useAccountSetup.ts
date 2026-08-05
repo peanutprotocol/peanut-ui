@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import * as Sentry from '@sentry/nextjs'
 import { useAuth } from '@/context/authContext'
-import { WalletProviderType } from '@/interfaces'
+import { WalletProviderType } from '@/interfaces/wallet.interfaces'
 import { getRedirectUrl, getValidRedirectUrl, clearRedirectUrl } from '@/utils/general.utils'
 import { clearAuthState } from '@/utils/auth.utils'
 import { POST_SIGNUP_ACTIONS } from '@/components/Global/PostSignupActionManager/post-signup-action.consts'
@@ -114,7 +114,7 @@ export const useAccountSetup = () => {
             setError('Error adding account. Please try refreshing the page.')
 
             // clear auth state if account creation fails
-            clearAuthState(user?.user.userId)
+            await clearAuthState(user?.user.userId)
             return false
         } finally {
             setIsProcessing(false)
