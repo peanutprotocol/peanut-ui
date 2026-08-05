@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Marquee from 'react-fast-marquee'
 
 type directionType = 'left' | 'right' | 'up' | 'down' | undefined
@@ -51,9 +52,12 @@ export function MarqueeComp({
                           <div key={index} className="mx-3 inline-flex min-h-12 items-center gap-3 py-2">
                               <div className="text-lg font-bold uppercase md:text-xl">{msg}</div>
                               {index < message.length && (
-                                  <img
+                                  <Image
                                       src={imageSrc}
                                       alt="Marquee Image"
+                                      width={32}
+                                      height={32}
+                                      unoptimized
                                       className={`${imageAnimationClass || ''} ml-2 h-auto w-8`}
                                   />
                               )}
@@ -62,9 +66,12 @@ export function MarqueeComp({
                     : message && (
                           <div className="mx-3 inline-flex min-h-12 items-center py-2">
                               <div className="text-lg font-bold uppercase md:text-xl">{message}</div>
-                              <img
+                              <Image
                                   src={imageSrc}
                                   alt="Marquee Image"
+                                  width={32}
+                                  height={32}
+                                  unoptimized
                                   className={`${imageAnimationClass || ''} ml-2 h-auto w-8`}
                               />
                           </div>

@@ -17,7 +17,7 @@ import { mapTransactionDataForDrawer } from '../transactionTransformer'
 import type { HistoryEntry } from '@/utils/history.utils'
 
 jest.mock('@/assets', () => ({}))
-jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '', SIMPLEFI: '' }))
+jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
 
 interface SnapshotCase {
     name: string

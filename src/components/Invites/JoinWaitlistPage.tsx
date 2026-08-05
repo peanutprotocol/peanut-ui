@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/context/authContext'
 import { invitesApi } from '@/services/invites'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import InvitesPageLayout from './InvitesPageLayout'
 import { twMerge } from 'tailwind-merge'
 import ValidatedInput from '../Global/ValidatedInput'
@@ -19,8 +19,10 @@ import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { isValidEmail } from '@/utils/format.utils'
 import { BaseInput } from '@/components/0_Bruddle/BaseInput'
 import posthog from 'posthog-js'
+import { useTranslations } from 'next-intl'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { INVITER_NOT_FOUND_ERROR } from '@/constants/invites.consts'
+import { getFromCookie, removeFromCookie, toInviteCode } from '@/utils/general.utils'
+import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 
 type WaitlistStep = 'email' | 'notifications' | 'jail'
 
@@ -28,6 +30,10 @@ const nextStepAfterEmail = (isPermissionGranted: boolean): WaitlistStep =>
     isPermissionGranted ? 'jail' : 'notifications'
 
 const JoinWaitlistPage = () => {
+    const t = useTranslations('invites')
+    const tCommon = useTranslations('common')
+    const tSetup = useTranslations('setup')
+    const tNotifications = useTranslations('notifications')
     const { fetchUser, isFetchingUser, logoutUser, user } = useAuth()
     const router = useRouter()
     const { inviteType, inviteCode: setupInviteCode } = useSetupStore()
@@ -49,14 +55,20 @@ const JoinWaitlistPage = () => {
     const [emailError, setEmailError] = useState('')
     const [isSubmittingEmail, setIsSubmittingEmail] = useState(false)
 
-    // Step 3: Invite code state
-    const [inviteCode, setInviteCode] = useState(setupInviteCode)
+    // Step 3: Invite code state. A pending code can also survive in the
+    // inviteCode cookie when the register-time accept failed (useZeroDev keeps
+    // it there so this page can retry after an app restart).
+    const inviteCodeFromCookie = getFromCookie('inviteCode')
+    const pendingInviteCode =
+        setupInviteCode?.trim() || (typeof inviteCodeFromCookie === 'string' ? inviteCodeFromCookie.trim() : '')
+    const [inviteCode, setInviteCode] = useState(pendingInviteCode)
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
     const [isAccepting, setIsAccepting] = useState(false)
     const [error, setError] = useState('')
     const [isLoggingOut, setIsLoggingOut] = useState(false)
+    const [isAutoAccepting, setIsAutoAccepting] = useState(!!pendingInviteCode)
 
     const { data, isLoading: isLoadingWaitlistPosition } = useQuery({
         queryKey: ['waitlist-position', user?.user.userId],
@@ -85,17 +97,20 @@ const JoinWaitlistPage = () => {
         if (user?.user.email) setEmailStepDone(true)
     }, [user?.user.email])
 
-    // Track waitlist step views — measures email-capture conversion + jail-stuck volume
+    // Track waitlist step views — measures email-capture conversion + jail-stuck volume.
+    // Skipped while auto-accepting: the user never sees the step, and counting
+    // it would pollute the funnel.
     useEffect(() => {
+        if (isAutoAccepting) return
         posthog.capture(ANALYTICS_EVENTS.WAITLIST_STEP_VIEWED, { step })
-    }, [step])
+    }, [step, isAutoAccepting])
 
     // Step 1: Submit email via server action
     const handleEmailSubmit = async () => {
         if (!isValidEmail(emailValue) || isSubmittingEmail) return
 
         if (!user?.user.userId) {
-            setEmailError('Account not loaded yet. Please wait a moment and try again.')
+            setEmailError(t('accountNotLoaded'))
             return
         }
 
@@ -112,7 +127,7 @@ const JoinWaitlistPage = () => {
             const refreshedUser = await fetchUser()
             if (!refreshedUser?.user.email) {
                 console.error('[JoinWaitlist] Email update succeeded but fetchUser did not return email')
-                setEmailError('Email saved, but we had trouble loading your profile. Please try again.')
+                setEmailError(t('emailSavedProfileFailed'))
                 return
             }
 
@@ -122,7 +137,7 @@ const JoinWaitlistPage = () => {
             setStep(nextStepAfterEmail(isPermissionGranted))
         } catch (e) {
             console.error('[JoinWaitlist] handleEmailSubmit failed:', e)
-            setEmailError('Something went wrong. Please try again or skip this step.')
+            setEmailError(t('emailSubmitFailed'))
         } finally {
             setIsSubmittingEmail(false)
         }
@@ -159,24 +174,31 @@ const JoinWaitlistPage = () => {
         }
     }
 
+    // Shared by the manual Next button and the automatic attempt below.
+    // Returns true on success (access flipped, user refetched).
+    const acceptInviteWithCode = async (code: string, source: 'waitlist_page' | 'waitlist_auto'): Promise<boolean> => {
+        const res = await invitesApi.acceptInvite(code, inviteType)
+        if (!res.success) {
+            posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
+                invite_code: code,
+                error_message: 'API returned unsuccessful',
+                source,
+            })
+            return false
+        }
+        posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, { invite_code: code, source })
+        sessionStorage.setItem('showNoMoreJailModal', 'true')
+        removeFromCookie('inviteCode')
+        await fetchUser()
+        return true
+    }
+
     const handleAcceptInvite = async () => {
         setIsAccepting(true)
         try {
-            const res = await invitesApi.acceptInvite(inviteCode, inviteType)
-            if (res.success) {
-                posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
-                    invite_code: inviteCode,
-                    source: 'waitlist_page',
-                })
-                sessionStorage.setItem('showNoMoreJailModal', 'true')
-                fetchUser()
-            } else {
-                posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
-                    invite_code: inviteCode,
-                    error_message: 'API returned unsuccessful',
-                    source: 'waitlist_page',
-                })
-                setError('Something went wrong. Please try again or contact support.')
+            const success = await acceptInviteWithCode(inviteCode, 'waitlist_page')
+            if (!success) {
+                setError(t('acceptFailed'))
             }
         } catch {
             posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
@@ -184,11 +206,40 @@ const JoinWaitlistPage = () => {
                 error_message: 'Exception during invite acceptance',
                 source: 'waitlist_page',
             })
-            setError('Something went wrong. Please try again or contact support.')
+            setError(t('acceptFailed'))
         } finally {
             setIsAccepting(false)
         }
     }
+
+    /*
+     * Auto-redeem a pending invite before showing any waitlist UI. The
+     * register-time accept in useZeroDev is fail-open (signup continues even
+     * if it fails), so a user who provided an inviter can still land here
+     * without access — one automatic attempt makes that recovery invisible.
+     * Falls back to the manual flow silently on failure; runs at most once.
+     */
+    const autoAcceptRanRef = useRef(false)
+    useEffect(() => {
+        if (!isAutoAccepting || autoAcceptRanRef.current) return
+        if (isFetchingUser || !user?.user.userId) return
+        autoAcceptRanRef.current = true
+        ;(async () => {
+            try {
+                // on success the refetched user has access and the layout
+                // unmounts this page; the setState below is then a no-op
+                await acceptInviteWithCode(pendingInviteCode, 'waitlist_auto')
+            } catch {
+                posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
+                    invite_code: pendingInviteCode,
+                    error_message: 'Exception during invite acceptance',
+                    source: 'waitlist_auto',
+                })
+            }
+            setIsAutoAccepting(false)
+        })()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isAutoAccepting, isFetchingUser, user?.user.userId])
 
     const handleLogout = async () => {
         setIsLoggingOut(true)
@@ -209,6 +260,8 @@ const JoinWaitlistPage = () => {
 
     const stepImage = step === 'jail' ? PeanutPointing.src : PeanutWavingHello.src
 
+    if (isAutoAccepting) return <PeanutLoading coverFullScreen />
+
     return (
         <InvitesPageLayout image={stepImage}>
             <div
@@ -221,16 +274,14 @@ const JoinWaitlistPage = () => {
                     {/* Step 1: Email Collection */}
                     {step === 'email' && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
-                            <h1 className="text-xl font-extrabold">Stay in the loop</h1>
-                            <p className="text-base font-medium">
-                                Enter your email so we can reach you when you get access.
-                            </p>
+                            <h1 className="text-xl font-extrabold">{t('emailTitle')}</h1>
+                            <p className="text-base font-medium">{t('emailDescription')}</p>
 
                             <BaseInput
                                 type="email"
                                 variant="sm"
-                                aria-label="Email address"
-                                placeholder="you@example.com"
+                                aria-label={t('emailLabel')}
+                                placeholder={t('emailPlaceholder')}
                                 value={emailValue}
                                 onChange={(e) => {
                                     setEmailValue(e.target.value)
@@ -250,12 +301,12 @@ const JoinWaitlistPage = () => {
                                 disabled={!isValidEmail(emailValue) || isSubmittingEmail}
                                 loading={isSubmittingEmail}
                             >
-                                Continue
+                                {tCommon('continue')}
                             </Button>
 
                             {emailError && (
                                 <button onClick={handleSkipEmail} className="text-sm underline">
-                                    Skip for now
+                                    {tCommon('skipForNow')}
                                 </button>
                             )}
                         </div>
@@ -264,15 +315,15 @@ const JoinWaitlistPage = () => {
                     {/* Step 2: Enable Notifications (skippable) */}
                     {step === 'notifications' && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
-                            <h1 className="text-xl font-extrabold">Want instant updates?</h1>
-                            <p className="text-base font-medium">We&apos;ll notify you the moment you get access.</p>
+                            <h1 className="text-xl font-extrabold">{t('notificationsTitle')}</h1>
+                            <p className="text-base font-medium">{t('notificationsDescription')}</p>
 
                             <Button shadowSize="4" onClick={handleEnableNotifications}>
-                                Enable notifications
+                                {tNotifications('enable')}
                             </Button>
 
                             <button onClick={() => setStep('jail')} className="text-sm underline">
-                                Not now
+                                {tNotifications('notNow')}
                             </button>
                         </div>
                     )}
@@ -281,21 +332,20 @@ const JoinWaitlistPage = () => {
                     {step === 'jail' && isLoadingWaitlistPosition && <PeanutLoading coverFullScreen />}
                     {step === 'jail' && !isLoadingWaitlistPosition && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
-                            <h1 className="text-xl font-extrabold">Peanut is invite-only</h1>
+                            <h1 className="text-xl font-extrabold">{t('inviteOnlyTitle')}</h1>
 
                             <h2 className="text-xl font-bold">
-                                You&apos;re {data?.position ? `#${data.position} ` : ''}in line
+                                {data?.position ? t('inLineWithPosition', { position: data.position }) : t('inLine')}
                             </h2>
-                            <p className="text-base font-medium">
-                                Skip the line — drop the username of the member who invited you.
-                            </p>
+                            <p className="text-base font-medium">{t('skipTheLine')}</p>
 
                             <div className="flex items-center gap-2">
                                 <ValidatedInput
-                                    placeholder="Their username"
+                                    placeholder={tSetup('waitlist.inviterUsernamePlaceholder')}
                                     value={inviteCode}
                                     debounceTime={750}
                                     validate={validateInviteCode}
+                                    shouldValidate={(v) => toInviteCode(v).length >= USERNAME_MIN_LENGTH}
                                     onUpdate={({ value, isValid, isChanging }) => {
                                         setIsValid(isValid)
                                         setIsChanging(isChanging)
@@ -320,18 +370,18 @@ const JoinWaitlistPage = () => {
                                     onClick={handleAcceptInvite}
                                     disabled={!isValid || isChanging || isValidating || isAccepting}
                                 >
-                                    Next
+                                    {tCommon('next')}
                                 </Button>
                             </div>
 
                             {!isValid && !isChanging && !!inviteCode && (
-                                <ErrorAlert description={INVITER_NOT_FOUND_ERROR} />
+                                <ErrorAlert description={tSetup('waitlist.inviterNotFound')} />
                             )}
 
                             {error && <ErrorAlert description={error} />}
 
                             <button onClick={handleLogout} className="text-sm underline">
-                                {isLoggingOut ? 'Please wait...' : 'Log in with a different account'}
+                                {isLoggingOut ? t('pleaseWait') : t('logInDifferentAccount')}
                             </button>
                         </div>
                     )}

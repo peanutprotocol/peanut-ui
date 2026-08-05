@@ -14,6 +14,8 @@ import {
 import Footer from '@/components/LandingPage/Footer'
 import Manteca from '@/components/LandingPage/Manteca'
 import { QuestsHero } from './components/QuestsHero'
+import { EN_LANDING_STRINGS } from '@/components/LandingPage/landingStrings'
+import { DEFAULT_LOCALE } from '@/i18n/types'
 
 export default function QuestsPage() {
     const marqueeProps = {
@@ -55,7 +57,7 @@ export default function QuestsPage() {
         <Layout className="enable-select !m-0 w-full !p-0">
             <QuestsHero />
             <Marquee {...marqueeProps} />
-            <DropLink />
+            <DropLink strings={EN_LANDING_STRINGS} />
             <Marquee {...marqueeProps} />
             <RegulatedRails />
             <Marquee {...marqueeProps} />
@@ -67,7 +69,7 @@ export default function QuestsPage() {
             <Marquee {...marqueeProps} />
             <SendInSeconds />
             <Marquee {...marqueeProps} />
-            <NoFees />
+            <NoFees locale={DEFAULT_LOCALE} strings={EN_LANDING_STRINGS} />
             <Marquee {...marqueeProps} />
             <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />
             <Marquee {...marqueeProps} />

@@ -1,6 +1,6 @@
 'use client'
 
-import { type ITokenPriceData, type Account } from '@/interfaces'
+import { type ITokenPriceData, type Account } from '@/interfaces/interfaces'
 import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/services/services.types'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'

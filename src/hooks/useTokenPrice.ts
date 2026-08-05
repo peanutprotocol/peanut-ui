@@ -8,7 +8,7 @@ import {
     PEANUT_WALLET_TOKEN_NAME,
     PEANUT_WALLET_TOKEN_IMG_URL,
 } from '@/constants/zerodev.consts'
-import { type ITokenPriceData } from '@/interfaces'
+import { type ITokenPriceData } from '@/interfaces/interfaces'
 import * as Sentry from '@sentry/nextjs'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { STABLE_COINS, supportedMobulaChains } from '@/constants/general.consts'
@@ -95,9 +95,13 @@ export const useTokenPrice = ({
 
                 return null
             } catch (error) {
-                // Preserve Sentry error reporting from original implementation
+                // fetchWithSentry already reported the underlying failure; this
+                // capture only surfaces non-fetch errors (beforeSend drops the
+                // ServiceUnavailableError wrapper). console.info stays out of
+                // captureConsoleIntegration (PEANUT-UI-MH5) — the fallback is
+                // graceful, not an error.
                 Sentry.captureException(error)
-                console.error('error fetching tokenPrice, falling back to tokenDenomination')
+                console.info('error fetching tokenPrice, falling back to tokenDenomination')
                 return null
             }
         },

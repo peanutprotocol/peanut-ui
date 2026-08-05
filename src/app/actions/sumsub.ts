@@ -1,13 +1,45 @@
 import { type InitiateSumsubKycResponse, type KYCRegionIntent } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
 
+/**
+ * Stable discriminant for the English fallback errors below. Server actions
+ * can't run next-intl, so alongside the prose they return a `code` the client
+ * translates (see useSumsubKycFlow). `code` is only set when we fell back to
+ * our canned copy — a backend `userMessage` is specific, display-ready prose
+ * and stays untranslated (#2554: keep BE prose as fallback where no code exists).
+ */
+export type SumsubActionErrorCode =
+    | 'initiate_failed'
+    | 'restart_failed'
+    | 'resubmit_failed'
+    | 'start_action_failed'
+    | 'invalid_response'
+    | 'unexpected'
+
+interface SumsubActionError {
+    error: string
+    code?: SumsubActionErrorCode
+}
+
+const backendOrFallback = (
+    responseJson: { userMessage?: string; error?: string },
+    fallback: string,
+    code: SumsubActionErrorCode
+): SumsubActionError => {
+    const backendMessage = responseJson.userMessage || responseJson.error
+    return backendMessage ? { error: backendMessage } : { error: fallback, code }
+}
+
+const caughtError = (e: unknown): SumsubActionError =>
+    e instanceof Error ? { error: e.message } : { error: 'An unexpected error occurred', code: 'unexpected' }
+
 // initiate kyc flow (using sumsub) and get websdk access token
 export const initiateSumsubKyc = async (params?: {
     regionIntent?: KYCRegionIntent
     levelName?: string
     crossRegion?: boolean
     targetCountry?: string
-}): Promise<{ data?: InitiateSumsubKycResponse; error?: string }> => {
+}): Promise<{ data?: InitiateSumsubKycResponse; error?: string; code?: SumsubActionErrorCode }> => {
     const body: Record<string, string | boolean | undefined> = {
         regionIntent: params?.regionIntent,
         levelName: params?.levelName,
@@ -24,9 +56,7 @@ export const initiateSumsubKyc = async (params?: {
         const responseJson = await response.json()
 
         if (!response.ok) {
-            return {
-                error: responseJson.userMessage || responseJson.error || 'Failed to initiate identity verification',
-            }
+            return backendOrFallback(responseJson, 'Failed to initiate identity verification', 'initiate_failed')
         }
 
         return {
@@ -38,8 +68,7 @@ export const initiateSumsubKyc = async (params?: {
             },
         }
     } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : 'An unexpected error occurred'
-        return { error: message }
+        return caughtError(e)
     }
 }
 
@@ -48,7 +77,7 @@ export interface SelfHealResubmissionResponse {
     applicantId: string
     actionId: string
     externalActionId: string
-    requiredAction: 'REUPLOAD_ID' | 'REUPLOAD_ADDRESS_PROOF' | 'CONTACT_SUPPORT'
+    requiredAction: 'REUPLOAD_ID' | 'REUPLOAD_ADDRESS_PROOF' | 'CONTACT_SUPPORT' | 'RAIN_DOCUMENT'
     userMessage: string
     attempt: number
     maxAttempts: number
@@ -68,29 +97,27 @@ export interface RestartIdentityResponse {
 export const restartIdentityVerification = async (): Promise<{
     data?: RestartIdentityResponse
     error?: string
+    code?: SumsubActionErrorCode
 }> => {
     try {
         const response = await serverFetch('/users/identity/restart', { method: 'POST' })
         const responseJson = await response.json()
         if (!response.ok) {
-            return {
-                error: responseJson.userMessage || responseJson.error || 'Failed to restart identity verification',
-            }
+            return backendOrFallback(responseJson, 'Failed to restart identity verification', 'restart_failed')
         }
         return { data: responseJson }
     } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : 'An unexpected error occurred'
-        return { error: message }
+        return caughtError(e)
     }
 }
 
 // initiate self-heal document resubmission for a provider-rejected user
 export const initiateSelfHealResubmission = async (
-    provider: 'BRIDGE' | 'MANTECA',
+    provider: 'BRIDGE' | 'MANTECA' | 'RAIN',
     // Optional — target a specific (e.g. future-dated advisory) Bridge requirement
     // by key. Omitted for the legacy blocking flow (current nextAction).
     requirementKey?: string
-): Promise<{ data?: SelfHealResubmissionResponse; error?: string }> => {
+): Promise<{ data?: SelfHealResubmissionResponse; error?: string; code?: SumsubActionErrorCode }> => {
     try {
         const response = await serverFetch('/users/identity/resubmit', {
             method: 'POST',
@@ -100,19 +127,16 @@ export const initiateSelfHealResubmission = async (
         const responseJson = await response.json()
 
         if (!response.ok) {
-            return {
-                error: responseJson.userMessage || responseJson.error || 'Failed to initiate document resubmission',
-            }
+            return backendOrFallback(responseJson, 'Failed to initiate document resubmission', 'resubmit_failed')
         }
 
         if (!responseJson.token || !responseJson.applicantId) {
-            return { error: 'Invalid response from server' }
+            return { error: 'Invalid response from server', code: 'invalid_response' }
         }
 
         return { data: responseJson }
     } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : 'An unexpected error occurred'
-        return { error: message }
+        return caughtError(e)
     }
 }
 
@@ -131,7 +155,9 @@ export interface StartKycActionResponse {
  * future-dated RFI early, where /users/identity would short-circuit on
  * "already approved" and never mint a token.
  */
-export const startKycAction = async (key: string): Promise<{ data?: StartKycActionResponse; error?: string }> => {
+export const startKycAction = async (
+    key: string
+): Promise<{ data?: StartKycActionResponse; error?: string; code?: SumsubActionErrorCode }> => {
     try {
         const response = await serverFetch('/users/kyc/start-action', {
             method: 'POST',
@@ -139,10 +165,10 @@ export const startKycAction = async (key: string): Promise<{ data?: StartKycActi
         })
         const responseJson = await response.json()
         if (!response.ok) {
-            return { error: responseJson.userMessage || responseJson.error || 'Failed to start verification' }
+            return backendOrFallback(responseJson, 'Failed to start verification', 'start_action_failed')
         }
         if (!responseJson.sumsubAccessToken) {
-            return { error: 'Invalid response from server' }
+            return { error: 'Invalid response from server', code: 'invalid_response' }
         }
         return {
             data: {
@@ -152,7 +178,6 @@ export const startKycAction = async (key: string): Promise<{ data?: StartKycActi
             },
         }
     } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : 'An unexpected error occurred'
-        return { error: message }
+        return caughtError(e)
     }
 }

@@ -7,12 +7,15 @@
  * (via `js-cookie`) — matches the pattern in `services/manteca.ts`.
  */
 
-import Cookies from 'js-cookie'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { PEANUT_API_KEY, PEANUT_API_URL } from '@/constants/general.consts'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { PEANUT_API_KEY } from '@/constants/general.consts'
+import { getStepUpToken, STEP_UP_HEADER } from './step-up'
+import { apiFetch } from '@/utils/api-fetch'
+import { getAuthToken } from '@/utils/auth-token'
+import { isCapacitor } from '@/utils/capacitor'
 import type { SignedRainWithdrawal } from '@/hooks/wallet/useSignSpendBundle'
+import { API_ERROR_CODES, ApiError } from './api-error'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -94,8 +97,9 @@ export interface PrepareRainWithdrawalInput {
      *  `amount` (which is only the collateral shortfall). History shows this. */
     totalAmountCents?: string
     /** When this withdrawal pays a Peanut request/charge, the charge uuid.
-     *  The backend then uses the charge intent itself as the prep and marks it
-     *  COMPLETED on confirm — so the FE must NOT also call `recordPayment`. */
+     *  The backend then uses the charge intent itself as the prep and
+     *  completes it on confirm; a follow-up `recordPayment` re-enters the
+     *  same trusted-completion path (idempotent). */
     chargeId?: string
 }
 
@@ -192,6 +196,7 @@ export interface PhysicalWaitlistState {
 }
 
 export class RainCardRateLimitError extends Error {
+    readonly code = API_ERROR_CODES.CARD_SECRETS_RATE_LIMITED
     constructor(message: string) {
         super(message)
         this.name = 'RainCardRateLimitError'
@@ -212,6 +217,10 @@ export class RainCardRateLimitError extends Error {
  */
 export class RainCooldownError extends Error {
     readonly retryAfterSec: number | null
+    /** Wire discriminant — see `friendlyError`. Fixed rather than threaded from
+     *  the response because the branch that constructs this is already gated on
+     *  the 425 + cooldown path, so the literal is exact. */
+    readonly code = API_ERROR_CODES.WITHDRAWAL_COOLDOWN_ACTIVE
     constructor(message: string, retryAfterSec: number | null) {
         super(message)
         this.name = 'RainCooldownError'
@@ -223,6 +232,38 @@ export interface RainCooldownEventDetail {
     retryAfterSec: number
     message: string
 }
+
+/**
+ * Thrown on 409 `{ code: 'STALE_CARD_APPROVAL' }` from
+ * `/rain/cards/withdraw/submit`. The user's stored card session-key approval is
+ * bound to a deprecated ZeroDev validator that can no longer be sponsored, so
+ * the withdrawal can't be broadcast until the user re-enables their card
+ * (re-grants the session key, which mints a fresh, sponsorable approval).
+ *
+ * `rainRequest` also dispatches a `RAIN_STALE_APPROVAL_EVENT` window event when
+ * it constructs this error, so the global re-enable modal can surface the
+ * recovery CTA on ANY spend path without threading state through the call —
+ * same event-driven pattern as the cooldown 425 above.
+ *
+ * The 409 body's `code` is preserved on the instance (see below) rather than
+ * discarded, so `friendlyError` can map it to localized copy.
+ */
+export class StaleCardApprovalError extends Error {
+    /** Wire discriminant — the 409 branch that constructs this is already gated
+     *  on `err.code === 'STALE_CARD_APPROVAL'`, so pinning the literal here is
+     *  exact and stops the code being discarded in favour of English prose. */
+    readonly code = API_ERROR_CODES.STALE_CARD_APPROVAL
+    constructor(message: string) {
+        super(message)
+        this.name = 'StaleCardApprovalError'
+    }
+}
+
+/** The only path that returns a 409 STALE_CARD_APPROVAL — the withdraw submit.
+ *  Gate the branch on it so an unrelated 409 elsewhere stays a generic error. */
+const RAIN_WITHDRAW_SUBMIT_PATH = '/rain/cards/withdraw/submit'
+/** Window event the global re-enable modal listens for. */
+export const RAIN_STALE_APPROVAL_EVENT = 'rain:stale-card-approval'
 
 /** Path that legitimately produces the cooldown 425. Any other 425 from a
  *  Rain endpoint is treated as a generic upstream error — without this gate,
@@ -258,6 +299,18 @@ export type ApplyForCardResponse =
           termsVersion: string
       }
     | {
+          // Sumsub address country contradicts the ID-document country (or is
+          // junk). Show the residence-confirmation screen; re-call with
+          // `confirmedResidenceCountry` set to one of `candidates`. Empty
+          // `candidates` = neither signal usable → route to support.
+          status: 'country-confirmation-required'
+          candidates: string[]
+          evidence: {
+              addressCountry: string | null
+              idDocumentCountry: string | null
+          }
+      }
+    | {
           status: 'pending'
           rainUserId: string
           message: string
@@ -278,31 +331,32 @@ interface RequestOpts {
     rateLimitSensitive?: boolean
     /** Mirror PCI no-cache intent on the client fetch for secrets endpoints. */
     noStore?: boolean
-    /** Override fetchWithSentry's default 10s timeout (e.g. UserOp submissions). */
+    /** Override the default 10s fetch timeout (e.g. UserOp submissions). */
     timeoutMs?: number
+    /**
+     * Prove a fresh WebAuthn assertion alongside the session. Prompts for Face
+     * ID unless a proof from the last few minutes is still good.
+     */
+    stepUp?: boolean
 }
 
 async function rainRequest<T>(opts: RequestOpts): Promise<T> {
-    const jwt = Cookies.get('jwt-token')
-    if (!jwt) throw new Error('Authentication required')
+    // Auth rides apiFetch: Authorization header on web, the native cookie jar
+    // on Capacitor — reading the cookie here would wrongly 401 native, where
+    // JS never holds the token.
+    if (!isCapacitor() && !getAuthToken()) throw new Error('Authentication required')
 
-    const headers: Record<string, string> = {
-        Authorization: `Bearer ${jwt}`,
-        'api-key': PEANUT_API_KEY,
-    }
-    if (opts.body !== undefined) headers['Content-Type'] = 'application/json'
+    const headers: Record<string, string> = { 'api-key': PEANUT_API_KEY }
     if (opts.noStore) headers['Cache-Control'] = 'no-store'
+    if (opts.stepUp) headers[STEP_UP_HEADER] = await getStepUpToken()
 
-    const response = await fetchWithSentry(
-        `${PEANUT_API_URL}${opts.path}`,
-        {
-            method: opts.method,
-            headers,
-            body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-            cache: 'no-store',
-        },
-        opts.timeoutMs
-    )
+    const response = await apiFetch(opts.path, {
+        method: opts.method,
+        headers,
+        body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+        cache: 'no-store',
+        timeoutMs: opts.timeoutMs,
+    })
 
     if (response.status === 429 && opts.rateLimitSensitive) {
         const err = await response.json().catch(() => ({}))
@@ -338,9 +392,32 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
         throw new RainCooldownError(message, retryAfterSec)
     }
 
+    if (response.status === 409 && opts.path === RAIN_WITHDRAW_SUBMIT_PATH) {
+        const err = await response.json().catch(() => ({}))
+        // Only the stale-approval discriminant routes to the re-enable flow.
+        // Any other 409 on submit (e.g. "Charge already paid") stays generic.
+        if (err.code === 'STALE_CARD_APPROVAL') {
+            const message =
+                err.error ||
+                'Your card needs to be re-enabled before you can withdraw. Please re-enable your card and try again.'
+            if (typeof window !== 'undefined') {
+                posthog.capture(ANALYTICS_EVENTS.CARD_STALE_APPROVAL_HIT)
+                window.dispatchEvent(new CustomEvent(RAIN_STALE_APPROVAL_EVENT))
+            }
+            throw new StaleCardApprovalError(message)
+        }
+        throw new ApiError(err.error || err.message || `Request failed: ${response.status}`, {
+            status: response.status,
+            code: err.code,
+        })
+    }
+
     if (!response.ok) {
         const err = await response.json().catch(() => ({}))
-        throw new Error(err.error || err.message || `Request failed: ${response.status}`)
+        throw new ApiError(err.error || err.message || `Request failed: ${response.status}`, {
+            status: response.status,
+            code: err.code,
+        })
     }
 
     return (await response.json()) as T
@@ -366,6 +443,10 @@ export const rainApi = {
     /**
      * Persist the serialized ZeroDev permission on the user's card so the
      * backend can submit session-key UserOps for collateral withdrawals.
+     *
+     * No step-up: the payload is itself a fresh passkey signature (the grant
+     * ceremony's enable sig) — an extra assertion here just doubles the
+     * fingerprint prompts on the grant flow.
      */
     submitWithdrawSessionApproval: async (input: { serializedApproval: string }): Promise<void> => {
         await rainRequest<{ ok: boolean }>({
@@ -379,6 +460,11 @@ export const rainApi = {
      * Stage a Rain V2 withdrawal: backend fetches Rain's executor signature,
      * reads the current adminNonce from the collateral proxy, and persists a
      * short-lived prep record. Caller then signs the admin EIP-712 payload.
+     *
+     * No step-up: a prep is inert until the passkey produces the admin
+     * EIP-712 signature that follows it, so the flow proves user presence on
+     * its own. Step-up here made every collateral-funded send cost three
+     * fingerprint prompts instead of two (the 2026-07 triple-prompt reports).
      */
     prepareWithdrawal: async (input: PrepareRainWithdrawalInput): Promise<PrepareRainWithdrawalResponse> => {
         return rainRequest<PrepareRainWithdrawalResponse>({
@@ -468,12 +554,15 @@ export const rainApi = {
      *    Applicant Action. The token to open it is included.
      *  - `terms-required` → backend is ready to submit but needs explicit
      *    consent; re-call with `termsAccepted: true` to proceed.
+     *  - `country-confirmation-required` → conflicting residence evidence;
+     *    show the confirmation screen and re-call with
+     *    `confirmedResidenceCountry` set to the user's pick.
      *  - `pending` / `ENABLED` / other → application submitted or already
      *    in-flight. Frontend should refetch overview and let the state
      *    machine route.
      */
     applyForCard: async (
-        opts: { termsAccepted?: boolean; serializedApproval?: string } = {}
+        opts: { termsAccepted?: boolean; serializedApproval?: string; confirmedResidenceCountry?: string } = {}
     ): Promise<ApplyForCardResponse> => {
         // `serializedApproval` is consumed only by the re-issue branch on the
         // backend (where a RainCard row is created synchronously). First-time
@@ -481,6 +570,7 @@ export const rainApi = {
         // the field entirely in that case.
         const body: Record<string, unknown> = { termsAccepted: opts.termsAccepted === true }
         if (opts.serializedApproval) body.serializedApproval = opts.serializedApproval
+        if (opts.confirmedResidenceCountry) body.confirmedResidenceCountry = opts.confirmedResidenceCountry
         return rainRequest<ApplyForCardResponse>({
             method: 'POST',
             path: '/rain/cards',
@@ -583,6 +673,7 @@ export const rainApi = {
         return rainRequest<RainCardDetailsResponse>({
             method: 'GET',
             path: `/rain/cards/${cardId}/details`,
+            stepUp: true,
             rateLimitSensitive: true,
             noStore: true,
         })
@@ -615,6 +706,7 @@ export const rainApi = {
         const { pin } = await rainRequest<{ pin: string | null }>({
             method: 'GET',
             path: `/rain/cards/${cardId}/pin`,
+            stepUp: true,
             rateLimitSensitive: true,
             noStore: true,
         })
@@ -626,6 +718,7 @@ export const rainApi = {
         await rainRequest<{ ok: boolean }>({
             method: 'PUT',
             path: `/rain/cards/${cardId}/pin`,
+            stepUp: true,
             body: { pin },
             noStore: true,
         })

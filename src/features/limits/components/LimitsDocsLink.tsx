@@ -1,12 +1,13 @@
+'use client'
+
+import DocsLink from '@/components/Global/DocsLink'
+import { useTranslations } from 'next-intl'
+
 export default function LimitsDocsLink() {
+    const t = useTranslations('limits')
     return (
-        <a
-            href="/en/help/transaction-limits"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-center text-sm underline"
-        >
-            See more about limits
-        </a>
+        <DocsLink href="/en/help/transaction-limits" className="text-center text-sm underline">
+            {t('docsLink')}
+        </DocsLink>
     )
 }

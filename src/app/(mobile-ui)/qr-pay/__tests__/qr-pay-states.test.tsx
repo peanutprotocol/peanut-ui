@@ -8,10 +8,12 @@
  * per-test via mockReturnValue / mockImplementation.
  */
 import React from 'react'
+import posthog from 'posthog-js'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
-import type { RailCapability, CapabilityRestriction } from '@/types/capabilities'
+import type { RailCapability } from '@/types/capabilities'
 
 // Test-local subsets — only the fields the qr-pay page actually reads from each
 // fixture. Mirroring the full RailCapability/CapabilityRestriction types here
@@ -19,6 +21,7 @@ import type { RailCapability, CapabilityRestriction } from '@/types/capabilities
 // reason message even when the page never touches them.
 type TestRail = Pick<RailCapability, 'id' | 'provider' | 'status' | 'operations'> & {
     reason?: { userMessage: string | null }
+    resolved?: RailCapability['resolved']
 }
 type TestRestriction = { code: string; affectedRailIds: string[]; userMessage?: string | null }
 
@@ -159,7 +162,6 @@ jest.mock('@/components/TransactionDetails/TransactionDetailsDrawer', () => ({
 const mockMantecaApi = {
     initiateQrPayment: jest.fn(),
     completeQrPaymentWithSignedTx: jest.fn(),
-    claimPerk: jest.fn(),
 }
 jest.mock('@/services/manteca', () => ({
     mantecaApi: mockMantecaApi,
@@ -231,7 +233,7 @@ jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
 
 jest.mock('@/features/limits/components/LimitsWarningCard', () => ({
     __esModule: true,
-    default: (props: any) => <div data-testid="limits-warning-card" />,
+    default: (_props: any) => <div data-testid="limits-warning-card" />,
 }))
 
 jest.mock('@/features/limits/utils', () => ({
@@ -337,11 +339,13 @@ jest.mock('@/components/Global/NavHeader', () => ({
 
 jest.mock('@/components/Global/Card', () => ({
     __esModule: true,
-    default: React.forwardRef((props: any, ref: any) => (
-        <div data-testid="card" ref={ref} className={props.className}>
-            {props.children}
-        </div>
-    )),
+    default: React.forwardRef(function Card(props: any, ref: any) {
+        return (
+            <div data-testid="card" ref={ref} className={props.className}>
+                {props.children}
+            </div>
+        )
+    }),
 }))
 
 jest.mock('@/components/0_Bruddle/Button', () => ({
@@ -496,6 +500,7 @@ function capabilitiesForGate(state: GateState, opts: { userMessage?: string | nu
         canDo: (_op: string, o?: { provider?: string }) =>
             payEnabled && (o?.provider === undefined || o.provider === 'manteca'),
         railsForProvider: (provider: string) => rails.filter((r) => r.provider === provider),
+        nextActions: [],
         restrictionForRail: (railId: string) => restrictions.find((r) => r.affectedRailIds.includes(railId)),
     }
 }
@@ -504,24 +509,12 @@ function setCapabilitiesGate(state: GateState, opts: { userMessage?: string | nu
     mockUseCapabilities.mockReturnValue(capabilitiesForGate(state, opts))
 }
 
-// Loading state context provider
-const LoadingStateProvider = ({ children }: { children: React.ReactNode }) => {
-    const loadingStateContext = require('@/context').loadingStateContext
-    const [loadingState, setLoadingState] = React.useState('Idle')
-    const isLoading = loadingState !== 'Idle'
-    return (
-        <loadingStateContext.Provider value={{ loadingState, setLoadingState, isLoading }}>
-            {children}
-        </loadingStateContext.Provider>
-    )
-}
-
-// We need to mock the context module itself since it's imported via { loadingStateContext }
-const mockSetLoadingState = jest.fn()
-jest.mock('@/context', () => ({
+// We need to mock the context module itself (specific file, not the barrel — the page
+// imports from '@/context/loadingStates.context' per the no-barrel rule)
+jest.mock('@/context/loadingStates.context', () => ({
     loadingStateContext: React.createContext({
         loadingState: 'Idle' as string,
-        setLoadingState: (s: string) => {},
+        setLoadingState: (_s: string) => {},
         isLoading: false,
     }),
 }))
@@ -529,7 +522,7 @@ jest.mock('@/context', () => ({
 function renderQrPay(params: Record<string, string> = {}) {
     setSearchParams(params)
     const queryClient = createQueryClient()
-    const { loadingStateContext } = require('@/context')
+    const { loadingStateContext } = require('@/context/loadingStates.context')
 
     const LoadingProvider = ({ children }: { children: React.ReactNode }) => {
         const [loadingState, setLoadingState] = React.useState<string>('Idle')
@@ -542,11 +535,13 @@ function renderQrPay(params: Record<string, string> = {}) {
     }
 
     return render(
-        <QueryClientProvider client={queryClient}>
-            <LoadingProvider>
-                <QRPayPage />
-            </LoadingProvider>
-        </QueryClientProvider>
+        <IntlWrapper>
+            <QueryClientProvider client={queryClient}>
+                <LoadingProvider>
+                    <QRPayPage />
+                </LoadingProvider>
+            </QueryClientProvider>
+        </IntlWrapper>
     )
 }
 
@@ -619,15 +614,6 @@ function applyDefaults() {
             paymentPrice: '1200',
             priceExpireAt: '2026-04-16T23:59:59Z',
             merchant: { name: 'Test Merchant' },
-        },
-    })
-
-    mockMantecaApi.claimPerk.mockResolvedValue({
-        success: true,
-        perk: {
-            amountSponsored: 0.5,
-            discountPercentage: 5,
-            txHash: '0xabc',
         },
     })
 
@@ -705,6 +691,36 @@ describe('GROUP 1: Loading & KYC Gate', () => {
 
         expect(screen.getByText('QR payments are not available')).toBeInTheDocument()
         expect(screen.getByText('Contact support to continue.')).toBeInTheDocument()
+    })
+
+    test('provide-email verdict maps to the unavailable modal, never the document-upload flow', () => {
+        // a fixable verdict whose only fix is adding an email must not open
+        // the Sumsub upload flow (this surface has no email form) — same
+        // mapping rule as deriveProviderRejection
+        mockUseCapabilities.mockReturnValue({
+            ...capabilitiesForGate('provider_rejection_fixable', { userMessage: 'Add your email to continue.' }),
+            railsForProvider: () => [
+                {
+                    id: MANTECA_RAIL_ID,
+                    provider: 'manteca',
+                    status: 'blocked',
+                    resolved: {
+                        status: 'fixable',
+                        blocking: {
+                            code: 'email_required',
+                            userMessage: 'Add your email to continue.',
+                            selfHealable: true,
+                            selfHealKind: 'provide-email',
+                        },
+                    },
+                } as TestRail,
+            ],
+        })
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        expect(screen.getByText('QR payments are not available')).toBeInTheDocument()
+        expect(screen.queryByText('Upload document')).not.toBeInTheDocument()
     })
 
     test('Manteca fixable rejection shows updated-document modal', () => {
@@ -1106,6 +1122,56 @@ describe('GROUP 4: Success States', () => {
         await waitFor(() => {
             expect(screen.getByText('Go to Home')).toBeInTheDocument()
         })
+
+        jest.useRealTimers()
+    })
+
+    // Regression: the perk is already claimed server-side during QR-payment
+    // processing, and the QR response carries the sponsored amount. The
+    // hold-to-claim gesture must report that reward directly — it must NOT make
+    // a second /perks/claim round-trip (that endpoint now requires a usageId the
+    // client never has, so the old call always 400'd and surfaced a false
+    // "reward is being processed" error even though the reward had landed).
+    test('Perk claim reports the reward from the QR response, no /perks/claim round-trip, no error', async () => {
+        jest.useFakeTimers()
+
+        // BE sends sponsoredUsd; the page maps it to amountSponsored on load.
+        await completeMantecaPayment({
+            perk: {
+                eligible: true,
+                discountPercentage: 5,
+                sponsoredUsd: 0.5,
+            },
+        })
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /Claim Reward/i })).toBeInTheDocument()
+        })
+
+        const claimButton = screen.getByRole('button', { name: /Claim Reward/i })
+        await act(async () => {
+            fireEvent.pointerDown(claimButton)
+        })
+        // Advance past the hold duration to fire the claim.
+        await act(async () => {
+            jest.advanceTimersByTime(1600)
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText('Go to Home')).toBeInTheDocument()
+        })
+
+        // Reward reported from the QR response (sponsoredUsd → amount_usd).
+        expect(posthog.capture).toHaveBeenCalledWith('reward_claimed', {
+            amount_usd: 0.5,
+            discount_pct: 5,
+        })
+
+        // The old broken round-trip surfaced this false error — it must not appear.
+        expect(screen.queryByText(/reward is being processed/i)).not.toBeInTheDocument()
+
+        // The redundant client claim method is gone entirely.
+        expect('claimPerk' in mockMantecaApi).toBe(false)
 
         jest.useRealTimers()
     })

@@ -1,4 +1,5 @@
 import React, { useState, forwardRef, useImperativeHandle, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '../Icons/Icon'
 import { Button, type ButtonSize } from '@/components/0_Bruddle/Button'
@@ -19,6 +20,7 @@ interface Props {
 
 const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
     ({ textToCopy, fill = 'black', className, iconSize = '6', type = 'icon', buttonSize, onCopy }, ref) => {
+        const t = useTranslations('global')
         const [copied, setCopied] = useState(false)
 
         const copy = useCallback(() => {
@@ -58,7 +60,7 @@ const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
                     shadowSize="4"
                     variant="primary-soft"
                 >
-                    <p className="text-sm"> Copy code</p>
+                    <p className="text-sm">{t('copyToClipboard.copyCode')}</p>
                 </Button>
             )
         }

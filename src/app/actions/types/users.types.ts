@@ -12,7 +12,6 @@ export interface InitiateKycResponse {
     kycLink: string
     tosLink?: string
     bridgeKycStatus: string
-    tosStatus?: string
     error?: string // will be present on rejections
     reasons?: Array<{
         developer_reason: string

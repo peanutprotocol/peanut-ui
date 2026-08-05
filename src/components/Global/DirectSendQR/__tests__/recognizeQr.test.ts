@@ -189,6 +189,42 @@ describe('recognizeQr', () => {
         })
     })
 
+    describe('PIX_RECURRING (PIX Automático)', () => {
+        // Composite Automático payload: also matches PIX_REGEX, so this locks in
+        // the priority of the /rec/ check over the regular PIX classification.
+        const compositeRecurring =
+            '00020126850014br.gov.bcb.pix2563pix.example.com/rec/2a4d05638b1c4b2e9f3a67890ab5204000053039865802BR5909Test Merc6009SAO PAULO62070503***6304ABCD'
+        // Recurrence-only payload: lacks the currency/country fields PIX_REGEX
+        // requires, so without the dedicated check it would fall through to null.
+        const recurrenceOnly = '00020126720014br.gov.bcb.pix2550pix.example.com/rec/abc1236304ABCD'
+
+        it('should recognize a composite Automático payload as PIX_RECURRING, not PIX', () => {
+            expect(recognizeQr(compositeRecurring)).toBe(EQrType.PIX_RECURRING)
+        })
+
+        it('should recognize a recurrence-only payload as PIX_RECURRING', () => {
+            expect(recognizeQr(recurrenceOnly)).toBe(EQrType.PIX_RECURRING)
+        })
+
+        it('should recognize an uppercase payload (scanner lowercases, paste may not)', () => {
+            expect(recognizeQr(recurrenceOnly.toUpperCase())).toBe(EQrType.PIX_RECURRING)
+        })
+
+        it('should recognize a protocol-prefixed recurring payload (mirrors the "PIX with URL prefix" case)', () => {
+            expect(recognizeQr(`http://${compositeRecurring}`)).toBe(EQrType.PIX_RECURRING)
+        })
+
+        it('should NOT classify a regular PIX payment QR as PIX_RECURRING', () => {
+            const regularPix =
+                '00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-4266554400005204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'
+            expect(recognizeQr(regularPix)).toBe(EQrType.PIX)
+        })
+
+        it('should NOT classify a plain URL containing /rec/ as PIX_RECURRING', () => {
+            expect(recognizeQr('https://example.com/rec/123')).toBe(EQrType.URL)
+        })
+    })
+
     describe('PIX_KEY (raw PIX keys)', () => {
         it.each([
             // Email

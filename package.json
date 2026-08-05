@@ -1,14 +1,15 @@
 {
     "name": "peanut-ui",
-    "version": "0.2.0",
+    "version": "1.0.8",
     "private": true,
+    "packageManager": "pnpm@10.30.1",
     "engines": {
         "node": ">=21.1.0 <22.0.0 || ^20.9.0"
     },
     "scripts": {
         "dev": "NODE_OPTIONS=\"--max-old-space-size=8192\" next dev --turbo",
         "dev:clean": "rm -rf .next && NODE_OPTIONS=\"--max-old-space-size=8192\" next dev --turbo",
-        "dev:fallback": "next dev",
+        "dev:fallback": "next dev --webpack",
         "postinstall": "node scripts/copy-flags.mjs",
         "copy-flags": "node scripts/copy-flags.mjs",
         "prebuild": "node scripts/copy-flags.mjs",
@@ -37,27 +38,37 @@
         "validate-links": "tsx scripts/verify-content.ts",
         "verify-content": "tsx scripts/verify-content.ts",
         "native:build": "node scripts/native-build.js",
-        "native:sync": "npx cap sync android",
-        "capgo:upload:dev": "node scripts/native-build.js && npx @capgo/cli@latest bundle upload --channel development --path ./out",
-        "capgo:upload:staging": "node scripts/native-build.js && npx @capgo/cli@latest bundle upload --channel staging --path ./out",
+        "native:sync": "pnpm exec cap sync android",
+        "native:release": "bash scripts/native-release.sh",
+        "capgo:upload:dev": "node scripts/native-build.js && pnpm dlx @capgo/cli@latest bundle upload --channel development --path ./out",
+        "capgo:upload:staging": "node scripts/native-build.js && pnpm dlx @capgo/cli@latest bundle upload --channel staging --path ./out",
         "test:unit:ci": "jest --coverage --reporters=default --reporters=jest-junit"
     },
     "dependencies": {
         "@capacitor/android": "8.2.0",
         "@capacitor/app": "^8.1.0",
         "@capacitor/browser": "^8.0.3",
+        "@capacitor/camera": "^8.2.0",
         "@capacitor/cli": "8.2.0",
+        "@capacitor/clipboard": "^8.0.1",
         "@capacitor/core": "8.2.0",
+        "@capacitor/device": "^8.0.2",
+        "@capacitor/haptics": "^8.0.2",
+        "@capacitor/ios": "8.2.0",
+        "@capacitor/keyboard": "^8.0.3",
+        "@capacitor/preferences": "^8.0.1",
         "@capacitor/splash-screen": "^8.0.1",
         "@capacitor/status-bar": "^8.0.2",
         "@capgo/capacitor-crisp": "^8.0.27",
+        "@capgo/capacitor-native-biometric": "8.6.0",
         "@capgo/capacitor-passkey": "^8.2.2",
         "@capgo/capacitor-updater": "^8.45.9",
         "@headlessui/react": "^2.2.9",
         "@headlessui/tailwindcss": "^0.2.1",
-        "@justaname.id/react": "0.3.180",
-        "@justaname.id/sdk": "0.2.177",
+        "@justaname.id/react": "0.4.0",
+        "@justaname.id/sdk": "0.3.0",
         "@noble/curves": "1.9.7",
+        "@onesignal/capacitor-plugin": "^1.0.6",
         "@radix-ui/react-accordion": "^1.2.12",
         "@radix-ui/react-select": "^2.2.6",
         "@radix-ui/react-slider": "^1.3.5",
@@ -90,6 +101,7 @@
         "js-cookie": "^3.0.5",
         "lucide-react": "^1.8.0",
         "next": "16.2.3",
+        "next-intl": "^4.13.1",
         "next-mdx-remote": "^6.0.0",
         "nuqs": "^2.8.6",
         "p2-es": "1.2.3",
@@ -116,7 +128,7 @@
         "use-haptic": "^1.1.11",
         "validator": "^13.12.0",
         "vaul": "^1.1.2",
-        "viem": "^2.22.0",
+        "viem": "^2.48.0",
         "wagmi": "2.16.3"
     },
     "devDependencies": {
@@ -128,6 +140,7 @@
         "@testing-library/jest-dom": "^6.4.2",
         "@testing-library/react": "^16.1.0",
         "@types/canvas-confetti": "^1.9.0",
+        "@types/d3-force": "^3.0.10",
         "@types/jest": "^29.5.12",
         "@types/js-cookie": "^3.0.6",
         "@types/node": "20.4.2",
@@ -170,10 +183,17 @@
                     "tsconfig": "tsconfig.test.json",
                     "useESM": true
                 }
+            ],
+            "^.+\\.(js|mjs)$": [
+                "ts-jest",
+                {
+                    "tsconfig": "tsconfig.test.json",
+                    "isolatedModules": true
+                }
             ]
         },
         "transformIgnorePatterns": [
-            "node_modules/(?!(@wagmi|wagmi|viem|@viem|@walletconnect|@justaname\\.id|@zerodev|permissionless)/)"
+            "node_modules/(?!(\\.pnpm/)?(next-intl|use-intl|@formatjs|intl-messageformat)([@+/]|$))"
         ],
         "moduleNameMapper": {
             "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/src/utils/__mocks__/static-image.ts",
@@ -205,7 +225,7 @@
     },
     "resolutions": {
         "@wagmi/core": "2.19.0",
-        "viem": "^2.22.0",
+        "viem": "^2.48.0",
         "wagmi": "2.16.3"
     },
     "pnpm": {
@@ -219,6 +239,9 @@
             "yaml": "^2.8.3",
             "serialize-javascript": "^7.0.5",
             "protobufjs": "^7.5.5"
+        },
+        "patchedDependencies": {
+            "@zerodev/webauthn-key": "patches/@zerodev__webauthn-key.patch"
         }
     },
     "size-limit": [

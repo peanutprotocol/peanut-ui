@@ -29,6 +29,23 @@ describe('getBadgeShareText', () => {
         expect(mapped).toMatch(/\b(I|my)\b/i)
     })
 
+    it('uses bespoke copy for the runtime English locale options path', () => {
+        const text = getBadgeShareText('CARD_FIRST_SWIPE', 'First Swipe', url, {
+            locale: 'en',
+            localizedFallback: 'localized fallback sentinel',
+        })
+
+        expect(text).not.toContain('localized fallback sentinel')
+        expect(text).toContain(url)
+    })
+
+    it('includes bespoke copy for the MANICERO badge added after the original PR', () => {
+        const mapped = getBadgeShareText('MANICERO', 'Manicero', url)
+        const fallback = getBadgeShareText('___UNMAPPED___', 'Manicero', url)
+
+        expect(mapped).not.toBe(fallback)
+    })
+
     it('falls back to a generic brag (with display name) for unknown / parked codes', () => {
         const text = getBadgeShareText('NOT_A_REAL_BADGE', 'Mystery Badge', url)
         expect(text).toContain('Mystery Badge')
@@ -39,5 +56,16 @@ describe('getBadgeShareText', () => {
         const text = getBadgeShareText(undefined, 'Some Badge', url)
         expect(text).toContain('Some Badge')
         expect(text).toContain(url)
+    })
+
+    it('keeps the localized generic copy outside English', () => {
+        const localizedFallback = `Ganhei o selo First Swipe no Peanut!\n\n${url}`
+
+        expect(
+            getBadgeShareText('CARD_FIRST_SWIPE', 'First Swipe', url, {
+                locale: 'pt-BR',
+                localizedFallback,
+            })
+        ).toBe(localizedFallback)
     })
 })

@@ -5,11 +5,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'
 import { IS_DEV } from '@/constants/general.consts'
 import InvitesGraph from '@/components/Global/InvitesGraph'
-import {
-    DEFAULT_FORCE_CONFIG,
-    DEFAULT_VISIBILITY_CONFIG,
-    DEFAULT_EXTERNAL_NODES_CONFIG,
-} from '@/components/Global/InvitesGraph/types'
+import { DEFAULT_FORCE_CONFIG } from '@/components/Global/InvitesGraph/types'
 
 // Allowed users for full graph access (frontend check - backend also validates)
 const ALLOWED_USERNAMES = ['squirrel', 'kkonrad', 'hugo']
@@ -141,7 +137,7 @@ export default function FullGraphPage() {
                 }) => (
                     <>
                         {/* Controls Panel - Top Right */}
-                        <div className="absolute right-4 top-4 max-h-[calc(100vh-140px)] w-[200px] overflow-y-auto rounded-xl bg-white/95 p-3 shadow-lg backdrop-blur-sm">
+                        <div className="absolute right-4 top-4 max-h-[calc(100vh_-_140px)] w-[200px] overflow-y-auto rounded-xl bg-white/95 p-3 shadow-lg backdrop-blur-sm">
                             {/* FORCES + VISIBILITY merged */}
                             <h3 className="mb-2 text-xs font-bold text-gray-900">Display & Forces</h3>
 
@@ -839,7 +835,7 @@ export default function FullGraphPage() {
                                             <span className="inline-block h-0.5 w-3 bg-cyan-500/50"></span>P2P
                                         </span>
                                     </div>
-                                    <p className="text-gray-400">Click → Grafana | Right-click → Focus</p>
+                                    <p className="text-gray-400">Click → Select | Right-click → Focus</p>
                                     {topNodes > 0 && (
                                         <p className="text-gray-400">Showing top {topNodes.toLocaleString()} nodes</p>
                                     )}

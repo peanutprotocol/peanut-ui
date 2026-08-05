@@ -13,8 +13,10 @@ import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuc
 import { useDirectSendFlow } from '../useDirectSendFlow'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { PointsAction } from '@/services/services.types'
+import { useTranslations } from 'next-intl'
 
 export function SendSuccessView() {
+    const t = useTranslations('payment')
     const { usdAmount, recipient, attachment, charge, payment, resetSendFlow } = useDirectSendFlow()
 
     // calculate points for the transaction
@@ -29,7 +31,7 @@ export function SendSuccessView() {
     return (
         <PaymentSuccessView
             type="SEND"
-            headerTitle="Send"
+            headerTitle={t('headers.send')}
             recipientType="USERNAME"
             user={recipient ? { username: recipient.username, fullName: recipient.fullName } : undefined}
             usdAmount={usdAmount}

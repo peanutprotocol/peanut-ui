@@ -6,14 +6,12 @@ import { TRANSACTIONS, BALANCE_DECREASE, SEND_MONEY } from '@/constants/query.co
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useBalance } from './useBalance'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '../useRainCardOverview'
-import { rainCentsToUsdcUnits, BALANCE_SETTLING_MESSAGE } from '@/utils/balance.utils'
+import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
+import { useTranslations } from 'next-intl'
+import { notifyHaptic } from '@/utils/haptics'
 import type { RainCollateralKind } from '@/services/rain'
-import {
-    InsufficientSpendableError,
-    SessionKeyGrantRequiredError,
-    type SpendStrategy,
-    useSpendBundle,
-} from './useSpendBundle'
+import { useSpendBundle } from './useSpendBundle'
+import { InsufficientSpendableError, SessionKeyGrantRequiredError, type SpendStrategy } from './spendPreflight'
 
 type SendMoneyParams = {
     toAddress: Address
@@ -25,8 +23,9 @@ type SendMoneyParams = {
     kind?: RainCollateralKind
     /** When this send pays a Peanut request/charge, the charge uuid. If the spend
      *  routes entirely through Rain collateral the backend completes the charge
-     *  itself — the result's `strategy === 'collateral-only'` is the caller's
-     *  signal to skip `recordPayment`. Ignored for other strategies. */
+     *  itself; callers should still `recordPayment` afterwards — the backend
+     *  treats that as an idempotent re-entry of the trusted-completion path,
+     *  and every other strategy relies on it to complete the charge. */
     chargeId?: string
     /** Optional UI hook — fires once routing is picked, before any signing prompt. */
     onStrategyDecided?: (strategy: Exclude<SpendStrategy, 'insufficient'>) => void
@@ -52,6 +51,7 @@ type UseSendMoneyOptions = {
 export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
     const queryClient = useQueryClient()
     const toast = useToast()
+    const tErrors = useTranslations('errors')
     const { spend } = useSpendBundle()
     // Keep the smart-account balance query subscribed/warm for the optimistic
     // update in onMutate; spend() reads its OWN live balance for routing.
@@ -103,6 +103,8 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
         },
 
         onSuccess: () => {
+            // Native success buzz — feels like a real payment confirmation.
+            notifyHaptic('success')
             // Refresh both buckets. For collateral-only the smart balance didn't
             // actually change, but invalidating is cheap and keeps the display honest.
             queryClient.invalidateQueries({ queryKey: ['balance', address] })
@@ -128,20 +130,20 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
             if (error instanceof InsufficientSpendableError) {
                 // Passed the display gate but couldn't route yet — useSpendBundle has
                 // already refetched the Rain overview; nudge a retry.
-                toast.error(BALANCE_SETTLING_MESSAGE)
+                toast.error(tErrors('balanceSettling'))
                 return
             }
             if (error instanceof SessionKeyGrantRequiredError) {
                 // User cancelled or the grant failed — no transaction happened.
                 // Let the caller show its own UI for this; default to a toast.
                 if (error.cause.kind === 'user-cancelled') {
-                    toast.error('Approval cancelled — you can retry anytime.')
+                    toast.error(tErrors('cardApprovalCancelled'))
                 } else {
-                    toast.error('Card approval failed — please try again.')
+                    toast.error(tErrors('cardApprovalFailed'))
                 }
                 return
             }
-            if ((error as any)?.isStaleKeyError) {
+            if ((error as Error & { isStaleKeyError?: boolean })?.isStaleKeyError) {
                 toast.error((error as Error).message)
             }
         },

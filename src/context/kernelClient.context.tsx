@@ -22,9 +22,11 @@ import {
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react'
 import { type Chain, http, type PublicClient, type Transport } from 'viem'
 import { AccountType } from '@/interfaces/interfaces'
-import type { Address } from 'viem'
+import type { Address, Hash } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { captureException } from '@sentry/nextjs'
+import { isDemoMode } from '@/utils/demo'
+import { DEMO_ADDRESS } from '@/constants/demo-data'
+import { captureException, captureMessage } from '@sentry/nextjs'
 import { retryAsync } from '@/utils/retry.utils'
 import { isStaleClientForUser, isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { isAndroidNative, getNativeRpId } from '@/utils/capacitor'
@@ -39,6 +41,20 @@ interface KernelClientContextType {
     // eager-init for non-Arb chains (mainnet/base/linea — recovery-only).
     // Cached chains resolve immediately; concurrent calls dedupe via inFlightRef.
     ensureClientForChain: (chainId: string) => Promise<GenericSmartAccountClient>
+    // Resolve the v0.0.3 PATCHED passkey sudo validator for the logged-in user's
+    // account. Callers that serialize a permission approval (Rain card session
+    // key) MUST bind their sudo plugin to THIS validator — see
+    // `resolvePatchedSudoValidator` for why binding to the migration client's
+    // stale v0.0.2 validator wapk-blocks the backend replay.
+    getPatchedSudoValidator: (publicClient: PublicClient) => Promise<Awaited<ReturnType<typeof createPasskeyValidator>>>
+    // Drops the cached client for `chainId` and builds a fresh one. Needed when
+    // the account's on-chain validator set changes mid-session (root-validator
+    // migration): the cached migration account keeps SIGNING via the v0.0.2
+    // validator it was built with, so its EIP-1271 signatures are rejected once
+    // the on-chain root flips to v0.0.3. The rebuilt client lands in the
+    // ref-backed cache, so every consumer — including closures captured before
+    // the rebuild — sees it immediately.
+    rebuildClientForChain: (chainId: string) => Promise<GenericSmartAccountClient>
 }
 
 type GenericSmartAccountClient<C extends Chain = Chain> = KernelAccountClient<Transport, C>
@@ -61,6 +77,35 @@ export const createPasskeyValidator = async (
         validatorContractVersion,
     })
 }
+
+/**
+ * Build the v0.0.3 PATCHED passkey validator that owns `webAuthnKey`'s account.
+ *
+ * This is the single source of truth for "the correct sudo validator for this
+ * user". It is the validator the migration client migrates *to*, and the ONLY
+ * validator a serialized permission approval (Rain card session key) may bind
+ * its sudo plugin to.
+ *
+ * Why it matters: accounts created before 2025-09-18 were born on the v0.0.2
+ * UNPATCHED validator (`0xbA45…`) and are migrated in place to v0.0.3
+ * (`0x7ab1…`). Their migration kernel client still exposes the *stale* v0.0.2
+ * validator via `account.kernelPluginManager.sudoValidator` (the migration
+ * account is constructed with `sudo: fromValidator` until the on-chain root
+ * validator flips — see `createKernelMigrationAccount`). Serializing a Rain
+ * approval against that v0.0.2 validator makes ZeroDev's paymaster reject
+ * ("Unauthorized: wapk", HTTP 403) every backend-replayed sweep/withdraw
+ * userOp. Resolving the sudo validator through here — a freshly built v0.0.3
+ * validator, never the plugin-manager internal — guarantees the patched
+ * binding for every user, migrated or not.
+ *
+ * TODO(follow-up): thread this through the remaining kernel-construction sites
+ * (e.g. recover-funds) so the whole app has one chokepoint — separate PR.
+ */
+export const resolvePatchedSudoValidator = (publicClient: PublicClient, webAuthnKey: WebAuthnKey) =>
+    // `createPasskeyValidator` already defaults to V0_0_3_PATCHED — keep it that
+    // way; this named helper makes the "always patched" intent explicit at both
+    // call sites (migration-client build + Rain grant).
+    createPasskeyValidator(publicClient, webAuthnKey)
 
 // Harness-only: when the playwright session sets window.__harness_ecdsa_pk,
 // build the kernel client with an ECDSA validator over that private key
@@ -158,7 +203,10 @@ export const createKernelClientForChain = async <C extends Chain>(
     const { bundlerUrl, paymasterUrl } = options
 
     let kernelAccount: Awaited<ReturnType<typeof createKernelAccount>>
-    const newValidator = await createPasskeyValidator(publicClient, webAuthnKey)
+    // The v0.0.3 PATCHED validator this account migrates *to* — the same
+    // validator the Rain grant binds its serialized approval to (single source
+    // of truth, see `resolvePatchedSudoValidator`).
+    const newValidator = await resolvePatchedSudoValidator(publicClient, webAuthnKey)
     if (!shouldUseNewKernel) {
         if (!address) {
             throw new Error('Address is required for migration kernel')
@@ -237,6 +285,13 @@ export const createKernelClientForChain = async <C extends Chain>(
         },
     })
 
+    // demo mode hard-stop: no UserOp from any flow can reach the chain.
+    const realSendUserOperation = kernelClient.sendUserOperation.bind(kernelClient)
+    kernelClient.sendUserOperation = (async (args: unknown) => {
+        if (isDemoMode()) return `0x${'de'.repeat(32)}` as Hash
+        return realSendUserOperation(args as never)
+    }) as typeof kernelClient.sendUserOperation
+
     return kernelClient
 }
 
@@ -252,6 +307,35 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
     // primary-init effect register itself so a recover-funds page mount that
     // races primary login doesn't kick off a duplicate Arb build.
     const inFlightRef = useRef<Map<string, Promise<GenericSmartAccountClient>>>(new Map())
+    // Ref mirror of `clientsByChain`. Reads go through the ref so that closures
+    // captured before a cache update (e.g. a spend flow that rebuilds the client
+    // mid-flight after a root-validator migration) resolve to the CURRENT client
+    // instead of a stale one. State stays the source of re-renders; the ref is
+    // the source of truth for lookups. Always write both via storeClient/clearClients.
+    const clientsRef = useRef<Record<string, GenericSmartAccountClient>>({})
+
+    const storeClient = useCallback((chainId: string, client: GenericSmartAccountClient) => {
+        clientsRef.current = { ...clientsRef.current, [chainId]: client }
+        setClientsByChain((prev) => ({ ...prev, [chainId]: client }))
+    }, [])
+
+    // Monotonic build sequence per chain. A build may only store its result if
+    // it is still the LATEST build for that chain — otherwise a slow, stale
+    // build (started pre-logout, or superseded by rebuildClientForChain after
+    // a root-validator migration) would clobber the cache with a client built
+    // against old state: the previous user's account after logout, or a
+    // pre-migration wrapper that signs with the wrong validator.
+    const buildSeqRef = useRef(0)
+    const latestBuildSeqRef = useRef<Map<string, number>>(new Map())
+
+    const clearClients = useCallback(() => {
+        clientsRef.current = {}
+        setClientsByChain({})
+        // Orphan every in-flight build: none is "latest" anymore, so their
+        // .then(storeClient) becomes a no-op instead of resurrecting the
+        // logged-out user's client into the freshly cleared cache.
+        latestBuildSeqRef.current.clear()
+    }, [])
 
     const isAfterZeroDevMigration = useMemo<boolean>(() => {
         if (!user?.user?.createdAt) {
@@ -266,11 +350,18 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // clear webauthn key and clients when user logs out
             console.log('[KernelClient] No user found, clearing webAuthnKey, clients, and address')
             setWebAuthnKey(undefined)
-            setClientsByChain({})
+            clearClients()
             // Drop any in-flight lazy builds — their results would be useless
             // (and re-applying them would write into a fresh post-logout state).
             inFlightRef.current.clear()
             dispatch(zerodevActions.setAddress(undefined)) // explicitly clear address from redux
+            return
+        }
+
+        // Demo mode: no passkey/kernel client — synthesize the address and report ready.
+        if (isDemoMode()) {
+            dispatch(zerodevActions.setAddress(DEMO_ADDRESS))
+            dispatch(zerodevActions.setIsKernelClientReady(true))
             return
         }
 
@@ -283,7 +374,13 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // the native capacitor plugin callback so signing works after restore.
             if (isAndroidNative() && !storedWebAuthnKey.signMessageCallback) {
                 const rpId = storedWebAuthnKey.rpID || getNativeRpId()
-                storedWebAuthnKey.signMessageCallback = createNativeSignMessageCallback(rpId)
+                // Pin the native signing ceremony to THIS kernel's own credential
+                // so a second peanut.me passkey on the device can't be substituted
+                // (see createNativeSignMessageCallback + PR #2189).
+                storedWebAuthnKey.signMessageCallback = createNativeSignMessageCallback(
+                    rpId,
+                    storedWebAuthnKey.authenticatorId
+                )
             }
             // Only update if the key actually changed to avoid re-triggering kernel client init
             // Note: WebAuthnKey contains BigInt fields (pubX, pubY) which JSON.stringify cannot handle,
@@ -301,10 +398,33 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // Harness-only: skip auto-logout so playwright can screenshot the
             // authenticated UI with a seeded user that has no real passkey.
         } else {
-            // avoid mixed state
-            logoutUser()
+            // Only force re-auth OUTSIDE the setup flow. During signup/login the
+            // user/key state legitimately oscillates: React Query refetches the user
+            // while the freshly-created webAuthnKey is still being persisted to
+            // userPreferences, and the native web-authn-key cookie is cross-origin
+            // empty — so `storedWebAuthnKey` is transiently null even though the
+            // signup is healthy. Acting here (a logoutUser() hard-bounce, or clearing
+            // the JWT) either kicks the user back to the start of setup or wipes the
+            // just-captured session token mid-signup, which 400s POST /add-account.
+            // The setup flow + mobile-ui layout own routing for genuinely stale
+            // sessions; the kernel client must not interfere during setup.
+            const inSetupFlow = typeof window !== 'undefined' && window.location.pathname.startsWith('/setup')
+            if (!inSetupFlow) {
+                // This hard-bounces the user to /setup. It's correct for genuinely
+                // stale sessions but has masqueraded as an onboarding bug when an
+                // upstream flow lands here with a half-valid session. Record it so
+                // the cause is visible in Sentry (no exception is otherwise thrown).
+                captureMessage('kernel-client: no wallet key outside setup — forcing re-auth', {
+                    level: 'warning',
+                    extra: {
+                        userId: user.user.userId,
+                        pathname: typeof window !== 'undefined' ? window.location.pathname : undefined,
+                    },
+                })
+                logoutUser()
+            }
         }
-    }, [user?.user.userId, logoutUser])
+    }, [user?.user.userId, logoutUser, clearClients, dispatch])
 
     useEffect(() => {
         if (user?.user.userId && !!webAuthnKey) {
@@ -345,7 +465,8 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 console.error('[harness] primary ECDSA kernel client failed')
                 return
             }
-            setClientsByChain(clients)
+            clientsRef.current = { ...clientsRef.current, ...clients }
+            setClientsByChain((prev) => ({ ...prev, ...clients }))
             dispatch(zerodevActions.setIsKernelClientReady(true))
             dispatch(zerodevActions.setIsRegistering(false))
             dispatch(zerodevActions.setIsLoggingIn(false))
@@ -353,7 +474,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         return () => {
             cancelled = true
         }
-    }, [user?.user.userId])
+    }, [user?.user.userId, dispatch])
 
     useEffect(() => {
         let isMounted = true
@@ -422,7 +543,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // Only update state after primary succeeds — avoids
             // registering→not→registering UI flicker between retries.
             if (isMounted) {
-                setClientsByChain((prev) => ({ ...prev, [primaryChainId]: kernelClient }))
+                storeClient(primaryChainId, kernelClient)
                 fetchUser()
                 dispatch(zerodevActions.setIsKernelClientReady(true))
                 dispatch(zerodevActions.setIsRegistering(false))
@@ -458,7 +579,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         if (peanutClient) {
             dispatch(zerodevActions.setAddress(peanutClient.account!.address))
         }
-    }, [clientsByChain])
+    }, [clientsByChain, dispatch])
 
     // Refuse to hand out a kernel client whose smart-account address doesn't
     // match the logged-in user, then force a clean re-auth. On a shared device
@@ -489,9 +610,21 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         [user, logoutUser]
     )
 
+    const getPatchedSudoValidator = useCallback(
+        async (publicClient: PublicClient) => {
+            if (!webAuthnKey) {
+                throw new Error('Cannot resolve sudo validator: not authenticated (no webAuthnKey)')
+            }
+            return resolvePatchedSudoValidator(publicClient, webAuthnKey)
+        },
+        [webAuthnKey]
+    )
+
     const getClientForChain = useCallback(
         (chainId: string) => {
-            const client = clientsByChain[chainId]
+            // Read through the ref so closures captured before a mid-session
+            // rebuild (root-validator migration) still resolve the fresh client.
+            const client = clientsRef.current[chainId] ?? clientsByChain[chainId]
             if (!client) {
                 const availableChains = Object.keys(clientsByChain).join(', ')
                 console.error(
@@ -506,14 +639,12 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         [clientsByChain, assertClientOwnedByUser]
     )
 
-    const ensureClientForChain = useCallback(
-        async (chainId: string): Promise<GenericSmartAccountClient> => {
-            const cached = clientsByChain[chainId]
-            if (cached) return assertClientOwnedByUser(cached)
-
-            const inFlight = inFlightRef.current.get(chainId)
-            if (inFlight) return inFlight.then(assertClientOwnedByUser)
-
+    // Kicks off a fresh client build for `chainId`, stores the result in the
+    // ref-backed cache, and registers itself in inFlightRef for dedupe. Shared
+    // by ensureClientForChain (cache-first) and rebuildClientForChain (cache-
+    // busting).
+    const startClientBuild = useCallback(
+        (chainId: string): Promise<GenericSmartAccountClient> => {
             if (!webAuthnKey) {
                 throw new Error(`Cannot build kernel client for chain ${chainId}: not authenticated`)
             }
@@ -524,6 +655,8 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 )
             }
 
+            const seq = ++buildSeqRef.current
+            latestBuildSeqRef.current.set(chainId, seq)
             const promise = createKernelClientForChain(
                 entry.client,
                 entry.chain,
@@ -537,7 +670,12 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 { bundlerUrl: entry.bundlerUrl, paymasterUrl: entry.paymasterUrl }
             )
                 .then((kernelClient) => {
-                    setClientsByChain((prev) => ({ ...prev, [chainId]: kernelClient }))
+                    // Superseded (logout cleared the map, or a newer build /
+                    // rebuild started): return the client to OUR caller but do
+                    // not store it — the cache belongs to the latest build.
+                    if (latestBuildSeqRef.current.get(chainId) === seq) {
+                        storeClient(chainId, kernelClient)
+                    }
                     return assertClientOwnedByUser(kernelClient)
                 })
                 .catch((error) => {
@@ -550,13 +688,43 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                     throw error
                 })
                 .finally(() => {
-                    inFlightRef.current.delete(chainId)
+                    // Only clear the dedupe slot if it is still OURS — a newer
+                    // build may have replaced it, and deleting that entry would
+                    // silently break dedupe for its concurrent awaiters.
+                    if (inFlightRef.current.get(chainId) === promise) {
+                        inFlightRef.current.delete(chainId)
+                    }
                 })
 
             inFlightRef.current.set(chainId, promise)
             return promise
         },
-        [clientsByChain, webAuthnKey, isAfterZeroDevMigration, user, assertClientOwnedByUser, logoutUser]
+        [webAuthnKey, isAfterZeroDevMigration, user, assertClientOwnedByUser, logoutUser, storeClient]
+    )
+
+    const ensureClientForChain = useCallback(
+        async (chainId: string): Promise<GenericSmartAccountClient> => {
+            const cached = clientsRef.current[chainId] ?? clientsByChain[chainId]
+            if (cached) return assertClientOwnedByUser(cached)
+
+            const inFlight = inFlightRef.current.get(chainId)
+            if (inFlight) return inFlight.then(assertClientOwnedByUser)
+
+            return startClientBuild(chainId)
+        },
+        [clientsByChain, assertClientOwnedByUser, startClientBuild]
+    )
+
+    const rebuildClientForChain = useCallback(
+        async (chainId: string): Promise<GenericSmartAccountClient> => {
+            // Deliberately ignores cache AND any in-flight build: those were
+            // constructed against the pre-migration on-chain state. storeClient
+            // in startClientBuild overwrites the stale cache entry for every
+            // future getClientForChain reader (including stale closures — they
+            // read through clientsRef).
+            return startClientBuild(chainId)
+        },
+        [startClientBuild]
     )
 
     return (
@@ -565,6 +733,8 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 setWebAuthnKey,
                 getClientForChain,
                 ensureClientForChain,
+                getPatchedSudoValidator,
+                rebuildClientForChain,
             }}
         >
             {children}

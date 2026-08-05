@@ -1,5 +1,5 @@
 'use client'
-import { ContextProvider } from '@/config'
+import { ContextProvider } from '@/config/wagmi.config'
 import countries from 'i18n-iso-countries'
 import enLocale from 'i18n-iso-countries/langs/en.json'
 import { useEffect } from 'react'
@@ -8,6 +8,9 @@ import { Provider as ReduxProvider } from 'react-redux'
 import store from '@/redux/store'
 import 'react-tooltip/dist/react-tooltip.css'
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
+import { authReady } from '@/utils/auth-token'
+import { installNativeAuthCapture } from '@/utils/native-auth-capture'
+import { scheduleDirectFetchCanary } from '@/utils/native-canary'
 import { CRISP_WEBSITE_ID } from '@/constants/crisp'
 // Note: Sentry configs are auto-loaded by @sentry/nextjs via next.config.js
 // DO NOT import them here - it bundles server/edge configs into client code
@@ -20,7 +23,14 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
 
         // in capacitor, install the passkey shim so navigator.credentials.create/get
         // routes through native APIs instead of the browser (which doesn't work in webview).
+        // Session auth on native is header-based: the verify endpoints return the token
+        // in the response body, the fetch wrapper below captures it into native
+        // Preferences, and every api request sends it as Authorization
+        // (see src/utils/auth-token.ts).
         if (isCapacitor()) {
+            void authReady() // start Preferences hydration before any API call needs it
+            installNativeAuthCapture()
+            scheduleDirectFetchCanary()
             import('@capgo/capacitor-passkey').then(({ CapacitorPasskey }) => {
                 const nativeRpId = getNativeRpId()
 
@@ -36,16 +46,34 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
                 CapacitorPasskey.autoShimWebAuthn({ origin: `https://${nativeRpId}` })
                     .then(() => {
                         // verify the shim actually installed by checking if credentials was patched
-                        const shimInstalled = (globalThis as any).__capgoPasskeyShimInstalled === true
+                        const shimInstalled =
+                            (globalThis as { __capgoPasskeyShimInstalled?: unknown }).__capgoPasskeyShimInstalled ===
+                            true
                         console.log('[PeanutProvider] passkey shim installed:', shimInstalled)
 
-                        // the shim's credentialFromJSON overrides the prototype with
-                        // PublicKeyCredential.prototype, which in webview is a stub without
-                        // getClientExtensionResults. patch it so @simplewebauthn/browser works.
+                        // the shim's credentialFromJSON replaces its credential's prototype with
+                        // PublicKeyCredential.prototype. WKWebView's native getClientExtensionResults
+                        // brand-checks `this` and throws on shim credentials ("Can only call ... on
+                        // instances of PublicKeyCredential"), breaking both registration and login.
+                        // Wrap it unconditionally: native credentials keep the real behavior, shim
+                        // credentials fall back to their JSON payload.
                         const PKC = globalThis.PublicKeyCredential
-                        if (PKC && !PKC.prototype.getClientExtensionResults) {
+                        if (PKC) {
+                            const nativeGetter = PKC.prototype.getClientExtensionResults
                             PKC.prototype.getClientExtensionResults = function () {
-                                return (this as any).json?.clientExtensionResults ?? {}
+                                try {
+                                    return nativeGetter ? nativeGetter.call(this) : {}
+                                } catch {
+                                    return (
+                                        (
+                                            this as PublicKeyCredential & {
+                                                json?: {
+                                                    clientExtensionResults?: AuthenticationExtensionsClientOutputs
+                                                }
+                                            }
+                                        ).json?.clientExtensionResults ?? {}
+                                    )
+                                }
                             }
                         }
                     })

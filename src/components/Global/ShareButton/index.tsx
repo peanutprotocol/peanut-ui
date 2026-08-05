@@ -2,6 +2,7 @@
 
 import { useToast } from '@/components/0_Bruddle/Toast'
 import * as Sentry from '@sentry/nextjs'
+import { useTranslations } from 'next-intl'
 import { useCallback } from 'react'
 import { Icon } from '../Icons/Icon'
 import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
@@ -33,12 +34,13 @@ const ShareButton = ({
     text,
     onSuccess,
     onError,
-    children = 'Share',
+    children,
     className = '',
     variant = 'purple',
     iconPosition = 'left',
     showIcon = true,
 }: ShareButtonProps) => {
+    const t = useTranslations('global')
     const toast = useToast()
 
     const copyTextToClipboardWithFallback = async (text: string) => {
@@ -76,7 +78,7 @@ const ShareButton = ({
             const contentToCopy = shareUrl || shareText || ''
             copied = await copyTextToClipboardWithFallback(contentToCopy)
             if (copied) {
-                toast.info(shareUrl ? 'Link copied' : 'Text copied')
+                toast.info(shareUrl ? t('shareButton.linkCopied') : t('shareButton.textCopied'))
             }
 
             // THEN try to open share dialog if available (bonus for mobile users)
@@ -88,10 +90,18 @@ const ShareButton = ({
                 await navigator.share(shareData)
             }
 
+            if (!navigator.share && !copied) {
+                const error = new Error('Clipboard copy failed and the Web Share API is unavailable')
+                toast.error(t('shareButton.sharingFailed'))
+                onError?.(error)
+                return
+            }
+
             onSuccess?.()
-        } catch (error: any) {
+        } catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error))
             // Only show error toast for actual sharing failures (not user cancellations)
-            if (error.name !== 'AbortError') {
+            if (err.name !== 'AbortError') {
                 console.error('Sharing error:', error)
                 Sentry.captureException(error)
 
@@ -100,16 +110,16 @@ const ShareButton = ({
                     const contentToCopy = shareUrl || shareText || ''
                     const fallbackCopied = await copyTextToClipboardWithFallback(contentToCopy)
                     if (fallbackCopied) {
-                        toast.info(shareUrl ? 'Link copied' : 'Text copied')
+                        toast.info(shareUrl ? t('shareButton.linkCopied') : t('shareButton.textCopied'))
                     } else {
-                        toast.error('Sharing failed')
+                        toast.error(t('shareButton.sharingFailed'))
                     }
                 }
 
-                onError?.(error)
+                onError?.(err)
             }
         }
-    }, [url, generateUrl, generateText, title, text, onSuccess, onError])
+    }, [url, generateUrl, generateText, title, text, onSuccess, onError, t, toast])
 
     return (
         <Button
@@ -121,7 +131,7 @@ const ShareButton = ({
         >
             <span className="flex items-center gap-2">
                 {showIcon && iconPosition === 'left' && <Icon name="share" size={18} />}
-                {children}
+                {children ?? t('shareButton.share')}
                 {showIcon && iconPosition === 'right' && <Icon name="share" size={18} />}
             </span>
         </Button>

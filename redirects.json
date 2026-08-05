@@ -2,11 +2,11 @@
     {
         "source": "/en",
         "destination": "/",
-        "permanent": false
+        "permanent": true
     },
     {
         "source": "/es",
-        "destination": "/",
+        "destination": "/es-419",
         "permanent": true
     },
     {
@@ -16,7 +16,7 @@
     },
     {
         "source": "/pt",
-        "destination": "/",
+        "destination": "/pt-br",
         "permanent": true
     },
     {
@@ -25,24 +25,14 @@
         "permanent": true
     },
     {
-        "source": "/es-419",
-        "destination": "/",
-        "permanent": false
-    },
-    {
-        "source": "/es-ar",
-        "destination": "/",
-        "permanent": false
-    },
-    {
         "source": "/es-es",
-        "destination": "/",
-        "permanent": false
+        "destination": "/es-419",
+        "permanent": true
     },
     {
-        "source": "/pt-br",
-        "destination": "/",
-        "permanent": false
+        "source": "/es-es/:path*",
+        "destination": "/es-419/:path*",
+        "permanent": true
     },
     {
         "source": "/support",

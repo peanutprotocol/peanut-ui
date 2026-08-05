@@ -9,12 +9,11 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import { INSUFFICIENT_BALANCE_MESSAGE } from '@/utils/balance.utils'
 import { getCountryFromAccount, getCountryFromPath, getMinimumAmount } from '@/utils/bridge.utils'
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import { useRouter, useSearchParams } from 'next/navigation'
-import React, { useCallback, useEffect, useMemo, useState, useRef, useContext } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react'
 import { formatUnits } from 'viem'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
@@ -22,12 +21,17 @@ import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawBankUrl, withdrawCountryUrl } from '@/utils/native-routes'
+import { useTranslations } from 'next-intl'
 
 type WithdrawStep = 'inputAmount' | 'selectMethod'
 
 export default function WithdrawPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const t = useTranslations('withdraw')
+    const tNav = useTranslations('navigation')
+    const tCommon = useTranslations('common')
+    const tErrors = useTranslations('errors')
     const { selectedTokenData } = useContext(tokenSelectorContext)
 
     // check if coming from send flow based on method query param
@@ -76,7 +80,7 @@ export default function WithdrawPage() {
 
     // initialise the amount input with the value from context (if any)
     // state to keep track of the token input key to force-remount the component
-    const [tokenInputKey, setTokenInputKey] = useState<number>(0)
+    const [_tokenInputKey, setTokenInputKey] = useState<number>(0)
 
     // raw amount currently typed in the input
     const [rawTokenAmount, setRawTokenAmount] = useState<string>(amountFromContext || '')
@@ -114,14 +118,27 @@ export default function WithdrawPage() {
         return { countryIso2: '', rateAccountType: AccountType.US }
     }, [selectedBankAccount, selectedMethod])
 
+    // crypto withdrawals are plain on-chain transfers — fiat-rail minimums don't
+    // apply. selectedMethod is the routing source of truth (a stale bank method
+    // from an abandoned withdraw still routes to the bank flow, so it must keep
+    // its minimum); the URL param only covers the first render before the mount
+    // effect commits the crypto method.
+    const isCryptoWithdraw = selectedMethod ? selectedMethod.type === 'crypto' : isCryptoFromSend
+
     // fetch exchange rate for non-USD countries to convert local minimum to USD
     const { exchangeRate } = useGetExchangeRate({
         accountType: rateAccountType,
-        enabled: rateAccountType !== AccountType.US && countryIso2 !== '',
+        enabled: !isCryptoWithdraw && rateAccountType !== AccountType.US && countryIso2 !== '',
     })
 
     // compute minimum withdrawal in USD using the exchange rate
     const minUsdAmount = useMemo(() => {
+        // no amount-step minimum for crypto: same-chain (Arbitrum) withdrawals
+        // are direct transfers with no floor, matching send-via-link. Rhino's
+        // per-network bridge minimums ($0.50, ETH $5, Tron $10) are enforced
+        // chain-aware at review time (see withdraw/crypto), once the
+        // destination is known.
+        if (isCryptoWithdraw) return 0
         const localMin = getMinimumAmount(countryIso2)
         // for US or unknown, minimum is already in USD
         if (!countryIso2 || countryIso2 === 'US') return localMin
@@ -131,7 +148,7 @@ export default function WithdrawPage() {
         const rate = parseFloat(exchangeRate || '0')
         if (rate <= 0) return 1 // fallback while rate is loading
         return Math.ceil(localMin / rate)
-    }, [countryIso2, exchangeRate])
+    }, [isCryptoWithdraw, countryIso2, exchangeRate])
 
     // validate against user's limits for bank withdrawals
     // note: crypto withdrawals don't have fiat limits
@@ -183,13 +200,14 @@ export default function WithdrawPage() {
 
             const amount = Number(amountStr)
             if (!Number.isFinite(amount) || amount <= 0) {
-                setError({ showError: true, errorMessage: 'Please enter a valid number.' })
+                setError({ showError: true, errorMessage: t('errors.invalidNumber') })
                 return false
             }
 
-            // convert the entered token amount to USD
-            const price = selectedTokenData?.price ?? 0 // 0 for safety; will fail below
-            const usdEquivalent = price ? amount * price : amount // if no price assume token pegged 1 USD
+            // AmountInput is USD-pinned on this page (price: 1), so the typed
+            // value IS the USD value — scaling by the app-wide token price let
+            // a stale non-USD price loosen or false-trip the minimums.
+            const usdEquivalent = amount
 
             // While the balance is still loading, maxDecimalAmount is 0 — skip the
             // balance check so a pre-filled amount isn't false-blocked; the effect
@@ -205,17 +223,17 @@ export default function WithdrawPage() {
             if (usdEquivalent < minUsdAmount) {
                 const minDisplay = minUsdAmount % 1 === 0 ? `$${minUsdAmount}` : `$${minUsdAmount.toFixed(2)}`
                 message = isFromSendFlow
-                    ? `Minimum send amount is ${minDisplay}.`
-                    : `Minimum withdrawal is ${minDisplay}.`
+                    ? t('errors.minimumSend', { amount: minDisplay })
+                    : t('errors.minimumWithdrawal', { amount: minDisplay })
             } else if (balanceLoaded && amount > maxDecimalAmount) {
-                message = INSUFFICIENT_BALANCE_MESSAGE
+                message = tErrors('notEnoughBalanceAddFunds')
             } else {
-                message = 'Please enter a valid amount.'
+                message = t('errors.invalidAmount')
             }
             setError({ showError: true, errorMessage: message })
             return false
         },
-        [balance, maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow, minUsdAmount]
+        [balance, maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow, minUsdAmount, t, tErrors]
     )
 
     const handleTokenAmountChange = useCallback(
@@ -266,7 +284,7 @@ export default function WithdrawPage() {
     const handleAmountContinue = () => {
         if (validateAmount(rawTokenAmount) && selectedMethod) {
             setAmountToWithdraw(rawTokenAmount)
-            const usdVal = (selectedTokenData?.price ?? 1) * parseFloat(rawTokenAmount)
+            const usdVal = parseFloat(rawTokenAmount)
             setUsdAmount(usdVal.toString())
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_AMOUNT_ENTERED, {
                 amount_usd: usdVal,
@@ -310,7 +328,7 @@ export default function WithdrawPage() {
                     })
                     setError({
                         showError: true,
-                        errorMessage: "We couldn't determine this account's country. Please contact support.",
+                        errorMessage: t('errors.countryUnresolved'),
                     })
                 }
             } else if (selectedMethod.type === 'bridge' && selectedMethod.countryPath) {
@@ -331,7 +349,7 @@ export default function WithdrawPage() {
                 })
                 setError({
                     showError: true,
-                    errorMessage: 'Something went wrong setting up your withdrawal. Please contact support.',
+                    errorMessage: t('errors.setupFailed'),
                 })
             }
         }
@@ -344,13 +362,12 @@ export default function WithdrawPage() {
         const numericAmount = parseFloat(rawTokenAmount)
         if (!Number.isFinite(numericAmount) || numericAmount <= 0) return true
 
-        const usdEq = (selectedTokenData?.price ?? 1) * numericAmount
-        if (usdEq < minUsdAmount) return true // below country-specific minimum
+        if (numericAmount < minUsdAmount) return true // below the method's USD minimum
 
         // only apply the balance ceiling once it has loaded (maxDecimalAmount is 0
         // while spendableBalance is undefined) — else Continue is disabled during load
         return (balance !== undefined && numericAmount > maxDecimalAmount) || error.showError
-    }, [rawTokenAmount, balance, maxDecimalAmount, error.showError, selectedTokenData?.price, minUsdAmount])
+    }, [rawTokenAmount, balance, maxDecimalAmount, error.showError, minUsdAmount])
 
     // native app: render country-specific views when ?country= is present
     const viewFromQuery = searchParams.get('view')
@@ -375,13 +392,12 @@ export default function WithdrawPage() {
 
     if (step === 'inputAmount') {
         // only show limits card for bank/manteca withdrawals, not crypto
-        const showLimitsCard =
-            selectedMethod?.type !== 'crypto' && (limitsValidation.isBlocking || limitsValidation.isWarning)
+        const showLimitsCard = !isCryptoWithdraw && (limitsValidation.isBlocking || limitsValidation.isWarning)
 
         return (
             <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
                 <NavHeader
-                    title={isFromSendFlow ? 'Send' : 'Withdraw'}
+                    title={isFromSendFlow ? tNav('send') : tNav('withdraw')}
                     onPrev={() => {
                         // if crypto from send, go back to send page
                         if (isCryptoFromSend) {
@@ -401,7 +417,7 @@ export default function WithdrawPage() {
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                     <div className="space-y-1">
                         <div className="text-xl font-bold">
-                            {isFromSendFlow ? 'Amount to send' : 'Amount to withdraw'}
+                            {isFromSendFlow ? t('amountToSend') : t('amountToWithdraw')}
                         </div>
                     </div>
                     <AmountInput
@@ -433,12 +449,11 @@ export default function WithdrawPage() {
                         onClick={handleAmountContinue}
                         disabled={
                             isContinueDisabled ||
-                            (selectedMethod?.type !== 'crypto' &&
-                                (limitsValidation.isLoading || limitsValidation.isBlocking))
+                            (!isCryptoWithdraw && (limitsValidation.isLoading || limitsValidation.isBlocking))
                         }
                         className="w-full"
                     >
-                        Continue
+                        {tCommon('continue')}
                     </Button>
                     {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                     {error.showError && !!error.errorMessage && !limitsValidation.isBlocking && (
@@ -453,8 +468,8 @@ export default function WithdrawPage() {
         return (
             <AddWithdrawRouterView
                 flow="withdraw"
-                pageTitle={isBankFromSend ? 'Send' : 'Withdraw'}
-                mainHeading={isBankFromSend ? 'How would you like to send?' : 'How would you like to withdraw?'}
+                pageTitle={isBankFromSend ? tNav('send') : tNav('withdraw')}
+                mainHeading={isBankFromSend ? t('howWouldYouLikeToSend') : t('howWouldYouLikeToWithdraw')}
                 onBackClick={() => {
                     // if bank from send flow, go back to send page
                     if (isBankFromSend) {

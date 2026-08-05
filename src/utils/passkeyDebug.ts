@@ -9,7 +9,7 @@ export const capturePasskeyDebugInfo = async (context: string) => {
         // compute rpID the same way it's done in useZeroDev
         const rpId = window.location.hostname.replace(/^www\./, '')
 
-        const debugInfo: Record<string, any> = {
+        const debugInfo: Record<string, unknown> = {
             context,
             timestamp: new Date().toISOString(),
             // rpID info - critical for debugging android issues

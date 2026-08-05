@@ -21,9 +21,12 @@ import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentR
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAuth } from '@/context/authContext'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { ErrorHandler } from '@/utils/friendly-error.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
+import { useTranslations } from 'next-intl'
 
 export function useContributePotFlow() {
+    const t = useTranslations('payment')
+    const toFriendlyError = useFriendlyError()
     const {
         amount,
         setAmount,
@@ -156,12 +159,12 @@ export function useContributePotFlow() {
             bypassLoginCheck: boolean = false
         ): Promise<{ success: boolean }> => {
             if (!recipient || !amount || !request) {
-                setError({ showError: true, errorMessage: 'missing required data' })
+                setError({ showError: true, errorMessage: t('errors.missingData') })
                 return { success: false }
             }
 
             if (!bypassLoginCheck && !walletAddress) {
-                setError({ showError: true, errorMessage: 'Please login to continue' })
+                setError({ showError: true, errorMessage: t('errors.pleaseLoginToContinue') })
                 return { success: false }
             }
 
@@ -225,7 +228,7 @@ export function useContributePotFlow() {
                 setIsLoading(false)
                 return { success: true }
             } catch (err) {
-                const errorMessage = ErrorHandler(err)
+                const errorMessage = toFriendlyError(err)
                 setError({ showError: true, errorMessage })
                 setIsLoading(false)
                 return { success: false }
@@ -249,6 +252,8 @@ export function useContributePotFlow() {
             setError,
             setIsLoading,
             clearError,
+            toFriendlyError,
+            t,
         ]
     )
 

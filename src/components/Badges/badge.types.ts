@@ -8,4 +8,5 @@ export type BadgeHistoryEntry = {
     iconUrl?: string | null
 }
 
-export const isBadgeHistoryItem = (entry: any): entry is BadgeHistoryEntry => !!entry?.isBadge
+export const isBadgeHistoryItem = (entry: unknown): entry is BadgeHistoryEntry =>
+    typeof entry === 'object' && entry !== null && !!(entry as { isBadge?: unknown }).isBadge

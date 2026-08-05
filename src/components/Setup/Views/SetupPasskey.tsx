@@ -1,9 +1,14 @@
+import DocsLink from '@/components/Global/DocsLink'
 import { Button } from '@/components/0_Bruddle/Button'
+import { PEANUT_API_URL } from '@/constants/general.consts'
+import { isCapacitor } from '@/utils/capacitor'
+import { fetchWithSentry } from '@/utils/sentry.utils'
 import { useSetupStore } from '@/redux/hooks'
 import { useZeroDev } from '@/hooks/useZeroDev'
+import { useLogin } from '@/hooks/useLogin'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import { checkPasskeySupport } from '@/utils/passkeyPreflight'
 import { WebAuthnErrorName, withWebAuthnRetry } from '@/utils/webauthn.utils'
@@ -12,16 +17,40 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useTranslations } from 'next-intl'
+
+// A signup that failed client-side AFTER the server verified may have already
+// registered this username (user + passkey exist server-side, so login works).
+// Fail-open on network errors — the server's 409 is the backstop.
+const isUsernameTaken = async (username: string): Promise<boolean> => {
+    try {
+        // capacitorHttp doesn't support HEAD — use GET in native
+        const res = await fetchWithSentry(`${PEANUT_API_URL}/users/username/${username}`, {
+            method: isCapacitor() ? 'GET' : 'HEAD',
+        })
+        return res.status === 200
+    } catch {
+        return false
+    }
+}
 
 const SetupPasskey = () => {
+    const t = useTranslations('setup')
     const { username } = useSetupStore()
     const { isLoading, handleNext } = useSetupFlow()
     const { handleRegister, address, isRegistering } = useZeroDev()
+    const { handleLoginClick, isLoggingIn } = useLogin()
     const { deviceType } = useDeviceType()
     const [errorName, setErrorName] = useState<string | null>(null)
     const [showErrorModal, setShowErrorModal] = useState(false)
     const [preflightWarning, setPreflightWarning] = useState<string | null>(null)
     const [inlineError, setInlineError] = useState<string | null>(null)
+    const [usernameTaken, setUsernameTaken] = useState(false)
+    // True only once the user actually starts a passkey registration on THIS
+    // screen. The auto-advance below keys off it, so a wallet address that
+    // hydrates asynchronously from a stale web-authn-key cookie (native cookie
+    // jar) can never be mistaken for a fresh registration and skip the step.
+    const registrationInitiatedRef = useRef(false)
 
     // preflight check for common passkey issues
     useEffect(() => {
@@ -40,8 +69,41 @@ const SetupPasskey = () => {
         // clear any previous inline errors
         setInlineError(null)
         setErrorName(null)
+        setUsernameTaken(false)
+
+        // Re-check support live before attempting registration. Device state can
+        // change after mount (e.g. user signs into a Google account / updates Play
+        // Services), and crucially this guarantees a tap NEVER silently no-ops:
+        // if passkeys aren't available we surface an actionable message instead of
+        // calling create() and failing cryptically. (Was the May-18 rejection.)
+        const support = await checkPasskeySupport()
+        if (!support.isSupported) {
+            const message = support.warning ?? t('passkey.notAvailable')
+            setPreflightWarning(message)
+            setInlineError(message)
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
+                device_type: deviceType,
+                error_name: 'PreflightUnsupported',
+            })
+            return
+        }
+        setPreflightWarning(null)
+
+        // Catch an already-registered username BEFORE the WebAuthn ceremony:
+        // retrying a half-completed signup would otherwise create another
+        // credential in the OS keychain and then 409 on the server.
+        if (await isUsernameTaken(username)) {
+            setUsernameTaken(true)
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
+                device_type: deviceType,
+                error_name: 'UsernameTaken',
+            })
+            return
+        }
+
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_STARTED, { device_type: deviceType })
 
+        registrationInitiatedRef.current = true
         try {
             await withWebAuthnRetry(() => handleRegister(username), 'passkey-registration')
             // success - useEffect below will handle navigation
@@ -80,7 +142,7 @@ const SetupPasskey = () => {
                 } else {
                     // likely user cancellation - show simple inline error
                     console.log('[SetupPasskey] User likely cancelled, showing inline error')
-                    setInlineError('Passkey setup was cancelled. Please try again when ready.')
+                    setInlineError(t('passkey.cancelled'))
                 }
                 return
             }
@@ -107,9 +169,25 @@ const SetupPasskey = () => {
         }
     }
 
-    // once passkey is registered successfully, move to test transaction step
+    const onLogInClick = async () => {
+        setInlineError(null)
+        try {
+            await handleLoginClick()
+            // success — useLogin's effect redirects once the user is loaded
+        } catch (error) {
+            // handleLogin throws PasskeyError with a curated user-facing message
+            setInlineError((error as Error)?.message || t('loginFailed'))
+        }
+    }
+
+    // Advance to the test-transaction step only when a wallet address appears
+    // AFTER the user started registration on this screen. Gating on the
+    // intent (registrationInitiatedRef) — not on the address value — is what
+    // prevents an asynchronously-hydrated stale address from skipping the step
+    // and stranding the user on a half-valid session (which the kernel-client
+    // re-auth guard then bounces back to /setup).
     useEffect(() => {
-        if (address) {
+        if (address && registrationInitiatedRef.current) {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_SUCCEEDED, { device_type: deviceType })
             handleNext()
         }
@@ -119,28 +197,41 @@ const SetupPasskey = () => {
         <div>
             <div className="flex h-full flex-col justify-between gap-11 p-0 md:min-h-32">
                 <div className="flex h-full flex-col justify-end gap-2 text-center">
+                    {/* Stays enabled even with a preflight warning: handlePasskeySetup
+                        re-checks support and surfaces an actionable message, so a tap is
+                        never a silent no-op. Only disabled while actually working. */}
                     <Button
                         loading={isRegistering || isLoading}
-                        disabled={isRegistering || isLoading || !!preflightWarning}
+                        disabled={isRegistering || isLoading}
                         onClick={handlePasskeySetup}
                         className="text-nowrap"
                         shadowSize="4"
                     >
-                        Set it up
+                        {t('passkey.setItUp')}
                     </Button>
                     {preflightWarning && <p className="text-sm font-bold text-orange-1">{preflightWarning}</p>}
+                    {usernameTaken && (
+                        <>
+                            <ErrorAlert description={t('passkey.usernameTaken')} />
+                            <Button
+                                loading={isLoggingIn}
+                                disabled={isLoggingIn}
+                                variant="primary-soft"
+                                onClick={onLogInClick}
+                                className="text-nowrap"
+                                shadowSize="4"
+                            >
+                                {t('logIn')}
+                            </Button>
+                        </>
+                    )}
                     {inlineError && <ErrorAlert description={inlineError} />}
                 </div>
                 <div>
                     <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
-                        <a
-                            className="underline underline-offset-2"
-                            href="/en/help/passkeys"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            Learn more about what Passkeys are
-                        </a>{' '}
+                        <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
+                            {t('passkey.learnMore')}
+                        </DocsLink>{' '}
                     </p>
                 </div>
             </div>

@@ -36,7 +36,6 @@ export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: str
             userData.username ||
             userData.userId ||
             userData.fullName ||
-            userData.grafanaLink ||
             userData.walletAddressLink ||
             userData.bridgeCustomerLink ||
             userData.mantecaUserId ||
@@ -46,7 +45,6 @@ export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: str
                 username: userData.username || '',
                 user_id: userData.userId || '',
                 full_name: userData.fullName || '',
-                grafana_dashboard: userData.grafanaLink || '',
                 wallet_address: userData.walletAddressLink || '',
                 bridge_user_id: userData.bridgeCustomerLink || '',
                 manteca_user_id: userData.mantecaUserId || '',
@@ -68,7 +66,6 @@ export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: str
         userData.username,
         userData.avatar,
         userData.userId,
-        userData.grafanaLink,
         userData.walletAddressLink,
         userData.bridgeCustomerLink,
         userData.mantecaUserId,

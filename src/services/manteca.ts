@@ -21,7 +21,7 @@ export type QrPayment = {
     sessionId: string
     status: string
     currentStage: string
-    stages: any[]
+    stages: unknown[]
     type: 'QR3_PAYMENT' | 'PIX'
     details: {
         depositAddress: Address
@@ -203,24 +203,6 @@ export const mantecaApi = {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
             throw new Error(errorData?.message || errorData?.error || `QR payment failed: ${response.statusText}`)
-        }
-
-        return response.json()
-    },
-    claimPerk: async (
-        mantecaTransferId: string
-    ): Promise<{
-        success: boolean
-        perk: { sponsored: boolean; amountSponsored: number; discountPercentage: number; txHash?: string }
-    }> => {
-        const response = await serverFetch('/perks/claim', {
-            method: 'POST',
-            body: jsonStringify({ mantecaTransferId }),
-        })
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.message || `Perk claim failed: ${response.statusText}`)
         }
 
         return response.json()

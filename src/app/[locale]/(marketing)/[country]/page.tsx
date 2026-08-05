@@ -2,10 +2,15 @@ import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { COUNTRIES_SEO, getCountryName } from '@/data/seo'
-import { SUPPORTED_LOCALES, isValidLocale, getBareAlternates } from '@/i18n/config'
+import { SUPPORTED_LOCALES, isValidLocale, getBareAlternatesFor } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readPageContentLocalized, type ContentFrontmatter } from '@/lib/content'
+import {
+    availableContentLocales,
+    contentLocaleFor,
+    readPageContentLocalized,
+    type ContentFrontmatter,
+} from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -28,16 +33,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const mdxContent = readPageContentLocalized<ContentFrontmatter>('countries', country, locale)
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
+    // A fallback-served page canonicalizes to the locale that owns the prose.
+    const contentLocale = contentLocaleFor('countries', country, locale)
+
     return {
         ...metadataHelper({
+            locale,
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
-            canonical: `/${locale}/${country}`,
+            canonical: `/${contentLocale}/${country}`,
             dynamicOg: true,
         }),
         alternates: {
-            canonical: `/${locale}/${country}`,
-            languages: getBareAlternates(country),
+            canonical: `/${contentLocale}/${country}`,
+            languages: getBareAlternatesFor(availableContentLocales('countries', country), country),
         },
     }
 }
@@ -50,7 +59,7 @@ export default async function CountryHubPage({ params }: PageProps) {
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('countries', country, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
-    const { content } = await renderContent(mdxSource.body)
+    const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
     const countryName = getCountryName(country, locale)
     const url = `/${locale}/${country}`

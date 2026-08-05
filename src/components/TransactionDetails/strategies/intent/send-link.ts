@@ -5,6 +5,7 @@
 
 import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
+import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
 
 export const sendLink: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
     if (entry.userRole === EHistoryUserRole.RECIPIENT) {
@@ -23,6 +24,10 @@ export const sendLink: TransactionStrategy = (entry: HistoryEntry): TransactionS
             direction: 'receive',
             transactionCardType: 'receive',
             nameForDetails: entry.senderAccount?.username || entry.senderAccount?.identifier || 'Received via Link',
+            nameKey:
+                entry.senderAccount?.username || entry.senderAccount?.identifier
+                    ? undefined
+                    : TRANSACTION_NAME_KEYS.receivedViaLink,
             fullName: entry.senderAccount?.fullName ?? '',
             showFullName: isPeerActuallyUser ? entry.senderAccount?.showFullName : undefined,
             isPeerActuallyUser,
@@ -36,6 +41,7 @@ export const sendLink: TransactionStrategy = (entry: HistoryEntry): TransactionS
             direction: 'send',
             transactionCardType: 'send',
             nameForDetails: 'Sent via Link',
+            nameKey: TRANSACTION_NAME_KEYS.sentViaLink,
             isPeerActuallyUser: true,
             isLinkTx: true,
             uiStatus: 'cancelled',
@@ -56,6 +62,7 @@ export const sendLink: TransactionStrategy = (entry: HistoryEntry): TransactionS
         direction: 'send',
         transactionCardType: 'send',
         nameForDetails: 'Sent via link',
+        nameKey: TRANSACTION_NAME_KEYS.sentViaLink,
         isPeerActuallyUser: false,
         isLinkTx: true,
     }

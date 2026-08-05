@@ -1,4 +1,4 @@
-import { MERCADO_PAGO, PIX, SIMPLEFI } from '@/assets/payment-apps'
+import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { getFromLocalStorage } from '@/utils/general.utils'
 import { formatUnits } from 'viem'
@@ -50,7 +50,7 @@ export enum EHistoryStatus {
     approved = 'approved',
     pending = 'pending',
     refunded = 'refunded',
-    canceled = 'canceled', // from simplefi, canceled with only one l
+    canceled = 'canceled', // historical DEPRECATED_SIMPLEFI rows, canceled with only one l
     expired = 'expired',
     CLOSED = 'CLOSED',
 }
@@ -124,6 +124,11 @@ export interface HistoryEntryExtraData {
     // Card-spend cluster. Populated for Rain CARD_SPEND / card-refund
     // intents only.
     parentRainTxId?: string | null
+    /** BE-classified refund flag (serializer-time). True for kind=REFUND (any
+     *  provider) and negative-amount card-spend auths. Mirrors the BE
+     *  `mapGenericIntent` projector; the FE also derives defensively from the
+     *  wire amount so this works before the BE change ships. */
+    isRefund?: boolean
     rainTransactionId?: string | null
     cardAuthAmount?: string | null
     cardSettledAmount?: string | null
@@ -268,9 +273,8 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
                 return undefined
         }
     }
-    if (kind === 'QR_PAY' && provider === 'DEPRECATED_SIMPLEFI') {
-        return SIMPLEFI
-    }
+    // Historical QR_PAY rows from removed providers (e.g. DEPRECATED_SIMPLEFI)
+    // fall through to undefined → the generic default avatar.
     return undefined
 }
 
@@ -458,3 +462,11 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
         },
     }
 }
+
+/** Marker `userName` the backend sends for the onboarding test transaction.
+ *  Compared against BACKEND data, never against localized copy, so this is
+ *  locale-safe — but it is still a magic string the backend owns. Follow-up:
+ *  have the API send an explicit `isTestTransaction` flag and delete this. */
+const TEST_TRANSACTION_USER_NAME = 'Enjoy Peanut!'
+
+export const isTestTransaction = (name: string | null | undefined): boolean => name === TEST_TRANSACTION_USER_NAME

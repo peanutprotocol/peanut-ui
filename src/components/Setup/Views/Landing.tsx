@@ -4,27 +4,49 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useLogin } from '@/hooks/useLogin'
 import * as Sentry from '@sentry/nextjs'
-import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useEffect } from 'react'
+import { disableDemoMode } from '@/utils/demo'
+import DocsLink from '@/components/Global/DocsLink'
+import { useTranslations } from 'next-intl'
+import StoreButtons from '@/components/Migration/StoreButtons'
+import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
+import { useMigrationFlag } from '@/hooks/useMigrationFlag'
+import { isCapacitor } from '@/utils/capacitor'
 
 const LandingStep = () => {
+    const t = useTranslations('setup')
+    const tMigration = useTranslations('migration')
+    const migrationOn = useMigrationFlag()
+    const hasKeepWebBypass = useKeepWebBypass()
+    const { deviceType } = useDeviceType()
+
+    // migration notice window on web (any device): NEW signups are closed —
+    // don't onboard users into a product that shuts in weeks; the app is the
+    // path. Existing users keep Log In until the cutover. Native app and
+    // keep-web bypass users see the normal card.
+    const blockSignup = migrationOn && !isCapacitor() && !hasKeepWebBypass
     const { handleNext } = useSetupFlow()
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
 
-    const handleError = (error: any) => {
-        const errorMessage =
-            error.code === 'LOGIN_CANCELED'
-                ? 'Login was canceled. Please try again.'
-                : error.code === 'NO_PASSKEY'
-                  ? 'No passkey found. Please create a wallet first.'
-                  : 'An unexpected error occurred during login.'
-        toast.error(errorMessage)
-        Sentry.captureException(error, { extra: { errorCode: error.code } })
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: error.code })
+    // The auth landing is a "real auth" surface. Demo mode persists in
+    // localStorage, so without this a prior demo session would make Log In /
+    // Sign up re-enter demo (user = DEMO_USER → routed to the demo home).
+    useEffect(() => {
+        disableDemoMode()
+    }, [])
+
+    const handleError = (error: unknown) => {
+        const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
+        toast.error((error instanceof Error && error.message) || t('loginFailed'))
+        Sentry.captureException(error, { extra: { errorCode } })
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: errorCode })
     }
 
     const onLoginClick = async () => {
@@ -38,16 +60,27 @@ const LandingStep = () => {
     return (
         <Card className="border-0">
             <Card.Content className="space-y-4 p-0 pt-4">
-                <Button
-                    shadowSize="4"
-                    className="h-11"
-                    onClick={() => {
-                        posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED)
-                        handleNext()
-                    }}
-                >
-                    Sign up
-                </Button>
+                {blockSignup ? (
+                    <div className="space-y-2 pb-2">
+                        {/* heading only above the desktop QR — a lone store button
+                            explains itself */}
+                        {deviceType === DeviceType.WEB && (
+                            <p className="text-center text-sm font-semibold text-n-1">{tMigration('banner.title')}</p>
+                        )}
+                        <StoreButtons surface={MIGRATION_SURFACES.SETUP} />
+                    </div>
+                ) : (
+                    <Button
+                        shadowSize="4"
+                        className="h-11"
+                        onClick={() => {
+                            posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED)
+                            handleNext()
+                        }}
+                    >
+                        {t('landing.signUp')}
+                    </Button>
+                )}
                 <Button
                     loading={isLoggingIn}
                     shadowSize="4"
@@ -56,12 +89,15 @@ const LandingStep = () => {
                     variant="primary-soft"
                     onClick={onLoginClick}
                 >
-                    Log In
+                    {t('logIn')}
                 </Button>
                 <div className="pt-2 text-center">
-                    <Link href="/support" className="text-xs text-grey-1 underline underline-offset-2">
-                        Need to recover your Peanut wallet?
-                    </Link>
+                    <DocsLink
+                        href="/en/help/account-recovery"
+                        className="text-xs text-grey-1 underline underline-offset-2"
+                    >
+                        {t('landing.recoverWallet')}
+                    </DocsLink>
                 </div>
             </Card.Content>
         </Card>

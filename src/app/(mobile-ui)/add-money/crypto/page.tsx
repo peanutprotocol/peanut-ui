@@ -1,6 +1,8 @@
 'use client'
 
 import CryptoDepositView from '@/components/AddMoney/views/CryptoDeposit.view'
+import OfframpHandleGateView from '@/components/AddMoney/views/OfframpHandleGate.view'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -17,12 +19,14 @@ import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useTranslations } from 'next-intl'
 
 // static — peanut wallet is always on arbitrum
 const DEPOSIT_EXPLORER_BASE_URL = getExplorerUrl(PEANUT_WALLET_CHAIN.id.toString())
 
 const AddMoneyCryptoPage = () => {
-    const { user } = useAuth()
+    const { user, isFetchingUser } = useAuth()
+    const t = useTranslations('addMoney')
     const onBack = useSafeBack('/add-money')
     const { address: peanutWalletAddress } = useWallet()
     const [networkParam] = useQueryState(
@@ -39,6 +43,12 @@ const AddMoneyCryptoPage = () => {
     const network: RhinoChainType = isOfframp ? 'EVM' : networkParam
     const [showSuccessView, setShowSuccessView] = useState(false)
     const [depositResult, setDepositResult] = useState<DepositAddressStatusResponse | null>(null)
+    // Offramp migrants must self-report their offramp.xyz username/email once
+    // before the deposit address is revealed — Peanut owes the partner a
+    // per-migrant payout, and this handle is what reconciliation keys on.
+    // Local flag bridges the moment between saving and the user refetch.
+    const [offrampHandleSaved, setOfframpHandleSaved] = useState(false)
+    const needsOfframpHandle = isOfframp && !offrampHandleSaved && !user?.user.offrampHandle
 
     const {
         data: depositAddressData,
@@ -115,11 +125,20 @@ const AddMoneyCryptoPage = () => {
         } satisfies TransactionDetails
     }, [depositResult, network, isOfframp])
 
+    if (needsOfframpHandle && !showSuccessView) {
+        // wait for the cached user before deciding — otherwise a migrant who
+        // already provided their handle gets a flash of the gate on every visit
+        if (isFetchingUser && !user) {
+            return <PeanutLoading />
+        }
+        return <OfframpHandleGateView onBack={onBack} onDone={() => setOfframpHandleSaved(true)} />
+    }
+
     if (showSuccessView && depositResult) {
         return (
             <PaymentSuccessView
                 type="DEPOSIT"
-                headerTitle={isOfframp ? 'Migration Complete' : 'Deposited Crypto'}
+                headerTitle={isOfframp ? t('crypto.migrationComplete') : t('crypto.depositedCrypto')}
                 usdAmount={depositResult.amount?.toString()}
                 amount={depositResult.tokenAmount}
                 transactionDetails={depositTransactionDetails}

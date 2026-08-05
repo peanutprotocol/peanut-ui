@@ -7,6 +7,10 @@ import ARBITRUM_ICON from '@/assets/chains/arbitrum.svg'
 // falls back to initials ("AO"). Prefer a bundled local asset for those.
 const CHAIN_ICON_OVERRIDES: Record<string, string> = {
     '42161': ARBITRUM_ICON,
+    // Linea's chain-details icon is an SVG served via ipfs.io — next/image
+    // refuses SVG by default, so it rendered as "LI" initials. CoinGecko
+    // raster instead. (Avalanche/Mantle ipfs icons are PNG and render fine.)
+    '59144': 'https://coin-images.coingecko.com/asset_platforms/images/135/small/linea.jpeg?1706606705',
 }
 
 export async function getSupportedChainsAndTokens(): Promise<Record<string, ChainWithTokens>> {

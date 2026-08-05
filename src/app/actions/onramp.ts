@@ -1,14 +1,4 @@
-import { type CountryData } from '@/components/AddMoney/consts'
-import { getCurrencyConfig } from '@/utils/bridge.utils'
-import { getCurrencyPrice } from '@/app/actions/currency'
 import { serverFetch } from '@/utils/api-fetch'
-
-export interface CreateOnrampGuestParams {
-    amount: string
-    country: CountryData
-    userId: string
-    chargeId?: string
-}
 
 /**
  * Cancel an on-ramp transfer.
@@ -33,44 +23,6 @@ export async function cancelOnramp(transferId: string): Promise<{ data?: { succe
         return { data: { success: true } }
     } catch (error) {
         console.error('Error calling cancel on-ramp API:', error)
-        if (error instanceof Error) {
-            return { error: error.message }
-        }
-        return { error: 'An unexpected error occurred.' }
-    }
-}
-
-export async function createOnrampForGuest(
-    params: CreateOnrampGuestParams
-): Promise<{ data?: { success: boolean }; error?: string }> {
-    try {
-        const { currency, paymentRail } = getCurrencyConfig(params.country.id, 'onramp')
-        const price = await getCurrencyPrice(currency)
-        const amount = (Number(params.amount) * price.buy).toFixed(2)
-
-        const response = await serverFetch('/bridge/onramp/create-for-guest', {
-            method: 'POST',
-            body: JSON.stringify({
-                amount,
-                userId: params.userId,
-                chargeId: params.chargeId,
-                source: {
-                    currency,
-                    paymentRail,
-                },
-            }),
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-            console.log('error', response)
-            return { error: data.error || 'Failed to create on-ramp transfer for guest.' }
-        }
-
-        return { data }
-    } catch (error) {
-        console.error('Error calling create on-ramp for guest API:', error)
         if (error instanceof Error) {
             return { error: error.message }
         }

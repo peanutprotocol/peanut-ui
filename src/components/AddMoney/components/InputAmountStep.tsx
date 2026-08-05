@@ -10,6 +10,7 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps, type LimitCurrency } from '@/features/limits/utils'
 import type { LimitValidationResult } from '@/features/limits/hooks/useLimitsValidation'
+import { useTranslations } from 'next-intl'
 
 type ICurrency = ReturnType<typeof useCurrency>
 
@@ -50,6 +51,9 @@ const InputAmountStep = ({
     onBack,
     maintenanceBanner,
 }: InputAmountStepProps) => {
+    const t = useTranslations('addMoney')
+    const tCommon = useTranslations('common')
+
     if (currencyData?.isLoading) {
         return <PeanutLoading />
     }
@@ -70,10 +74,10 @@ const InputAmountStep = ({
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
-            <NavHeader title="Add Money" onPrev={onBack} />
+            <NavHeader title={t('title')} onPrev={onBack} />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 {maintenanceBanner}
-                <div className="text-sm font-bold">How much do you want to add?</div>
+                <div className="text-sm font-bold">{t('howMuchToAdd')}</div>
 
                 <AmountInput
                     initialAmount={tokenAmount}
@@ -100,7 +104,7 @@ const InputAmountStep = ({
 
                 <div className="flex items-center gap-2 text-xs text-grey-1">
                     <Icon name="info" width={16} height={16} />
-                    <span>This must exactly match what you send from your bank</span>
+                    <span>{t('mustMatchBankTransfer')}</span>
                 </div>
                 <Button
                     variant="purple"
@@ -116,12 +120,12 @@ const InputAmountStep = ({
                     className="w-full"
                     loading={isLoading}
                 >
-                    Continue
+                    {tCommon('continue')}
                 </Button>
                 {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                 {error && !limitsValidation?.isBlocking && <ErrorAlert description={error} />}
                 {rateUnavailable && !error && !limitsValidation?.isBlocking && (
-                    <ErrorAlert description="Exchange rates are temporarily unavailable. Please try again in a moment." />
+                    <ErrorAlert description={t('errors.rateUnavailable')} />
                 )}
             </div>
         </div>

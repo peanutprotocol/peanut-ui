@@ -1,5 +1,3 @@
-'use server'
-
 import { CARD_FX_MARKUP_BY_CURRENCY } from '@/constants/payment.consts'
 import { getCurrencyPrice } from '@/app/actions/currency'
 

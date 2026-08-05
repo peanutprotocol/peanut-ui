@@ -6,6 +6,7 @@ import { twMerge } from 'tailwind-merge'
 import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
 import { Slider } from '../Slider'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { useTranslations } from 'next-intl'
 
 // Used for internal calculations, not displayed to the user
 const DECIMAL_SCALE = 18 // Max expected decimal places for any denomination
@@ -59,6 +60,7 @@ const AmountInput = ({
     defaultSliderValue,
     defaultSliderSuggestedAmount,
 }: AmountInputProps) => {
+    const t = useTranslations('global')
     const [isFocused, setIsFocused] = useState(false)
     const { deviceType } = useDeviceType()
     // Only autofocus on desktop (WEB), not on mobile devices (IOS/ANDROID)
@@ -90,28 +92,49 @@ const AmountInput = ({
 
     // Sync displayValue with initialAmount changes (e.g. when charge is fetched)
     // Skip sync if user is actively editing to prevent overwriting their input
+    // Deliberately keyed on initialAmount alone: displayValue is what this writes,
+    // so depending on it would re-run the sync on every keystroke.
     useEffect(() => {
         if (initialAmount && initialAmount !== displayValue && !isEditingRef.current) {
             setDisplayValue(initialAmount)
             setExactValue(Number(initialAmount) * 10 ** DECIMAL_SCALE)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initialAmount])
 
-    const denominations = {
-        [primaryDenomination.symbol]: primaryDenomination,
-    }
-    if (secondaryDenomination) {
-        denominations[secondaryDenomination.symbol] = secondaryDenomination
-    }
+    // Keyed on the fields rather than the objects: primaryDenomination has an
+    // object-literal default, so depending on prop identity would rebuild this
+    // every render and defeat every memo below that reads a price out of it.
+    const denominations = useMemo(() => {
+        const map: Record<string, { symbol: string; price: number; decimals: number }> = {
+            [primaryDenomination.symbol]: primaryDenomination,
+        }
+        if (secondaryDenomination) {
+            map[secondaryDenomination.symbol] = secondaryDenomination
+        }
+        return map
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        primaryDenomination.symbol,
+        primaryDenomination.price,
+        primaryDenomination.decimals,
+        secondaryDenomination?.symbol,
+        secondaryDenomination?.price,
+        secondaryDenomination?.decimals,
+    ])
 
     const alternativeDisplaySymbol = useMemo(() => {
         return Object.keys(denominations).find((key) => key !== displaySymbol) ?? ''
-    }, [displaySymbol])
+    }, [displaySymbol, denominations])
 
+    // Notifies the parent when the denomination toggles. setCurrentDenomination is an
+    // optional prop, so its identity is the parent's to control — including it would
+    // re-fire this on every parent render that passes a fresh arrow.
     useEffect(() => {
         if (setCurrentDenomination) {
             setCurrentDenomination(displaySymbol)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [displaySymbol])
 
     /*
@@ -124,7 +147,7 @@ const AmountInput = ({
         const alternativePrice = denominations[alternativeDisplaySymbol]?.price
         const mainPrice = denominations[displaySymbol]?.price
         return alternativePrice / mainPrice
-    }, [displaySymbol, alternativeDisplaySymbol, secondaryDenomination])
+    }, [displaySymbol, alternativeDisplaySymbol, secondaryDenomination, denominations])
 
     const alternativeValue = useMemo(() => {
         if (!secondaryDenomination || !displayValue) return 0
@@ -135,8 +158,13 @@ const AmountInput = ({
         if (!secondaryDenomination || !alternativeValue) return '0.00'
         const scaledDownValue = alternativeValue / 10 ** DECIMAL_SCALE
         return formatTokenAmount(scaledDownValue, denominations[alternativeDisplaySymbol]?.decimals) ?? '0.00'
-    }, [alternativeValue, alternativeDisplaySymbol, secondaryDenomination])
+    }, [alternativeValue, alternativeDisplaySymbol, secondaryDenomination, denominations])
 
+    // primaryDenomination.symbol is included: it decides which consumer gets the
+    // display value vs the converted one, so a stale read here reports the amounts
+    // the wrong way round. The setPrimary/Secondary/DisplayedAmount props are left
+    // out — they are the parent's identity, and including them re-fires this on
+    // every parent render.
     useEffect(() => {
         const isPrimaryDenomination = displaySymbol === primaryDenomination.symbol
         // Strip commas before passing to consumers - they expect raw numeric strings
@@ -154,7 +182,15 @@ const AmountInput = ({
             setPrimaryAmount(rawAlternativeValue)
             setSecondaryAmount?.(rawDisplayValue)
         }
-    }, [displayValue, alternativeDisplayValue, displaySymbol, secondaryDenomination, hasValue])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        displayValue,
+        alternativeDisplayValue,
+        displaySymbol,
+        secondaryDenomination,
+        hasValue,
+        primaryDenomination.symbol,
+    ])
 
     const onSliderValueChange = useCallback(
         (value: number[]) => {
@@ -190,7 +226,7 @@ const AmountInput = ({
                 }
             }
         },
-        [maxAmount, amountCollected]
+        [maxAmount, amountCollected, denominations, displaySymbol]
     )
 
     // Sync default slider suggested amount to the input
@@ -285,7 +321,7 @@ const AmountInput = ({
                 {/* Balance */}
                 {walletBalance && !hideBalance && (
                     <div className="text-center text-grey-1">
-                        Balance: {secondaryDenomination ? 'USD ' : '$ '}
+                        {t('amountInput.balance')} {secondaryDenomination ? 'USD ' : '$ '}
                         {walletBalance}
                     </div>
                 )}

@@ -14,7 +14,10 @@ import {
     CANVAS_H,
     CARD_LEFT,
     CARD_TOP,
+    PILL_RIGHT,
+    PILL_BOTTOM,
     placeStamps,
+    pillKeepoutBox,
     buildStatColumns,
     usernameFontSize,
 } from '../shareAssetLayout'
@@ -200,6 +203,47 @@ describe('placeStamps', () => {
         const badges = Array.from({ length: 13 }, (_, i) => badge(`B${i}`))
         const placed = placeStamps(badges, new SeededRandom('kkonrad'))
         expect(placed.length).toBe(13)
+    })
+
+    // The @username pill is the whole point of the shareable asset, so the
+    // repulsion must keep stickers off it — including through the final
+    // separation pass, which used to DROP the pill keep-out and let a sticker
+    // get shoved onto the handle on the last cleanup pass (covering ~65% of the
+    // pill in the worst case). No sticker may heavily overlap the pill's
+    // rendered footprint. (The pill also renders above the stickers as a
+    // hard guarantee, but that's a render concern; here we pin the layout.)
+    it('keeps stickers off the username pill (final pass respects the keep-out)', () => {
+        const seeds = ['kkonrad', 'hugo', 'testo', 'me', 'a', 'longusername', 'satoshi', '🥜']
+        // Representative rendered pill footprints (short handle → long handle).
+        const pills = [
+            { w: 300, h: 120 },
+            { w: 460, h: 110 },
+            { w: 620, h: 100 },
+        ]
+        const MAX_PILL_COVER = 0.4 // fraction of the pill rect a sticker may overlap
+        for (const { w, h } of pills) {
+            const box = pillKeepoutBox(w, h)
+            // Rendered pill rect: bottom-right anchored (box top-left → canvas corner inset).
+            const rect = { x0: box.x0, y0: box.y0, x1: CANVAS_W - PILL_RIGHT, y1: CANVAS_H - PILL_BOTTOM }
+            const rectArea = (rect.x1 - rect.x0) * (rect.y1 - rect.y0)
+            for (let n = 1; n <= 8; n++) {
+                const badges = Array.from({ length: n }, (_, i) => badge(`B${i}`))
+                for (const seed of seeds) {
+                    const placed = placeStamps(badges, new SeededRandom(seed), [], box)
+                    for (const s of placed) {
+                        const ix = Math.max(0, Math.min(s.left + s.width, rect.x1) - Math.max(s.left, rect.x0))
+                        const iy = Math.max(0, Math.min(s.top + s.height, rect.y1) - Math.max(s.top, rect.y0))
+                        const cover = (ix * iy) / rectArea
+                        if (cover > MAX_PILL_COVER) {
+                            throw new Error(
+                                `Sticker covers ${(cover * 100).toFixed(0)}% of the username pill ` +
+                                    `at count=${n} seed="${seed}" pill=${w}×${h} (max ${MAX_PILL_COVER * 100}%)`
+                            )
+                        }
+                    }
+                }
+            }
+        }
     })
 })
 

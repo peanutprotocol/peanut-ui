@@ -9,6 +9,7 @@
  */
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
 
@@ -112,15 +113,6 @@ jest.mock('@/hooks/useGetExchangeRate', () => ({
     default: () => mockUseGetExchangeRate(),
 }))
 
-jest.mock('@/interfaces', () => ({
-    AccountType: {
-        IBAN: 'iban',
-        US: 'us',
-        GB: 'gb',
-        CLABE: 'clabe',
-    },
-}))
-
 const mockUseLimitsValidation = jest.fn()
 jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
     useLimitsValidation: (...args: any[]) => mockUseLimitsValidation(...args),
@@ -128,7 +120,7 @@ jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
 
 jest.mock('@/features/limits/components/LimitsWarningCard', () => ({
     __esModule: true,
-    default: (props: any) => <div data-testid="limits-warning-card" />,
+    default: (_props: any) => <div data-testid="limits-warning-card" />,
 }))
 
 jest.mock('@/features/limits/utils', () => ({
@@ -233,9 +225,11 @@ function renderWithdraw(params: Record<string, string> = {}) {
     setSearchParams(params)
     const queryClient = createQueryClient()
     return render(
-        <QueryClientProvider client={queryClient}>
-            <WithdrawPage />
-        </QueryClientProvider>
+        <IntlWrapper>
+            <QueryClientProvider client={queryClient}>
+                <WithdrawPage />
+            </QueryClientProvider>
+        </IntlWrapper>
     )
 }
 
@@ -393,6 +387,53 @@ describe('GROUP 3: Amount Validation', () => {
         // ErrorAlert should NOT be shown when limits is blocking
         expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
         expect(screen.getByTestId('limits-warning-card')).toBeInTheDocument()
+    })
+
+    test('Crypto withdrawal has no amount-step minimum (parity with send-via-link)', () => {
+        // Regression: the shared amount step applied the bank $1 minimum to
+        // crypto (getMinimumAmount('') → 1), blocking sub-$1 on-chain sends
+        // that send-via-link already allows. Same-chain Arbitrum withdrawals
+        // have no minimum at all; Rhino's per-network bridge minimums are
+        // enforced at review time, once the destination is known.
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        mockWithdrawFlow.amountToWithdraw = '0.4'
+
+        renderWithdraw()
+
+        const continueBtn = screen.getByText('Continue')
+        expect(continueBtn).not.toBeDisabled()
+
+        fireEvent.click(continueBtn)
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto')
+    })
+
+    test('Bank withdrawal keeps the $1 minimum for sub-$1 amounts', async () => {
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
+        mockWithdrawFlow.amountToWithdraw = '0.5'
+
+        renderWithdraw()
+
+        expect(screen.getByText('Continue')).toBeDisabled()
+        // validation is debounced 300ms behind typing
+        await waitFor(() =>
+            expect(mockSetError).toHaveBeenCalledWith({
+                showError: true,
+                errorMessage: 'Minimum withdrawal is $1.',
+            })
+        )
+    })
+
+    test('Stale bank method entering via ?method=crypto keeps the bank minimum', () => {
+        // Regression: the crypto exemption must follow selectedMethod (the
+        // routing source of truth), not the URL param. A leftover bank method
+        // from an abandoned withdraw survives in the app-wide context and
+        // still routes Continue to the bank flow — so sub-$1 must stay blocked.
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
+        mockWithdrawFlow.amountToWithdraw = '0.5'
+
+        renderWithdraw({ method: 'crypto' })
+
+        expect(screen.getByText('Continue')).toBeDisabled()
     })
 })
 

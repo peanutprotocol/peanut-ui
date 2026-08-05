@@ -1,0 +1,60 @@
+{
+    "home": {
+        "activation": {
+            "spendWithPeanut": {
+                "description": "Pagá con tu tarjeta o escaneá códigos QR de Pix y Mercado Pago"
+            }
+        },
+        "history": {
+            "networkErrorDescription": "Revisá tu conexión e intentá de nuevo."
+        },
+        "carousel": {
+            "notifications": {
+                "description": "Activá las notificaciones y recibí alertas de toda la actividad de tu billetera."
+            },
+            "qrPay": {
+                "description": "Obtené el mejor tipo de cambio, pagá como un <b>local</b> y ganá <b>recompensas</b>."
+            }
+        }
+    },
+    "profile": {
+        "publicProfile": {
+            "allSetDescription": "Ahora enviá o solicitá plata para empezar."
+        }
+    },
+    "exchangeRate": {
+        "widget": {
+            "youSend": "Vos enviás"
+        }
+    },
+    "setup": {
+        "steps": {
+            "passkey-permission": {
+                "description": "Usá tu cara o tu huella para iniciar sesión. Sin contraseñas ni complicaciones. Solo vos."
+            },
+            "sign-test-transaction": {
+                "description": "Solo confirmá que sos vos: un toque y listo."
+            }
+        }
+    },
+    "request": {
+        "leaveEmptyHint": "Dejalo vacío para que quien paga elija el monto."
+    },
+    "notifications": {
+        "setupDescription": "Activá las notificaciones y recibí alertas de toda la actividad de tu billetera."
+    },
+    "badges": {
+        "toastTapToView": "— tocá para ver"
+    },
+    "global": {
+        "earlyUserModal": {
+            "inviteOnly": "Peanut ahora es solo por invitación, ¡y vos estás dentro!"
+        },
+        "noMoreJailModal": {
+            "line2": "Explorá, pagá e invitá a tus amigos."
+        },
+        "staleCardApprovalModal": {
+            "successDescription": "Tu tarjeta está lista — intentá tu retiro de nuevo."
+        }
+    }
+}

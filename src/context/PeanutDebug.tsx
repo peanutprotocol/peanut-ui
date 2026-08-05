@@ -22,6 +22,11 @@ import { logRunMode } from '@/utils/mode'
 export function PeanutDebug() {
     useEffect(() => {
         if (typeof window === 'undefined') return
+        // Build-time guard so the whole harness block (including the hardcoded
+        // DEFAULT_HARNESS_PK and the localStorage signer-key writes) is
+        // dead-code-eliminated from production bundles, not merely skipped at
+        // runtime. Defense in depth alongside the localhost gate below.
+        if (process.env.NODE_ENV === 'production') return
         const hostname = window.location.hostname
         const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]'
         if (!isLocalhost) return
@@ -38,7 +43,7 @@ export function PeanutDebug() {
         // Captures the most recent BE response so callers can surface the
         // structured `hint`/`suggestions` fields in helpful errors instead of
         // generic "fetch failed" / "user not found".
-        let lastResponse: { status?: number; json?: any; networkError?: string } = {}
+        let _lastResponse: { status?: number; json?: any; networkError?: string } = {}
 
         async function call(path: string, body?: object, method: 'GET' | 'POST' = 'POST') {
             const url =
@@ -57,10 +62,10 @@ export function PeanutDebug() {
                 const ms = Math.round(performance.now() - start)
                 const ok = res.ok && json?.ok !== false
                 debugLog(`${ok ? '✓' : '✗'} ${method} ${path} (${ms}ms)`, json)
-                lastResponse = { status: res.status, json }
+                _lastResponse = { status: res.status, json }
                 return json
             } catch (err) {
-                lastResponse = { networkError: (err as Error).message }
+                _lastResponse = { networkError: (err as Error).message }
                 debugLog(`✗ ${method} ${path} — network error: ${(err as Error).message}`)
                 throw new Error(
                     `cheat call ${method} ${path} failed: ${(err as Error).message}.\n` +
