@@ -163,9 +163,7 @@ export default function NotificationsPage() {
                         grouped.map((group, groupIdx) => {
                             return (
                                 <React.Fragment key={groupIdx}>
-                                    <div className="mb-2 mt-4 px-1 text-sm font-semibold capitalize">
-                                        {group.header}
-                                    </div>
+                                    <div className="mb-2 mt-4 px-1 text-sm font-semibold">{group.header}</div>
                                     {group.items.map((notif, idx) => {
                                         let position: CardPosition = 'middle'
                                         if (group.items.length === 1) position = 'single'
