@@ -8,6 +8,8 @@ import { SUPPORTED_RAILS_FAQ_ID } from '@/constants/faq.consts'
 import TweetCarousel from '@/components/LandingPage/TweetCarousel'
 import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
+import type { LandingStrings } from './landingStrings'
+import type { Locale } from '@/i18n/types'
 import StoreBadges from '@/components/Migration/StoreBadges'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
 import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
@@ -32,6 +34,8 @@ type LandingPageClientProps = {
         marquee: { visible: boolean; message: string }
     }
     marqueeMessages: string[]
+    locale: Locale
+    strings: LandingStrings
     // Server-rendered slots
     mantecaSlot: ReactNode
     regulatedRailsSlot: ReactNode
@@ -45,6 +49,8 @@ export function LandingPageClient({
     heroConfig,
     faqData,
     marqueeMessages,
+    locale,
+    strings,
     mantecaSlot,
     regulatedRailsSlot,
     yourMoneySlot,
@@ -230,6 +236,8 @@ export function LandingPageClient({
                 primaryCta={primaryCta}
                 buttonVisible={buttonVisible}
                 buttonScale={buttonScale}
+                strings={strings}
+                locale={locale}
                 customCta={
                     migrationOn && isDesktop ? (
                         <div className="flex flex-col items-center">
@@ -250,15 +258,15 @@ export function LandingPageClient({
             <Marquee {...marqueeProps} />
             {!underMaintenanceConfig.disableCardPioneers && (
                 <>
-                    <CardPioneers />
+                    <CardPioneers strings={strings} />
                     <Marquee {...marqueeProps} />
                 </>
             )}
-            <TweetCarousel />
+            <TweetCarousel strings={strings} />
             <Marquee {...marqueeProps} />
             {regulatedRailsSlot}
             <Marquee {...marqueeProps} />
-            <DropLink />
+            <DropLink strings={strings} />
             <Marquee {...marqueeProps} />
             {securitySlot}
             <Marquee {...marqueeProps} />
@@ -268,13 +276,13 @@ export function LandingPageClient({
                Without this boundary, the entire LandingPageClient suspends during SSR,
                sending an empty HTML shell to crawlers and killing SEO. */}
             <Suspense>
-                <NoFees />
+                <NoFees locale={locale} strings={strings} />
             </Suspense>
             <Marquee {...marqueeProps} />
             <FAQs heading={faqData.heading} questions={faqQuestions} marquee={faqData.marquee} />
             <Marquee {...marqueeProps} />
             {footerSlot}
-            <StickyMobileCTA />
+            <StickyMobileCTA strings={strings} />
         </>
     )
 }

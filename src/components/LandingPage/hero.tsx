@@ -8,6 +8,8 @@ import Image from 'next/image'
 import { useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from './CloudsCss'
+import type { LandingStrings } from './landingStrings'
+import type { Locale } from '@/i18n/types'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
 
 /**
@@ -74,6 +76,8 @@ function PeanutMascot() {
 }
 
 type HeroProps = {
+    strings: LandingStrings
+    locale: Locale
     primaryCta?: CTAButton
     secondaryCta?: CTAButton
     buttonVisible?: boolean
@@ -109,7 +113,15 @@ const transitionConfig = { type: 'spring', damping: 15 } as const
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
     `relative z-20 mt-8 md:mt-12 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
 
-export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1, customCta }: HeroProps) {
+export function Hero({
+    primaryCta,
+    secondaryCta,
+    buttonVisible,
+    buttonScale = 1,
+    customCta,
+    strings,
+    locale,
+}: HeroProps) {
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
         return (
             <motion.div
@@ -187,27 +199,27 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1,
 
             <div className="relative z-20 flex w-full flex-col items-center justify-center">
                 <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:text-heading">
-                    TAP. SCAN. ANYWHERE.
+                    {strings.heroTapScan}
                 </h2>
                 <span
                     className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    <Link href="/en/argentina" className="hover:underline">
+                    <Link href={`/${locale}/argentina`} className="hover:underline">
                         Buenos Aires
                     </Link>
                     .{' '}
-                    <Link href="/en/brazil" className="hover:underline">
+                    <Link href={`/${locale}/brazil`} className="hover:underline">
                         São Paulo
                     </Link>
                     .{' '}
-                    <Link href="/en/brazil" className="hover:underline">
+                    <Link href={`/${locale}/brazil`} className="hover:underline">
                         Floripa
                     </Link>
                     .
                 </span>
                 <span className="mt-2 block text-center text-sm text-n-1/70 md:text-base" style={{ fontWeight: 400 }}>
-                    No local ID or bank required.
+                    {strings.heroNoLocalId}
                 </span>
                 {primaryCta ? renderCTAButton(primaryCta, 'primary') : customCta ? renderCustomCta() : null}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}

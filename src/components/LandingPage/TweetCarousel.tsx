@@ -4,6 +4,7 @@ import { TWEETS, type Tweet } from '@/constants/tweets.consts'
 import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import Marquee from 'react-fast-marquee'
+import type { LandingStrings } from './landingStrings'
 
 // =============================================================================
 // Constants
@@ -331,7 +332,7 @@ const buildColumns = (tweets: Tweet[]): ColumnType[] => {
  * - Lazy loaded images with fallbacks
  * - Links open in new tab
  */
-const TweetCarousel = () => {
+const TweetCarousel = ({ strings }: { strings: LandingStrings }) => {
     const columns = useMemo(() => buildColumns(TWEETS), [])
 
     if (columns.length === 0) return null
@@ -340,10 +341,10 @@ const TweetCarousel = () => {
         <section id="testimonials" className="w-full bg-primary-1 pb-10 pt-12 md:pb-14 md:pt-16">
             <div className="mx-auto max-w-7xl px-4 pb-8">
                 <h2 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack text-n-1 lg:text-headingMedium">
-                    WALL OF LOVE
+                    {strings.wallOfLove}
                 </h2>
                 <p className="mt-3 text-center text-base text-n-1 md:text-xl">
-                    See what people are saying about Peanut on{' '}
+                    {strings.wallOfLoveBody}{' '}
                     <a
                         href="https://twitter.com/search?q=%40joinpeanut"
                         target="_blank"

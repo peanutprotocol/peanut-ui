@@ -4,13 +4,14 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
+import type { LandingStrings } from './landingStrings'
 import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useTranslations } from 'next-intl'
 import { trackStoreClick } from '@/utils/migration.utils'
 
-export function StickyMobileCTA() {
+export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
     const [visible, setVisible] = useState(false)
     const rafId = useRef(0)
     const lastVisible = useRef(false)
@@ -74,7 +75,7 @@ export function StickyMobileCTA() {
                     ) : (
                         <Link href="/setup" className="pointer-events-auto block">
                             <Button variant="purple" shadowSize="4" className="w-full py-3 text-base font-extrabold">
-                                SIGN UP NOW
+                                {strings.signUpNow}
                             </Button>
                         </Link>
                     )}

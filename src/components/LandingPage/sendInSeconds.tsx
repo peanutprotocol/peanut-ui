@@ -6,6 +6,9 @@ import Star from '@/assets/illustrations/star.svg'
 import { CloudsCss } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import { SendInSecondsCTA } from './SendInSecondsCTA'
+import { getTranslations } from '@/i18n'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import { landingStrings } from './landingStrings'
 
 const sendInSecondsClouds = [
     { top: '15%', width: 320, speed: '40s', direction: 'ltr' as const },
@@ -35,7 +38,9 @@ const starConfigs = [
     { className: 'absolute left-[20rem] top-72', width: 60, height: 60, delay: '0.8s', x: '-5px', rotate: '12deg' },
 ]
 
-export function SendInSeconds() {
+export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
+    const i18n = getTranslations(locale)
+
     return (
         <section id="send-in-seconds" className="relative overflow-hidden bg-secondary-1 px-4 py-16 text-n-1 md:py-32">
             <CloudsCss clouds={sendInSecondsClouds} />
@@ -86,13 +91,13 @@ export function SendInSeconds() {
                     className="mb-6 hidden font-roboto text-base font-medium leading-tight md:mb-8 md:block md:text-4xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    MOVE MONEY WORLDWIDE INSTANTLY.
+                    {i18n.landingSendTagline1}
                     <br />
-                    ALWAYS UNDER YOUR CONTROL.
+                    {i18n.landingSendTagline2}
                 </p>
 
                 <div id="sticky-button-target">
-                    <SendInSecondsCTA />
+                    <SendInSecondsCTA strings={landingStrings(i18n)} />
                 </div>
             </div>
         </section>

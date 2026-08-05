@@ -2,6 +2,9 @@ import { Children, isValidElement, type ReactNode } from 'react'
 import Link from 'next/link'
 import { Card } from '@/components/0_Bruddle/Card'
 import { PROSE_WIDTH, CARD_HOVER } from './constants'
+import { getTranslations } from '@/i18n'
+import { localizeContentHref } from '@/i18n/config'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
 interface RelatedLinkProps {
     href: string
@@ -15,6 +18,8 @@ export function RelatedLink({ href, children }: RelatedLinkProps) {
 
 interface RelatedPagesProps {
     title?: string
+    /** Injected by createMdxComponents — never authored in MDX. */
+    locale?: Locale
     children: ReactNode
 }
 
@@ -28,7 +33,8 @@ interface RelatedPagesProps {
  *   <RelatedLink href="/compare/wise">Peanut vs Wise</RelatedLink>
  *   </RelatedPages>
  */
-export function RelatedPages({ title = 'Related Pages', children }: RelatedPagesProps) {
+export function RelatedPages({ title, children, locale = DEFAULT_LOCALE }: RelatedPagesProps) {
+    const heading = title ?? getTranslations(locale).relatedPages
     const links: Array<{ href: string; text: string }> = []
 
     Children.forEach(children, (child) => {
@@ -48,10 +54,10 @@ export function RelatedPages({ title = 'Related Pages', children }: RelatedPages
 
     return (
         <nav className={`mx-auto ${PROSE_WIDTH} px-6 py-10 md:px-4 md:py-14`}>
-            <h2 className="mb-5 text-xl font-bold text-n-1 md:text-2xl">{title}</h2>
+            <h2 className="mb-5 text-xl font-bold text-n-1 md:text-2xl">{heading}</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {links.map((link) => (
-                    <Link key={link.href} href={link.href} className="flex">
+                    <Link key={link.href} href={localizeContentHref(link.href, locale)} className="flex">
                         <Card shadowSize="4" className={`flex-1 flex-row items-center gap-3 p-4 ${CARD_HOVER}`}>
                             <span className="font-semibold">{link.text}</span>
                             <span className="ml-auto text-sm text-black/50">&rarr;</span>

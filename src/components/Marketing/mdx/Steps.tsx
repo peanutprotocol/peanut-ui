@@ -3,6 +3,8 @@ import { Steps as StepsCards } from '@/components/Marketing/Steps'
 import { JsonLd } from '@/components/Marketing/JsonLd'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { Stars } from './Stars'
+import { getTranslations } from '@/i18n'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
 interface StepProps {
     title: string
@@ -16,6 +18,8 @@ export function Step({ title, children }: StepProps) {
 
 interface StepsProps {
     title?: string
+    /** Injected by createMdxComponents — never authored in MDX. */
+    locale?: Locale
     children: ReactNode
 }
 
@@ -45,7 +49,8 @@ const stepsClouds = [
  *   <Step title="Deposit">Send stablecoins or bank transfer.</Step>
  *   </Steps>
  */
-export function Steps({ title = 'How It Works', children }: StepsProps) {
+export function Steps({ title, children, locale = DEFAULT_LOCALE }: StepsProps) {
+    const heading = title ?? getTranslations(locale).howItWorks
     const steps: Array<{ title: string; description: string }> = []
 
     Children.forEach(children, (child) => {
@@ -63,7 +68,7 @@ export function Steps({ title = 'How It Works', children }: StepsProps) {
     const howToSchema = {
         '@context': 'https://schema.org',
         '@type': 'HowTo',
-        name: title,
+        name: heading,
         step: steps.map((step, i) => ({
             '@type': 'HowToStep',
             position: i + 1,
@@ -77,7 +82,7 @@ export function Steps({ title = 'How It Works', children }: StepsProps) {
             <CloudsCss clouds={stepsClouds} />
             <Stars />
             <div className="relative z-10 mx-auto max-w-3xl">
-                <h2 className="mb-8 text-h2 font-bold md:text-h1">{title}</h2>
+                <h2 className="mb-8 text-h2 font-bold md:text-h1">{heading}</h2>
                 <StepsCards steps={steps} />
             </div>
             <JsonLd data={howToSchema} />
