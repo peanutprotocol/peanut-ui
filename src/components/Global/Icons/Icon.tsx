@@ -76,6 +76,7 @@ import { TxnOffIcon } from './txn-off'
 import { WalletCancelIcon } from './wallet-cancel'
 import { InviteHeartIcon } from './invite-heart'
 import { BulbIcon } from './bulb'
+import { AppleLogoIcon, GooglePlayIcon } from './store-brands'
 import { DoubleCheckIcon } from './double-check'
 
 export type IconName =
@@ -154,6 +155,8 @@ export type IconName =
     | 'globe-lock'
     | 'globe'
     | 'bulb'
+    | 'apple-logo'
+    | 'google-play'
     | 'undo'
     | 'upload-cloud'
     | 'alert-filled'
@@ -298,6 +301,8 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'txn-off': TxnOffIcon,
     docs: DocsIcon,
     bulb: BulbIcon,
+    'apple-logo': AppleLogoIcon,
+    'google-play': GooglePlayIcon,
     undo: (props) => <LucideWrapper Icon={Undo} {...props} />,
     'upload-cloud': (props) => <LucideWrapper Icon={UploadCloud} {...props} />,
     'invite-heart': InviteHeartIcon,

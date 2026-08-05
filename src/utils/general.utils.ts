@@ -493,6 +493,14 @@ export type UserPreferences = {
      *  Read by useHomeCarouselCTAs to apply a per-CTA cooldown before re-showing.
      *  Legacy shape was `string[]` (permanent dismissal); both are accepted on read. */
     dismissedCarouselCTAs?: string[] | Record<string, string>
+    /** ISO timestamp of the last "Remind me later" on the app-migration download prompt. */
+    migrationPromptSnoozedAt?: string
+    /** ISO timestamp the notifications pre-prompt was dismissed — replaces the
+     *  legacy permanent `notifModalClosed` so we can re-ask after a cooldown
+     *  during the migration window. */
+    notifModalClosedAt?: string
+    /** ISO timestamp the app-review prompt was shown (asked once, ever). */
+    reviewPromptShownAt?: string
 }
 
 export const updateUserPreferences = (

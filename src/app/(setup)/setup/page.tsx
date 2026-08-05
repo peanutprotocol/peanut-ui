@@ -11,6 +11,7 @@ import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { isCapacitor } from '@/utils/capacitor'
+import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { getFromCookie } from '@/utils/general.utils'
 import { useSearchParams } from 'next/navigation'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
@@ -100,7 +101,12 @@ function SetupPageContent() {
             // onto Signup, unable to log back in (regression from PR #2346).
             const inviteCodeFromCookie = getFromCookie('inviteCode')
             const userInviteCode = inviteCode || inviteCodeFromCookie
-            const skipInviteGate = !!userInviteCode || searchParams.get('step') === 'signup'
+            // pwa-sunset notice window: web signups are closed (Landing hides
+            // Sign up), so the ?step=signup / invite-code jump must not skip
+            // past the landing gate — otherwise claim/invite links deep-link
+            // straight into the signup form. Native app keeps the fast path.
+            const webSignupClosed = isPwaSunsetOn() && !isCapacitor()
+            const skipInviteGate = (!!userInviteCode || searchParams.get('step') === 'signup') && !webSignupClosed
 
             const localDeviceType = detectedDeviceType
 

@@ -48,6 +48,7 @@ export const DEDICATED_ROUTES = [
     'fix-card-signature',
 
     // Public pages (existing)
+    'app', // smart store link (/app) — QR codes point here, redirects by device
     'm', // merchant landing pages (/m/[slug]) — added on main; register so the catch-all never treats it as a recipient
     'careers',
     'jobs',

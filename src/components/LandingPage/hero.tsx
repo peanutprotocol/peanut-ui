@@ -10,6 +10,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from './CloudsCss'
 import type { LandingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
+import { type CTAButton } from '@/components/LandingPage/landing.types'
 
 /**
  * Peanut mascot that positions itself so only 6% of its height (the feet)
@@ -74,13 +75,6 @@ function PeanutMascot() {
     )
 }
 
-type CTAButton = {
-    label: string
-    href: string
-    isExternal?: boolean
-    subtext?: string
-}
-
 type HeroProps = {
     strings: LandingStrings
     locale: Locale
@@ -88,6 +82,8 @@ type HeroProps = {
     secondaryCta?: CTAButton
     buttonVisible?: boolean
     buttonScale?: number
+    /** replaces the primary button entirely (store-button pair on desktop during the migration window) */
+    customCta?: React.ReactNode
 }
 
 const getInitialAnimation = (variant: 'primary' | 'secondary') => ({
@@ -117,7 +113,15 @@ const transitionConfig = { type: 'spring', damping: 15 } as const
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
     `relative z-20 mt-8 md:mt-12 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
 
-export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1, strings, locale }: HeroProps) {
+export function Hero({
+    primaryCta,
+    secondaryCta,
+    buttonVisible,
+    buttonScale = 1,
+    customCta,
+    strings,
+    locale,
+}: HeroProps) {
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
         return (
             <motion.div
@@ -131,9 +135,11 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1,
                     href={cta.href}
                     target={cta.isExternal ? '_blank' : undefined}
                     rel={cta.isExternal ? 'noopener noreferrer' : undefined}
+                    onClick={cta.onClick}
                 >
                     <Button
                         shadowSize="4"
+                        icon={cta.icon}
                         className="bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl"
                     >
                         {cta.label}
@@ -145,6 +151,17 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1,
             </motion.div>
         )
     }
+
+    const renderCustomCta = () => (
+        <motion.div
+            className={getButtonContainerClasses('primary')}
+            initial={getInitialAnimation('primary')}
+            animate={getAnimateAnimation('primary', buttonVisible, buttonScale)}
+            transition={transitionConfig}
+        >
+            {customCta}
+        </motion.div>
+    )
 
     return (
         <section
@@ -204,7 +221,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1,
                 <span className="mt-2 block text-center text-sm text-n-1/70 md:text-base" style={{ fontWeight: 400 }}>
                     {strings.heroNoLocalId}
                 </span>
-                {primaryCta && renderCTAButton(primaryCta, 'primary')}
+                {primaryCta ? renderCTAButton(primaryCta, 'primary') : customCta ? renderCustomCta() : null}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
                 <motion.img
                     initial={{ opacity: 0, translateY: 20, translateX: 5 }}
