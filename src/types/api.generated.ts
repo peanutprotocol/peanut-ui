@@ -5933,7 +5933,7 @@ export interface paths {
                             hasCardAccess: boolean;
                             isEligible: boolean;
                             eligibilityReason?: string;
-                            geoProhibited: boolean;
+                            geoProhibited?: boolean;
                             flowEarlyAccess: boolean;
                             isPublicLaunched: boolean;
                             waitlistJoinedAt: string | null;

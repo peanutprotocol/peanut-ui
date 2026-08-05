@@ -7946,7 +7946,6 @@
 									"required": [
 										"hasCardAccess",
 										"isEligible",
-										"geoProhibited",
 										"flowEarlyAccess",
 										"isPublicLaunched",
 										"waitlistJoinedAt",
