@@ -253,6 +253,11 @@ export const BADGES: Record<string, BadgeMeta> = {
         description: 'Naija no dey carry last. You were here first.',
         displayName: '9JA',
     },
+    TERERE: {
+        path: '/badges/terere.svg',
+        description: 'Tereré unlocked. You were there for round one.',
+        displayName: 'Tereré',
+    },
 }
 
 /** All known badge codes — derived from BADGES so we never duplicate the

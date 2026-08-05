@@ -50,6 +50,8 @@ export const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
     // Nigeria launch cohort. Arrives as ?campaign=naija; there is no
     // INVITE_CODE_TO_CAMPAIGN_MAP entry because no invite code `naija` exists.
     naija: 'NAIJA',
+    // Paraguay launch cohort. Same shape as naija above.
+    terere: 'TERERE',
 }
 
 // Resolve the effective campaign (a badge code, or a raw passthrough tag) from
