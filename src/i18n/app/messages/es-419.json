@@ -2257,7 +2257,9 @@
         "errorStartActionFailed": "No pudimos iniciar la verificación. Inténtalo de nuevo.",
         "errorInvalidResponse": "Respuesta inválida del servidor",
         "actionMessageActionRequired": "Necesitamos un poco más para verificar tu identidad. Vuelve a enviar tus documentos.",
-        "actionMessageFailed": "No pudimos verificar tu identidad. Contacta a soporte."
+        "actionMessageFailed": "No pudimos verificar tu identidad. Contacta a soporte.",
+        "successTitle": "¡Verificación exitosa!",
+        "successCloseWindow": "Ya puedes cerrar esta ventana."
     },
     "identity": {
         "unlockTitle": "Desbloquea {region}",
@@ -2800,6 +2802,96 @@
         "smartLink": {
             "redirecting": "Te llevamos a la tienda…",
             "pickStore": "Elige tu tienda y descarga la app."
+        }
+    },
+    "shhhhh": {
+        "hero": {
+            "wordmark": "shhhhh.",
+            "tagline": "La tarjeta de Peanut ya salió. Para ti. Quizás.",
+            "body": "Una tarjeta aceptada en más de 150 millones de comercios que aceptan Visa. Vamos dejando entrar a los usuarios beta de a poco: <counter></counter> por semana. Si tienes la insignia correcta, te saltas la fila por completo.",
+            "onlyCount": "solo {count}",
+            "tryTheDoor": "PRUEBA LA PUERTA",
+            "orJoinWaitlist": "o únete a la lista de espera →",
+            "joinError": "No pudimos sumarte a la lista de espera. Prueba la puerta de nuevo."
+        },
+        "waitlist": {
+            "joined": "✓ Estás en la lista de espera",
+            "joinedWithPosition": "✓ Estás en la lista de espera · #{position}",
+            "holler": "Te avisamos cuando llegue tu turno."
+        },
+        "marquee": {
+            "iykyk": "IYKYK",
+            "wordTravels": "SE CORRE LA VOZ",
+            "closedBeta": "BETA CERRADA",
+            "shhhh": "SHHHH",
+            "peanutClub": "PEANUT CLUB"
+        },
+        "whatItDoes": {
+            "titleLine1": "Es una tarjeta.",
+            "titleLine2": "Ese es todo el truco.",
+            "body": "Carga la tarjeta como ya mueves tu plata: transferencia bancaria, retiro de un exchange o stablecoins (USDC, USDT). Tu saldo es tuyo. Sin custodia. Sin comisiones mensuales. Sin comisiones anuales.",
+            "statMerchants": "comercios que aceptan Visa",
+            "statBalance": "saldo",
+            "statCard": "tarjeta",
+            "statMiddlemen": "intermediarios"
+        },
+        "whoItsFor": {
+            "title": "Si vives en más de un país, esto es para ti.",
+            "body": "Construimos peanut para quienes no encajan. Nómadas digitales que rebotan en la verificación de cada neobanco apenas cruzan una frontera. Expatriados que pagan 4% en cada envío a casa. Personas que ganan en una moneda y gastan en otra."
+        },
+        "howToGetIn": {
+            "title": "Cómo entrar.",
+            "subtitle": "Chequeo de credenciales. La insignia salta la fila.",
+            "badgeTitle": "Tienes una insignia.",
+            "badgeBody": "Te saltas la fila. Estamos habilitando a quienes tengan:",
+            "badgeFooter": "Inicia sesión, revisamos las insignias de tu cuenta y pasas directo a la verificación. ¿Todavía no tienes cuenta de peanut? Regístrate primero: toma un minuto.",
+            "noBadgeTitle": "Sin insignia.",
+            "noBadgeBody": "Únete a la lista de espera. Dejamos entrar a 20 personas por semana.",
+            "noBadgeFooter": "Anota tu nombre en la lista y te avisamos cuando llegue tu turno."
+        },
+        "notForYou": {
+            "title": "Probablemente no es para ti.",
+            "body1": "Si tu plata vive en un solo país y una sola moneda, la tarjeta de tu banco ya te sirve. Quédatela.",
+            "body2": "Si tu plata vive en otro lado —cruzando fronteras, en dólares, en autocustodia—, la tarjeta de peanut se construyó para ti."
+        },
+        "faq": {
+            "title": "PREGUNTAS FRECUENTES.",
+            "q1": {
+                "question": "¿QUÉ ES LA TARJETA DE PEANUT?",
+                "answer": "Una tarjeta sin custodia. Cárgala con stablecoins y úsala para tus gastos diarios donde acepten Visa."
+            },
+            "q2": {
+                "question": "¿DÓNDE FUNCIONA?",
+                "answer": "Se acepta donde acepten Visa: unos 150 millones de comercios. En línea, en tiendas y en cajeros."
+            },
+            "q3": {
+                "question": "¿MI PLATA ESTÁ SEGURA?",
+                "answer": "Es tuya. Sin custodia: tus stablecoins se quedan en tu billetera hasta el momento en que usas la tarjeta. No tenemos la custodia. No la prestamos."
+            },
+            "q4": {
+                "question": "¿QUÉ ES LO DE LOS $10?",
+                "answer": "Una recompensa de bienvenida. Completa la verificación + $100 de gasto con la tarjeta → se desbloquean $10 en tu saldo. Aplica igual si te registraste por tu cuenta o si te refirieron. Si tú refieres a alguien, también puedes recibir $10 cuando esa persona active su tarjeta. Sujeto a elegibilidad y a los términos del programa."
+            },
+            "q5": {
+                "question": "¿CUÁNTO DURA LA LISTA DE ESPERA?",
+                "answer": "Durante la beta cerrada dejamos entrar a unas 20 personas por semana. El orden importa. Las insignias saltan la fila por completo."
+            },
+            "q6": {
+                "question": "¿DÓNDE PUEDO CONSEGUIR LA TARJETA?",
+                "answer": "Primero estamos habilitando algunas regiones y sumamos más a medida que crece la cobertura de nuestros socios. La elegibilidad se muestra durante el registro."
+            },
+            "q7": {
+                "question": "¿HAY COMISIONES?",
+                "answer": "Sin comisiones mensuales. Sin comisiones anuales. Aplican las comisiones y los límites estándar según los términos del titular de la tarjeta."
+            },
+            "q8": {
+                "question": "¿POR QUÉ \"SHHHHH\"?",
+                "answer": "Preferimos prometer poco y cumplir de más con un grupo chico antes que gritarle a todo internet el primer día. La voz se corre."
+            }
+        },
+        "ready": {
+            "title": "¿todo listo?",
+            "subtitle": "Prueba la puerta."
         }
     }
 }

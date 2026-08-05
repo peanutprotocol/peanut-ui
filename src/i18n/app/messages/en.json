@@ -2257,7 +2257,9 @@
         "errorStartActionFailed": "Could not start verification. Please try again.",
         "errorInvalidResponse": "Invalid response from server",
         "actionMessageActionRequired": "We need a bit more to verify your identity. Please resubmit your documents.",
-        "actionMessageFailed": "We couldn't verify your identity. Please contact support."
+        "actionMessageFailed": "We couldn't verify your identity. Please contact support.",
+        "successTitle": "Verification successful!",
+        "successCloseWindow": "You can now close this window."
     },
     "identity": {
         "unlockTitle": "Unlock {region}",
@@ -2800,6 +2802,96 @@
         "smartLink": {
             "redirecting": "Taking you to the store…",
             "pickStore": "Global cash, local feel. Pick your store to download."
+        }
+    },
+    "shhhhh": {
+        "hero": {
+            "wordmark": "shhhhh.",
+            "tagline": "The peanut card is out. For you. Maybe.",
+            "body": "A card accepted at over 150 million Visa-accepting merchants. We're letting beta users in slowly — <counter></counter> a week. If you've got the right badge, you skip the line entirely.",
+            "onlyCount": "only {count}",
+            "tryTheDoor": "TRY THE DOOR",
+            "orJoinWaitlist": "or join the waitlist →",
+            "joinError": "Couldn't join the waitlist — try the door again."
+        },
+        "waitlist": {
+            "joined": "✓ You're on the waitlist",
+            "joinedWithPosition": "✓ You're on the waitlist · #{position}",
+            "holler": "We'll holler when your turn comes up."
+        },
+        "marquee": {
+            "iykyk": "IYKYK",
+            "wordTravels": "WORD TRAVELS",
+            "closedBeta": "CLOSED BETA",
+            "shhhh": "SHHHH",
+            "peanutClub": "PEANUT CLUB"
+        },
+        "whatItDoes": {
+            "titleLine1": "It's a card.",
+            "titleLine2": "That's the whole trick.",
+            "body": "Fund the card however you already move money: bank transfer, exchange withdrawal, or stablecoins (USDC, USDT). Your balance is yours. Non-custodial. No monthly fees. No annual fees.",
+            "statMerchants": "Visa-accepting merchants",
+            "statBalance": "balance",
+            "statCard": "card",
+            "statMiddlemen": "middlemen"
+        },
+        "whoItsFor": {
+            "title": "If you live in more than one country, this is for you.",
+            "body": "We built peanut for people who don't fit. Digital nomads who get bounced by every neobank's verification the moment they cross a border. Expats who pay 4% on every transaction home. Cross-border users who earn in one currency and spend in another."
+        },
+        "howToGetIn": {
+            "title": "How to get in.",
+            "subtitle": "Cred check. Badge skips the queue.",
+            "badgeTitle": "Got a badge.",
+            "badgeBody": "You skip the line. We're whitelisting holders of:",
+            "badgeFooter": "Sign in, we check the badges on your account, you go straight to verification. No peanut account yet? Sign up first — takes a minute.",
+            "noBadgeTitle": "No badge.",
+            "noBadgeBody": "Join the waitlist. We let people in 20 a week.",
+            "noBadgeFooter": "Put your name on the list and we'll holler when your turn comes up."
+        },
+        "notForYou": {
+            "title": "Probably not for you.",
+            "body1": "If your money lives in one country and one currency, your bank card already works. Keep it.",
+            "body2": "If your money lives elsewhere — across borders, in dollars, in self-custody — the peanut card was built for you."
+        },
+        "faq": {
+            "title": "FAQ.",
+            "q1": {
+                "question": "WHAT'S THE PEANUT CARD?",
+                "answer": "A non-custodial card. Top up with stablecoins, then use the card for everyday spending wherever Visa is accepted."
+            },
+            "q2": {
+                "question": "WHERE DOES IT WORK?",
+                "answer": "Accepted wherever Visa is accepted — about 150 million merchants. Online, in-store, ATMs."
+            },
+            "q3": {
+                "question": "IS MY MONEY SAFE?",
+                "answer": "It's yours. Non-custodial — your stablecoins stay in your wallet until the moment you use the card. We don't hold custody. We don't lend it out."
+            },
+            "q4": {
+                "question": "WHAT'S THE $10?",
+                "answer": "A welcome reward. Complete verification + first $100 in card spend → $10 unlocked to your balance. Same deal whether you signed up yourself or got referred. If you referred someone, you also are eligible for $10 when they activate. Subject to eligibility and program terms."
+            },
+            "q5": {
+                "question": "HOW LONG IS THE WAITLIST?",
+                "answer": "We're letting in about 20 people a week during closed beta. Order matters. Badges skip the line entirely."
+            },
+            "q6": {
+                "question": "WHERE CAN I GET THE CARD?",
+                "answer": "We're rolling out to select regions first and adding more as our partners' coverage expands. Eligibility is shown during signup."
+            },
+            "q7": {
+                "question": "ANY FEES?",
+                "answer": "No monthly fees. No annual fees. Standard fees and limits apply per the cardholder terms."
+            },
+            "q8": {
+                "question": "WHY \"SHHHHH\"?",
+                "answer": "We'd rather under-promise and over-deliver to a small group than blast the whole internet on day one. Word travels."
+            }
+        },
+        "ready": {
+            "title": "ready?",
+            "subtitle": "Try the door."
         }
     }
 }
