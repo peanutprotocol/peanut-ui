@@ -19,8 +19,36 @@ const defaultConfettiConfig = {
     gravity: 0.3,
     decay: 0.96,
     startVelocity: 15,
-    disableForReducedMotion: true,
     colors: ['#FFE400', '#FFBD00', '#E89400', '#FFCA6C', '#FDFFB8'],
+}
+
+/*
+ * prefers-reduced-motion asks for less motion, not less feedback.
+ * canvas-confetti's disableForReducedMotion suppresses the burst outright, so
+ * anyone with the OS setting on — common enough on iOS, where it also calms
+ * app-switching animations — got no celebration at all on claiming a reward
+ * and reported the feature as broken.
+ *
+ * Degrade instead of disappearing: a handful of slow particles that settle
+ * near the origin rather than a full-viewport spray. That drops the
+ * large-area movement the preference is actually about while keeping the
+ * moment legible.
+ */
+const REDUCED_MOTION_CONFIG = {
+    spread: 100,
+    ticks: 40,
+    gravity: 0.7,
+    startVelocity: 8,
+}
+
+const REDUCED_MOTION_PARTICLE_RATIO = 0.25
+const REDUCED_MOTION_MIN_PARTICLES = 8
+
+// Read per burst, never cached at module load: the native document outlives
+// any single setting, so a value latched at boot would be days stale by the
+// time the user toggles Reduce Motion.
+function prefersReducedMotion(): boolean {
+    return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
 /*
@@ -81,13 +109,18 @@ const fireStars = (options: ConfettiOptions) => {
         ...otherOptions
     } = options
 
+    const reduced = prefersReducedMotion()
+
     getConfetti()
         .then((fire) =>
             fire({
                 ...defaultConfettiConfig,
                 ...otherOptions,
+                ...(reduced ? REDUCED_MOTION_CONFIG : {}),
                 colors,
-                particleCount,
+                particleCount: reduced
+                    ? Math.max(REDUCED_MOTION_MIN_PARTICLES, Math.round(particleCount * REDUCED_MOTION_PARTICLE_RATIO))
+                    : particleCount,
                 scalar,
                 shapes: ['star' as Shape],
                 origin,
@@ -114,8 +147,10 @@ export const shootDoubleStarConfetti = (options: ConfettiOptions = {}) => {
     const half = Math.round(particleCount / 2)
 
     // Native WebView renderers have a much smaller frame budget than Chrome:
-    // one half-sized burst instead of two.
-    if (isCapacitor()) {
+    // one half-sized burst instead of two. Reduced motion gets one for the same
+    // reason it gets fewer, slower particles — two overlapping sprays are the
+    // part that reads as busy.
+    if (isCapacitor() || prefersReducedMotion()) {
         fireStars({ ...otherOptions, particleCount: half, scalar: 1.8, origin })
         return
     }
