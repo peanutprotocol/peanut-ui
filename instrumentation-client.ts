@@ -2,6 +2,7 @@ import posthog from 'posthog-js'
 import * as Sentry from '@sentry/nextjs'
 import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
+import { withoutBrowserTracing } from '@/utils/sentry-integrations'
 
 // NEXT_PUBLIC_PERF_BARE builds strip all instrumentation to A/B jank against production.
 const PERF_BARE = process.env.NEXT_PUBLIC_PERF_BARE === 'true'
@@ -45,7 +46,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development' && !
             tracesSampleRate: 0,
             beforeSend: beforeSendHandler,
             integrations: (defaults) => [
-                ...defaults.filter((integration) => integration.name !== 'BrowserTracing'),
+                ...withoutBrowserTracing(defaults),
                 Sentry.captureConsoleIntegration({ levels: ['error'] }),
             ],
         })
