@@ -39,6 +39,7 @@ describe('GET /api/exchange-rate — thin wrapper over fetchDisplayRate', () => 
         for (const query of ['from=USD', 'to=EUR', 'from=US%0Ad&to=EUR', 'from=TOOLONG&to=EUR']) {
             const response = await get(query)
             expect(response.status).toBe(400)
+            expect(response.headers.get('Cache-Control')).toBe('no-store')
         }
         expect(mockFetchDisplayRate).not.toHaveBeenCalled()
     })
@@ -49,6 +50,7 @@ describe('GET /api/exchange-rate — thin wrapper over fetchDisplayRate', () => 
         const response = await get('from=USD&to=EUR')
         expect(response.status).toBe(500)
         expect(await response.json()).toEqual({ error: 'Failed to fetch exchange rates' })
+        expect(response.headers.get('Cache-Control')).toBe('no-store')
         expect(errorSpy).toHaveBeenCalledTimes(1)
         errorSpy.mockRestore()
     })
@@ -61,6 +63,7 @@ describe('GET /api/exchange-rate — thin wrapper over fetchDisplayRate', () => 
 
         expect(response.status).toBe(404)
         expect(await response.json()).toEqual({ error: 'Exchange rate unavailable' })
+        expect(response.headers.get('Cache-Control')).toBe('no-store')
         expect(errorSpy).not.toHaveBeenCalled()
         errorSpy.mockRestore()
     })

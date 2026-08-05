@@ -77,6 +77,7 @@ export async function fetchDisplayRate(fromCurrency: string, toCurrency: string)
         method: 'GET',
         includeAuth: false,
         credentials: 'omit',
+        timeoutMs: 10_000,
     })
     if (!response.ok) {
         throw new FxApiError(response.status, from, to)

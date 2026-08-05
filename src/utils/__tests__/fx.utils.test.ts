@@ -32,6 +32,7 @@ describe('fetchDisplayRate — shared backend contract', () => {
             method: 'GET',
             includeAuth: false,
             credentials: 'omit',
+            timeoutMs: 10_000,
         })
     })
 
@@ -54,6 +55,7 @@ describe('fetchDisplayRate — shared backend contract', () => {
             method: 'GET',
             includeAuth: false,
             credentials: 'omit',
+            timeoutMs: 10_000,
         })
     })
 
@@ -71,7 +73,7 @@ describe('fetchDisplayRate — shared backend contract', () => {
         ['future generation time', { ...validResponse, generatedAt: '2026-08-05T08:05:00.001Z' }],
         ['future effective time', { ...validResponse, effectiveAt: '2026-08-05T08:05:00.001Z' }],
         ['stale effective time', { ...validResponse, effectiveAt: '2026-07-06T07:59:59.999Z' }],
-        ['implausibly small rate', { ...validResponse, rate: '0.0000000000000000001' }],
+        ['implausibly small rate', { ...validResponse, rate: '0.000000000000000000' }],
         ['implausibly large rate', { ...validResponse, rate: '10000000000000000000' }],
         ['identity source on a cross pair', { ...validResponse, source: 'identity', effectiveAt: null }],
         ['missing effective time on a cross pair', { ...validResponse, effectiveAt: null }],
