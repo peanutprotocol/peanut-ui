@@ -13,7 +13,7 @@ import { LocaleSwitcher } from '@/components/Marketing/LocaleSwitcher'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
-const NAV_LINK = 'text-xl font-bold text-white'
+const NAV_LINK = 'text-sm font-medium text-white'
 
 const Footer = ({
     showSiteDirectory = true,
@@ -26,8 +26,10 @@ const Footer = ({
 
     return (
         <>
-            {/* Two rows rather than one: the nav labels change width per locale,
-                so a single row overflowed once the copy was translated. */}
+            {/* Nav sits on its own slim strip rather than sharing the brand row:
+                the nav labels change width per locale, so a single row overflowed
+                once the copy was translated. Small text keeps the strip reading
+                as a utility bar instead of a second header. */}
             <footer className="bg-black px-8 py-8 md:px-20">
                 <div className="flex flex-wrap items-center justify-between gap-6">
                     <section className="flex flex-col gap-1">
@@ -72,7 +74,7 @@ const Footer = ({
                     </div>
                 </div>
 
-                <nav className="mt-8 flex flex-wrap items-center justify-center gap-6">
+                <nav className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 border-y border-white/15 py-3">
                     <Link className={NAV_LINK} href="/support">
                         {i18n.footerSupport}
                     </Link>
@@ -100,8 +102,8 @@ const Footer = ({
                         {i18n.footerJobs}
                     </a>
 
-                    {/* Reads as the next nav item, set off by double the nav gap. */}
-                    <div className="flex w-full items-center justify-center gap-4 md:ml-12 md:w-auto">
+                    {/* Reads as the next nav item, set off by extra gap. */}
+                    <div className="flex items-center gap-4 md:ml-4">
                         <a
                             href="https://t.me/clubpeanut"
                             target="_blank"
