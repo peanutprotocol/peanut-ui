@@ -21,12 +21,30 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development' && !
         person_profiles: 'identified_only',
         capture_pageview: true,
         capture_pageleave: true,
-        // autocapture walks the DOM ancestor chain on every tap and rrweb serializes
-        // the DOM on every mutation — both cost frames inside the in-app WebView
-        // renderer, so native builds keep only explicit posthog.capture events.
-        // Web/PWA (Chrome's own renderer) keeps both.
+        // autocapture walks the DOM ancestor chain on every tap, which costs frames
+        // in the in-app WebView renderer for data that 220+ explicit
+        // posthog.capture calls already cover. Native keeps the explicit events only.
         autocapture: !isNativeBuild,
-        disable_session_recording: isNativeBuild,
+        /*
+         * Session recording is ON everywhere, native included, as a deliberate
+         * trial from 1.0.48.
+         *
+         * It was disabled on native in 1.0.45 on the theory that rrweb's
+         * per-mutation DOM serialization was the jank users reported. That was
+         * never isolated: 1.0.45 also made pull-to-refresh listeners passive
+         * (the whole app's touch handling), dropped Sentry BrowserTracing and
+         * the data-sentry-* DOM annotations, and moved confetti off the main
+         * thread — so the improvement has at least four candidate causes and
+         * replay may not be the main one.
+         *
+         * Since then the amplifier that made rrweb worst on native is gone:
+         * useStaleDeploymentReload now bounds the document to 12h, so the node
+         * mirror and event buffers no longer grow across a document that lived
+         * for days. If this build does regress, full_snapshot_interval_millis
+         * (default 5 minutes of full-DOM re-serialization) is the first knob to
+         * reach for, before switching recording off again.
+         */
+        disable_session_recording: false,
     })
 
     // The web build inits Sentry via sentry.client.config.ts (injected by
