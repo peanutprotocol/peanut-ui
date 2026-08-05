@@ -31,7 +31,11 @@ const Footer = ({
             <footer className="bg-black px-8 py-8 md:px-20">
                 <div className="flex flex-wrap items-center justify-between gap-6">
                     <section className="flex flex-col gap-1">
-                        <Link href={locale === DEFAULT_LOCALE ? '/' : `/${locale}`} className="flex">
+                        {/* /lp, not /: the proxy bounces authenticated users from / into the
+                            app at /home, and the logo must keep them on the marketing site
+                            (see src/app/lp/page.tsx). Localized landings aren't in the
+                            proxy matcher, so /{locale} is already auth-proof. */}
+                        <Link href={locale === DEFAULT_LOCALE ? '/lp' : `/${locale}`} className="flex">
                             <Image src={PEANUT_LOGO} alt="Peanut Logo" width={110} height={40} />
                         </Link>
                         <p className="text-xs text-white">

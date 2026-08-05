@@ -4,13 +4,23 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Cookies from 'js-cookie'
-import { getTranslations } from '@/i18n'
 import { LOCALE_COOKIE, toAppLocale, toMarketingLocale } from '@/i18n/localeBridge'
 import { persistLocale } from '@/i18n/app/locale-store'
 import { type Locale } from '@/i18n/types'
 import { localeHref } from './LocaleSwitcher'
 
 const DISMISS_KEY = 'locale-suggestion-dismissed'
+
+// Inlined rather than read from the catalogs: this is a client component, and
+// importing '@/i18n' would ship every locale's full catalog in the client
+// bundle of each landing page for just these three strings. Keep in sync with
+// the localeSuggestion* keys in src/i18n/{locale}.json.
+const STRINGS: Record<Locale, { text: string; cta: string; dismiss: string }> = {
+    en: { text: 'If you prefer to see this page in English,', cta: 'click here!', dismiss: 'Dismiss' },
+    'es-419': { text: 'Si prefieres ver esta página en español,', cta: '¡haz clic aquí!', dismiss: 'Descartar' },
+    'es-ar': { text: 'Si preferís ver esta página en español,', cta: '¡hacé clic acá!', dismiss: 'Descartar' },
+    'pt-br': { text: 'Se você prefere ver esta página em português,', cta: 'clique aqui!', dismiss: 'Dispensar' },
+}
 
 // Banner is switched off: first-visit language now comes from the proxy's
 // Accept-Language redirect (crawlers exempt), and the footer switcher covers
@@ -50,7 +60,7 @@ export function LocaleSuggestion({ locale }: { locale: Locale }) {
     // page instead of the top. An empty div collapses to zero height.
     if (!suggested) return <div />
 
-    const i18n = getTranslations(suggested)
+    const i18n = STRINGS[suggested]
 
     const dismiss = () => {
         try {
@@ -69,20 +79,20 @@ export function LocaleSuggestion({ locale }: { locale: Locale }) {
             className="relative border-b border-n-1 bg-primary-1/20 px-10 py-2 text-center text-sm text-n-1"
         >
             <span>
-                {i18n.localeSuggestionText}{' '}
+                {i18n.text}{' '}
                 <Link
                     href={localeHref(pathname, suggested)}
                     hrefLang={suggested}
                     onClick={() => persistLocale(toAppLocale(suggested))}
                     className="font-bold underline underline-offset-2"
                 >
-                    {i18n.localeSuggestionCta}
+                    {i18n.cta}
                 </Link>
             </span>
             <button
                 type="button"
                 onClick={dismiss}
-                aria-label={i18n.localeSuggestionDismiss}
+                aria-label={i18n.dismiss}
                 className="absolute right-3 top-1/2 -translate-y-1/2 px-1 leading-none opacity-60 hover:opacity-100"
             >
                 <span aria-hidden>×</span>

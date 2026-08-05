@@ -128,7 +128,7 @@ function preferredLocale(header: string | null): Locale {
             const q = params.map((p) => p.trim()).find((p) => p.startsWith('q='))
             return { tag: tag.trim().toLowerCase(), quality: q ? Number.parseFloat(q.slice(2)) : 1 }
         })
-        .filter((range) => range.tag && Number.isFinite(range.quality))
+        .filter((range) => range.tag && Number.isFinite(range.quality) && range.quality > 0)
         .sort((a, b) => b.quality - a.quality)
     for (const { tag } of ranges) {
         if (tag === 'en' || tag.startsWith('en-') || tag === '*') return DEFAULT_LOCALE

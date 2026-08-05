@@ -26,6 +26,7 @@ const ITEMS_TO_DISABLE = [
     // web-only routes that conflict with static export
     { path: '[locale]', type: 'dir' }, // marketing/blog/seo pages
     { path: 'es-419', type: 'dir' }, // localized landing (web-only)
+    { path: 'es-ar', type: 'dir' }, // localized landing (web-only)
     { path: 'pt-br', type: 'dir' }, // localized landing (web-only)
     { path: 'quests/[questId]', type: 'dir' }, // quest detail page (dynamicParams issues)
     { path: 'quests/explore', type: 'dir' }, // quest explore page
