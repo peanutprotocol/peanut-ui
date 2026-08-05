@@ -29,6 +29,7 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
 }) => {
     const t = useTranslations('claim')
     const tNav = useTranslations('navigation')
+    const tCommon = useTranslations('common')
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const { price, isLoading } = useCurrency(currency)
@@ -49,7 +50,7 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
         {
             key: 'fee',
             label: t('fee'),
-            value: t('manteca.sponsoredByPeanut'),
+            value: tCommon('sponsoredByPeanut'),
             hideBottomBorder: true,
         },
     ]

@@ -112,19 +112,19 @@ export function SemanticRequestConfirmView() {
     const networkFee = useMemo<string | React.ReactNode>(() => {
         if (isFeeEstimationError) return '-'
         if (calculatedGasCost === undefined) {
-            return t('confirm.sponsoredByPeanut')
+            return tCommon('sponsoredByPeanut')
         }
         if (calculatedGasCost < 0.01) {
-            return t('confirm.sponsoredByPeanut')
+            return tCommon('sponsoredByPeanut')
         }
         return (
             <>
                 <span className="line-through">$ {calculatedGasCost.toFixed(2)}</span>
                 {' - '}
-                <span className="font-medium text-gray-500">{t('confirm.sponsoredByPeanut')}</span>
+                <span className="font-medium text-gray-500">{tCommon('sponsoredByPeanut')}</span>
             </>
         )
-    }, [calculatedGasCost, isFeeEstimationError, t])
+    }, [calculatedGasCost, isFeeEstimationError, tCommon])
 
     // Receive amount from Rhino preview. Same-token bridges are 1:1 minus flat
     // fee (no slippage) — the preview value is deterministic, not a "minimum".
@@ -249,9 +249,7 @@ export function SemanticRequestConfirmView() {
                         hideBottomBorder={isCardPioneer}
                     />
 
-                    {!isCardPioneer && (
-                        <PaymentInfoRow hideBottomBorder label={t('confirm.peanutFee')} value="$ 0.00" />
-                    )}
+                    {!isCardPioneer && <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$ 0.00" />}
                 </Card>
 
                 {/* buttons and error */}

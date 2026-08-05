@@ -20,6 +20,29 @@ function leafPaths(obj: Record<string, unknown>, prefix = ''): string[] {
     })
 }
 
+function leafValue(catalog: Record<string, unknown>, path: string): string {
+    return path.split('.').reduce<unknown>((node, key) => (node as Record<string, unknown>)[key], catalog) as string
+}
+
+/**
+ * English strings that legitimately carry more than one translation. Spanish and
+ * Portuguese make distinctions English collapses, so these keys must NOT be merged
+ * into one — doing so ships the wrong part of speech or the wrong gender.
+ */
+const CONTEXT_DIVERGENT: Record<string, string> = {
+    Send: 'nav/action verb vs. transaction-type noun (Enviar / Envío)',
+    Request: 'nav/action verb vs. transaction-type noun (Solicitar / Solicitud)',
+    Add: 'nav verb vs. transaction-type noun (Agregar / Ingreso)',
+    Withdraw: 'nav verb vs. transaction-type noun (Retirar / Retiro)',
+    Pay: 'nav/action verb vs. transaction-type noun (Pagar / Pago)',
+    Claim: 'nav verb vs. transaction-type noun (Reclamar / Reclamo)',
+    Receive: 'action verb vs. transaction-type noun (Recibir / Recepción)',
+    Join: 'standalone CTA vs. sentence fragment completed by a team name',
+    Processing: 'generic in-flight status vs. KYC under-review status (En proceso)',
+    Failed: 'generic status vs. KYC status agreeing with "verificación" (Fallido / Fallida)',
+    'Settings → Passwords → Search "Peanut"': 'iOS and Android name the settings app differently',
+}
+
 describe('deepMerge fallback', () => {
     it('fills keys missing from a locale catalog with English', async () => {
         const partial = { common: { cancel: 'Cancelar' } }
@@ -53,6 +76,37 @@ describe('catalog key parity', () => {
         const stray = leafPaths(CATALOGS[locale]).filter((path) => !enPaths.includes(path))
         expect(stray).toEqual([])
     })
+})
+
+describe('duplicate-value drift', () => {
+    const groups = new Map<string, string[]>()
+    for (const path of leafPaths(en)) {
+        const value = leafValue(en, path)
+        groups.set(value, [...(groups.get(value) ?? []), path])
+    }
+    const duplicated = [...groups.entries()].filter(
+        ([value, paths]) => paths.length > 1 && !(value in CONTEXT_DIVERGENT)
+    )
+
+    // Resolved catalogs, not raw files — es-AR is a delta, so a partial override
+    // of a duplicate group only shows up once es-419 has been merged underneath.
+    it.each(APP_LOCALES.filter((locale) => locale !== 'en'))(
+        'keys sharing an English string share the same %s translation',
+        async (locale) => {
+            const messages = (await loadMessages(locale)) as unknown as Record<string, unknown>
+            const drifted = duplicated
+                .map(([value, paths]) => ({
+                    value,
+                    renderings: [...new Set(paths.map((path) => leafValue(messages, path)))],
+                    paths,
+                }))
+                .filter(({ renderings }) => renderings.length > 1)
+
+            // Either collapse the keys onto one canonical key, or — if the strings
+            // genuinely differ by context — add the English to CONTEXT_DIVERGENT.
+            expect(drifted).toEqual([])
+        }
+    )
 })
 
 describe('ICU message compilation', () => {
