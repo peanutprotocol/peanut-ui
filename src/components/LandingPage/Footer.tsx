@@ -13,7 +13,7 @@ import { LocaleSwitcher } from '@/components/Marketing/LocaleSwitcher'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
-const NAV_LINK = 'text-sm font-medium text-white'
+const NAV_LINK = 'text-xl font-bold text-white'
 
 const Footer = ({
     showSiteDirectory = true,
@@ -26,10 +26,9 @@ const Footer = ({
 
     return (
         <>
-            {/* Nav sits on its own slim strip rather than sharing the brand row:
-                the nav labels change width per locale, so a single row overflowed
-                once the copy was translated. Small text keeps the strip reading
-                as a utility bar instead of a second header. */}
+            {/* Nav on its own row rather than the brand row: the nav labels
+                change width per locale, so a single row overflowed once the
+                copy was translated. */}
             <footer className="bg-black px-8 py-8 md:px-20">
                 <div className="flex flex-wrap items-center justify-between gap-6">
                     <section className="flex flex-col gap-1">
@@ -74,36 +73,36 @@ const Footer = ({
                     </div>
                 </div>
 
-                <nav className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 border-y border-white/15 py-3">
-                    <Link className={NAV_LINK} href="/support">
-                        {i18n.footerSupport}
-                    </Link>
-                    <Link className={NAV_LINK} href={`/${locale}/content`}>
-                        {i18n.content}
-                    </Link>
-                    <Link className={NAV_LINK} href={`/${locale}/help`}>
-                        {i18n.footerDocs}
-                    </Link>
-                    <Link className={NAV_LINK} href={`/${locale}/terms`}>
-                        {i18n.footerTerms}
-                    </Link>
-                    <Link className={NAV_LINK} href={`/${locale}/privacy`}>
-                        {i18n.footerPrivacy}
-                    </Link>
-                    <Link className={NAV_LINK} href={`/${locale}/help/security-disclosure`}>
-                        {i18n.footerSecurity}
-                    </Link>
-                    <a
-                        className={NAV_LINK}
-                        href="https://peanutprotocol.notion.site/Career-b351de56d92e405e962f0027b3a60f52"
-                        rel="noopener noreferrer"
-                        target="_blank"
-                    >
-                        {i18n.footerJobs}
-                    </a>
-
-                    {/* Reads as the next nav item, set off by extra gap. */}
-                    <div className="flex items-center gap-4 md:ml-4">
+                <nav className="mt-8 flex flex-wrap items-center justify-between gap-6">
+                    <div className="flex flex-wrap items-center gap-6">
+                        <Link className={NAV_LINK} href="/support">
+                            {i18n.footerSupport}
+                        </Link>
+                        <Link className={NAV_LINK} href={`/${locale}/content`}>
+                            {i18n.content}
+                        </Link>
+                        <Link className={NAV_LINK} href={`/${locale}/help`}>
+                            {i18n.footerDocs}
+                        </Link>
+                        <Link className={NAV_LINK} href={`/${locale}/terms`}>
+                            {i18n.footerTerms}
+                        </Link>
+                        <Link className={NAV_LINK} href={`/${locale}/privacy`}>
+                            {i18n.footerPrivacy}
+                        </Link>
+                        <Link className={NAV_LINK} href={`/${locale}/help/security-disclosure`}>
+                            {i18n.footerSecurity}
+                        </Link>
+                        <a
+                            className={NAV_LINK}
+                            href="https://peanutprotocol.notion.site/Career-b351de56d92e405e962f0027b3a60f52"
+                            rel="noopener noreferrer"
+                            target="_blank"
+                        >
+                            {i18n.footerJobs}
+                        </a>
+                    </div>
+                    <div className="flex items-center gap-4">
                         <a
                             href="https://t.me/clubpeanut"
                             target="_blank"
