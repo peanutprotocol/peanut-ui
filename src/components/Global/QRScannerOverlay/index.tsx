@@ -156,9 +156,8 @@ function UnrecognizedContent({ setIsModalOpen }: ModalContentProps) {
 function PixRecurringContent({ setIsModalOpen }: ModalContentProps) {
     return (
         <div className="flex flex-col justify-center p-6">
-            <span className="text-sm">This QR code is for a recurring payment (PIX Automático).</span>
             <span className="text-sm">
-                Peanut doesn't support recurring PIX payments — please ask for a regular PIX QR code instead.
+                Oooops... This QR code is for a recurring payment (PIX Automático) which we don't support at the moment
             </span>
             <Button onClick={() => setIsModalOpen(false)} className="mt-4 w-full" shadowType="primary" shadowSize="4">
                 Okay
