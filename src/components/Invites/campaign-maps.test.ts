@@ -59,6 +59,17 @@ describe('classifyBareCampaigns', () => {
         })
     })
 
+    // Regression: both country-launch cohorts ship BARE links with no inviter.
+    // Mapping them in UTM_CAMPAIGN_TO_BADGE_MAP alone is not enough — without a
+    // bare-campaign registration the link dead-ends on "Invalid Invite Code".
+    it.each(['naija', 'terere'])('country-launch campaign "%s" is a bare claimable skip', (c) => {
+        expect(classifyBareCampaigns([c], undefined)).toEqual({
+            isBareClaimCampaign: true,
+            isWaitlistSkip: true,
+        })
+        expect(classifyBareCampaigns([c.toUpperCase()], undefined).isBareClaimCampaign).toBe(true)
+    })
+
     it('only waitlist-skip campaigns promise a card-waitlist skip', () => {
         for (const c of BARE_VANITY_CAMPAIGNS) {
             expect(classifyBareCampaigns([c], undefined).isWaitlistSkip).toBe(false)
