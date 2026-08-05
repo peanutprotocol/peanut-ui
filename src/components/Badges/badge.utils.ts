@@ -248,6 +248,11 @@ export const BADGES: Record<string, BadgeMeta> = {
         description: 'Nita sent you. You skipped the card line on her word.',
         displayName: "Nita's Recommendation",
     },
+    NAIJA: {
+        path: '/badges/naija.svg',
+        description: 'Naija no dey carry last. You were here first.',
+        displayName: '9JA',
+    },
 }
 
 /** All known badge codes — derived from BADGES so we never duplicate the
