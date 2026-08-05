@@ -6,10 +6,15 @@ import type { paths } from '@/types/api.generated'
 // why it lives apart from utils/currency.ts, which pulls in useCurrency.
 
 type FxRateResponse = paths['/fx/rate']['get']['responses'][200]['content']['application/json']
-const FX_SOURCES = new Set<FxRateResponse['source']>(['identity', 'bridge', 'manteca', 'reference', 'mixed'])
+type FxSelection = FxRateResponse['selection']
+type FxSource = FxRateResponse['fromSource']
 const PLAIN_DECIMAL = /^(?:0|[1-9]\d*)(?:\.\d{1,18})?$/
-const MAX_GENERATED_AGE_MS = 26 * 60 * 60 * 1000
-const MAX_EFFECTIVE_AGE_MS = 30 * 24 * 60 * 60 * 1000
+// The API market, its shared HTTP cache, and the legacy compatibility route
+// each hold a successful response for at most five minutes. Fifteen minutes
+// bounds the full chain without accepting an old replay as current.
+const MAX_GENERATED_AGE_MS = 15 * 60 * 1000
+const MAX_PROVIDER_EFFECTIVE_AGE_MS = 24 * 60 * 60 * 1000
+const MAX_REFERENCE_EFFECTIVE_AGE_MS = 30 * 24 * 60 * 60 * 1000
 const MAX_FUTURE_CLOCK_SKEW_MS = 5 * 60 * 1000
 // The backend constrains each USD leg to [1e-9, 1e9]. A cross-rate is a
 // quotient of two legs, so its corresponding safe envelope is [1e-18, 1e18].
@@ -20,7 +25,8 @@ export class FxApiError extends Error {
     constructor(
         readonly status: number,
         from: string,
-        to: string
+        to: string,
+        readonly retryAfter: string | null = null
     ) {
         super(`FX API returned ${status} for ${from}→${to}`)
         this.name = 'FxApiError'
@@ -33,13 +39,31 @@ function timestamp(value: unknown): number | null {
     return Number.isFinite(parsed) && new Date(parsed).toISOString() === value ? parsed : null
 }
 
+function isFxSelection(value: unknown): value is FxSelection {
+    return value === 'identity' || value === 'provider_pair' || value === 'reference_pair'
+}
+
+function isFxSource(value: unknown): value is FxSource {
+    return value === 'identity' || value === 'bridge' || value === 'manteca' || value === 'reference'
+}
+
+function isProviderSource(value: FxSource): value is 'bridge' | 'manteca' {
+    return value === 'bridge' || value === 'manteca'
+}
+
+function isSelectionSource(currency: string, source: FxSource, selection: Exclude<FxSelection, 'identity'>): boolean {
+    if (currency === 'USD') return source === 'identity'
+    if (selection === 'provider_pair') return isProviderSource(source)
+    return source === 'reference'
+}
+
 function parseFxRateResponse(value: unknown, from: string, to: string): number | null {
     if (!value || typeof value !== 'object') return null
 
     const data = value as Partial<FxRateResponse>
     if (data.from !== from || data.to !== to) return null
     if (data.basis !== 'display_sell' || data.indicative !== true) return null
-    if (typeof data.source !== 'string' || !FX_SOURCES.has(data.source)) return null
+    if (!isFxSelection(data.selection) || !isFxSource(data.fromSource) || !isFxSource(data.toSource)) return null
     if (typeof data.rate !== 'string' || !PLAIN_DECIMAL.test(data.rate)) return null
 
     const generatedAt = timestamp(data.generatedAt)
@@ -47,15 +71,29 @@ function parseFxRateResponse(value: unknown, from: string, to: string): number |
     const generatedAge = Date.now() - generatedAt
     if (generatedAge > MAX_GENERATED_AGE_MS || generatedAge < -MAX_FUTURE_CLOCK_SKEW_MS) return null
 
-    const isIdentity = from === to
-    if (isIdentity) {
-        if (data.rate !== '1' || data.source !== 'identity' || data.effectiveAt !== null) return null
-    } else {
-        if (data.source === 'identity' || data.effectiveAt === null) return null
-        const effectiveAt = timestamp(data.effectiveAt)
-        if (effectiveAt === null) return null
-        const effectiveAge = Date.now() - effectiveAt
-        if (effectiveAge > MAX_EFFECTIVE_AGE_MS || effectiveAge < -MAX_FUTURE_CLOCK_SKEW_MS) return null
+    // Identity is handled locally before the request. Every backend response
+    // consumed here must therefore be one complete non-identity domain.
+    if (data.selection === 'identity' || data.effectiveAt === null) return null
+    if (
+        !isSelectionSource(from, data.fromSource, data.selection) ||
+        !isSelectionSource(to, data.toSource, data.selection)
+    ) {
+        return null
+    }
+
+    const effectiveAt = timestamp(data.effectiveAt)
+    if (effectiveAt === null) return null
+    const maxObservationAge =
+        data.selection === 'provider_pair' ? MAX_PROVIDER_EFFECTIVE_AGE_MS : MAX_REFERENCE_EFFECTIVE_AGE_MS
+    const observationAgeAtGeneration = generatedAt - effectiveAt
+    const effectiveAgeNow = Date.now() - effectiveAt
+    if (
+        observationAgeAtGeneration > maxObservationAge ||
+        observationAgeAtGeneration < -MAX_FUTURE_CLOCK_SKEW_MS ||
+        effectiveAgeNow > maxObservationAge + MAX_GENERATED_AGE_MS ||
+        effectiveAgeNow < -MAX_FUTURE_CLOCK_SKEW_MS
+    ) {
+        return null
     }
 
     const rate = Number(data.rate)
@@ -71,6 +109,9 @@ function parseFxRateResponse(value: unknown, from: string, to: string): number |
 export async function fetchDisplayRate(fromCurrency: string, toCurrency: string): Promise<number> {
     const from = fromCurrency.toUpperCase()
     const to = toCurrency.toUpperCase()
+    // Exact mathematical identity does not depend on network availability and
+    // was the established UI behavior before the shared API existed.
+    if (from === to) return 1
 
     const query = new URLSearchParams({ from, to })
     const response = await apiFetch(`/fx/rate?${query.toString()}`, {
@@ -80,7 +121,7 @@ export async function fetchDisplayRate(fromCurrency: string, toCurrency: string)
         timeoutMs: 10_000,
     })
     if (!response.ok) {
-        throw new FxApiError(response.status, from, to)
+        throw new FxApiError(response.status, from, to, response.headers?.get?.('Retry-After') ?? null)
     }
 
     let data: unknown

@@ -80,6 +80,16 @@ describe('fetchWithSentry — expected-response suppression', () => {
         expect(warnSpy).not.toHaveBeenCalled()
     })
 
+    it('does not report an expected public FX rate limit response', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(429, { error: 'RATE_LIMITED' }))
+
+        const res = await fetchWithSentry('https://api.peanut.me/fx/rate?from=PLN&to=EUR', { method: 'GET' })
+
+        expect(res.status).toBe(429)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+        expect(warnSpy).not.toHaveBeenCalled()
+    })
+
     it('still reports 400s from endpoints without a skip rule', async () => {
         global.fetch = jest.fn().mockResolvedValue(mockResponse(400, { error: 'bad request' }))
 

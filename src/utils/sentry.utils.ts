@@ -18,7 +18,7 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = 
     { pattern: /\/invites\/validate/, statuses: [400] },
     // Public FX pair misses and validation failures are expected user/input
     // outcomes, not backend incidents.
-    { pattern: /\/fx\/rate(?:\?|$)/, statuses: [400, 404] },
+    { pattern: /\/fx\/rate(?:\?|$)/, statuses: [400, 404, 429] },
     // qr-payment/init: 400 = open QR awaiting merchant amount; 422 = a QR the
     // provider can't decode (bad/expired/unsupported) — both are user-input
     // outcomes shown to the user, not server bugs. (BE peanut-api-ts #1041.)

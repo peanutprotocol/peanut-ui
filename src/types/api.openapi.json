@@ -602,6 +602,10 @@
 																					{
 																						"type": "string",
 																						"enum": ["provide-email"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["bridge-hosted"]
 																					}
 																				]
 																			},
@@ -667,6 +671,10 @@
 																	{
 																		"type": "string",
 																		"enum": ["provide-email"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["bridge-hosted"]
 																	}
 																]
 															},
@@ -1636,6 +1644,10 @@
 																					{
 																						"type": "string",
 																						"enum": ["provide-email"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["bridge-hosted"]
 																					}
 																				]
 																			},
@@ -1701,6 +1713,10 @@
 																	{
 																		"type": "string",
 																		"enum": ["provide-email"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["bridge-hosted"]
 																	}
 																]
 															},
@@ -1810,9 +1826,11 @@
 										},
 										"externalActionId": {
 											"type": "string"
+										},
+										"verificationUrl": {
+											"type": "string"
 										}
-									},
-									"required": ["sumsubAccessToken", "levelName"]
+									}
 								}
 							}
 						}
@@ -1824,7 +1842,23 @@
 			"get": {
 				"responses": {
 					"200": {
-						"description": "Default Response"
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"tosLink": {
+											"type": "string"
+										},
+										"endorsement": {
+											"type": "string"
+										}
+									},
+									"required": ["tosLink", "endorsement"]
+								}
+							}
+						}
 					}
 				}
 			}
@@ -12114,6 +12148,14 @@
 											{
 												"type": "string",
 												"enum": ["NITA"]
+											},
+											{
+												"type": "string",
+												"enum": ["NAIJA"]
+											},
+											{
+												"type": "string",
+												"enum": ["TERERE"]
 											}
 										]
 									},
@@ -14397,7 +14439,7 @@
 		},
 		"/fx/rates": {
 			"get": {
-				"description": "Public, indicative display-sell FX snapshot. unitsPerBase is quote-currency units per one base unit.",
+				"description": "Public, indicative display-sell FX rates resolved relative to one base. unitsPerBase is quote-currency units per one base unit.",
 				"parameters": [
 					{
 						"schema": {
@@ -14420,8 +14462,8 @@
 									"type": "object",
 									"properties": {
 										"base": {
-											"type": "string",
-											"enum": ["USD"]
+											"pattern": "^[A-Z]{3,4}$",
+											"type": "string"
 										},
 										"basis": {
 											"type": "string",
@@ -14451,7 +14493,43 @@
 														"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
 														"type": "string"
 													},
-													"source": {
+													"selection": {
+														"anyOf": [
+															{
+																"type": "string",
+																"enum": ["identity"]
+															},
+															{
+																"type": "string",
+																"enum": ["provider_pair"]
+															},
+															{
+																"type": "string",
+																"enum": ["reference_pair"]
+															}
+														]
+													},
+													"baseSource": {
+														"anyOf": [
+															{
+																"type": "string",
+																"enum": ["identity"]
+															},
+															{
+																"type": "string",
+																"enum": ["bridge"]
+															},
+															{
+																"type": "string",
+																"enum": ["manteca"]
+															},
+															{
+																"type": "string",
+																"enum": ["reference"]
+															}
+														]
+													},
+													"quoteSource": {
 														"anyOf": [
 															{
 																"type": "string",
@@ -14483,7 +14561,14 @@
 														]
 													}
 												},
-												"required": ["code", "unitsPerBase", "source", "effectiveAt"]
+												"required": [
+													"code",
+													"unitsPerBase",
+													"selection",
+													"baseSource",
+													"quoteSource",
+													"effectiveAt"
+												]
 											}
 										}
 									},
@@ -14508,6 +14593,43 @@
 										}
 									},
 									"required": ["error", "message"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["error", "message"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
 								}
 							}
 						}
@@ -14589,31 +14711,59 @@
 											"type": "boolean",
 											"enum": [true]
 										},
-										"source": {
+										"selection": {
 											"anyOf": [
 												{
-													"anyOf": [
-														{
-															"type": "string",
-															"enum": ["identity"]
-														},
-														{
-															"type": "string",
-															"enum": ["bridge"]
-														},
-														{
-															"type": "string",
-															"enum": ["manteca"]
-														},
-														{
-															"type": "string",
-															"enum": ["reference"]
-														}
-													]
+													"type": "string",
+													"enum": ["identity"]
 												},
 												{
 													"type": "string",
-													"enum": ["mixed"]
+													"enum": ["provider_pair"]
+												},
+												{
+													"type": "string",
+													"enum": ["reference_pair"]
+												}
+											]
+										},
+										"fromSource": {
+											"anyOf": [
+												{
+													"type": "string",
+													"enum": ["identity"]
+												},
+												{
+													"type": "string",
+													"enum": ["bridge"]
+												},
+												{
+													"type": "string",
+													"enum": ["manteca"]
+												},
+												{
+													"type": "string",
+													"enum": ["reference"]
+												}
+											]
+										},
+										"toSource": {
+											"anyOf": [
+												{
+													"type": "string",
+													"enum": ["identity"]
+												},
+												{
+													"type": "string",
+													"enum": ["bridge"]
+												},
+												{
+													"type": "string",
+													"enum": ["manteca"]
+												},
+												{
+													"type": "string",
+													"enum": ["reference"]
 												}
 											]
 										},
@@ -14639,7 +14789,9 @@
 										"rate",
 										"basis",
 										"indicative",
-										"source",
+										"selection",
+										"fromSource",
+										"toSource",
 										"effectiveAt",
 										"generatedAt"
 									]
@@ -14683,6 +14835,23 @@
 										}
 									},
 									"required": ["error", "message"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
 								}
 							}
 						}

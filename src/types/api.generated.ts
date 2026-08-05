@@ -439,7 +439,7 @@ export interface paths {
                                         };
                                         nextAction?: {
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted";
                                             purpose: string;
                                             levelKey?: string;
                                             tosUrl?: string;
@@ -450,7 +450,7 @@ export interface paths {
                                 }[];
                                 nextActions: {
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted";
                                     purpose: string;
                                     levelKey?: string;
                                     tosUrl?: string;
@@ -1152,7 +1152,7 @@ export interface paths {
                                         };
                                         nextAction?: {
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted";
                                             purpose: string;
                                             levelKey?: string;
                                             tosUrl?: string;
@@ -1163,7 +1163,7 @@ export interface paths {
                                 }[];
                                 nextActions: {
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted";
                                     purpose: string;
                                     levelKey?: string;
                                     tosUrl?: string;
@@ -1224,9 +1224,10 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            sumsubAccessToken: string;
-                            levelName: string;
+                            sumsubAccessToken?: string;
+                            levelName?: string;
                             externalActionId?: string;
+                            verificationUrl?: string;
                         };
                     };
                 };
@@ -1259,7 +1260,12 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            tosLink: string;
+                            endorsement: string;
+                        };
+                    };
                 };
             };
         };
@@ -9010,7 +9016,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         userId: string;
-                        code: "BETA_TESTER" | "DEVCONNECT_BA_2025" | "PRODUCT_HUNT" | "OG_2025_10_12" | "SEEDLING_DEVCONNECT_BA_2025" | "ARBIVERSE_DEVCONNECT_BA_2025" | "CARD_PIONEER" | "FOUNDER_HOUSE" | "BUG_WHISPERER" | "SHHHHH" | "NOT_SO_SHHHH" | "CARD_FIRST_SWIPE" | "CARD_SPENT_1K" | "CARD_ALPHA" | "TOKEN_NATION_SP_2026" | "ETHFLORIPA_HUB" | "IRL_NOMADS" | "EVENT_ALUMNI" | "TOUCHED_GRASS" | "OFFRAMP_USER" | "PSYOPS_DIVISION" | "WAITLIST_SKIP" | "FESTA_JUNINA_2026" | "MANICERO" | "NITA";
+                        code: "BETA_TESTER" | "DEVCONNECT_BA_2025" | "PRODUCT_HUNT" | "OG_2025_10_12" | "SEEDLING_DEVCONNECT_BA_2025" | "ARBIVERSE_DEVCONNECT_BA_2025" | "CARD_PIONEER" | "FOUNDER_HOUSE" | "BUG_WHISPERER" | "SHHHHH" | "NOT_SO_SHHHH" | "CARD_FIRST_SWIPE" | "CARD_SPENT_1K" | "CARD_ALPHA" | "TOKEN_NATION_SP_2026" | "ETHFLORIPA_HUB" | "IRL_NOMADS" | "EVENT_ALUMNI" | "TOUCHED_GRASS" | "OFFRAMP_USER" | "PSYOPS_DIVISION" | "WAITLIST_SKIP" | "FESTA_JUNINA_2026" | "MANICERO" | "NITA" | "NAIJA" | "TERERE";
                         revoke?: boolean;
                     };
                 };
@@ -10742,7 +10748,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Public, indicative display-sell FX snapshot. unitsPerBase is quote-currency units per one base unit. */
+        /** @description Public, indicative display-sell FX rates resolved relative to one base. unitsPerBase is quote-currency units per one base unit. */
         get: {
             parameters: {
                 query?: {
@@ -10762,8 +10768,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            /** @enum {string} */
-                            base: "USD";
+                            base: string;
                             /** @enum {string} */
                             basis: "display_sell";
                             /** @enum {boolean} */
@@ -10773,7 +10778,9 @@ export interface paths {
                             rates: {
                                 code: string;
                                 unitsPerBase: string;
-                                source: "identity" | "bridge" | "manteca" | "reference";
+                                selection: "identity" | "provider_pair" | "reference_pair";
+                                baseSource: "identity" | "bridge" | "manteca" | "reference";
+                                quoteSource: "identity" | "bridge" | "manteca" | "reference";
                                 effectiveAt: string | null;
                             }[];
                         };
@@ -10788,6 +10795,29 @@ export interface paths {
                         "application/json": {
                             error: string;
                             message: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
                         };
                     };
                 };
@@ -10849,7 +10879,9 @@ export interface paths {
                             basis: "display_sell";
                             /** @enum {boolean} */
                             indicative: true;
-                            source: ("identity" | "bridge" | "manteca" | "reference") | "mixed";
+                            selection: "identity" | "provider_pair" | "reference_pair";
+                            fromSource: "identity" | "bridge" | "manteca" | "reference";
+                            toSource: "identity" | "bridge" | "manteca" | "reference";
                             effectiveAt: string | null;
                             /** Format: date-time */
                             generatedAt: string;
@@ -10877,6 +10909,17 @@ export interface paths {
                         "application/json": {
                             error: string;
                             message: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
                         };
                     };
                 };

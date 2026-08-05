@@ -72,11 +72,11 @@ Peanut Split calls `/fx/rates` from its server. Peanut UI does not use that batc
 
 Deploy Peanut API first. Smoke-test both FX routes, refresh this snapshot, and then deploy Peanut UI and Peanut Split.
 
-The backend snapshot applies provider precedence independently to each USD leg.
-That deliberately changes mixed pairs from the old UI behavior: PLN→EUR, for
-example, now combines reference PLN with Bridge EUR instead of falling back to
-reference data for both legs. The API labels that provenance as `mixed`. This
-policy migration needs product/CTO approval before the consumer PRs ship.
+The backend preserves the UI's established pair policy as one atomic choice:
+use `provider_pair` only when both legs have provider coverage; otherwise use
+`reference_pair` for both legs. For example, PLN→EUR remains reference/reference
+even though EUR has a Bridge quote. Responses expose the selection and both leg
+sources, and consumers reject provider/reference hybrids.
 
 ## Limitations
 

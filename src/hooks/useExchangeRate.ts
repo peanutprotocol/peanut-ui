@@ -96,7 +96,7 @@ export function useExchangeRate({
         // Invalid or unsupported pairs are deterministic client outcomes. Do
         // not turn one selection into four identical rate-limited requests.
         retry: (failureCount, error) =>
-            !(error instanceof FxApiError && (error.status === 400 || error.status === 404)) && failureCount < 3,
+            !(error instanceof FxApiError && [400, 404, 429].includes(error.status)) && failureCount < 3,
         enabled: enabled && !!sourceCurrency && !!destinationCurrency,
     })
 

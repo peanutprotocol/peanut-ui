@@ -7,7 +7,12 @@ import type { NextRequest } from 'next/server'
 // This file only covers compatibility-route validation and response wiring.
 jest.mock('@/utils/fx.utils', () => {
     class MockFxApiError extends Error {
-        constructor(readonly status: number) {
+        constructor(
+            readonly status: number,
+            _from?: string,
+            _to?: string,
+            readonly retryAfter: string | null = null
+        ) {
             super(`FX API returned ${status}`)
         }
     }
@@ -32,7 +37,7 @@ describe('GET /api/exchange-rate — thin wrapper over fetchDisplayRate', () => 
         const response = await get('from=USD&to=EUR')
         expect(await response.json()).toEqual({ rate: 0.8614 })
         expect(mockFetchDisplayRate).toHaveBeenCalledWith('USD', 'EUR')
-        expect(response.headers.get('Cache-Control')).toBe('s-maxage=300, stale-while-revalidate=600')
+        expect(response.headers.get('Cache-Control')).toBe('s-maxage=300')
     })
 
     it('rejects malformed currency codes with 400 before touching any provider', async () => {
@@ -67,4 +72,21 @@ describe('GET /api/exchange-rate — thin wrapper over fetchDisplayRate', () => 
         expect(errorSpy).not.toHaveBeenCalled()
         errorSpy.mockRestore()
     })
+
+    it.each([503, 429])(
+        'preserves upstream %s availability status without logging it as a wrapper failure',
+        async (status) => {
+            mockFetchDisplayRate.mockRejectedValue(new FxApiError(status, 'PLN', 'EUR', status === 429 ? '30' : null))
+            const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+            const response = await get('from=PLN&to=EUR')
+
+            expect(response.status).toBe(status)
+            expect(await response.json()).toEqual({ error: 'Exchange rate temporarily unavailable' })
+            expect(response.headers.get('Cache-Control')).toBe('no-store')
+            expect(response.headers.get('Retry-After')).toBe(status === 429 ? '30' : null)
+            expect(errorSpy).not.toHaveBeenCalled()
+            errorSpy.mockRestore()
+        }
+    )
 })

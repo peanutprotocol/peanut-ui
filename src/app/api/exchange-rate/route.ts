@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { fetchDisplayRate, FxApiError } from '@/utils/fx.utils'
 
 const NO_STORE = { 'Cache-Control': 'no-store' }
+const PASSTHROUGH_STATUSES = new Set([400, 404, 429, 503])
 
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
@@ -25,15 +26,22 @@ export async function GET(request: NextRequest) {
             { rate },
             {
                 headers: {
-                    'Cache-Control': 's-maxage=300, stale-while-revalidate=600',
+                    'Cache-Control': 's-maxage=300',
                 },
             }
         )
     } catch (error) {
-        if (error instanceof FxApiError && (error.status === 400 || error.status === 404)) {
+        if (error instanceof FxApiError && PASSTHROUGH_STATUSES.has(error.status)) {
+            const headers: Record<string, string> = { ...NO_STORE }
+            if (error.status === 429 && error.retryAfter) headers['Retry-After'] = error.retryAfter
             return NextResponse.json(
-                { error: 'Exchange rate unavailable' },
-                { status: error.status, headers: NO_STORE }
+                {
+                    error:
+                        error.status >= 500 || error.status === 429
+                            ? 'Exchange rate temporarily unavailable'
+                            : 'Exchange rate unavailable',
+                },
+                { status: error.status, headers }
             )
         }
         console.error(`Exchange rate API error for ${from}-${to}:`, error)
