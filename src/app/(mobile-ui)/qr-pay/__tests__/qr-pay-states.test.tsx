@@ -1257,6 +1257,24 @@ describe('GROUP 4: Success States', () => {
         // Savings message should appear for Argentina QR3 payments, via the localized catalog
         expect(screen.getByText('saved ~$1.5 compared to card!')).toBeInTheDocument()
     })
+
+    test.each([
+        [1, 'saved ~1 cent compared to card!'],
+        [42, 'saved ~42 cents compared to card!'],
+    ])('savings below $1 read in cents (%i)', async (cents, message) => {
+        const { hasCardMarkupComparison, calculateSavingsInCents } = require('@/utils/qr-payment.utils')
+
+        hasCardMarkupComparison.mockReturnValue(true)
+        calculateSavingsInCents.mockReturnValue(cents)
+
+        await completeMantecaPayment()
+
+        await waitFor(() => {
+            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+        })
+
+        expect(screen.getByText(message)).toBeInTheDocument()
+    })
 })
 
 // ============================================================
