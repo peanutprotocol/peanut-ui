@@ -7,7 +7,11 @@ import { fetchWithSentry } from './sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { isDemoMode } from './demo'
 
-type FetchOptions = RequestInit & { timeoutMs?: number }
+type FetchOptions = RequestInit & {
+    timeoutMs?: number
+    /** Public endpoints can opt out of sending the web bearer token. */
+    includeAuth?: boolean
+}
 
 function callApi(path: string, options?: FetchOptions): Promise<Response> {
     // Native-only demo mode: route to synthetic data before any header/network
@@ -16,7 +20,7 @@ function callApi(path: string, options?: FetchOptions): Promise<Response> {
     // web bundle and out of every api-fetch importer's module graph.
     if (isDemoMode()) return import('./demo-api').then((m) => m.demoRespond(path, options))
 
-    const { timeoutMs, ...fetchOptions } = options ?? {}
+    const { timeoutMs, includeAuth = true, ...fetchOptions } = options ?? {}
     const callerHeaders = (fetchOptions.headers as Record<string, string>) ?? {}
 
     const headers: Record<string, string> = {}
@@ -24,7 +28,7 @@ function callApi(path: string, options?: FetchOptions): Promise<Response> {
     if (fetchOptions.body && !hasContentType) {
         headers['Content-Type'] = 'application/json'
     }
-    Object.assign(headers, getAuthHeaders(callerHeaders))
+    Object.assign(headers, includeAuth ? getAuthHeaders(callerHeaders) : callerHeaders)
 
     const args: Parameters<typeof fetchWithSentry> = [`${PEANUT_API_URL}${path}`, { ...fetchOptions, headers }]
     if (timeoutMs !== undefined) args[2] = timeoutMs

@@ -56,6 +56,26 @@ describe('apiFetch', () => {
             await apiFetch('/users/me', { headers: { 'X-Custom': 'value' } })
             expect(getAuthHeaders).toHaveBeenCalledWith({ 'X-Custom': 'value' })
         })
+
+        it('can omit credentials for a public endpoint without forwarding the control option', async () => {
+            await apiFetch('/fx/rate?from=PLN&to=EUR', {
+                method: 'GET',
+                includeAuth: false,
+                credentials: 'omit',
+                headers: { Accept: 'application/json' },
+            })
+
+            expect(getAuthHeaders).not.toHaveBeenCalled()
+            expect(mockFetchWithSentry).toHaveBeenCalledWith(
+                'https://api.test.com/fx/rate?from=PLN&to=EUR',
+                expect.objectContaining({
+                    method: 'GET',
+                    credentials: 'omit',
+                    headers: { Accept: 'application/json' },
+                })
+            )
+            expect(mockFetchWithSentry.mock.calls[0][1]).not.toHaveProperty('includeAuth')
+        })
     })
 
     describe('content-type header', () => {

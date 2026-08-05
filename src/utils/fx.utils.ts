@@ -73,7 +73,11 @@ export async function fetchDisplayRate(fromCurrency: string, toCurrency: string)
     const to = toCurrency.toUpperCase()
 
     const query = new URLSearchParams({ from, to })
-    const response = await apiFetch(`/fx/rate?${query.toString()}`, { method: 'GET' })
+    const response = await apiFetch(`/fx/rate?${query.toString()}`, {
+        method: 'GET',
+        includeAuth: false,
+        credentials: 'omit',
+    })
     if (!response.ok) {
         throw new FxApiError(response.status, from, to)
     }

@@ -28,7 +28,11 @@ describe('fetchDisplayRate — shared backend contract', () => {
         mockApiFetch.mockResolvedValue({ ok: true, status: 200, json: async () => validResponse })
 
         await expect(fetchDisplayRate('pln', 'eur')).resolves.toBeCloseTo(0.2322191619648635, 15)
-        expect(mockApiFetch).toHaveBeenCalledWith('/fx/rate?from=PLN&to=EUR', { method: 'GET' })
+        expect(mockApiFetch).toHaveBeenCalledWith('/fx/rate?from=PLN&to=EUR', {
+            method: 'GET',
+            includeAuth: false,
+            credentials: 'omit',
+        })
     })
 
     it('asks the backend to validate same-currency identity pairs', async () => {
@@ -46,7 +50,11 @@ describe('fetchDisplayRate — shared backend contract', () => {
         })
 
         await expect(fetchDisplayRate('eur', 'EUR')).resolves.toBe(1)
-        expect(mockApiFetch).toHaveBeenCalledWith('/fx/rate?from=EUR&to=EUR', { method: 'GET' })
+        expect(mockApiFetch).toHaveBeenCalledWith('/fx/rate?from=EUR&to=EUR', {
+            method: 'GET',
+            includeAuth: false,
+            credentials: 'omit',
+        })
     })
 
     it.each([
