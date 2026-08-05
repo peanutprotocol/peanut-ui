@@ -474,6 +474,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             campaignTag,
             fetchUser,
             t,
+            tCommon,
             toFriendlyError,
         ]
     )

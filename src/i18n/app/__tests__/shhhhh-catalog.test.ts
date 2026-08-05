@@ -1,6 +1,14 @@
 import { APP_LOCALES } from '../config'
 import { loadMessages } from '../messages'
+import es419 from '../messages/es-419.json'
 import esAR from '../messages/es-AR.json'
+
+function leafPaths(obj: Record<string, unknown>, prefix = ''): string[] {
+    return Object.entries(obj).flatMap(([key, value]) => {
+        const path = prefix ? `${prefix}.${key}` : key
+        return typeof value === 'object' && value !== null ? leafPaths(value as Record<string, unknown>, path) : [path]
+    })
+}
 
 describe('/shhhhh catalog', () => {
     it.each(APP_LOCALES)('%s keeps the <counter> tag the hero interpolates', async (locale) => {
@@ -19,8 +27,14 @@ describe('/shhhhh catalog', () => {
         expect(esArResolved.shhhhh.faq.q2.answer).toBe(es419.shhhhh.faq.q2.answer)
     })
 
-    it('the es-AR delta stays a delta rather than a full copy', () => {
-        // A full duplicate would silently stop inheriting es-419 fixes.
-        expect(Object.keys(esAR.shhhhh).length).toBeLessThan(8)
+    it('the es-AR delta stays a strict subset of es-419', () => {
+        // A full duplicate would silently stop inheriting es-419 fixes. Compare
+        // leaf paths rather than counting sections, so overriding one more
+        // section is allowed but copying the whole namespace is not.
+        const base = leafPaths(es419.shhhhh)
+        const delta = leafPaths(esAR.shhhhh)
+
+        expect(delta.filter((path) => !base.includes(path))).toEqual([])
+        expect(delta.length).toBeLessThan(base.length)
     })
 })
