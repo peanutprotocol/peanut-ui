@@ -63,6 +63,7 @@ function NotSupportedContent({ setModalContent, qrType }: ModalContentProps) {
 
 function WillBeNotifiedContent({ qrType, setIsModalOpen }: ModalContentProps) {
     const t = useTranslations('global')
+    const tCommon = useTranslations('common')
     return (
         <div className="flex flex-col justify-center p-6">
             <span className="text-sm">
@@ -75,7 +76,7 @@ function WillBeNotifiedContent({ qrType, setIsModalOpen }: ModalContentProps) {
                 shadowType="primary"
                 shadowSize="4"
             >
-                {t('qrScannerOverlay.close')}
+                {tCommon('close')}
             </Button>
         </div>
     )
@@ -117,6 +118,7 @@ function DirectSendContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
 
 function ExternalUrlContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
     const t = useTranslations('global')
+    const tCommon = useTranslations('common')
     return (
         <div className="flex flex-col justify-center p-6">
             <span className="text-sm">{t('qrScannerOverlay.externalUrlIntro')}</span>
@@ -142,7 +144,7 @@ function ExternalUrlContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
                     shadowType="primary"
                     shadowSize="4"
                 >
-                    {t('qrScannerOverlay.close')}
+                    {tCommon('close')}
                 </Button>
             </div>
         </div>

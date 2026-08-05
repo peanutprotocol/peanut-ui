@@ -925,7 +925,7 @@ function MantecaBankWithdrawFlow() {
                         />
                         <PaymentInfoRow
                             label={t('manteca.peanutFee')}
-                            value={t('manteca.sponsoredByPeanut')}
+                            value={tCommon('sponsoredByPeanut')}
                             hideBottomBorder
                         />
                     </Card>

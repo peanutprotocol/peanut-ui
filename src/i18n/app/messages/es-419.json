@@ -10,12 +10,14 @@
         "close": "Cerrar",
         "loading": "Cargando...",
         "somethingWentWrong": "Algo salió mal",
+        "genericError": "Algo salió mal. Intenta de nuevo o contacta soporte.",
         "copiedToClipboard": "Copiado al portapapeles",
         "maybeLater": "Quizás más tarde",
         "tryAgain": "Intentar de nuevo",
         "skipForNow": "Omitir por ahora",
         "gotIt": "Entendido",
         "contactSupport": "Contactar soporte",
+        "sponsoredByPeanut": "¡Patrocinada por Peanut!",
         "pending": "Pendiente",
         "comingSoon": "Próximamente",
         "or": "o",
@@ -153,7 +155,7 @@
             },
             "iosPwa": {
                 "title": "Agrega Peanut a tu pantalla de inicio",
-                "description": "Sigue una guía rápida para agregar la app a tu pantalla de inicio, sin descargas."
+                "description": "Sigue una guía rápida para agregar la app a tu pantalla de inicio, sin descargar nada."
             },
             "qrPay": {
                 "title": "Paga con <b>códigos QR</b>",
@@ -202,7 +204,7 @@
                 "name": "Nombre",
                 "surname": "Apellido",
                 "bio": "Bio",
-                "email": "Email",
+                "email": "Correo electrónico",
                 "phoneNumber": "Número de teléfono",
                 "website": "Sitio web"
             },
@@ -217,8 +219,7 @@
             "soonBadge": "¡Pronto!",
             "saveChanges": "Guardar cambios",
             "errors": {
-                "nameRequired": "Por favor ingresa tu nombre.",
-                "generic": "Algo salió mal. Intenta de nuevo o contacta soporte."
+                "nameRequired": "Por favor ingresa tu nombre."
             }
         },
         "regions": {
@@ -241,8 +242,7 @@
             },
             "initError": {
                 "retriableTitle": "No se pudo iniciar la verificación",
-                "notAvailableTitle": "Aún no disponible",
-                "fallbackDescription": "Algo salió mal. Intenta de nuevo o contacta soporte."
+                "notAvailableTitle": "Aún no disponible"
             }
         },
         "backup": {
@@ -509,7 +509,6 @@
         "waitlist": {
             "inviterUsernamePlaceholder": "Su nombre de usuario",
             "inviterNotFound": "No hay ningún miembro de Peanut con ese nombre de usuario. Verifica el usuario exacto de quien te invitó.",
-            "or": "o",
             "joinWaitlist": "Unirme a la lista de espera",
             "loginCanceled": "El inicio de sesión fue cancelado. Inténtalo de nuevo.",
             "noPasskey": "No se encontró ninguna passkey. Primero crea una billetera.",
@@ -726,7 +725,6 @@
             "sendWith": "Enviar con"
         },
         "confirm": {
-            "sponsoredByPeanut": "¡Patrocinado por Peanut!",
             "minReceived": "Mínimo a recibir",
             "requested": "Solicitado",
             "sending": "Enviando",
@@ -794,7 +792,6 @@
             "brokenLinkMessage": "¿Seguro que hiciste clic en el enlace correcto? ¿El enlace se acaba de crear? Inténtalo de nuevo en unos segundos.",
             "retryLoadingLink": "Reintentar cargar el enlace",
             "missingInviter": "No se pudo aceptar la invitación: falta quien te invitó. Contacta a soporte.",
-            "generic": "Algo salió mal. Inténtalo de nuevo o contacta a soporte.",
             "offrampUnavailable": "Retiro no disponible",
             "bankClaimUnavailable": "No puedes reclamar este enlace a tu cuenta bancaria.",
             "belowMinimum": "Este enlace está por debajo del mínimo de {amount} para retiros bancarios.",
@@ -809,7 +806,7 @@
         },
         "initial": {
             "receiveOn": "Recibir en",
-            "recipientPlaceholder": "Ingresa un usuario, una dirección o ENS",
+            "recipientPlaceholder": "Ingresa un nombre de usuario, una dirección o ENS",
             "usdcArbitrumOnly": "Solo puedes reclamar USDC en Arbitrum para usuarios de Peanut Wallet."
         },
         "addressCompatible": {
@@ -838,14 +835,13 @@
         },
         "confirm": {
             "minReceived": "Mínimo a recibir",
-            "slippageInfo": "Esta transacción puede tener slippage por la conversión de tokens o el puente entre redes.",
+            "slippageInfo": "Esta transacción puede sufrir slippage debido a la conversión de tokens o al puente entre cadenas.",
             "tokenAndNetwork": "Token y red",
             "tokenAlt": "token",
             "chainAlt": "red",
             "tokenOnChain": "{token} en <c>{chain}</c>",
             "maxNetworkFee": "Comisión máxima de red",
-            "peanutFee": "Comisión de Peanut",
-            "sponsoredByPeanut": "¡Patrocinada por Peanut!"
+            "peanutFee": "Comisión de Peanut"
         },
         "success": {
             "peanutMascotAlt": "Mascota de Peanut",
@@ -871,7 +867,6 @@
             "ownAccountOnly": "Solo puedes retirar a cuentas a tu nombre.",
             "destinationAddress": "Dirección de destino",
             "exchangeRate": "Tipo de cambio",
-            "sponsoredByPeanut": "Patrocinada por Peanut",
             "errors": {
                 "missingTxHash": "Falló el reclamo: falta el hash de la transacción.",
                 "withdrawalProcessing": "¡Retiro exitoso! Tus fondos se están procesando. Si la transacción no aparece en tu historial en 5 minutos, contacta a soporte.",
@@ -916,8 +911,7 @@
             "saveVsCard": "Ahorro vs. tarjeta",
             "saveVsCardTooltipBrl": "Las tarjetas extranjeras pagan IOF (~3.5%) más una comisión FX típica del emisor de ~3%. Peanut usa Pix al tipo de cambio actual del mercado.",
             "saveVsCardTooltipArs": "Las tarjetas extranjeras aplican el tipo de cambio oficial más una comisión FX típica del emisor de ~3%. Peanut usa Mercado Pago al tipo de cambio actual del mercado.",
-            "peanutFee": "Comisión de Peanut",
-            "sponsoredByPeanut": "¡Patrocinada por Peanut!"
+            "peanutFee": "Comisión de Peanut"
         },
         "success": {
             "youPaid": "Pagaste a {merchant}",
@@ -985,12 +979,12 @@
         "slideHandleAria": "Control deslizante",
         "entry": {
             "navTitle": "Agregar tarjeta",
-            "title": "Paga donde acepten Visa",
+            "title": "Gasta donde acepten Visa",
             "description": "Usa tu saldo en más de 150M de comercios. En línea, sin contacto, tuya.",
             "featureBalance": "Un solo saldo unificado",
             "featureControl": "Bajo tu control",
             "featureOnline": "Funciona en línea y sin contacto",
-            "cta": "Obtén tu tarjeta"
+            "cta": "Consigue tu tarjeta"
         },
         "addToWallet": {
             "appleWallet": "Apple Wallet",
@@ -1364,7 +1358,6 @@
             "providerFees": "Comisiones del proveedor",
             "providerFeesInfo": "Nuestros proveedores y la blockchain cobran una pequeña comisión por cada transacción. Esa comisión ya está incluida en el monto que ves.",
             "peanutFee": "Comisión de Peanut",
-            "sponsoredByPeanut": "¡Patrocinada por Peanut!",
             "flagAlt": "bandera",
             "shareTitle": "Datos de la transferencia bancaria",
             "shareDetails": "Compartir datos",
@@ -1471,7 +1464,6 @@
             "networkFeeInfo": "Comisión del puente entre cadenas (gas de destino + 0.07% de Rhino). Se paga aparte del monto retirado.",
             "youPay": "Pagas",
             "peanutFee": "Comisión de Peanut",
-            "sponsoredByPeanut": "¡Patrocinada por Peanut!",
             "highFeeWarning": "Nota: la comisión de red es una parte grande de este retiro. Retirar un monto mayor o elegir una red más barata la reduce."
         },
         "compatibilityModal": {
@@ -1511,9 +1503,8 @@
             "redirecting": "Redirigiendo...",
             "lockingRate": "Fijando el tipo de cambio...",
             "exchangeRate": "Tipo de cambio",
-            "exchangeRateInfo": "El tipo de cambio que se muestra es el actual, pero puede variar un poco (~$1-5 ARS) hasta confirmar el pago.",
+            "exchangeRateInfo": "El tipo de cambio mostrado es actual, pero puede variar un poco (~$1-5 ARS) hasta que se confirme el pago.",
             "peanutFee": "Comisión de Peanut",
-            "sponsoredByPeanut": "¡Patrocinada por Peanut!",
             "flagAlt": "bandera",
             "increaseLimitsMessage": "Hola, me gustaría aumentar mis límites de pago."
         },
@@ -1652,7 +1643,6 @@
             "pointsEarned": "Puntos ganados",
             "networkFee": "Comisión de red",
             "peanutFee": "Comisión de Peanut",
-            "peanutFeeSponsored": "¡Patrocinada por Peanut!",
             "attachment": "Adjunto",
             "download": "Descargar",
             "reason": "Motivo",
@@ -1696,8 +1686,8 @@
         },
         "toast": {
             "inviteLinkCopied": "¡Enlace de invitación copiado!",
-            "linkCancelled": "¡Enlace cancelado!",
-            "linkCancelledRefresh": "¡Enlace cancelado! Actualiza para ver el saldo actualizado.",
+            "linkCancelled": "¡Enlace cancelado con éxito!",
+            "linkCancelledRefresh": "¡Enlace cancelado! Actualiza para ver tu saldo al día.",
             "cancelLinkFailed": "No se pudo cancelar el enlace. Inténtalo de nuevo."
         },
         "cardRows": {
@@ -1784,7 +1774,7 @@
         "shareInviteLink": "Compartir link de invitación",
         "loadPointsFailed": "¡Error al cargar los puntos!",
         "loadInvitesFailed": "¡Error al cargar las invitaciones!",
-        "contactSupport": "Comunícate con Soporte.",
+        "contactSupport": "Por favor contacta a Soporte.",
         "friendsEarnedYou": "Tus amigos te hicieron ganar",
         "starAlt": "estrella"
     },
@@ -1811,11 +1801,10 @@
         "emailSubmitFailed": "Algo salió mal. Inténtalo de nuevo u omite este paso.",
         "notificationsTitle": "¿Quieres novedades al instante?",
         "notificationsDescription": "Te avisaremos apenas tengas acceso.",
-        "inviteOnlyTitle": "Peanut es solo por invitación",
+        "inviteOnlyTitle": "Peanut es solo con invitación",
         "inLine": "Estás en la fila",
         "inLineWithPosition": "Estás #{position} en la fila",
         "skipTheLine": "Sáltate la fila: escribe el usuario del miembro que te invitó.",
-        "acceptFailed": "Algo salió mal. Inténtalo de nuevo o comunícate con soporte.",
         "pleaseWait": "Espera un momento...",
         "logInDifferentAccount": "Iniciar sesión con otra cuenta",
         "emailPlaceholder": "tu@ejemplo.com"
@@ -1897,7 +1886,7 @@
         "errorStartDocVerification": "No pudimos iniciar la verificación de documentos. Inténtalo de nuevo.",
         "initiate": {
             "titleBlocked": "No pudimos desbloquear esto",
-            "titleRestartIdentity": "Verifica con otro documento",
+            "titleRestartIdentity": "Verifícate con otro documento",
             "titleProviderRejection": "Necesitamos documentos adicionales",
             "titleCrossRegion": "Desbloquea {region}",
             "titleCrossRegionGeneric": "Desbloquea esta región",
@@ -1950,7 +1939,7 @@
             "title": "Agrega tu correo para continuar",
             "description": "No pudimos terminar de configurar tu cuenta porque falta una dirección de correo. Agrega una y lo reintentaremos automáticamente.",
             "emailLabel": "Correo electrónico",
-            "emailPlaceholder": "you@example.com",
+            "emailPlaceholder": "tu@ejemplo.com",
             "save": "Guardar correo",
             "saving": "Guardando...",
             "notNow": "Ahora no",
@@ -2224,7 +2213,7 @@
                 "description": "Este correo ya está vinculado a otra cuenta de Peanut. Si es tuya, inicia sesión en esa cuenta para continuar; si no, contacta a soporte."
             },
             "FALLBACK": {
-                "title": "Problema con la verificación",
+                "title": "Problema de verificación",
                 "description": "Hubo un problema con tu verificación. Inténtalo de nuevo o contacta a soporte."
             }
         }
@@ -2236,7 +2225,7 @@
         "unlockDescription": "Para enviar y recibir dinero aquí, confirma tu identidad con un <b>documento oficial.</b>",
         "whatYoullUnlock": "Lo que vas a desbloquear:",
         "unlockNow": "Desbloquear ahora",
-        "qrPayments": "Pagos con QR en <b>Argentina y Brasil</b>",
+        "qrPayments": "Pagos QR en <b>Argentina y Brasil</b>",
         "sepaTransfers": "Transferencias SEPA en <b>Europa</b> (+30 países)",
         "ukFasterPayments": "Transferencias Faster Payments en el <b>Reino Unido</b>",
         "usAchWire": "Transferencias ACH y Wire en <b>Estados Unidos</b>",
@@ -2294,7 +2283,6 @@
         "qrScanner": {
             "scanToPay": "Escanea para pagar",
             "clickToPaste": "Toca para pegar",
-            "close": "Cerrar",
             "clipboardEmpty": "El portapapeles está vacío",
             "clipboardUnavailable": "No se pudo acceder al portapapeles",
             "useCopiedAddress": "Usar dirección copiada",
@@ -2312,7 +2300,6 @@
             "cameraSwitchFailed": "No se pudo cambiar de cámara. Inténtalo de nuevo.",
             "cameraPermission": {
                 "title": "Se necesita acceso a la cámara",
-                "tryAgain": "Intentar de nuevo",
                 "dismiss": "Descartar",
                 "withStepsHint": "Sigue estos pasos para habilitar el acceso a la cámara y vuelve a intentarlo.",
                 "noStepsHint": "Habilita el acceso a la cámara en la configuración de tu navegador o dispositivo y vuelve a intentarlo.",
@@ -2335,7 +2322,6 @@
             "notSupportedGetNotified": "¡Entérate cuando esté disponible!",
             "getNotifiedCta": "¡Avísame!",
             "willBeNotified": "Te avisaremos apenas {qrName} esté disponible.",
-            "close": "Cerrar",
             "continue": "Continuar",
             "okay": "Entendido",
             "directSendCrossChain": "Peanut admite pagos entre cadenas.",
@@ -2361,7 +2347,6 @@
             "myQrButtonText": "Comparte tu perfil"
         },
         "qrBottomDrawer": {
-            "or": "o",
             "shareTitle": "Comparte tu perfil"
         },
         "inviteFriendsModal": {
@@ -2381,7 +2366,7 @@
             "inviteOnly": "Peanut ahora es solo por invitación, ¡y tú estás dentro!",
             "earnRules": "<b>Amigos que invitas →</b> ganas una parte de sus comisiones. <b>Sus invitados →</b> ganas una parte de la parte de ellos.",
             "shareSheetTitle": "Comparte tu enlace de invitación",
-            "shareCta": "Compartir enlace de invitación",
+            "shareCta": "Compartir link de invitación",
             "learnMore": "Saber más"
         },
         "noMoreJailModal": {
@@ -2391,7 +2376,6 @@
             "startUsingCta": "Empezar a usar"
         },
         "easterEggModal": {
-            "gotItCta": "Entendido",
             "AQ": {
                 "caption": "🐧 Aquí no hay bancos, solo pingüinos",
                 "subtitle": "La Antártida no es un país de verdad... todavía"
@@ -2476,7 +2460,6 @@
         "rainCooldownIntroModal": {
             "title": "Espera un momento",
             "description": "Tu tarjeta necesita un breve tiempo de espera entre gastos seguidos. Para evitar esto en el futuro, puedes bajar el límite de tu tarjeta por debajo del saldo de tu wallet; el resto siempre estará disponible.",
-            "gotItCta": "Entendido",
             "readMore": "Leer más"
         },
         "staleCardApprovalModal": {
@@ -2511,7 +2494,6 @@
         "supportDrawer": {
             "chatLoadFailed": "No se pudo cargar el chat",
             "chatLoadFailedDescription": "Hubo un problema al cargar el chat de soporte. Escríbenos por correo y te ayudamos:",
-            "tryAgain": "Intentar de nuevo",
             "label": "Soporte",
             "chatTitle": "Chat de soporte"
         },
@@ -2556,7 +2538,7 @@
             "youJustClaimed": "Acabas de reclamar",
             "youreAdding": "Estás agregando",
             "youreWithdrawing": "Estás retirando",
-            "youWillReceive": "Recibirás",
+            "youWillReceive": "Vas a recibir",
             "youreAboutToReceive": "Estás por recibir"
         },
         "createAccountButton": {
@@ -2599,7 +2581,7 @@
             "priceLocked": "Precio fijo por {time}"
         },
         "mantecaMaintenance": {
-            "title": "Servicio no disponible temporalmente",
+            "title": "Servicio temporalmente no disponible",
             "description": "Estamos teniendo problemas con {action, select, deposits {los depósitos} withdrawals {los retiros} other {las transferencias}} por una falla de un proveedor externo. Estamos trabajando para restablecer el servicio lo antes posible.",
             "goBack": "Volver",
             "havingTrouble": "¿Tienes problemas?"
@@ -2633,7 +2615,6 @@
         },
         "savedAccounts": {
             "title": "Cuentas guardadas",
-            "or": "o",
             "selectNewMethod": "Elegir otro método",
             "flagAlt": "Bandera de {country}",
             "flagAltGeneric": "Bandera del país"
@@ -2701,7 +2682,7 @@
         "rainCooldownRetry": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en unos {minutes, plural, one {# minuto} other {# minutos}}.",
         "rainCooldownRetryShortly": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en breve.",
         "rainInsufficientCollateral": "Tu tarjeta no tiene suficiente colateral para este retiro.",
-        "staleCardApproval": "Necesitas volver a habilitar tu tarjeta antes de retirar. Solo toma un toque con tu passkey.",
+        "staleCardApproval": "Tu tarjeta debe reactivarse antes de que puedas retirar. Solo toma un toque con tu passkey.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Espera un momento e inténtalo de nuevo.",
         "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualiza la página e inténtalo de nuevo.",
         "cardApprovalCancelled": "Aprobación cancelada: puedes volver a intentarlo cuando quieras.",

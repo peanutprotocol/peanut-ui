@@ -38,6 +38,7 @@ export default function SavedAccountsView({
     onSelectNewMethodClick,
 }: SavedAccountListProps) {
     const t = useTranslations('global')
+    const tCommon = useTranslations('common')
     return (
         <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
             <NavHeader title={pageTitle} onPrev={onPrev} />
@@ -46,11 +47,7 @@ export default function SavedAccountsView({
                     <h2 className="text-base font-bold">{t('savedAccounts.title')}</h2>
                     <SavedAccountsMapping accounts={savedAccounts} onItemClick={onAccountClick} />
                 </div>
-                <Divider
-                    textClassname="font-bold text-grey-1"
-                    dividerClassname="bg-grey-1"
-                    text={t('savedAccounts.or')}
-                />
+                <Divider textClassname="font-bold text-grey-1" dividerClassname="bg-grey-1" text={tCommon('or')} />
                 <Button icon="plus" onClick={onSelectNewMethodClick} shadowSize="4">
                     {t('savedAccounts.selectNewMethod')}
                 </Button>

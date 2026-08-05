@@ -16,6 +16,7 @@ const DISMISS_THRESHOLD = 100
 
 const SupportDrawer = () => {
     const t = useTranslations('global')
+    const tCommon = useTranslations('common')
     const { isSupportModalOpen, setIsSupportModalOpen, supportPrefilledMessage: prefilledMessage } = useModalsContext()
     const userData = useCrispUserData()
     const crispTokenId = useCrispTokenId()
@@ -207,7 +208,7 @@ const SupportDrawer = () => {
                                     {SUPPORT_EMAIL}
                                 </a>
                                 <Button variant="stroke" className="w-full" onClick={handleRetry}>
-                                    {t('supportDrawer.tryAgain')}
+                                    {tCommon('tryAgain')}
                                 </Button>
                             </div>
                         )}

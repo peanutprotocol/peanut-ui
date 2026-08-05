@@ -15,6 +15,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 
 export const ProfileEditView = () => {
     const t = useTranslations('profile.edit')
+    const tCommon = useTranslations('common')
     const router = useRouter()
     const onBack = useSafeBack('/profile')
     const { user, fetchUser } = useAuth()
@@ -130,12 +131,12 @@ export const ProfileEditView = () => {
             router.replace('/profile')
         } catch (error) {
             console.error('Error updating profile:', error)
-            setErrorMessage(t('errors.generic'))
+            setErrorMessage(tCommon('genericError'))
             Sentry.captureException(error)
         } finally {
             setIsLoading(false)
         }
-    }, [formData, user, fetchUser, router, isEmailSet, canEditName, t])
+    }, [formData, user, fetchUser, router, isEmailSet, canEditName, t, tCommon])
 
     const fullName = user?.user.fullName || user?.user?.username || ''
     const username = user?.user.username || ''

@@ -104,9 +104,9 @@ export default function ConfirmWithdrawView({
     // gas is sponsored by Peanut's paymaster (the "Peanut fee" row below). For
     // same-chain (no bridge) there's no Rhino fee, so it stays sponsored.
     const networkFeeDisplay = useMemo<string>(() => {
-        if (!isCrossChain || networkFee <= 0) return t('confirm.sponsoredByPeanut')
+        if (!isCrossChain || networkFee <= 0) return tCommon('sponsoredByPeanut')
         return networkFee < 0.01 ? '< $0.01' : `$${networkFee.toFixed(2)}`
-    }, [isCrossChain, networkFee, t])
+    }, [isCrossChain, networkFee, tCommon])
 
     // What actually leaves the wallet on a cross-chain withdraw — the exact USDC
     // the kernel spends (`payAmount`). This is authoritative for BOTH paths and
