@@ -100,12 +100,20 @@ export function useExchangeRate({
         enabled: enabled && !!sourceCurrency && !!destinationCurrency,
     })
 
-    const exchangeRate = rateData?.rate ?? 0
+    // TanStack intentionally retains the last successful data when a
+    // background refetch fails. FX must fail closed instead: otherwise a
+    // repeatedly failing refresh can leave an arbitrarily old conversion on
+    // screen even though the query is in its terminal error state.
+    const exchangeRate = isError ? 0 : (rateData?.rate ?? 0)
     const isLoading = isFetching
 
     // Recalculate amounts when debounced inputs or rate changes (no extra loading toggles)
     useEffect(() => {
-        if (exchangeRate <= 0) return
+        if (exchangeRate <= 0) {
+            if (lastEditedField === 'destination') setSourceAmount('')
+            else clearDestinationFields()
+            return
+        }
 
         const hasValidSource = isValidAmount(debouncedSourceAmount)
         const hasValidDestination = isValidAmount(debouncedDestinationAmount)

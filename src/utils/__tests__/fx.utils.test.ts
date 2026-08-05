@@ -34,6 +34,7 @@ describe('fetchDisplayRate — shared backend contract', () => {
             method: 'GET',
             includeAuth: false,
             credentials: 'omit',
+            redirect: 'error',
             timeoutMs: 10_000,
         })
     })

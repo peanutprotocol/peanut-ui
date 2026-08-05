@@ -118,6 +118,7 @@ export async function fetchDisplayRate(fromCurrency: string, toCurrency: string)
         method: 'GET',
         includeAuth: false,
         credentials: 'omit',
+        redirect: 'error',
         timeoutMs: 10_000,
     })
     if (!response.ok) {
