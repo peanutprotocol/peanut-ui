@@ -24,7 +24,7 @@ on:
     workflow_dispatch:
         inputs:
             versionName:
-                description: 'versionName override (optional; defaults to project MARKETING_VERSION)'
+                description: 'versionName override (optional; defaults to package.json "version")'
                 required: false
                 type: string
             pushDebug:
@@ -150,12 +150,18 @@ jobs:
                   IOS_VERSION_INPUT: ${{ github.event.inputs.versionName || '' }}
                   IOS_TAG_NAME: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
               run: |
-                  # MARKETING_VERSION comes from the explicit versionName input, else from
-                  # the pushed tag (v1.0.31 -> 1.0.31); a bare tag push must not silently
-                  # ship the project default 1.0. CURRENT_PROJECT_VERSION is always the CI
-                  # run number. Info.plist reads both via $(...) build settings.
+                  # MARKETING_VERSION: explicit versionName input wins, else the pushed
+                  # tag (v1.0.31 -> 1.0.31), else package.json — the same precedence
+                  # android-release.yml uses, so the two platforms cannot report
+                  # different versions for one release. The project.pbxproj value is
+                  # itself stamped from package.json by scripts/native-ios-postsync.js
+                  # during the build step above, so this is belt-and-braces rather than
+                  # the only thing standing between us and the old hand-maintained 1.0.
+                  # CURRENT_PROJECT_VERSION is always the CI run number.
+                  # Info.plist reads both via $(...) build settings.
                   IOS_VERSION_NAME="$IOS_VERSION_INPUT"
                   if [ -z "$IOS_VERSION_NAME" ] && [ -n "$IOS_TAG_NAME" ]; then IOS_VERSION_NAME="${IOS_TAG_NAME#v}"; fi
+                  if [ -z "$IOS_VERSION_NAME" ]; then IOS_VERSION_NAME="$(node -p "require('./package.json').version")"; fi
                   MARKETING_ARG=()
                   if [ -n "$IOS_VERSION_NAME" ]; then MARKETING_ARG=("MARKETING_VERSION=$IOS_VERSION_NAME"); fi
 

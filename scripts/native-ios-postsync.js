@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Post-`cap sync ios` fixups that Capacitor's SPM generator can't do itself.
+ * Post-`cap sync ios` fixups that Capacitor's SPM generator can't do itself,
+ * plus the MARKETING_VERSION sync (see step 0 below).
  *
  * SumSub: @sumsub/cordova-idensic-mobile-sdk-plugin declares its native
  * dependency `IdensicMobileSDK` only via a CocoaPods <podspec>. Capacitor's SPM
@@ -19,6 +20,7 @@
 const fs = require('fs')
 const path = require('path')
 const { execSync } = require('child_process')
+const { toMarketingVersion, stampMarketingVersion } = require('./marketing-version')
 
 // Must match the pin in the plugin's plugin.xml (<pod name="IdensicMobileSDK" spec="=X" />).
 const SUMSUB_VERSION = '1.42.0'
@@ -30,6 +32,31 @@ const frameworksDir = path.join(pluginDir, 'Frameworks')
 const xcframework = path.join(frameworksDir, 'IdensicMobileSDK.xcframework')
 const pkgSwiftPath = path.join(pluginDir, 'Package.swift')
 const capAppPkgSwift = path.join(repoRoot, 'ios/App/CapApp-SPM/Package.swift')
+const pbxprojPath = path.join(repoRoot, 'ios/App/App.xcodeproj/project.pbxproj')
+
+/*
+ * 0. MARKETING_VERSION <- package.json.
+ *
+ * Deliberately ahead of every early exit below: the SumSub vendoring can
+ * legitimately bail out when the plugin is uninstalled, and the version stamp
+ * must not bail with it. Android has derived versionName from package.json
+ * since native-release.sh; this is the iOS half, and it runs on every
+ * `cap sync ios` — CI and local alike — so the project value can no longer
+ * drift from the release it is shipping.
+ */
+;(function syncMarketingVersion() {
+    const { version } = require(path.join(repoRoot, 'package.json'))
+    const marketingVersion = toMarketingVersion(version)
+    const before = fs.readFileSync(pbxprojPath, 'utf8')
+    const after = stampMarketingVersion(before, marketingVersion)
+
+    if (after === before) {
+        console.log(`[postsync] MARKETING_VERSION already ${marketingVersion}`)
+        return
+    }
+    fs.writeFileSync(pbxprojPath, after)
+    console.log(`[postsync] MARKETING_VERSION -> ${marketingVersion} (from package.json)`)
+})()
 
 const pluginInstalled = (() => {
     try {
