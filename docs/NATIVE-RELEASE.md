@@ -220,11 +220,36 @@ the build is reproducible, the AAB lands on a Play track.
 
 ## 9. OTA updates (Capgo)
 
-`capgo-deploy.yml` builds the static export and uploads on push: `main` → `production`,
-`dev` → `staging`; manual dispatch picks the channel.
+`capgo-deploy.yml` builds the static export and uploads it. Production is **opt-in per
+release**, never a side effect of pushing code:
 
-- **Configure the `production` channel** in the Capgo dashboard and bind it to the prod
-  app (the workflow pushes to it; the channel must exist).
+| trigger                                    | channel      | bundle version    |
+| ------------------------------------------ | ------------ | ----------------- |
+| push tag `ota-1.0.48`                       | `production` | `1.0.48`          |
+| push tag `ota-1.0.48-hotfix1`               | `production` | `1.0.48-hotfix1`  |
+| push to `dev`                               | `staging`    | `<pkg>-<sha>`     |
+| manual dispatch                             | your choice  | as above          |
+
+Shipping an OTA to everyone is therefore two steps — land the code, then tag it:
+
+```bash
+git push origin mobile-release          # lands code, ships nothing
+git tag ota-1.0.48 && git push origin ota-1.0.48   # ships to all users
+```
+
+The tag is the approval, and a permanent record of which commit went out. Use a suffixed
+tag (`ota-1.0.48-hotfix1`) to ship JS again on the same native build — bundle versions
+must be unique, and re-tagging is cheaper than a package.json bump.
+
+Not `v*`: that prefix belongs to `ios-release.yml` / `android-release.yml` for native
+store builds, and the two must not trigger each other.
+
+- **The `production` channel** must exist in the Capgo dashboard and be bound to the prod
+  app. It does — bundle 1.0.48 shipped to it on 2026-08-06.
+- **No second approver yet.** The job declares the `Production` environment, but that
+  environment has no protection rules, so the tag push ships immediately. Adding required
+  reviewers under Settings → Environments → Production makes it queue for approval with no
+  workflow change (needs repo admin).
 - **Native-version gating:** `--auto-min-update-version` (already set) keeps a JS bundle
   built against new plugins off older native shells. **Bump the native version whenever
   you change plugins/native code**, then ship that via Play — OTA can't.

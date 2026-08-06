@@ -1,24 +1,33 @@
 name: Deploy OTA Update (Capgo)
 
 on:
-    # `dev` auto-ships to staging. `mobile-release` is the native release branch, so
-    # it targets the production channel — the one every shipped iOS and Android
-    # install actually listens on, which is the point: an OTA there reaches all
-    # users, not a tester subset.
+    # Production OTA reaches every shipped iOS and Android install, so it is opt-in
+    # per release and never a side effect of pushing code: it fires on an `ota-*`
+    # tag and nothing else. Pushing to mobile-release builds and lands code; tagging
+    # is the separate, deliberate act that says "ship this JS to everyone", and the
+    # tag is a permanent record of exactly which commit went out.
     #
-    # WARNING: a production deploy currently ships immediately, with no approval.
-    # The job declares the Production environment below and this file used to claim
-    # that gated it behind required reviewers — but that environment has no
-    # protection rules configured at all (verified 2026-08-06 via
-    # `gh api repos/:owner/:repo/environments`), so the gate has never existed and
-    # every production OTA to date has gone straight to devices.
+    #   git tag ota-1.0.48 && git push origin ota-1.0.48
     #
-    # The declaration is left in place so that adding reviewers in
-    # Settings → Environments → Production starts gating this immediately, with no
-    # workflow change. Until someone does, treat a push to mobile-release as
-    # shipping to every user the moment CI goes green.
+    # The bundle version is taken from the tag (ota-1.0.48 -> 1.0.48), so each
+    # shipped bundle is named by the tag that shipped it and two OTAs can never
+    # collide on one version. `ota-1.0.48-hotfix1` is a valid follow-up on the same
+    # native build.
+    #
+    # Deliberately NOT `v*`: ios-release.yml and android-release.yml already claim
+    # that prefix for native store builds, and a JS-only OTA must not be able to
+    # trigger those or vice versa.
+    #
+    # `dev` still auto-ships to staging, which reaches no production device.
+    #
+    # NOTE: the tag is currently the only approval step. The job declares the
+    # Production environment below, but that environment has no protection rules
+    # (verified 2026-08-06 via `gh api repos/:owner/:repo/environments`), so it
+    # gates nothing yet — adding required reviewers there makes the tag push queue
+    # for a second human, with no change to this file.
     push:
-        branches: [dev, mobile-release]
+        branches: [dev]
+        tags: ['ota-*']
     workflow_dispatch:
         inputs:
             channel:
@@ -53,8 +62,7 @@ jobs:
         # appear here, or its deploy would reach all users with no approval.
         environment: >-
             ${{ ((github.event_name == 'workflow_dispatch' && github.event.inputs.channel == 'production')
-            || github.ref == 'refs/heads/main'
-            || github.ref == 'refs/heads/mobile-release') && 'Production' || '' }}
+            || startsWith(github.ref, 'refs/tags/ota-')) && 'Production' || '' }}
         steps:
             - uses: actions/checkout@v7
               with:
@@ -82,12 +90,12 @@ jobs:
             - name: Determine channel
               id: channel
               run: |
-                  # Keep in lockstep with the `environment:` expression above — a
-                  # branch that resolves to production here but is missing there would
-                  # ship to every device with nobody approving it.
+                  # Keep in lockstep with the `environment:` expression above — a ref
+                  # that resolves to production here but is missing there would ship to
+                  # every device with nobody approving it.
                   if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
                     echo "name=${{ github.event.inputs.channel }}" >> $GITHUB_OUTPUT
-                  elif [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.ref }}" = "refs/heads/mobile-release" ]; then
+                  elif [ "$GITHUB_REF_TYPE" = "tag" ] && case "$GITHUB_REF_NAME" in ota-*) true;; *) false;; esac; then
                     echo "name=production" >> $GITHUB_OUTPUT
                   else
                     echo "name=staging" >> $GITHUB_OUTPUT
@@ -111,13 +119,18 @@ jobs:
                   # dev sat on 1.0.8 and every deploy after the first failed, which
                   # looks identical to no deploy at all.
                   #
-                  # Continuous lanes therefore get the short SHA appended, the same way
-                  # the preview lane does. Production deliberately does not: shipping
-                  # there should be a decision tied to a real version, so a collision
-                  # is the correct answer and means "bump package.json first".
-                  VERSION="$(node -p "require('./package.json').version")"
-                  if [ "$CHANNEL" != "production" ]; then
-                      VERSION="$VERSION-${GITHUB_SHA:0:7}"
+                  # Production takes its version from the ota-* tag, so the bundle is
+                  # named by the tag that shipped it and re-shipping the same JS on the
+                  # same native build just needs a new tag (ota-1.0.48-hotfix1) rather
+                  # than a package.json bump. Everything else is a continuous lane and
+                  # gets the short SHA appended to stay unique.
+                  if [ "$CHANNEL" = "production" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then
+                      VERSION="${GITHUB_REF_NAME#ota-}"
+                  else
+                      VERSION="$(node -p "require('./package.json').version")"
+                      if [ "$CHANNEL" != "production" ]; then
+                          VERSION="$VERSION-${GITHUB_SHA:0:7}"
+                      fi
                   fi
                   echo "Uploading bundle $VERSION to channel $CHANNEL"
                   COMMENT="${GITHUB_SHA:0:7} — $(printf '%s' "${COMMIT_MSG:-Manual deploy}" | head -n1)"
