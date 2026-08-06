@@ -26,6 +26,7 @@ import {
     placeStamps,
     pillKeepoutBox,
     usernameFontSize,
+    burstSealPoints,
     type StampPlacement,
     type KeepoutEllipse,
 } from './shareAssetLayout'
@@ -430,18 +431,6 @@ const HeroMessageEl: FC<{ hero: HeroMessage; geo: { w: number; h: number; fontSi
             </span>
         </div>
     )
-}
-
-/** Build an N-spike seal/starburst polygon centred on (0,0), to be translated
- *  to the sticker centre. Alternates outer (rx,ry) and inner radii. */
-function burstSealPoints(rx: number, ry: number, spikes: number, innerRatio: number): string {
-    const pts: string[] = []
-    for (let i = 0; i < spikes * 2; i++) {
-        const angle = (i * Math.PI) / spikes - Math.PI / 2
-        const r = i % 2 === 0 ? 1 : innerRatio
-        pts.push(`${(Math.cos(angle) * rx * r).toFixed(1)},${(Math.sin(angle) * ry * r).toFixed(1)}`)
-    }
-    return pts.join(' ')
 }
 
 export default ShareAssetD3

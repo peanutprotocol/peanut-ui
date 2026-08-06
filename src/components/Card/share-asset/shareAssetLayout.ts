@@ -374,6 +374,19 @@ function formatUsd(n: number): string {
  *  Tuned for the 1200×900 canvas where the pill is the bottom-right
  *  anchor; floor is 56 so even max-length usernames stay readable at
  *  Twitter mobile thumbnail (~3.4× downscale → ≥16px on-screen). */
+/** Build an N-spike seal/starburst polygon centred on (0,0), to be translated
+ *  to the sticker centre. Alternates outer (rx,ry) and inner radii. Used by
+ *  the hero "I got in" burst (ShareAssetD3) and the ENS name burst (EnsAssetD3). */
+export function burstSealPoints(rx: number, ry: number, spikes: number, innerRatio: number): string {
+    const pts: string[] = []
+    for (let i = 0; i < spikes * 2; i++) {
+        const angle = (i * Math.PI) / spikes - Math.PI / 2
+        const r = i % 2 === 0 ? 1 : innerRatio
+        pts.push(`${(Math.cos(angle) * rx * r).toFixed(1)},${(Math.sin(angle) * ry * r).toFixed(1)}`)
+    }
+    return pts.join(' ')
+}
+
 export function usernameFontSize(username: string): number {
     const len = username.length
     if (len <= 5) return 92

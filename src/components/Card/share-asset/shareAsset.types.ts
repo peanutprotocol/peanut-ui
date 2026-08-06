@@ -114,3 +114,23 @@ export interface ShareAssetD3Props {
      */
     onReady?: () => void
 }
+
+export interface EnsAssetD3Props {
+    /** Lowercase username, max 12 chars per current peanut constraint. */
+    username: string
+
+    /** The user's badges — collaged around the burst, first 6 by earnedAt-desc. */
+    badges: ShareAssetBadge[]
+
+    /** Deterministic layout seed override (defaults to the username). */
+    seedOverride?: string
+
+    /** Hide the "<handle>.peanut.me" pill (anti-dox toggle). */
+    hideUsername?: boolean
+
+    /** Play the entrance animations. Off for instant capture surfaces. */
+    animate?: boolean
+
+    /** Fires when the asset is safe to capture (mount — no async paints). */
+    onReady?: () => void
+}
