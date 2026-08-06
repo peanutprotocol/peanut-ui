@@ -2,6 +2,33 @@
 // Used by: sentry.client.config.ts, sentry.edge.config.ts, sentry.server.config.ts
 
 import type { ErrorEvent } from '@sentry/nextjs'
+import { PAYMENT_NETWORK_PATH, isPaymentNetworkExplorerPath } from '@/features/payment-network-explorer/privacy-route'
+
+interface RoutableSentryEvent {
+    request?: { url?: string }
+    transaction?: string
+}
+
+function sentryValueTargetsPaymentNetwork(value: string | undefined): boolean {
+    if (!value) return false
+    try {
+        if (value.startsWith('/') || /^[a-z][a-z\d+.-]*:\/\//i.test(value)) {
+            return isPaymentNetworkExplorerPath(new URL(value, 'https://peanut.invalid').pathname)
+        }
+    } catch {}
+    const pathIndex = value.indexOf(PAYMENT_NETWORK_PATH)
+    if (pathIndex < 0) return false
+    const routeLikeValue = value.slice(pathIndex).split(/\s/, 1)[0]
+    try {
+        return isPaymentNetworkExplorerPath(new URL(routeLikeValue, 'https://peanut.invalid').pathname)
+    } catch {
+        return false
+    }
+}
+
+export function isPaymentNetworkSentryEvent(event: RoutableSentryEvent): boolean {
+    return sentryValueTargetsPaymentNetwork(event.request?.url) || sentryValueTargetsPaymentNetwork(event.transaction)
+}
 
 /**
  * Patterns to filter out from Sentry reporting.
@@ -331,4 +358,12 @@ export function beforeSendHandler(event: ErrorEvent): ErrorEvent | null {
     }
     cleanSensitiveHeaders(event)
     return event
+}
+
+export function beforeSendRouteAwareHandler(event: ErrorEvent): ErrorEvent | null {
+    return isPaymentNetworkSentryEvent(event) ? null : beforeSendHandler(event)
+}
+
+export function beforeSendRouteAwareTransaction<T extends RoutableSentryEvent>(event: T): T | null {
+    return isPaymentNetworkSentryEvent(event) ? null : event
 }

@@ -7,6 +7,7 @@ import '../styles/globals.css'
 import { PEANUT_API_URL, BASE_URL } from '@/constants/general.consts'
 import { CHUNK_ERROR_RECOVERY_SCRIPT } from '@/utils/chunk-error-recovery'
 import { type Metadata } from 'next'
+import { googleAnalyticsBootstrapScript } from '@/features/payment-network-explorer/privacy-route'
 
 const baseUrl = BASE_URL || 'https://peanut.me'
 const IS_PRODUCTION_DOMAIN = baseUrl === 'https://peanut.me'
@@ -221,22 +222,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     </Script>
                 )}
 
-                {/* Note: Google Tag Manager (gtag.js) does not support version pinning.*/}
+                {/* Route-aware bootstrap: sensitive explorer URLs never load or configure GA. */}
                 {process.env.NODE_ENV !== 'development' && process.env.NEXT_PUBLIC_GA_KEY && (
-                    <>
-                        <Script
-                            src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_KEY}`}
-                            strategy="afterInteractive"
-                        />
-                        <Script id="google-analytics" strategy="afterInteractive">
-                            {`
-                                window.dataLayer = window.dataLayer || [];
-                                function gtag(){dataLayer.push(arguments);}
-                                gtag('js', new Date());
-                                gtag('config', '${process.env.NEXT_PUBLIC_GA_KEY}');
-                            `}
-                        </Script>
-                    </>
+                    <Script id="google-analytics" strategy="afterInteractive">
+                        {googleAnalyticsBootstrapScript(process.env.NEXT_PUBLIC_GA_KEY)}
+                    </Script>
                 )}
             </head>
             <body
