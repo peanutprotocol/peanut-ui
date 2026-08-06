@@ -326,6 +326,37 @@ export function placeStamps(
         }
     }
 
+    // ── Deadlock rescue. A keep-out that hugs a canvas edge (the ENS asset's
+    //    corner marks) can trap a sticker: the ellipse shove points off-canvas
+    //    and the hard clamp shoves it straight back inside. Any sticker still
+    //    violating a keep-out after the solver is re-seated on the best clear
+    //    point of a coarse grid — keep-out-free, then farthest from its
+    //    neighbours. The card asset's small interior keep-outs never trigger it.
+    const violates = (x: number, y: number): boolean =>
+        keepouts.some((ko) => Math.hypot((x - ko.cx) / (ko.rx + half), (y - ko.cy) / (ko.ry + half)) < 1) ||
+        hitsPill(x, y, half, pill)
+    for (let i = 0; i < count; i++) {
+        const p = pos[i]
+        if (!violates(p.x, p.y)) continue
+        let best: { x: number; y: number; dmin: number } | null = null
+        for (let gx = 0; gx <= 20; gx++) {
+            for (let gy = 0; gy <= 15; gy++) {
+                const x = minC + (gx / 20) * (maxCx - minC)
+                const y = minC + (gy / 15) * (maxCy - minC)
+                if (violates(x, y)) continue
+                let dmin = Infinity
+                for (let j = 0; j < count; j++) {
+                    if (j !== i) dmin = Math.min(dmin, Math.hypot(x - pos[j].x, y - pos[j].y))
+                }
+                if (!best || dmin > best.dmin) best = { x, y, dmin }
+            }
+        }
+        if (best) {
+            p.x = best.x
+            p.y = best.y
+        }
+    }
+
     return pos.map(
         (p, i): StampPlacement => ({
             badge: { code: sorted[i].code, iconUrl: getBadgeIcon(sorted[i].code) },
