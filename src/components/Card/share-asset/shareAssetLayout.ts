@@ -328,27 +328,41 @@ export function placeStamps(
 
     // ── Deadlock rescue. A keep-out that hugs a canvas edge (the ENS asset's
     //    corner marks) can trap a sticker: the ellipse shove points off-canvas
-    //    and the hard clamp shoves it straight back inside. Any sticker still
-    //    violating a keep-out after the solver is re-seated on the best clear
-    //    point of a coarse grid — keep-out-free, then farthest from its
-    //    neighbours. The card asset's small interior keep-outs never trigger it.
-    const violates = (x: number, y: number): boolean =>
-        keepouts.some((ko) => Math.hypot((x - ko.cx) / (ko.rx + half), (y - ko.cy) / (ko.ry + half)) < 1) ||
-        hitsPill(x, y, half, pill)
+    //    and the hard clamp shoves it straight back inside, so the sticker
+    //    settles dead-centre on the protected mark. Only SEVERE violations are
+    //    rescued (centre well inside the inflated ellipse) — big text-core
+    //    keep-outs leave no perfectly-clean spot at all, and mild spike-overlap
+    //    at the canvas corners is the collage look, not a defect. The trapped
+    //    sticker moves to the grid point maximising keep-out clearance, with a
+    //    spacing bonus so two rescued stickers don't stack. The card asset's
+    //    small interior keep-outs never trigger this.
+    const RESCUE_BELOW = 0.7
+    const clearance = (x: number, y: number): number => {
+        let c = Infinity
+        for (const ko of keepouts) {
+            c = Math.min(c, Math.hypot((x - ko.cx) / (ko.rx + half), (y - ko.cy) / (ko.ry + half)))
+        }
+        if (hitsPill(x, y, half, pill)) c = 0
+        return c
+    }
     for (let i = 0; i < count; i++) {
         const p = pos[i]
-        if (!violates(p.x, p.y)) continue
-        let best: { x: number; y: number; dmin: number } | null = null
+        if (clearance(p.x, p.y) >= RESCUE_BELOW) continue
+        let best: { x: number; y: number; score: number } | null = null
         for (let gx = 0; gx <= 20; gx++) {
             for (let gy = 0; gy <= 15; gy++) {
                 const x = minC + (gx / 20) * (maxCx - minC)
                 const y = minC + (gy / 15) * (maxCy - minC)
-                if (violates(x, y)) continue
                 let dmin = Infinity
                 for (let j = 0; j < count; j++) {
                     if (j !== i) dmin = Math.min(dmin, Math.hypot(x - pos[j].x, y - pos[j].y))
                 }
-                if (!best || dmin > best.dmin) best = { x, y, dmin }
+                // Any sticker-clear candidate outranks every overlapping one —
+                // a linear spacing bonus loses to clearance gaps and stacks
+                // two rescued stickers on the same best corner.
+                const tier = dmin >= minDist ? 1000 : 0
+                const score = tier + Math.min(clearance(x, y), 1.2) + Math.min(dmin / 2000, 0.5)
+                if (!best || score > best.score) best = { x, y, score }
             }
         }
         if (best) {
