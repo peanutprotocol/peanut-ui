@@ -167,4 +167,31 @@ describe('usePaymentNetworkExplorer', () => {
         expect(fetchPaymentNetwork).toHaveBeenCalledTimes(1)
         expect(fetchPaymentNetwork).toHaveBeenCalledWith(nextRequest, expect.any(AbortSignal))
     })
+
+    it('retains a resolved shared session when every initiating load was superseded', async () => {
+        let resolveSession!: (value: ReturnType<typeof session>) => void
+        jest.mocked(createExplorerSession).mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    resolveSession = resolve
+                })
+        )
+        const nextRequest = { ...request, rails: ['ACH_US'] }
+        const { result, rerender } = renderHook(
+            ({ currentRequest }: { currentRequest: ExplorerRequest | null }) =>
+                usePaymentNetworkExplorer(currentRequest),
+            { initialProps: { currentRequest: request as ExplorerRequest | null } }
+        )
+
+        await waitFor(() => expect(createExplorerSession).toHaveBeenCalledTimes(1))
+        rerender({ currentRequest: null })
+        act(() => resolveSession(session()))
+        await waitFor(() => expect(result.current.session).not.toBeNull())
+
+        rerender({ currentRequest: nextRequest })
+        await waitFor(() => expect(result.current.status).toBe('ready'))
+        expect(createExplorerSession).toHaveBeenCalledTimes(1)
+        expect(fetchPaymentNetwork).toHaveBeenCalledTimes(1)
+        expect(fetchPaymentNetwork).toHaveBeenCalledWith(nextRequest, expect.any(AbortSignal))
+    })
 })

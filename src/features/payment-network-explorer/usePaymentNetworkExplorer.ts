@@ -47,6 +47,14 @@ export function usePaymentNetworkExplorer(request: ExplorerRequest | null): Paym
     const [reloadKey, setReloadKey] = useState(0)
     const sessionRef = useRef<ExplorerSession | null>(null)
     const sessionRequestRef = useRef<Promise<ExplorerSession> | null>(null)
+    const mountedRef = useRef(false)
+
+    useEffect(() => {
+        mountedRef.current = true
+        return () => {
+            mountedRef.current = false
+        }
+    }, [])
 
     const setCurrentSession = useCallback((next: ExplorerSession | null) => {
         sessionRef.current = next
@@ -59,21 +67,24 @@ export function usePaymentNetworkExplorer(request: ExplorerRequest | null): Paym
             let pending = !force ? sessionRequestRef.current : null
             if (!pending) {
                 // A deduplicated request must outlive any one effect caller. Each
-                // waiter applies its own liveness check after the shared request.
-                pending = createExplorerSession()
-                sessionRequestRef.current = pending
-                void pending.then(
-                    () => {
-                        if (sessionRequestRef.current === pending) sessionRequestRef.current = null
+                // waiter applies its own liveness check after the shared request,
+                // while the mounted hook owns the resulting session.
+                const created = createExplorerSession()
+                pending = created
+                sessionRequestRef.current = created
+                void created.then(
+                    (next) => {
+                        if (sessionRequestRef.current !== created) return
+                        if (mountedRef.current) setCurrentSession(next)
+                        sessionRequestRef.current = null
                     },
                     () => {
-                        if (sessionRequestRef.current === pending) sessionRequestRef.current = null
+                        if (sessionRequestRef.current === created) sessionRequestRef.current = null
                     }
                 )
             }
             const next = await pending
             if (signal?.aborted) throw new PaymentNetworkApiError('Request superseded.', 408, 'ABORTED')
-            setCurrentSession(next)
             return next
         },
         [setCurrentSession]
