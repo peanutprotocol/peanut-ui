@@ -32,6 +32,7 @@ const MantecaDepositShareDetails = ({
 }) => {
     const params = useParams()
     const t = useTranslations('addMoney')
+    const tCommon = useTranslations('common')
     const currentCountryName = params.country as string
 
     const currentCountryDetails = useMemo(() => {
@@ -152,8 +153,8 @@ const MantecaDepositShareDetails = ({
                         moreInfoText={t('manteca.providerFeesInfo')}
                     />
                     <PaymentInfoRow
-                        label={t('manteca.peanutFee')}
-                        value={t('manteca.sponsoredByPeanut')}
+                        label={tCommon('peanutFee')}
+                        value={tCommon('sponsoredByPeanut')}
                         hideBottomBorder
                     />
                 </Card>

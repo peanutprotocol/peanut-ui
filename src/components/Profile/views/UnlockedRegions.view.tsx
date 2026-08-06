@@ -328,7 +328,7 @@ const UnlockedRegions = () => {
                 visible={!!flow.error && !errorAcknowledged}
                 onClose={() => setErrorAcknowledged(true)}
                 title={failedRegionRetriable ? t('initError.retriableTitle') : t('initError.notAvailableTitle')}
-                description={flow.error || t('initError.fallbackDescription')}
+                description={flow.error || tCommon('genericError')}
                 icon="alert"
                 iconContainerClassName="bg-yellow-1"
                 ctas={

@@ -39,6 +39,7 @@ export const ConfirmClaimLinkView = ({
 }: _consts.IClaimScreenProps) => {
     const t = useTranslations('claim')
     const tNav = useTranslations('navigation')
+    const tCommon = useTranslations('common')
     const toFriendlyError = useFriendlyError()
     const { address } = useWallet()
     const { user } = useAuth()
@@ -79,7 +80,7 @@ export const ConfirmClaimLinkView = ({
     }, [selectedRoute, resolvedTokenSymbol])
 
     // Network fee display – always sponsored in this flow
-    const networkFeeDisplay: string = t('confirm.sponsoredByPeanut')
+    const networkFeeDisplay: string = tCommon('sponsoredByPeanut')
 
     const handleOnClaim = async () => {
         if (!recipient) {
@@ -240,7 +241,7 @@ export const ConfirmClaimLinkView = ({
                         <PaymentInfoRow label={t('confirm.maxNetworkFee')} value={networkFeeDisplay} />
 
                         {/* Peanut fee row */}
-                        <PaymentInfoRow label={t('confirm.peanutFee')} value={'$ 0.00'} hideBottomBorder />
+                        <PaymentInfoRow label={tCommon('peanutFee')} value={'$ 0.00'} hideBottomBorder />
                     </Card>
                 )}
 

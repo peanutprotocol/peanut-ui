@@ -31,6 +31,7 @@ interface EasterEggModalProps {
 
 const EasterEggModal = ({ visible, onClose, countryCode }: EasterEggModalProps) => {
     const t = useTranslations('global')
+    const tCommon = useTranslations('common')
     const config = EASTER_EGG_COUNTRIES[countryCode]
     // Spelled out rather than built from a template key so next-intl's typed messages still check them.
     const copy: Record<string, { caption: string; subtitle: string }> = {
@@ -65,7 +66,7 @@ const EasterEggModal = ({ visible, onClose, countryCode }: EasterEggModalProps) 
             iconContainerClassName="size-auto rounded-none bg-transparent w-full"
             ctas={[
                 {
-                    text: t('easterEggModal.gotItCta'),
+                    text: tCommon('gotIt'),
                     variant: 'stroke',
                     shadowSize: '4',
                     onClick: onClose,

@@ -12,6 +12,7 @@ import DocsLink from '@/components/Global/DocsLink'
  */
 const RainCooldownIntroModal = () => {
     const t = useTranslations('global')
+    const tCommon = useTranslations('common')
     const { showIntroModal, dismissIntroModal } = useRainCooldown()
     // Don't gate on cooldownEndsAt — if the cooldown auto-clears while the
     // modal is still open, ActionModal needs its own `visible=false` cycle
@@ -27,7 +28,7 @@ const RainCooldownIntroModal = () => {
             description={t('rainCooldownIntroModal.description')}
             ctas={[
                 {
-                    text: t('rainCooldownIntroModal.gotItCta'),
+                    text: tCommon('gotIt'),
                     variant: 'purple',
                     shadowSize: '4',
                     onClick: dismissIntroModal,

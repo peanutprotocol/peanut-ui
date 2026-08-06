@@ -165,12 +165,12 @@ function ScanRegionOverlay({
 }
 
 function ErrorView({ message, onClose }: { message: string; onClose: () => void }) {
-    const t = useTranslations('global')
+    const tCommon = useTranslations('common')
     return (
         <div className="p-4 text-center text-white">
             <p className="text-red-500">{message}</p>
             <button onClick={onClose} className="mt-4 rounded bg-white px-4 py-2 text-black">
-                {t('qrScanner.close')}
+                {tCommon('close')}
             </button>
         </div>
     )

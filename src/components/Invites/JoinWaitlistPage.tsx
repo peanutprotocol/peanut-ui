@@ -198,7 +198,7 @@ const JoinWaitlistPage = () => {
         try {
             const success = await acceptInviteWithCode(inviteCode, 'waitlist_page')
             if (!success) {
-                setError(t('acceptFailed'))
+                setError(tCommon('genericError'))
             }
         } catch {
             posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
@@ -206,7 +206,7 @@ const JoinWaitlistPage = () => {
                 error_message: 'Exception during invite acceptance',
                 source: 'waitlist_page',
             })
-            setError(t('acceptFailed'))
+            setError(tCommon('genericError'))
         } finally {
             setIsAccepting(false)
         }
