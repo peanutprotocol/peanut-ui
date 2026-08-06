@@ -4,14 +4,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { startBridgeHostedVerification } from '@/app/actions/sumsub'
 import { Button } from '@/components/0_Bruddle/Button'
 import Carousel from '@/components/Global/Carousel'
-import IframeWrapper from '@/components/Global/IframeWrapper'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { useAuth } from '@/context/authContext'
-import { confirmBridgeTosAndAwaitRails } from '@/hooks/useMultiPhaseKycFlow'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import type { NextAction } from '@/types/capabilities'
 import { bridgeTaskDismissalKey, selectBridgeTasks } from '@/utils/bridge-tasks.utils'
+import { openExternalUrl } from '@/utils/capacitor'
 import { formatEffectiveDate } from '@/utils/format.utils'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import Card from '../Global/Card'
@@ -55,10 +54,10 @@ function taskCopy(task: NextAction): { title: string; description: string } {
  * as full-width horizontal carousel slides (same embla setup as
  * HomeCarouselCTA); a single task looks identical to a static card.
  *
- * Open flows are SNAPSHOTTED at tap time: the task list re-derives from every
- * user refetch (~4s auto-refresh while rails are pending), and an open
- * modal/iframe must survive its task disappearing mid-flow — the card hides,
- * the flow keeps running.
+ * The ToS flow is SNAPSHOTTED at tap time: the task list re-derives from every
+ * user refetch (~4s auto-refresh while rails are pending), and the open modal
+ * must survive its task disappearing mid-flow — the card hides, the flow keeps
+ * running. The hosted flow leaves the app entirely (see handleOpenTask).
  *
  * `dismissible` (the /home mount): each ADVISORY (future-dated) slide carries
  * its own X that dismisses ONLY that task — the other slides stay. Dismissals
@@ -73,8 +72,8 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
     const { nextActions } = useCapabilities()
     const { user, fetchUser } = useAuth()
     const [activeTosTask, setActiveTosTask] = useState<NextAction | null>(null)
-    const [hostedUrl, setHostedUrl] = useState<string | null>(null)
     const [isStartingHosted, setIsStartingHosted] = useState(false)
+    const [awaitingReturn, setAwaitingReturn] = useState(false)
     const [error, setError] = useState<string | null>(null)
     // Stored dismissals, tagged with the user they were loaded for
     // (localStorage is unreadable during SSR, hence the post-render effect).
@@ -153,41 +152,38 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                 void fetchUser()
                 return
             }
-            setHostedUrl(url)
+            // NOT an iframe: `bridge.withpersona.com` serves
+            // `X-Frame-Options: SAMEORIGIN`, so embedding it rendered
+            // "refused to connect" for EVERY user. It has to be a real
+            // top-level page (native: the in-app browser). Bridge's ToS link
+            // (`compliance.bridge.xyz`) sends no framing header, which is why
+            // BridgeTosStep keeps its iframe.
+            await openExternalUrl(url)
+            setAwaitingReturn(true)
         },
         [fetchUser]
     )
 
-    const handleHostedClose = useCallback(
-        (source?: 'manual' | 'completed' | 'tos_accepted') => {
-            // Bridge's hosted kyc_link flow can EMBED a ToS-acceptance step
-            // before the identity steps — exactly for this cohort, which owes
-            // both. The wrapper maps that step's signedAgreementId postMessage
-            // to 'tos_accepted'; treating it as a close would kill the
-            // verification mid-flow. Keep the iframe open and CONFIRM the
-            // acceptance to the backend — fetchUser alone re-reads stored
-            // state (the resolver is pure, no Bridge calls), so without the
-            // confirm POST the accept-tos task stays visible until a Bridge
-            // webhook lands and tapping it 409s "already accepted". Same
-            // canonical path as BridgeTosStep / useMultiPhaseKycFlow; it
-            // refetches the user itself. Only 'completed' / 'manual' close.
-            if (source === 'tos_accepted') {
-                void confirmBridgeTosAndAwaitRails(fetchUser).catch(() => void fetchUser())
-                return
-            }
-            setHostedUrl(null)
-            if (source === 'completed') {
-                // Bridge re-checks the customer asynchronously — refresh so the
-                // task clears as soon as the capability model catches up.
-                void fetchUser()
-            }
-        },
-        [fetchUser]
-    )
+    // Nothing polls for this cohort — the ~4s user auto-refresh only runs
+    // while a rail is `pending`, and these are `requires-info` — so pick the
+    // result up when the user comes back from the hosted flow.
+    useEffect(() => {
+        if (!awaitingReturn) return
+        const onReturn = () => {
+            if (document.visibilityState !== 'visible') return
+            // Detach here, not just on the state flip: the re-render is async,
+            // so a second visibility event could otherwise refetch twice.
+            document.removeEventListener('visibilitychange', onReturn)
+            setAwaitingReturn(false)
+            void fetchUser()
+        }
+        document.addEventListener('visibilitychange', onReturn)
+        return () => document.removeEventListener('visibilitychange', onReturn)
+    }, [awaitingReturn, fetchUser])
 
     const closeTos = useCallback(() => setActiveTosTask(null), [])
 
-    if (visibleTasks.length === 0 && !activeTosTask && !hostedUrl) return null
+    if (visibleTasks.length === 0 && !activeTosTask) return null
 
     return (
         <>
@@ -255,8 +251,6 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                     }
                 />
             )}
-
-            {hostedUrl && <IframeWrapper src={hostedUrl} visible onClose={handleHostedClose} />}
         </>
     )
 }

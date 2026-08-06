@@ -5,9 +5,11 @@
  * Reads top-level capability nextActions (not rail gates) so it catches both
  * blocking tasks and advisory orphans (future-dated tasks on fully-enabled
  * users, which no rail references). accept-tos routes into the existing
- * BridgeTosStep; bridge-hosted exchanges the key for a hosted URL and opens
- * it in the IframeWrapper. Open flows are snapshotted at tap time so they
- * survive the task list flapping under the ~4s user auto-refresh.
+ * BridgeTosStep (its compliance.bridge.xyz link frames fine); bridge-hosted
+ * exchanges the key for a Persona URL and opens it in an EXTERNAL browser —
+ * bridge.withpersona.com sends X-Frame-Options: SAMEORIGIN and cannot be
+ * embedded. The ToS modal is snapshotted at tap time so it survives the task
+ * list flapping under the ~4s user auto-refresh.
  */
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
@@ -34,24 +36,13 @@ jest.mock('@/utils/general.utils', () => ({
 jest.mock('@/app/actions/sumsub', () => ({
     startBridgeHostedVerification: () => mockStartHosted(),
 }))
-const mockConfirmTos = jest.fn<Promise<void>, [unknown]>()
-jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
-    confirmBridgeTosAndAwaitRails: (fetchUser: () => Promise<unknown>) => mockConfirmTos(fetchUser),
-}))
 jest.mock('@/components/Kyc/BridgeTosStep', () => ({
     BridgeTosStep: (props: { visible: boolean; reasonCode?: string }) =>
         props.visible ? <div data-testid="tos-step">{props.reasonCode}</div> : null,
 }))
-jest.mock('@/components/Global/IframeWrapper', () => ({
-    __esModule: true,
-    default: (props: { src: string; visible: boolean; onClose: (source?: string) => void }) =>
-        props.visible ? (
-            <div data-testid="hosted-iframe" data-src={props.src}>
-                <button onClick={() => props.onClose('completed')}>finish</button>
-                <button onClick={() => props.onClose('manual')}>close</button>
-                <button onClick={() => props.onClose('tos_accepted')}>accept-embedded-tos</button>
-            </div>
-        ) : null,
+const mockOpenExternalUrl = jest.fn<Promise<void>, [string]>()
+jest.mock('@/utils/capacitor', () => ({
+    openExternalUrl: (url: string) => mockOpenExternalUrl(url),
 }))
 
 const tosAction: NextAction = { key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' }
@@ -72,8 +63,8 @@ describe('PendingVerificationTasks', () => {
         mockNextActions = []
         mockFetchUser.mockReset()
         mockStartHosted.mockReset()
-        mockConfirmTos.mockReset()
-        mockConfirmTos.mockResolvedValue(undefined)
+        mockOpenExternalUrl.mockReset()
+        mockOpenExternalUrl.mockResolvedValue(undefined)
         mockStoredDismissal = undefined
         mockUpdatePreferences.mockReset()
         mockUserId = 'user-1'
@@ -106,7 +97,9 @@ describe('PendingVerificationTasks', () => {
         expect(screen.getByTestId('tos-step')).toHaveTextContent('bridge_tos_v2_required')
     })
 
-    it('bridge-hosted task fetches the hosted URL, opens the iframe, and refreshes the user on completion', async () => {
+    it('bridge-hosted opens the Persona URL in an EXTERNAL browser, never an iframe', async () => {
+        // bridge.withpersona.com sends X-Frame-Options: SAMEORIGIN — embedding
+        // it rendered "refused to connect" for every user in prod.
         mockNextActions = [hostedAction]
         mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
         render(<PendingVerificationTasks />)
@@ -114,44 +107,33 @@ describe('PendingVerificationTasks', () => {
         expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
 
-        const iframe = await screen.findByTestId('hosted-iframe')
-        expect(iframe).toHaveAttribute('data-src', 'https://bridge.withpersona.com/verify?x=1')
-
-        fireEvent.click(screen.getByText('finish'))
-        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
-        expect(screen.queryByTestId('hosted-iframe')).not.toBeInTheDocument()
+        await waitFor(() =>
+            expect(mockOpenExternalUrl).toHaveBeenCalledWith('https://bridge.withpersona.com/verify?x=1')
+        )
+        expect(document.querySelector('iframe')).toBeNull()
     })
 
-    it('an open hosted iframe SURVIVES its task disappearing from nextActions (auto-refresh flap)', async () => {
-        mockNextActions = [hostedAction]
-        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
-        const { rerender } = render(<PendingVerificationTasks />)
-
-        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        await screen.findByTestId('hosted-iframe')
-
-        // Bridge reclassifies mid-flow → the task vanishes on the next refetch.
-        mockNextActions = []
-        rerender(<PendingVerificationTasks />)
-
-        expect(screen.queryByText('Additional verification needed')).not.toBeInTheDocument()
-        expect(screen.getByTestId('hosted-iframe')).toBeInTheDocument()
-
-        fireEvent.click(screen.getByText('close'))
-        expect(screen.queryByTestId('hosted-iframe')).not.toBeInTheDocument()
-    })
-
-    it('manual iframe close does not refetch the user', async () => {
+    it('refetches the user when they come back to the app (nothing polls a requires-info rail)', async () => {
         mockNextActions = [hostedAction]
         mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
         render(<PendingVerificationTasks />)
 
         fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        await screen.findByTestId('hosted-iframe')
-        fireEvent.click(screen.getByText('close'))
-
-        expect(screen.queryByTestId('hosted-iframe')).not.toBeInTheDocument()
+        await waitFor(() => expect(mockOpenExternalUrl).toHaveBeenCalled())
         expect(mockFetchUser).not.toHaveBeenCalled()
+
+        // Leaving the app fires visibilitychange too — only the return refetches.
+        Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+        document.dispatchEvent(new Event('visibilitychange'))
+        expect(mockFetchUser).not.toHaveBeenCalled()
+
+        Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+        document.dispatchEvent(new Event('visibilitychange'))
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+
+        // One-shot: the listener removes itself, so later returns don't spam.
+        document.dispatchEvent(new Event('visibilitychange'))
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
     })
 
     it('start-action failure surfaces FRIENDLY copy (never the raw server error) and resyncs the user', async () => {
@@ -162,45 +144,8 @@ describe('PendingVerificationTasks', () => {
         fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
         expect(await screen.findByText(/couldn't start the verification/i)).toBeInTheDocument()
         expect(screen.queryByText('Action not allowed for this user')).not.toBeInTheDocument()
-        expect(screen.queryByTestId('hosted-iframe')).not.toBeInTheDocument()
+        expect(mockOpenExternalUrl).not.toHaveBeenCalled()
         expect(mockFetchUser).toHaveBeenCalledTimes(1)
-    })
-
-    it('an EMBEDDED ToS step inside the hosted flow CONFIRMS to the backend and does NOT close the iframe', async () => {
-        mockNextActions = [hostedAction]
-        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
-        render(<PendingVerificationTasks />)
-
-        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        await screen.findByTestId('hosted-iframe')
-
-        // Bridge's hosted kyc_link flow can open with a ToS-acceptance page;
-        // its signedAgreementId postMessage maps to onClose('tos_accepted').
-        // A bare fetchUser would NOT record the acceptance (the resolver is
-        // pure) — the canonical confirm path must run, and it refetches.
-        fireEvent.click(screen.getByText('accept-embedded-tos'))
-        expect(screen.getByTestId('hosted-iframe')).toBeInTheDocument()
-        await waitFor(() => expect(mockConfirmTos).toHaveBeenCalledTimes(1))
-        expect(mockConfirmTos).toHaveBeenCalledWith(mockFetchUser)
-
-        // The user then finishes the identity steps — completion still closes.
-        fireEvent.click(screen.getByText('finish'))
-        expect(screen.queryByTestId('hosted-iframe')).not.toBeInTheDocument()
-        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
-    })
-
-    it('a failed embedded-ToS confirm still resyncs the user and keeps the flow alive', async () => {
-        mockNextActions = [hostedAction]
-        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
-        mockConfirmTos.mockRejectedValue(new Error('confirm blew up'))
-        render(<PendingVerificationTasks />)
-
-        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        await screen.findByTestId('hosted-iframe')
-
-        fireEvent.click(screen.getByText('accept-embedded-tos'))
-        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
-        expect(screen.getByTestId('hosted-iframe')).toBeInTheDocument()
     })
 
     it('advisory task renders its deadline and keep-access copy; blocking renders enable copy', () => {
