@@ -100,7 +100,7 @@ export default function RelationshipTable({ nodes, relationships, selectedId, on
                                 <tr
                                     key={relationship.id}
                                     tabIndex={0}
-                                    aria-selected={selected}
+                                    aria-current={selected ? 'true' : undefined}
                                     onClick={() => onSelect(relationship)}
                                     onKeyDown={(event) => {
                                         if (event.key === 'Enter' || event.key === ' ') {

@@ -35,12 +35,17 @@ describe('server and edge payment explorer Sentry guard', () => {
 
     it.each(['sentry.server.config', 'sentry.edge.config'])('wires both route-aware hooks in %s', (moduleName) => {
         const previousNodeEnv = process.env.NODE_ENV
-        Object.defineProperty(process.env, 'NODE_ENV', { configurable: true, value: 'production' })
+        const setNodeEnv = (value: string | undefined) =>
+            Object.defineProperty(process.env, 'NODE_ENV', { configurable: true, value, writable: true })
+        setNodeEnv('production')
         mockSentryInit.mockClear()
-        jest.isolateModules(() => {
-            require(`../../../../${moduleName}.ts`)
-        })
-        Object.defineProperty(process.env, 'NODE_ENV', { configurable: true, value: previousNodeEnv })
+        try {
+            jest.isolateModules(() => {
+                require(`../../../../${moduleName}.ts`)
+            })
+        } finally {
+            setNodeEnv(previousNodeEnv)
+        }
 
         const options = mockSentryInit.mock.calls[0]?.[0]
         expect(options?.beforeSend).toEqual(expect.any(Function))

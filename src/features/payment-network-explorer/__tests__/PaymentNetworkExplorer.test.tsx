@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { defaultExplorerFilters } from '../query'
 import { useDesktopViewport } from '../useDesktopViewport'
 import { useExplorerUrlState } from '../useExplorerUrlState'
@@ -143,6 +143,7 @@ describe('PaymentNetworkExplorer surface boundary', () => {
         expect(root).toHaveClass('ph-no-capture')
         expect(root).toHaveAttribute('data-private', 'true')
         expect(root).toHaveAttribute('data-sentry-mask')
+        expect(screen.getByRole('group', { name: 'Explorer view' })).toBeInTheDocument()
         expect(mockGraphProps?.nodes).toBe(data.nodes)
         expect(mockGraphProps?.relationships).toBe(data.relationships)
         expect(mockInspectorProps?.nodes).toBe(data.nodes)
@@ -155,6 +156,37 @@ describe('PaymentNetworkExplorer surface boundary', () => {
         expect(screen.getByText('Open on a desktop')).toBeInTheDocument()
         expect(usePaymentNetworkExplorer).toHaveBeenCalledWith(null)
         expect(mockGraphProps).toBeNull()
+    })
+
+    it('preserves a failed username query so the operator can correct it', async () => {
+        const focusUsername = jest.fn().mockRejectedValue(new Error('not found'))
+        jest.mocked(useDesktopViewport).mockReturnValue({ ready: true, isDesktop: true })
+        jest.mocked(usePaymentNetworkExplorer).mockReturnValue(
+            explorerState({ focusUsername }) as ReturnType<typeof usePaymentNetworkExplorer>
+        )
+        render(<PaymentNetworkExplorer />)
+
+        const input = screen.getByRole('textbox', { name: 'Search by Peanut username' })
+        fireEvent.change(input, { target: { value: 'alicia' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Find' }))
+
+        await screen.findByRole('alert')
+        expect(input).toHaveValue('alicia')
+    })
+
+    it('exposes the current relationship row with static-table semantics', async () => {
+        jest.mocked(useDesktopViewport).mockReturnValue({ ready: true, isDesktop: true })
+        jest.mocked(useExplorerUrlState).mockReturnValue({
+            filters: { ...defaultExplorerFilters(), view: 'table' },
+            setFilters: jest.fn(),
+        })
+        render(<PaymentNetworkExplorer />)
+
+        const row = screen.getByText('PEANUT_DIRECT').closest('tr')
+        expect(row).not.toHaveAttribute('aria-current')
+        fireEvent.click(row!)
+        await waitFor(() => expect(row).toHaveAttribute('aria-current', 'true'))
+        expect(row).not.toHaveAttribute('aria-selected')
     })
 
     it('scrubs legacy credentials before any graph read and exchanges username only through focus', async () => {

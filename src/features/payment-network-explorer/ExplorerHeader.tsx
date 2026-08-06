@@ -8,7 +8,7 @@ interface ExplorerHeaderProps {
     searching: boolean
     searchError: string | null
     onViewChange: (view: ExplorerView) => void
-    onSearch: (username: string) => Promise<void>
+    onSearch: (username: string) => Promise<boolean>
 }
 
 export default function ExplorerHeader({ view, searching, searchError, onViewChange, onSearch }: ExplorerHeaderProps) {
@@ -26,7 +26,11 @@ export default function ExplorerHeader({ view, searching, searchError, onViewCha
             </div>
             <SearchBox busy={searching} error={searchError} onSearch={onSearch} />
             <div className="flex items-center justify-end gap-3">
-                <div className="inline-flex rounded-sm border border-n-1 bg-[#f3efe9] p-0.5" aria-label="Explorer view">
+                <div
+                    role="group"
+                    className="inline-flex rounded-sm border border-n-1 bg-[#f3efe9] p-0.5"
+                    aria-label="Explorer view"
+                >
                     {(['graph', 'table'] as const).map((option) => (
                         <button
                             key={option}

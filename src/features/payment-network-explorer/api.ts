@@ -40,7 +40,8 @@ function requestSignal(external?: AbortSignal): { signal: AbortSignal; cleanup: 
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
     const abort = () => controller.abort()
-    external?.addEventListener('abort', abort, { once: true })
+    if (external?.aborted) controller.abort()
+    else external?.addEventListener('abort', abort, { once: true })
     return {
         signal: controller.signal,
         cleanup: () => {
@@ -60,6 +61,7 @@ async function requestJson<T extends { contractVersion: string }>(
     if (authenticateWithBearer) await authReady()
     const { signal, cleanup } = requestSignal(externalSignal)
     try {
+        if (signal.aborted) throw new DOMException('Aborted', 'AbortError')
         const requestHeaders = {
             Accept: expectedContentType,
             ...(options.body ? { 'Content-Type': 'application/json' } : {}),

@@ -12,11 +12,20 @@ jest.mock('posthog-js', () => ({
     default: {
         stopSessionRecording: jest.fn(),
         set_config: jest.fn(),
+        opt_out_capturing: jest.fn(),
     },
 }))
 
 const stopReplay = jest.fn().mockResolvedValue(undefined)
 const closeClient = jest.fn().mockResolvedValue(undefined)
+
+const storageSnapshot = (storage: Storage): Record<string, string | null> =>
+    Object.fromEntries(
+        Array.from({ length: storage.length }, (_, index) => {
+            const key = storage.key(index)!
+            return [key, storage.getItem(key)]
+        })
+    )
 
 jest.mock('@sentry/nextjs', () => ({
     getClient: jest.fn(() => ({
@@ -45,8 +54,8 @@ describe('payment explorer privacy boundary', () => {
     })
 
     it('stops capture and replay without persisting an analytics opt-out', () => {
-        const localBefore = { ...window.localStorage }
-        const sessionBefore = { ...window.sessionStorage }
+        const localBefore = storageSnapshot(window.localStorage)
+        const sessionBefore = storageSnapshot(window.sessionStorage)
         const cookieBefore = document.cookie
         suppressPaymentNetworkTelemetry('/dev/payment-graph')
 
@@ -60,10 +69,15 @@ describe('payment explorer privacy boundary', () => {
         expect(Sentry.getClient).toHaveBeenCalledTimes(1)
         expect(stopReplay).toHaveBeenCalledTimes(1)
         expect(closeClient).toHaveBeenCalledWith(0)
-        expect({ ...window.localStorage }).toEqual(localBefore)
-        expect({ ...window.sessionStorage }).toEqual(sessionBefore)
+        expect(storageSnapshot(window.localStorage)).toEqual(localBefore)
+        expect(storageSnapshot(window.sessionStorage)).toEqual(sessionBefore)
+        expect(localBefore).toEqual({ 'existing-local': 'keep' })
+        expect(sessionBefore).toEqual({ 'existing-session': 'keep' })
         expect(document.cookie).toBe(cookieBefore)
-        expect('opt_out_capturing' in posthog).toBe(false)
+        expect(posthog.opt_out_capturing).not.toHaveBeenCalled()
+        expect(posthog.set_config).not.toHaveBeenCalledWith(
+            expect.objectContaining({ opt_out_capturing_by_default: true })
+        )
     })
 
     it('does nothing outside the explorer and is idempotent inside it', () => {

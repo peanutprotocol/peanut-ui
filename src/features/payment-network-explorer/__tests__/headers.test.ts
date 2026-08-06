@@ -35,6 +35,7 @@ describe('payment explorer document headers', () => {
         expect(reportOnly?.value).not.toContain('report-uri')
         expect(reportOnly?.value).not.toContain('report-to')
         expect(reportingEndpoints?.value).toBe('csp-disabled="/api/csp-report-disabled"')
+        expect(reportingEndpoints?.value ?? '').not.toMatch(/\/api\/csp-report(?=$|["'\s,])/)
         consoleLog.mockRestore()
     })
 

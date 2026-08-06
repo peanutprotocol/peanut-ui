@@ -95,6 +95,7 @@ describe('usePaymentNetworkExplorer', () => {
         await waitFor(() => expect(result.current.status).toBe('ready'))
         expect(result.current.data).toBe(data)
         expect(createExplorerSession).toHaveBeenCalledTimes(1)
+        expect(createExplorerSession).toHaveBeenCalledWith()
         expect(fetchPaymentNetwork).toHaveBeenCalledWith(request, expect.any(AbortSignal))
         expect(jest.mocked(createExplorerSession).mock.invocationCallOrder[0]).toBeLessThan(
             jest.mocked(fetchPaymentNetwork).mock.invocationCallOrder[0]
@@ -140,5 +141,30 @@ describe('usePaymentNetworkExplorer', () => {
         expect(createExplorerSession).toHaveBeenCalledTimes(1)
         expect(createExplorerFocus).toHaveBeenCalledWith('alice')
         expect(revealExplorerNode).toHaveBeenCalledWith('token', 'SUPPORT_CASE')
+    })
+
+    it('keeps a shared session request alive when the first load is superseded', async () => {
+        let resolveSession!: (value: ReturnType<typeof session>) => void
+        jest.mocked(createExplorerSession).mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    resolveSession = resolve
+                })
+        )
+        const nextRequest = { ...request, providers: ['BRIDGE'] }
+        const { result, rerender } = renderHook(
+            ({ currentRequest }: { currentRequest: ExplorerRequest }) => usePaymentNetworkExplorer(currentRequest),
+            { initialProps: { currentRequest: request } }
+        )
+
+        await waitFor(() => expect(createExplorerSession).toHaveBeenCalledTimes(1))
+        rerender({ currentRequest: nextRequest })
+        act(() => resolveSession(session()))
+
+        await waitFor(() => expect(result.current.status).toBe('ready'))
+        expect(createExplorerSession).toHaveBeenCalledTimes(1)
+        expect(createExplorerSession).toHaveBeenCalledWith()
+        expect(fetchPaymentNetwork).toHaveBeenCalledTimes(1)
+        expect(fetchPaymentNetwork).toHaveBeenCalledWith(nextRequest, expect.any(AbortSignal))
     })
 })

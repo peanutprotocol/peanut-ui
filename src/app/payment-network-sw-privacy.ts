@@ -21,7 +21,14 @@ export function isSensitivePaymentNetworkUrl(url: URL | string): boolean {
 
 /** Delete only sensitive request entries; unrelated cache names and entries survive. */
 export async function purgeSensitivePaymentNetworkCacheEntries(cacheStorage: CacheStorage): Promise<number> {
-    const cacheNames = await cacheStorage.keys()
+    let cacheNames: readonly string[]
+    try {
+        cacheNames = await cacheStorage.keys()
+    } catch {
+        // A corrupt/unavailable CacheStorage must not reject service-worker
+        // activation and leave an older worker controlling sensitive routes.
+        return 0
+    }
     let deleted = 0
     for (const cacheName of cacheNames) {
         let cache: Cache

@@ -27,6 +27,60 @@ const REVEAL_REASONS: Array<{ value: RevealReason; label: string }> = [
     { value: 'OTHER', label: 'Other' },
 ]
 
+interface RevealFormProps {
+    node: ExplorerNode
+    revealing: boolean
+    onReveal: (node: ExplorerNode, reason: RevealReason) => Promise<void>
+}
+
+function RevealForm({ node, revealing, onReveal }: RevealFormProps) {
+    const [reason, setReason] = useState<RevealReason | ''>('')
+    const [revealError, setRevealError] = useState<string | null>(null)
+
+    return (
+        <form
+            className="mt-4 rounded-sm border border-n-1 bg-yellow-1 p-3"
+            onSubmit={(event) => {
+                event.preventDefault()
+                if (!reason || !node.revealToken) return
+                setRevealError(null)
+                void onReveal(node, reason).catch(() =>
+                    setRevealError('Identity could not be revealed. Try again or check your access.')
+                )
+            }}
+        >
+            <label className="block text-xs font-bold">
+                Reveal reason
+                <select
+                    value={reason}
+                    onChange={(event) => setReason(event.target.value as RevealReason | '')}
+                    className="mt-1 h-8 w-full rounded-sm border border-n-1 bg-white px-2 text-xs"
+                >
+                    <option value="">Select a reason</option>
+                    {REVEAL_REASONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                            {option.label}
+                        </option>
+                    ))}
+                </select>
+            </label>
+            <button
+                type="submit"
+                disabled={!reason || revealing}
+                className="mt-2 w-full rounded-sm border border-n-1 bg-white px-2 py-1.5 text-xs font-bold shadow-[2px_2px_0_#000] disabled:opacity-40"
+            >
+                {revealing ? 'Verifying…' : 'Verify & reveal'}
+            </button>
+            <p className="mt-2 text-[11px] text-grey-1">Passkey required · reveal is audited · expires in 5m</p>
+            {revealError && (
+                <p role="alert" className="mt-2 text-xs font-semibold text-red">
+                    {revealError}
+                </p>
+            )}
+        </form>
+    )
+}
+
 export default function Inspector({
     selection,
     nodes,
@@ -38,8 +92,6 @@ export default function Inspector({
     onSelectRelationship,
     onClear,
 }: InspectorProps) {
-    const [reason, setReason] = useState<RevealReason | ''>('')
-    const [revealError, setRevealError] = useState<string | null>(null)
     const nodesById = useMemo(() => nodeIndex(nodes), [nodes])
 
     if (!selection) {
@@ -117,50 +169,12 @@ export default function Inspector({
                         selection.node.labelVisibility === 'PSEUDONYMOUS' &&
                         selection.node.revealToken &&
                         revealed?.nodeId !== selection.node.id && (
-                            <form
-                                className="mt-4 rounded-sm border border-n-1 bg-yellow-1 p-3"
-                                onSubmit={(event) => {
-                                    event.preventDefault()
-                                    if (!reason || !selection.node.revealToken) return
-                                    setRevealError(null)
-                                    void onReveal(selection.node, reason).catch(() =>
-                                        setRevealError(
-                                            'Identity could not be revealed. Try again or check your access.'
-                                        )
-                                    )
-                                }}
-                            >
-                                <label className="block text-xs font-bold">
-                                    Reveal reason
-                                    <select
-                                        value={reason}
-                                        onChange={(event) => setReason(event.target.value as RevealReason | '')}
-                                        className="mt-1 h-8 w-full rounded-sm border border-n-1 bg-white px-2 text-xs"
-                                    >
-                                        <option value="">Select a reason</option>
-                                        {REVEAL_REASONS.map((option) => (
-                                            <option key={option.value} value={option.value}>
-                                                {option.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
-                                <button
-                                    type="submit"
-                                    disabled={!reason || revealing}
-                                    className="mt-2 w-full rounded-sm border border-n-1 bg-white px-2 py-1.5 text-xs font-bold shadow-[2px_2px_0_#000] disabled:opacity-40"
-                                >
-                                    {revealing ? 'Verifying…' : 'Verify & reveal'}
-                                </button>
-                                <p className="mt-2 text-[11px] text-grey-1">
-                                    Passkey required · reveal is audited · expires in 5m
-                                </p>
-                                {revealError && (
-                                    <p role="alert" className="mt-2 text-xs font-semibold text-red">
-                                        {revealError}
-                                    </p>
-                                )}
-                            </form>
+                            <RevealForm
+                                key={selection.node.id}
+                                node={selection.node}
+                                revealing={revealing}
+                                onReveal={onReveal}
+                            />
                         )}
 
                     <section className="mt-4" aria-labelledby="connections-heading">

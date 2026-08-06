@@ -29,10 +29,10 @@ import { usePaymentNetworkExplorer } from './usePaymentNetworkExplorer'
 export default function PaymentNetworkExplorer() {
     // This runs during render, before sensitive DOM commits or feature effects start.
     suppressPaymentNetworkTelemetry()
-    const [legacyUsername] = useState(() =>
-        typeof window === 'undefined' ? null : consumeLegacyGraphUsername(window.location, window.history)
-    )
-    const [legacyFocusPending, setLegacyFocusPending] = useState(Boolean(legacyUsername))
+    const [legacyUsername, setLegacyUsername] = useState<string | null>(null)
+    const [legacyParametersChecked, setLegacyParametersChecked] = useState(false)
+    const [legacyFocusPending, setLegacyFocusPending] = useState(false)
+    const legacyConsumed = useRef(false)
     const legacyFocusStarted = useRef(false)
     const [selection, setSelection] = useState<ExplorerSelection>(null)
     const [revealed, setRevealed] = useState<RevealResponse | null>(null)
@@ -54,6 +54,15 @@ export default function PaymentNetworkExplorer() {
         infrastructure,
         focus,
     } = filters
+
+    useEffect(() => {
+        if (legacyConsumed.current) return
+        legacyConsumed.current = true
+        const username = consumeLegacyGraphUsername(window.location, window.history)
+        setLegacyUsername(username)
+        setLegacyFocusPending(Boolean(username))
+        setLegacyParametersChecked(true)
+    }, [])
 
     const requestFilterKey = JSON.stringify({
         view: 'graph',
@@ -85,7 +94,9 @@ export default function PaymentNetworkExplorer() {
     }, [requestFilterKey])
 
     const request =
-        viewportReady && isDesktop && !legacyFocusPending && !requestResult.error ? requestResult.request : null
+        viewportReady && isDesktop && legacyParametersChecked && !legacyFocusPending && !requestResult.error
+            ? requestResult.request
+            : null
     const explorer = usePaymentNetworkExplorer(request)
 
     useEffect(() => {
@@ -166,13 +177,15 @@ export default function PaymentNetworkExplorer() {
         void setFilters(defaultExplorerFilters())
     }
 
-    const search = async (username: string) => {
+    const search = async (username: string): Promise<boolean> => {
         setSearchError(null)
         try {
             const result = await explorer.focusUsername(username)
             await setFilters({ focus: result.focusToken })
+            return true
         } catch (error) {
             setSearchError(safeSearchError(error))
+            return false
         }
     }
 

@@ -48,10 +48,11 @@ export default function ExplorerSummary({ data }: ExplorerSummaryProps) {
                     <InfoTooltip label="sampling">
                         {sampling.matchedSettledEventCount === 0
                             ? 'No settled events matched; coverage is shown as 0%.'
-                            : `${sampling.returnedSettledEventCount.toLocaleString()} of ${sampling.matchedSettledEventCount.toLocaleString()} matched settled events returned.`}{' '}
-                        {sampling.returnedNodes.toLocaleString()} of {sampling.totalNodes.toLocaleString()} nodes and{' '}
-                        {sampling.returnedRelationships.toLocaleString()} of{' '}
-                        {sampling.totalRelationships.toLocaleString()} relationships. {sampling.reason}
+                            : `${sampling.returnedSettledEventCount.toLocaleString('en-US')} of ${sampling.matchedSettledEventCount.toLocaleString('en-US')} matched settled events returned.`}{' '}
+                        {sampling.returnedNodes.toLocaleString('en-US')} of{' '}
+                        {sampling.totalNodes.toLocaleString('en-US')} nodes and{' '}
+                        {sampling.returnedRelationships.toLocaleString('en-US')} of{' '}
+                        {sampling.totalRelationships.toLocaleString('en-US')} relationships. {sampling.reason}
                     </InfoTooltip>
                 </span>
             )}

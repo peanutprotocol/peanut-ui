@@ -56,16 +56,25 @@ export function usePaymentNetworkExplorer(request: ExplorerRequest | null): Paym
     const ensureSession = useCallback(
         async (signal?: AbortSignal, force = false): Promise<ExplorerSession> => {
             if (!force && sessionIsFresh(sessionRef.current)) return sessionRef.current!
-            if (!force && sessionRequestRef.current) return sessionRequestRef.current
-            const pending = createExplorerSession(signal)
-            sessionRequestRef.current = pending
-            try {
-                const next = await pending
-                setCurrentSession(next)
-                return next
-            } finally {
-                if (sessionRequestRef.current === pending) sessionRequestRef.current = null
+            let pending = !force ? sessionRequestRef.current : null
+            if (!pending) {
+                // A deduplicated request must outlive any one effect caller. Each
+                // waiter applies its own liveness check after the shared request.
+                pending = createExplorerSession()
+                sessionRequestRef.current = pending
+                void pending.then(
+                    () => {
+                        if (sessionRequestRef.current === pending) sessionRequestRef.current = null
+                    },
+                    () => {
+                        if (sessionRequestRef.current === pending) sessionRequestRef.current = null
+                    }
+                )
             }
+            const next = await pending
+            if (signal?.aborted) throw new PaymentNetworkApiError('Request superseded.', 408, 'ABORTED')
+            setCurrentSession(next)
+            return next
         },
         [setCurrentSession]
     )
@@ -87,6 +96,7 @@ export function usePaymentNetworkExplorer(request: ExplorerRequest | null): Paym
             setStatus('loading')
             try {
                 await ensureSession(controller.signal)
+                if (!active || controller.signal.aborted) return
                 let next: PaymentNetworkResponse
                 try {
                     next = await fetchPaymentNetwork(request, controller.signal)

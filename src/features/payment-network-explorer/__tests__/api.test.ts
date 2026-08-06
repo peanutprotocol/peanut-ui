@@ -150,4 +150,14 @@ describe('payment explorer API isolation', () => {
             })
         )
     })
+
+    it('does not start a fetch for an already-aborted caller', async () => {
+        const controller = new AbortController()
+        controller.abort()
+
+        await expect(fetchPaymentNetwork(request, controller.signal)).rejects.toEqual(
+            expect.objectContaining<Partial<PaymentNetworkApiError>>({ status: 408, code: 'TIMEOUT' })
+        )
+        expect(mockedFetch).not.toHaveBeenCalled()
+    })
 })

@@ -101,4 +101,12 @@ describe('payment network service-worker privacy', () => {
         await expect(purgeSensitivePaymentNetworkCacheEntries(storage)).resolves.toBe(1)
         expect(laterCache.urls()).toEqual(['https://peanut.me/home'])
     })
+
+    it('contains a CacheStorage keys failure so service-worker activation can continue', async () => {
+        const storage = {
+            keys: jest.fn().mockRejectedValue(new Error('cache storage unavailable')),
+        } as unknown as CacheStorage
+
+        await expect(purgeSensitivePaymentNetworkCacheEntries(storage)).resolves.toBe(0)
+    })
 })

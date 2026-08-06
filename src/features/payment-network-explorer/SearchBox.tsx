@@ -8,7 +8,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 interface SearchBoxProps {
     busy: boolean
     error: string | null
-    onSearch: (username: string) => Promise<void>
+    onSearch: (username: string) => Promise<boolean>
 }
 
 export default function SearchBox({ busy, error, onSearch }: SearchBoxProps) {
@@ -18,8 +18,7 @@ export default function SearchBox({ busy, error, onSearch }: SearchBoxProps) {
         event.preventDefault()
         const query = username.trim()
         if (!query || busy) return
-        await onSearch(query)
-        setUsername('')
+        if (await onSearch(query)) setUsername('')
     }
 
     return (
