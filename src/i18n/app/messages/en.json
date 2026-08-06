@@ -27,7 +27,9 @@
         "next": "Next",
         "notFound": "Not Found",
         "countryNotFound": "Country not found",
-        "tryDifferentCountry": "Please try a different country."
+        "tryDifferentCountry": "Please try a different country.",
+        "unavailable": "Unavailable",
+        "saving": "Saving…"
     },
     "navigation": {
         "home": "Home",
@@ -70,6 +72,10 @@
                     "title": "Make your first payment",
                     "description": "Start paying to Pix and MercadoPago QR codes",
                     "cta": "Start Spending"
+                },
+                "outboundWithCard": {
+                    "title": "Spend with Peanut",
+                    "description": "Pay with your card or scan Pix and MercadoPago QR codes"
                 }
             },
             "addEmail": {
@@ -178,6 +184,19 @@
             "closeVerificationPrompt": "Close verification prompt",
             "closeNotificationPrompt": "Close notification prompt",
             "claimablePerk": "Claimable perk"
+        },
+        "pendingTasks": {
+            "completeBefore": "Complete before {deadline}",
+            "sepaTitle": "Accept SEPA Terms of Service",
+            "sepaDescriptionAdvisory": "Accept our payment partner's updated terms to keep EUR and GBP bank transfers available.",
+            "sepaDescriptionBlocking": "Accept our payment partner's updated terms to enable EUR and GBP bank transfers.",
+            "tosTitle": "Accept Terms of Service",
+            "tosDescriptionAdvisory": "Accept our payment partner's terms to keep bank transfers available.",
+            "tosDescriptionBlocking": "Accept our payment partner's terms to enable bank transfers.",
+            "hostedTitle": "Additional verification needed",
+            "hostedDescriptionAdvisory": "Complete a quick verification with our payment partner to keep bank transfers available.",
+            "hostedDescriptionBlocking": "Complete a quick verification with our payment partner to enable bank transfers.",
+            "dismissAriaLabel": "Dismiss {item}"
         }
     },
     "profile": {
@@ -1468,7 +1487,8 @@
         },
         "compatibilityModal": {
             "title": "Is this address compatible?",
-            "description": "Only send to address that support the selected network and token. Incorrect transfers may be lost."
+            "description": "Only send to an address that supports the selected network and token. Incorrect transfers may be lost.",
+            "sendingTo": "You're sending to <mono>{address}</mono>"
         },
         "pixKey": {
             "title": "Send with Pix",
@@ -1575,7 +1595,8 @@
             "unexpected": "Withdraw failed unexpectedly. If problem persists contact support",
             "completeAccountSetup": "Please complete your account setup. Go to Settings to update your profile.",
             "minWithdrawAmount": "Withdraw amount must be at least ${amount}"
-        }
+        },
+        "resolvesTo": "{name} resolves to <mono>{address}</mono>"
     },
     "transaction": {
         "drawerTitle": "Transaction Details",
@@ -1646,7 +1667,8 @@
             "attachment": "Attachment",
             "download": "Download",
             "reason": "Reason",
-            "accountNumber": "Account Number"
+            "accountNumber": "Account Number",
+            "address": "Address"
         },
         "perkBanner": {
             "title": "You earned a reward!",
@@ -1692,7 +1714,6 @@
         },
         "cardRows": {
             "location": "Location",
-            "originalAmount": "Original amount",
             "declineReason": "Decline reason",
             "note": "Note",
             "autoClosed": "Automatically cancelled — the merchant didn't complete it",
@@ -1702,7 +1723,9 @@
             "pendingNote": "Authorized, awaiting settlement or reversal",
             "dispute": "Dispute",
             "evidenceRequested": "Evidence requested",
-            "flagAlt": "{country} flag"
+            "flagAlt": "{country} flag",
+            "initialHold": "Initial hold",
+            "adjustment": "Adjustment"
         },
         "dispute": {
             "pending": "Disputed — Awaiting review",
@@ -1743,7 +1766,8 @@
         "manteca": {
             "depositAddress": "Deposit Address"
         },
-        "enjoyPeanut": "Enjoy Peanut!"
+        "enjoyPeanut": "Enjoy Peanut!",
+        "adjusted": "Adjusted"
     },
     "history": {
         "title": "Activity",
@@ -1923,7 +1947,7 @@
             "bridgeTosTitle": "One more step",
             "bridgeTosDescription": "Last step: accept terms of service to unlock bank transfers in the US, Europe, and Mexico.",
             "acceptTerms": "Accept Terms",
-            "completeTitle": "You're unlocked",
+            "completeTitle": "All set",
             "completeDescription": "Your account is ready to go."
         },
         "wrapper": {
@@ -2643,7 +2667,24 @@
         "demoBanner": "Demo mode — you're previewing Peanut with a simulated wallet. Balances and transactions aren't real.",
         "rainCooldownPill": "Card cool-down",
         "betaBannerThumbsUpAlt": "Thumbs up",
-        "easterEggImageAlt": "Easter egg illustration"
+        "easterEggImageAlt": "Easter egg illustration",
+        "reConsent": {
+            "title": "A small update to our terms",
+            "bodyReassurance": "Nothing changes about your fees, your funds, or how we handle your data.",
+            "bodyWhatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual.",
+            "checkbox": "I accept the updated documents",
+            "ctaAccept": "Accept & continue",
+            "ctaNotNow": "Not now",
+            "docs": {
+                "terms": "Terms of Service",
+                "privacy": "Privacy Policy",
+                "cardTermsUs": "Card Terms (U.S.)",
+                "cardTermsInternational": "Card Terms (International)",
+                "cardEsign": "E-Sign Consent",
+                "cardPrivacy": "Account Opening Privacy Notice",
+                "cardProhibitedActivities": "Prohibited Activities Policy"
+            }
+        }
     },
     "errors": {
         "balanceSettling": "Your balance isn't fully available yet. Please try again in a few seconds.",

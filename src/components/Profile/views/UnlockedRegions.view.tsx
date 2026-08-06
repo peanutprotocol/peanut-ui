@@ -214,6 +214,13 @@ const UnlockedRegions = () => {
                     <PendingVerificationTasks />
                 </div>
 
+                {/* Pending Bridge verification tasks (ToS / hosted re-verification).
+                    Non-dismissible here — this is where the /home card's X sends
+                    people to find their tasks again. Self-hiding when none. */}
+                <div className="mt-4">
+                    <PendingVerificationTasks />
+                </div>
+
                 {unlockedRegions.length === 0 && (
                     <EmptyState
                         title={t('empty.title')}

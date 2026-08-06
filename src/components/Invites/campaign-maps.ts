@@ -43,6 +43,15 @@ export const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
     'card-alpha': 'CARD_ALPHA',
     'irl-nomads': 'IRL_NOMADS',
     manicero: 'MANICERO',
+    // Creator collab. Nita's link is /invite?code=<her invite code>&campaign=nita,
+    // so the tag arrives in the explicit param — source 1 below maps it here. Her
+    // own invite code stays personal, so there is no INVITE_CODE_TO_CAMPAIGN_MAP entry.
+    nita: 'NITA',
+    // Nigeria launch cohort. Arrives as ?campaign=naija; there is no
+    // INVITE_CODE_TO_CAMPAIGN_MAP entry because no invite code `naija` exists.
+    naija: 'NAIJA',
+    // Paraguay launch cohort. Same shape as naija above.
+    terere: 'TERERE',
 }
 
 // Resolve the effective campaign (a badge code, or a raw passthrough tag) from
@@ -81,7 +90,12 @@ export function resolveCampaign(
 //  - Vanity: a commemorative badge with NO card-waitlist skip. Claimable from a
 //    bare link, but `/invite` shows generic badge-claim copy (not "skip").
 export const SKIP_CAMPAIGN = 'skip'
-export const WAITLIST_SKIP_CAMPAIGNS: ReadonlySet<string> = new Set([SKIP_CAMPAIGN, 'event_alumni'])
+// naija and terere are the country-launch cohorts. Both are distributed as BARE
+// campaign links with no inviter, and both are in peanut-api-ts
+// POSTLAUNCH_SKIP_BADGE_CODES — so they belong here, not in BARE_VANITY_CAMPAIGNS
+// (that set is for badges with no card-waitlist skip, and would show the wrong
+// copy while the backend granted a skip anyway).
+export const WAITLIST_SKIP_CAMPAIGNS: ReadonlySet<string> = new Set([SKIP_CAMPAIGN, 'event_alumni', 'naija', 'terere'])
 export const BARE_VANITY_CAMPAIGNS: ReadonlySet<string> = new Set([
     'touched_grass',
     'card_alpha',

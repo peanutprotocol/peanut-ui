@@ -49,9 +49,14 @@ jest.mock('@/context/tokenSelector.context', () => {
     }
 })
 
-jest.mock('next-intl', () => ({
-    useTranslations: () => (key: string) => key,
-}))
+jest.mock('next-intl', () => {
+    // Key-echoing stub. `.rich` has to exist as well: the compatibility modal
+    // renders its resolved-address line through t.rich, and a bare function
+    // mock throws "t.rich is not a function" before any assertion runs.
+    const t = (key: string) => key
+    t.rich = (key: string) => key
+    return { useTranslations: () => t }
+})
 
 jest.mock('@/hooks/useFriendlyError', () => ({
     useFriendlyError: () => (err: unknown) => (err instanceof Error ? err.message : 'Something went wrong'),
@@ -93,6 +98,7 @@ jest.mock('@/utils/withdraw.utils', () => ({
 
 jest.mock('@/utils/general.utils', () => ({
     isTxReverted: (receipt: { status?: string } | null) => receipt?.status === 'reverted',
+    printableAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
 }))
 
 jest.mock('@/utils/url.utils', () => ({

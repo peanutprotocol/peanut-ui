@@ -27,7 +27,9 @@
         "next": "Siguiente",
         "notFound": "No encontrado",
         "countryNotFound": "País no encontrado",
-        "tryDifferentCountry": "Prueba con otro país."
+        "tryDifferentCountry": "Prueba con otro país.",
+        "unavailable": "No disponible",
+        "saving": "Guardando…"
     },
     "navigation": {
         "home": "Inicio",
@@ -70,6 +72,10 @@
                     "title": "Haz tu primer pago",
                     "description": "Empieza a pagar códigos QR de Pix y Mercado Pago",
                     "cta": "Empezar a gastar"
+                },
+                "outboundWithCard": {
+                    "title": "Paga con Peanut",
+                    "description": "Paga con tu tarjeta o escanea códigos QR de Pix y Mercado Pago"
                 }
             },
             "addEmail": {
@@ -178,6 +184,19 @@
             "closeVerificationPrompt": "Cerrar aviso de verificación",
             "closeNotificationPrompt": "Cerrar aviso de notificaciones",
             "claimablePerk": "Recompensa disponible"
+        },
+        "pendingTasks": {
+            "completeBefore": "Completar antes del {deadline}",
+            "sepaTitle": "Aceptar los términos de servicio de SEPA",
+            "sepaDescriptionAdvisory": "Acepta los términos actualizados de nuestro socio de pagos para mantener disponibles las transferencias bancarias en EUR y GBP.",
+            "sepaDescriptionBlocking": "Acepta los términos actualizados de nuestro socio de pagos para habilitar las transferencias bancarias en EUR y GBP.",
+            "tosTitle": "Aceptar los términos de servicio",
+            "tosDescriptionAdvisory": "Acepta los términos de nuestro socio de pagos para mantener disponibles las transferencias bancarias.",
+            "tosDescriptionBlocking": "Acepta los términos de nuestro socio de pagos para habilitar las transferencias bancarias.",
+            "hostedTitle": "Se necesita verificación adicional",
+            "hostedDescriptionAdvisory": "Completa una verificación rápida con nuestro socio de pagos para mantener disponibles las transferencias bancarias.",
+            "hostedDescriptionBlocking": "Completa una verificación rápida con nuestro socio de pagos para habilitar las transferencias bancarias.",
+            "dismissAriaLabel": "Descartar {item}"
         }
     },
     "profile": {
@@ -1468,7 +1487,8 @@
         },
         "compatibilityModal": {
             "title": "¿Esta dirección es compatible?",
-            "description": "Envía solo a direcciones compatibles con la red y el token seleccionados. Las transferencias incorrectas se pueden perder."
+            "description": "Envía solo a direcciones compatibles con la red y el token seleccionados. Las transferencias incorrectas se pueden perder.",
+            "sendingTo": "Vas a enviar a <mono>{address}</mono>"
         },
         "pixKey": {
             "title": "Enviar con Pix",
@@ -1575,7 +1595,8 @@
             "unexpected": "El retiro falló inesperadamente. Si el problema continúa, contacta a soporte",
             "completeAccountSetup": "Completa la configuración de tu cuenta. Ve a Ajustes para actualizar tu perfil.",
             "minWithdrawAmount": "El monto del retiro debe ser de al menos ${amount}"
-        }
+        },
+        "resolvesTo": "{name} corresponde a <mono>{address}</mono>"
     },
     "transaction": {
         "drawerTitle": "Detalles de la transacción",
@@ -1646,7 +1667,8 @@
             "attachment": "Adjunto",
             "download": "Descargar",
             "reason": "Motivo",
-            "accountNumber": "Número de cuenta"
+            "accountNumber": "Número de cuenta",
+            "address": "Dirección"
         },
         "perkBanner": {
             "title": "¡Ganaste una recompensa!",
@@ -1692,7 +1714,6 @@
         },
         "cardRows": {
             "location": "Ubicación",
-            "originalAmount": "Monto original",
             "declineReason": "Motivo del rechazo",
             "note": "Nota",
             "autoClosed": "Cancelada automáticamente — el comercio no la completó",
@@ -1702,7 +1723,9 @@
             "pendingNote": "Autorizada, esperando liquidación o reversión",
             "dispute": "Disputa",
             "evidenceRequested": "Evidencia solicitada",
-            "flagAlt": "Bandera de {country}"
+            "flagAlt": "Bandera de {country}",
+            "initialHold": "Retención inicial",
+            "adjustment": "Ajuste"
         },
         "dispute": {
             "pending": "En disputa — Esperando revisión",
@@ -1743,7 +1766,8 @@
         "manteca": {
             "depositAddress": "Dirección de depósito"
         },
-        "enjoyPeanut": "¡Disfruta Peanut!"
+        "enjoyPeanut": "¡Disfruta Peanut!",
+        "adjusted": "Ajustado"
     },
     "history": {
         "title": "Actividad",
@@ -1923,7 +1947,7 @@
             "bridgeTosTitle": "Un paso más",
             "bridgeTosDescription": "Último paso: acepta los términos de servicio para desbloquear las transferencias bancarias en Estados Unidos, Europa y México.",
             "acceptTerms": "Aceptar términos",
-            "completeTitle": "Todo desbloqueado",
+            "completeTitle": "Todo listo",
             "completeDescription": "Tu cuenta está lista para usarse."
         },
         "wrapper": {
@@ -2643,7 +2667,24 @@
         "demoBanner": "Modo demo: estás viendo Peanut con una billetera simulada. Los saldos y las transacciones no son reales.",
         "rainCooldownPill": "Enfriamiento de tarjeta",
         "betaBannerThumbsUpAlt": "Pulgar arriba",
-        "easterEggImageAlt": "Ilustración de huevo de pascua"
+        "easterEggImageAlt": "Ilustración de huevo de pascua",
+        "reConsent": {
+            "title": "Una pequeña actualización de nuestros términos",
+            "bodyReassurance": "No cambia nada sobre tus comisiones, tus fondos ni cómo manejamos tus datos.",
+            "bodyWhatChanged": "Reescribimos los documentos de abajo en lenguaje claro para que reflejen lo que Peanut es hoy, incluidos la Tarjeta Peanut y Recompensas. No hay apuro: léelos cuando quieras y sigue usando Peanut con normalidad.",
+            "checkbox": "Acepto los documentos actualizados",
+            "ctaAccept": "Aceptar y continuar",
+            "ctaNotNow": "Ahora no",
+            "docs": {
+                "terms": "Términos de servicio",
+                "privacy": "Política de privacidad",
+                "cardTermsUs": "Términos de la tarjeta (EE. UU.)",
+                "cardTermsInternational": "Términos de la tarjeta (internacional)",
+                "cardEsign": "Consentimiento de firma electrónica",
+                "cardPrivacy": "Aviso de privacidad de apertura de cuenta",
+                "cardProhibitedActivities": "Política de actividades prohibidas"
+            }
+        }
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Inténtalo de nuevo en unos segundos.",

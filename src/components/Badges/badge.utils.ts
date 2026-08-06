@@ -92,12 +92,10 @@ export const BADGES: Record<string, BadgeMeta> = {
         description: 'They found a real bug, reported it, and stayed. We owe them a beer.',
         displayName: 'Bug Whisperer',
     },
-    // Card-launch badges — assets only. No backend trigger yet; entries are here
-    // so the icons render the moment the API starts awarding the codes.
+    // ── card-launch badges (awarded server-side: waitlist signup + card-spend milestones) ──
     SHHHHH: {
         path: '/badges/shhhhh.svg',
         description: 'They know the secret.',
-        // TODO(card-launch): award on shhhhh-waitlist signup
     },
     NOT_SO_SHHHH: {
         path: '/badges/not_so_shhhh.svg',
@@ -106,12 +104,10 @@ export const BADGES: Record<string, BadgeMeta> = {
     CARD_FIRST_SWIPE: {
         path: '/badges/happy_card.svg',
         description: 'First swipe. They put their card to work.',
-        // TODO(card-launch): award on first settled Rain card payment
     },
     CARD_SPENT_1K: {
         path: '/badges/money_stack.svg',
         description: '$1K swiped. They put their money where their card is.',
-        // TODO(card-launch): award on cumulative card spend ≥ $1K
     },
     // ── growth · invite ladder (awarded by invites_accepted count) ──────────
     FIRST_INVITE: {
@@ -241,6 +237,26 @@ export const BADGES: Record<string, BadgeMeta> = {
     WAITLIST_SKIP: {
         path: '/badges/skip_pass.svg',
         description: 'They skipped the waitlist. A friend handed them the key and they walked right in.',
+    },
+    // Creator collab with Nita Cervio — her invite link carries ?campaign=nita.
+    // The badge also skips the card waitlist (backend POSTLAUNCH_SKIP_BADGE_CODES).
+    // `path` is the load-bearing field: syncBadgeDefinitions never sets iconUrl,
+    // so without this entry the badge renders the Peanutman fallback. displayName
+    // mirrors the backend name to pin the agreed title on the FE side.
+    NITA: {
+        path: '/badges/nita.svg',
+        description: 'Nita sent you. You skipped the card line on her word.',
+        displayName: "Nita's Recommendation",
+    },
+    NAIJA: {
+        path: '/badges/naija.svg',
+        description: 'Naija no dey carry last. You were here first.',
+        displayName: '9JA',
+    },
+    TERERE: {
+        path: '/badges/terere.svg',
+        description: 'Tereré unlocked. You were there for round one.',
+        displayName: 'Tereré',
     },
 }
 

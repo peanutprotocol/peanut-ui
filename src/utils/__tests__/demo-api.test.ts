@@ -133,6 +133,16 @@ describe('demoRespond — rain card overview', () => {
     })
 })
 
+describe('demoRespond — rain card overview', () => {
+    it('returns a full RainCardOverview shape (useRainCardOverview derefs .status, cardState derefs .cards)', async () => {
+        const { res, data } = await body('/rain/cards')
+        expect(res.status).toBe(200)
+        expect(data.status.hasApplication).toBe(false)
+        expect(data.balance).toBeNull()
+        expect(Array.isArray(data.cards)).toBe(true)
+    })
+})
+
 describe('demoRespond — shape-aware fallback (never throws on undefined.map)', () => {
     it('returns [] for an unmatched collection-ish path', async () => {
         const { res, data } = await body('/something/payments')

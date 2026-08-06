@@ -411,7 +411,6 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         }),
     },
     { method: 'POST', pattern: '/bridge/onramp/create', handler: () => ({ success: true }) },
-    { method: 'POST', pattern: '/bridge/onramp/create-for-guest', handler: () => ({ success: true }) },
     { method: 'DELETE', pattern: '/bridge/onramp/:transferId/cancel', handler: () => ({ success: true }) },
     {
         method: 'POST',
@@ -600,8 +599,8 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         }),
     },
     // useRainCardOverview polls this for every logged-in user; the fallback {}
-    // has no `status`/`cards` and crashes the home screen (PEANUT-UI-RM6).
-    // hasApplication:false also stops the hook's 30s poll in demo.
+    // has no `status`/`cards` and crashes consumers that deref them
+    // (PEANUT-UI-RM6). hasApplication:false also stops polling in demo.
     {
         method: 'GET',
         pattern: '/rain/cards',

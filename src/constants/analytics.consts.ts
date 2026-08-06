@@ -27,6 +27,7 @@ export const ANALYTICS_EVENTS = {
     PWA_INSTALL_CLICKED: 'pwa_install_clicked',
     PWA_INSTALL_DISMISSED: 'pwa_install_dismissed',
     PWA_INSTALL_COMPLETED: 'pwa_install_completed',
+    PWA_OPEN_APP_CLICKED: 'pwa_open_app_clicked',
 
     // ── KYC (Bridge) ──
     KYC_INITIATED: 'kyc_initiated',
@@ -97,6 +98,8 @@ export const ANALYTICS_EVENTS = {
 
     // ── Activation Funnel ──
     ACTIVATION_STEP_VIEWED: 'activation_step_viewed',
+    ACTIVATION_SPEND_CHOOSER_SHOWN: 'activation_spend_chooser_shown',
+    ACTIVATION_SPEND_CHOOSER_SELECTED: 'activation_spend_chooser_selected',
 
     // ── Surprise Moment (funnel handoff) ──
     SURPRISE_MOMENT_SHOWN: 'surprise_moment_shown',
@@ -281,6 +284,7 @@ export const MODAL_TYPES = {
     CARD_PIONEER: 'card_pioneer',
     KYC_COMPLETED: 'kyc_completed',
     INVITE: 'invite',
+    RE_CONSENT: 're_consent',
 } as const
 
 /**

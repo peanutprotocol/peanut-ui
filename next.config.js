@@ -6,29 +6,49 @@ const withBundleAnalyzer =
 const redirectsConfig = require('./redirects.json')
 
 /**
- * Sentry's CSP-report ingest endpoint, derived from the browser DSN
- * (`<protocol>://<publicKey>@<host><path>/<projectId>`). Returns null when the
- * DSN is absent or malformed, in which case the policy still ships — it just
- * has nowhere to report, which is better than emitting a broken `report-uri`.
+ * Same-origin collector for violation reports (src/app/api/csp-report). It
+ * derives Sentry's ingest URL from the DSN and forwards there, dropping the
+ * noise Sentry would otherwise group into issues nobody can act on.
  *
- * Protocol and any path prefix are preserved: self-hosted Sentry is commonly
- * mounted under a sub-path, and flattening one would silently post reports to
- * an endpoint that doesn't exist.
+ * Reporting straight to Sentry — which is what this used to do — is
+ * unfilterable: the browser POSTs violations itself, so they never pass through
+ * the Sentry SDK and `beforeSend` never sees them.
  */
-function sentryCspReportUri() {
-    const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN
-    if (!dsn) return null
-    try {
-        const { protocol, host, username, pathname } = new URL(dsn)
-        const segments = pathname.split('/').filter(Boolean)
-        const projectId = segments.pop()
-        if (!host || !username || !projectId) return null
-        const prefix = segments.length ? `/${segments.join('/')}` : ''
-        return `${protocol}//${host}${prefix}/api/${projectId}/security/?sentry_key=${username}`
-    } catch {
-        return null
-    }
-}
+const CSP_REPORT_PATH = '/api/csp-report'
+
+// Root-relative on purpose, for `report-uri` and `Reporting-Endpoints` alike.
+// `report-uri` takes a URI-reference; the Reporting API resolves its endpoint
+// "with base URL set to response's url" (W3C Reporting §3.3), so both land on
+// whichever origin actually served the page. An absolute URL would have to be
+// built from an env var and would silently point preview deploys at
+// production's collector — cross-origin, so Chromium would drop those reports
+// entirely, since it prefers `report-to` and ignores `report-uri` when both
+// are present. Don't "fix" this to an absolute URL.
+
+/**
+ * Chain RPC endpoints, which have two independent sources that must both be
+ * allowed: `rpcUrls` in src/constants/general.consts.ts (our own viem clients)
+ * and viem's per-chain defaults, which wagmi's bare `http()` transports fall
+ * back to for external-wallet flows. Neither is importable here — next.config
+ * is CommonJS and general.consts.ts is TS — so this list is a hand-kept mirror.
+ * Re-check it when either source gains a chain.
+ */
+const chainRpcHosts = [
+    'https://*.core.chainstack.com',
+    'https://*.publicnode.com',
+    'https://*.arbitrum.io',
+    'https://*.drpc.org',
+    'https://mainnet.optimism.io',
+    'https://mainnet.base.org',
+    'https://rpc.scroll.io',
+    'https://bsc-dataseed.bnbchain.org',
+    'https://eth.merkle.io',
+    'https://polygon-rpc.com',
+    'https://rpc.gnosischain.com',
+    'https://rpc.linea.build',
+    'https://forno.celo.org',
+    'https://*.rpc.thirdweb.com',
+]
 
 /**
  * First-draft CSP, shipped REPORT-ONLY.
@@ -42,15 +62,14 @@ function sentryCspReportUri() {
  * Known-loose parts, to tighten before promotion:
  * - `'unsafe-inline'` / `'unsafe-eval'` in script-src: Next's inline bootstrap
  *   and the wallet SDKs need them today. Moving to nonces is its own change.
- * - connect-src can't enumerate every chain RPC (they come from env and vary by
- *   network), so the report stream is what completes this list.
+ * - `chainRpcHosts` is broad (provider-level wildcards), because a single
+ *   provider serves one subdomain per network.
  */
 function contentSecurityPolicyReportOnly() {
-    const reportUri = sentryCspReportUri()
     const directives = [
         "default-src 'self'",
         // PostHog is same-origin via the /relay rewrite, so it needs no entry here.
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://client.crisp.chat https://static.sumsub.com",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://client.crisp.chat https://static.sumsub.com https://cdn.onesignal.com https://api.onesignal.com",
         "style-src 'self' 'unsafe-inline' https://client.crisp.chat",
         "img-src 'self' data: blob: https:",
         "font-src 'self' data: https://client.crisp.chat",
@@ -58,22 +77,60 @@ function contentSecurityPolicyReportOnly() {
             "connect-src 'self'",
             'https://api.peanut.me',
             'https://*.peanut.me',
+            // CSP treats wss: as a scheme distinct from https:, so the two
+            // entries above do NOT cover the charges websocket
+            // (NEXT_PUBLIC_PEANUT_WS_URL — wss://api.peanut.me in production,
+            // wss://api.staging.peanut.me on staging). This gap is what makes
+            // /card the single loudest violation in Sentry today, and it would
+            // break the socket for every user the moment the policy is enforced.
+            'wss://api.peanut.me',
+            'wss://*.peanut.me',
             'https://*.ingest.sentry.io',
             'https://*.ingest.us.sentry.io',
-            'https://www.google-analytics.com',
+            // Wildcarded because GA4 shards collection by region: EU traffic
+            // beacons to region1.google-analytics.com, not just www. The same
+            // sharding is already visible on analytics.google.com below.
+            'https://*.google-analytics.com',
+            // GA4 beacons to a region-specific host, and GTM's audience/conversion
+            // pings go to doubleclick and www.google.com. The GTM container
+            // itself is fetched as well as executed, so it needs a connect-src
+            // entry on top of the script-src one.
+            'https://analytics.google.com',
+            'https://*.analytics.google.com',
+            'https://stats.g.doubleclick.net',
+            'https://www.google.com',
+            'https://www.googletagmanager.com',
             'https://rpc.zerodev.app',
             'https://*.g.alchemy.com',
             'https://rpc.ankr.com',
             'https://assets.coingecko.com',
             'https://coin-images.coingecko.com',
+            // Token metadata lookup in TransactionDetailsReceipt — a different
+            // CoinGecko host from the two image CDNs above.
+            'https://api.coingecko.com',
             'https://api.frankfurter.app',
             'https://dolarapi.com',
-            'https://client.crisp.chat',
+            'https://ipapi.co',
+            'https://api.justaname.id',
+            'https://*.crisp.chat',
             'wss://client.relay.crisp.chat',
             'https://*.sumsub.com',
+            // Same scheme trap as api.peanut.me above: the Sumsub WebSDK opens a
+            // websocket for liveness/video-ident signalling, which the https
+            // entry does not authorize. Silent in the reports only because
+            // liveness is a rare path — it would still break under enforcement.
+            'wss://*.sumsub.com',
             'https://widget.manteca.dev',
+            'https://*.onesignal.com',
+            ...chainRpcHosts,
         ].join(' '),
-        "frame-src 'self' https://client.crisp.chat https://*.sumsub.com https://widget.manteca.dev https://mpago.la",
+        // Bridge is the terms-of-service iframe BridgeTosStep renders through
+        // IframeWrapper — enforcing without it would dead-end KYC. Wildcarded
+        // like *.sumsub.com because the URL is chosen by the provider at
+        // runtime (compliance.bridge.xyz today) rather than by us. Crisp is
+        // wildcarded to match connect-src: the widget pulls attachments from
+        // assets.crisp.chat, not just client.
+        "frame-src 'self' https://*.crisp.chat https://*.sumsub.com https://widget.manteca.dev https://mpago.la https://*.bridge.xyz",
         "worker-src 'self' blob:",
         "object-src 'none'",
         "base-uri 'self'",
@@ -84,16 +141,14 @@ function contentSecurityPolicyReportOnly() {
     // Reporting-Endpoints header below) is what replaces it in Chromium.
     // Shipping only one would undercount violations and promote the policy on
     // a partial picture.
-    if (reportUri) directives.push(`report-uri ${reportUri}`, `report-to ${CSP_REPORT_GROUP}`)
+    directives.push(`report-uri ${CSP_REPORT_PATH}`, `report-to ${CSP_REPORT_GROUP}`)
     return directives.join('; ')
 }
 
 const CSP_REPORT_GROUP = 'csp-endpoint'
 
 function reportingEndpointsHeader() {
-    const reportUri = sentryCspReportUri()
-    if (!reportUri) return []
-    return [{ key: 'Reporting-Endpoints', value: `${CSP_REPORT_GROUP}="${reportUri}"` }]
+    return [{ key: 'Reporting-Endpoints', value: `${CSP_REPORT_GROUP}="${CSP_REPORT_PATH}"` }]
 }
 
 // Get git commit hash at build time

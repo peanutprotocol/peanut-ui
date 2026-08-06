@@ -1,0 +1,138 @@
+/**
+ * Types for the /dev/journey Activation Journey Explorer.
+ *
+ * Two halves:
+ *  - In-app surface catalog types (data lives in journeyData.ts, transcribed
+ *    from the activation journey UI inventory with source-file annotations).
+ *  - Live API spec types, mirroring peanut-api-ts GET /__dev/journey-spec and
+ *    /__dev/journey-inspect (feat/unsubscribe-analytics, api PR #1234).
+ */
+
+export type FunnelStateId =
+    | 'no-access'
+    | 'access-pre-kyc'
+    | 'kycd-no-card'
+    | 'application-in-flight'
+    | 'card-active-unfunded'
+    | 'funded-no-spend'
+    | 'spent'
+
+export type SurfaceKind = 'step' | 'carousel' | 'modal' | 'card-screen'
+
+export interface InAppSurface {
+    id: string
+    kind: SurfaceKind
+    /** Display name of the surface. */
+    name: string
+    /** Verbatim copy snippet the user sees. */
+    copy: string
+    /** CTA label → destination, when the surface has one. */
+    cta?: { label: string; dest: string }
+    /** When this surface renders (plain-language condition). */
+    condition: string
+    /** Source file(s), repo-relative — the drift-tracing anchor. */
+    sourceFile: string
+    /** Funnel columns this surface appears in. */
+    states: FunnelStateId[]
+    /** Shipped on this very branch (PR #2475). */
+    isNewInThisPr?: boolean
+    note?: string
+}
+
+export interface JourneyFinding {
+    id: number
+    title: string
+    detail: string
+    sourceFiles: string[]
+}
+
+export interface FunnelState {
+    id: FunnelStateId
+    label: string
+    description: string
+    /** Lifecycle-machine stage names (from the API spec) whose emails land here. */
+    specStages: string[]
+    /** The signup welcome email fires on entry to this column. */
+    includesWelcome?: boolean
+    /** The kyc.reminder push (spec.pushReminders) applies in this column. */
+    includesPushReminder?: boolean
+    /** Why the email machine is silent here, when specStages is empty. */
+    noEmailReason?: string
+}
+
+// ---------- live API spec (GET /__dev/journey-spec) ----------
+
+export interface SpecEmailStep {
+    type: string
+    afterDaysStuck?: number
+    subject: string
+    preview: string
+    title: string
+    paragraphs: string[]
+    ctaText: string
+    ctaPath: string
+    paragraphsWithRewards?: string[]
+}
+
+export interface SpecStage {
+    stage: string
+    order: number
+    predicate: string
+    steps: SpecEmailStep[]
+}
+
+export interface SpecRules {
+    step1AfterDays: number
+    step2AfterDays: number
+    governorDays: number
+    freshnessDays: number
+    holdoutFraction: number
+    sendWindowUtc: { startHour: number; endHour: number }
+    maxSendsPerCycle: number
+}
+
+export interface SpecPushReminder {
+    type: string
+    channels: string[]
+    afterMinutes: number
+    title: string
+    note: string
+}
+
+export interface JourneySpec {
+    generatedFrom: string
+    rules: SpecRules
+    welcome: SpecEmailStep
+    stages: SpecStage[]
+    pushReminders: SpecPushReminder[]
+    emailPreviewBase: string
+}
+
+// ---------- live user inspector (GET /__dev/journey-inspect?userId=…) ----------
+
+export interface InspectDue {
+    userId: string
+    type: string
+    hasPendingRewards?: boolean
+    skip?: 'holdout' | 'governor'
+}
+
+export interface InspectHistoryRow {
+    eventType: string
+    channel: string
+    status: string
+    skipReason: string | null
+    sentAt: string | null
+    createdAt: string
+}
+
+export interface JourneyInspectResponse {
+    user: {
+        username: string | null
+        email: string | null
+        createdAt: string
+        cardAccessGrantedAt: string | null
+    } | null
+    due: InspectDue | null
+    history: InspectHistoryRow[]
+}

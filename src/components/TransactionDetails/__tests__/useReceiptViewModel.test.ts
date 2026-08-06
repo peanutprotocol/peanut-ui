@@ -11,7 +11,7 @@ import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import type { TransactionDetails } from '../transactionTransformer'
 
 jest.mock('@/assets', () => ({}))
-jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '', SIMPLEFI: '' }))
+jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
 
 const baseTx: TransactionDetails = {
     id: 'tx-1',

@@ -336,6 +336,7 @@ jest.mock('@/utils/currency', () => ({
 }))
 
 jest.mock('@/utils/format.utils', () => ({
+    ...jest.requireActual('@/utils/format.utils'),
     formatBankAccountDisplay: jest.fn((val: string) => val),
 }))
 
@@ -608,6 +609,9 @@ jest.mock('@/components/Common/CountryList', () => ({
             </button>
             <button data-testid="country-germany" onClick={() => props.onCountryClick({ path: 'germany', id: 'DE' })}>
                 Germany
+            </button>
+            <button data-testid="country-chad" onClick={() => props.onCountryClick({ path: 'chad', id: 'TD' })}>
+                Chad
             </button>
         </div>
     ),
@@ -1035,12 +1039,31 @@ describe('GROUP 1: Landing / Method Selection', () => {
         expect(screen.getByText('Select your country')).toBeInTheDocument()
     })
 
-    test('selecting a country from list navigates to country page', () => {
+    // TASK-20033: picking a bank-supported country skips the redundant per-country
+    // method list and goes straight to the deposit screen (Manteca for AR/BR,
+    // Bridge bank otherwise). Coming-soon countries keep the per-country screen.
+    test('selecting a Manteca country (AR/BR) goes straight to the manteca deposit', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('country-argentina'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/argentina')
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/argentina/manteca')
+    })
+
+    test('selecting a Bridge-supported country goes straight to the bank deposit', () => {
+        resetQueryState({ method: 'bank' })
+        renderWithProviders(<AddMoneyPage />)
+
+        fireEvent.click(screen.getByTestId('country-germany'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/germany/bank')
+    })
+
+    test('selecting a coming-soon country keeps the per-country method screen', () => {
+        resetQueryState({ method: 'bank' })
+        renderWithProviders(<AddMoneyPage />)
+
+        fireEvent.click(screen.getByTestId('country-chad'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/chad')
     })
 
     test('back from method selection navigates to /home', () => {
@@ -1413,12 +1436,19 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             fireEvent.click(screen.getByText('Continue'))
         })
 
+        // displayed side of the commit-path pin: the modal must be showing the
+        // amount the user is about to confirm
+        expect(screen.getByTestId('onramp-confirmation-modal')).toHaveTextContent('100')
+
         // Click Confirm in modal
         await act(async () => {
             fireEvent.click(screen.getByTestId('confirm-onramp'))
         })
 
-        expect(mockCreateOnramp).toHaveBeenCalled()
+        // submitted side of the pin: createOnramp must receive the same string
+        // the modal displayed — a conversion slipped between display and submit
+        // fails here
+        expect(mockCreateOnramp).toHaveBeenCalledWith(expect.objectContaining({ amount: '100' }))
         expect(mockSetQueryState).toHaveBeenCalledWith(expect.objectContaining({ step: 'showDetails' }))
     })
 

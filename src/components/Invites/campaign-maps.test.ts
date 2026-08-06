@@ -59,6 +59,17 @@ describe('classifyBareCampaign', () => {
         })
     })
 
+    // Regression: both country-launch cohorts ship BARE links with no inviter.
+    // Mapping them in UTM_CAMPAIGN_TO_BADGE_MAP alone is not enough — without a
+    // bare-campaign registration the link dead-ends on "Invalid Invite Code".
+    it.each(['naija', 'terere'])('country-launch campaign "%s" is a bare claimable skip', (c) => {
+        expect(classifyBareCampaign(c, undefined)).toEqual({
+            isBareClaimCampaign: true,
+            isWaitlistSkip: true,
+        })
+        expect(classifyBareCampaign(c.toUpperCase(), undefined).isBareClaimCampaign).toBe(true)
+    })
+
     it('only waitlist-skip campaigns promise a card-waitlist skip', () => {
         for (const c of BARE_VANITY_CAMPAIGNS) {
             expect(classifyBareCampaign(c, undefined).isWaitlistSkip).toBe(false)
@@ -111,5 +122,12 @@ describe('resolveCampaign', () => {
         expect(resolveCampaign(undefined, undefined, 'offramp')).toBe(OFFRAMP_BADGE_CODE)
         expect(resolveCampaign(undefined, 'not-a-special-code', undefined)).toBeUndefined()
         expect(resolveCampaign(null, undefined, undefined)).toBeUndefined()
+    })
+
+    // The exact URL shape handed to a paid creator: a personal invite code for
+    // the referral plus the campaign tag for the badge. The personal code is not
+    // in INVITE_CODE_TO_CAMPAIGN_MAP, so the tag has to carry the badge alone.
+    it('resolves a creator link that pairs a personal invite code with a campaign tag', () => {
+        expect(resolveCampaign('nita', 'somepersonalcode', undefined)).toBe('NITA')
     })
 })

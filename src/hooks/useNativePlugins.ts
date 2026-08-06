@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { focusManager } from '@tanstack/react-query'
 import { captureMessage } from '@sentry/nextjs'
 import { isCapacitor, getPlatform } from '@/utils/capacitor'
 import { localeApplied } from '@/i18n/app/locale-store'
@@ -16,6 +17,7 @@ import { getOneSignalAdapter } from '@/services/onesignal'
  * exist in native builds (not on vercel/web ci).
  */
 let appListenersFailureCaptured = false
+let clickListenerFailureCaptured = false
 
 export function useNativePlugins() {
     const router = useRouter()
@@ -24,6 +26,13 @@ export function useNativePlugins() {
         if (!isCapacitor()) return
 
         const cleanups: Array<() => void> = []
+        let disposed = false
+        // Registrations resolve async; if the effect tore down first, run the
+        // cleanup now instead of leaking the handle.
+        const track = (cleanup: () => void) => {
+            if (disposed) cleanup()
+            else cleanups.push(cleanup)
+        }
 
         // true once ANY deep link actually navigated (cold start, warm start,
         // push tap) — the deferred-restore dest yields only to a navigation
@@ -45,6 +54,19 @@ export function useNativePlugins() {
         const init = async () => {
             try {
                 const { App } = await import('@capacitor/app')
+
+                // TanStack Query's refetchOnWindowFocus keys off visibilitychange,
+                // which Android WebViews don't reliably fire on app resume — a
+                // resumed app kept rendering its pre-background query data (stale
+                // home Activity). Drive the focusManager from the native lifecycle.
+                const stateListener = await App.addListener('appStateChange', ({ isActive }: { isActive: boolean }) =>
+                    focusManager.setFocused(isActive)
+                )
+                track(() => {
+                    stateListener.remove()
+                    focusManager.setFocused(undefined)
+                })
+
                 const backListener = await App.addListener('backButton', ({ canGoBack }: { canGoBack: boolean }) => {
                     if (canGoBack) {
                         router.back()
@@ -52,13 +74,13 @@ export function useNativePlugins() {
                         App.minimizeApp()
                     }
                 })
-                cleanups.push(() => backListener.remove())
+                track(() => backListener.remove())
 
                 // App Links: cold start (getLaunchUrl) + warm start (appUrlOpen).
                 const launch = await App.getLaunchUrl()
                 openDeepLink(launch?.url)
                 const urlListener = await App.addListener('appUrlOpen', ({ url }: { url: string }) => openDeepLink(url))
-                cleanups.push(() => urlListener.remove())
+                track(() => urlListener.remove())
 
                 // deferred deep link (store-install hand-off). deliberately NOT
                 // awaited: the iOS clipboard read can sit on the system paste
@@ -100,7 +122,7 @@ export function useNativePlugins() {
                 // relative path the API sends; the launch URL is the fallback for
                 // notifications sent before that field existed.
                 const adapter = await getOneSignalAdapter()
-                cleanups.push(
+                track(
                     adapter.onNotificationClick(({ deepLink, additionalData }) => {
                         const target = additionalData.deepLink
                         const link = typeof target === 'string' ? target : deepLink
@@ -118,6 +140,15 @@ export function useNativePlugins() {
                 )
             } catch (e) {
                 console.warn('failed to init notification click listener:', e)
+                // launch URLs are suppressed in the SDKs, so without this listener a push tap does nothing
+                if (!clickListenerFailureCaptured) {
+                    clickListenerFailureCaptured = true
+                    captureMessage('failed to init notification click listener', {
+                        level: 'warning',
+                        tags: { feature: 'onesignal', source: 'native_click_listener' },
+                        extra: { error: e instanceof Error ? e.message : String(e) },
+                    })
+                }
             }
 
             try {
@@ -160,6 +191,7 @@ export function useNativePlugins() {
         init()
 
         return () => {
+            disposed = true
             cleanups.forEach((fn) => fn())
         }
     }, [router])

@@ -16,6 +16,7 @@ import { getAuthToken } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
 import type { SignedRainWithdrawal } from '@/hooks/wallet/useSignSpendBundle'
 import { API_ERROR_CODES, ApiError } from './api-error'
+import type { AcceptedLegalDocument } from '@/services/consent'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -453,12 +454,15 @@ export const rainApi = {
     /**
      * Persist the serialized ZeroDev permission on the user's card so the
      * backend can submit session-key UserOps for collateral withdrawals.
+     *
+     * No step-up: the payload is itself a fresh passkey signature (the grant
+     * ceremony's enable sig) — an extra assertion here just doubles the
+     * fingerprint prompts on the grant flow.
      */
     submitWithdrawSessionApproval: async (input: { serializedApproval: string }): Promise<void> => {
         await rainRequest<{ ok: boolean }>({
             method: 'POST',
             path: '/rain/cards/withdraw/session-approve',
-            stepUp: true,
             body: input,
         })
     },
@@ -467,12 +471,16 @@ export const rainApi = {
      * Stage a Rain V2 withdrawal: backend fetches Rain's executor signature,
      * reads the current adminNonce from the collateral proxy, and persists a
      * short-lived prep record. Caller then signs the admin EIP-712 payload.
+     *
+     * No step-up: a prep is inert until the passkey produces the admin
+     * EIP-712 signature that follows it, so the flow proves user presence on
+     * its own. Step-up here made every collateral-funded send cost three
+     * fingerprint prompts instead of two (the 2026-07 triple-prompt reports).
      */
     prepareWithdrawal: async (input: PrepareRainWithdrawalInput): Promise<PrepareRainWithdrawalResponse> => {
         return rainRequest<PrepareRainWithdrawalResponse>({
             method: 'POST',
             path: '/rain/cards/withdraw/prepare',
-            stepUp: true,
             body: input,
         })
     },
@@ -565,7 +573,15 @@ export const rainApi = {
      *    machine route.
      */
     applyForCard: async (
-        opts: { termsAccepted?: boolean; serializedApproval?: string; confirmedResidenceCountry?: string } = {}
+        opts: {
+            termsAccepted?: boolean
+            serializedApproval?: string
+            confirmedResidenceCountry?: string
+            /** Consent-ledger echo: the legal documents the agreement screen
+             *  actually displayed (slug + version + hash), so the backend
+             *  records what the user was shown. Only sent with acceptance. */
+            acceptedDocuments?: AcceptedLegalDocument[]
+        } = {}
     ): Promise<ApplyForCardResponse> => {
         // `serializedApproval` is consumed only by the re-issue branch on the
         // backend (where a RainCard row is created synchronously). First-time
@@ -574,6 +590,9 @@ export const rainApi = {
         const body: Record<string, unknown> = { termsAccepted: opts.termsAccepted === true }
         if (opts.serializedApproval) body.serializedApproval = opts.serializedApproval
         if (opts.confirmedResidenceCountry) body.confirmedResidenceCountry = opts.confirmedResidenceCountry
+        if (opts.termsAccepted === true && opts.acceptedDocuments?.length) {
+            body.acceptedDocuments = opts.acceptedDocuments
+        }
         return rainRequest<ApplyForCardResponse>({
             method: 'POST',
             path: '/rain/cards',

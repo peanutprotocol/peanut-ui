@@ -70,13 +70,12 @@ export function isIntentKind(value: unknown): value is IntentKind {
 // the BE still indexes via `metadata.mantecaSyntheticId`). Any other `?t=`
 // value stays unmapped and 404s as it does today.
 //
-// Deliberately NOT mapped: `13` (SIMPLEFI_QR_PAYMENT). SimpleFi is a deleted
-// provider, and the migration replaced its legacy `simplefi_transfer.id` with
-// a fresh random `intent.id` while only preserving `metadata.simplefiPaymentId`
-// — which no BE lookup probes. So a `?t=13` link can never resolve; mapping it
-// would just turn a client-side 404 into a futile server round-trip. Old
-// SimpleFi *list* items still render fine via the QR_PAY strategy; only their
-// pre-decomplexify share links are (acceptably) dead.
+// Deliberately NOT mapped: `13` (the removed SimpleFi QR provider). The
+// migration replaced its legacy ids with fresh random `intent.id`s and no BE
+// lookup probes the preserved metadata, so a `?t=13` link can never resolve —
+// mapping it would just turn a client-side 404 into a futile server
+// round-trip. Historical DEPRECATED_SIMPLEFI *list* rows still render via the
+// QR_PAY strategy; only their pre-decomplexify share links are dead.
 const LEGACY_RECEIPT_TYPE_INDEX_TO_KIND: Record<string, IntentKind> = {
     '3': 'SEND_LINK', // EHistoryEntryType.SEND_LINK
     '9': 'QR_PAY', // MANTECA_QR_PAYMENT

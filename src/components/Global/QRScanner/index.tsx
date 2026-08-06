@@ -222,6 +222,17 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         }
     }, [isScanning])
 
+    // Every tap path funnels onScan through this so a payment/routing failure
+    // is reported as a processing error, never as a clipboard problem.
+    const scanValue = async (data: string) => {
+        try {
+            await onScan(data)
+        } catch (err) {
+            console.error('Error processing QR code:', err)
+            toast.error(t('qrScanner.qrProcessingFailed'))
+        }
+    }
+
     const handleUsePasteChip = async () => {
         const result = await readClipboard()
         if (!result.ok) {
@@ -236,12 +247,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
             toast.error(t('qrScanner.notAWalletAddress'))
             return
         }
-        try {
-            await onScan(address)
-        } catch (err) {
-            console.error('Error processing QR code:', err)
-            toast.error(t('qrScanner.qrProcessingFailed'))
-        }
+        await scanValue(address)
     }
 
     const handlePaste = async () => {
@@ -251,12 +257,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
             toast.error(t(result.reason === 'empty' ? 'qrScanner.clipboardEmpty' : 'qrScanner.clipboardUnavailable'))
             return
         }
-        try {
-            await onScan(result.text)
-        } catch (err) {
-            console.error('Error processing QR code:', err)
-            toast.error(t('qrScanner.qrProcessingFailed'))
-        }
+        await scanValue(result.text)
     }
 
     if (!isScanning) return null
@@ -288,7 +289,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                     <ScanRegionOverlay
                         onPaste={handlePaste}
                         detectedAddress={detectedAddress}
-                        onUseDetected={() => onScan(detectedAddress!)}
+                        onUseDetected={() => scanValue(detectedAddress!)}
                         showPasteChip={showPasteChip}
                         onUsePasteChip={handleUsePasteChip}
                     />
