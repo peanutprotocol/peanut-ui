@@ -16,6 +16,7 @@ import {
 } from '@/utils/general.utils'
 import { apiFetch } from '@/utils/api-fetch'
 import { useAppLocked } from '@/hooks/useAppLocked'
+import { currentAppLocale } from '@/i18n/app/locale-store'
 import { isCapacitor } from '@/utils/capacitor'
 import { clearAuthToken } from '@/utils/auth-token'
 import { resetCrispProxySessions } from '@/utils/crisp'
@@ -121,6 +122,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // catalog rail ids for joins against the rails table.
                 enabledRails: enabledRails.map((rail) => `${rail.rail.provider.code}:${rail.rail.method.code}`),
                 enabledRailIds: enabledRails.map((rail) => rail.rail.id),
+                // Client-only (locale never reaches the BE) — covers the first
+                // session, where the startup locale resolves before identify.
+                ...(currentAppLocale() ? { app_locale: currentAppLocale() } : {}),
             })
             // Sentry: every error captured from here on inherits user context
             // as searchable Sentry tags. Closes the historical gap where FE

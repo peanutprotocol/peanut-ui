@@ -4,12 +4,31 @@
 // an unsupported value can never leak out.
 
 import Cookies from 'js-cookie'
+import posthog from 'posthog-js'
 import { isCapacitor } from '@/utils/capacitor'
 import { resolveLocale, type AppLocale } from './config'
 
 const LOCALE_KEY = 'app-locale'
 
 let resolution: Promise<AppLocale> | null = null
+let current: AppLocale | null = null
+
+/** Last resolved/persisted locale, or null before startup resolution. */
+export function currentAppLocale(): AppLocale | null {
+    return current
+}
+
+// Locale analytics (TASK-20922): register makes app_locale an event-time super
+// property (person-on-events preserves history); the person property feeds
+// cohorts. The person write is gated on an identified user — an unconditional
+// $set would force person processing for every anonymous visitor under
+// person_profiles: 'identified_only'. Logged-in coverage comes from the
+// identify in authContext.tsx, which also sends app_locale.
+function emitLocaleToAnalytics(locale: AppLocale): void {
+    current = locale
+    posthog.register({ app_locale: locale })
+    if (posthog._isIdentified()) posthog.setPersonProperties({ app_locale: locale })
+}
 
 function navigatorLocale(): AppLocale {
     return resolveLocale(typeof navigator !== 'undefined' ? navigator.language : null)
@@ -41,11 +60,16 @@ async function resolveStartupLocale(): Promise<AppLocale> {
 
 /** Resolves the startup locale once; memoized for the session. */
 export function localeReady(): Promise<AppLocale> {
-    if (!resolution) resolution = resolveStartupLocale()
+    if (!resolution)
+        resolution = resolveStartupLocale().then((locale) => {
+            emitLocaleToAnalytics(locale)
+            return locale
+        })
     return resolution
 }
 
 export function persistLocale(locale: AppLocale): void {
+    emitLocaleToAnalytics(locale)
     if (isCapacitor()) {
         import('@capacitor/preferences')
             .then(({ Preferences }) => Preferences.set({ key: LOCALE_KEY, value: locale }))
