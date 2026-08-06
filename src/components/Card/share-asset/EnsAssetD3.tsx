@@ -40,15 +40,14 @@ const BURST_SHADOW_DY = 28
 
 const HEADLINE_TOP = 288
 const PILL_TOP = 424
-const TAGLINE_TOP = 566
 
 const ANIM_BURST_DELAY = 100
 const ANIM_HEADLINE_DELAY = 350
 const ANIM_STAMP_BASE_DELAY = 600
 const ANIM_STAMP_STAGGER = 200
-const ANIM_TAGLINE_DELAY = 1400
+const ANIM_MARKS_DELAY = 1400
 
-// Keep badges off the text zone (headline + pill + tagline) and off the two
+// Keep badges off the text zone (headline + pill) and off the two
 // fixed marks. Burst spike TIPS are fair game — corner stickers overlapping
 // them is the collage look.
 const ENS_KEEPOUTS: readonly KeepoutEllipse[] = [
@@ -239,24 +238,6 @@ const EnsAssetD3: FC<EnsAssetD3Props> = ({
                 </div>
             </div>
 
-            {/* ─── Deadpan tagline (z 5) ─── */}
-            <div
-                className="absolute text-center"
-                style={{
-                    top: TAGLINE_TOP,
-                    left: 0,
-                    right: 0,
-                    zIndex: 5,
-                    transform: 'rotate(-2deg)',
-                    fontSize: 30,
-                    fontWeight: 600,
-                    opacity: 0.72,
-                    animation: animate ? `fadeUp 600ms ease-out ${ANIM_TAGLINE_DELAY}ms both` : 'none',
-                }}
-            >
-                didn&apos;t buy it. got paid at it.
-            </div>
-
             {/* ─── Badge stickers (z 4) — the user's real badges, collaged
                  around the burst exactly like the card asset ─── */}
             {stickers.map((s, i) => (
@@ -279,7 +260,7 @@ const EnsAssetD3: FC<EnsAssetD3Props> = ({
                     zIndex: 5,
                     transform: 'rotate(-8deg)',
                     filter: 'drop-shadow(0.6rem 0.6rem 0 rgba(0,0,0,0.28))',
-                    animation: animate ? `fadeUp 600ms ease-out ${ANIM_TAGLINE_DELAY + 150}ms both` : 'none',
+                    animation: animate ? `fadeUp 600ms ease-out ${ANIM_MARKS_DELAY}ms both` : 'none',
                 }}
             >
                 <span style={{ fontSize: 46, fontWeight: 800, color: '#5298FF' }}>ens</span>
@@ -292,7 +273,7 @@ const EnsAssetD3: FC<EnsAssetD3Props> = ({
                     right: 88,
                     bottom: 110,
                     zIndex: 5,
-                    animation: animate ? `fadeUp 600ms ease-out ${ANIM_TAGLINE_DELAY + 300}ms both` : 'none',
+                    animation: animate ? `fadeUp 600ms ease-out ${ANIM_MARKS_DELAY + 150}ms both` : 'none',
                 }}
             >
                 <div className="relative inline-flex" style={{ transform: 'rotate(6deg)' }}>
