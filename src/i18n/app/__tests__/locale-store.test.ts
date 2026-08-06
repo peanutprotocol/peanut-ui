@@ -41,7 +41,9 @@ function freshStore(): LocaleStore {
 }
 
 beforeEach(() => {
-    jest.clearAllMocks()
+    // resetAllMocks (not clearAllMocks) so a mockImplementation set in one test
+    // — e.g. the posthog-throw cases — can never leak into the next.
+    jest.resetAllMocks()
     mockIsIdentified.mockReturnValue(true)
     mockIsCapacitor.mockReturnValue(false)
     mockGetPlatform.mockReturnValue('web')
@@ -92,11 +94,12 @@ describe('emitLocaleToAnalytics', () => {
 })
 
 describe('emitDeviceContextToAnalytics', () => {
-    it('registers the raw device language and platform as super properties (web)', async () => {
+    it('registers the raw device language and platform, and exposes them for logout re-register', async () => {
         setNavigatorLanguage('es-AR')
         const store = freshStore()
         await store.emitDeviceContextToAnalytics()
         expect(mockRegister).toHaveBeenCalledWith({ device_language: 'es-ar', platform: 'web' })
+        expect(store.currentDeviceContext()).toEqual({ device_language: 'es-ar', platform: 'web' })
     })
 
     it('keeps an unsupported language as-is (never collapses to en — protects the OKR denominator)', async () => {
@@ -114,12 +117,16 @@ describe('emitDeviceContextToAnalytics', () => {
         expect(mockRegister).toHaveBeenCalledTimes(1)
     })
 
-    it('a posthog throw never propagates', async () => {
+    it('a posthog throw never propagates and leaves the context unset so a retry can register', async () => {
         setNavigatorLanguage('en-US')
-        mockRegister.mockImplementation(() => {
+        mockRegister.mockImplementationOnce(() => {
             throw new Error('sdk exploded')
         })
         const store = freshStore()
         await expect(store.emitDeviceContextToAnalytics()).resolves.toBeUndefined()
+        expect(store.currentDeviceContext()).toBeNull()
+        // guard is set only on success, so the next call retries instead of no-op
+        await store.emitDeviceContextToAnalytics()
+        expect(store.currentDeviceContext()).toEqual({ device_language: 'en-us', platform: 'web' })
     })
 })
