@@ -361,10 +361,16 @@ describe('GROUP 4: Method Selection', () => {
         fireEvent.click(screen.getByTestId('action-card-Mercado Pago'))
         expect(mockResetWithdrawFlow).toHaveBeenCalledTimes(1)
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=mercado-pago&country=argentina')
+        expect(mockResetWithdrawFlow.mock.invocationCallOrder[0]).toBeLessThan(
+            mockRouterPush.mock.invocationCallOrder[0]
+        )
 
         fireEvent.click(screen.getByTestId('action-card-Pix'))
         expect(mockResetWithdrawFlow).toHaveBeenCalledTimes(2)
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
+        expect(mockResetWithdrawFlow.mock.invocationCallOrder[1]).toBeLessThan(
+            mockRouterPush.mock.invocationCallOrder[1]
+        )
     })
 
     test('Clicking Peanut contacts navigates to /send?view=contacts without touching the withdraw flow', () => {
