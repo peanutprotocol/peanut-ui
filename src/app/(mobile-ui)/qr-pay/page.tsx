@@ -1612,8 +1612,8 @@ export default function QRPayPage() {
                             )
                         })()}
                         <PaymentInfoRow
-                            label={t('info.peanutFee')}
-                            value={t('info.sponsoredByPeanut')}
+                            label={tCommon('peanutFee')}
+                            value={tCommon('sponsoredByPeanut')}
                             hideBottomBorder
                         />
                     </Card>

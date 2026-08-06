@@ -10,12 +10,15 @@
         "close": "Fechar",
         "loading": "Carregando...",
         "somethingWentWrong": "Algo deu errado",
+        "genericError": "Algo deu errado. Tente de novo ou fale com o suporte.",
         "copiedToClipboard": "Copiado para a área de transferência",
         "maybeLater": "Talvez depois",
         "tryAgain": "Tentar de novo",
         "skipForNow": "Pular por enquanto",
         "gotIt": "Entendi",
         "contactSupport": "Falar com o suporte",
+        "peanutFee": "Taxa do Peanut",
+        "sponsoredByPeanut": "Patrocinada pelo Peanut!",
         "pending": "Pendente",
         "comingSoon": "Em breve",
         "or": "ou",
@@ -175,7 +178,7 @@
             },
             "iosPwa": {
                 "title": "Adicione o Peanut à sua tela inicial",
-                "description": "Siga um guia rápido para adicionar o app à sua tela inicial, sem precisar baixar."
+                "description": "Siga um guia rápido para adicionar o app à sua tela de início, sem precisar baixar nada."
             },
             "qrPay": {
                 "title": "Pague com <b>códigos QR</b>",
@@ -207,7 +210,7 @@
             "yourCard": "Seu cartão",
             "peanutCard": "Cartão Peanut",
             "newBadge": "Novo!",
-            "yourBadges": "Seus emblemas",
+            "yourBadges": "Seus selos",
             "points": "Pontos",
             "personalDetails": "Dados pessoais",
             "unlockedRegions": "Regiões desbloqueadas",
@@ -224,7 +227,7 @@
                 "name": "Nome",
                 "surname": "Sobrenome",
                 "bio": "Bio",
-                "email": "Email",
+                "email": "E-mail",
                 "phoneNumber": "Número de telefone",
                 "website": "Site"
             },
@@ -232,15 +235,14 @@
                 "name": "Adicione seu nome",
                 "surname": "Adicione seu sobrenome",
                 "bio": "Adicione uma bio",
-                "email": "Adicione seu email",
+                "email": "Adicione seu e-mail",
                 "phone": "Adicione seu número",
                 "website": "Adicione seu site"
             },
             "soonBadge": "Em breve!",
             "saveChanges": "Salvar alterações",
             "errors": {
-                "nameRequired": "Informe seu nome.",
-                "generic": "Algo deu errado. Tente de novo ou fale com o suporte."
+                "nameRequired": "Informe seu nome."
             }
         },
         "regions": {
@@ -263,8 +265,7 @@
             },
             "initError": {
                 "retriableTitle": "Não foi possível iniciar a verificação",
-                "notAvailableTitle": "Ainda não disponível",
-                "fallbackDescription": "Algo deu errado. Tente de novo ou fale com o suporte."
+                "notAvailableTitle": "Ainda não disponível"
             }
         },
         "backup": {
@@ -449,7 +450,6 @@
             "swapCurrencies": "Trocar moedas",
             "rateUnavailable": "Câmbio indisponível no momento",
             "bankFee": "Taxa do banco",
-            "peanutFee": "Taxa do Peanut",
             "free": "Grátis!",
             "arrivesHours": "Deve chegar em horas.",
             "arrivesMinutes": "Deve chegar em minutos."
@@ -531,7 +531,6 @@
         "waitlist": {
             "inviterUsernamePlaceholder": "Nome de usuário da pessoa",
             "inviterNotFound": "Não há nenhum membro do Peanut com esse nome de usuário. Confira o usuário exato de quem convidou você.",
-            "or": "ou",
             "joinWaitlist": "Entrar na lista de espera",
             "loginCanceled": "O login foi cancelado. Tente de novo.",
             "noPasskey": "Nenhuma passkey encontrada. Primeiro crie uma carteira.",
@@ -784,13 +783,11 @@
             "sendWith": "Enviar com"
         },
         "confirm": {
-            "sponsoredByPeanut": "Patrocinado pela Peanut!",
             "minReceived": "Mínimo a receber",
             "requested": "Solicitado",
             "sending": "Enviando",
             "tokenAndNetwork": "Token e rede",
             "networkFee": "Taxa de rede",
-            "peanutFee": "Taxa da Peanut",
             "slippageInfo": "Esta transação pode sofrer slippage devido à conversão de tokens ou à ponte entre redes."
         },
         "input": {
@@ -852,7 +849,6 @@
             "brokenLinkMessage": "Tem certeza de que clicou no link certo? O link acabou de ser criado? Tente de novo em alguns segundos.",
             "retryLoadingLink": "Tentar carregar o link de novo",
             "missingInviter": "Não foi possível aceitar o convite: falta quem convidou. Fale com o suporte.",
-            "generic": "Algo deu errado. Tente de novo ou fale com o suporte.",
             "offrampUnavailable": "Saque indisponível",
             "bankClaimUnavailable": "Você não pode resgatar este link para sua conta bancária.",
             "belowMinimum": "Este link está abaixo do mínimo de {amount} para saques bancários.",
@@ -867,7 +863,7 @@
         },
         "initial": {
             "receiveOn": "Receber em",
-            "recipientPlaceholder": "Digite um usuário, um endereço ou ENS",
+            "recipientPlaceholder": "Insira um nome de usuário, um endereço ou ENS",
             "usdcArbitrumOnly": "Você só pode resgatar USDC na Arbitrum para usuários da Peanut Wallet."
         },
         "addressCompatible": {
@@ -887,7 +883,7 @@
             "devconnectLogoAlt": "Logo da Devconnect",
             "starAlt": "estrela",
             "invitedBy": "{username} te convidou, você tem acesso antecipado!",
-            "requiresVerification": "EXIGE VERIFICAÇÃO"
+            "requiresVerification": "REQUER VERIFICAÇÃO"
         },
         "minAmount": {
             "title": "Valor mínimo",
@@ -896,14 +892,12 @@
         },
         "confirm": {
             "minReceived": "Mínimo a receber",
-            "slippageInfo": "Esta transação pode ter slippage por causa da conversão de tokens ou da ponte entre redes.",
+            "slippageInfo": "Esta transação pode sofrer slippage devido à conversão de tokens ou à ponte entre redes.",
             "tokenAndNetwork": "Token e rede",
             "tokenAlt": "token",
             "chainAlt": "rede",
             "tokenOnChain": "{token} na <c>{chain}</c>",
-            "maxNetworkFee": "Taxa máxima de rede",
-            "peanutFee": "Taxa do Peanut",
-            "sponsoredByPeanut": "Patrocinada pelo Peanut!"
+            "maxNetworkFee": "Taxa máxima de rede"
         },
         "success": {
             "peanutMascotAlt": "Mascote do Peanut",
@@ -918,7 +912,7 @@
             "selectCountry": "Selecione o país da sua conta bancária",
             "fullName": "Nome completo",
             "accountNumber": "Número da conta",
-            "routingNumber": "Número de routing",
+            "routingNumber": "Routing Number",
             "countryNotSelected": "País não selecionado",
             "processAccountFailed": "Não foi possível processar a conta bancária. Tente de novo."
         },
@@ -929,7 +923,6 @@
             "ownAccountOnly": "Você só pode sacar para contas no seu nome.",
             "destinationAddress": "Endereço de destino",
             "exchangeRate": "Taxa de câmbio",
-            "sponsoredByPeanut": "Patrocinada pelo Peanut",
             "errors": {
                 "missingTxHash": "Falha no resgate: hash da transação ausente.",
                 "withdrawalProcessing": "Saque realizado! Seus fundos estão sendo processados. Se a transação não aparecer no seu histórico em 5 minutos, fale com o suporte.",
@@ -973,9 +966,7 @@
             "exchangeRateTooltip": "A taxa mostrada é a atual, mas pode variar um pouco (~$1-5 ARS) até o pagamento ser confirmado.",
             "saveVsCard": "Economia vs. cartão",
             "saveVsCardTooltipBrl": "Cartões estrangeiros pagam IOF (~3,5%) mais uma taxa de câmbio típica do emissor de ~3%. O Peanut usa o PIX na taxa atual de mercado.",
-            "saveVsCardTooltipArs": "Cartões estrangeiros aplicam a taxa oficial mais uma taxa de câmbio típica do emissor de ~3%. O Peanut usa o MercadoPago na taxa atual de mercado.",
-            "peanutFee": "Taxa do Peanut",
-            "sponsoredByPeanut": "Patrocinada pelo Peanut!"
+            "saveVsCardTooltipArs": "Cartões estrangeiros aplicam a taxa oficial mais uma taxa de câmbio típica do emissor de ~3%. O Peanut usa o MercadoPago na taxa atual de mercado."
         },
         "success": {
             "youPaid": "Você pagou {merchant}",
@@ -1044,7 +1035,7 @@
         "slideHandleAria": "Controle deslizante",
         "entry": {
             "navTitle": "Adicionar cartão",
-            "title": "Pague onde aceitam Visa",
+            "title": "Gaste onde a Visa é aceita",
             "description": "Use seu saldo em mais de 150M de lojas. Online, por aproximação, seu.",
             "featureBalance": "Um saldo único",
             "featureControl": "Sob seu controle",
@@ -1401,8 +1392,6 @@
             "exchangeRate": "Taxa de câmbio",
             "providerFees": "Taxas do provedor",
             "providerFeesInfo": "Nossos provedores e a blockchain cobram uma pequena taxa em cada transação. Essa taxa já está considerada no valor que você vê.",
-            "peanutFee": "Taxa do Peanut",
-            "sponsoredByPeanut": "Patrocinada pelo Peanut!",
             "flagAlt": "bandeira",
             "shareTitle": "Dados da transferência bancária",
             "shareDetails": "Compartilhar dados",
@@ -1509,8 +1498,6 @@
             "networkFee": "Taxa de rede",
             "networkFeeInfo": "Taxa da ponte entre redes (gas no destino + 0,07% da Rhino). Paga à parte do valor sacado.",
             "youPay": "Você paga",
-            "peanutFee": "Taxa do Peanut",
-            "sponsoredByPeanut": "Patrocinada pelo Peanut!",
             "highFeeWarning": "Atenção: a taxa de rede é uma parte grande deste saque. Sacar um valor maior ou escolher uma rede mais barata reduz a taxa."
         },
         "compatibilityModal": {
@@ -1552,8 +1539,6 @@
             "lockingRate": "Travando a taxa...",
             "exchangeRate": "Taxa de câmbio",
             "exchangeRateInfo": "A taxa mostrada é a atual, mas pode variar um pouco (~$1-5 ARS) até o pagamento ser confirmado.",
-            "peanutFee": "Taxa do Peanut",
-            "sponsoredByPeanut": "Patrocinada pelo Peanut!",
             "flagAlt": "bandeira",
             "increaseLimitsMessage": "Oi, eu gostaria de aumentar meus limites de pagamento."
         },
@@ -1631,7 +1616,7 @@
         "drawerTitle": "Detalhes da transação",
         "noGoalSet": "Sem meta definida",
         "amountCollected": "${amount} arrecadados",
-        "contributors": "Contribuintes ({count})",
+        "contributors": "Contribuidores ({count})",
         "pendingLinkDeviceNote": "Use o dispositivo onde você criou este link para cancelar ou compartilhar de novo.",
         "type": {
             "send": "Envio",
@@ -1686,7 +1671,7 @@
             "bankAccount": "Conta bancária",
             "recipient": "Destinatário",
             "sender": "Remetente",
-            "request": "Solicitação",
+            "request": "Cobrança",
             "peanutReward": "Recompensa Peanut",
             "receivedViaLink": "Recebido via link",
             "sentViaLink": "Enviado via link",
@@ -1724,8 +1709,6 @@
             "transferId": "ID da transferência",
             "pointsEarned": "Pontos ganhos",
             "networkFee": "Taxa de rede",
-            "peanutFee": "Taxa da Peanut",
-            "peanutFeeSponsored": "Patrocinada pela Peanut!",
             "attachment": "Anexo",
             "download": "Baixar",
             "reason": "Motivo",
@@ -1739,10 +1722,9 @@
             "generic": "Você recebeu uma recompensa da Peanut!"
         },
         "perk": {
-            "title": "Recompensa da Peanut",
-            "subtitle": "Ganhe recompensas toda vez que seus amigos usarem a Peanut.",
+            "title": "Recompensa Peanut",
+            "subtitle": "Ganhe recompensas sempre que seus amigos usarem o Peanut.",
             "statusCompleted": "Concluído",
-            "statusProcessing": "Processando",
             "received": "Recebido"
         },
         "actions": {
@@ -1755,7 +1737,7 @@
             "cancelRequest": "Cancelar cobrança",
             "pay": "Pagar",
             "rejectRequest": "Recusar cobrança",
-            "splitBill": "Dividir esta conta",
+            "splitBill": "Dividir essa conta",
             "shareReceipt": "Compartilhar comprovante",
             "inviteFriends": "Convide amigos e ganhe mais recompensas",
             "reportIssue": "Problemas com esta transação?",
@@ -1770,7 +1752,7 @@
         },
         "toast": {
             "inviteLinkCopied": "Link de convite copiado!",
-            "linkCancelled": "Link cancelado!",
+            "linkCancelled": "Link cancelado com sucesso!",
             "linkCancelledRefresh": "Link cancelado! Atualize para ver o saldo atualizado.",
             "cancelLinkFailed": "Não foi possível cancelar o link. Tente de novo."
         },
@@ -1821,7 +1803,7 @@
             "accountHolderName": "Nome do titular",
             "bankName": "Nome do banco",
             "bankAddress": "Endereço do banco",
-            "routingNumber": "Número de roteamento",
+            "routingNumber": "Routing Number",
             "beneficiaryName": "Nome do beneficiário",
             "beneficiaryAddress": "Endereço do beneficiário",
             "sortCode": "Sort Code"
@@ -1862,7 +1844,7 @@
         "shareInviteLink": "Compartilhar link de convite",
         "loadPointsFailed": "Erro ao carregar os pontos!",
         "loadInvitesFailed": "Erro ao carregar os convites!",
-        "contactSupport": "Fale com o Suporte.",
+        "contactSupport": "Por favor, fale com o Suporte.",
         "friendsEarnedYou": "Seus amigos fizeram você ganhar",
         "starAlt": "estrela"
     },
@@ -1875,7 +1857,7 @@
         "skipCta": "Resgatar seu passe livre",
         "vanityTitle": "Resgate seu selo",
         "vanityDescription": "Você ganhou um selo do Peanut. Para resgatá-lo, cadastre-se ou faça login.",
-        "vanityCta": "Cadastre-se",
+        "vanityCta": "Criar conta",
         "inviterTitle": "{username} convidou você para o Peanut",
         "inviterDescription": "Acesso exclusivo para membros. Use este convite para abrir sua carteira e começar a enviar e receber dinheiro no mundo todo.",
         "inviterCta": "Garanta sua vaga",
@@ -1893,7 +1875,6 @@
         "inLine": "Você está na fila",
         "inLineWithPosition": "Você está em #{position} na fila",
         "skipTheLine": "Fure a fila: informe o usuário do membro que convidou você.",
-        "acceptFailed": "Algo deu errado. Tente de novo ou fale com o suporte.",
         "pleaseWait": "Aguarde...",
         "logInDifferentAccount": "Entrar com outra conta",
         "emailPlaceholder": "voce@exemplo.com"
@@ -2033,7 +2014,7 @@
             "title": "Adicione seu e-mail para continuar",
             "description": "Não conseguimos terminar de configurar sua conta porque falta um endereço de e-mail. Adicione um e tentaremos de novo automaticamente.",
             "emailLabel": "E-mail",
-            "emailPlaceholder": "you@example.com",
+            "emailPlaceholder": "voce@exemplo.com",
             "save": "Salvar e-mail",
             "saving": "Salvando...",
             "notNow": "Agora não",
@@ -2314,7 +2295,9 @@
         "errorStartActionFailed": "Não conseguimos iniciar a verificação. Tente novamente.",
         "errorInvalidResponse": "Resposta inválida do servidor",
         "actionMessageActionRequired": "Precisamos de um pouco mais para verificar sua identidade. Reenvie seus documentos.",
-        "actionMessageFailed": "Não conseguimos verificar sua identidade. Fale com o suporte."
+        "actionMessageFailed": "Não conseguimos verificar sua identidade. Fale com o suporte.",
+        "successTitle": "Verificação concluída!",
+        "successCloseWindow": "Você já pode fechar esta janela."
     },
     "identity": {
         "unlockTitle": "Desbloquear {region}",
@@ -2323,7 +2306,7 @@
         "unlockDescription": "Para enviar e receber dinheiro aqui, confirme sua identidade com um <b>documento oficial.</b>",
         "whatYoullUnlock": "O que você vai desbloquear:",
         "unlockNow": "Desbloquear agora",
-        "qrPayments": "Pagamentos por QR na <b>Argentina e no Brasil</b>",
+        "qrPayments": "Pagamentos QR na <b>Argentina e no Brasil</b>",
         "sepaTransfers": "Transferências SEPA na <b>Europa</b> (+30 países)",
         "ukFasterPayments": "Transferências Faster Payments no <b>Reino Unido</b>",
         "usAchWire": "Transferências ACH e Wire nos <b>Estados Unidos</b>",
@@ -2356,8 +2339,8 @@
             "compliance_block": "Não conseguimos aprovar sua solicitação de cartão após uma análise de conformidade.",
             "card_rejected": "Sua solicitação de cartão não pôde ser aprovada. Fale com o suporte se achar que isso é um engano.",
             "manteca_us_nationality": "Pagamentos deste país não estão disponíveis para cidadãos dos EUA no momento.",
-            "country_not_supported": "Este método precisa de um documento de um país aceito. Você pode verificar com um documento diferente.",
-            "uk_resident_blocked": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para residentes do Reino Unido. Seus fundos estão seguros: você pode sacá-los como cripto a qualquer momento."
+            "country_not_supported": "Este método exige um documento de um país compatível. Você pode verificar com outro documento.",
+            "uk_resident_blocked": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para seus residentes. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento."
         }
     },
     "recoverFunds": {
@@ -2410,7 +2393,6 @@
         "qrScanner": {
             "scanToPay": "Escaneie para pagar",
             "clickToPaste": "Toque para colar",
-            "close": "Fechar",
             "clipboardEmpty": "A área de transferência está vazia",
             "clipboardUnavailable": "Não foi possível acessar a área de transferência",
             "startingCamera": "Iniciando a câmera…",
@@ -2426,7 +2408,6 @@
             "cameraSwitchFailed": "Não foi possível trocar de câmera. Tente novamente.",
             "cameraPermission": {
                 "title": "Acesso à câmera necessário",
-                "tryAgain": "Tentar novamente",
                 "dismiss": "Dispensar",
                 "withStepsHint": "Siga estes passos para permitir o acesso à câmera e tente novamente.",
                 "noStepsHint": "Permita o acesso à câmera nas configurações do seu navegador ou dispositivo e tente novamente.",
@@ -2451,7 +2432,6 @@
             "notSupportedGetNotified": "Avisamos quando estiver no ar!",
             "getNotifiedCta": "Quero ser avisado!",
             "willBeNotified": "Avisaremos você assim que {qrName} for compatível.",
-            "close": "Fechar",
             "continue": "Continuar",
             "okay": "Entendi",
             "directSendCrossChain": "A Peanut aceita pagamentos entre redes.",
@@ -2477,7 +2457,6 @@
             "myQrButtonText": "Compartilhe seu perfil"
         },
         "qrBottomDrawer": {
-            "or": "ou",
             "shareTitle": "Compartilhe seu perfil"
         },
         "inviteFriendsModal": {
@@ -2507,7 +2486,6 @@
             "startUsingCta": "Começar a usar"
         },
         "easterEggModal": {
-            "gotItCta": "Entendi",
             "AQ": {
                 "caption": "🐧 Aqui não tem banco, só pinguim!",
                 "subtitle": "A Antártida não é um país de verdade... ainda"
@@ -2592,7 +2570,6 @@
         "rainCooldownIntroModal": {
             "title": "Aguarde um momento",
             "description": "Seu cartão precisa de um breve intervalo entre gastos seguidos. Para evitar isso no futuro, você pode baixar o limite do cartão para menos que o saldo da sua wallet; o restante fica sempre disponível.",
-            "gotItCta": "Entendi",
             "readMore": "Leia mais"
         },
         "staleCardApprovalModal": {
@@ -2627,7 +2604,6 @@
         "supportDrawer": {
             "chatLoadFailed": "Não foi possível carregar o chat",
             "chatLoadFailedDescription": "Algo deu errado ao carregar o chat de suporte. Mande um e-mail e a gente te ajuda:",
-            "tryAgain": "Tentar de novo",
             "label": "Suporte",
             "chatTitle": "Chat de suporte"
         },
@@ -2749,7 +2725,6 @@
         },
         "savedAccounts": {
             "title": "Contas salvas",
-            "or": "ou",
             "selectNewMethod": "Escolher outro método",
             "flagAlt": "Bandeira de {country}",
             "flagAltGeneric": "Bandeira do país"
@@ -2769,7 +2744,7 @@
             "sendingMoneyTo": "Você está enviando dinheiro para",
             "requestingMoneyFrom": "Solicitando dinheiro de",
             "youReceived": "Você recebeu",
-            "isRequesting": "{name} está solicitando",
+            "isRequesting": "{name} está cobrando",
             "sendingTo": "Enviando para {name}",
             "payWhatYouWant": "Pague quanto quiser",
             "sendExactAmount": "Envie o valor exato!"
@@ -2817,7 +2792,7 @@
         "rainCooldownRetry": "Um saque anterior com o cartão ainda está ativo. Tente novamente em cerca de {minutes, plural, one {# minuto} other {# minutos}}.",
         "rainCooldownRetryShortly": "Um saque anterior com o cartão ainda está ativo. Tente novamente em instantes.",
         "rainInsufficientCollateral": "Seu cartão não tem colateral suficiente para este saque.",
-        "staleCardApproval": "Você precisa reativar seu cartão antes de sacar. Basta um toque com sua passkey.",
+        "staleCardApproval": "Seu cartão precisa ser reativado antes de você sacar. Leva só um toque com a passkey.",
         "cardRateLimited": "Muitas solicitações com o cartão. Aguarde um momento e tente novamente.",
         "linkTransactionHashFetch": "Não conseguimos carregar a transação deste link. Atualize a página e tente novamente.",
         "cardApprovalCancelled": "Aprovação cancelada — você pode tentar novamente quando quiser.",
@@ -2865,6 +2840,96 @@
         "smartLink": {
             "redirecting": "Levando você para a loja…",
             "pickStore": "Escolha sua loja e baixe o app."
+        }
+    },
+    "shhhhh": {
+        "hero": {
+            "wordmark": "shhhhh.",
+            "tagline": "O cartão do Peanut chegou. Para você. Talvez.",
+            "body": "Um cartão aceito em mais de 150 milhões de estabelecimentos que aceitam Visa. Estamos liberando o beta aos poucos: <counter></counter> por semana. Se você tiver o selo certo, fura a fila direto.",
+            "onlyCount": "só {count}",
+            "tryTheDoor": "TESTE A PORTA",
+            "orJoinWaitlist": "ou entre na lista de espera →",
+            "joinError": "Não conseguimos te colocar na lista de espera. Teste a porta de novo."
+        },
+        "waitlist": {
+            "joined": "✓ Você está na lista de espera",
+            "joinedWithPosition": "✓ Você está na lista de espera · #{position}",
+            "holler": "A gente avisa quando chegar sua vez."
+        },
+        "marquee": {
+            "iykyk": "IYKYK",
+            "wordTravels": "A NOTÍCIA CORRE",
+            "closedBeta": "BETA FECHADO",
+            "shhhh": "SHHHH",
+            "peanutClub": "PEANUT CLUB"
+        },
+        "whatItDoes": {
+            "titleLine1": "É um cartão.",
+            "titleLine2": "O truque é esse.",
+            "body": "Abasteça o cartão do jeito que você já move seu dinheiro: transferência bancária, saque de uma exchange ou stablecoins (USDC, USDT). Seu saldo é seu. Sem custódia. Sem taxas mensais. Sem taxas anuais.",
+            "statMerchants": "estabelecimentos que aceitam Visa",
+            "statBalance": "saldo",
+            "statCard": "cartão",
+            "statMiddlemen": "intermediários"
+        },
+        "whoItsFor": {
+            "title": "Se você vive em mais de um país, isso é para você.",
+            "body": "Criamos o peanut para quem não se encaixa. Nômades digitais que travam na verificação de todo neobanco assim que cruzam uma fronteira. Expatriados que pagam 4% em cada envio para casa. Quem ganha em uma moeda e gasta em outra."
+        },
+        "howToGetIn": {
+            "title": "Como entrar.",
+            "subtitle": "Confere as credenciais. O selo fura a fila.",
+            "badgeTitle": "Tem um selo.",
+            "badgeBody": "Você fura a fila. Estamos liberando quem tiver:",
+            "badgeFooter": "Entre, conferimos os selos da sua conta e você vai direto para a verificação. Ainda não tem conta no peanut? Crie uma primeiro — leva um minuto.",
+            "noBadgeTitle": "Sem selo.",
+            "noBadgeBody": "Entre na lista de espera. Liberamos 20 pessoas por semana.",
+            "noBadgeFooter": "Coloque seu nome na lista e a gente avisa quando chegar sua vez."
+        },
+        "notForYou": {
+            "title": "Provavelmente não é para você.",
+            "body1": "Se seu dinheiro vive em um só país e uma só moeda, o cartão do seu banco já resolve. Fique com ele.",
+            "body2": "Se seu dinheiro vive em outro lugar — cruzando fronteiras, em dólares, em autocustódia —, o cartão do peanut foi feito para você."
+        },
+        "faq": {
+            "title": "PERGUNTAS FREQUENTES.",
+            "q1": {
+                "question": "O QUE É O CARTÃO DO PEANUT?",
+                "answer": "Um cartão sem custódia. Abasteça com stablecoins e use no dia a dia onde a Visa é aceita."
+            },
+            "q2": {
+                "question": "ONDE FUNCIONA?",
+                "answer": "Aceito onde a Visa é aceita — cerca de 150 milhões de estabelecimentos. Online, em lojas e em caixas eletrônicos."
+            },
+            "q3": {
+                "question": "MEU DINHEIRO ESTÁ SEGURO?",
+                "answer": "É seu. Sem custódia — suas stablecoins ficam na sua carteira até a hora em que você usa o cartão. Não temos a custódia. Não emprestamos seu dinheiro."
+            },
+            "q4": {
+                "question": "E OS $10?",
+                "answer": "Uma recompensa de boas-vindas. Complete a verificação + $100 de gasto no cartão → $10 liberados no seu saldo. Vale igual se você se cadastrou sozinho ou veio por indicação. Se você indicar alguém, também pode receber $10 quando essa pessoa ativar o cartão. Sujeito a elegibilidade e aos termos do programa."
+            },
+            "q5": {
+                "question": "QUANTO TEMPO DEMORA A LISTA DE ESPERA?",
+                "answer": "Durante o beta fechado, liberamos cerca de 20 pessoas por semana. A ordem importa. Os selos furam a fila por completo."
+            },
+            "q6": {
+                "question": "ONDE POSSO CONSEGUIR O CARTÃO?",
+                "answer": "Estamos liberando primeiro em algumas regiões e incluindo mais conforme a cobertura dos nossos parceiros cresce. A elegibilidade aparece durante o cadastro."
+            },
+            "q7": {
+                "question": "TEM TAXAS?",
+                "answer": "Sem taxas mensais. Sem taxas anuais. Valem as taxas e os limites padrão previstos nos termos do titular do cartão."
+            },
+            "q8": {
+                "question": "POR QUE \"SHHHHH\"?",
+                "answer": "Preferimos prometer menos e entregar mais para um grupo pequeno do que gritar para a internet inteira no primeiro dia. A notícia corre."
+            }
+        },
+        "ready": {
+            "title": "tudo pronto?",
+            "subtitle": "Teste a porta."
         }
     }
 }

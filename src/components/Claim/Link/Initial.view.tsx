@@ -300,7 +300,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         console.error('Failed to accept invite')
                         setErrorState({
                             showError: true,
-                            errorMessage: t('errors.generic'),
+                            errorMessage: tCommon('genericError'),
                         })
                         setLoadingState('Idle')
                         return
@@ -314,7 +314,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     console.error('Failed to accept invite', error)
                     setErrorState({
                         showError: true,
-                        errorMessage: t('errors.generic'),
+                        errorMessage: tCommon('genericError'),
                     })
                     setLoadingState('Idle')
                     return
@@ -474,6 +474,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             campaignTag,
             fetchUser,
             t,
+            tCommon,
             toFriendlyError,
         ]
     )

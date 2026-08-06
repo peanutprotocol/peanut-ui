@@ -10,12 +10,15 @@
         "close": "Close",
         "loading": "Loading...",
         "somethingWentWrong": "Something went wrong",
+        "genericError": "Something went wrong. Please try again or contact support.",
         "copiedToClipboard": "Copied to clipboard",
         "maybeLater": "Maybe later",
         "tryAgain": "Try again",
         "skipForNow": "Skip for now",
         "gotIt": "Got it",
         "contactSupport": "Contact support",
+        "peanutFee": "Peanut fee",
+        "sponsoredByPeanut": "Sponsored by Peanut!",
         "pending": "Pending",
         "comingSoon": "Coming soon",
         "or": "or",
@@ -239,8 +242,7 @@
             "soonBadge": "Soon!",
             "saveChanges": "Save Changes",
             "errors": {
-                "nameRequired": "Please provide your name.",
-                "generic": "Something went wrong. Please try again or contact support."
+                "nameRequired": "Please provide your name."
             }
         },
         "regions": {
@@ -263,8 +265,7 @@
             },
             "initError": {
                 "retriableTitle": "Verification couldn't start",
-                "notAvailableTitle": "Not available yet",
-                "fallbackDescription": "Something went wrong. Please try again or contact support."
+                "notAvailableTitle": "Not available yet"
             }
         },
         "backup": {
@@ -449,7 +450,6 @@
             "swapCurrencies": "Swap currencies",
             "rateUnavailable": "Rate currently unavailable",
             "bankFee": "Bank fee",
-            "peanutFee": "Peanut fee",
             "free": "Free!",
             "arrivesHours": "Should arrive in hours.",
             "arrivesMinutes": "Should arrive in minutes."
@@ -531,7 +531,6 @@
         "waitlist": {
             "inviterUsernamePlaceholder": "Their username",
             "inviterNotFound": "No Peanut member with that username. Double-check your inviter's exact handle.",
-            "or": "or",
             "joinWaitlist": "Join waitlist",
             "loginCanceled": "Login was canceled. Please try again.",
             "noPasskey": "No passkey found. Please create a wallet first.",
@@ -784,13 +783,11 @@
             "sendWith": "Send with"
         },
         "confirm": {
-            "sponsoredByPeanut": "Sponsored by Peanut!",
             "minReceived": "Min Received",
             "requested": "Requested",
             "sending": "Sending",
             "tokenAndNetwork": "Token and network",
             "networkFee": "Network fee",
-            "peanutFee": "Peanut fee",
             "slippageInfo": "This transaction may face slippage due to token conversion or cross-chain bridging."
         },
         "input": {
@@ -852,7 +849,6 @@
             "brokenLinkMessage": "Are you sure you clicked on the right link? Was this link just created? Try again in a few seconds.",
             "retryLoadingLink": "Retry Loading Link",
             "missingInviter": "Unable to accept invite: missing inviter. Please contact support.",
-            "generic": "Something went wrong. Please try again or contact support.",
             "offrampUnavailable": "Offramp unavailable",
             "bankClaimUnavailable": "You can not claim this link to your bank account.",
             "belowMinimum": "This link is below the {amount} minimum for bank payouts.",
@@ -901,9 +897,7 @@
             "tokenAlt": "token",
             "chainAlt": "chain",
             "tokenOnChain": "{token} on <c>{chain}</c>",
-            "maxNetworkFee": "Max network fee",
-            "peanutFee": "Peanut fee",
-            "sponsoredByPeanut": "Sponsored by Peanut!"
+            "maxNetworkFee": "Max network fee"
         },
         "success": {
             "peanutMascotAlt": "Peanut Mascot",
@@ -929,7 +923,6 @@
             "ownAccountOnly": "You can only withdraw to accounts under your name.",
             "destinationAddress": "Destination Address",
             "exchangeRate": "Exchange Rate",
-            "sponsoredByPeanut": "Sponsored by Peanut",
             "errors": {
                 "missingTxHash": "Claim failed: missing transaction hash.",
                 "withdrawalProcessing": "Withdrawal successful! Your funds are being processed. If the transaction doesn't appear in your history within 5 minutes, please contact support.",
@@ -973,9 +966,7 @@
             "exchangeRateTooltip": "Rate shown is current but may vary slightly (~$1-5 ARS) until payment is confirmed.",
             "saveVsCard": "Save vs card",
             "saveVsCardTooltipBrl": "Foreign cards pay IOF (~3.5%) plus a typical ~3% issuer FX fee. Peanut routes via PIX at the current market rate.",
-            "saveVsCardTooltipArs": "Foreign cards apply the official rate plus a typical ~3% issuer FX fee. Peanut routes via MercadoPago at the current market rate.",
-            "peanutFee": "Peanut fee",
-            "sponsoredByPeanut": "Sponsored by Peanut!"
+            "saveVsCardTooltipArs": "Foreign cards apply the official rate plus a typical ~3% issuer FX fee. Peanut routes via MercadoPago at the current market rate."
         },
         "success": {
             "youPaid": "You paid {merchant}",
@@ -1401,8 +1392,6 @@
             "exchangeRate": "Exchange Rate",
             "providerFees": "Provider fees",
             "providerFeesInfo": "Our providers and the blockchain charge a small fee for every transaction. This fee is already accounted for in the amount you see.",
-            "peanutFee": "Peanut fee",
-            "sponsoredByPeanut": "Sponsored by Peanut!",
             "flagAlt": "flag",
             "shareTitle": "Bank Transfer Details",
             "shareDetails": "Share Details",
@@ -1509,8 +1498,6 @@
             "networkFee": "Network fee",
             "networkFeeInfo": "Cross-chain bridge fee (destination gas + Rhino's 0.07%). Paid on top of the amount withdrawn.",
             "youPay": "You pay",
-            "peanutFee": "Peanut fee",
-            "sponsoredByPeanut": "Sponsored by Peanut!",
             "highFeeWarning": "Note: the network fee is a large share of this withdrawal. Withdrawing a larger amount or choosing a cheaper network reduces it."
         },
         "compatibilityModal": {
@@ -1552,8 +1539,6 @@
             "lockingRate": "Locking rate...",
             "exchangeRate": "Exchange Rate",
             "exchangeRateInfo": "Rate shown is current but may vary slightly (~$1-5 ARS) until payment is confirmed.",
-            "peanutFee": "Peanut fee",
-            "sponsoredByPeanut": "Sponsored by Peanut!",
             "flagAlt": "flag",
             "increaseLimitsMessage": "Hi, I would like to increase my payment limits."
         },
@@ -1724,8 +1709,6 @@
             "transferId": "Transfer ID",
             "pointsEarned": "Points earned",
             "networkFee": "Network fee",
-            "peanutFee": "Peanut fee",
-            "peanutFeeSponsored": "Sponsored by Peanut!",
             "attachment": "Attachment",
             "download": "Download",
             "reason": "Reason",
@@ -1742,7 +1725,6 @@
             "title": "Peanut Reward",
             "subtitle": "Earn rewards every time your friends use Peanut.",
             "statusCompleted": "Completed",
-            "statusProcessing": "Processing",
             "received": "Received"
         },
         "actions": {
@@ -1893,7 +1875,6 @@
         "inLine": "You're in line",
         "inLineWithPosition": "You're #{position} in line",
         "skipTheLine": "Skip the line — drop the username of the member who invited you.",
-        "acceptFailed": "Something went wrong. Please try again or contact support.",
         "pleaseWait": "Please wait...",
         "logInDifferentAccount": "Log in with a different account",
         "emailPlaceholder": "you@example.com"
@@ -2314,7 +2295,9 @@
         "errorStartActionFailed": "Could not start verification. Please try again.",
         "errorInvalidResponse": "Invalid response from server",
         "actionMessageActionRequired": "We need a bit more to verify your identity. Please resubmit your documents.",
-        "actionMessageFailed": "We couldn't verify your identity. Please contact support."
+        "actionMessageFailed": "We couldn't verify your identity. Please contact support.",
+        "successTitle": "Verification successful!",
+        "successCloseWindow": "You can now close this window."
     },
     "identity": {
         "unlockTitle": "Unlock {region}",
@@ -2410,7 +2393,6 @@
         "qrScanner": {
             "scanToPay": "Scan to pay",
             "clickToPaste": "Click to paste",
-            "close": "Close",
             "clipboardEmpty": "Clipboard is empty",
             "clipboardUnavailable": "Could not access clipboard",
             "startingCamera": "Starting camera…",
@@ -2426,7 +2408,6 @@
             "cameraSwitchFailed": "Failed to switch camera. Please try again.",
             "cameraPermission": {
                 "title": "Camera access needed",
-                "tryAgain": "Try again",
                 "dismiss": "Dismiss",
                 "withStepsHint": "Follow these steps to enable camera access, then try again.",
                 "noStepsHint": "Please enable camera access in your browser or device settings, then try again.",
@@ -2451,7 +2432,6 @@
             "notSupportedGetNotified": "Get notified when it goes live!",
             "getNotifiedCta": "Get notified!",
             "willBeNotified": "We'll let you know as soon as {qrName} is supported.",
-            "close": "Close",
             "continue": "Continue",
             "okay": "Okay",
             "directSendCrossChain": "Peanut supports cross-chain payments.",
@@ -2477,7 +2457,6 @@
             "myQrButtonText": "Share your profile"
         },
         "qrBottomDrawer": {
-            "or": "or",
             "shareTitle": "Share your profile"
         },
         "inviteFriendsModal": {
@@ -2507,7 +2486,6 @@
             "startUsingCta": "Start using"
         },
         "easterEggModal": {
-            "gotItCta": "Got it",
             "AQ": {
                 "caption": "🐧 No banks here, only penguins!",
                 "subtitle": "Antarctica isn't a real country... yet"
@@ -2592,7 +2570,6 @@
         "rainCooldownIntroModal": {
             "title": "Please wait",
             "description": "Your card needs a short cool-down between back-to-back spends. To avoid this in the future, you can lower your card limit to be below your wallet balance; the extra will always be available.",
-            "gotItCta": "Got it",
             "readMore": "Read more"
         },
         "staleCardApprovalModal": {
@@ -2627,7 +2604,6 @@
         "supportDrawer": {
             "chatLoadFailed": "Chat couldn't load",
             "chatLoadFailedDescription": "Something went wrong loading support chat. Email us and we'll help you out:",
-            "tryAgain": "Try again",
             "label": "Support",
             "chatTitle": "Support Chat"
         },
@@ -2749,7 +2725,6 @@
         },
         "savedAccounts": {
             "title": "Saved accounts",
-            "or": "or",
             "selectNewMethod": "Select new method",
             "flagAlt": "{country} flag",
             "flagAltGeneric": "Country flag"
@@ -2865,6 +2840,96 @@
         "smartLink": {
             "redirecting": "Taking you to the store…",
             "pickStore": "Global cash, local feel. Pick your store to download."
+        }
+    },
+    "shhhhh": {
+        "hero": {
+            "wordmark": "shhhhh.",
+            "tagline": "The peanut card is out. For you. Maybe.",
+            "body": "A card accepted at over 150 million Visa-accepting merchants. We're letting beta users in slowly — <counter></counter> a week. If you've got the right badge, you skip the line entirely.",
+            "onlyCount": "only {count}",
+            "tryTheDoor": "TRY THE DOOR",
+            "orJoinWaitlist": "or join the waitlist →",
+            "joinError": "Couldn't join the waitlist — try the door again."
+        },
+        "waitlist": {
+            "joined": "✓ You're on the waitlist",
+            "joinedWithPosition": "✓ You're on the waitlist · #{position}",
+            "holler": "We'll holler when your turn comes up."
+        },
+        "marquee": {
+            "iykyk": "IYKYK",
+            "wordTravels": "WORD TRAVELS",
+            "closedBeta": "CLOSED BETA",
+            "shhhh": "SHHHH",
+            "peanutClub": "PEANUT CLUB"
+        },
+        "whatItDoes": {
+            "titleLine1": "It's a card.",
+            "titleLine2": "That's the whole trick.",
+            "body": "Fund the card however you already move money: bank transfer, exchange withdrawal, or stablecoins (USDC, USDT). Your balance is yours. Non-custodial. No monthly fees. No annual fees.",
+            "statMerchants": "Visa-accepting merchants",
+            "statBalance": "balance",
+            "statCard": "card",
+            "statMiddlemen": "middlemen"
+        },
+        "whoItsFor": {
+            "title": "If you live in more than one country, this is for you.",
+            "body": "We built peanut for people who don't fit. Digital nomads who get bounced by every neobank's verification the moment they cross a border. Expats who pay 4% on every transaction home. Cross-border users who earn in one currency and spend in another."
+        },
+        "howToGetIn": {
+            "title": "How to get in.",
+            "subtitle": "Cred check. Badge skips the queue.",
+            "badgeTitle": "Got a badge.",
+            "badgeBody": "You skip the line. We're whitelisting holders of:",
+            "badgeFooter": "Sign in, we check the badges on your account, you go straight to verification. No peanut account yet? Sign up first — takes a minute.",
+            "noBadgeTitle": "No badge.",
+            "noBadgeBody": "Join the waitlist. We let people in 20 a week.",
+            "noBadgeFooter": "Put your name on the list and we'll holler when your turn comes up."
+        },
+        "notForYou": {
+            "title": "Probably not for you.",
+            "body1": "If your money lives in one country and one currency, your bank card already works. Keep it.",
+            "body2": "If your money lives elsewhere — across borders, in dollars, in self-custody — the peanut card was built for you."
+        },
+        "faq": {
+            "title": "FAQ.",
+            "q1": {
+                "question": "WHAT'S THE PEANUT CARD?",
+                "answer": "A non-custodial card. Top up with stablecoins, then use the card for everyday spending wherever Visa is accepted."
+            },
+            "q2": {
+                "question": "WHERE DOES IT WORK?",
+                "answer": "Accepted wherever Visa is accepted — about 150 million merchants. Online, in-store, ATMs."
+            },
+            "q3": {
+                "question": "IS MY MONEY SAFE?",
+                "answer": "It's yours. Non-custodial — your stablecoins stay in your wallet until the moment you use the card. We don't hold custody. We don't lend it out."
+            },
+            "q4": {
+                "question": "WHAT'S THE $10?",
+                "answer": "A welcome reward. Complete verification + first $100 in card spend → $10 unlocked to your balance. Same deal whether you signed up yourself or got referred. If you referred someone, you also are eligible for $10 when they activate. Subject to eligibility and program terms."
+            },
+            "q5": {
+                "question": "HOW LONG IS THE WAITLIST?",
+                "answer": "We're letting in about 20 people a week during closed beta. Order matters. Badges skip the line entirely."
+            },
+            "q6": {
+                "question": "WHERE CAN I GET THE CARD?",
+                "answer": "We're rolling out to select regions first and adding more as our partners' coverage expands. Eligibility is shown during signup."
+            },
+            "q7": {
+                "question": "ANY FEES?",
+                "answer": "No monthly fees. No annual fees. Standard fees and limits apply per the cardholder terms."
+            },
+            "q8": {
+                "question": "WHY \"SHHHHH\"?",
+                "answer": "We'd rather under-promise and over-deliver to a small group than blast the whole internet on day one. Word travels."
+            }
+        },
+        "ready": {
+            "title": "ready?",
+            "subtitle": "Try the door."
         }
     }
 }
