@@ -55,6 +55,7 @@ export const BADGE_ASSET_FALLBACKS: Readonly<Record<string, string>> = {
     NITA: '/badges/nita.svg',
     NAIJA: '/badges/naija.svg',
     TERERE: '/badges/terere.svg',
+    ENS: '/badges/ens.svg',
 }
 
 /** Legacy-only iteration for the internal share-asset builder. */
