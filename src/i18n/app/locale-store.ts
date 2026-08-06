@@ -4,12 +4,40 @@
 // an unsupported value can never leak out.
 
 import Cookies from 'js-cookie'
+import posthog from 'posthog-js'
 import { isCapacitor } from '@/utils/capacitor'
 import { resolveLocale, type AppLocale } from './config'
 
 const LOCALE_KEY = 'app-locale'
 
 let resolution: Promise<AppLocale> | null = null
+let current: AppLocale | null = null
+
+/** Last locale emitted to analytics (= last applied), or null before startup. */
+export function currentAppLocale(): AppLocale | null {
+    return current
+}
+
+// Locale analytics (TASK-20922). AppIntlProvider calls this once the locale is
+// actually rendered — never on a persist whose catalog load failed — so
+// analytics report the language the user saw. register makes app_locale an
+// event-time super property (person-on-events preserves history). The person
+// property ($set) is written only on a real change by an identified user: the
+// startup value reaches the person profile via the identify in authContext.tsx
+// (which sends app_locale), and an unconditional $set would force person
+// processing for every anonymous visitor under 'identified_only'. Analytics
+// must never break i18n, so the posthog calls are fenced.
+export function emitLocaleToAnalytics(locale: AppLocale): void {
+    if (locale === current) return
+    const isChange = current !== null
+    current = locale
+    try {
+        posthog.register({ app_locale: locale })
+        if (isChange && posthog._isIdentified()) posthog.setPersonProperties({ app_locale: locale })
+    } catch {
+        // analytics failure degrades to missing data, never a broken locale
+    }
+}
 
 function navigatorLocale(): AppLocale {
     return resolveLocale(typeof navigator !== 'undefined' ? navigator.language : null)

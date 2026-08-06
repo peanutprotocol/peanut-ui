@@ -16,6 +16,7 @@ import {
 } from '@/utils/general.utils'
 import { apiFetch } from '@/utils/api-fetch'
 import { useAppLocked } from '@/hooks/useAppLocked'
+import { currentAppLocale } from '@/i18n/app/locale-store'
 import { isCapacitor } from '@/utils/capacitor'
 import { clearAuthToken } from '@/utils/auth-token'
 import { resetCrispProxySessions } from '@/utils/crisp'
@@ -109,6 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // `name` duplicates username because PostHog's Persons-page search is
             // hardcoded to email/name/distinct_id — username alone is not searchable.
             const enabledRails = user.rails?.filter((rail) => rail.status === 'ENABLED') ?? []
+            const appLocale = currentAppLocale()
             posthog.identify(user.user.userId, {
                 username: user.user.username,
                 name: user.user.username,
@@ -121,6 +123,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // catalog rail ids for joins against the rails table.
                 enabledRails: enabledRails.map((rail) => `${rail.rail.provider.code}:${rail.rail.method.code}`),
                 enabledRailIds: enabledRails.map((rail) => rail.rail.id),
+                // Client-only (locale never reaches the BE) — covers the first
+                // session, where the startup locale resolves before identify.
+                ...(appLocale ? { app_locale: appLocale } : {}),
             })
             // Sentry: every error captured from here on inherits user context
             // as searchable Sentry tags. Closes the historical gap where FE
@@ -258,6 +263,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         try {
             posthog.reset()
+            // reset() wipes registered super properties — re-register the
+            // locale so logout-window events keep carrying app_locale
+            const locale = currentAppLocale()
+            if (locale) posthog.register({ app_locale: locale })
         } catch (e) {
             console.warn('posthog reset failed:', e)
         }
