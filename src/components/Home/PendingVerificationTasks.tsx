@@ -11,7 +11,7 @@ import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import type { NextAction } from '@/types/capabilities'
 import { bridgeTaskDismissalKey, selectBridgeTasks } from '@/utils/bridge-tasks.utils'
-import { openExternalUrl } from '@/utils/capacitor'
+import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { formatEffectiveDate } from '@/utils/format.utils'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import Card from '../Global/Card'
@@ -144,23 +144,44 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                 setActiveTosTask(task)
                 return
             }
-            setIsStartingHosted(true)
-            const { url } = await startBridgeHostedVerification()
-            setIsStartingHosted(false)
-            if (!url) {
-                // Friendly copy regardless of the server detail (a 403 here just
-                // means the action aged out); refetch so a stale card self-corrects.
-                setError("We couldn't start the verification. Please try again in a moment.")
-                void fetchUser()
-                return
-            }
             // NOT an iframe: `bridge.withpersona.com` serves
             // `X-Frame-Options: SAMEORIGIN`, so embedding it rendered
             // "refused to connect" for EVERY user. It has to be a real
             // top-level page (native: the in-app browser). Bridge's ToS link
             // (`compliance.bridge.xyz`) sends no framing header, which is why
             // BridgeTosStep keeps its iframe.
-            await openExternalUrl(url)
+            //
+            // On web, reserve the tab HERE — synchronously, inside the click's
+            // user-activation window. Fetching the link takes ~800ms, and a
+            // window.open() after that await is no longer gesture-initiated,
+            // so Safari/Firefox block it — the same "nothing happens" symptom
+            // this PR exists to fix. The reserved tab is navigated once the
+            // URL lands, and closed if it never does.
+            const reservedTab = isCapacitor() ? null : window.open('', '_blank')
+
+            setIsStartingHosted(true)
+            const { url } = await startBridgeHostedVerification()
+            setIsStartingHosted(false)
+            if (!url) {
+                // Friendly copy regardless of the server detail (a 403 here just
+                // means the action aged out); refetch so a stale card self-corrects.
+                reservedTab?.close()
+                setError("We couldn't start the verification. Please try again in a moment.")
+                void fetchUser()
+                return
+            }
+            try {
+                if (reservedTab) {
+                    reservedTab.location.href = url
+                } else {
+                    // Native, or a browser that refused the reservation outright.
+                    await openExternalUrl(url)
+                }
+            } catch {
+                reservedTab?.close()
+                setError("We couldn't open the verification. Please try again in a moment.")
+                return
+            }
             setAwaitingReturn(true)
         },
         [fetchUser]
