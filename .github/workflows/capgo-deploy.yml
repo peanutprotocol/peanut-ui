@@ -1,11 +1,16 @@
 name: Deploy OTA Update (Capgo)
 
 on:
-    # Only `dev` auto-ships (→ staging channel). Production is workflow_dispatch-only
-    # and gated by the Production environment's required reviewers, so a merge to
-    # `main` can never push OTA JS to devices without an explicit approved run.
+    # `dev` auto-ships to staging. `mobile-release` is the native release branch, so
+    # it targets the production channel — the one every shipped iOS and Android
+    # install actually listens on, which is the point: an OTA there reaches all
+    # users, not a tester subset.
+    #
+    # Reaching production still requires a human. Every production deploy runs under
+    # the Production environment's required reviewers, whether it arrives by push or
+    # by dispatch, so no commit can push OTA JS to devices unapproved.
     push:
-        branches: [dev]
+        branches: [dev, mobile-release]
     workflow_dispatch:
         inputs:
             channel:
@@ -31,8 +36,16 @@ jobs:
         # Gate ONLY the production deploy behind the Production environment (required
         # reviewers, set in repo Settings → Environments → Production). Resolving to an
         # empty string means no environment, so the dev→staging auto-push is never
-        # paused for approval. Production is reachable only via workflow_dispatch.
-        environment: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.channel == 'production') && 'Production' || '' }}
+        # paused for approval.
+        #
+        # Must be an expression over the event, not the resolved channel below: GitHub
+        # picks the environment before any step runs, so it cannot read a step output.
+        # Keep the two in sync — every branch that resolves to `production` needs to
+        # appear here, or its deploy would reach all users with no approval.
+        environment: >-
+            ${{ ((github.event_name == 'workflow_dispatch' && github.event.inputs.channel == 'production')
+            || github.ref == 'refs/heads/main'
+            || github.ref == 'refs/heads/mobile-release') && 'Production' || '' }}
         steps:
             - uses: actions/checkout@v7
               with:
@@ -60,9 +73,12 @@ jobs:
             - name: Determine channel
               id: channel
               run: |
+                  # Keep in lockstep with the `environment:` expression above — a
+                  # branch that resolves to production here but is missing there would
+                  # ship to every device with nobody approving it.
                   if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
                     echo "name=${{ github.event.inputs.channel }}" >> $GITHUB_OUTPUT
-                  elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+                  elif [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.ref }}" = "refs/heads/mobile-release" ]; then
                     echo "name=production" >> $GITHUB_OUTPUT
                   else
                     echo "name=staging" >> $GITHUB_OUTPUT
