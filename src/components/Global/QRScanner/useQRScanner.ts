@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import type QrScannerLib from 'qr-scanner'
+import QrScannerLib from 'qr-scanner'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import { isCapacitor } from '@/utils/capacitor'
 
@@ -16,10 +16,21 @@ const CONFIG = {
     // in iOS PWA (WKWebView), getUserMedia can hang forever after denial
     // instead of rejecting. timeout ensures the permission modal still shows.
     CAMERA_START_TIMEOUT_MS: 5000,
-    // 4 Hz halves the per-second canvas-draw + worker-decode cost vs 8 and
-    // still reads as instant; each scan draws the region to canvas on the
-    // main thread before the worker decodes it.
-    SCANNER_MAX_SCANS_PER_SECOND: 4,
+    /*
+     * A ceiling, not a fixed rate. qr-scanner drives its loop from
+     * requestVideoFrameCallback (rAF as fallback) and then enforces a minimum
+     * 1000/maxScansPerSecond gap, so the real rate is min(camera frame
+     * delivery, this). A struggling device already scans less on its own.
+     *
+     * Which is why 1.0.45 dropping this to 4 to "protect low-end WebViews"
+     * mostly penalised the devices that were keeping up: it put 250ms between
+     * decode attempts, and the attempts that matter are the ones during hand
+     * movement, glare or an angled dense code — where a first try rarely
+     * lands. 12 gives those cases three attempts where 4 gave one, stays well
+     * under the library's own default of 25, and still samples under half the
+     * frames of a 30fps camera.
+     */
+    SCANNER_MAX_SCANS_PER_SECOND: 12,
     // just long enough to cover the drawer close animation — the camera keeps
     // streaming until this fires
     SCANNER_CLOSE_DELAY_MS: 300,
@@ -54,7 +65,11 @@ const calculateScanRegion = (video: HTMLVideoElement) => {
 const SCANNER_OPTIONS = {
     returnDetailedScanResult: true,
     highlightScanRegion: false,
-    highlightCodeOutline: false,
+    // Drawn only once a code is actually found, so it costs nothing while the
+    // user is still hunting for one. It is also the only signal that the
+    // scanner has locked on: without it a slow read is indistinguishable from
+    // a broken scanner, which is how 1.0.45 read to users.
+    highlightCodeOutline: true,
     maxScansPerSecond: CONFIG.SCANNER_MAX_SCANS_PER_SECOND,
     calculateScanRegion,
 } as const
@@ -261,10 +276,18 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     await new Promise((resolve) => setTimeout(resolve, CONFIG.IOS_CAMERA_DELAY_MS))
                 }
 
-                // lazy-loaded: QRScannerOverlay mounts in the app shell, so a static
-                // import would put the decoder library on every page's critical path
-                const { default: QrScanner } = await import('qr-scanner')
-                const scanner = new QrScanner(videoRef.current, (result) => handleQRScan(result.data), {
+                /*
+                 * Statically imported. It was lazy-loaded in 1.0.45 to keep the
+                 * decoder off the app shell's critical path, but that only defers
+                 * qr-scanner's 15KB wrapper — the 43KB worker that does the decoding
+                 * is fetched separately at construction either way, and on native the
+                 * whole export is on local disk, so the win was a millisecond of parse
+                 * time. It cost a gap between the camera going live and scanning
+                 * starting, and put a ChunkLoadError inside the camera catch below,
+                 * where anything that is not NotFound/NotReadable is reported to the
+                 * user as denied camera permission.
+                 */
+                const scanner = new QrScannerLib(videoRef.current, (result) => handleQRScan(result.data), {
                     ...SCANNER_OPTIONS,
                     preferredCamera,
                 })
