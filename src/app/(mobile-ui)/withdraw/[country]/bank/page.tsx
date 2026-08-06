@@ -48,6 +48,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawCountryUrl } from '@/utils/native-routes'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useTranslations } from 'next-intl'
 
 type View = 'INITIAL' | 'SUCCESS'
@@ -152,9 +153,8 @@ export default function WithdrawBankPage() {
         }
     }, [country, router])
 
-    // check if we came from send flow - using method param to detect (only bank goes through this page)
-    const methodParam = searchParams.get('method')
-    const fromSendFlow = methodParam === 'bank'
+    // only bank reaches this page, so the bank-specific flag is the right one here
+    const { isBankFromSend: fromSendFlow } = useSendFlowOrigin()
     const onBack = useSafeBack(fromSendFlow ? '/send' : '/withdraw')
 
     const nonEuroCurrency = countryCurrencyMappings.find(
@@ -448,6 +448,7 @@ export default function WithdrawBankPage() {
                         recipientName={bankAccount?.identifier ?? t('bank.bankAccount')}
                         amount={amountToWithdraw}
                         tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
+                        isFromSendFlow={fromSendFlow}
                     />
 
                     {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
@@ -558,6 +559,7 @@ export default function WithdrawBankPage() {
             {view === 'SUCCESS' && (
                 <PaymentSuccessView
                     isWithdrawFlow
+                    isFromSendFlow={fromSendFlow}
                     currencyAmount={`$${amountToWithdraw}`}
                     message={bankAccount ? shortenStringLong(bankAccount.identifier.toUpperCase()) : ''}
                     points={pointsData?.estimatedPoints}

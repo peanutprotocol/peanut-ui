@@ -8,6 +8,7 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { getColorForUsername } from '@/utils/color.utils'
 import Image, { type StaticImageData } from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { withdrawBankUrl, rewriteMethodPath } from '@/utils/native-routes'
 import { isCapacitor } from '@/utils/capacitor'
@@ -55,8 +56,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     // check if coming from send flow and what type
     const methodParam = searchParams.get('method')
-    const isFromSendFlow = !!(methodParam && ['bank', 'crypto'].includes(methodParam))
-    const isBankFromSend = methodParam === 'bank' && isFromSendFlow
+    const { isBankFromSend } = useSendFlowOrigin()
 
     // hooks
     const { deviceType } = useDeviceType()

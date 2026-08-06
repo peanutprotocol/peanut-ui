@@ -11,6 +11,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { getCountryFromAccount, getCountryFromPath, getMinimumAmount } from '@/utils/bridge.utils'
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
+import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { AccountType } from '@/interfaces/interfaces'
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react'
@@ -36,9 +37,7 @@ export default function WithdrawPage() {
 
     // check if coming from send flow based on method query param
     const methodParam = searchParams.get('method')
-    const isFromSendFlow = !!(methodParam && ['bank', 'crypto'].includes(methodParam))
-    const isCryptoFromSend = methodParam === 'crypto' && isFromSendFlow
-    const isBankFromSend = methodParam === 'bank' && isFromSendFlow
+    const { isFromSendFlow, isCryptoFromSend, isBankFromSend } = useSendFlowOrigin()
 
     // native app passes country as query param instead of path segment
     const countryFromQuery = searchParams.get('country')
