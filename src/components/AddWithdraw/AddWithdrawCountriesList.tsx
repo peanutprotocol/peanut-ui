@@ -8,6 +8,7 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { getColorForUsername } from '@/utils/color.utils'
 import Image, { type StaticImageData } from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { withdrawBankUrl, rewriteMethodPath } from '@/utils/native-routes'
 import { isCapacitor } from '@/utils/capacitor'
@@ -55,8 +56,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     // check if coming from send flow and what type
     const methodParam = searchParams.get('method')
-    const isFromSendFlow = !!(methodParam && ['bank', 'crypto'].includes(methodParam))
-    const isBankFromSend = methodParam === 'bank' && isFromSendFlow
+    // this list also serves the add-money flow, which navigates with its own
+    // ?method=bank — so the marker alone doesn't mean "send". Same guard as
+    // AddWithdrawRouterView.
+    const isBankFromSend = useSendFlowOrigin().isBankFromSend && flow === 'withdraw'
 
     // hooks
     const { deviceType } = useDeviceType()

@@ -647,8 +647,8 @@ export const TransactionDetailsReceipt = ({
 
                     {rowVisibilityConfig.peanutFee && (
                         <PaymentInfoRow
-                            label={t('rows.peanutFee')}
-                            value={t('rows.peanutFeeSponsored')}
+                            label={tCommon('peanutFee')}
+                            value={tCommon('sponsoredByPeanut')}
                             hideBottomBorder={shouldHideBorder('peanutFee')}
                         />
                     )}

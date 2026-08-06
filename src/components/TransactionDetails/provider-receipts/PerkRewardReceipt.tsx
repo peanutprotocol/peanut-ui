@@ -57,7 +57,7 @@ export function PerkRewardReceipt({
                             </span>
                         ) : transaction.status === 'pending' || transaction.status === 'processing' ? (
                             <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-700">
-                                {t('perk.statusProcessing')}
+                                {tCommon('status.processing')}
                             </span>
                         ) : (
                             <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">

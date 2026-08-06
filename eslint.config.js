@@ -220,6 +220,12 @@ module.exports = [
         files: [
             'src/app/(mobile-ui)/**/*.tsx',
             'src/app/(setup)/**/*.tsx',
+            // Top-level app routes sit outside the route groups above; without
+            // them listed the guard cannot see their copy (/shhhhh shipped
+            // English-only to every locale because of exactly that gap).
+            'src/app/shhhhh/**/*.tsx',
+            'src/app/kyc/**/*.tsx',
+            'src/app/invite/**/*.tsx',
             'src/components/{Home,Send,Request,Profile,Setup,Settings,Card,AddMoney,AddWithdraw,Withdraw,Claim,Payment,Points,Badges,Notifications,Invites,TransactionDetails,Kyc,IdentityVerification,ExchangeRate,Common,ForceIOSPWAInstall,User,Migration}/**/*.tsx',
             'src/components/Global/**/*.tsx',
             'src/features/**/*.tsx',
@@ -263,6 +269,9 @@ module.exports = [
                         '×',
                         '→',
                         '←',
+                        // ordered step markers on /shhhhh's two-door section
+                        '01',
+                        '02',
                         ',',
                         '.',
                         '*',

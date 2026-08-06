@@ -8,7 +8,7 @@ import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 
-type Variant = 'pending' | 'manual-review' | 'requires-info' | 'requires-support' | 'rejected'
+type Variant = 'pending' | 'manual-review' | 'requires-info' | 'requires-support' | 'rejected' | 'geo-blocked'
 
 interface Props {
     variant: Variant
@@ -33,17 +33,29 @@ interface Props {
 
 // The rejected variant's `reasonMessage` (when known) renders above its body;
 // the body itself stays reassuring — a declined card doesn't touch the rest of
-// the account, so it points the user back to what still works.
+// the account, so it points the user back to what still works. `geo-blocked`
+// is terminal and regulatory (nothing support can do), so it carries the same
+// reassurance and no support CTA.
 const COPY_KEYS = {
     pending: { title: 'status.pendingTitle', body: 'status.pendingBody' },
     'manual-review': { title: 'status.manualReviewTitle', body: 'status.manualReviewBody' },
     'requires-info': { title: 'status.requiresInfoTitle', body: 'status.requiresInfoBody' },
     'requires-support': { title: 'status.requiresSupportTitle', body: 'status.requiresSupportBody' },
     rejected: { title: 'status.rejectedTitle', body: 'status.rejectedBody' },
+    'geo-blocked': { title: 'status.geoBlockedTitle', body: 'status.geoBlockedBody' },
 } as const satisfies Record<Variant, { title: string; body: string }>
 
 /** Variants where support is the only path forward — these render the CTA. */
 const SUPPORT_VARIANTS: ReadonlySet<Variant> = new Set(['requires-info', 'requires-support', 'rejected'])
+
+/**
+ * The legal policy behind the geo block — §1 "Restricted Countries" lists the
+ * issuance denylist. A LEGAL page on purpose: Rain's marketing-compliance
+ * rules ban country names / eligibility framing in card-marketing surfaces
+ * (help articles included), so this policy page is the one compliant place
+ * the full list is published. Mirrors CardTermsScreen's absolute-URL pattern.
+ */
+const PROHIBITED_ACTIVITIES_POLICY_URL = 'https://peanut.me/en/card-prohibited-activities'
 
 const ApplicationStatusScreen: FC<Props> = ({
     variant,
@@ -65,7 +77,7 @@ const ApplicationStatusScreen: FC<Props> = ({
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />
             <div className="my-auto flex flex-col items-center gap-6 text-center">
                 {variant === 'pending' && <Loading />}
-                {(variant === 'rejected' || variant === 'requires-support') && (
+                {(variant === 'rejected' || variant === 'requires-support' || variant === 'geo-blocked') && (
                     <Image
                         src={PeanutCrying.src}
                         unoptimized
@@ -81,6 +93,16 @@ const ApplicationStatusScreen: FC<Props> = ({
                     {reasonText && <p className="text-grey-1">{reasonText}</p>}
                     <p className="text-grey-1">{t(copyKeys.body)}</p>
                 </div>
+                {variant === 'geo-blocked' && (
+                    <a
+                        href={PROHIBITED_ACTIVITIES_POLICY_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-black underline"
+                    >
+                        {t('status.geoBlockedPolicyLink')}
+                    </a>
+                )}
                 {SUPPORT_VARIANTS.has(variant) && onUploadProofOfAddress && (
                     <div className="flex w-full flex-col gap-2">
                         <Button variant="purple" shadowSize="4" className="w-full" onClick={onUploadProofOfAddress}>

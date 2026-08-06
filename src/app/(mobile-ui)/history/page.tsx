@@ -292,7 +292,7 @@ const HistoryPage = () => {
                     return (
                         <React.Fragment key={item.uuid}>
                             {showHeader && (
-                                <div className="mb-2 mt-4 px-1 text-sm font-semibold capitalize">
+                                <div className="mb-2 mt-4 px-1 text-sm font-semibold">
                                     {groupHeader(itemDate, group)}
                                 </div>
                             )}

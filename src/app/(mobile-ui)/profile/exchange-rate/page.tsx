@@ -15,6 +15,7 @@ import { useMemo } from 'react'
 
 export default function ExchangeRatePage() {
     const t = useTranslations('exchangeRate')
+    const tCommon = useTranslations('common')
     const router = useRouter()
     const onBack = useSafeBack('/profile', { replace: true })
     const { balance } = useWallet()
@@ -50,7 +51,7 @@ export default function ExchangeRatePage() {
                         swapCurrencies: t('widget.swapCurrencies'),
                         rateUnavailable: t('widget.rateUnavailable'),
                         bankFee: t('widget.bankFee'),
-                        peanutFee: t('widget.peanutFee'),
+                        peanutFee: tCommon('peanutFee'),
                         free: t('widget.free'),
                         arrivesHours: t('widget.arrivesHours'),
                         arrivesMinutes: t('widget.arrivesMinutes'),

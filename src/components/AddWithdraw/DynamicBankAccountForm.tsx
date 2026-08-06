@@ -8,6 +8,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import BaseSelect, { type BaseSelectOption } from '@/components/0_Bruddle/BaseSelect'
 import { BRIDGE_ALPHA3_TO_ALPHA2, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import {
     validateIban,
     validateBankAccount,
@@ -103,6 +104,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         // useParams() is empty there — fall back to searchParams and finally the
         // `country` prop so this never derefs undefined (white-screen crash).
         const searchParams = useSearchParams()
+        // This form also serves the claim flow, where the send marker is meaningless.
+        const { isFromSendFlow } = useSendFlowOrigin()
+        const framedAsSend = isFromSendFlow && flow === 'withdraw'
         const { amountToWithdraw, setSelectedBankAccount } = useWithdrawFlow()
         const router = useRouter()
         const savedAccounts = useSavedAccounts()
@@ -189,7 +193,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 // Skip adding account if the account already exists for the logged in user
                 if (existingAccount) {
                     setSelectedBankAccount(existingAccount)
-                    router.push(withdrawBankUrl(country))
+                    // keep the send marker, or the review screen it lands on reverts to withdraw copy
+                    router.push(withdrawBankUrl(country, framedAsSend ? '?method=bank' : ''))
                     return
                 }
 
@@ -438,6 +443,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     amount={amountToWithdraw}
                     tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
                     {...actionDetailsProps}
+                    // after the spread: the flow-guarded value stays authoritative even
+                    // though actionDetailsProps is a Partial of the card's full props
+                    isFromSendFlow={framedAsSend}
                 />
 
                 <div className="space-y-4">

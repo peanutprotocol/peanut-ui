@@ -9,6 +9,7 @@ import {
     getFromLocalStorage,
 } from '@/utils/general.utils'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { addMoneyCountryUrl, withdrawCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
 import { type FC, useEffect, useRef, useState, useTransition, useCallback } from 'react'
 import { useUserStore } from '@/redux/hooks'
@@ -82,7 +83,8 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
     // check if coming from send flow
     const methodParam = searchParams.get('method')
-    const isBankFromSend = methodParam === 'bank' && flow === 'withdraw'
+    // this view also serves the add-money flow, so the flow guard stays local
+    const isBankFromSend = useSendFlowOrigin().isBankFromSend && flow === 'withdraw'
 
     // determine if we should show the full list of methods (countries/crypto) instead of the default view
     let shouldShowAllMethods = flow === 'withdraw' ? showAllWithdrawMethods : localShowAllMethods

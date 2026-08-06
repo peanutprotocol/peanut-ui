@@ -22,9 +22,10 @@ import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { isBelowRhinoMinDeposit } from '@/utils/withdraw.utils'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useRouter } from 'next/navigation'
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { captureMessage } from '@sentry/nextjs'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import type { Address, Hex, TransactionReceipt } from 'viem'
 import { parseUnits } from 'viem'
 import { Slider } from '@/components/Slider'
@@ -45,7 +46,15 @@ export default function WithdrawCryptoPage() {
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
     const toFriendlyError = useFriendlyError()
-    const onBack = useSafeBack('/withdraw')
+    // Send → Exchange or Wallet lands here as /withdraw/crypto?method=crypto.
+    // Every back/redirect target below keeps the marker, or the amount step it
+    // returns to silently reverts to withdraw copy.
+    // Forward the marker verbatim rather than assuming crypto: entering as
+    // /withdraw?method=bank and then picking Crypto lands here as method=bank,
+    // and rewriting it to crypto would change the amount step's back behaviour.
+    const { isFromSendFlow, sendFlowMethod } = useSendFlowOrigin()
+    const amountStepHref = isFromSendFlow ? `/withdraw?method=${sendFlowMethod}` : '/withdraw'
+    const onBack = useSafeBack(amountStepHref)
     const { address, sendTransactions, sendMoney, spendableBalance } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
     const {
@@ -86,6 +95,18 @@ export default function WithdrawCryptoPage() {
     } = useCrossChainTransfer()
 
     const { isRecording, error: recordError, recordPayment, reset: resetPaymentRecorder } = usePaymentRecorder()
+
+    // Once the on-chain leg has broadcast for a charge, Retry must NEVER
+    // broadcast again — a recordPayment failure after the spend used to
+    // re-run the whole flow and issue a second on-chain transfer
+    // (TASK-19581 double-spend). Stamped the moment a tx identifier
+    // exists; a retry for the same charge replays only the record.
+    const executedSpendRef = useRef<{
+        chargeId: string
+        txHash: Hex
+        minedTxHash: Hex | undefined
+        strategy: 'collateral-only' | 'smart-only' | 'mixed' | undefined
+    } | null>(null)
 
     const { triggerHaptic } = useHaptic()
 
@@ -329,12 +350,25 @@ export default function WithdrawCryptoPage() {
             // sendTransactions mixed path.
             let finalTxHash: Hex | undefined
             let receipt: TransactionReceipt | null = null
+            let minedTxHash: Hex | undefined
             // 'collateral-only' | 'smart-only' | 'mixed' — how the spend was
             // funded; drives how strictly the recordPayment result is treated
             // (see the recordPayment note below).
             let strategy: 'collateral-only' | 'smart-only' | 'mixed' | undefined
 
-            if (!isCrossChainWithdrawal) {
+            const executedSpend =
+                executedSpendRef.current?.chargeId === chargeDetails.uuid ? executedSpendRef.current : null
+            if (executedSpend) {
+                // A previous attempt already moved funds for this charge and
+                // failed at bookkeeping — replay ONLY the record.
+                finalTxHash = executedSpend.txHash
+                minedTxHash = executedSpend.minedTxHash
+                strategy = executedSpend.strategy
+                captureMessage('withdraw: retry with executed spend — record-only, skipping broadcast', {
+                    level: 'info',
+                    extra: { chargeId: chargeDetails.uuid, txHash: finalTxHash, strategy },
+                })
+            } else if (!isCrossChainWithdrawal) {
                 const {
                     userOpHash,
                     txHash,
@@ -379,6 +413,11 @@ export default function WithdrawCryptoPage() {
 
             if (!finalTxHash) throw new Error('Withdrawal returned no transaction identifier')
 
+            // Funds are (or are about to be) moving on-chain — from here on,
+            // any failure must retry as record-only, never as a re-broadcast.
+            minedTxHash ??= receipt?.transactionHash as Hex | undefined
+            executedSpendRef.current = { chargeId: chargeDetails.uuid, txHash: finalTxHash, minedTxHash, strategy }
+
             // Record the payment against the charge on EVERY path — completing
             // the user-facing charge is what makes the withdrawal appear in
             // Activity:
@@ -406,7 +445,7 @@ export default function WithdrawCryptoPage() {
             // and leave a breadcrumb. collateral-only is safe regardless: its
             // hash is a backend-broadcast EVM tx and the tagged charge settles
             // via the trusted path.
-            const mixedWithoutMinedHash = strategy === 'mixed' && !isCrossChainWithdrawal && !receipt?.transactionHash
+            const mixedWithoutMinedHash = strategy === 'mixed' && !isCrossChainWithdrawal && !minedTxHash
 
             let payment: Awaited<ReturnType<typeof recordPayment>> | null = null
             if (mixedWithoutMinedHash) {
@@ -439,6 +478,7 @@ export default function WithdrawCryptoPage() {
                 }
             }
 
+            executedSpendRef.current = null
             setTransactionHash(finalTxHash)
             setPaymentDetails(payment)
             triggerHaptic()
@@ -551,8 +591,8 @@ export default function WithdrawCryptoPage() {
     // which would override the router.push('/home') in handleDone
     const needsAmountRedirect = !amountToWithdraw && currentView !== 'STATUS'
     useEffect(() => {
-        if (needsAmountRedirect) router.push('/withdraw')
-    }, [needsAmountRedirect, router])
+        if (needsAmountRedirect) router.push(amountStepHref)
+    }, [needsAmountRedirect, router, amountStepHref])
 
     if (needsAmountRedirect) {
         return <PeanutLoading />
@@ -566,6 +606,7 @@ export default function WithdrawCryptoPage() {
                     onReview={handleSetupReview}
                     onBack={onBack}
                     isProcessing={isPreparingReview}
+                    isFromSendFlow={isFromSendFlow}
                 />
             )}
 
@@ -587,17 +628,23 @@ export default function WithdrawCryptoPage() {
                     showHighFeeWarning={showHighFeeWarning}
                     insufficientBalance={insufficientForFee}
                     belowMinimumMessage={belowMinimumMessage}
+                    isFromSendFlow={isFromSendFlow}
                 />
             )}
 
             {currentView === 'STATUS' && withdrawData && chargeDetails && (
                 <>
                     <PaymentSuccessView
-                        headerTitle={tNav('withdraw')}
+                        headerTitle={isFromSendFlow ? tNav('send') : tNav('withdraw')}
                         recipientType="ADDRESS"
                         type="SEND"
                         amount={usdAmount}
+                        // Stays true even from the send flow: it also suppresses the
+                        // recipient render (no recipientName is passed here) and picks
+                        // the "to" prefix, both correct for a send to an address.
+                        // Only the title needs the send framing.
                         isWithdrawFlow={true}
+                        isFromSendFlow={isFromSendFlow}
                         redirectTo="/home"
                         chargeDetails={chargeDetails}
                         paymentDetails={paymentDetails}

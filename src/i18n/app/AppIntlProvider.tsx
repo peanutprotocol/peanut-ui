@@ -4,7 +4,14 @@ import { NextIntlClientProvider, IntlErrorCode, type IntlError } from 'next-intl
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { DEFAULT_APP_LOCALE, type AppLocale } from './config'
 import { loadMessages, type AppMessages } from './messages'
-import { localeReady, markLocaleApplied, persistLocale } from './locale-store'
+import {
+    currentAppLocale,
+    emitDeviceContextToAnalytics,
+    emitLocaleToAnalytics,
+    localeReady,
+    markLocaleApplied,
+    persistLocale,
+} from './locale-store'
 import en from './messages/en.json'
 
 interface AppLocaleContextValue {
@@ -41,16 +48,28 @@ export function AppIntlProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         let cancelled = false
+        // device_language + platform super properties for the localization OKR;
+        // independent of which locale resolves, fire-and-forget
+        void emitDeviceContextToAnalytics()
         localeReady().then(async (resolved) => {
             startupLocale.current = resolved
             if (resolved === DEFAULT_APP_LOCALE) {
-                // already rendered in English — nothing to swap
+                // already rendered in English — nothing to swap. Skip the emit
+                // if a manual setLocale won the race: this path never calls
+                // setIntlState, so the UI keeps the manual locale and emitting
+                // the startup value would record a language nobody sees.
+                if (!currentAppLocale()) emitLocaleToAnalytics(resolved)
                 markLocaleApplied()
                 return
             }
             if (cancelled) return
             const loaded = await loadMessages(resolved)
-            if (!cancelled) setIntlState({ locale: resolved, messages: loaded })
+            if (!cancelled) {
+                setIntlState({ locale: resolved, messages: loaded })
+                // emit only after the catalog loaded — analytics report the
+                // language the user actually sees, not a failed swap
+                emitLocaleToAnalytics(resolved)
+            }
         })
         return () => {
             cancelled = true
@@ -67,6 +86,7 @@ export function AppIntlProvider({ children }: { children: React.ReactNode }) {
         persistLocale(next)
         const loaded = await loadMessages(next)
         setIntlState({ locale: next, messages: loaded })
+        emitLocaleToAnalytics(next)
     }, [])
 
     return (

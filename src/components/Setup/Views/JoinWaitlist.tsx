@@ -27,6 +27,7 @@ import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 
 const JoinWaitlist = () => {
     const t = useTranslations('setup')
+    const tCommon = useTranslations('common')
     const [inviteCode, setInviteCode] = useState('')
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
@@ -154,7 +155,7 @@ const JoinWaitlist = () => {
 
             <div className="flex items-center gap-4 py-2">
                 <div className="h-px flex-1 bg-grey-1" />
-                <span className="text-sm text-grey-1">{t('waitlist.or')}</span>
+                <span className="text-sm text-grey-1">{tCommon('or')}</span>
                 <div className="h-px flex-1 bg-grey-1" />
             </div>
 

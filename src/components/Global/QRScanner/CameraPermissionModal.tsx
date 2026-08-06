@@ -66,6 +66,7 @@ interface CameraPermissionModalProps {
 
 export default function CameraPermissionModal({ visible, onRetry, onClose }: CameraPermissionModalProps) {
     const t = useTranslations('global')
+    const tCommon = useTranslations('common')
     const { deviceType } = useDeviceType()
     const { browserType } = useGetBrowserType()
 
@@ -84,7 +85,7 @@ export default function CameraPermissionModal({ visible, onRetry, onClose }: Cam
             modalPanelClassName="max-w-md mx-8"
             ctas={[
                 {
-                    text: t('qrScanner.cameraPermission.tryAgain'),
+                    text: tCommon('tryAgain'),
                     variant: 'purple',
                     shadowSize: '4',
                     onClick: onRetry,

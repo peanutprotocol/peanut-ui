@@ -62,6 +62,8 @@ interface WithdrawConfirmViewProps {
      * CTA and shows the message.
      */
     belowMinimumMessage?: string | null
+    /** Reached via Send → Exchange or Wallet, so the copy says send, not withdraw. */
+    isFromSendFlow?: boolean
 }
 
 export default function ConfirmWithdrawView({
@@ -82,6 +84,7 @@ export default function ConfirmWithdrawView({
     showHighFeeWarning = false,
     insufficientBalance = false,
     belowMinimumMessage = null,
+    isFromSendFlow = false,
 }: WithdrawConfirmViewProps) {
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
@@ -104,9 +107,9 @@ export default function ConfirmWithdrawView({
     // gas is sponsored by Peanut's paymaster (the "Peanut fee" row below). For
     // same-chain (no bridge) there's no Rhino fee, so it stays sponsored.
     const networkFeeDisplay = useMemo<string>(() => {
-        if (!isCrossChain || networkFee <= 0) return t('confirm.sponsoredByPeanut')
+        if (!isCrossChain || networkFee <= 0) return tCommon('sponsoredByPeanut')
         return networkFee < 0.01 ? '< $0.01' : `$${networkFee.toFixed(2)}`
-    }, [isCrossChain, networkFee, t])
+    }, [isCrossChain, networkFee, tCommon])
 
     // What actually leaves the wallet on a cross-chain withdraw — the exact USDC
     // the kernel spends (`payAmount`). This is authoritative for BOTH paths and
@@ -122,7 +125,7 @@ export default function ConfirmWithdrawView({
 
     return (
         <div className="space-y-8">
-            <NavHeader title={tNav('withdraw')} onPrev={onBack} />
+            <NavHeader title={isFromSendFlow ? tNav('send') : tNav('withdraw')} onPrev={onBack} />
 
             <div className="space-y-4 pb-5">
                 <PeanutActionDetailsCard
@@ -132,6 +135,7 @@ export default function ConfirmWithdrawView({
                     recipientName={''}
                     amount={formatAmount(amount)}
                     tokenSymbol="USDC"
+                    isFromSendFlow={isFromSendFlow}
                 />
 
                 <Card className="rounded-sm">
@@ -191,7 +195,7 @@ export default function ConfirmWithdrawView({
                     {isCrossChain && (isCalculating || totalPayDisplay) && (
                         <PaymentInfoRow label={t('confirm.youPay')} value={totalPayDisplay} loading={isCalculating} />
                     )}
-                    <PaymentInfoRow hideBottomBorder label={t('confirm.peanutFee')} value={`$${peanutFee}`} />
+                    <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value={`$${peanutFee}`} />
                 </Card>
 
                 {showHighFeeWarning && (
@@ -225,7 +229,9 @@ export default function ConfirmWithdrawView({
                         loading={isProcessing}
                         className="w-full"
                     >
-                        {isProcessing ? tLoading('withdrawing') : tNav('withdraw')}
+                        {isProcessing
+                            ? tLoading(isFromSendFlow ? 'sending' : 'withdrawing')
+                            : tNav(isFromSendFlow ? 'send' : 'withdraw')}
                     </Button>
                 )}
 
