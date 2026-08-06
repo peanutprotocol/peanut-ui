@@ -49,8 +49,11 @@ export default function WithdrawCryptoPage() {
     // Send → Exchange or Wallet lands here as /withdraw/crypto?method=crypto.
     // Every back/redirect target below keeps the marker, or the amount step it
     // returns to silently reverts to withdraw copy.
-    const { isFromSendFlow } = useSendFlowOrigin()
-    const amountStepHref = isFromSendFlow ? '/withdraw?method=crypto' : '/withdraw'
+    // Forward the marker verbatim rather than assuming crypto: entering as
+    // /withdraw?method=bank and then picking Crypto lands here as method=bank,
+    // and rewriting it to crypto would change the amount step's back behaviour.
+    const { isFromSendFlow, sendFlowMethod } = useSendFlowOrigin()
+    const amountStepHref = isFromSendFlow ? `/withdraw?method=${sendFlowMethod}` : '/withdraw'
     const onBack = useSafeBack(amountStepHref)
     const { address, sendTransactions, sendMoney, spendableBalance } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)

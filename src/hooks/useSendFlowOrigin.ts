@@ -18,5 +18,7 @@ export function useSendFlowOrigin() {
         isFromSendFlow: method === 'bank' || method === 'crypto',
         isBankFromSend: method === 'bank',
         isCryptoFromSend: method === 'crypto',
+        /** The raw marker, for callers that must forward it verbatim rather than re-derive it. */
+        sendFlowMethod: method === 'bank' || method === 'crypto' ? method : null,
     }
 }

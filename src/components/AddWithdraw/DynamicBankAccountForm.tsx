@@ -442,8 +442,10 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     recipientName={country}
                     amount={amountToWithdraw}
                     tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
-                    isFromSendFlow={framedAsSend}
                     {...actionDetailsProps}
+                    // after the spread: the flow-guarded value stays authoritative even
+                    // though actionDetailsProps is a Partial of the card's full props
+                    isFromSendFlow={framedAsSend}
                 />
 
                 <div className="space-y-4">

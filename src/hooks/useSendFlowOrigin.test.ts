@@ -26,6 +26,7 @@ describe('useSendFlowOrigin', () => {
             isFromSendFlow: true,
             isBankFromSend: false,
             isCryptoFromSend: true,
+            sendFlowMethod: 'crypto',
         })
     })
 
@@ -35,11 +36,21 @@ describe('useSendFlowOrigin', () => {
             isFromSendFlow: true,
             isBankFromSend: true,
             isCryptoFromSend: false,
+            sendFlowMethod: 'bank',
         })
     })
 
     it('treats a bare /withdraw as a real withdraw', () => {
-        expect(renderHook(() => useSendFlowOrigin()).result.current.isFromSendFlow).toBe(false)
+        const { result } = renderHook(() => useSendFlowOrigin())
+        expect(result.current.isFromSendFlow).toBe(false)
+        expect(result.current.sendFlowMethod).toBeNull()
+    })
+
+    it('forwards the marker verbatim so downstream never rewrites bank to crypto', () => {
+        // /withdraw?method=bank → pick Crypto → lands on /withdraw/crypto?method=bank.
+        // Hard-coding 'crypto' on the way back would change the amount step's back behaviour.
+        mockSearchParams.set('method', 'bank')
+        expect(renderHook(() => useSendFlowOrigin()).result.current.sendFlowMethod).toBe('bank')
     })
 
     it('does not treat an unrecognised method as a send', () => {
@@ -50,6 +61,7 @@ describe('useSendFlowOrigin', () => {
             isFromSendFlow: false,
             isBankFromSend: false,
             isCryptoFromSend: false,
+            sendFlowMethod: null,
         })
     })
 })

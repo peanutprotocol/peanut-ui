@@ -56,7 +56,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     // check if coming from send flow and what type
     const methodParam = searchParams.get('method')
-    const { isBankFromSend } = useSendFlowOrigin()
+    // this list also serves the add-money flow, which navigates with its own
+    // ?method=bank — so the marker alone doesn't mean "send". Same guard as
+    // AddWithdrawRouterView.
+    const isBankFromSend = useSendFlowOrigin().isBankFromSend && flow === 'withdraw'
 
     // hooks
     const { deviceType } = useDeviceType()
