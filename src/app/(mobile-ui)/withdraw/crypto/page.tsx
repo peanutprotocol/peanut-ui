@@ -25,6 +25,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { captureMessage } from '@sentry/nextjs'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import type { Address, Hex, TransactionReceipt } from 'viem'
 import { parseUnits } from 'viem'
 import { Slider } from '@/components/Slider'
@@ -45,7 +46,15 @@ export default function WithdrawCryptoPage() {
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
     const toFriendlyError = useFriendlyError()
-    const onBack = useSafeBack('/withdraw')
+    // Send → Exchange or Wallet lands here as /withdraw/crypto?method=crypto.
+    // Every back/redirect target below keeps the marker, or the amount step it
+    // returns to silently reverts to withdraw copy.
+    // Forward the marker verbatim rather than assuming crypto: entering as
+    // /withdraw?method=bank and then picking Crypto lands here as method=bank,
+    // and rewriting it to crypto would change the amount step's back behaviour.
+    const { isFromSendFlow, sendFlowMethod } = useSendFlowOrigin()
+    const amountStepHref = isFromSendFlow ? `/withdraw?method=${sendFlowMethod}` : '/withdraw'
+    const onBack = useSafeBack(amountStepHref)
     const { address, sendTransactions, sendMoney, spendableBalance } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
     const {
@@ -582,8 +591,8 @@ export default function WithdrawCryptoPage() {
     // which would override the router.push('/home') in handleDone
     const needsAmountRedirect = !amountToWithdraw && currentView !== 'STATUS'
     useEffect(() => {
-        if (needsAmountRedirect) router.push('/withdraw')
-    }, [needsAmountRedirect, router])
+        if (needsAmountRedirect) router.push(amountStepHref)
+    }, [needsAmountRedirect, router, amountStepHref])
 
     if (needsAmountRedirect) {
         return <PeanutLoading />
@@ -597,6 +606,7 @@ export default function WithdrawCryptoPage() {
                     onReview={handleSetupReview}
                     onBack={onBack}
                     isProcessing={isPreparingReview}
+                    isFromSendFlow={isFromSendFlow}
                 />
             )}
 
@@ -618,17 +628,23 @@ export default function WithdrawCryptoPage() {
                     showHighFeeWarning={showHighFeeWarning}
                     insufficientBalance={insufficientForFee}
                     belowMinimumMessage={belowMinimumMessage}
+                    isFromSendFlow={isFromSendFlow}
                 />
             )}
 
             {currentView === 'STATUS' && withdrawData && chargeDetails && (
                 <>
                     <PaymentSuccessView
-                        headerTitle={tNav('withdraw')}
+                        headerTitle={isFromSendFlow ? tNav('send') : tNav('withdraw')}
                         recipientType="ADDRESS"
                         type="SEND"
                         amount={usdAmount}
+                        // Stays true even from the send flow: it also suppresses the
+                        // recipient render (no recipientName is passed here) and picks
+                        // the "to" prefix, both correct for a send to an address.
+                        // Only the title needs the send framing.
                         isWithdrawFlow={true}
+                        isFromSendFlow={isFromSendFlow}
                         redirectTo="/home"
                         chargeDetails={chargeDetails}
                         paymentDetails={paymentDetails}

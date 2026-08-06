@@ -642,7 +642,8 @@
         "loggingIn": "Iniciando sesión",
         "loggingOut": "Cerrando sesión",
         "paying": "Pagando",
-        "withdrawing": "Retirando"
+        "withdrawing": "Retirando",
+        "sending": "Enviando"
     },
     "paymentLoading": {
         "cracking": "Abriendo maníes",
@@ -769,6 +770,7 @@
         "success": {
             "addedExternal": "Agregaste con éxito",
             "withdrew": "Acabas de retirar",
+            "justSent": "Acabas de enviar",
             "sent": "Enviaste ",
             "requested": "Solicitaste ",
             "added": "Agregaste ",
@@ -2648,6 +2650,7 @@
             "youJustClaimed": "Acabas de reclamar",
             "youreAdding": "Estás agregando",
             "youreWithdrawing": "Estás retirando",
+            "youreSending": "Estás enviando",
             "youWillReceive": "Vas a recibir",
             "youreAboutToReceive": "Estás por recibir"
         },
