@@ -344,6 +344,27 @@ describe('GROUP 4: Method Selection', () => {
         fireEvent.click(screen.getByTestId('action-card-Exchange or Wallet'))
         expect(mockResetWithdrawFlow).toHaveBeenCalledTimes(1)
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw?method=crypto')
+        expect(mockResetWithdrawFlow.mock.invocationCallOrder[0]).toBeLessThan(
+            mockRouterPush.mock.invocationCallOrder[0]
+        )
+    })
+
+    test('Mercado Pago and Pix also reset the withdraw flow before navigating', () => {
+        mockUseGeoFilteredPaymentOptions.mockReturnValue({
+            filteredMethods: [
+                { id: 'mercadopago', title: 'Mercado Pago', description: '', icons: [], soon: false },
+                { id: 'pix', title: 'Pix', description: '', icons: [], soon: false },
+            ],
+        })
+        renderSend()
+
+        fireEvent.click(screen.getByTestId('action-card-Mercado Pago'))
+        expect(mockResetWithdrawFlow).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=mercado-pago&country=argentina')
+
+        fireEvent.click(screen.getByTestId('action-card-Pix'))
+        expect(mockResetWithdrawFlow).toHaveBeenCalledTimes(2)
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
     })
 
     test('Clicking Peanut contacts navigates to /send?view=contacts without touching the withdraw flow', () => {
