@@ -21,7 +21,8 @@ let mockNextActions: NextAction[] = []
 const mockFetchUser = jest.fn(() => Promise.resolve(null))
 const mockStartHosted = jest.fn<Promise<{ url?: string; error?: string }>, []>()
 let mockStoredDismissal: string[] | undefined
-let mockReservedTab: { location: { href: string }; close: jest.Mock }
+let mockReservedTab: { location: { href: string }; close: jest.Mock; closed: boolean; opener: unknown }
+const mockAssignHref = jest.fn()
 let mockWindowOpen: jest.SpyInstance
 const mockUpdatePreferences = jest.fn()
 
@@ -46,9 +47,20 @@ jest.mock('@/components/Kyc/BridgeTosStep', () => ({
 const mockOpenExternalUrl = jest.fn<Promise<void>, [string]>()
 let mockIsCapacitor = false
 jest.mock('@/utils/capacitor', () => ({
-    isCapacitor: () => mockIsCapacitor,
+    isNativeBridge: () => mockIsCapacitor,
     openExternalUrl: (url: string) => mockOpenExternalUrl(url),
 }))
+const mockBrowserListener = { remove: jest.fn() }
+const mockBrowserAddListener = jest.fn<Promise<{ remove: jest.Mock }>, [string, () => void]>(() =>
+    Promise.resolve(mockBrowserListener)
+)
+jest.mock(
+    '@capacitor/browser',
+    () => ({
+        Browser: { addListener: (event: string, cb: () => void) => mockBrowserAddListener(event, cb) },
+    }),
+    { virtual: true }
+)
 
 const tosAction: NextAction = { key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' }
 const sepaTosAction: NextAction = {
@@ -72,7 +84,21 @@ describe('PendingVerificationTasks', () => {
         mockOpenExternalUrl.mockReset()
         mockOpenExternalUrl.mockResolvedValue(undefined)
         mockIsCapacitor = false
-        mockReservedTab = { location: { href: '' }, close: jest.fn() }
+        mockAssignHref.mockReset()
+        // jsdom refuses real navigation; capture the same-tab fallback instead.
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            value: {
+                get href() {
+                    return 'http://localhost/home'
+                },
+                set href(value: string) {
+                    mockAssignHref(value)
+                },
+            },
+        })
+        mockBrowserAddListener.mockClear()
+        mockReservedTab = { location: { href: '' }, close: jest.fn(), closed: false, opener: {} }
         mockWindowOpen = jest.spyOn(window, 'open').mockReturnValue(mockReservedTab as unknown as Window)
         mockWindowOpen.mockClear()
         mockStoredDismissal = undefined
@@ -128,19 +154,59 @@ describe('PendingVerificationTasks', () => {
         expect(mockReservedTab.close).not.toHaveBeenCalled()
     })
 
-    it('pop-ups blocked → tells the user, and never fires the side-effecting Bridge call', async () => {
-        // openExternalUrl would just call window.open again AFTER the await —
-        // blocked harder, and its null result is unobservable, so we would have
-        // promised a page that never opened.
+    it('no usable tab (pop-up blocked / standalone PWA) falls back to same-tab navigation', async () => {
+        // A post-await window.open would be blocked and its null return is
+        // unobservable; same-tab navigation is never gesture-gated.
         mockWindowOpen.mockReturnValue(null)
         mockNextActions = [hostedAction]
         mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
         render(<PendingVerificationTasks />)
 
         fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        expect(await screen.findByText(/allow pop-ups/i)).toBeInTheDocument()
-        expect(mockStartHosted).not.toHaveBeenCalled()
+        await waitFor(() => expect(mockAssignHref).toHaveBeenCalledWith('https://bridge.withpersona.com/verify?x=1'))
         expect(mockOpenExternalUrl).not.toHaveBeenCalled()
+    })
+
+    it('a tab closed mid-fetch falls back instead of silently navigating a dead window', async () => {
+        mockNextActions = [hostedAction]
+        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
+        mockReservedTab.closed = true
+        render(<PendingVerificationTasks />)
+
+        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
+        await waitFor(() => expect(mockAssignHref).toHaveBeenCalledWith('https://bridge.withpersona.com/verify?x=1'))
+        expect(mockReservedTab.location.href).toBe('')
+        expect(mockReservedTab.close).toHaveBeenCalled()
+    })
+
+    it('severs window.opener on the reserved tab (reverse tabnabbing)', async () => {
+        mockNextActions = [hostedAction]
+        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
+        render(<PendingVerificationTasks />)
+
+        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
+        expect(mockReservedTab.opener).toBeNull()
+    })
+
+    it('native waits on the in-app browser close event, not visibilitychange', async () => {
+        mockIsCapacitor = true
+        mockNextActions = [hostedAction]
+        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
+        render(<PendingVerificationTasks />)
+
+        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
+        await waitFor(() =>
+            expect(mockBrowserAddListener).toHaveBeenCalledWith('browserFinished', expect.any(Function))
+        )
+
+        // Android WebViews may never fire visibilitychange on resume.
+        Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+        document.dispatchEvent(new Event('visibilitychange'))
+        expect(mockFetchUser).not.toHaveBeenCalled()
+
+        const onFinished = mockBrowserAddListener.mock.calls[0][1]
+        onFinished()
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
     })
 
     it('closes the reserved tab when the hosted URL never arrives', async () => {
@@ -184,9 +250,10 @@ describe('PendingVerificationTasks', () => {
         document.dispatchEvent(new Event('visibilitychange'))
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
 
-        // One-shot: the listener removes itself, so later returns don't spam.
+        // NOT one-shot: an incidental switch-back must not burn the refetch,
+        // so a later real return refreshes again.
         document.dispatchEvent(new Event('visibilitychange'))
-        expect(mockFetchUser).toHaveBeenCalledTimes(1)
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(2))
     })
 
     it('start-action failure surfaces FRIENDLY copy (never the raw server error) and resyncs the user', async () => {
