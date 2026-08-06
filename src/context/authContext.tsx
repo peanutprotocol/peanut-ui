@@ -110,6 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // `name` duplicates username because PostHog's Persons-page search is
             // hardcoded to email/name/distinct_id — username alone is not searchable.
             const enabledRails = user.rails?.filter((rail) => rail.status === 'ENABLED') ?? []
+            const appLocale = currentAppLocale()
             posthog.identify(user.user.userId, {
                 username: user.user.username,
                 name: user.user.username,
@@ -124,7 +125,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 enabledRailIds: enabledRails.map((rail) => rail.rail.id),
                 // Client-only (locale never reaches the BE) — covers the first
                 // session, where the startup locale resolves before identify.
-                ...(currentAppLocale() ? { app_locale: currentAppLocale() } : {}),
+                ...(appLocale ? { app_locale: appLocale } : {}),
             })
             // Sentry: every error captured from here on inherits user context
             // as searchable Sentry tags. Closes the historical gap where FE
@@ -262,6 +263,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         try {
             posthog.reset()
+            // reset() wipes registered super properties — re-register the
+            // locale so logout-window events keep carrying app_locale
+            const locale = currentAppLocale()
+            if (locale) posthog.register({ app_locale: locale })
         } catch (e) {
             console.warn('posthog reset failed:', e)
         }
