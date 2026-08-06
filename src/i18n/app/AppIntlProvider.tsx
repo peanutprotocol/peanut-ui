@@ -4,7 +4,14 @@ import { NextIntlClientProvider, IntlErrorCode, type IntlError } from 'next-intl
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { DEFAULT_APP_LOCALE, type AppLocale } from './config'
 import { loadMessages, type AppMessages } from './messages'
-import { currentAppLocale, emitLocaleToAnalytics, localeReady, markLocaleApplied, persistLocale } from './locale-store'
+import {
+    currentAppLocale,
+    emitDeviceContextToAnalytics,
+    emitLocaleToAnalytics,
+    localeReady,
+    markLocaleApplied,
+    persistLocale,
+} from './locale-store'
 import en from './messages/en.json'
 
 interface AppLocaleContextValue {
@@ -41,6 +48,9 @@ export function AppIntlProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         let cancelled = false
+        // device_language + platform super properties for the localization OKR;
+        // independent of which locale resolves, fire-and-forget
+        void emitDeviceContextToAnalytics()
         localeReady().then(async (resolved) => {
             startupLocale.current = resolved
             if (resolved === DEFAULT_APP_LOCALE) {

@@ -18,6 +18,24 @@ jest.mock('posthog-js', () => ({
     },
 }))
 
+const mockIsCapacitor = jest.fn()
+const mockGetPlatform = jest.fn()
+
+jest.mock('@/utils/capacitor', () => ({
+    isCapacitor: () => mockIsCapacitor(),
+    getPlatform: () => mockGetPlatform(),
+}))
+
+const mockGetLanguageTag = jest.fn()
+
+jest.mock('@capacitor/device', () => ({
+    Device: { getLanguageTag: (...args: unknown[]) => mockGetLanguageTag(...args) },
+}))
+
+function setNavigatorLanguage(value: string): void {
+    Object.defineProperty(navigator, 'language', { value, configurable: true })
+}
+
 type LocaleStore = typeof import('../locale-store')
 
 function freshStore(): LocaleStore {
@@ -29,8 +47,12 @@ function freshStore(): LocaleStore {
 }
 
 beforeEach(() => {
-    jest.clearAllMocks()
+    // resetAllMocks (not clearAllMocks) so a mockImplementation set in one test
+    // — e.g. the posthog-throw cases — can never leak into the next.
+    jest.resetAllMocks()
     mockIsIdentified.mockReturnValue(true)
+    mockIsCapacitor.mockReturnValue(false)
+    mockGetPlatform.mockReturnValue('web')
 })
 
 describe('emitLocaleToAnalytics', () => {
@@ -74,5 +96,53 @@ describe('emitLocaleToAnalytics', () => {
         const store = freshStore()
         expect(() => store.emitLocaleToAnalytics('pt-BR')).not.toThrow()
         expect(store.currentAppLocale()).toBe('pt-BR')
+    })
+})
+
+describe('emitDeviceContextToAnalytics', () => {
+    it('registers the raw device language and platform, and exposes them for logout re-register', async () => {
+        setNavigatorLanguage('es-AR')
+        const store = freshStore()
+        await store.emitDeviceContextToAnalytics()
+        expect(mockRegister).toHaveBeenCalledWith({ device_language: 'es-ar', platform: 'web' })
+        expect(store.currentDeviceContext()).toEqual({ device_language: 'es-ar', platform: 'web' })
+    })
+
+    it('reads the raw tag from the native device bridge on Capacitor', async () => {
+        mockIsCapacitor.mockReturnValue(true)
+        mockGetPlatform.mockReturnValue('ios-native')
+        mockGetLanguageTag.mockResolvedValue({ value: 'pt-BR' })
+        const store = freshStore()
+        await store.emitDeviceContextToAnalytics()
+        expect(mockGetLanguageTag).toHaveBeenCalled()
+        expect(mockRegister).toHaveBeenCalledWith({ device_language: 'pt-br', platform: 'ios-native' })
+    })
+
+    it('keeps an unsupported language as-is (never collapses to en — protects the OKR denominator)', async () => {
+        setNavigatorLanguage('fr-FR')
+        const store = freshStore()
+        await store.emitDeviceContextToAnalytics()
+        expect(mockRegister).toHaveBeenCalledWith({ device_language: 'fr-fr', platform: 'web' })
+    })
+
+    it('emits once per session', async () => {
+        setNavigatorLanguage('pt-BR')
+        const store = freshStore()
+        await store.emitDeviceContextToAnalytics()
+        await store.emitDeviceContextToAnalytics()
+        expect(mockRegister).toHaveBeenCalledTimes(1)
+    })
+
+    it('a posthog throw never propagates and leaves the context unset so a retry can register', async () => {
+        setNavigatorLanguage('en-US')
+        mockRegister.mockImplementationOnce(() => {
+            throw new Error('sdk exploded')
+        })
+        const store = freshStore()
+        await expect(store.emitDeviceContextToAnalytics()).resolves.toBeUndefined()
+        expect(store.currentDeviceContext()).toBeNull()
+        // guard is set only on success, so the next call retries instead of no-op
+        await store.emitDeviceContextToAnalytics()
+        expect(store.currentDeviceContext()).toEqual({ device_language: 'en-us', platform: 'web' })
     })
 })

@@ -16,7 +16,7 @@ import {
 } from '@/utils/general.utils'
 import { apiFetch } from '@/utils/api-fetch'
 import { useAppLocked } from '@/hooks/useAppLocked'
-import { currentAppLocale } from '@/i18n/app/locale-store'
+import { currentAppLocale, currentDeviceContext } from '@/i18n/app/locale-store'
 import { isCapacitor } from '@/utils/capacitor'
 import { clearAuthToken } from '@/utils/auth-token'
 import { resetCrispProxySessions } from '@/utils/crisp'
@@ -267,6 +267,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // locale so logout-window events keep carrying app_locale
             const locale = currentAppLocale()
             if (locale) posthog.register({ app_locale: locale })
+            // same for the localization-OKR device context (device_language + platform)
+            const deviceContext = currentDeviceContext()
+            if (deviceContext) posthog.register(deviceContext)
         } catch (e) {
             console.warn('posthog reset failed:', e)
         }

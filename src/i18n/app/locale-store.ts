@@ -5,7 +5,7 @@
 
 import Cookies from 'js-cookie'
 import posthog from 'posthog-js'
-import { isCapacitor } from '@/utils/capacitor'
+import { getPlatform, isCapacitor } from '@/utils/capacitor'
 import { resolveLocale, type AppLocale } from './config'
 
 const LOCALE_KEY = 'app-locale'
@@ -43,6 +43,63 @@ function navigatorLocale(): AppLocale {
     return resolveLocale(typeof navigator !== 'undefined' ? navigator.language : null)
 }
 
+/**
+ * Raw device/browser language tag — deliberately NOT run through resolveLocale.
+ * An unsupported language (e.g. 'fr-FR') must stay itself for the localization
+ * OKR, not collapse to 'en' and pollute the "phone set to ES/PT" denominator.
+ * Memoized: the native Device.getLanguageTag() bridge call sits on the
+ * splash-gated startup path, so the locale resolver and the analytics emit
+ * share one round-trip instead of each making their own.
+ */
+let deviceTag: Promise<string | null> | null = null
+function rawDeviceTag(): Promise<string | null> {
+    if (!deviceTag) deviceTag = readDeviceTag()
+    return deviceTag
+}
+async function readDeviceTag(): Promise<string | null> {
+    if (isCapacitor()) {
+        try {
+            const { Device } = await import('@capacitor/device')
+            const { value } = await Device.getLanguageTag()
+            if (value) return value
+        } catch {
+            // older binary / plugin missing — fall through to navigator
+        }
+    }
+    return typeof navigator !== 'undefined' ? navigator.language : null
+}
+
+// Device context for the localization OKR (Fit metric): device_language is the
+// language the user's phone asks for; app_locale (above) is what they actually
+// use. Both are super properties so every event carries them — the OKR filters
+// device_language ∈ {es*, pt*} and reads the app_locale=en override rate, no
+// KYC/nationality join. The resolved context is cached (not just a bool) so the
+// logout handler can re-register it after posthog.reset() wipes super
+// properties, mirroring app_locale. Fenced so analytics can never break the app.
+let deviceContext: { device_language: string; platform: string } | null = null
+
+/** Last device context registered — for re-register after posthog.reset() on logout. */
+export function currentDeviceContext(): { device_language: string; platform: string } | null {
+    return deviceContext
+}
+
+export async function emitDeviceContextToAnalytics(): Promise<void> {
+    if (deviceContext) return
+    try {
+        const tag = await rawDeviceTag()
+        const context = {
+            device_language: tag ? tag.trim().toLowerCase() : 'unknown',
+            platform: getPlatform(),
+        }
+        posthog.register(context)
+        // set only after a successful register — a throw leaves this null so a
+        // later call can retry, instead of silently disabling the emit forever
+        deviceContext = context
+    } catch {
+        // analytics failure degrades to missing data, never a broken app
+    }
+}
+
 async function resolveStartupLocale(): Promise<AppLocale> {
     if (isCapacitor()) {
         try {
@@ -52,14 +109,8 @@ async function resolveStartupLocale(): Promise<AppLocale> {
         } catch {
             // plugin unavailable — fall through to device language
         }
-        try {
-            const { Device } = await import('@capacitor/device')
-            const { value } = await Device.getLanguageTag()
-            return resolveLocale(value)
-        } catch {
-            // older binary running OTA'd JS without @capacitor/device
-            return navigatorLocale()
-        }
+        // shares the memoized bridge call with the analytics emit
+        return resolveLocale(await rawDeviceTag())
     }
     const stored =
         Cookies.get(LOCALE_KEY) ?? (typeof localStorage !== 'undefined' ? localStorage.getItem(LOCALE_KEY) : null)
