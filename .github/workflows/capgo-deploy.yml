@@ -78,13 +78,30 @@ jobs:
                   # accepts bundles signed here.
                   CAPGO_PRIVATE_KEY: ${{ secrets.CAPGO_PRIVATE_KEY }}
                   COMMIT_MSG: ${{ github.event.head_commit.message }}
+                  CHANNEL: ${{ steps.channel.outputs.name }}
               run: |
+                  # Capgo defaults the bundle version to package.json's, so a lane that
+                  # ships on every merge collides the moment two merges share a version
+                  # ("Version x already exists"). That silently killed dev -> staging:
+                  # dev sat on 1.0.8 and every deploy after the first failed, which
+                  # looks identical to no deploy at all.
+                  #
+                  # Continuous lanes therefore get the short SHA appended, the same way
+                  # the preview lane does. Production deliberately does not: shipping
+                  # there should be a decision tied to a real version, so a collision
+                  # is the correct answer and means "bump package.json first".
+                  VERSION="$(node -p "require('./package.json').version")"
+                  if [ "$CHANNEL" != "production" ]; then
+                      VERSION="$VERSION-${GITHUB_SHA:0:7}"
+                  fi
+                  echo "Uploading bundle $VERSION to channel $CHANNEL"
                   COMMENT="${GITHUB_SHA:0:7} — $(printf '%s' "${COMMIT_MSG:-Manual deploy}" | head -n1)"
                   npx @capgo/cli@latest bundle upload \
-                    --channel "${{ steps.channel.outputs.name }}" \
+                    --channel "$CHANNEL" \
                     --apikey "$CAPGO_API_KEY" \
                     --key-data-v2 "$CAPGO_PRIVATE_KEY" \
                     --path ./out \
+                    --bundle "$VERSION" \
                     --auto-min-update-version \
                     --comment "$COMMENT"
 
