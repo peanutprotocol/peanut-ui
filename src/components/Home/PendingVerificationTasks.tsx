@@ -155,7 +155,15 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
             // so Safari/Firefox block it — the same "nothing happens" symptom
             // this PR exists to fix. The reserved tab is navigated once the
             // URL lands, and closed if it never does.
-            const reservedTab = isCapacitor() ? null : window.open('', '_blank')
+            const native = isCapacitor()
+            const reservedTab = native ? null : window.open('', '_blank')
+            if (!native && !reservedTab) {
+                // Pop-ups blocked. Falling back to a post-await window.open
+                // would be blocked harder AND unobservable, so we'd promise a
+                // verification page that never opened — tell the user instead.
+                setError('Please allow pop-ups for this site, then tap again to verify.')
+                return
+            }
 
             setIsStartingHosted(true)
             const { url } = await startBridgeHostedVerification()
@@ -165,15 +173,14 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                 // means the action aged out); refetch so a stale card self-corrects.
                 reservedTab?.close()
                 setError("We couldn't start the verification. Please try again in a moment.")
-                void fetchUser()
+                void fetchUser().catch(() => undefined)
                 return
             }
             try {
-                if (reservedTab) {
-                    reservedTab.location.href = url
-                } else {
-                    // Native, or a browser that refused the reservation outright.
+                if (native) {
                     await openExternalUrl(url)
+                } else if (reservedTab) {
+                    reservedTab.location.href = url
                 }
             } catch {
                 reservedTab?.close()
@@ -196,7 +203,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
             // so a second visibility event could otherwise refetch twice.
             document.removeEventListener('visibilitychange', onReturn)
             setAwaitingReturn(false)
-            void fetchUser()
+            void fetchUser().catch(() => undefined)
         }
         document.addEventListener('visibilitychange', onReturn)
         return () => document.removeEventListener('visibilitychange', onReturn)
