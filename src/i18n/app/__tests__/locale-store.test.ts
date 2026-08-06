@@ -26,6 +26,12 @@ jest.mock('@/utils/capacitor', () => ({
     getPlatform: () => mockGetPlatform(),
 }))
 
+const mockGetLanguageTag = jest.fn()
+
+jest.mock('@capacitor/device', () => ({
+    Device: { getLanguageTag: (...args: unknown[]) => mockGetLanguageTag(...args) },
+}))
+
 function setNavigatorLanguage(value: string): void {
     Object.defineProperty(navigator, 'language', { value, configurable: true })
 }
@@ -100,6 +106,16 @@ describe('emitDeviceContextToAnalytics', () => {
         await store.emitDeviceContextToAnalytics()
         expect(mockRegister).toHaveBeenCalledWith({ device_language: 'es-ar', platform: 'web' })
         expect(store.currentDeviceContext()).toEqual({ device_language: 'es-ar', platform: 'web' })
+    })
+
+    it('reads the raw tag from the native device bridge on Capacitor', async () => {
+        mockIsCapacitor.mockReturnValue(true)
+        mockGetPlatform.mockReturnValue('ios-native')
+        mockGetLanguageTag.mockResolvedValue({ value: 'pt-BR' })
+        const store = freshStore()
+        await store.emitDeviceContextToAnalytics()
+        expect(mockGetLanguageTag).toHaveBeenCalled()
+        expect(mockRegister).toHaveBeenCalledWith({ device_language: 'pt-br', platform: 'ios-native' })
     })
 
     it('keeps an unsupported language as-is (never collapses to en — protects the OKR denominator)', async () => {
