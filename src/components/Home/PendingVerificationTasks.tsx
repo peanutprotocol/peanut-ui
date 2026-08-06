@@ -10,7 +10,7 @@ import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import type { NextAction } from '@/types/capabilities'
 import { bridgeTaskDismissalKey, selectBridgeTasks } from '@/utils/bridge-tasks.utils'
-import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
+import { isNativeBridge, openExternalUrl } from '@/utils/capacitor'
 import { formatEffectiveDate } from '@/utils/format.utils'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import Card from '../Global/Card'
@@ -85,6 +85,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
 
     const userId = user?.user?.userId
     const tasks = selectBridgeTasks(nextActions)
+    const hasHostedTask = tasks.some((task) => task.kind === 'bridge-hosted')
     const taskKeys = tasks
         .map((task) => task.key)
         .sort()
@@ -155,15 +156,17 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
             // so Safari/Firefox block it — the same "nothing happens" symptom
             // this PR exists to fix. The reserved tab is navigated once the
             // URL lands, and closed if it never does.
-            const native = isCapacitor()
+            // isNativeBridge(), not isCapacitor(): the latter is also true for
+            // any build carrying NEXT_PUBLIC_CAPACITOR_BUILD (vercel previews),
+            // where the native apis don't exist and we'd skip the reservation
+            // in a real browser.
+            const native = isNativeBridge()
             const reservedTab = native ? null : window.open('', '_blank')
-            if (!native && !reservedTab) {
-                // Pop-ups blocked. Falling back to a post-await window.open
-                // would be blocked harder AND unobservable, so we'd promise a
-                // verification page that never opened — tell the user instead.
-                setError('Please allow pop-ups for this site, then tap again to verify.')
-                return
-            }
+            // The reserved tab can't carry `noopener` (that returns null and
+            // defeats the reservation), so sever the back-reference by hand —
+            // otherwise Persona, and anything it redirects to, holds a handle
+            // that can navigate the signed-in tab (reverse tabnabbing).
+            if (reservedTab) reservedTab.opener = null
 
             setIsStartingHosted(true)
             const { url } = await startBridgeHostedVerification()
@@ -179,11 +182,22 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
             try {
                 if (native) {
                     await openExternalUrl(url)
-                } else if (reservedTab) {
+                } else if (reservedTab && !reservedTab.closed) {
+                    // `.closed` matters: assigning href to a closed window is a
+                    // silent no-op, so without this the user would tap and see
+                    // nothing — the very failure this PR removes.
                     reservedTab.location.href = url
+                } else {
+                    // No usable tab: pop-ups blocked, a standalone PWA, or the
+                    // user closed the blank tab while we fetched. Same-tab
+                    // navigation is never gesture-gated, so it always lands.
+                    reservedTab?.close()
+                    window.location.href = url
+                    return
                 }
-            } catch {
+            } catch (error) {
                 reservedTab?.close()
+                console.error('[pending-tasks] failed to open Bridge hosted verification', error)
                 setError("We couldn't open the verification. Please try again in a moment.")
                 return
             }
@@ -195,19 +209,41 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
     // Nothing polls for this cohort — the ~4s user auto-refresh only runs
     // while a rail is `pending`, and these are `requires-info` — so pick the
     // result up when the user comes back from the hosted flow.
+    //
+    // Deliberately NOT one-shot: the first return is often incidental (a quick
+    // tab switch back, or Persona telling them to continue on their phone).
+    // Burning the single refetch there would leave the card up forever, so we
+    // keep listening and stop only once the task is actually gone (below).
     useEffect(() => {
         if (!awaitingReturn) return
+        const refresh = () => void fetchUser().catch(() => undefined)
+
+        if (isNativeBridge()) {
+            // Android WebViews don't reliably fire `visibilitychange` on
+            // resume — the same defect that makes useNativePlugins drive
+            // TanStack's focusManager off `appStateChange`. The in-app
+            // browser's own close event is the precise signal here.
+            let remove: (() => void) | undefined
+            void import('@capacitor/browser')
+                .then(({ Browser }) => Browser.addListener('browserFinished', refresh))
+                .then((handle) => {
+                    remove = () => handle.remove()
+                })
+                .catch((error) => console.error('[pending-tasks] browserFinished listener failed', error))
+            return () => remove?.()
+        }
+
         const onReturn = () => {
-            if (document.visibilityState !== 'visible') return
-            // Detach here, not just on the state flip: the re-render is async,
-            // so a second visibility event could otherwise refetch twice.
-            document.removeEventListener('visibilitychange', onReturn)
-            setAwaitingReturn(false)
-            void fetchUser().catch(() => undefined)
+            if (document.visibilityState === 'visible') refresh()
         }
         document.addEventListener('visibilitychange', onReturn)
         return () => document.removeEventListener('visibilitychange', onReturn)
     }, [awaitingReturn, fetchUser])
+
+    // Stop listening once the hosted task clears — that's the success signal.
+    useEffect(() => {
+        if (awaitingReturn && !hasHostedTask) setAwaitingReturn(false)
+    }, [awaitingReturn, hasHostedTask])
 
     const closeTos = useCallback(() => setActiveTosTask(null), [])
 
