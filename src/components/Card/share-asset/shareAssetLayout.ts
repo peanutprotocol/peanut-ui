@@ -156,7 +156,12 @@ export function placeStamps(
     badges: ShareAssetBadge[],
     rng: SeededRandom,
     extraKeepouts: readonly KeepoutEllipse[] = [],
-    pill: { x0: number; y0: number } = DEFAULT_PILL_KEEPOUT
+    pill: { x0: number; y0: number } = DEFAULT_PILL_KEEPOUT,
+    // Caps the low-count hero sizes (520/460…). Callers whose keep-outs cover
+    // the canvas centre (the ENS asset's text core) need this: a keep-out
+    // inflated by a 260px half-size spans the whole canvas, the solver can't
+    // satisfy it, and the clamp dumps the sticker onto the protected zone.
+    maxSize: number = Infinity
 ): StampPlacement[] {
     const sorted = [...badges].sort((a, b) => {
         const aT = a.earnedAt ? new Date(a.earnedAt).getTime() : 0
@@ -166,7 +171,7 @@ export function placeStamps(
     const count = sorted.length
     if (count === 0) return []
 
-    const size = stickerSize(count)
+    const size = Math.min(stickerSize(count), maxSize)
     const half = size / 2
     const minC = half - STICKER_OVERHANG
     const maxCx = CANVAS_W - half + STICKER_OVERHANG

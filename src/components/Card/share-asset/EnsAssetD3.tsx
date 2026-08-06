@@ -41,6 +41,8 @@ const BURST_SHADOW_DY = 28
 const HEADLINE_TOP = 288
 const PILL_TOP = 424
 
+const ENS_STICKER_MAX = 340
+
 const ANIM_BURST_DELAY = 100
 const ANIM_HEADLINE_DELAY = 350
 const ANIM_STAMP_BASE_DELAY = 600
@@ -77,11 +79,17 @@ const EnsAssetD3: FC<EnsAssetD3Props> = ({
 
     const stickers = useMemo(
         () =>
-            placeStamps(badges, new SeededRandom(seedOverride ?? safeUsername), ENS_KEEPOUTS, {
+            placeStamps(
+                badges,
+                new SeededRandom(seedOverride ?? safeUsername),
+                ENS_KEEPOUTS,
                 // No bottom-right pill on this asset — push its keep-out off-canvas.
-                x0: CANVAS_W + 1000,
-                y0: CANVAS_H + 1000,
-            }),
+                { x0: CANVAS_W + 1000, y0: CANVAS_H + 1000 },
+                // Cap the 1–2-badge hero sizes: inflated by a 260px half, the
+                // text-core keep-out spans the whole canvas and stickers land
+                // on the headline. 340 = the 6-badge size.
+                ENS_STICKER_MAX
+            ),
         [badges, seedOverride, safeUsername]
     )
 
