@@ -18,6 +18,18 @@ jest.mock('posthog-js', () => ({
     },
 }))
 
+const mockIsCapacitor = jest.fn()
+const mockGetPlatform = jest.fn()
+
+jest.mock('@/utils/capacitor', () => ({
+    isCapacitor: () => mockIsCapacitor(),
+    getPlatform: () => mockGetPlatform(),
+}))
+
+function setNavigatorLanguage(value: string): void {
+    Object.defineProperty(navigator, 'language', { value, configurable: true })
+}
+
 type LocaleStore = typeof import('../locale-store')
 
 function freshStore(): LocaleStore {
@@ -31,6 +43,8 @@ function freshStore(): LocaleStore {
 beforeEach(() => {
     jest.clearAllMocks()
     mockIsIdentified.mockReturnValue(true)
+    mockIsCapacitor.mockReturnValue(false)
+    mockGetPlatform.mockReturnValue('web')
 })
 
 describe('emitLocaleToAnalytics', () => {
@@ -74,5 +88,38 @@ describe('emitLocaleToAnalytics', () => {
         const store = freshStore()
         expect(() => store.emitLocaleToAnalytics('pt-BR')).not.toThrow()
         expect(store.currentAppLocale()).toBe('pt-BR')
+    })
+})
+
+describe('emitDeviceContextToAnalytics', () => {
+    it('registers the raw device language and platform as super properties (web)', async () => {
+        setNavigatorLanguage('es-AR')
+        const store = freshStore()
+        await store.emitDeviceContextToAnalytics()
+        expect(mockRegister).toHaveBeenCalledWith({ device_language: 'es-ar', platform: 'web' })
+    })
+
+    it('keeps an unsupported language as-is (never collapses to en — protects the OKR denominator)', async () => {
+        setNavigatorLanguage('fr-FR')
+        const store = freshStore()
+        await store.emitDeviceContextToAnalytics()
+        expect(mockRegister).toHaveBeenCalledWith({ device_language: 'fr-fr', platform: 'web' })
+    })
+
+    it('emits once per session', async () => {
+        setNavigatorLanguage('pt-BR')
+        const store = freshStore()
+        await store.emitDeviceContextToAnalytics()
+        await store.emitDeviceContextToAnalytics()
+        expect(mockRegister).toHaveBeenCalledTimes(1)
+    })
+
+    it('a posthog throw never propagates', async () => {
+        setNavigatorLanguage('en-US')
+        mockRegister.mockImplementation(() => {
+            throw new Error('sdk exploded')
+        })
+        const store = freshStore()
+        await expect(store.emitDeviceContextToAnalytics()).resolves.toBeUndefined()
     })
 })
