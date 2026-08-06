@@ -1068,7 +1068,10 @@
             "requiresSupportTitle": "Something went wrong on our side",
             "requiresSupportBody": "We hit a snag while processing your card application. Our team needs to take a look — message support and we'll get you sorted.",
             "rejectedTitle": "We couldn't issue you a card",
-            "rejectedBody": "You can still use Peanut freely to deposit, withdraw, and pay with crypto."
+            "rejectedBody": "You can still use Peanut freely to deposit, withdraw, and pay with crypto.",
+            "geoBlockedTitle": "Cards aren't available in your region yet",
+            "geoBlockedBody": "Due to regulatory restrictions, we can't issue cards in your region. You can still use Peanut freely to deposit, withdraw, and pay with crypto.",
+            "geoBlockedPolicyLink": "See which regions are restricted"
         },
         "celebration": {
             "navTitle": "Welcome in",

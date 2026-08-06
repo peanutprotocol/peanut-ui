@@ -1068,7 +1068,10 @@
             "requiresSupportTitle": "Algo deu errado do nosso lado",
             "requiresSupportBody": "Tivemos um problema ao processar seu pedido de cartão. Nosso time precisa dar uma olhada — fale com o suporte que a gente resolve.",
             "rejectedTitle": "Não conseguimos emitir um cartão para você",
-            "rejectedBody": "Você pode continuar usando o Peanut normalmente para depositar, sacar e pagar com cripto."
+            "rejectedBody": "Você pode continuar usando o Peanut normalmente para depositar, sacar e pagar com cripto.",
+            "geoBlockedTitle": "Os cartões ainda não estão disponíveis na sua região",
+            "geoBlockedBody": "Devido a restrições regulatórias, não podemos emitir cartões na sua região. Você ainda pode usar o Peanut livremente para depositar, sacar e pagar com cripto.",
+            "geoBlockedPolicyLink": "Veja quais regiões estão restritas"
         },
         "celebration": {
             "navTitle": "Bem-vindo",
