@@ -53,7 +53,6 @@ const ANIM_MARKS_DELAY = 1400
 const ENS_KEEPOUTS: readonly KeepoutEllipse[] = [
     { cx: BURST_CX, cy: BURST_CY + 40, rx: 430, ry: 330 }, // text core
     { cx: 195, cy: 745, rx: 210, ry: 200 }, // ens circle sticker + air
-    { cx: 985, cy: 785, rx: 200, ry: 90 }, // "pay me by name" chip
     { cx: 210, cy: 866, rx: 260, ry: 60 }, // footer lockup strip
 ]
 
@@ -264,31 +263,6 @@ const EnsAssetD3: FC<EnsAssetD3Props> = ({
                 }}
             >
                 <span style={{ fontSize: 46, fontWeight: 800, color: '#5298FF' }}>ens</span>
-            </div>
-
-            {/* ─── "pay me by name" chip (z 5, fixed bottom-right) ─── */}
-            <div
-                className="absolute"
-                style={{
-                    right: 88,
-                    bottom: 110,
-                    zIndex: 5,
-                    animation: animate ? `fadeUp 600ms ease-out ${ANIM_MARKS_DELAY + 150}ms both` : 'none',
-                }}
-            >
-                <div className="relative inline-flex" style={{ transform: 'rotate(6deg)' }}>
-                    <div
-                        aria-hidden
-                        className="pointer-events-none absolute rounded-full"
-                        style={{ inset: 0, background: '#000', transform: 'translate(0.375rem, 0.375rem)' }}
-                    />
-                    <span
-                        className="relative inline-flex rounded-full border-[5px] border-black"
-                        style={{ backgroundColor: '#FF90E8', padding: '12px 34px', fontSize: 30, fontWeight: 800 }}
-                    >
-                        pay me by name
-                    </span>
-                </div>
             </div>
 
             {/* ─── Footer lockup (z 5, bottom-left corner) ─── */}
