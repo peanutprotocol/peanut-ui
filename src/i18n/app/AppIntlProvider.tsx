@@ -4,7 +4,7 @@ import { NextIntlClientProvider, IntlErrorCode, type IntlError } from 'next-intl
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { DEFAULT_APP_LOCALE, type AppLocale } from './config'
 import { loadMessages, type AppMessages } from './messages'
-import { emitLocaleToAnalytics, localeReady, markLocaleApplied, persistLocale } from './locale-store'
+import { currentAppLocale, emitLocaleToAnalytics, localeReady, markLocaleApplied, persistLocale } from './locale-store'
 import en from './messages/en.json'
 
 interface AppLocaleContextValue {
@@ -44,8 +44,11 @@ export function AppIntlProvider({ children }: { children: React.ReactNode }) {
         localeReady().then(async (resolved) => {
             startupLocale.current = resolved
             if (resolved === DEFAULT_APP_LOCALE) {
-                // already rendered in English — nothing to swap
-                emitLocaleToAnalytics(resolved)
+                // already rendered in English — nothing to swap. Skip the emit
+                // if a manual setLocale won the race: this path never calls
+                // setIntlState, so the UI keeps the manual locale and emitting
+                // the startup value would record a language nobody sees.
+                if (!currentAppLocale()) emitLocaleToAnalytics(resolved)
                 markLocaleApplied()
                 return
             }
