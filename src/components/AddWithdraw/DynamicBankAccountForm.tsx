@@ -193,7 +193,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 // Skip adding account if the account already exists for the logged in user
                 if (existingAccount) {
                     setSelectedBankAccount(existingAccount)
-                    router.push(withdrawBankUrl(country))
+                    // keep the send marker, or the review screen it lands on reverts to withdraw copy
+                    router.push(withdrawBankUrl(country, framedAsSend ? '?method=bank' : ''))
                     return
                 }
 
