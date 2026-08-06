@@ -1,5 +1,6 @@
 {
     "common": {
+        "genericError": "Algo salió mal. Intentá de nuevo o contactá soporte.",
         "tryDifferentCountry": "Probá con otro país."
     },
     "home": {
@@ -84,7 +85,7 @@
             },
             "iosPwa": {
                 "title": "Agregá Peanut a tu pantalla de inicio",
-                "description": "Seguí una guía rápida para agregar la app a tu pantalla de inicio, sin descargas."
+                "description": "Seguí una guía rápida para agregar la app a tu pantalla de inicio, sin descargar nada."
             },
             "qrPay": {
                 "title": "Pagá con <b>códigos QR</b>",
@@ -118,8 +119,7 @@
                 "website": "Agregá tu sitio web"
             },
             "errors": {
-                "nameRequired": "Por favor ingresá tu nombre.",
-                "generic": "Algo salió mal. Intentá de nuevo o contactá soporte."
+                "nameRequired": "Por favor ingresá tu nombre."
             }
         },
         "regions": {
@@ -134,9 +134,6 @@
                 "fixableDescription": "Subí una foto más clara de tu documento para desbloquear esta región.",
                 "restartDescription": "Esta región necesita un documento de un país compatible. Podés verificarte con otro documento.",
                 "unavailableDescription": "Esta región no está disponible para tu cuenta. Contactá soporte para recibir ayuda."
-            },
-            "initError": {
-                "fallbackDescription": "Algo salió mal. Intentá de nuevo o contactá soporte."
             }
         },
         "backup": {
@@ -397,14 +394,13 @@
         "errors": {
             "brokenLinkMessage": "¿Seguro que hiciste clic en el enlace correcto? ¿El enlace se acaba de crear? Intentalo de nuevo en unos segundos.",
             "missingInviter": "No se pudo aceptar la invitación: falta quien te invitó. Contactá a soporte.",
-            "generic": "Algo salió mal. Intentalo de nuevo o contactá a soporte.",
             "bankClaimUnavailable": "No podés reclamar este enlace a tu cuenta bancaria."
         },
         "claimed": {
             "createWalletHint": "Creá una billetera para recibir enlaces en el futuro."
         },
         "initial": {
-            "recipientPlaceholder": "Ingresá un usuario, una dirección o ENS",
+            "recipientPlaceholder": "Ingresá un nombre de usuario, una dirección o ENS",
             "usdcArbitrumOnly": "Solo podés reclamar USDC en Arbitrum para usuarios de Peanut Wallet."
         },
         "addressCompatible": {
@@ -477,9 +473,9 @@
     "card": {
         "noActiveCard": "No tenés una tarjeta activa.",
         "entry": {
-            "title": "Pagá donde acepten Visa",
+            "title": "Gastá donde acepten Visa",
             "description": "Usá tu saldo en más de 150M de comercios. En línea, sin contacto, tuya.",
-            "cta": "Obtené tu tarjeta"
+            "cta": "Conseguí tu tarjeta"
         },
         "addToWallet": {
             "iosStep1": "Abrí la app Wallet",
@@ -495,7 +491,8 @@
             "pendingBody": "Esperá un momento mientras terminamos de preparar tu tarjeta. Normalmente toma unos segundos.",
             "requiresInfoBody": "Nuestro equipo te ayudará a terminar tu solicitud de tarjeta — escribile a soporte para continuar.",
             "requiresSupportBody": "Tuvimos un problema al procesar tu solicitud de tarjeta. Nuestro equipo necesita revisarlo — escribile a soporte y lo resolvemos.",
-            "rejectedBody": "Podés seguir usando Peanut sin problema para depositar, retirar y pagar con cripto."
+            "rejectedBody": "Podés seguir usando Peanut sin problema para depositar, retirar y pagar con cripto.",
+            "geoBlockedBody": "Por restricciones regulatorias, no podemos emitir tarjetas en tu región. Igual podés usar Peanut libremente para depositar, retirar y pagar con cripto."
         },
         "celebration": {
             "sublineBadge": "Tenés una insignia que se salta la fila de la beta cerrada. La tarjeta es tuya."
@@ -706,7 +703,7 @@
             "cancelDepositFailed": "No pudimos cancelar este depósito. Intentalo de nuevo o contactá a soporte."
         },
         "toast": {
-            "linkCancelledRefresh": "¡Enlace cancelado! Actualizá para ver el saldo actualizado.",
+            "linkCancelledRefresh": "¡Enlace cancelado! Actualizá para ver tu saldo al día.",
             "cancelLinkFailed": "No se pudo cancelar el enlace. Intentalo de nuevo."
         },
         "decline": {
@@ -733,7 +730,7 @@
         "lifetimeRewards": "Recompensas totales: {amount}. Para ganar más, invitá a tus amigos.",
         "earnWhenFriendsUse": "¡Ganás recompensas cada vez que tus amigos usan Peanut!",
         "shareInviteLinkPrompt": "Enviá tu link de invitación para empezar a ganar más recompensas",
-        "contactSupport": "Comunicate con Soporte."
+        "contactSupport": "Por favor contactá a Soporte."
     },
     "invites": {
         "invalidCodeMessage": "El código de invitación que intentás usar no es válido. Revisá la URL e intentalo de nuevo.",
@@ -754,7 +751,6 @@
         "emailSubmitFailed": "Algo salió mal. Intentalo de nuevo u omití este paso.",
         "notificationsTitle": "¿Querés novedades al instante?",
         "skipTheLine": "Salteá la fila: escribí el usuario del miembro que te invitó.",
-        "acceptFailed": "Algo salió mal. Intentalo de nuevo o comunicate con soporte.",
         "pleaseWait": "Esperá un momento..."
     },
     "badges": {
@@ -780,15 +776,15 @@
         "errorNoResponse": "No hubo respuesta del servidor. Intentalo de nuevo.",
         "errorStartDocVerification": "No pudimos iniciar la verificación de documentos. Intentalo de nuevo.",
         "initiate": {
-            "titleRestartIdentity": "Verificá con otro documento",
+            "titleRestartIdentity": "Verificate con otro documento",
             "titleCrossRegion": "Desbloqueá {region}",
             "titleCrossRegionGeneric": "Desbloqueá esta región",
             "titleDefault": "Desbloqueá tu cuenta",
             "descriptionError": "{error} Contactá a soporte para recibir ayuda.",
             "descriptionBlocked": "No pudimos confirmar tu identidad. Contactá a soporte para recibir ayuda.",
-            "descriptionRestartIdentity": "Este medio de pago requiere un documento de un país compatible. Podés verificarte con otro documento.",
+            "descriptionRestartIdentity": "Este método necesita un documento de un país compatible. Podés verificarte con otro documento.",
             "descriptionProviderRejection": "Subí una foto más nítida de tu documento para continuar.",
-            "descriptionRegionUnavailable": "Debido a las regulaciones del Reino Unido, las transferencias bancarias no están disponibles para sus residentes. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
+            "descriptionRegionUnavailable": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
             "descriptionDefault": "Confirmá tu identidad para desbloquear los pagos. Toma alrededor de un minuto."
         },
         "advisory": {
@@ -974,7 +970,8 @@
         },
         "errorStartActionFailed": "No pudimos iniciar la verificación. Intentalo de nuevo.",
         "actionMessageActionRequired": "Necesitamos un poco más para verificar tu identidad. Volvé a enviar tus documentos.",
-        "actionMessageFailed": "No pudimos verificar tu identidad. Contactá a soporte."
+        "actionMessageFailed": "No pudimos verificar tu identidad. Contactá a soporte.",
+        "successCloseWindow": "Ya podés cerrar esta ventana."
     },
     "identity": {
         "unlockTitle": "Desbloqueá {region}",
@@ -1099,6 +1096,7 @@
             "description": "Tu tarjeta necesita un breve tiempo de espera entre gastos seguidos. Para evitar esto en el futuro, podés bajar el límite de tu tarjeta por debajo del saldo de tu wallet; el resto siempre estará disponible."
         },
         "staleCardApprovalModal": {
+            "description": "Necesitás volver a habilitar tu tarjeta antes de retirar. Solo toma un toque con tu passkey.",
             "successDescription": "Tu tarjeta está lista — intentá tu retiro de nuevo.",
             "cancelledError": "Se canceló la reactivación. Tocá Reactivar tarjeta para intentarlo otra vez.",
             "unexpectedError": "No pudimos reactivar tu tarjeta. Intentalo de nuevo."
@@ -1242,8 +1240,5 @@
         "ready": {
             "subtitle": "Probá la puerta."
         }
-    },
-    "kyc": {
-        "successCloseWindow": "Ya podés cerrar esta ventana."
     }
 }
