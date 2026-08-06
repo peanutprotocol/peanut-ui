@@ -34,7 +34,32 @@ describe('payment explorer document headers', () => {
         const reportingEndpoints = route?.headers.find((header) => header.key === 'Reporting-Endpoints')
         expect(reportOnly?.value).not.toContain('report-uri')
         expect(reportOnly?.value).not.toContain('report-to')
-        expect(reportingEndpoints?.value).not.toContain('/api/csp-report"')
+        expect(reportingEndpoints?.value).toBe('csp-disabled="/api/csp-report-disabled"')
         consoleLog.mockRestore()
+    })
+
+    it('overrides the Vercel-wide referrer policy for the exact route and its trailing-slash family', () => {
+        type VercelHeaderRule = {
+            source: string
+            headers: Array<{ key: string; value: string }>
+        }
+        const config = require('../../../../vercel.json') as { headers: VercelHeaderRule[] }
+        const broadRuleIndex = config.headers.findIndex((rule) => rule.source === '/(.*)')
+        const explorerSources = ['/dev/payment-graph', '/dev/payment-graph/(.*)']
+
+        expect(broadRuleIndex).toBeGreaterThanOrEqual(0)
+        for (const source of explorerSources) {
+            const index = config.headers.findIndex((rule) => rule.source === source)
+            expect(index).toBeGreaterThan(broadRuleIndex)
+            expect(config.headers[index]?.headers).toContainEqual({
+                key: 'Referrer-Policy',
+                value: 'no-referrer',
+            })
+        }
+
+        expect(new RegExp('^/dev/payment-graph$').test('/dev/payment-graph')).toBe(true)
+        expect(new RegExp('^/dev/payment-graph/(.*)$').test('/dev/payment-graph/')).toBe(true)
+        expect(new RegExp('^/dev/payment-graph/(.*)$').test('/dev/payment-graph/child')).toBe(true)
+        expect(new RegExp('^/dev/payment-graph$').test('/dev/payment-graphic')).toBe(false)
     })
 })

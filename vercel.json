@@ -41,6 +41,24 @@
                     "value": "frame-ancestors 'self'; object-src 'none'; base-uri 'self'"
                 }
             ]
+        },
+        {
+            "source": "/dev/payment-graph",
+            "headers": [
+                {
+                    "key": "Referrer-Policy",
+                    "value": "no-referrer"
+                }
+            ]
+        },
+        {
+            "source": "/dev/payment-graph/(.*)",
+            "headers": [
+                {
+                    "key": "Referrer-Policy",
+                    "value": "no-referrer"
+                }
+            ]
         }
     ]
 }
