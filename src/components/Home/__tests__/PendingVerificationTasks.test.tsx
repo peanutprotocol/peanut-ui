@@ -18,7 +18,7 @@ import type { NextAction } from '@/types/capabilities'
 import PendingVerificationTasks from '../PendingVerificationTasks'
 
 let mockNextActions: NextAction[] = []
-const mockFetchUser = jest.fn()
+const mockFetchUser = jest.fn(() => Promise.resolve(null))
 const mockStartHosted = jest.fn<Promise<{ url?: string; error?: string }>, []>()
 let mockStoredDismissal: string[] | undefined
 let mockReservedTab: { location: { href: string }; close: jest.Mock }
@@ -67,6 +67,7 @@ describe('PendingVerificationTasks', () => {
     beforeEach(() => {
         mockNextActions = []
         mockFetchUser.mockReset()
+        mockFetchUser.mockResolvedValue(null)
         mockStartHosted.mockReset()
         mockOpenExternalUrl.mockReset()
         mockOpenExternalUrl.mockResolvedValue(undefined)
@@ -125,6 +126,21 @@ describe('PendingVerificationTasks', () => {
         await waitFor(() => expect(mockReservedTab.location.href).toBe('https://bridge.withpersona.com/verify?x=1'))
         expect(document.querySelector('iframe')).toBeNull()
         expect(mockReservedTab.close).not.toHaveBeenCalled()
+    })
+
+    it('pop-ups blocked → tells the user, and never fires the side-effecting Bridge call', async () => {
+        // openExternalUrl would just call window.open again AFTER the await —
+        // blocked harder, and its null result is unobservable, so we would have
+        // promised a page that never opened.
+        mockWindowOpen.mockReturnValue(null)
+        mockNextActions = [hostedAction]
+        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
+        render(<PendingVerificationTasks />)
+
+        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
+        expect(await screen.findByText(/allow pop-ups/i)).toBeInTheDocument()
+        expect(mockStartHosted).not.toHaveBeenCalled()
+        expect(mockOpenExternalUrl).not.toHaveBeenCalled()
     })
 
     it('closes the reserved tab when the hosted URL never arrives', async () => {
