@@ -6,9 +6,17 @@ on:
     # install actually listens on, which is the point: an OTA there reaches all
     # users, not a tester subset.
     #
-    # Reaching production still requires a human. Every production deploy runs under
-    # the Production environment's required reviewers, whether it arrives by push or
-    # by dispatch, so no commit can push OTA JS to devices unapproved.
+    # WARNING: a production deploy currently ships immediately, with no approval.
+    # The job declares the Production environment below and this file used to claim
+    # that gated it behind required reviewers — but that environment has no
+    # protection rules configured at all (verified 2026-08-06 via
+    # `gh api repos/:owner/:repo/environments`), so the gate has never existed and
+    # every production OTA to date has gone straight to devices.
+    #
+    # The declaration is left in place so that adding reviewers in
+    # Settings → Environments → Production starts gating this immediately, with no
+    # workflow change. Until someone does, treat a push to mobile-release as
+    # shipping to every user the moment CI goes green.
     push:
         branches: [dev, mobile-release]
     workflow_dispatch:
@@ -33,10 +41,11 @@ concurrency:
 jobs:
     deploy:
         runs-on: ubuntu-latest
-        # Gate ONLY the production deploy behind the Production environment (required
-        # reviewers, set in repo Settings → Environments → Production). Resolving to an
-        # empty string means no environment, so the dev→staging auto-push is never
-        # paused for approval.
+        # Scope the Production environment to production deploys only, so the
+        # dev→staging auto-push is never paused. NOTE: this environment has no
+        # protection rules today, so declaring it gates nothing — see the warning at
+        # the top of this file. It is wired up so that adding required reviewers in
+        # Settings → Environments → Production takes effect without touching CI.
         #
         # Must be an expression over the event, not the resolved channel below: GitHub
         # picks the environment before any step runs, so it cannot read a step output.
