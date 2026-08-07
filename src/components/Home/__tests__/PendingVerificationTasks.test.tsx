@@ -10,7 +10,8 @@
  * survive the task list flapping under the ~4s user auto-refresh.
  */
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { screen, fireEvent, waitFor } from '@testing-library/react'
+import { renderWithIntl as render } from '@/test-utils/intl'
 import type { NextAction } from '@/types/capabilities'
 import PendingVerificationTasks from '../PendingVerificationTasks'
 

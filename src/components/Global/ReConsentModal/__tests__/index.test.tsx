@@ -10,7 +10,8 @@
  * prompt must ALWAYS be escapable and must never ledger a refusal as consent.
  */
 import React from 'react'
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { screen, fireEvent, act } from '@testing-library/react'
+import { renderWithIntl as render } from '@/test-utils/intl'
 
 const mockGetStatus = jest.fn<Promise<unknown>, []>()
 const mockAccept = jest.fn<Promise<unknown>, [unknown]>()

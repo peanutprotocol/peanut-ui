@@ -201,6 +201,9 @@
             "closeVerificationPrompt": "Close verification prompt",
             "closeNotificationPrompt": "Close notification prompt",
             "claimablePerk": "Claimable perk"
+        },
+        "pendingTasks": {
+            "completeBefore": "Complete before {deadline}"
         }
     },
     "profile": {
@@ -2759,7 +2762,11 @@
         "demoBanner": "Demo mode — you're previewing Peanut with a simulated wallet. Balances and transactions aren't real.",
         "rainCooldownPill": "Card cool-down",
         "betaBannerThumbsUpAlt": "Thumbs up",
-        "easterEggImageAlt": "Easter egg illustration"
+        "easterEggImageAlt": "Easter egg illustration",
+        "reConsent": {
+            "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",
+            "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual."
+        }
     },
     "errors": {
         "balanceSettling": "Your balance isn't fully available yet. Please try again in a few seconds.",

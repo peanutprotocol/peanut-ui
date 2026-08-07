@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import ActionModal from '../ActionModal'
@@ -37,6 +38,7 @@ const STACKED_CTAS = 'flex-col sm:flex-col'
  * exists, and dismissing never writes a ledger row (declining is not consent).
  */
 const ReConsentModal = () => {
+    const t = useTranslations('global')
     const { user } = useAuth()
     const [outdatedDocs, setOutdatedDocs] = useState<ConsentStatusDocument[]>([])
     const [checked, setChecked] = useState(false)
@@ -143,14 +145,8 @@ const ReConsentModal = () => {
                      * it when a future version bump shows this modal for a different
                      * change. "No rush" is literal: "Not now" snoozes to the effective
                      * date (see utils.ts). */}
-                    <p className="text-sm text-grey-1">
-                        Nothing changes about your fees, your funds, or how we handle your data.
-                    </p>
-                    <p className="text-sm text-grey-1">
-                        We've rewritten the documents below in plain language so they match what Peanut is today,
-                        including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using
-                        Peanut as usual.
-                    </p>
+                    <p className="text-sm text-grey-1">{t('reConsent.reassurance')}</p>
+                    <p className="text-sm text-grey-1">{t('reConsent.whatChanged')}</p>
                     <ul className="space-y-1 text-sm">
                         {outdatedDocs.map((doc) => {
                             const label = DOC_LABELS[doc.slug] ?? { name: doc.slug, href: `/${doc.slug}` }
