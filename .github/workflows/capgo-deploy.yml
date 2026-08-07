@@ -86,6 +86,7 @@ jobs:
                     --key-data-v2 "$CAPGO_PRIVATE_KEY" \
                     --path ./out \
                     --auto-min-update-version \
+                    --version-exists-ok \
                     --comment "$COMMENT"
 
             - name: Deployment summary
