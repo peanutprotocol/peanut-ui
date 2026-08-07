@@ -174,8 +174,9 @@ function contentSecurityPolicyReportOnly() {
         // Widget in Global/Layout renders. Currently unreachable (its Modal is
         // never opened), so it produces no violations today; allow-listed because
         // re-arming it is a one-line change and the failure would be a blank
-        // iframe under enforcement.
-        "frame-src 'self' https://*.crisp.chat https://*.sumsub.com https://widget.manteca.dev https://mpago.la https://*.bridge.xyz https://form.typeform.com",
+        // iframe under enforcement. The creator contest stays on its own Vercel
+        // project and is framed by /creator-contest.
+        "frame-src 'self' https://*.crisp.chat https://*.sumsub.com https://widget.manteca.dev https://mpago.la https://*.bridge.xyz https://form.typeform.com https://peanut-contest.vercel.app",
         "worker-src 'self' blob:",
         "object-src 'none'",
         "base-uri 'self'",
